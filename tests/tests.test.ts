@@ -7,15 +7,24 @@ describe('Basic', () => {
     });
     test('set value', () => {
         const obs = obsProxy<number>(10);
+        const handler = jest.fn();
+        listenToObs(obs, handler);
         obs.value = 20;
         expect(obs.value).toEqual(20);
+        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
     });
     test('set function', () => {
         const obs = obsProxy<number>(10);
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+
         const ret = obs.set(20);
         expect(obs.value).toEqual(20);
         expect(ret.value).toEqual(20);
         expect(ret.set).not.toBeUndefined();
+        // @ts-ignore
+        expect(ret.value.set).toBeUndefined();
+        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
     });
     test('require set function', () => {
         const obs = obsProxy<number>(10);
@@ -27,7 +36,7 @@ describe('Basic', () => {
     test('require set function', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = obsProxy({ test: 'hi' }, true);
-        //   @ts-ignore
+        // @ts-ignore This is supposed to be a TS error so test that it fails
         obs.test = 'hello';
         expect(consoleErrorMock).toHaveBeenCalled();
         consoleErrorMock.mockRestore();

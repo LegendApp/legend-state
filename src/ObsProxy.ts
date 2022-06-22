@@ -53,7 +53,7 @@ function collectionSetter(prop: string, proxyOwner: ObsProxy, key: string, value
 
 function setter(proxyOwner: ObsProxy, value: any) {
     // this = target
-    this.value = value;
+    proxyOwner.value = value;
     return proxyOwner;
 }
 

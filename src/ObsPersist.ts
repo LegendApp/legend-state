@@ -91,7 +91,7 @@ async function _obsPersist<T>(obs: ObsProxy<T>, persistOptions: PersistOptions<T
         if (max.v > 0) {
             dateModified = max.v;
         }
-        if (typeof __DEV__ !== undefined && __DEV__) {
+        if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
                 console.error(`Called persist with the same local name multiple times: ${local}`);
                 return;
