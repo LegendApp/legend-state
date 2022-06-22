@@ -1,0 +1,17 @@
+{
+  "scripts": {},
+  "devDependencies": {
+    "@types/jest": "^26.0.24",
+    "@types/react": "^18.0.1",
+    "@types/react-dom": "^18.0.0",
+    "jest": "^27.0.6",
+    "react": "^18.0.0",
+    "ts-jest": "^27.0.4",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "@legendapp/tools": "^1.0.3",
+    "prettier": "^2.6.2"
+  }
+}
