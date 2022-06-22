@@ -23,7 +23,7 @@ type ObsPropsRecursive<T> = {
 };
 
 type ObsPropsRecursiveReadonly<T> = {
-  readonly [K in keyof T]: ObsProxy<T[K]>;
+    readonly [K in keyof T]: ObsProxy<T[K]>;
 };
 
 export type ProxyValue<T extends ObsProxy<any>> = T extends ObsProxy<infer t> ? t : T;

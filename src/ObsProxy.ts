@@ -4,22 +4,85 @@ import { ObsProxy, ObsProxySafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
 function isPrimitive(val: any) {
-    return !isObject(val) && !isArray(val);
+    return (
+        !isObject(val) &&
+        !isArray(val) &&
+        !(val instanceof WeakMap) &&
+        !(val instanceof WeakSet) &&
+        !(val instanceof Error) &&
+        !(val instanceof Date) &&
+        !(val instanceof String) &&
+        !(val instanceof ArrayBuffer)
+    );
+}
+
+function isCollection(obj: any) {
+    return obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
+}
+
+const MapsModifiers = new Map([
+    ['clear', true],
+    ['delete', true],
+    ['set', true],
+]);
+
+const SetModifiers = new Map([
+    ['add', true],
+    ['clear', true],
+    ['delete', true],
+]);
+
+const WeakMapModifiers = new Map([
+    ['set', true],
+    ['delete', true],
+]);
+
+const WeakSetModifiers = new Map([
+    ['add', true],
+    ['delete', true],
+]);
+
+function collectionSetter(prop: string, proxyOwner: ObsProxy, key: string, value: any) {
+    // this = target
+    const prevValue = (this instanceof Map && new Map(this)) || (this instanceof Set && new Set(this)) || this;
+
+    this[prop](key, value);
+
+    obsNotify(proxyOwner, this, prevValue, []);
+}
+
+function setter(proxyOwner: ObsProxy, value: any) {
+    // this = target
+    this.value = value;
+    return proxyOwner;
 }
 
 const proxyGet = {
     get(target: any, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         if (prop === 'value') {
+            // Provide access to the original object
             return info.isWrapped ? target[prop] : target;
+        } else if (isFunction(target[prop]) && isCollection(target)) {
+            // If this is a modifying function on a collection, use custom setter which notifies of changes
+            if (
+                (target instanceof Map && MapsModifiers.has(prop)) ||
+                (target instanceof WeakMap && WeakMapModifiers.has(prop)) ||
+                (target instanceof Set && SetModifiers.has(prop)) ||
+                (target instanceof WeakSet && WeakSetModifiers.has(prop))
+            ) {
+                return collectionSetter.bind(target, prop, proxyOwner);
+            }
+
+            // Non-modifying functions pass straight through
+            return target[prop].bind(target);
         } else if (prop === 'set') {
-            return (value) => {
-                target.value = value;
-                return proxyOwner;
-            };
+            // Calling set on a proxy returns a function which sets the value
+            return setter.bind(target, proxyOwner);
         } else {
             let proxy = info.proxies?.get(prop);
 
+            // Getting a property creates a proxy for it
             if (!proxy && !isFunction(target[prop]) && !isArray(target)) {
                 if (!info.proxies) {
                     info.proxies = new Map();
