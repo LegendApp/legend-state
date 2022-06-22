@@ -42,7 +42,7 @@ async function onObsChange<T>(
     }
 
     if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
-        const saved = await persistenceRemote.save(value, info);
+        const saved = await persistenceRemote.save(persistOptions.remote, value, info);
         // const saved = await persistenceRemote.setValue(value, this.persistOptions.remote, {
         //     changedKey,
         //     changedProperty,

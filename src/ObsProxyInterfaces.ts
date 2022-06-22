@@ -35,18 +35,19 @@ export type MappedProxyValue<T> = {
 export type ObsProxy<T = object> = T & ObsProps<T> & ObsPropsRecursive<T>;
 export type ObsProxySafe<T = object> = Readonly<T> & ObsProps<T> & ObsPropsRecursiveReadonly<T>;
 
+export interface PersistOptionsRemote<T = any> {
+    readonly?: boolean;
+    once?: boolean;
+    requireAuth?: boolean;
+    firebase?: {
+        syncPath: (uid: string) => `${string}/`;
+        fieldTransforms?: any; // SameShapeWithStrings<T>;
+        spreadPaths?: Exclude<keyof T, '_id' | 'id'>[];
+    };
+}
 export interface PersistOptions<T = any> {
     local?: string;
-    remote?: {
-        readonly?: boolean;
-        once?: boolean;
-        requireAuth?: boolean;
-        firebase?: {
-            syncPath: (uid: string) => string;
-            fieldTransforms?: any; // SameShapeWithStrings<T>;
-            spreadPaths?: Exclude<keyof T, '_id' | 'id'>[];
-        };
-    };
+    remote?: PersistOptionsRemote<T>;
     localPersistence?: any;
     remotePersistence?: any;
 }
@@ -60,7 +61,11 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObsPersistRemote {
-    save<T>(value: T, info: ObsListenerInfo): Promise<T>;
-    setValue<T extends object>(value: T, options: PersistOptions['remote'], extra?: any): Promise<T>;
-    listen(options: PersistOptions['remote'], dateModified: number, onLoad: () => void, onChange: (value: any) => void);
+    save<T>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
+    listen<T>(
+        options: PersistOptionsRemote<T>,
+        dateModified: number,
+        onLoad: () => void,
+        onChange: (value: any) => void
+    );
 }

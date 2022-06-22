@@ -1,5 +1,5 @@
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
-import { obsProxy } from '../src';
+import { obsProxy, PersistOptionsRemote } from '../src';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
@@ -61,24 +61,27 @@ describe('Persist remote', () => {
     test('Pending after save', () => {
         const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
 
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                // fieldTransforms: FieldMapTherapist,
+                syncPath: (uid) => `/test/${uid}/s/`,
+                // spreadPaths: ['clientsList'],
+            },
+        };
+
         obsPersist(obs, {
             localPersistence: ObsPersistLocalStorage,
             remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
-            remote: {
-                requireAuth: true,
-                firebase: {
-                    // fieldTransforms: FieldMapTherapist,
-                    syncPath: (uid) => `/test/${uid}/s`,
-                    // spreadPaths: ['clientsList'],
-                },
-            },
+            remote: remoteOptions,
         });
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
-        const pending = remote['_pendingSaves2'];
 
         obs.test.test2 = 'hi';
+
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' } } });
 
@@ -97,5 +100,7 @@ describe('Persist remote', () => {
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test33333' } },
         });
+
+        console.log(pending.test[symbolSaveValue]);
     });
 });

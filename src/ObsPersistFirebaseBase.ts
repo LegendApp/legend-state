@@ -1,7 +1,7 @@
 import { isObject } from '@legendapp/tools';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
 import { constructObject, mergeDeep } from './globals';
-import type { ObsListenerInfo, ObsPersistRemote, PersistOptions } from './ObsProxyInterfaces';
+import type { ObsListenerInfo, ObsPersistRemote, PersistOptions, PersistOptionsRemote } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
 const Delimiter = '~';
@@ -39,6 +39,11 @@ type SaveInfoDictionary<T = any> = {
     [K in keyof T]: SaveInfo | SaveInfoDictionary<T[K]>;
 };
 
+interface PendingSaves {
+    options: PersistOptionsRemote;
+    saves: SaveInfoDictionary;
+}
+
 export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private promiseAuthed: PromiseCallback<void>;
     private promiseSaved: PromiseCallback<void>;
@@ -49,7 +54,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private fns: FirebaseFns;
     private _hasLoadedValue: Record<string, boolean> = {};
 
-    private _pendingSaves2: SaveInfoDictionary = {};
+    private _pendingSaves2: Map<string, PendingSaves> = new Map();
 
     constructor(fns: FirebaseFns) {
         this.fns = fns;
@@ -68,8 +73,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await this.promiseAuthed.promise;
     }
-    public async listen(
-        options: PersistOptions['remote'],
+    public async listen<T>(
+        options: PersistOptionsRemote<T>,
         dateModified: number,
         onLoad: () => void,
         onChange: (value: any) => void
@@ -128,106 +133,138 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         }
     }
-    public async save<T>(value: T, info: ObsListenerInfo) {
+    public async save<T>(options: PersistOptionsRemote, value: T, info: ObsListenerInfo) {
         const path = info.path.slice();
-        this._updatePendingSave(path, value as unknown as object, this._pendingSaves2);
+        const syncPath = options.firebase.syncPath('__SAVE__');
+        if (!this._pendingSaves2.has(syncPath)) {
+            this._pendingSaves2.set(syncPath, { options, saves: {} });
+        }
+        const pending = this._pendingSaves2.get(syncPath).saves;
+
+        this._updatePendingSave(path, value as unknown as object, pending);
+
+        if (this._timeoutSave) clearTimeout(this._timeoutSave);
+        // TODO: Change this to 3000
+        this._timeoutSave = setTimeout(this._onTimeoutSave, 0);
 
         return value;
     }
-    public async setValue<T extends object>(
-        value: T,
-        options: PersistOptions['remote'],
-        { changedKey, changedProperty }: { changedKey: string; changedProperty: string }
+    // public async setValue<T extends object>(
+    //     value: T,
+    //     options: PersistoptionsRemote,
+    //     { changedKey, changedProperty }: { changedKey: string; changedProperty: string }
+    // ) {
+    //     await this.waitForAuth();
+
+    //     let values: { key: string; value: any }[] = [];
+
+    //     let extraPath = '';
+
+    //     const { syncPath, fieldTransforms, spreadPaths } = options.firebase;
+    //     const pathFirebase = syncPath(this.fns.getCurrentUser()) + (extraPath || '');
+
+    //     let out: any = value;
+    //     if (fieldTransforms) {
+    //         out = transformObject(value, fieldTransforms);
+    //     }
+
+    //     const path = transformPath(
+    //         [changedKey, changedProperty].filter((a) => !!a),
+    //         fieldTransforms
+    //     );
+
+    //     if (changedKey) {
+    //         extraPath = '/' + path.join('/');
+    //         out = out[path[0]];
+    //         if (out === undefined) out = null;
+
+    //         if (changedProperty) {
+    //             if (spreadPaths?.includes(changedKey)) {
+    //                 out = out[path[1]];
+    //                 if (out === undefined) out = null;
+    //                 values = [{ key: '/' + path.join(Delimiter), value: out }];
+    //             } else {
+    //                 values = [{ key: '/' + path[0], value: out }];
+    //             }
+    //         } else {
+    //             if (isObject(out) && spreadPaths?.includes(changedKey)) {
+    //                 Object.keys(out).forEach((key) => {
+    //                     values.push({
+    //                         key: '/' + path[0] + Delimiter + key,
+    //                         value: out[key],
+    //                     });
+    //                 });
+    //             } else {
+    //                 values = [{ key: '/' + path[0], value: out }];
+    //             }
+    //         }
+    //     } else if (changedProperty) {
+    //         debugger;
+    //         values = [{ key: '/' + path.join(Delimiter), value: value[changedProperty] }];
+    //     } else {
+    //         debugger;
+    //     }
+
+    //     values.forEach((v) => {
+    //         const val = isObject(v.value)
+    //             ? Object.assign({}, v.value, { '@': this.fns.serverTimestamp() })
+    //             : { '@': this.fns.serverTimestamp(), _: v.value };
+    //         this._batch[pathFirebase + v.key] = val;
+    //     });
+
+    //     const pendingSave = (this._pendingSaves[pathFirebase] = { values: [] });
+
+    //     if (!this.promiseSaved) {
+    //         this.promiseSaved = new PromiseCallback();
+    //     }
+
+    //     if (this._timeoutSave) {
+    //         clearTimeout(this._timeoutSave);
+    //     }
+    //     this._timeoutSave = setTimeout(this._onTimeoutSave, 3000);
+
+    //     await this.promiseSaved.promise;
+
+    //     const valuesSaved = pendingSave.values;
+    //     delete this._pendingSaves[pathFirebase];
+    //     const valueSaved = JSON.parse(JSON.stringify(value));
+    //     Object.assign(valueSaved, ...valuesSaved);
+
+    //     return valueSaved;
+    // }
+    private _constructBatch(
+        batch: Record<string, string | object>,
+        basePath: string,
+        saves: SaveInfoDictionary,
+        ...path: string[]
     ) {
-        await this.waitForAuth();
-
-        let values: { key: string; value: any }[] = [];
-
-        let extraPath = '';
-
-        const { syncPath, fieldTransforms, spreadPaths } = options.firebase;
-        const pathFirebase = syncPath(this.fns.getCurrentUser()) + (extraPath || '');
-
-        let out: any = value;
-        if (fieldTransforms) {
-            out = transformObject(value, fieldTransforms);
-        }
-
-        const path = transformPath(
-            [changedKey, changedProperty].filter((a) => !!a),
-            fieldTransforms
-        );
-
-        if (changedKey) {
-            extraPath = '/' + path.join('/');
-            out = out[path[0]];
-            if (out === undefined) out = null;
-
-            if (changedProperty) {
-                if (spreadPaths?.includes(changedKey)) {
-                    out = out[path[1]];
-                    if (out === undefined) out = null;
-                    values = [{ key: '/' + path.join(Delimiter), value: out }];
-                } else {
-                    values = [{ key: '/' + path[0], value: out }];
-                }
-            } else {
-                if (isObject(out) && spreadPaths?.includes(changedKey)) {
-                    Object.keys(out).forEach((key) => {
-                        values.push({
-                            key: '/' + path[0] + Delimiter + key,
-                            value: out[key],
-                        });
-                    });
-                } else {
-                    values = [{ key: '/' + path[0], value: out }];
-                }
-            }
-        } else if (changedProperty) {
-            debugger;
-            values = [{ key: '/' + path.join(Delimiter), value: value[changedProperty] }];
+        // @ts-ignore
+        const valSave = saves[symbolSaveValue];
+        if (valSave) {
+            batch[basePath + path.join('/')] = valSave;
         } else {
-            debugger;
+            Object.keys(saves).forEach((key) => {
+                this._constructBatch(batch, basePath, saves[key] as any, ...path, key);
+            });
         }
-
-        values.forEach((v) => {
-            const val = isObject(v.value)
-                ? Object.assign({}, v.value, { '@': this.fns.serverTimestamp() })
-                : { '@': this.fns.serverTimestamp(), _: v.value };
-            this._batch[pathFirebase + v.key] = val;
-        });
-
-        const pendingSave = (this._pendingSaves[pathFirebase] = { values: [] });
-
-        if (!this.promiseSaved) {
-            this.promiseSaved = new PromiseCallback();
-        }
-
-        if (this._timeoutSave) {
-            clearTimeout(this._timeoutSave);
-        }
-        this._timeoutSave = setTimeout(this._onTimeoutSave, 3000);
-
-        await this.promiseSaved.promise;
-
-        const valuesSaved = pendingSave.values;
-        delete this._pendingSaves[pathFirebase];
-        const valueSaved = JSON.parse(JSON.stringify(value));
-        Object.assign(valueSaved, ...valuesSaved);
-
-        return valueSaved;
     }
     private async _onTimeoutSave() {
-        this._timeoutSave = undefined;
-        const batch = this._batch;
-        this._batch = {};
-        const promiseSaved = this.promiseSaved;
-        this.promiseSaved = undefined;
-
-        // console.log('Save', batch);
-        await this.fns.update(batch);
-
-        promiseSaved.resolve();
+        const batch = {};
+        this._pendingSaves2.forEach(({ options, saves }) => {
+            const basePath = options.firebase.syncPath(this.fns.getCurrentUser());
+            this._constructBatch(batch, basePath, saves);
+        });
+        console.log(batch);
+        debugger;
+        // console.log(this._pendingSaves2);
+        // this._timeoutSave = undefined;
+        // const batch = this._batch;
+        // this._batch = {};
+        // const promiseSaved = this.promiseSaved;
+        // this.promiseSaved = undefined;
+        // // console.log('Save', batch);
+        // await this.fns.update(batch);
+        // promiseSaved.resolve();
     }
     private _onceValue(pathFirebase: string, onLoad: () => void, onChange: (value: any) => void, snapshot: any) {
         let outerValue = snapshot.val();
