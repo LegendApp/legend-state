@@ -1,6 +1,6 @@
 import { isArray, isObject } from '@legendapp/tools';
 import { obsNotify } from './ObsProxyFns';
-import { ObsProxy } from './ObsProxyInterfaces';
+import { ObsProxy, ObsProxySafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
 function isPrimitive(val: any) {
@@ -21,7 +21,7 @@ const proxyGet = {
                 if (!info.proxies) {
                     info.proxies = new Map();
                 }
-                proxy = _obsProxy(target[prop], proxyOwner, prop);
+                proxy = _obsProxy(target[prop], info.safe, proxyOwner, prop);
                 info.proxies.set(prop, proxy);
             }
 
@@ -31,6 +31,10 @@ const proxyGet = {
     set(target: ObsProxy, prop: string, value: any, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         const proxy = info?.proxies?.get(prop);
+
+        if (info.safe) {
+            console.error('Cannot set a value directly on a safe ObsProxy. Use .set() instead.')
+        }
 
         if (prop === 'value') {
             // Setting value should replace the target with the new value
@@ -82,20 +86,22 @@ const proxyGet = {
     },
 };
 
-function _obsProxy<T>(value: T, parent?: ObsProxy<any>, prop?: string): ObsProxy<T> {
+function _obsProxy<T>(value: T, safe: boolean, parent?: ObsProxy<any>, prop?: string): ObsProxy<T> {
     // If it's a primitive it needs to be wrapped in { value } because Proxy requires an object
     const isWrapped = isPrimitive(value);
     const _value = isWrapped ? { value } : value;
     const proxy = new Proxy(_value as object, proxyGet) as ObsProxy<T>;
 
     // Save proxy to state so it can be accessed later
-    state.infos.set(proxy, { isWrapped, parent, prop });
+    state.infos.set(proxy, { isWrapped, parent, prop, safe });
 
     return proxy;
 }
 
-function obsProxy<T extends any>(value: T = undefined): ObsProxy<T> {
-    return _obsProxy(value);
+function obsProxy<T extends any>(value: T): ObsProxy<T>;
+function obsProxy<T extends any>(value: T, safe: true): ObsProxySafe<T>;
+function obsProxy<T extends any>(value: T = undefined, safe?: boolean): ObsProxy<T> | ObsProxySafe<T> {
+    return _obsProxy(value, safe);
 }
 
 export { obsProxy };

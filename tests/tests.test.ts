@@ -19,4 +19,26 @@ describe('Basic', () => {
       expect(ret.value).toEqual(20);
       expect(ret.set).not.toBeUndefined();
     });
+
+    test("require set function", () => {
+      const obs = obsProxy<number>(10);
+      const ret = obs.set(20);
+      expect(obs.value).toEqual(20);
+      expect(ret.value).toEqual(20);
+      expect(ret.set).not.toBeUndefined();
+    });
+
+    test("require set function", () => {
+        const consoleErrorMock = jest
+          .spyOn(console, "error")
+          .mockImplementation();
+
+      const obs = obsProxy({ test: 'hi' }, true);
+    //   @ts-ignore
+      obs.test = 'hello';
+
+      expect(consoleErrorMock).toHaveBeenCalled();
+
+      consoleErrorMock.mockRestore();
+    });
 })

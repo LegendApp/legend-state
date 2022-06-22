@@ -22,6 +22,10 @@ type ObsPropsRecursive<T> = {
     [K in keyof T]: ObsProxy<T[K]>;
 };
 
+type ObsPropsRecursiveReadonly<T> = {
+  readonly [K in keyof T]: ObsProxy<T[K]>;
+};
+
 export type ProxyValue<T extends ObsProxy<any>> = T extends ObsProxy<infer t> ? t : T;
 
 export type MappedProxyValue<T> = {
@@ -29,6 +33,7 @@ export type MappedProxyValue<T> = {
 };
 
 export type ObsProxy<T = object> = T & ObsProps<T> & ObsPropsRecursive<T>;
+export type ObsProxySafe<T = object> = Readonly<T> & ObsProps<T> & ObsPropsRecursiveReadonly<T>;
 
 export interface PersistOptions<T = any> {
     local?: string;
