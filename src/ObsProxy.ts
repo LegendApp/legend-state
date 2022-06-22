@@ -1,4 +1,4 @@
-import { isArray, isObject } from '@legendapp/tools';
+import { isArray, isObject, isFunction } from '@legendapp/tools';
 import { obsNotify } from './ObsProxyFns';
 import { ObsProxy, ObsProxySafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
@@ -13,11 +13,14 @@ const proxyGet = {
         if (prop === 'value') {
             return info.isWrapped ? target[prop] : target;
         } else if (prop === 'set') {
-            return (value) => { target.value = value; return proxyOwner; }
+            return (value) => {
+                target.value = value;
+                return proxyOwner;
+            };
         } else {
             let proxy = info.proxies?.get(prop);
 
-            if (!proxy) {
+            if (!proxy && !isFunction(target[prop]) && !isArray(target)) {
                 if (!info.proxies) {
                     info.proxies = new Map();
                 }
@@ -33,7 +36,7 @@ const proxyGet = {
         const proxy = info?.proxies?.get(prop);
 
         if (info.safe) {
-            console.error('Cannot set a value directly on a safe ObsProxy. Use .set() instead.')
+            console.error('Cannot set a value directly on a safe ObsProxy. Use .set() instead.');
         }
 
         if (prop === 'value') {
@@ -70,15 +73,20 @@ const proxyGet = {
                 target[prop] = value;
                 obsNotify(proxyOwner, value, prevValue, [prop]);
             }
+        } else if (isArray(target)) {
+            // Ignore array length changing because that's caused by mutations which already notified.
+            if (prop !== 'length' && target[prop] !== value) {
+                const prevValue = target.slice();
+                target[prop] = value;
+                // Notify listeners of changes.
+                obsNotify(proxyOwner, target, prevValue, []);
+            }
         } else {
             const prevValue = target[prop];
             if (value !== prevValue) {
                 target[prop] = value;
                 // Notify listeners of changes.
-                // Ignore array length changing because that's caused by mutations which already notified.
-                if (!(prop === 'length' && isArray(target))) {
-                    obsNotify(proxyOwner, value, prevValue, [prop]);
-                }
+                obsNotify(proxyOwner, value, prevValue, [prop]);
             }
         }
 
