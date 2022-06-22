@@ -6,7 +6,6 @@ import { obsProxyComputed } from './ObsProxyComputed';
 import { ObsBatcher } from './ObsBatcher';
 import { obsPersist } from './ObsPersist';
 import { ObsPersistLocalStorage } from './web/ObsPersistLocalStorage';
-import { ObsPersistFirebaseWeb } from './web/ObsPersistFirebaseWeb';
 import { ObsStore } from './ObsStore';
 // import { FieldMapTherapist } from '~/FieldTransfoms';
 
@@ -140,7 +139,6 @@ setTimeout(() => {
     //         },
     //     },
     //     localPersistence: ObsPersistLocalStorage,
-    //     remotePersistence: ObsPersistFirebaseWeb,
     // });
 
     obsTherapist.profile.name = 'Test';
@@ -209,111 +207,84 @@ function perfTest() {
     // for (let i = 0; i < Num; i++) {
     //     obj1[i + 'asdf'] = { text: 'text' + i };
     // }
-
     // for (let i = 0; i < Num; i++) {
     //     obj1[i + 'asdf'].text = 'textz' + i;
     // }
-
     // let at = '';
     // for (let i = 0; i < Num; i++) {
     //     at = obj1[i + 'asdf'].text;
     // }
-
     // const end1 = performance.now();
-
     // const obj2 = obsProxy({});
     // for (let i = 0; i < Num; i++) {
     //     obj2[i + 'asdf'] = { text: 'text' + i };
     // }
-
     // for (let i = 0; i < Num; i++) {
     //     obj2[i + 'asdf'].text = 'textz' + i;
     // }
-
     // let bt = '';
     // for (let i = 0; i < Num; i++) {
     //     bt = obj2[i + 'asdf'].text;
     // }
-
     // const end2 = performance.now();
-
     // const obj3 = {};
     // for (let i = 0; i < Num; i++) {
     //     obj3[i + 'asdf'] = new Observable({ text: 'text' + i });
     // }
-
     // for (let i = 0; i < Num; i++) {
     //     obj3[i + 'asdf'].set({ text: 'textz' + i });
     // }
-
     // let ct = '';
     // for (let i = 0; i < Num; i++) {
     //     ct = obj3[i + 'asdf'].get().text;
     // }
-
     // const end3 = performance.now();
-
     // const obj4 = {};
     // for (let i = 0; i < Num; i++) {
     //     obj4[i + 'asdf'] = new ObservableObject({ text: 'text' + i });
     // }
-
     // for (let i = 0; i < Num; i++) {
     //     obj4[i + 'asdf'].setProperty('text', 'textz' + i);
     // }
-
     // let dt = '';
     // for (let i = 0; i < Num; i++) {
     //     dt = obj4[i + 'asdf'].get().text;
     // }
-
     // const end4 = performance.now();
-
     // const obj5 = obsProxy({});
     // let numListens = 0;
     // listenToObs(obj5, (val) => {
     //     numListens++;
     // });
-
     // for (let i = 0; i < Num; i++) {
     //     obj5[i + 'asdf'] = { text: 'text' + i };
     // }
-
     // for (let i = 0; i < Num; i++) {
     //     obj5[i + 'asdf'].text = 'textz' + i;
     // }
-
     // let et = '';
     // for (let i = 0; i < Num; i++) {
     //     et = obj5[i + 'asdf'].text;
     // }
-
     // const end5 = performance.now();
-
     // const obj6 = obsProxy({});
     // let numListens2 = 0;
     // listenToObs(obj6, (val) => {
     //     numListens2++;
     // });
-
     // ObsBatcher.beginBatch();
-
     // for (let i = 0; i < Num; i++) {
     //     obj6[i + 'asdf'] = { text: 'text' + i };
     // }
-
     // for (let i = 0; i < Num; i++) {
     //     obj6[i + 'asdf'].text = 'textz' + i;
     // }
     // ObsBatcher.endBatch();
-
     // let ft = '';
     // for (let i = 0; i < Num; i++) {
     //     ft = obj6[i + 'asdf'].text;
     // }
-
     // const end6 = performance.now();
-
     // console.log('bare', Math.round(end1 - start1));
     // console.log('proxy', Math.round(end2 - end1));
     // console.log('observable', Math.round(end3 - end2));

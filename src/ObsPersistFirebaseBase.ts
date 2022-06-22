@@ -1,9 +1,8 @@
 import { isObject } from '@legendapp/tools';
-import autobind from 'autobind-decorator';
-import globals from 'common/globals';
-import { invertObject, transformObject, transformPath } from 'common/Obs/FieldTransformer';
+import { invertObject, transformObject, transformPath } from './FieldTransformer';
+import { constructObject, mergeDeep } from './globals';
 import type { ObsListenerInfo, ObsPersistRemote, PersistOptions } from './ObsProxyInterfaces';
-import { PromiseCallback } from 'common/Obs/PromiseCallback';
+import { PromiseCallback } from './PromiseCallback';
 
 const Delimiter = '~';
 
@@ -18,18 +17,19 @@ export interface FirebaseFns {
         query: any,
         callback: (snapshot: any) => unknown,
         cancelCallback?: (error: Error) => unknown
-    ) => Unsubscribe;
+    ) => void;
     onChildChanged: (
         query: any,
         callback: (snapshot: any) => unknown,
         cancelCallback?: (error: Error) => unknown
-    ) => Unsubscribe;
+    ) => void;
     serverTimestamp: () => any;
     update: (object: object) => Promise<void>;
     onAuthStateChanged: (cb: (user: any) => void) => void;
 }
 
-const symbolSaveValue = Symbol('___obsSaveValue');
+/** @internal */
+export const symbolSaveValue = Symbol('___obsSaveValue');
 
 interface SaveInfo {
     [symbolSaveValue]: any;
@@ -53,6 +53,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
     constructor(fns: FirebaseFns) {
         this.fns = fns;
+        this._onTimeoutSave = this._onTimeoutSave.bind(this);
     }
     private async waitForAuth() {
         if (!this.promiseAuthed) {
@@ -104,35 +105,32 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         this.fns.once(refPath, this._onceValue.bind(this, pathFirebase, onLoad, onChange));
     }
     private _updatePendingSave(path: string[], value: object, pending: SaveInfoDictionary) {
-        const p = path[0];
-        const v = value[p];
-        // TODO use a symbol or something to determine whether we have SaveInfo here since it might overlap an object key
-
-        // If already have a save info here then don't need to go deeper on the path. Just overwrite the value.
-        if (pending[p] && pending[p][symbolSaveValue] !== undefined) {
-            pending[p][symbolSaveValue] = v;
+        if (path.length === 0) {
+            Object.assign(pending, { [symbolSaveValue]: value });
         } else {
-            // 1. If nothing here
-            // 2. If other strings here
-            if (!pending[p]) {
-                pending[p] = {};
-            }
-            if (path.length > 1) {
-                this._updatePendingSave(path.slice(1), v, pending[p] as SaveInfoDictionary);
+            const p = path[0];
+            const v = value[p];
+
+            // If already have a save info here then don't need to go deeper on the path. Just overwrite the value.
+            if (pending[p] && pending[p][symbolSaveValue] !== undefined) {
+                pending[p][symbolSaveValue] = v;
             } else {
-                pending[p] = { [symbolSaveValue]: v };
+                // 1. If nothing here
+                // 2. If other strings here
+                if (!pending[p]) {
+                    pending[p] = {};
+                }
+                if (path.length > 1) {
+                    this._updatePendingSave(path.slice(1), v, pending[p] as SaveInfoDictionary);
+                } else {
+                    pending[p] = { [symbolSaveValue]: v };
+                }
             }
         }
     }
     public async save<T>(value: T, info: ObsListenerInfo) {
-        console.log('VALUE', value, info);
-
         const path = info.path.slice();
-        debugger;
         this._updatePendingSave(path, value as unknown as object, this._pendingSaves2);
-
-        console.log(this._pendingSaves2);
-        debugger;
 
         return value;
     }
@@ -214,12 +212,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         const valuesSaved = pendingSave.values;
         delete this._pendingSaves[pathFirebase];
-        const valueSaved = globals.cloneDeep(value);
+        const valueSaved = JSON.parse(JSON.stringify(value));
         Object.assign(valueSaved, ...valuesSaved);
 
         return valueSaved;
     }
-    @autobind
     private async _onTimeoutSave() {
         this._timeoutSave = undefined;
         const batch = this._batch;
@@ -247,7 +244,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 }
 
                 const keys = key.split(Delimiter);
-                value = globals.constructObject(keys, value, dateModified ? { '@': dateModified } : undefined);
+                value = constructObject(keys, value, dateModified ? { '@': dateModified } : undefined);
 
                 const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
                 if (fieldTransformsIn) {
@@ -256,7 +253,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                     if (value['[object Object]']) debugger;
                 }
 
-                globals.mergeDeep(outValue, value);
+                mergeDeep(outValue, value);
             });
         }
         onChange(outValue);
@@ -281,7 +278,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
             if (value) {
                 const keys = snapshot.key.split(Delimiter);
-                value = globals.constructObject(keys, value, dateModified ? { '@': dateModified } : undefined);
+                value = constructObject(keys, value, dateModified ? { '@': dateModified } : undefined);
 
                 const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
                 if (fieldTransformsIn) {
@@ -299,17 +296,14 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     private validateMap(record: Record<string, any>) {
-        if (__DEV__) {
+        if (process.env.NODE_ENV === 'development') {
             const values = Object.entries(record)
                 .filter(([key]) => key !== '__dict' && key !== '__obj' && key !== '__arr' && key !== '_')
                 .map(([key, value]) => value);
-            if (values.length !== globals.arrayUniques(values).length) {
-                console.error(
-                    'Field transform map has duplicate values',
-                    record,
-                    values.length,
-                    globals.arrayUniques(values).length
-                );
+
+            const uniques = Array.from(new Set(values));
+            if (values.length !== uniques.length) {
+                console.error('Field transform map has duplicate values', record, values.length, uniques.length);
                 debugger;
             }
             values.forEach((val) => {

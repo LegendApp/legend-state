@@ -4,7 +4,8 @@ import { ObsBatcher } from './ObsBatcher';
 import { listenToObs } from './ObsProxyFns';
 import { ObsListenerInfo, ObsProxy, PersistOptions } from './ObsProxyInterfaces';
 
-const mapPersistences: WeakMap<any, any> = new WeakMap();
+/** @internal */
+export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
 
 interface LocalState {

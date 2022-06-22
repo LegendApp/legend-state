@@ -1,4 +1,3 @@
-import { isObjectEmpty } from 'common/Obs/ObsCommon';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
     DatabaseReference,
@@ -14,6 +13,7 @@ import {
     update,
     Unsubscribe,
 } from 'firebase/database';
+import { isObjectEmpty } from 'src/FieldTransformer';
 import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
 
 export class ObsPersistFirebaseWeb extends ObsPersistFirebaseBase {
