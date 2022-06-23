@@ -64,9 +64,7 @@ describe('Persist remote', () => {
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
             firebase: {
-                // fieldTransforms: FieldMapTherapist,
                 syncPath: (uid) => `/test/${uid}/s/`,
-                // spreadPaths: ['clientsList'],
             },
         };
 
@@ -84,15 +82,25 @@ describe('Persist remote', () => {
         const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': 'hi',
+        });
 
         obs.test.test3 = 'hi2';
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' }, test3: { [symbolSaveValue]: 'hi2' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+        });
 
         obs.test = { test2: 'test2 hi', test3: 'test3 hi' };
 
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test3 hi' } },
+        });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test': { test2: 'test2 hi', test3: 'test3 hi' },
         });
 
         obs.test.test3 = 'test33333';
@@ -100,7 +108,8 @@ describe('Persist remote', () => {
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test33333' } },
         });
-
-        console.log(pending.test[symbolSaveValue]);
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test': { test2: 'test2 hi', test3: 'test33333' },
+        });
     });
 });

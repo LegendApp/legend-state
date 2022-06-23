@@ -32,3 +32,17 @@ export function mergeDeep(target, ...sources) {
 
     return mergeDeep(target, ...sources);
 }
+export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
+    if (a === undefined) return null;
+    // @ts-ignore
+    const out: T = {};
+    Object.keys(a).forEach((key) => {
+        const v = a[key];
+        if (v !== null && v !== undefined) {
+            // @ts-ignore
+            out[key] = isObject(v) ? removeNullUndefined(v) : v;
+        }
+    });
+
+    return out;
+}

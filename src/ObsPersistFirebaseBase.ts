@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep } from './globals';
+import { constructObject, mergeDeep, removeNullUndefined } from './globals';
 import type { ObsListenerInfo, ObsPersistRemote, PersistOptions, PersistOptionsRemote } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
@@ -134,6 +134,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     public async save<T>(options: PersistOptionsRemote, value: T, info: ObsListenerInfo) {
+        value = removeNullUndefined(value);
+
         const path = info.path.slice();
         const syncPath = options.firebase.syncPath('__SAVE__');
         if (!this._pendingSaves2.has(syncPath)) {
@@ -240,7 +242,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     ) {
         // @ts-ignore
         const valSave = saves[symbolSaveValue];
-        if (valSave) {
+        if (valSave !== undefined) {
             batch[basePath + path.join('/')] = valSave;
         } else {
             Object.keys(saves).forEach((key) => {
@@ -248,23 +250,25 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             });
         }
     }
-    private async _onTimeoutSave() {
+    private _constructBatchForSave() {
         const batch = {};
         this._pendingSaves2.forEach(({ options, saves }) => {
             const basePath = options.firebase.syncPath(this.fns.getCurrentUser());
             this._constructBatch(batch, basePath, saves);
         });
-        console.log(batch);
-        debugger;
-        // console.log(this._pendingSaves2);
-        // this._timeoutSave = undefined;
-        // const batch = this._batch;
-        // this._batch = {};
-        // const promiseSaved = this.promiseSaved;
-        // this.promiseSaved = undefined;
-        // // console.log('Save', batch);
-        // await this.fns.update(batch);
-        // promiseSaved.resolve();
+
+        return batch;
+    }
+    private async _onTimeoutSave() {
+        this._timeoutSave = undefined;
+
+        const batch = this._constructBatchForSave();
+
+        const promiseSaved = this.promiseSaved;
+        this.promiseSaved = undefined;
+        // console.log('Save', batch);
+        await this.fns.update(batch);
+        promiseSaved.resolve();
     }
     private _onceValue(pathFirebase: string, onLoad: () => void, onChange: (value: any) => void, snapshot: any) {
         let outerValue = snapshot.val();
