@@ -1,6 +1,7 @@
 export interface ObsProps<T> {
     value?: T;
     set?: (value: T) => ObsProxy<T>;
+    assign?: (value: T) => ObsProxy<T>;
 }
 
 export interface ObsListener<T = any> {

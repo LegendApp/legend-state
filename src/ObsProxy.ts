@@ -60,6 +60,15 @@ function setter(value: any) {
     return this;
 }
 
+function assigner(value: any) {
+    // this = proxyOwner
+    state.isInSetFn = true;
+    Object.assign(this, value);
+    state.isInSetFn = false;
+
+    return this;
+}
+
 const proxyGet = {
     get(target: any, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
@@ -82,6 +91,9 @@ const proxyGet = {
         } else if (prop === 'set') {
             // Calling set on a proxy returns a function which sets the value
             return setter.bind(proxyOwner);
+        } else if (prop === 'assign') {
+            // Calling set on a proxy returns a function which sets the value
+            return assigner.bind(proxyOwner);
         } else {
             let proxy = info.proxies?.get(prop);
 

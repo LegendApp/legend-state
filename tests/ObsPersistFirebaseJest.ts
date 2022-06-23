@@ -3,7 +3,7 @@ import { isObjectEmpty } from '../src/FieldTransformer';
 import { ObsPersistFirebaseBase } from '../src/ObsPersistFirebaseBase';
 
 function clone(obj) {
-    return JSON.parse(JSON.stringify(obj));
+    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
 }
 function deepCompare(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
@@ -27,7 +27,7 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
                             ref.path.split('/').filter((a) => !!a),
                             this.remoteData
                         );
-                        return val;
+                        return clone(val);
                     },
                 });
             },
@@ -56,22 +56,28 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
         this.remoteData = obj;
     }
     modify(basePath: string, path: string, obj: object) {
+        const prev = clone(this.remoteData);
         const data = objectAtPath(
             basePath.split('/').filter((a) => !!a),
             this.remoteData
         );
-        const prev = clone(data);
         const o = objectAtPath(
-            (basePath + path).split('/').filter((a) => !!a),
-            this.remoteData
+            path.split('/').filter((a) => !!a),
+            data
         );
+
         Object.assign(o, obj);
 
-        Object.keys(data).forEach((key) => {
-            if (!deepCompare(data[key], prev[key])) {
-                const out = { key, val: () => data[key] };
-                this.listeners[basePath]?.forEach((listener) => listener(out));
-            }
+        Object.keys(this.listeners).forEach((listenerPath) => {
+            const pathArr = listenerPath.split('/').filter((a) => !!a);
+            const dataAtPath = clone(objectAtPath(pathArr, this.remoteData));
+            const prevAtPath = clone(objectAtPath(pathArr, prev));
+            Object.keys(dataAtPath).forEach((key) => {
+                if (!deepCompare(dataAtPath[key], prevAtPath[key])) {
+                    const out = { key, val: () => dataAtPath[key] };
+                    this.listeners[listenerPath]?.forEach((listener) => listener(out));
+                }
+            });
         });
     }
 }

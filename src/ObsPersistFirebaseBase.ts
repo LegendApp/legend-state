@@ -372,7 +372,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 this._pendingSaves[pathFirebase].values.push(value);
             } else {
                 onChange(() => {
-                    obs.set(value);
+                    obs.assign(value);
                 });
             }
         }

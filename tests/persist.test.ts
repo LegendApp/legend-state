@@ -550,43 +550,54 @@ describe('Remote change', () => {
         expect(getObsModified(obs.test)).toEqual(1001);
     });
 
-    // test('onChange with queryByModified deep', async () => {
-    //     const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
+    test('onChange with queryByModified', async () => {
+        const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
 
-    //     const remoteOptions: PersistOptionsRemote = {
-    //         requireAuth: true,
-    //         firebase: {
-    //             syncPath: (uid) => `/test/${uid}/s/`,
-    //             queryByModified: ['test/*'],
-    //         },
-    //     };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-    //     initializeRemote({
-    //         test: {
-    //             test2: { '@': 1000, test22: 'hi' },
-    //             test3: { '@': 1000, test33: 'hi3' },
-    //         },
-    //     });
+        initializeRemote({
+            test: {
+                test2: { '@': 1000, test22: 'hi' },
+                test3: { '@': 1000, test33: 'hi3' },
+            },
+        });
 
-    //     const state = obsPersist(obs, {
-    //         remotePersistence: ObsPersistFirebaseJest,
-    //         remote: remoteOptions,
-    //     });
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
 
-    //     await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote);
 
-    //     modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
+        modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
 
-    //     expect(obs.test.test2.test22.value).toEqual('hello2');
-    //     expect(obs.test.test3.test33.value).toEqual('hi3');
+        expect(obs.test.value).toEqual({
+            test2: {
+                test22: 'hello2',
+                [symbolDateModified]: 1001,
+            },
+            test3: {
+                test33: 'hi3',
+                [symbolDateModified]: 1000,
+            },
+        });
 
-    //     expect(obs.test.test2.value['@']).toEqual(undefined);
-    //     expect(obs.test.test3.value['@']).toEqual(undefined);
-    //     expect(obs.test.value['@']).toEqual(undefined);
+        expect(obs.test.test2.test22.value).toEqual('hello2');
+        expect(obs.test.test3.test33.value).toEqual('hi3');
 
-    //     expect(getObsModified(obs.test.test3)).toEqual(1000);
-    //     expect(getObsModified(obs.test.test2)).toEqual(1001);
-    // });
+        expect(obs.test.test2.value['@']).toEqual(undefined);
+        expect(obs.test.test3.value['@']).toEqual(undefined);
+        expect(obs.test.value['@']).toEqual(undefined);
+
+        expect(getObsModified(obs.test.test3)).toEqual(1000);
+        expect(getObsModified(obs.test.test2)).toEqual(1001);
+    });
 });
 
 // TODO
