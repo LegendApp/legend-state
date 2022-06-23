@@ -32,8 +32,8 @@ export type MappedProxyValue<T> = {
     [K in keyof T]: ProxyValue<T[K]>;
 };
 
-export type ObsProxy<T = object> = T & ObsProps<T> & ObsPropsRecursive<T>;
-export type ObsProxySafe<T = object> = Readonly<T> & ObsProps<T> & ObsPropsRecursiveReadonly<T>;
+export type ObsProxy<T = unknown> = T & ObsProps<T> & ObsPropsRecursive<T>;
+export type ObsProxySafe<T = unknown> = Readonly<T> & ObsProps<T> & ObsPropsRecursiveReadonly<T>;
 
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
@@ -64,10 +64,10 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
 export interface ObsPersistRemote {
     save<T>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
     listen<T>(
+        obs: ObsProxy<T>,
         options: PersistOptionsRemote<T>,
-        dateModified: number,
         onLoad: () => void,
-        onChange: (value: any) => void
+        onChange: (obs: ObsProxy, value: any) => void
     );
 }
 

@@ -1,7 +1,14 @@
-import { isObject } from '@legendapp/tools';
+import { isNumber, isObject } from '@legendapp/tools';
+import { getObsModified } from './ObsProxyFns';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep, removeNullUndefined, symbolDateModified } from './globals';
-import type { ObsListenerInfo, ObsPersistRemote, PersistOptions, PersistOptionsRemote } from './ObsProxyInterfaces';
+import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
+import type {
+    ObsListenerInfo,
+    ObsPersistRemote,
+    ObsProxy,
+    PersistOptions,
+    PersistOptionsRemote,
+} from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
 const Delimiter = '~';
@@ -60,6 +67,12 @@ interface PendingSaves {
     saves: SaveInfoDictionary;
 }
 
+function findMaxModified(obj: object, max: { v: number }) {
+    if (isObject(obj)) {
+        Object.keys(obj).forEach((key) => (max.v = Math.max(max.v, obj['@'])));
+    }
+}
+
 export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private promiseAuthed: PromiseCallback<void>;
     private promiseSaved: PromiseCallback<void>;
@@ -89,11 +102,62 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await this.promiseAuthed.promise;
     }
-    public async listen<T>(
+    private calculateDateModified(obs: ObsProxy) {
+        const max = { v: 0 };
+        if (isObject(obs.value)) {
+            Object.keys(obs).forEach((key) => (max.v = Math.max(max.v, getObsModified(obs[key]))));
+        }
+        return max.v > 0 ? max.v : undefined;
+    }
+    public listen<T>(
+        obs: ObsProxy<T>,
+        options: PersistOptionsRemote<T>,
+        onLoad: () => void,
+        onChange: (obs: ObsProxy<T>, value: any) => void
+    ) {
+        const {
+            firebase: { queryByModified },
+        } = options;
+        if (queryByModified) {
+            // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
+            // without modified
+
+            this.iterateListen(obs, options, queryByModified, onLoad, onChange, '');
+        } else {
+            this._listen(obs, options, undefined, onLoad, onChange, '');
+        }
+    }
+    private iterateListen<T>(
+        obs: ObsProxy<T>,
+        options: PersistOptionsRemote<T>,
+        queryByModified: object,
+        onLoad: () => void,
+        onChange: (obs: ObsProxy<T>, value: any) => void,
+        syncPathExtra: string
+    ) {
+        Object.keys(obs.value).forEach((key) => {
+            const o = obs[key];
+            const q = queryByModified[key];
+            const extra = syncPathExtra + key + '/';
+            let dateModified;
+            if (isObject(q)) {
+                console.log(key, 'object');
+                this.iterateListen(o, options, q, onLoad, onChange, extra);
+            } else {
+                if (q === true) {
+                    dateModified = this.calculateDateModified(o);
+                }
+                this._listen(o, options, dateModified, onLoad, onChange, extra);
+            }
+        });
+    }
+    private async _listen<T>(
+        obs: ObsProxy<T>,
         options: PersistOptionsRemote<T>,
         dateModified: number,
         onLoad: () => void,
-        onChange: (value: any) => void
+        onChange: (obsProxy: ObsProxy<T>, value: any) => void,
+        syncPathExtra: string
     ) {
         const {
             once,
@@ -105,7 +169,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             await this.waitForAuth();
         }
 
-        const pathFirebase = syncPath(this.fns.getCurrentUser());
+        const pathFirebase = syncPath(this.fns.getCurrentUser()) + syncPathExtra;
 
         if (fieldTransforms) {
             this.validateMap(fieldTransforms);
@@ -118,12 +182,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
 
         if (!once) {
-            const cb = this._onChange.bind(this, pathFirebase, onChange);
+            const cb = this._onChange.bind(this, pathFirebase, obs, onChange);
             this.fns.onChildAdded(refPath, cb, (err) => console.error(err));
             this.fns.onChildChanged(refPath, cb, (err) => console.error(err));
         }
 
-        this.fns.once(refPath, this._onceValue.bind(this, pathFirebase, onLoad, onChange));
+        this.fns.once(refPath, this._onceValue.bind(this, pathFirebase, obs, onLoad, onChange));
     }
     private _updatePendingSave(path: string[], value: object, pending: SaveInfoDictionary) {
         if (path.length === 0) {
@@ -245,13 +309,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let value = snapVal;
         // Database value can be either { @: number, _: object } or { @: number, ...rest }
         const dateModified = value['@'];
+        delete value['@'];
         if (value._) {
             value = value._;
         } else if (Object.keys(value).length === 1 && value['@']) {
             value = undefined;
         }
-
-        delete value['@'];
 
         const keys = key.split(Delimiter);
         value = constructObject(keys, value, dateModified);
@@ -264,34 +327,48 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         return value;
     }
-    private _onceValue(pathFirebase: string, onLoad: () => void, onChange: (value: any) => void, snapshot: any) {
+    private _onceValue(
+        pathFirebase: string,
+        obs: ObsProxy,
+        onLoad: () => void,
+        onChange: (cb: () => void) => void,
+        snapshot: any
+    ) {
         let outerValue = snapshot.val();
 
-        const outValue = {};
-        if (outerValue) {
-            Object.keys(outerValue).forEach((key) => {
-                const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
+        onChange(() => {
+            if (outerValue) {
+                Object.keys(outerValue).forEach((key) => {
+                    const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
 
-                Object.assign(outValue, value);
-            });
-        }
-        onChange(outValue);
+                    obs[key].set(value[key]);
+
+                    const d = value[symbolDateModified];
+                    const od = getObsModified(obs);
+                    if (d && (!od || d > od)) {
+                        obs[symbolDateModified] = value[symbolDateModified];
+                    }
+                });
+            }
+        });
 
         onLoad();
 
         this._hasLoadedValue[pathFirebase] = true;
     }
-    private _onChange(pathFirebase: string, onChange: (value: any) => void, snapshot: any) {
+    private _onChange(pathFirebase: string, obs: ObsProxy, onChange: (cb: () => void) => void, snapshot: any) {
         if (!this._hasLoadedValue[pathFirebase]) return;
 
-        let value = snapshot.val();
-        if (value) {
-            value = this._getChangeValue(pathFirebase, snapshot.key, value);
+        let val = snapshot.val();
+        if (val) {
+            const value = this._getChangeValue(pathFirebase, snapshot.key, val);
 
             if (this._pendingSaves[pathFirebase]) {
                 this._pendingSaves[pathFirebase].values.push(value);
             } else {
-                onChange(value);
+                onChange(() => {
+                    obs.set(value);
+                });
             }
         }
     }

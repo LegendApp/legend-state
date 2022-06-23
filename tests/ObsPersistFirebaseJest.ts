@@ -1,17 +1,6 @@
+import { objectAtPath } from '../src/globals';
 import { isObjectEmpty } from '../src/FieldTransformer';
 import { ObsPersistFirebaseBase } from '../src/ObsPersistFirebaseBase';
-
-function objectAtPath(path: string[], value: object) {
-    let o = value;
-    for (let i = 0; i < path.length; i++) {
-        if (o) {
-            const p = path[i];
-            o = o[p];
-        }
-    }
-
-    return o;
-}
 
 function clone(obj) {
     return JSON.parse(JSON.stringify(obj));
@@ -33,11 +22,13 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
             update: (object: object) => new Promise<void>((resolve) => {}),
             once: (ref: { path: string }, callback) => {
                 callback({
-                    val: () =>
-                        objectAtPath(
+                    val: () => {
+                        const val = objectAtPath(
                             ref.path.split('/').filter((a) => !!a),
                             this.remoteData
-                        ),
+                        );
+                        return val;
+                    },
                 });
             },
             onChildAdded: () => {},

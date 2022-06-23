@@ -50,12 +50,12 @@ async function onObsChange<T>(
     }
 }
 
-function onChangeRemote(state: LocalState, obs: ObsProxy, value: any) {
+function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = true;
 
     ObsBatcher.beginBatch();
 
-    obs.set(value);
+    cb();
 
     ObsBatcher.endBatch();
 
@@ -69,7 +69,6 @@ async function _obsPersist<T>(
 ) {
     const { local, localPersistence, remote, remotePersistence } = persistOptions;
     const state: LocalState = { tempDisableSaveRemote: false };
-    let dateModified: number;
 
     listenToObs(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
 
@@ -85,11 +84,6 @@ async function _obsPersist<T>(
 
         const value = persistenceLocal.getValue(local);
 
-        const max = { v: 0 };
-        recursiveFindMaxModified(value, max);
-        if (max.v > 0) {
-            dateModified = max.v;
-        }
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
                 console.error(`Called persist with the same local name multiple times: ${local}`);
@@ -112,12 +106,12 @@ async function _obsPersist<T>(
         state.persistenceRemote = persistenceRemote;
 
         persistenceRemote.listen(
+            obs,
             remote,
-            isNumber(dateModified) ? dateModified : undefined,
             () => {
                 proxyState.isLoadedRemote = true;
             },
-            onChangeRemote.bind(this, state, obs)
+            onChangeRemote.bind(this, state)
         );
     }
 }

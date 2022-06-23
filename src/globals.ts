@@ -5,7 +5,6 @@ export const symbolDateModified = Symbol('__dateModified');
 export function constructObject(path: string[], value: any, dateModified?: any) {
     const out = {};
     let o = out;
-    const extraIndex = Math.max(path.length - 1, 0);
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
         o[p] = i === path.length - 1 ? value : {};
@@ -13,7 +12,11 @@ export function constructObject(path: string[], value: any, dateModified?: any) 
     }
 
     if (dateModified) {
-        o[symbolDateModified] = dateModified;
+        if (isObject(o)) {
+            o[symbolDateModified as any] = dateModified;
+        } else {
+            out[symbolDateModified as any] = dateModified;
+        }
     }
 
     return out;
@@ -48,4 +51,16 @@ export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
     });
 
     return out;
+}
+
+export function objectAtPath(path: string[], value: object) {
+    let o = value;
+    for (let i = 0; i < path.length; i++) {
+        if (o) {
+            const p = path[i];
+            o = o[p];
+        }
+    }
+
+    return o;
 }
