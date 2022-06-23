@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep, removeNullUndefined } from './globals';
+import { constructObject, mergeDeep, removeNullUndefined, findStartsWith, findStartsWithInverse } from './globals';
 import type { ObsListenerInfo, ObsPersistRemote, PersistOptions, PersistOptionsRemote } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
@@ -235,18 +235,45 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     //     return valueSaved;
     // }
     private _constructBatch(
+        options: PersistOptionsRemote,
         batch: Record<string, string | object>,
         basePath: string,
         saves: SaveInfoDictionary,
         ...path: string[]
     ) {
         // @ts-ignore
-        const valSave = saves[symbolSaveValue];
+        let valSave = saves[symbolSaveValue];
         if (valSave !== undefined) {
+            const queryByModified = options.firebase.queryByModified;
+            if (queryByModified) {
+                const thisPath = path.join('/');
+                const datePath = findStartsWith(thisPath, queryByModified);
+                if (datePath) {
+                    const timestamp = this.fns.serverTimestamp();
+                    if (datePath === thisPath) {
+                        if (isObject(valSave)) {
+                            valSave['@'] = timestamp;
+                        } else {
+                            valSave = {
+                                '@': timestamp,
+                                _: valSave,
+                            };
+                        }
+                    } else {
+                        batch[basePath + datePath + '/@'] = timestamp;
+                    }
+                } else if (findStartsWithInverse(thisPath, queryByModified)) {
+                    if (process.env.NODE_ENV === 'development' || process.env.JEST_WORKER_ID) {
+                        console.error(
+                            'Set a value at a higher level than queryByModified which will overwrite all dates'
+                        );
+                    }
+                }
+            }
             batch[basePath + path.join('/')] = valSave;
         } else {
             Object.keys(saves).forEach((key) => {
-                this._constructBatch(batch, basePath, saves[key] as any, ...path, key);
+                this._constructBatch(options, batch, basePath, saves[key] as any, ...path, key);
             });
         }
     }
@@ -254,7 +281,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const batch = {};
         this._pendingSaves2.forEach(({ options, saves }) => {
             const basePath = options.firebase.syncPath(this.fns.getCurrentUser());
-            this._constructBatch(batch, basePath, saves);
+            this._constructBatch(options, batch, basePath, saves);
         });
 
         return batch;

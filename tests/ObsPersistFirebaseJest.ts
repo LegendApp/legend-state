@@ -11,7 +11,7 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
             once: (ref: any, callback) => {},
             onChildAdded: () => {},
             onChildChanged: () => {},
-            serverTimestamp: () => {},
+            serverTimestamp: () => '__serverTimestamp',
             onAuthStateChanged: (cb) => {},
         });
         if (typeof window !== 'undefined') {

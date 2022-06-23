@@ -46,3 +46,11 @@ export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
 
     return out;
 }
+
+export function findStartsWith(str: string, args: string[]) {
+    return args.find((a) => str.startsWith(a));
+}
+
+export function findStartsWithInverse(str: string, args: string[]) {
+    return args.find((a) => a.startsWith(str));
+}
