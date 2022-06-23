@@ -43,7 +43,7 @@ export interface PersistOptionsRemote<T = any> {
         syncPath: (uid: string) => `${string}/`;
         fieldTransforms?: any; // SameShapeWithStrings<T>;
         spreadPaths?: Exclude<keyof T, '_id' | 'id'>[];
-        queryByModified?: string[];
+        queryByModified?: any; // SameShapeWithBooleanOr
     };
 }
 export interface PersistOptions<T = any> {

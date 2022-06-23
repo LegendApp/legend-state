@@ -118,12 +118,17 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const {
             firebase: { queryByModified },
         } = options;
-        if (queryByModified) {
+
+        if (isObject(queryByModified)) {
             // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
             // without modified
 
             this.iterateListen(obs, options, queryByModified, onLoad, onChange, '');
         } else {
+            let dateModified: number;
+            if (queryByModified === true) {
+                dateModified = this.calculateDateModified(obs);
+            }
             this._listen(obs, options, undefined, onLoad, onChange, '');
         }
     }

@@ -97,7 +97,7 @@ const proxyGet = {
             return proxy || target[prop];
         }
     },
-    set(target: ObsProxy, prop: string, value: any, proxyOwner: ObsProxy) {
+    set(target: any, prop: string, value: any, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         const proxy = info?.proxies?.get(prop);
 
@@ -124,7 +124,7 @@ const proxyGet = {
                 Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
                 if (value) {
                     // Set all of the new properties on the target
-                    Object.assign(target, value);
+                    Object.assign(proxyOwner, value);
                 }
             }
             if (changed) {
