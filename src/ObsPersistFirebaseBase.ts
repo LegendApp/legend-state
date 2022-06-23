@@ -1,10 +1,18 @@
 import { isObject } from '@legendapp/tools';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep, removeNullUndefined, findStartsWith, findStartsWithInverse } from './globals';
+import { constructObject, mergeDeep, removeNullUndefined } from './globals';
 import type { ObsListenerInfo, ObsPersistRemote, PersistOptions, PersistOptionsRemote } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
 const Delimiter = '~';
+
+function findStartsWithPath(str: string, args: string[]) {
+    return args.find((a) => str.startsWith(a.replace('/*', '')));
+}
+
+function findStartsWithPathInverse(str: string, args: string[]) {
+    return args.find((a) => a.replace('/*', '').startsWith(str));
+}
 
 type Unsubscribe = () => void;
 
@@ -246,9 +254,14 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (valSave !== undefined) {
             const queryByModified = options.firebase.queryByModified;
             if (queryByModified) {
-                const thisPath = path.join('/');
-                const datePath = findStartsWith(thisPath, queryByModified);
+                let thisPath = path.join('/');
+                let datePath = findStartsWithPath(thisPath, queryByModified);
                 if (datePath) {
+                    const isWildcard = datePath.endsWith('/*');
+                    if (isWildcard) {
+                        datePath = datePath.replace('/*', '');
+                        thisPath = thisPath.split('/').slice(0, -1).join('/');
+                    }
                     const timestamp = this.fns.serverTimestamp();
                     if (datePath === thisPath) {
                         if (isObject(valSave)) {
@@ -260,9 +273,15 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                             };
                         }
                     } else {
+                        if (isWildcard) {
+                            datePath = thisPath
+                                .split('/')
+                                .slice(0, datePath.split('/').length + 1)
+                                .join('/');
+                        }
                         batch[basePath + datePath + '/@'] = timestamp;
                     }
-                } else if (findStartsWithInverse(thisPath, queryByModified)) {
+                } else if (findStartsWithPathInverse(thisPath, queryByModified)) {
                     if (process.env.NODE_ENV === 'development' || process.env.JEST_WORKER_ID) {
                         console.error(
                             'Set a value at a higher level than queryByModified which will overwrite all dates'

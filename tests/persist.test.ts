@@ -217,10 +217,86 @@ describe('Persist remote save', () => {
             },
         });
     });
+
+    test('queryByModified with *', () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: ['test/*'],
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.test2 = 'hi';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+        });
+
+        obs.test.test3 = 'hi2';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+        });
+
+        obs.test.test4.test5 = 'hi3';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+        });
+
+        obs.test.test4.test6.test7 = 'hi4';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+    });
 });
 
-describe('Persist remote load', () => {
-    test('Load', async () => {
+describe('Remote load', () => {
+    test('Persist remote load dateModified', async () => {
         const obs = obsProxy({ test: { test2: '', test3: '' } });
 
         const remoteOptions: PersistOptionsRemote = {
