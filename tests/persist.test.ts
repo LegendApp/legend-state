@@ -1,5 +1,5 @@
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
-import { obsProxy, PersistOptionsRemote } from '../src';
+import { listenToObs, obsProxy, onTrue, PersistOptionsRemote } from '../src';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
@@ -30,6 +30,8 @@ class LocalStorageMock {
 // @ts-ignore
 global.localStorage = new LocalStorageMock();
 
+jest.setTimeout(100000);
+
 beforeEach(() => {
     global.localStorage.clear();
     const local = mapPersistences.get(ObsPersistLocalStorage) as ObsPersistLocalStorage;
@@ -42,6 +44,18 @@ beforeEach(() => {
         remote['_pendingSaves2'].delete(`/test/__SAVE__/s/`);
     }
 });
+
+function initializeRemote(obj: object) {
+    const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+    remote.initializeRemote({
+        test: {
+            testuid: {
+                s: obj,
+            },
+        },
+    });
+}
 
 describe('Persist local', () => {
     test('Local', () => {
@@ -198,6 +212,43 @@ describe('Persist remote save', () => {
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test': {
                 '@': '__serverTimestamp',
+                test2: 'hi',
+                test3: 'hi2',
+            },
+        });
+    });
+});
+
+describe('Persist remote load', () => {
+    test('Load', async () => {
+        const obs = obsProxy({ test: { test2: '', test3: '' } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: ['test'],
+            },
+        };
+
+        initializeRemote({
+            test: {
+                '@': '1000',
+                test2: 'hi',
+                test3: 'hi2',
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state.isLoadedRemote);
+
+        expect(obs.value).toEqual({
+            test: {
+                '@': '1000',
                 test2: 'hi',
                 test3: 'hi2',
             },

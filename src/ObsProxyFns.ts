@@ -59,7 +59,7 @@ export function onValue<T>(target: ObsProxy<T>, value: T, cb?: (value: T) => voi
         } else {
             let isDone = false;
             const listener = listenToObs(target, (newValue) => {
-                if (!isDone && (value === undefined ? thisValue !== undefined : thisValue === value)) {
+                if (!isDone && (value === undefined ? thisValue !== undefined : newValue === value)) {
                     isDone = true;
                     cb?.(newValue);
                     resolve(value);

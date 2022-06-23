@@ -1,8 +1,9 @@
 import { isNumber, isObject } from '@legendapp/tools';
-import { ObsPersistLocal, ObsPersistLocalAsync, ObsPersistRemote } from './ObsProxyInterfaces';
+import { ObsPersistLocal, ObsPersistLocalAsync, ObsPersistRemote, ObsPersistState } from './ObsProxyInterfaces';
 import { ObsBatcher } from './ObsBatcher';
 import { listenToObs } from './ObsProxyFns';
 import { ObsListenerInfo, ObsProxy, PersistOptions } from './ObsProxyInterfaces';
+import { obsProxy } from './ObsProxy';
 
 /** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
@@ -10,8 +11,6 @@ const usedNames = new Map<string, true>();
 
 interface LocalState {
     tempDisableSaveRemote: boolean;
-    isLoadedLocal: boolean;
-    isLoadedRemote: boolean;
     persistenceLocal?: ObsPersistLocal;
     persistenceRemote?: ObsPersistRemote;
 }
@@ -27,13 +26,14 @@ function recursiveFindMaxModified(obj: object, max: { v: number }) {
 }
 
 async function onObsChange<T>(
+    proxyState: ObsProxy<ObsPersistState>,
     state: LocalState,
     obs: ObsProxy<T>,
     persistOptions: PersistOptions<T>,
     value: T,
     info: ObsListenerInfo
 ) {
-    if (!state.isLoadedLocal) return;
+    if (!proxyState.isLoadedLocal) return;
 
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
 
@@ -55,8 +55,6 @@ function onChangeRemote(state: LocalState, obs: ObsProxy, value: any) {
 
     ObsBatcher.beginBatch();
 
-    console.log(value);
-
     obs.value = value;
 
     ObsBatcher.endBatch();
@@ -64,12 +62,16 @@ function onChangeRemote(state: LocalState, obs: ObsProxy, value: any) {
     state.tempDisableSaveRemote = false;
 }
 
-async function _obsPersist<T>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
+async function _obsPersist<T>(
+    proxyState: ObsProxy<ObsPersistState>,
+    obs: ObsProxy<T>,
+    persistOptions: PersistOptions<T>
+) {
     const { local, localPersistence, remote, remotePersistence } = persistOptions;
-    const state: LocalState = { isLoadedLocal: false, isLoadedRemote: false, tempDisableSaveRemote: false };
+    const state: LocalState = { tempDisableSaveRemote: false };
     let dateModified: number;
 
-    listenToObs(obs, onObsChange.bind(this, state, obs, persistOptions));
+    listenToObs(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
 
     if (local) {
         if (!mapPersistences.has(localPersistence)) {
@@ -100,9 +102,9 @@ async function _obsPersist<T>(obs: ObsProxy<T>, persistOptions: PersistOptions<T
             obs.value = value;
         }
 
-        state.isLoadedLocal = true;
+        proxyState.isLoadedLocal = true;
     }
-    if (persistOptions.remote) {
+    if (remote) {
         if (!mapPersistences.has(remotePersistence)) {
             mapPersistences.set(remotePersistence, new remotePersistence());
         }
@@ -112,13 +114,16 @@ async function _obsPersist<T>(obs: ObsProxy<T>, persistOptions: PersistOptions<T
         persistenceRemote.listen(
             remote,
             isNumber(dateModified) ? dateModified : undefined,
-            () => (state.isLoadedRemote = true),
+            () => {
+                proxyState.isLoadedRemote = true;
+            },
             onChangeRemote.bind(this, state, obs)
         );
     }
 }
 
 export function obsPersist<T>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
-    _obsPersist(obs, persistOptions);
-    return obs;
+    const proxyState = obsProxy<ObsPersistState>({ isLoadedLocal: false, isLoadedRemote: false });
+    _obsPersist(proxyState, obs, persistOptions);
+    return proxyState;
 }

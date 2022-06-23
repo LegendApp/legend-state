@@ -70,3 +70,8 @@ export interface ObsPersistRemote {
         onChange: (value: any) => void
     );
 }
+
+export interface ObsPersistState {
+    isLoadedLocal: boolean;
+    isLoadedRemote: boolean;
+}
