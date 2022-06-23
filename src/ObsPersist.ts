@@ -55,7 +55,7 @@ function onChangeRemote(state: LocalState, obs: ObsProxy, value: any) {
 
     ObsBatcher.beginBatch();
 
-    obs.value = value;
+    obs.set(value);
 
     ObsBatcher.endBatch();
 

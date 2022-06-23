@@ -13,8 +13,16 @@ function objectAtPath(path: string[], value: object) {
     return o;
 }
 
+function clone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+function deepCompare(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+}
+
 export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
     private remoteData: object;
+    private listeners: Record<string, ((value: any) => void)[]> = {};
     constructor() {
         super({
             getCurrentUser: () => 'testuid',
@@ -33,7 +41,12 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
                 });
             },
             onChildAdded: () => {},
-            onChildChanged: () => {},
+            onChildChanged: ({ path }: { path: string }, cb: (value: any) => void) => {
+                if (!this.listeners[path]) {
+                    this.listeners[path] = [];
+                }
+                this.listeners[path].push(cb);
+            },
             serverTimestamp: () => '__serverTimestamp',
             onAuthStateChanged: (cb) => {
                 cb({ name: 'User' });
@@ -50,5 +63,24 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
     }
     initializeRemote(obj: object) {
         this.remoteData = obj;
+    }
+    modify(basePath: string, path: string, obj: object) {
+        const data = objectAtPath(
+            basePath.split('/').filter((a) => !!a),
+            this.remoteData
+        );
+        const prev = clone(data);
+        const o = objectAtPath(
+            (basePath + path).split('/').filter((a) => !!a),
+            this.remoteData
+        );
+        Object.assign(o, obj);
+
+        Object.keys(data).forEach((key) => {
+            if (!deepCompare(data[key], prev[key])) {
+                const out = { key, val: () => data[key] };
+                this.listeners[basePath]?.forEach((listener) => listener(out));
+            }
+        });
     }
 }

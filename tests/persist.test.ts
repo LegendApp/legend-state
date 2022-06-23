@@ -58,6 +58,14 @@ function initializeRemote(obj: object) {
     });
 }
 
+function modifyRemote(path: string, obj: object) {
+    const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+    const basePath = '/test/testuid/s/';
+
+    remote.modify(basePath, path, obj);
+}
+
 describe('Persist local', () => {
     test('Local', () => {
         const obs = obsProxy({});
@@ -276,7 +284,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('queryByModified with path/*', () => {
+    test('save queryByModified with path/*', () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
@@ -351,6 +359,49 @@ describe('Persist remote save', () => {
             '/test/testuid/s/test/test4/test6/test7': 'hi4',
         });
     });
+
+    test('save queryByModified with path/* 2', () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: ['test/*'],
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.test2 = 'hi';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+        });
+
+        obs.test.test4.test6.test7 = 'hi4';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+    });
 });
 
 describe('Remote load', () => {
@@ -367,7 +418,7 @@ describe('Remote load', () => {
 
         initializeRemote({
             test: {
-                '@': '1000',
+                '@': 1000,
                 test2: 'hi',
                 test3: 'hi2',
             },
@@ -384,14 +435,90 @@ describe('Remote load', () => {
             test: {
                 test2: 'hi',
                 test3: 'hi2',
-                [symbolDateModified]: '1000',
+                [symbolDateModified]: 1000,
             },
         });
 
-        expect(getObsModified(obs.test)).toEqual('1000');
+        expect(getObsModified(obs.test)).toEqual(1000);
     });
 });
 
-// TODO onChange
-// TODO fieldtranslator
-// TODO fieldtranslator keep datemodified symbol
+describe('Remote change', () => {
+    test('onChange', async () => {
+        const obs = obsProxy({ test: { test2: '', test3: '' } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: ['*'],
+            },
+        };
+
+        initializeRemote({
+            test: {
+                '@': 1000,
+                test2: 'hi',
+                test3: 'hi3',
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state.isLoadedRemote);
+
+        modifyRemote('test', { '@': 1001, test2: 'hello2' });
+
+        expect(obs.test.test2.value).toEqual('hello2');
+        expect(obs.test.test3.value).toEqual('hi3');
+        expect(obs.test.value['@']).toEqual(undefined);
+        expect(getObsModified(obs.test)).toEqual(1001);
+    });
+
+    test('onChange with queryByModified deep', async () => {
+        const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: ['test/*'],
+            },
+        };
+
+        initializeRemote({
+            test: {
+                test2: { '@': 1000, test22: 'hi' },
+                test3: { '@': 1000, test33: 'hi3' },
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state.isLoadedRemote);
+
+        debugger;
+        modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
+
+        expect(obs.test.test2.test22.value).toEqual('hello2');
+        expect(obs.test.test3.test33.value).toEqual('hi3');
+
+        expect(obs.test.test2.value['@']).toEqual(undefined);
+        expect(obs.test.test3.value['@']).toEqual(undefined);
+        expect(obs.test.value['@']).toEqual(undefined);
+
+        expect(getObsModified(obs.test.test3)).toEqual(1000);
+        expect(getObsModified(obs.test.test2)).toEqual(1001);
+    });
+});
+
+// TODO
+// queryByModified for listening, needs to listen to individual paths
+// fieldtranslator
+// fieldtranslator keep datemodified symbol

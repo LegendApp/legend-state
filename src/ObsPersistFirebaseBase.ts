@@ -167,89 +167,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         return value;
     }
-    // public async setValue<T extends object>(
-    //     value: T,
-    //     options: PersistoptionsRemote,
-    //     { changedKey, changedProperty }: { changedKey: string; changedProperty: string }
-    // ) {
-    //     await this.waitForAuth();
-
-    //     let values: { key: string; value: any }[] = [];
-
-    //     let extraPath = '';
-
-    //     const { syncPath, fieldTransforms, spreadPaths } = options.firebase;
-    //     const pathFirebase = syncPath(this.fns.getCurrentUser()) + (extraPath || '');
-
-    //     let out: any = value;
-    //     if (fieldTransforms) {
-    //         out = transformObject(value, fieldTransforms);
-    //     }
-
-    //     const path = transformPath(
-    //         [changedKey, changedProperty].filter((a) => !!a),
-    //         fieldTransforms
-    //     );
-
-    //     if (changedKey) {
-    //         extraPath = '/' + path.join('/');
-    //         out = out[path[0]];
-    //         if (out === undefined) out = null;
-
-    //         if (changedProperty) {
-    //             if (spreadPaths?.includes(changedKey)) {
-    //                 out = out[path[1]];
-    //                 if (out === undefined) out = null;
-    //                 values = [{ key: '/' + path.join(Delimiter), value: out }];
-    //             } else {
-    //                 values = [{ key: '/' + path[0], value: out }];
-    //             }
-    //         } else {
-    //             if (isObject(out) && spreadPaths?.includes(changedKey)) {
-    //                 Object.keys(out).forEach((key) => {
-    //                     values.push({
-    //                         key: '/' + path[0] + Delimiter + key,
-    //                         value: out[key],
-    //                     });
-    //                 });
-    //             } else {
-    //                 values = [{ key: '/' + path[0], value: out }];
-    //             }
-    //         }
-    //     } else if (changedProperty) {
-    //         debugger;
-    //         values = [{ key: '/' + path.join(Delimiter), value: value[changedProperty] }];
-    //     } else {
-    //         debugger;
-    //     }
-
-    //     values.forEach((v) => {
-    //         const val = isObject(v.value)
-    //             ? Object.assign({}, v.value, { '@': this.fns.serverTimestamp() })
-    //             : { '@': this.fns.serverTimestamp(), _: v.value };
-    //         this._batch[pathFirebase + v.key] = val;
-    //     });
-
-    //     const pendingSave = (this._pendingSaves[pathFirebase] = { values: [] });
-
-    //     if (!this.promiseSaved) {
-    //         this.promiseSaved = new PromiseCallback();
-    //     }
-
-    //     if (this._timeoutSave) {
-    //         clearTimeout(this._timeoutSave);
-    //     }
-    //     this._timeoutSave = setTimeout(this._onTimeoutSave, 3000);
-
-    //     await this.promiseSaved.promise;
-
-    //     const valuesSaved = pendingSave.values;
-    //     delete this._pendingSaves[pathFirebase];
-    //     const valueSaved = JSON.parse(JSON.stringify(value));
-    //     Object.assign(valueSaved, ...valuesSaved);
-
-    //     return valueSaved;
-    // }
     private _constructBatch(
         options: PersistOptionsRemote,
         batch: Record<string, string | object>,
@@ -324,29 +241,36 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         await this.fns.update(batch);
         promiseSaved.resolve();
     }
+    private _getChangeValue(pathFirebase: string, key: string, snapVal: any) {
+        let value = snapVal;
+        // Database value can be either { @: number, _: object } or { @: number, ...rest }
+        const dateModified = value['@'];
+        if (value._) {
+            value = value._;
+        } else if (Object.keys(value).length === 1 && value['@']) {
+            value = undefined;
+        }
+
+        delete value['@'];
+
+        const keys = key.split(Delimiter);
+        value = constructObject(keys, value, dateModified);
+
+        const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
+        if (fieldTransformsIn) {
+            const transformed = transformObject(value, fieldTransformsIn);
+            value = transformed;
+        }
+
+        return value;
+    }
     private _onceValue(pathFirebase: string, onLoad: () => void, onChange: (value: any) => void, snapshot: any) {
         let outerValue = snapshot.val();
 
         const outValue = {};
         if (outerValue) {
             Object.keys(outerValue).forEach((key) => {
-                let value = outerValue[key];
-                // Database value can be either { @: number, _: object } or { @: number, ...rest }
-                let dateModified = value['@'];
-                if (value._) {
-                    value = value._;
-                }
-
-                delete value['@'];
-
-                const keys = key.split(Delimiter);
-                value = constructObject(keys, value, dateModified);
-
-                const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
-                if (fieldTransformsIn) {
-                    const transformed = transformObject(value, fieldTransformsIn);
-                    value = transformed;
-                }
+                const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
 
                 Object.assign(outValue, value);
             });
@@ -362,31 +286,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         let value = snapshot.val();
         if (value) {
-            // Database value can be either { @: number, _: object } or { @: number, ...rest }
-            let dateModified: number;
-            if (value._) {
-                dateModified = value['@'];
-                value = value._;
-            } else if (Object.keys(value).length === 1 && value['@']) {
-                value = undefined;
-            }
+            value = this._getChangeValue(pathFirebase, snapshot.key, value);
 
-            if (value) {
-                const keys = snapshot.key.split(Delimiter);
-                value = constructObject(keys, value, dateModified ? { '@': dateModified } : undefined);
-
-                const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
-                if (fieldTransformsIn) {
-                    const transformed = transformObject(value, fieldTransformsIn);
-                    value = transformed;
-                    if (value['[object Object]']) debugger;
-                }
-
-                if (this._pendingSaves[pathFirebase]) {
-                    this._pendingSaves[pathFirebase].values.push(value);
-                } else {
-                    onChange(value);
-                }
+            if (this._pendingSaves[pathFirebase]) {
+                this._pendingSaves[pathFirebase].values.push(value);
+            } else {
+                onChange(value);
             }
         }
     }
