@@ -227,6 +227,63 @@ describe('Persist remote save', () => {
             requireAuth: true,
             firebase: {
                 syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: ['*'],
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.test2 = 'hi';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+        });
+
+        obs.test.test3 = 'hi2';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+        });
+
+        obs.test.test4.test5 = 'hi3';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+        });
+
+        obs.test.test4.test6.test7 = 'hi4';
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+    });
+
+    test('queryByModified with path/*', () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
                 queryByModified: ['test/*'],
             },
         };

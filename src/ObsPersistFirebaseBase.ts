@@ -6,15 +6,23 @@ import { PromiseCallback } from './PromiseCallback';
 
 const Delimiter = '~';
 
+function replaceWildcard(str: string) {
+    return str.replace(/\/?\*/, '');
+}
+
 function findStartsWithPath(str: string, args: string[]) {
-    return args.find((a) => str.startsWith(a.replace('/*', '')));
+    return args.find((a) => {
+        a = replaceWildcard(a);
+        return a === '' || str.startsWith(a);
+    });
 }
 
 function findStartsWithPathInverse(str: string, args: string[]) {
-    return args.find((a) => a.replace('/*', '').startsWith(str));
+    return args.find((a) => {
+        a = replaceWildcard(a);
+        return a === '' || a.startsWith(str);
+    });
 }
-
-type Unsubscribe = () => void;
 
 export interface FirebaseFns {
     getCurrentUser: () => string;
@@ -257,9 +265,9 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 let thisPath = path.join('/');
                 let datePath = findStartsWithPath(thisPath, queryByModified);
                 if (datePath) {
-                    const isWildcard = datePath.endsWith('/*');
+                    const isWildcard = datePath.endsWith('*');
                     if (isWildcard) {
-                        datePath = datePath.replace('/*', '');
+                        datePath = replaceWildcard(datePath);
                         thisPath = thisPath.split('/').slice(0, -1).join('/');
                     }
                     const timestamp = this.fns.serverTimestamp();
@@ -276,7 +284,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                         if (isWildcard) {
                             datePath = thisPath
                                 .split('/')
-                                .slice(0, datePath.split('/').length + 1)
+                                .slice(0, datePath === '' ? 1 : datePath.split('/').length + 1)
                                 .join('/');
                         }
                         batch[basePath + datePath + '/@'] = timestamp;
