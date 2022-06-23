@@ -26,19 +26,22 @@ describe('Basic', () => {
         expect(ret.value.set).toBeUndefined();
         expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
     });
-    test('require set function', () => {
-        const obs = obsProxy<number>(10);
-        const ret = obs.set(20);
-        expect(obs.value).toEqual(20);
-        expect(ret.value).toEqual(20);
-        expect(ret.set).not.toBeUndefined();
-    });
-    test('require set function', () => {
+    test('error on safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = obsProxy({ test: 'hi' }, true);
         // @ts-ignore This is supposed to be a TS error so test that it fails
-        obs.test = 'hello';
+        obs.test.value = 'hello';
         expect(consoleErrorMock).toHaveBeenCalled();
+        expect(obs.test.value).toEqual('hi');
+        consoleErrorMock.mockRestore();
+    });
+    test('safe using set function', () => {
+        const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
+        const obs = obsProxy({ test: 'hi' }, true);
+        obs.test.set('hello');
+        expect(consoleErrorMock).not.toHaveBeenCalled();
+        expect(obs.test.value).toEqual('hello');
+
         consoleErrorMock.mockRestore();
     });
 });

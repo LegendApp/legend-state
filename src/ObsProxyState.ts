@@ -10,5 +10,6 @@ export interface StateInfo {
 }
 
 export const state = {
+    isInSetFn: false,
     infos: new WeakMap<ObsProxy<any>, StateInfo>(),
 };

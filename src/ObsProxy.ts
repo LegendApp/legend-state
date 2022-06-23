@@ -53,7 +53,10 @@ function collectionSetter(prop: string, proxyOwner: ObsProxy, key: string, value
 
 function setter(proxyOwner: ObsProxy, value: any) {
     // this = target
+    state.isInSetFn = true;
     proxyOwner.value = value;
+    state.isInSetFn = false;
+
     return proxyOwner;
 }
 
@@ -98,8 +101,9 @@ const proxyGet = {
         const info = state.infos.get(proxyOwner);
         const proxy = info?.proxies?.get(prop);
 
-        if (info.safe) {
+        if (info.safe && !state.isInSetFn) {
             console.error('Cannot set a value directly on a safe ObsProxy. Use .set() instead.');
+            return true;
         }
 
         if (prop === 'value') {
