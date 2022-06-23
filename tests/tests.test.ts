@@ -5,13 +5,29 @@ describe('Basic', () => {
         const obs = obsProxy(10);
         expect(obs.value).toEqual(10);
     });
-    test('set value', () => {
+    test('modify value', () => {
         const obs = obsProxy<number>(10);
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.value = 20;
         expect(obs.value).toEqual(20);
         expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+    });
+    test('modify value deep', () => {
+        const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+
+        obs.test.test2.test3.test4 = 'hi';
+        expect(obs.test.test2.test3.test4.value).toEqual('hi');
+        expect(handler).toHaveBeenCalledWith(
+            { test: { test2: { test3: { test4: 'hi' } } } },
+            {
+                changedValue: 'hi',
+                path: ['test', 'test2', 'test3', 'test4'],
+                prevValue: '',
+            }
+        );
     });
     test('set function', () => {
         const obs = obsProxy<number>(10);
@@ -25,6 +41,23 @@ describe('Basic', () => {
         // @ts-ignore
         expect(ret.value.set).toBeUndefined();
         expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+    });
+    test('set function deep', () => {
+        const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+
+        const ret = obs.test.test2.test3.test4.set('hi');
+        expect(ret.value).toEqual('hi');
+        expect(obs.test.test2.test3.test4.value).toEqual('hi');
+        expect(handler).toHaveBeenCalledWith(
+            { test: { test2: { test3: { test4: 'hi' } } } },
+            {
+                changedValue: 'hi',
+                path: ['test', 'test2', 'test3', 'test4'],
+                prevValue: '',
+            }
+        );
     });
     test('error on safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
