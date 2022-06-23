@@ -1,4 +1,5 @@
 import { isArray } from '@legendapp/tools';
+import { symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { ListenerFn, ObsListener, ObsListenerInfo, ObsProxy } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
@@ -76,4 +77,8 @@ export function onHasValue<T>(target: ObsProxy<T>, cb?: (value: T) => void): Pro
 
 export function onTrue(target: ObsProxy<boolean>, cb?: (value: boolean) => void): Promise<boolean> {
     return onValue(target, true, cb);
+}
+
+export function getObsModified(target: ObsProxy) {
+    return target.value[symbolDateModified];
 }

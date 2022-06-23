@@ -1,8 +1,9 @@
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
-import { listenToObs, obsProxy, onTrue, PersistOptionsRemote } from '../src';
+import { getObsModified, listenToObs, obsProxy, onTrue, PersistOptionsRemote } from '../src';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
+import { symbolDateModified } from '../src/globals';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -360,7 +361,7 @@ describe('Remote load', () => {
             requireAuth: true,
             firebase: {
                 syncPath: (uid) => `/test/${uid}/s/`,
-                queryByModified: ['test'],
+                queryByModified: ['*'],
             },
         };
 
@@ -381,10 +382,16 @@ describe('Remote load', () => {
 
         expect(obs.value).toEqual({
             test: {
-                '@': '1000',
                 test2: 'hi',
                 test3: 'hi2',
+                [symbolDateModified]: '1000',
             },
         });
+
+        expect(getObsModified(obs.test)).toEqual('1000');
     });
 });
+
+// TODO onChange
+// TODO fieldtranslator
+// TODO fieldtranslator keep datemodified symbol

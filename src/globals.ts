@@ -1,16 +1,19 @@
 import { isObject } from '@legendapp/tools';
 
-export function constructObject(path: string[], value: any, extra?: any) {
+export const symbolDateModified = Symbol('__dateModified');
+
+export function constructObject(path: string[], value: any, dateModified?: any) {
     const out = {};
     let o = out;
     const extraIndex = Math.max(path.length - 1, 0);
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
         o[p] = i === path.length - 1 ? value : {};
-        if (extra && i === extraIndex) {
-            Object.assign(o, extra);
-        }
         o = o[p];
+    }
+
+    if (dateModified) {
+        o[symbolDateModified] = dateModified;
     }
 
     return out;

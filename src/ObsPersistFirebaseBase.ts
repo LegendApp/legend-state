@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep, removeNullUndefined } from './globals';
+import { constructObject, mergeDeep, removeNullUndefined, symbolDateModified } from './globals';
 import type { ObsListenerInfo, ObsPersistRemote, PersistOptions, PersistOptionsRemote } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
@@ -332,23 +332,23 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             Object.keys(outerValue).forEach((key) => {
                 let value = outerValue[key];
                 // Database value can be either { @: number, _: object } or { @: number, ...rest }
-                let dateModified: number;
+                let dateModified = value['@'];
                 if (value._) {
-                    dateModified = value['@'];
                     value = value._;
                 }
 
+                delete value['@'];
+
                 const keys = key.split(Delimiter);
-                value = constructObject(keys, value, dateModified ? { '@': dateModified } : undefined);
+                value = constructObject(keys, value, dateModified);
 
                 const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
                 if (fieldTransformsIn) {
                     const transformed = transformObject(value, fieldTransformsIn);
                     value = transformed;
-                    if (value['[object Object]']) debugger;
                 }
 
-                mergeDeep(outValue, value);
+                Object.assign(outValue, value);
             });
         }
         onChange(outValue);
