@@ -93,10 +93,10 @@ async function _obsPersist<T extends object>(
         }
 
         if (value !== null && value !== undefined) {
-            obs.value = value;
+            obs.set(value);
         }
 
-        proxyState.isLoadedLocal = true;
+        proxyState.set('isLoadedLocal', true);
     }
     if (remote) {
         if (!mapPersistences.has(remotePersistence)) {
@@ -109,7 +109,7 @@ async function _obsPersist<T extends object>(
             obs,
             remote,
             () => {
-                proxyState.isLoadedRemote = true;
+                proxyState.set('isLoadedRemote', true);
             },
             onChangeRemote.bind(this, state)
         );

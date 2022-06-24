@@ -5,7 +5,7 @@ import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDa
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
-    ObsProxy,
+    ObsProxyUnsafe,
     PersistOptions,
     PersistOptionsRemote,
 } from './ObsProxyInterfaces';
@@ -102,18 +102,18 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await this.promiseAuthed.promise;
     }
-    private calculateDateModified(obs: ObsProxy) {
+    private calculateDateModified(obs: ObsProxyUnsafe) {
         const max = { v: 0 };
-        if (isObject(obs.value)) {
+        if (isObject(obs.get())) {
             Object.keys(obs).forEach((key) => (max.v = Math.max(max.v, getObsModified(obs[key]))));
         }
         return max.v > 0 ? max.v : undefined;
     }
     public listen<T extends object>(
-        obs: ObsProxy<T>,
+        obs: ObsProxyUnsafe<T>,
         options: PersistOptionsRemote<T>,
         onLoad: () => void,
-        onChange: (obs: ObsProxy<T>, value: any) => void
+        onChange: (obs: ObsProxyUnsafe<T>, value: any) => void
     ) {
         const {
             firebase: { queryByModified },
@@ -133,14 +133,14 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     private iterateListen<T extends object>(
-        obs: ObsProxy<T>,
+        obs: ObsProxyUnsafe<T>,
         options: PersistOptionsRemote<T>,
         queryByModified: object,
         onLoad: () => void,
-        onChange: (obs: ObsProxy<T>, value: any) => void,
+        onChange: (obs: ObsProxyUnsafe<T>, value: any) => void,
         syncPathExtra: string
     ) {
-        Object.keys(obs.value).forEach((key) => {
+        Object.keys(obs).forEach((key) => {
             const o = obs[key];
             const q = queryByModified[key];
             const extra = syncPathExtra + key + '/';
@@ -157,11 +157,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         });
     }
     private async _listen<T>(
-        obs: ObsProxy<T>,
+        obs: ObsProxyUnsafe<T>,
         options: PersistOptionsRemote<T>,
         dateModified: number,
         onLoad: () => void,
-        onChange: (obsProxy: ObsProxy<T>, value: any) => void,
+        onChange: (obsProxy: ObsProxyUnsafe<T>, value: any) => void,
         syncPathExtra: string
     ) {
         const {
@@ -334,7 +334,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     }
     private _onceValue(
         pathFirebase: string,
-        obs: ObsProxy,
+        obs: ObsProxyUnsafe,
         onLoad: () => void,
         onChange: (cb: () => void) => void,
         snapshot: any
@@ -361,7 +361,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         this._hasLoadedValue[pathFirebase] = true;
     }
-    private _onChange(pathFirebase: string, obs: ObsProxy, onChange: (cb: () => void) => void, snapshot: any) {
+    private _onChange(pathFirebase: string, obs: ObsProxyUnsafe, onChange: (cb: () => void) => void, snapshot: any) {
         if (!this._hasLoadedValue[pathFirebase]) return;
 
         let val = snapshot.val();

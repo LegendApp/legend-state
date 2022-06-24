@@ -1,15 +1,15 @@
 import { useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
 import { listenToObs } from './ObsProxyFns';
-import { MappedProxyValue, ObsListener, ObsProxy } from './ObsProxyInterfaces';
+import { MappedProxyValue, ObsListener, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 
 interface SavedRef {
-    args?: ObsProxy[];
+    args?: ObsProxyUnsafe[];
     listeners?: ObsListener[];
 }
 
-function useObsProxy<T extends ObsProxy[]>(...args: T): MappedProxyValue<T> {
+function useObsProxy<T extends ObsProxyUnsafe[]>(...args: T): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -35,10 +35,15 @@ function useObsProxy<T extends ObsProxy[]>(...args: T): MappedProxyValue<T> {
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return args.map((obs) => obs?.value) as MappedProxyValue<T>;
+    return args;
 }
 
-const updateListeners = (args: ObsProxy[], prevArgs: ObsProxy[], listeners: ObsListener[], onChange: () => void) => {
+const updateListeners = (
+    args: ObsProxyUnsafe[],
+    prevArgs: ObsProxyUnsafe[],
+    listeners: ObsListener[],
+    onChange: () => void
+) => {
     const num = Math.max(args.length, prevArgs ? prevArgs.length : 0);
     for (let i = 0; i < num; i++) {
         const obs = args[i];
