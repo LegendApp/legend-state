@@ -1,5 +1,13 @@
 import { isNumber, isObject } from '@legendapp/tools';
-import { ObsPersistLocal, ObsPersistLocalAsync, ObsPersistRemote, ObsPersistState } from './ObsProxyInterfaces';
+import {
+    ObsPersistLocal,
+    ObsPersistLocalAsync,
+    ObsPersistRemote,
+    ObsPersistState,
+    ObsProxyUnsafe,
+    PersistOptionsRemote,
+    ProxyValue,
+} from './ObsProxyInterfaces';
 import { ObsBatcher } from './ObsBatcher';
 import { listenToObs } from './ObsProxyFns';
 import { ObsListenerInfo, ObsProxy, PersistOptions } from './ObsProxyInterfaces';
@@ -62,10 +70,10 @@ function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = false;
 }
 
-async function _obsPersist<T extends object>(
+async function _obsPersist<T extends ObsProxy | ObsProxyUnsafe>(
     proxyState: ObsProxy<ObsPersistState>,
-    obs: ObsProxy<T>,
-    persistOptions: PersistOptions<T>
+    obs: T,
+    persistOptions: PersistOptions<ProxyValue<T>>
 ) {
     const { local, localPersistence, remote, remotePersistence } = persistOptions;
     const state: LocalState = { tempDisableSaveRemote: false };
@@ -107,7 +115,7 @@ async function _obsPersist<T extends object>(
 
         persistenceRemote.listen(
             obs,
-            remote,
+            remote as PersistOptionsRemote<object>,
             () => {
                 proxyState.set('isLoadedRemote', true);
             },
@@ -116,8 +124,8 @@ async function _obsPersist<T extends object>(
     }
 }
 
-export function obsPersist<T extends object>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
+export function obsPersist<T extends ObsProxy | ObsProxyUnsafe>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
     const proxyState = obsProxy<ObsPersistState>({ isLoadedLocal: false, isLoadedRemote: false });
-    _obsPersist(proxyState, obs, persistOptions);
+    _obsPersist(proxyState, obs, persistOptions as PersistOptions<object>);
     return proxyState;
 }

@@ -5,9 +5,11 @@ import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDa
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
+    ObsProxy,
     ObsProxyUnsafe,
     PersistOptions,
     PersistOptionsRemote,
+    ProxyValue,
 } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
@@ -109,9 +111,9 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
         return max.v > 0 ? max.v : undefined;
     }
-    public listen<T extends object>(
-        obs: ObsProxyUnsafe<T>,
-        options: PersistOptionsRemote<T>,
+    public listen<T extends ObsProxy | ObsProxyUnsafe>(
+        obs: T,
+        options: PersistOptionsRemote<ProxyValue<T>>,
         onLoad: () => void,
         onChange: (obs: ObsProxyUnsafe<T>, value: any) => void
     ) {
@@ -123,16 +125,16 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
             // without modified
 
-            this.iterateListen(obs, options, queryByModified, onLoad, onChange, '');
+            this.iterateListen(obs, options as PersistOptionsRemote<object>, queryByModified, onLoad, onChange, '');
         } else {
             let dateModified: number;
             if (queryByModified === true) {
                 dateModified = this.calculateDateModified(obs);
             }
-            this._listen(obs, options, undefined, onLoad, onChange, '');
+            this._listen(obs, options as PersistOptionsRemote<object>, undefined, onLoad, onChange, '');
         }
     }
-    private iterateListen<T extends object>(
+    private iterateListen<T extends ObsProxy | ObsProxyUnsafe>(
         obs: ObsProxyUnsafe<T>,
         options: PersistOptionsRemote<T>,
         queryByModified: object,
@@ -156,9 +158,9 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         });
     }
-    private async _listen<T>(
-        obs: ObsProxyUnsafe<T>,
-        options: PersistOptionsRemote<T>,
+    private async _listen<T extends ObsProxy | ObsProxyUnsafe>(
+        obs: T,
+        options: PersistOptionsRemote<ProxyValue<T>>,
         dateModified: number,
         onLoad: () => void,
         onChange: (obsProxy: ObsProxyUnsafe<T>, value: any) => void,

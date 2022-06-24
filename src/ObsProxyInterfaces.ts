@@ -1,17 +1,17 @@
 export interface ObsProps<T> {
-    get?(): T;
+    get?(): ProxyValue<T>;
     set?(value: T): ObsProxyUnsafe<T>;
     set?<K extends keyof T>(key: K, value: T[K]): ObsProxyUnsafe<T>;
     assign?: (value: T) => ObsProxyUnsafe<T>;
 }
 
-export interface ObsListener<T extends object = any> {
-    target: ObsProxyUnsafe<T>;
+export interface ObsListener<T extends ObsProxy | ObsProxyUnsafe = any> {
+    target: T;
     callback: ListenerFn<T>;
     /** @internal */
     _disposed?: boolean;
 }
-export interface ObsListenerWithProp<T extends object = object, TProp extends keyof T = never>
+export interface ObsListenerWithProp<T extends ObsProxy | ObsProxyUnsafe = any, TProp extends keyof T = never>
     extends Omit<ObsListener<T>, 'callback'> {
     prop?: TProp;
     callback: ListenerFn<T[TProp]>;
@@ -50,7 +50,11 @@ type ObsPropsRecursive<T> = {
 export type ObsProxyUnsafe<T = object> = ObsProps<T> & ObsPropsRecursiveUnsafe<T>;
 export type ObsProxy<T = object> = ObsProps<T> & ObsPropsRecursive<T>;
 
-export type ProxyValue<T extends ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t> ? t : T;
+export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t>
+    ? t
+    : T extends ObsProxy<infer t>
+    ? t
+    : T;
 
 export type MappedProxyValue<T extends ObsProxyUnsafe[]> = {
     [K in keyof T]: ProxyValue<T[K]>;

@@ -133,6 +133,10 @@ describe('Basic', () => {
 });
 
 describe('Listeners', () => {
+    test('Fail with invalid obs', () => {
+        // TODO
+        // listenToObs({ hi: true }, () => {});
+    });
     test('Primitive listener', () => {
         const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
