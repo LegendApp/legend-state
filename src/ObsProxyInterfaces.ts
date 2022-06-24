@@ -5,11 +5,16 @@ export interface ObsProps<T> {
     assign?: (value: T) => ObsProxy<T>;
 }
 
-export interface ObsListener<T = any> {
+export interface ObsListener<T extends object = any> {
     target: ObsProxy<T>;
     callback: ListenerFn<T>;
     /** @internal */
-    _disposed: boolean;
+    _disposed?: boolean;
+}
+export interface ObsListenerWithProp<T extends object = object, TProp extends keyof T = never>
+    extends Omit<ObsListener<T>, 'callback'> {
+    prop?: TProp;
+    callback: ListenerFn<T[TProp]>;
 }
 
 export interface ObsListenerInfo {
@@ -65,7 +70,7 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
 }
 export interface ObsPersistRemote {
     save<T>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
-    listen<T>(
+    listen<T extends object>(
         obs: ObsProxy<T>,
         options: PersistOptionsRemote<T>,
         onLoad: () => void,

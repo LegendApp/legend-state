@@ -83,6 +83,9 @@ const proxyGet = {
         if (prop === 'value') {
             // Access the original object
             return target;
+        } else if (prop === 'assign') {
+            // Calling set on a proxy returns a function which sets the value
+            return assigner.bind(proxyOwner);
         } else if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
             if (
@@ -98,10 +101,8 @@ const proxyGet = {
             return target[prop].bind(target);
         } else if (prop === 'set') {
             // Calling set on a proxy returns a function which sets the value
+            // Note: This is after the check for isCollection so we don't overwrite the collection set function
             return setter.bind(proxyOwner);
-        } else if (prop === 'assign') {
-            // Calling set on a proxy returns a function which sets the value
-            return assigner.bind(proxyOwner);
         } else {
             let proxy = info.proxies?.get(prop);
 

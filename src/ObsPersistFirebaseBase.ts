@@ -109,7 +109,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
         return max.v > 0 ? max.v : undefined;
     }
-    public listen<T>(
+    public listen<T extends object>(
         obs: ObsProxy<T>,
         options: PersistOptionsRemote<T>,
         onLoad: () => void,
@@ -132,7 +132,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             this._listen(obs, options, undefined, onLoad, onChange, '');
         }
     }
-    private iterateListen<T>(
+    private iterateListen<T extends object>(
         obs: ObsProxy<T>,
         options: PersistOptionsRemote<T>,
         queryByModified: object,
