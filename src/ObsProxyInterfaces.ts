@@ -1,8 +1,14 @@
 export interface ObsProps<T> {
-    get?(): ProxyValue<T>;
-    set?(value: T): ObsProxyUnsafe<T>;
-    set?<K extends keyof T>(key: K, value: T[K]): ObsProxyUnsafe<T>;
-    assign?: (value: T) => ObsProxyUnsafe<T>;
+    get(): T;
+    set(value: T): ObsProxy<T>;
+    set<K extends keyof T>(key: K, value: T[K]): ObsProxy<T>;
+    assign: (value: T) => ObsProxy<T>;
+}
+export interface ObsPropsUnsafe<T> {
+    get(): T;
+    set(value: T): ObsProxyUnsafe<T>;
+    set<K extends keyof T>(key: K, value: T[K]): ObsProxyUnsafe<T>;
+    assign: (value: T) => ObsProxyUnsafe<T>;
 }
 
 export interface ObsListener<T extends ObsProxy | ObsProxyUnsafe = any> {
@@ -25,7 +31,7 @@ export interface ObsListenerInfo {
 
 export type ListenerFn<T> = (value: T, info: ObsListenerInfo) => void;
 
-type Recurse<T, K extends keyof T, T2> = T[K] extends Array<any>
+type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends Array<any>
     ? T[K]
     : T[K] extends Map<any, any>
     ? T[K]
@@ -36,15 +42,15 @@ type Recurse<T, K extends keyof T, T2> = T[K] extends Array<any>
     : T[K] extends WeakSet<any>
     ? T[K]
     : T extends object
-    ? ObsProps<T[K]> & T2
+    ? Partial<TProps> & TRecurse
     : T[K];
 
 type ObsPropsRecursiveUnsafe<T> = {
-    [K in keyof T]: Recurse<T, K, ObsPropsRecursiveUnsafe<T[K]>>;
+    [K in keyof T]: Recurse<T, K, ObsPropsRecursiveUnsafe<T[K]>, ObsPropsUnsafe<T[K]>>;
 };
 
 type ObsPropsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>>;
+    readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>, ObsProps<T[K]>>;
 };
 
 export type ObsProxyUnsafe<T = object> = ObsProps<T> & ObsPropsRecursiveUnsafe<T>;

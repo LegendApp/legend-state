@@ -7,8 +7,7 @@ function useNewObsProxy<T extends object>(value: T, observe?: boolean): ObsProxy
     const obs = useMemo(() => obsProxy(value), []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe) {
-        useObsProxy(obs); // eslint-disable-line react-hooks/exhaustive-deps
-        return obs;
+        useObsProxy(obs);
     }
 
     return obs;

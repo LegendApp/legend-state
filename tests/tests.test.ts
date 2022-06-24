@@ -134,8 +134,10 @@ describe('Basic', () => {
 
 describe('Listeners', () => {
     test('Fail with invalid obs', () => {
-        // TODO
-        // listenToObs({ hi: true }, () => {});
+        expect(() => {
+            // @ts-ignore This is meant to error
+            listenToObs({ hi: true }, () => {});
+        }).toThrow();
     });
     test('Primitive listener', () => {
         const obs = obsProxy({ val: 10 });

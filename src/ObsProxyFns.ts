@@ -8,6 +8,7 @@ import {
     ObsListenerWithProp,
     ObsProxy,
     ObsProxyUnsafe,
+    ProxyValue,
 } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 import { state } from './ObsProxyState';
@@ -43,8 +44,8 @@ function _obsNotify(target: ObsProxyUnsafe, listenerInfo: ObsListenerInfo) {
 
 export function obsNotify<T extends ObsProxy | ObsProxyUnsafe>(
     target: T,
-    changedValue: T,
-    prevValue: T,
+    changedValue: ProxyValue<T>,
+    prevValue: ProxyValue<T>,
     path: string[]
 ) {
     _obsNotify(target, { changedValue, prevValue, path });
@@ -56,7 +57,9 @@ function _listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T
     target: ObsProxyUnsafe<T>
 ) {
     const info = state.infos.get(target);
-    if (!info) debugger;
+    if (!info) {
+        throw new Error('Can only listen to instances of ObsProxy');
+    }
     if (!info.listeners) {
         info.listeners = [];
     }
@@ -137,7 +140,7 @@ export function onHasValue<T extends ObsProxy | ObsProxyUnsafe, TProp extends ke
 export function onTrue<
     T extends ObsProxy<Record<TProp, boolean>> | ObsProxyUnsafe<Record<TProp, boolean>>,
     TProp extends keyof T
->(obs: ObsProxyUnsafe<T>, prop: TProp, cb?: () => void): Promise<void> {
+>(obs: T, prop: TProp, cb?: () => void): Promise<void> {
     return onValue(obs, prop, true as any, cb) as unknown as Promise<void>;
 }
 

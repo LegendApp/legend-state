@@ -135,11 +135,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     private iterateListen<T extends ObsProxy | ObsProxyUnsafe>(
-        obs: ObsProxyUnsafe<T>,
+        obs: T,
         options: PersistOptionsRemote<T>,
         queryByModified: object,
         onLoad: () => void,
-        onChange: (obs: ObsProxyUnsafe<T>, value: any) => void,
+        onChange: (obs: T, value: any) => void,
         syncPathExtra: string
     ) {
         Object.keys(obs).forEach((key) => {
