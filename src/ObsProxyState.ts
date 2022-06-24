@@ -1,7 +1,6 @@
 import { ObsListener, ObsProxy } from './ObsProxyInterfaces';
 
 export interface StateInfo {
-    isWrapped: boolean;
     prop: string;
     safe: boolean;
     listeners?: ObsListener[];
@@ -11,5 +10,5 @@ export interface StateInfo {
 
 export const state = {
     isInSetFn: false,
-    infos: new WeakMap<ObsProxy<any>, StateInfo>(),
+    infos: new WeakMap<ObsProxy, StateInfo>(),
 };

@@ -3,9 +3,9 @@ import { useObsProxy } from './useObsProxy';
 import { useMemo } from 'react';
 import { ObsProxy } from './ObsProxyInterfaces';
 
-function useNewObsProxy<T>(value: T): [ObsProxy<T>];
-function useNewObsProxy<T>(value: T, observe: boolean): [ObsProxy<T>, T];
-function useNewObsProxy<T>(value: T, observe?: boolean): [ObsProxy<T>, T?] {
+function useNewObsProxy<T extends object>(value: T): [ObsProxy<T>];
+function useNewObsProxy<T extends object>(value: T, observe: boolean): [ObsProxy<T>, T];
+function useNewObsProxy<T extends object>(value: T, observe?: boolean): [ObsProxy<T>, T?] {
     const obs = useMemo(() => obsProxy(value), []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe) {

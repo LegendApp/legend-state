@@ -1,6 +1,7 @@
 export interface ObsProps<T> {
     value?: T;
-    set?: (value: T) => ObsProxy<T>;
+    set(value: T): ObsProxy<T>;
+    set<K extends keyof T>(key: K, value: T[K]): ObsProxy<T>;
     assign?: (value: T) => ObsProxy<T>;
 }
 
@@ -27,14 +28,14 @@ type ObsPropsRecursiveReadonly<T> = {
     readonly [K in keyof T]: ObsProxy<T[K]>;
 };
 
-export type ProxyValue<T extends ObsProxy<any>> = T extends ObsProxy<infer t> ? t : T;
+export type ProxyValue<T extends ObsProxy> = T extends ObsProxy<infer t> ? t : T;
 
-export type MappedProxyValue<T> = {
+export type MappedProxyValue<T extends ObsProxy[]> = {
     [K in keyof T]: ProxyValue<T[K]>;
 };
 
-export type ObsProxy<T = unknown> = T & ObsProps<T> & ObsPropsRecursive<T>;
-export type ObsProxySafe<T = unknown> = Readonly<T> & ObsProps<T> & ObsPropsRecursiveReadonly<T>;
+export type ObsProxy<T = object> = T extends object ? T & ObsProps<T> & ObsPropsRecursive<T> : T;
+export type ObsProxySafe<T = object> = T extends object ? Readonly<T> & ObsProps<T> & ObsPropsRecursiveReadonly<T> : T;
 
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;

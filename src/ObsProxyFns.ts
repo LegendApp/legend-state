@@ -1,11 +1,11 @@
-import { isArray } from '@legendapp/tools';
+import { isArray, isFunction, isString } from '@legendapp/tools';
 import { symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { ListenerFn, ObsListener, ObsListenerInfo, ObsProxy } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 import { state } from './ObsProxyState';
 
-function _obsNotify(target: ObsProxy<any>, listenerInfo: ObsListenerInfo) {
+function _obsNotify(target: ObsProxy, listenerInfo: ObsListenerInfo) {
     const info = state.infos.get(target);
     if (info) {
         const listeners = info.listeners;
@@ -28,11 +28,11 @@ function _obsNotify(target: ObsProxy<any>, listenerInfo: ObsListenerInfo) {
     }
 }
 
-export function obsNotify<T>(target: ObsProxy<T>, changedValue: T, prevValue: T, path: string[]) {
+export function obsNotify<T extends object>(target: ObsProxy<T>, changedValue: T, prevValue: T, path: string[]) {
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T>(callback: ListenerFn<T>, target: ObsProxy<T>) {
+function _listenToObs<T extends object, TKey extends keyof T>(callback: ListenerFn<T>, key: TKey, target: ObsProxy<T>) {
     const info = state.infos.get(target);
     if (!info) debugger;
     if (!info.listeners) {
@@ -42,24 +42,56 @@ function _listenToObs<T>(callback: ListenerFn<T>, target: ObsProxy<T>) {
     info.listeners.push(listener);
     return listener;
 }
-export function listenToObs<T>(obs: ObsProxy<T>, cb: ListenerFn<T>): ObsListener<T>;
-export function listenToObs<T>(obs: ObsProxy<T> | ObsProxy<T>[], cb: ListenerFn<T>): ObsListener<T>[];
-export function listenToObs<T>(
-    args: ObsProxy<T> | ObsProxy<T>[],
+export function listenToObs<T extends object>(obs: ObsProxy<T>, cb: ListenerFn<T>): ObsListener<T>;
+export function listenToObs<T extends object>(obs: ObsProxy<T> | ObsProxy<T>[], cb: ListenerFn<T>): ObsListener<T>[];
+export function listenToObs<T extends object, TKey extends keyof T>(
+    obs: ObsProxy<T>,
+    key: TKey,
     cb: ListenerFn<T>
+): ObsListener<T>;
+export function listenToObs<T extends object, TKey extends keyof T>(
+    obs: ObsProxy<T> | ObsProxy<T>[],
+    key: TKey,
+    cb: ListenerFn<T>
+): ObsListener<T>[];
+export function listenToObs<T extends object, TKey extends keyof T>(
+    args: ObsProxy<T> | ObsProxy<T>[],
+    key: TKey,
+    cb?: ListenerFn<T>
 ): ObsListener<T> | ObsListener<T>[] {
-    return isArray(args) ? args.map(_listenToObs.bind(this, cb)) : _listenToObs(cb, args);
+    if (isFunction(key)) {
+        cb = key as unknown as ListenerFn<T>;
+        key = undefined;
+    }
+    return isArray(args) ? args.map(_listenToObs.bind(this, key, cb)) : _listenToObs(cb, key, args);
 }
 
-export function onValue<T>(target: ObsProxy<T>, value: T, cb?: (value: T) => void): Promise<T> {
-    return new Promise<T>((resolve) => {
+export function onValue<T extends object>(target: ObsProxy<T>, value: T, cb?: (value: T) => void): Promise<T>;
+export function onValue<T extends object, TKey extends keyof T>(
+    target: ObsProxy<T>,
+    key: TKey,
+    value: T[TKey],
+    cb?: (value: T) => void
+): Promise<T[TKey]>;
+export function onValue<T extends object, TKey extends keyof T>(
+    target: ObsProxy<T>,
+    key: TKey,
+    value: T,
+    cb?: (value: T) => void
+): Promise<T[TKey]> {
+    if ((!value || isFunction(value)) && !isString(key)) {
+        value = key as unknown as T;
+        cb = value as unknown as (value: T) => void;
+        key = undefined;
+    }
+    return new Promise<any>((resolve) => {
         const thisValue = target.value;
         if (value === undefined ? thisValue !== undefined : thisValue === value) {
             cb?.(value);
             resolve(value);
         } else {
             let isDone = false;
-            const listener = listenToObs(target, (newValue) => {
+            const listener = listenToObs(target, key, (newValue) => {
                 if (!isDone && (value === undefined ? thisValue !== undefined : newValue === value)) {
                     isDone = true;
                     cb?.(newValue);
@@ -71,12 +103,16 @@ export function onValue<T>(target: ObsProxy<T>, value: T, cb?: (value: T) => voi
     });
 }
 
-export function onHasValue<T>(target: ObsProxy<T>, cb?: (value: T) => void): Promise<T> {
+export function onHasValue<T extends object>(target: ObsProxy<T>, cb?: (value: T) => void): Promise<T> {
     return onValue(target, undefined, cb);
 }
 
-export function onTrue(target: ObsProxy<boolean>, cb?: (value: boolean) => void): Promise<boolean> {
-    return onValue(target, true, cb);
+export function onTrue<T extends Record<TKey, boolean>, TKey extends keyof T>(
+    target: ObsProxy<T>,
+    prop: TKey,
+    cb?: () => void
+): Promise<void> {
+    return onValue(target, prop, true as T[TKey], cb) as unknown as Promise<void>;
 }
 
 export function getObsModified(target: ObsProxy) {

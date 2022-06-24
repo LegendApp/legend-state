@@ -62,7 +62,7 @@ function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = false;
 }
 
-async function _obsPersist<T>(
+async function _obsPersist<T extends object>(
     proxyState: ObsProxy<ObsPersistState>,
     obs: ObsProxy<T>,
     persistOptions: PersistOptions<T>
@@ -116,7 +116,7 @@ async function _obsPersist<T>(
     }
 }
 
-export function obsPersist<T>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
+export function obsPersist<T extends object>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
     const proxyState = obsProxy<ObsPersistState>({ isLoadedLocal: false, isLoadedRemote: false });
     _obsPersist(proxyState, obs, persistOptions);
     return proxyState;

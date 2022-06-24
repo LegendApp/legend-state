@@ -2,16 +2,21 @@ import { listenToObs, obsProxy } from '../src';
 
 describe('Basic', () => {
     test('Has value', () => {
-        const obs = obsProxy(10);
-        expect(obs.value).toEqual(10);
+        const obs = obsProxy({ val: 10 });
+        expect(obs.value).toEqual({ val: 10 });
+    });
+    test('Primitive access', () => {
+        const obs = obsProxy({ val: 10 });
+        expect(obs.val).toEqual(10);
+        expect(obs.value.val).toEqual(10);
     });
     test('modify value', () => {
-        const obs = obsProxy<number>(10);
+        const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
         listenToObs(obs, handler);
-        obs.value = 20;
-        expect(obs.value).toEqual(20);
-        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+        obs.value = { val: 20 };
+        expect(obs.value).toEqual({ val: 20 });
+        expect(handler).toHaveBeenCalledWith({ val: 20 }, { changedValue: 20, path: ['val'], prevValue: 10 });
     });
     test('modify value deep', () => {
         const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
@@ -19,7 +24,7 @@ describe('Basic', () => {
         listenToObs(obs, handler);
 
         obs.test.test2.test3.test4 = 'hi';
-        expect(obs.test.test2.test3.test4.value).toEqual('hi');
+        expect(obs.test.test2.test3.test4).toEqual('hi');
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: { test4: 'hi' } } } },
             {
@@ -30,26 +35,26 @@ describe('Basic', () => {
         );
     });
     test('set function', () => {
-        const obs = obsProxy<number>(10);
+        const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
         listenToObs(obs, handler);
 
-        const ret = obs.set(20);
-        expect(obs.value).toEqual(20);
-        expect(ret.value).toEqual(20);
+        const ret = obs.set({ val: 20 });
+        expect(obs.value).toEqual({ val: 20 });
+        expect(ret.value).toEqual({ val: 20 });
         expect(ret.set).not.toBeUndefined();
         // @ts-ignore
         expect(ret.value.set).toBeUndefined();
-        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+        expect(handler).toHaveBeenCalledWith({ val: 20 }, { changedValue: 20, path: ['val'], prevValue: 10 });
     });
     test('set function deep', () => {
         const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
         const handler = jest.fn();
         listenToObs(obs, handler);
 
-        const ret = obs.test.test2.test3.test4.set('hi');
-        expect(ret.value).toEqual('hi');
-        expect(obs.test.test2.test3.test4.value).toEqual('hi');
+        const ret = obs.test.test2.test3.set('test4', 'hi');
+        expect(ret.value).toEqual({ test4: 'hi' });
+        expect(obs.test.test2.test3.test4).toEqual('hi');
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: { test4: 'hi' } } } },
             {
@@ -62,18 +67,19 @@ describe('Basic', () => {
     test('error on safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = obsProxy({ test: 'hi' }, true);
-        // @ts-ignore This is supposed to be a TS error so test that it fails
-        obs.test.value = 'hello';
-        expect(consoleErrorMock).toHaveBeenCalled();
-        expect(obs.test.value).toEqual('hi');
+        expect(() => {
+            // @ts-ignore This is meant to error
+            obs.test.value = 'hello';
+        }).toThrow();
+        expect(obs.test).toEqual('hi');
         consoleErrorMock.mockRestore();
     });
     test('safe using set function', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = obsProxy({ test: 'hi' }, true);
-        obs.test.set('hello');
+        obs.set('test', 'hello');
         expect(consoleErrorMock).not.toHaveBeenCalled();
-        expect(obs.test.value).toEqual('hello');
+        expect(obs.test).toEqual('hello');
 
         consoleErrorMock.mockRestore();
     });
@@ -81,11 +87,11 @@ describe('Basic', () => {
 
 describe('Listeners', () => {
     test('Primitive listener', () => {
-        const obs = obsProxy<number>(10);
+        const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
         listenToObs(obs, handler);
-        obs.value = 20;
-        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+        obs.value = { val: 20 };
+        expect(handler).toHaveBeenCalledWith({ val: 20 }, { changedValue: 20, path: ['val'], prevValue: 10 });
     });
     test('Object listener', () => {
         const obs = obsProxy({ test: 'hi' });

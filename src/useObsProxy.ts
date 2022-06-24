@@ -9,7 +9,7 @@ interface SavedRef {
     listeners?: ObsListener[];
 }
 
-function useObsProxy<T extends ObsProxy<any>[]>(...args: T): MappedProxyValue<T> {
+function useObsProxy<T extends ObsProxy[]>(...args: T): MappedProxyValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {

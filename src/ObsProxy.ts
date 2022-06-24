@@ -51,10 +51,18 @@ function collectionSetter(prop: string, proxyOwner: ObsProxy, key: string, value
     obsNotify(proxyOwner, this, prevValue, []);
 }
 
-function setter(value: any) {
+function setter(key: unknown, value: undefined);
+function setter(key: string, value: any);
+function setter(key: string | unknown, value: any) {
     // this = proxyOwner
     state.isInSetFn = true;
-    this.value = value;
+    if (value === undefined) {
+        this.value = key;
+    } else {
+        const prevValue = this.value[key as string];
+        this.value[key as string] = value;
+        obsNotify(this, value, prevValue, [key as string]);
+    }
     state.isInSetFn = false;
 
     return this;
@@ -73,8 +81,8 @@ const proxyGet = {
     get(target: any, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         if (prop === 'value') {
-            // Provide access to the original object
-            return info.isWrapped ? target[info.parent ? info.prop : prop] : target;
+            // Access the original object
+            return target;
         } else if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
             if (
@@ -98,7 +106,7 @@ const proxyGet = {
             let proxy = info.proxies?.get(prop);
 
             // Getting a property creates a proxy for it
-            if (!proxy && !isFunction(target[prop]) && !isArray(target)) {
+            if (!proxy && !isPrimitive(target[prop]) && !isFunction(target[prop]) && !isArray(target)) {
                 if (!info.proxies) {
                     info.proxies = new Map();
                 }
@@ -121,27 +129,14 @@ const proxyGet = {
         if (prop === 'value') {
             // Setting value should replace the target with the new value
             let prevValue: any;
-            let changed;
-            if (info.isWrapped) {
-                // If this is a wrapped primitive set the value on it directly
-                prevValue = info.parent ? target[info.prop] : target.value;
-                changed = prevValue !== value;
-                if (changed) {
-                    target[info.parent ? info.prop : 'value'] = value;
-                }
-            } else {
-                changed = true;
-                prevValue = Object.assign({}, target.value);
-                // Delete keys that no longer exist
-                Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
-                if (value) {
-                    // Set all of the new properties on the target
-                    Object.assign(proxyOwner, value);
-                }
+            prevValue = Object.assign({}, target.value);
+            // Delete keys that no longer exist
+            Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+            if (value) {
+                // Set all of the new properties on the target
+                Object.assign(proxyOwner, value);
             }
-            if (changed) {
-                obsNotify(proxyOwner, value, prevValue, []);
-            }
+            obsNotify(proxyOwner, value, prevValue, []);
         } else if (proxy) {
             if (value !== undefined) {
                 // If prop has a proxy, forward the set into the proxy
@@ -173,21 +168,21 @@ const proxyGet = {
     },
 };
 
-function _obsProxy<T>(value: T, safe: boolean, parent?: ObsProxy<any>, prop?: string): ObsProxy<T> {
+function _obsProxy<T extends object>(value: T, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxy<T> {
+    if (process.env.NODE_ENV === 'development' && isPrimitive(value)) {
+        console.error('obsProxy value must be an object');
+    }
     // If it's a primitive it needs to be wrapped in { value } because Proxy requires an object
-    const isWrapped = isPrimitive(value);
-    const _value = isWrapped ? (parent ? parent.value : { value }) : value;
-    const proxy = new Proxy(_value as object, proxyGet) as ObsProxy<T>;
-
+    const proxy = new Proxy(value, proxyGet) as ObsProxy<T>;
     // Save proxy to state so it can be accessed later
-    state.infos.set(proxy, { isWrapped, parent, prop, safe });
+    state.infos.set(proxy, { parent, prop, safe });
 
     return proxy;
 }
 
-function obsProxy<T extends any>(value: T): ObsProxy<T>;
-function obsProxy<T extends any>(value: T, safe: true): ObsProxySafe<T>;
-function obsProxy<T extends any>(value: T = undefined, safe?: boolean): ObsProxy<T> | ObsProxySafe<T> {
+function obsProxy<T extends object>(value: T): ObsProxy<T>;
+function obsProxy<T extends object>(value: T, safe: true): ObsProxySafe<T>;
+function obsProxy<T extends object>(value: T = undefined, safe?: boolean): ObsProxy<T> | ObsProxySafe<T> {
     return _obsProxy(value, safe);
 }
 
