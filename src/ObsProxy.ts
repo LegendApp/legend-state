@@ -27,9 +27,16 @@ const MapModifiers = new Map([
 ]);
 
 const ArrayModifiers = new Map([
-    ['contact', true],
     ['copyWithin', true],
+    ['fill', true],
+    ['from', true],
+    ['pop', true],
     ['push', true],
+    ['reverse', true],
+    ['shift', true],
+    ['sort', true],
+    ['splice', true],
+    ['unshift', true],
 ]);
 
 const SetModifiers = new Map([
@@ -194,17 +201,19 @@ const proxyGet = {
         }
     },
     set(target: any, prop: string, value: any, proxyOwner: ObsProxy) {
-        if (state.isInSetFn || isArray(target)) {
+        if (state.isInSetFn) {
+            // Set function handles notifying
             Reflect.set(target, prop, value);
             return true;
-        }
-        const info = state.infos.get(proxyOwner);
-        if (!info.safe) {
-            setter(proxyOwner, prop, value);
-            return true;
-        }
+        } else {
+            const info = state.infos.get(proxyOwner);
+            if (!info.safe) {
+                setter(proxyOwner, prop, value);
+                return true;
+            }
 
-        return false;
+            return false;
+        }
     },
 };
 

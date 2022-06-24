@@ -93,7 +93,7 @@ describe('Basic', () => {
         expect(() => {
             // @ts-ignore This is meant to error
             obs.test = 'hello';
-        });
+        }).toThrow();
         expect(() => {
             // @ts-ignore This is meant to error
             obs.test2.test3 = { test4: 'hi5' };
@@ -193,6 +193,23 @@ describe('Listeners', () => {
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.push('hello');
+        expect(handler).toHaveBeenCalledWith(
+            { test: ['hi', 'hello'] },
+            { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+        );
+    });
+    test('Array set at index should fail on safe', () => {
+        const obs = obsProxy({ test: ['hi'] });
+
+        expect(() => {
+            obs.test[1] = 'hello';
+        }).toThrow();
+    });
+    test('Array set at index should succeed on unsafe', () => {
+        const obs = obsProxy({ test: ['hi'] }, /*unsafe*/ true);
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test[1] = 'hello';
         expect(handler).toHaveBeenCalledWith(
             { test: ['hi', 'hello'] },
             { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
