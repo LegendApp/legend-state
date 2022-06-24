@@ -3,6 +3,7 @@ import { listenToObs, obsProxy, onHasValue, onTrue, onValue } from '../src';
 describe('Basic', () => {
     test('Has value', () => {
         const obs = obsProxy({ val: 10 });
+        expect(obs).toEqual({ val: 10 });
         expect(obs.value).toEqual({ val: 10 });
     });
     test('Primitive access', () => {
@@ -15,6 +16,7 @@ describe('Basic', () => {
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.value = { val: 20 };
+        expect(obs).toEqual({ val: 20 });
         expect(obs.value).toEqual({ val: 20 });
         expect(handler).toHaveBeenCalledWith({ val: 20 }, { changedValue: 20, path: ['val'], prevValue: 10 });
     });
@@ -82,6 +84,26 @@ describe('Basic', () => {
         expect(obs.test).toEqual('hello');
 
         consoleErrorMock.mockRestore();
+    });
+    test('modify value does not copy object', () => {
+        const obs = obsProxy({ test: { test2: 'hi' } });
+        const newVal = { test2: 'hello' };
+        obs.test.value = newVal;
+        expect(obs.test.value).toBe(newVal);
+    });
+    test('modify value retains old listeners', () => {
+        const obs = obsProxy({ test: { test2: 'hi' } });
+        const handler = jest.fn();
+        listenToObs(obs.test, handler);
+        const newVal = { test2: 'hello' };
+        obs.test.value = newVal;
+        expect(obs.test.value).toBe(newVal);
+        expect(obs.value).toEqual({ test: newVal });
+        expect(handler).toHaveBeenCalledWith(newVal, {
+            changedValue: { test2: 'hello' },
+            path: ['test'],
+            prevValue: { test2: 'hi' },
+        });
     });
 });
 

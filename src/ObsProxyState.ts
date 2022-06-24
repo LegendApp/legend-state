@@ -2,6 +2,7 @@ import { ObsListener, ObsListenerWithProp, ObsProxy } from './ObsProxyInterfaces
 
 export interface StateInfo {
     prop: string;
+    target: object;
     safe: boolean;
     listeners?: (ObsListener | ObsListenerWithProp)[];
     proxies?: Map<string, ObsProxy>;

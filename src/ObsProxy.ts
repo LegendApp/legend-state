@@ -120,7 +120,6 @@ const proxyGet = {
     },
     set(target: any, prop: string, value: any, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
-        const proxy = info?.proxies?.get(prop);
 
         if (info.safe && !state.isInSetFn) {
             console.error('Cannot set a value directly on a safe ObsProxy. Use .set() instead.');
@@ -130,38 +129,64 @@ const proxyGet = {
         if (prop === 'value') {
             // Setting value should replace the target with the new value
             let prevValue: any;
-            prevValue = Object.assign({}, target.value);
-            // Delete keys that no longer exist
-            Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
-            if (value) {
-                // Set all of the new properties on the target
-                Object.assign(proxyOwner, value);
+            prevValue = Object.assign({}, proxyOwner.value);
+            // If this has a proxy parent, replace this proxy with a new proxy and copy over listeners
+            if (info.parent) {
+                const parentInfo = state.infos.get(info.parent);
+                // Duplicate the old proxy with the new value
+                const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
+                // Set the raw value on the target
+                parentInfo.target[info.prop] = value;
+                // Move the listeners to the new proxy
+                const infoNew = state.infos.get(proxyNew);
+                infoNew.listeners = info.listeners;
+
+                // Replace the proxy on the parent
+                parentInfo.proxies.set(info.prop, proxyNew);
+
+                // Delete the old proxy from state
+                state.infos.delete(proxyOwner);
+                proxyOwner = proxyNew;
+            } else {
+                // Don't have a parent so there's no context to replace it with a new proxy, so have to just copy the values onto the target
+
+                // 1. Delete keys that no longer exist
+                Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+                if (value) {
+                    // 2. Set all of the new properties on the target
+                    Object.assign(proxyOwner, value);
+                }
             }
             obsNotify(proxyOwner, value, prevValue, []);
-        } else if (proxy) {
-            if (value !== undefined) {
-                // If prop has a proxy, forward the set into the proxy
-                proxy.value = value;
+        } else {
+            const proxy = info?.proxies?.get(prop);
+            if (proxy) {
+                if (value === undefined) {
+                    // Setting to undefined deletes this proxy
+                    const prevValue = target[prop];
+                    state.infos.delete(proxy);
+                    info.proxies.delete(prop);
+                    target[prop] = value;
+                    obsNotify(proxyOwner, value, prevValue, [prop]);
+                } else {
+                    // If prop has a proxy, forward the set into the proxy
+                    proxy.value = value;
+                }
+            } else if (isArray(target)) {
+                // Ignore array length changing because that's caused by mutations which already notified.
+                if (prop !== 'length' && target[prop] !== value) {
+                    const prevValue = target.slice();
+                    target[prop] = value;
+                    // Notify listeners of changes.
+                    obsNotify(proxyOwner, target, prevValue, []);
+                }
             } else {
                 const prevValue = target[prop];
-                info.proxies.delete(prop);
-                target[prop] = value;
-                obsNotify(proxyOwner, value, prevValue, [prop]);
-            }
-        } else if (isArray(target)) {
-            // Ignore array length changing because that's caused by mutations which already notified.
-            if (prop !== 'length' && target[prop] !== value) {
-                const prevValue = target.slice();
-                target[prop] = value;
-                // Notify listeners of changes.
-                obsNotify(proxyOwner, target, prevValue, []);
-            }
-        } else {
-            const prevValue = target[prop];
-            if (value !== prevValue) {
-                target[prop] = value;
-                // Notify listeners of changes.
-                obsNotify(proxyOwner, value, prevValue, [prop]);
+                if (value !== prevValue) {
+                    target[prop] = value;
+                    // Notify listeners of changes.
+                    obsNotify(proxyOwner, value, prevValue, [prop]);
+                }
             }
         }
 
@@ -176,7 +201,7 @@ function _obsProxy<T extends object>(value: T, safe: boolean, parent?: ObsProxy,
     // If it's a primitive it needs to be wrapped in { value } because Proxy requires an object
     const proxy = new Proxy(value, proxyGet) as ObsProxy<T>;
     // Save proxy to state so it can be accessed later
-    state.infos.set(proxy, { parent, prop, safe });
+    state.infos.set(proxy, { parent, prop, safe, target: value });
 
     return proxy;
 }
