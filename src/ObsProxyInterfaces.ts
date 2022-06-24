@@ -1,14 +1,16 @@
+const symbolProxy = Symbol('__proxy');
+
 export interface ObsProps<T> {
-    get(): T;
-    set(value: T): ObsProxy<T>;
-    set<K extends keyof T>(key: K, value: T[K]): ObsProxy<T>;
-    assign: (value: T) => ObsProxy<T>;
+    get?(): T;
+    set?(value: T): ObsProxy<T>;
+    set?<K extends keyof T>(key: K, value: T[K]): ObsProxy<T>;
+    assign?(value: T): ObsProxy<T>;
 }
 export interface ObsPropsUnsafe<T> {
-    get(): T;
-    set(value: T): ObsProxyUnsafe<T>;
-    set<K extends keyof T>(key: K, value: T[K]): ObsProxyUnsafe<T>;
-    assign: (value: T) => ObsProxyUnsafe<T>;
+    get?(): T;
+    set?(value: T): ObsProxyUnsafe<T>;
+    set?<K extends keyof T>(key: K, value: T[K]): ObsProxyUnsafe<T>;
+    assign?(value: T): ObsProxyUnsafe<T>;
 }
 
 export interface ObsListener<T extends ObsProxy | ObsProxyUnsafe = any> {
@@ -42,19 +44,21 @@ type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends Array<any>
     : T[K] extends WeakSet<any>
     ? T[K]
     : T extends object
-    ? Partial<TProps> & TRecurse
+    ? TProps & TRecurse
     : T[K];
 
 type ObsPropsRecursiveUnsafe<T> = {
-    [K in keyof T]: Recurse<T, K, ObsPropsRecursiveUnsafe<T[K]>, ObsPropsUnsafe<T[K]>>;
+    [K in keyof T]: Recurse<T, K, ObsPropsRecursiveUnsafe<T[K]>, ObsPropsUnsafeIfNotPrimitive<T[K]>>;
 };
 
 type ObsPropsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>, ObsProps<T[K]>>;
+    readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>, ObsPropsIfNotPrimitive<T[K]>>;
 };
+type ObsPropsIfNotPrimitive<T> = T extends object ? ObsProps<T> : T;
+type ObsPropsUnsafeIfNotPrimitive<T> = T extends object ? ObsPropsUnsafe<T> : T;
 
-export type ObsProxyUnsafe<T = object> = ObsProps<T> & ObsPropsRecursiveUnsafe<T>;
-export type ObsProxy<T = object> = ObsProps<T> & ObsPropsRecursive<T>;
+export type ObsProxyUnsafe<T = object> = ObsPropsUnsafeIfNotPrimitive<T> & ObsPropsRecursiveUnsafe<T>;
+export type ObsProxy<T = object> = ObsPropsIfNotPrimitive<T> & ObsPropsRecursive<T>;
 
 export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t>
     ? t

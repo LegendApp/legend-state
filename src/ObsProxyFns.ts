@@ -91,22 +91,26 @@ export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends k
     return isArray(args) ? args.map(_listenToObs.bind(this, prop, cb)) : (_listenToObs(cb, prop as any, args) as any);
 }
 
-export function onValue<T extends ObsProxy | ObsProxyUnsafe>(target: T, value: T, cb?: (value: T) => void): Promise<T>;
-export function onValue<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
-    obs: T,
-    prop: TProp,
-    value: T[TProp],
-    cb?: (value: T) => void
-): Promise<T[TProp]>;
-export function onValue<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
-    obs: T,
-    prop: TProp,
+export function onValue<T extends object>(
+    target: ObsProxy<T> | ObsProxyUnsafe<T>,
     value: T,
     cb?: (value: T) => void
+): Promise<T>;
+export function onValue<T extends object, TProp extends keyof T>(
+    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    prop: TProp,
+    value: T[TProp],
+    cb?: (value?: T) => void
+): Promise<T[TProp]>;
+export function onValue<T extends object, TProp extends keyof T>(
+    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    prop: TProp,
+    value: T[TProp],
+    cb?: (value?: T) => void
 ): Promise<T[TProp]> {
     if ((!value || isFunction(value)) && !isString(prop)) {
         cb = value as unknown as (value: T) => void;
-        value = prop as unknown as T;
+        value = prop as any;
         prop = undefined;
     }
 
@@ -129,21 +133,23 @@ export function onValue<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof
     });
 }
 
-export function onHasValue<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
-    obs: T,
+export function onHasValue<T extends object, TProp extends keyof T>(
+    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
     prop: TProp,
     cb?: (value: T) => void
 ): Promise<T[TProp]> {
+    // @ts-ignore
     return onValue(obs, prop, symbolHasValue as any, cb);
 }
 
-export function onTrue<
-    T extends ObsProxy<Record<TProp, boolean>> | ObsProxyUnsafe<Record<TProp, boolean>>,
-    TProp extends keyof T
->(obs: T, prop: TProp, cb?: () => void): Promise<void> {
-    return onValue(obs, prop, true as any, cb) as unknown as Promise<void>;
+export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
+    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    prop: TProp,
+    cb?: () => void
+): Promise<void> {
+    return onValue(obs, prop, true as T[TProp], cb) as unknown as Promise<void>;
 }
 
-export function getObsModified(obs: ObsProxyUnsafe) {
+export function getObsModified<T extends ObsProxy | ObsProxyUnsafe>(obs: T) {
     return obs.get()[symbolDateModified];
 }

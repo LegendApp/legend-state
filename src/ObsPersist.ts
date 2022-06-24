@@ -124,7 +124,7 @@ async function _obsPersist<T extends ObsProxy | ObsProxyUnsafe>(
     }
 }
 
-export function obsPersist<T extends ObsProxy | ObsProxyUnsafe>(obs: ObsProxy<T>, persistOptions: PersistOptions<T>) {
+export function obsPersist<T extends ObsProxy | ObsProxyUnsafe>(obs: T, persistOptions: PersistOptions<T>) {
     const proxyState = obsProxy<ObsPersistState>({ isLoadedLocal: false, isLoadedRemote: false });
     _obsPersist(proxyState, obs, persistOptions as PersistOptions<object>);
     return proxyState;
