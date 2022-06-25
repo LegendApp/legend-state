@@ -1,16 +1,14 @@
-import { isNumber, isObject, isString } from '@legendapp/tools';
+import { isObject } from '@legendapp/tools';
+import { invertObject, transformObject } from './FieldTransformer';
+import { constructObject, removeNullUndefined, symbolDateModified } from './globals';
 import { getObsModified } from './ObsProxyFns';
-import { invertObject, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
     ObsProxy,
     ObsProxyChecker,
     ObsProxyUnsafe,
-    PersistOptions,
     PersistOptionsRemote,
-    ProxyValue,
     QueryByModified,
 } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
@@ -63,6 +61,7 @@ type SaveInfoDictionary<T = any> = {
 interface PendingSaves {
     options: PersistOptionsRemote;
     saves: SaveInfoDictionary;
+    values: any[];
 }
 
 function findMaxModified(obj: object, max: { v: number }) {
@@ -75,17 +74,18 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private promiseAuthed: PromiseCallback<void>;
     private promiseSaved: PromiseCallback<void>;
     private fieldTransformsIn: Record<string, any> = {};
-    private _pendingSaves: Record<string, { values: any[] }> = {};
     protected _batch: Record<string, any> = {};
     private _timeoutSave: any;
     private fns: FirebaseFns;
     private _hasLoadedValue: Record<string, boolean> = {};
-
+    protected SaveTimeout = 3000;
     private _pendingSaves2: Map<string, PendingSaves> = new Map();
 
-    constructor(fns: FirebaseFns) {
-        this.fns = fns;
+    constructor() {
         this._onTimeoutSave = this._onTimeoutSave.bind(this);
+    }
+    protected setFns(fns: FirebaseFns) {
+        this.fns = fns;
     }
     private async waitForAuth() {
         if (!this.promiseAuthed) {
@@ -216,22 +216,43 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     public async save<T>(options: PersistOptionsRemote, value: T, info: ObsListenerInfo) {
+        const { requireAuth } = options;
+        if (requireAuth) {
+            await this.waitForAuth();
+        }
+
         value = removeNullUndefined(value);
 
         const path = info.path.slice();
-        const syncPath = options.firebase.syncPath('__SAVE__');
+        const syncPath = options.firebase.syncPath(this.fns.getCurrentUser());
         if (!this._pendingSaves2.has(syncPath)) {
-            this._pendingSaves2.set(syncPath, { options, saves: {} });
+            this._pendingSaves2.set(syncPath, { options, saves: {}, values: [] });
         }
         const pending = this._pendingSaves2.get(syncPath).saves;
 
         this._updatePendingSave(path, value as unknown as object, pending);
 
-        if (this._timeoutSave) clearTimeout(this._timeoutSave);
-        // TODO: Change this to 3000
-        this._timeoutSave = setTimeout(this._onTimeoutSave, 0);
+        if (!this.promiseSaved) {
+            this.promiseSaved = new PromiseCallback();
+        }
 
-        return value;
+        if (this.SaveTimeout) {
+            if (this._timeoutSave) clearTimeout(this._timeoutSave);
+            this._timeoutSave = setTimeout(this._onTimeoutSave, this.SaveTimeout);
+        } else {
+            this._onTimeoutSave();
+        }
+
+        await this.promiseSaved.promise;
+
+        const valuesSaved = this._pendingSaves2.get(syncPath)?.values;
+        if (valuesSaved?.length) {
+            // Only want to return from saved one time
+            this._pendingSaves2.delete(syncPath);
+            const valueSaved = JSON.parse(JSON.stringify(value));
+            Object.assign(valueSaved, ...valuesSaved);
+            return valueSaved;
+        }
     }
     private _constructBatch(
         options: PersistOptionsRemote,
@@ -340,8 +361,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (val) {
             const value = this._getChangeValue(pathFirebase, snapshot.key, val);
 
-            if (this._pendingSaves[pathFirebase]) {
-                this._pendingSaves[pathFirebase].values.push(value);
+            if (this._pendingSaves2.has(pathFirebase)) {
+                this._pendingSaves2.get(pathFirebase).values.push(value);
             } else {
                 onChange(() => {
                     obs.assign(value);

@@ -28,6 +28,10 @@ class LocalStorageMock {
     }
 }
 
+function promiseTimeout() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 // @ts-ignore
 global.localStorage = new LocalStorageMock();
 
@@ -42,7 +46,7 @@ beforeEach(() => {
 
     const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
     if (remote) {
-        remote['_pendingSaves2'].delete(`/test/__SAVE__/s/`);
+        remote['_pendingSaves2'].delete(`/test/testuid/s/`);
         remote['listeners'] = {};
         remote['remoteData'] = {};
     }
@@ -101,7 +105,7 @@ describe('Persist local', () => {
 });
 
 describe('Persist remote save', () => {
-    test('Pending after save', () => {
+    test('Pending after save', async () => {
         const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
 
         const remoteOptions: PersistOptionsRemote = {
@@ -122,7 +126,9 @@ describe('Persist remote save', () => {
 
         obs.test.set('test2', 'hi');
 
-        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
+        await promiseTimeout();
+
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('testuid')).saves;
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' } } });
         expect(remote['_constructBatchForSave']()).toEqual({
@@ -131,6 +137,8 @@ describe('Persist remote save', () => {
 
         obs.test.set('test3', 'hi2');
 
+        await promiseTimeout();
+
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' }, test3: { [symbolSaveValue]: 'hi2' } } });
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': 'hi',
@@ -138,6 +146,8 @@ describe('Persist remote save', () => {
         });
 
         obs.test.set({ test2: 'test2 hi', test3: 'test3 hi' });
+
+        await promiseTimeout();
 
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test3 hi' } },
@@ -148,6 +158,8 @@ describe('Persist remote save', () => {
 
         obs.test.set('test3', 'test33333');
 
+        await promiseTimeout();
+
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test33333' } },
         });
@@ -156,7 +168,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('Pending after save with modified primitive', () => {
+    test('Pending after save with modified primitive', async () => {
         const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
 
         const remoteOptions: PersistOptionsRemote<ProxyValue<typeof obs>> = {
@@ -178,7 +190,9 @@ describe('Persist remote save', () => {
 
         obs.test.set('test2', 'hi');
 
-        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
+        await promiseTimeout();
+
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('testuid')).saves;
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' } } });
         expect(remote['_constructBatchForSave']()).toEqual({
@@ -189,6 +203,8 @@ describe('Persist remote save', () => {
         });
 
         obs.test.set('test3', 'hi2');
+
+        await promiseTimeout();
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' }, test3: { [symbolSaveValue]: 'hi2' } } });
         expect(remote['_constructBatchForSave']()).toEqual({
@@ -203,7 +219,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('Pending after save with modified object', () => {
+    test('Pending after save with modified object', async () => {
         const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
 
         const remoteOptions: PersistOptionsRemote = {
@@ -225,7 +241,9 @@ describe('Persist remote save', () => {
 
         obs.test.set({ test2: 'hi', test3: 'hi2' });
 
-        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
+        await promiseTimeout();
+
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('testuid')).saves;
 
         expect(pending).toEqual({ test: { [symbolSaveValue]: { test2: 'hi', test3: 'hi2' } } });
         expect(remote['_constructBatchForSave']()).toEqual({
@@ -237,7 +255,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('queryByModified with queryByModified at root', () => {
+    test('queryByModified with queryByModified at root', async () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
@@ -261,12 +279,16 @@ describe('Persist remote save', () => {
 
         obs.test.set('test2', 'hi');
 
+        await promiseTimeout();
+
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/@': '__serverTimestamp',
             '/test/testuid/s/test/test2': 'hi',
         });
 
         obs.test.set('test3', 'hi2');
+
+        await promiseTimeout();
 
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/@': '__serverTimestamp',
@@ -275,6 +297,8 @@ describe('Persist remote save', () => {
         });
 
         obs.test.test4.set('test5', 'hi3');
+
+        await promiseTimeout();
 
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/@': '__serverTimestamp',
@@ -285,6 +309,8 @@ describe('Persist remote save', () => {
 
         obs.test.test4.test6.set('test7', 'hi4');
 
+        await promiseTimeout();
+
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/@': '__serverTimestamp',
             '/test/testuid/s/test/test2': 'hi',
@@ -294,7 +320,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('save queryByModified with path/*', () => {
+    test('save queryByModified with path/*', async () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
@@ -318,6 +344,8 @@ describe('Persist remote save', () => {
 
         obs.test.set('test2', 'hi');
 
+        await promiseTimeout();
+
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': {
                 '@': '__serverTimestamp',
@@ -326,6 +354,8 @@ describe('Persist remote save', () => {
         });
 
         obs.test.set('test3', 'hi2');
+
+        await promiseTimeout();
 
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': {
@@ -339,6 +369,8 @@ describe('Persist remote save', () => {
         });
 
         obs.test.test4.set('test5', 'hi3');
+
+        await promiseTimeout();
 
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': {
@@ -355,6 +387,8 @@ describe('Persist remote save', () => {
 
         obs.test.test4.test6.set('test7', 'hi4');
 
+        await promiseTimeout();
+
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': {
                 '@': '__serverTimestamp',
@@ -370,7 +404,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('save queryByModified with path/* 2', () => {
+    test('save queryByModified with path/* 2', async () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
@@ -394,6 +428,8 @@ describe('Persist remote save', () => {
 
         obs.test.set('test2', 'hi');
 
+        await promiseTimeout();
+
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': {
                 '@': '__serverTimestamp',
@@ -402,6 +438,8 @@ describe('Persist remote save', () => {
         });
 
         obs.test.test4.test6.set('test7', 'hi4');
+
+        await promiseTimeout();
 
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/test/test2': {
@@ -761,17 +799,17 @@ describe('Remote change', () => {
 
 // TODO
 
-// Persist
+// # Persist
 // Modified needs to save locally
 // queryByModified with local modified values
 // fieldtranslator
 // fieldtranslator keep datemodified symbol
 // Enforce syncPath ending in /
 
-// Things outside of Bravely scope
+// # Things outside of Bravely scope
 // Use MMKV for local?
 // Promises
 
-// More tests
+// # More tests
 // test read functions on array and map and stuff
 // Need to document

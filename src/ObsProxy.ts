@@ -175,6 +175,7 @@ const proxyOn = new Proxy<{ obsProxy: ObsProxy }>(
     { obsProxy: undefined },
     {
         get(target: { obsProxy: ObsProxy }, prop: keyof ObsPropsOn, proxyOwner: ObsProxyUnsafe) {
+            // Return a listener function bound to the target obsProxy
             return ProxyOnFunctions.get(prop).bind(target.obsProxy, target.obsProxy);
         },
     }

@@ -52,6 +52,9 @@ async function onObsChange<T>(
 
     if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
         const saved = await persistenceRemote.save(persistOptions.remote, value, info);
+        if (saved) {
+            // debugger;
+        }
         // if (this.persistOptions.local) {
         //     const name = this.persistOptions.local;
         //     persistenceLocal.setValue(name, saved);
@@ -71,7 +74,7 @@ function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = false;
 }
 
-async function _obsPersist<T extends object>(
+function _obsPersist<T extends object>(
     proxyState: ObsProxy<ObsPersistState>,
     obs: ObsProxyChecker<T>,
     persistOptions: PersistOptions<T>
@@ -87,9 +90,6 @@ async function _obsPersist<T extends object>(
         }
         const persistenceLocal = mapPersistences.get(localPersistence) as ObsPersistLocal;
         state.persistenceLocal = persistenceLocal;
-        if ((persistenceLocal as ObsPersistLocalAsync).preload) {
-            await (persistenceLocal as ObsPersistLocalAsync).preload(local);
-        }
 
         const value = persistenceLocal.getValue(local);
 
