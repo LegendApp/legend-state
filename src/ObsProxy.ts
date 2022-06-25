@@ -68,14 +68,13 @@ function collectionSetter(prop: string, proxyOwner: ObsProxyUnsafe, ...args: any
     obsNotify(proxyOwner, this, prevValue, []);
 }
 
-function getter() {
-    // this = proxyOwner
-    return state.infos.get(this).target;
+function getter(proxyOwner: ObsProxy) {
+    return state.infos.get(proxyOwner).target;
 }
 
-function setter(proxyOwner: ObsProxyUnsafe, prop: unknown);
-function setter(proxyOwner: ObsProxyUnsafe, prop: string, value: any);
-function setter(proxyOwner: ObsProxyUnsafe, prop: string | unknown, value?: any) {
+function setter(proxyOwner: ObsProxy, prop: unknown);
+function setter(proxyOwner: ObsProxy, prop: string, value: any);
+function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
     state.isInSetFn = true;
     const info = state.infos.get(proxyOwner);
     const target = info.target;
@@ -151,22 +150,24 @@ function setter(proxyOwner: ObsProxyUnsafe, prop: string | unknown, value?: any)
     return this;
 }
 
-function assigner(value: any) {
-    // this = proxyOwner
+function assigner(proxyOwner: ObsProxy, value: any) {
     state.isInAssign = true;
-    Object.assign(this, value);
+    Object.assign(proxyOwner, value);
     state.isInAssign = false;
 
     return this;
 }
 
+const ProxyFunctions = new Map([
+    ['get', getter],
+    ['set', setter],
+    ['assign', assigner],
+]);
+
 const proxyGet = {
     get(target: any, prop: string, proxyOwner: ObsProxyUnsafe) {
         const info = state.infos.get(proxyOwner);
-        if (prop === 'assign') {
-            // Calling set on a proxy returns a function which sets the value
-            return assigner.bind(proxyOwner);
-        } else if (isFunction(target[prop]) && isCollection(target)) {
+        if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
             if (
                 (target instanceof Map && MapModifiers.has(prop)) ||
@@ -180,14 +181,10 @@ const proxyGet = {
 
             // Non-modifying functions pass straight through
             return target[prop].bind(target);
-        } else if (prop === 'set') {
-            // Calling set on a proxy returns a function which sets the value
+        } else if (ProxyFunctions.has(prop)) {
+            // Calling a proxy function returns a bound function
             // Note: This is after the check for isCollection so we don't overwrite the collection set function
-            return setter.bind(proxyOwner, proxyOwner);
-        } else if (prop === 'get') {
-            // Calling set on a proxy returns a function which sets the value
-            // Note: This is after the check for isCollection so we don't overwrite the collection set function
-            return getter.bind(proxyOwner);
+            return ProxyFunctions.get(prop).bind(proxyOwner, proxyOwner);
         } else {
             let proxy = info.proxies?.get(prop);
 
