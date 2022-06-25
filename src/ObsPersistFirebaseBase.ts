@@ -429,10 +429,20 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let o = queryByModified;
         for (let i = 0; i < path.length; i++) {
             if (o === true) {
-                if (i === path.length - 1 && !isObject(value)) {
-                    return this.insertDateToObject(value);
+                if (i === path.length - 1) {
+                    if (!isObject(value)) {
+                        return this.insertDateToObject(value);
+                    } else {
+                        const pathThis = basePath + path.slice(0, i + 1).join('/');
+                        if (isObject(value)) {
+                            value['@'] = this.fns.serverTimestamp();
+                        } else {
+                            batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                        }
+                    }
                 } else {
-                    batch[basePath + path.slice(0, i + 1).join('/') + '/@'] = this.fns.serverTimestamp();
+                    const pathThis = basePath + path.slice(0, i + 1).join('/');
+                    batch[pathThis + '/@'] = this.fns.serverTimestamp();
                 }
                 return value;
             }

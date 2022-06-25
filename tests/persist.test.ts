@@ -236,7 +236,7 @@ describe('Persist remote save', () => {
             requireAuth: true,
             firebase: {
                 syncPath: (uid) => `/test/${uid}/s/`,
-                queryByModified: { test: true },
+                queryByModified: true,
             },
         };
 
@@ -874,8 +874,7 @@ describe('Remote change', () => {
 // TODO
 
 // # Persist
-// Modified needs to save locally
-// queryByModified with local modified values
+// queryByModified with locally modified values
 // fieldtranslator
 // fieldtranslator keep datemodified symbol
 // Enforce syncPath ending in /
