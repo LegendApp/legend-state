@@ -22,6 +22,27 @@ export function constructObject(path: string[], value: any, dateModified?: any) 
     return out;
 }
 
+export function mergeDeep(target, ...sources) {
+    if (!sources.length) return target;
+    const source = sources.shift();
+
+    if (isObject(target) && isObject(source)) {
+        if (source[symbolDateModified as any]) {
+            target[symbolDateModified as any] = source[symbolDateModified as any];
+        }
+        for (const key in source) {
+            if (isObject(source[key])) {
+                if (!isObject(target[key])) target[key] = {};
+                if (!target[key]) Object.assign(target, { [key]: {} });
+                mergeDeep(target[key], source[key]);
+            } else {
+                Object.assign(target, { [key]: source[key] });
+            }
+        }
+    }
+    return mergeDeep(target, ...sources);
+}
+
 export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
     if (a === undefined) return null;
     // @ts-ignore
@@ -47,4 +68,19 @@ export function objectAtPath(path: string[], value: object) {
     }
 
     return o;
+}
+
+export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any) {
+    if (isObject(obj)) {
+        if (obj[keySource]) {
+            obj[keyTarget] = obj[keySource];
+            delete obj[keySource];
+        }
+        Object.keys(obj).forEach((key) => {
+            if (key !== keySource) {
+                replaceKeyInObject(obj[key], keySource, keyTarget);
+            }
+        });
+    }
+    return obj;
 }

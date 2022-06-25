@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
 import { invertObject, transformObject } from './FieldTransformer';
-import { constructObject, removeNullUndefined, symbolDateModified } from './globals';
+import { constructObject, mergeDeep, removeNullUndefined, symbolDateModified } from './globals';
 import { getObsModified } from './ObsProxyFns';
 import type {
     ObsListenerInfo,
@@ -246,11 +246,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         await this.promiseSaved.promise;
 
         const valuesSaved = this._pendingSaves2.get(syncPath)?.values;
+
         if (valuesSaved?.length) {
             // Only want to return from saved one time
             this._pendingSaves2.delete(syncPath);
             const valueSaved = JSON.parse(JSON.stringify(value));
-            Object.assign(valueSaved, ...valuesSaved);
+            mergeDeep(valueSaved, ...valuesSaved);
             return valueSaved;
         }
     }
@@ -361,9 +362,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (val) {
             const value = this._getChangeValue(pathFirebase, snapshot.key, val);
 
-            if (this._pendingSaves2.has(pathFirebase)) {
-                this._pendingSaves2.get(pathFirebase).values.push(value);
-            } else {
+            if (!this.addValuesToPendingSaves(pathFirebase.split('/'), value)) {
                 onChange(() => {
                     obs.assign(value);
                 });
@@ -420,7 +419,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
         return value;
     }
-
     private insertDatesToSave(
         batch: Record<string, string | object>,
         queryByModified: QueryByModified<any>,
@@ -443,5 +441,19 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         this.insertDatesToSaveObject(batch, o, basePath + path.join('/'), value);
 
         return value;
+    }
+    private addValuesToPendingSaves(pathArr: string[], value: object) {
+        let found = false;
+        for (let i = pathArr.length - 1; i >= 0; i--) {
+            const p = pathArr[i];
+            if (p === '') continue;
+            const path = pathArr.slice(0, i + 1).join('/') + '/';
+            if (this._pendingSaves2.has(path)) {
+                this._pendingSaves2.get(path).values.push(value);
+                found = true;
+            }
+            value = { [p]: value };
+        }
+        return found;
     }
 }

@@ -13,6 +13,7 @@ import { ObsBatcher } from './ObsBatcher';
 import { listenToObs } from './ObsProxyFns';
 import { ObsListenerInfo, ObsProxy, PersistOptions } from './ObsProxyInterfaces';
 import { obsProxy } from './ObsProxy';
+import { replaceKeyInObject, symbolDateModified } from './globals';
 
 /** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
@@ -53,12 +54,13 @@ async function onObsChange<T>(
     if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
         const saved = await persistenceRemote.save(persistOptions.remote, value, info);
         if (saved) {
-            // debugger;
+            if (persistOptions.local) {
+                persistenceLocal.setValue(
+                    persistOptions.local,
+                    replaceKeyInObject(saved as object, symbolDateModified, '@')
+                );
+            }
         }
-        // if (this.persistOptions.local) {
-        //     const name = this.persistOptions.local;
-        //     persistenceLocal.setValue(name, saved);
-        // }
     }
 }
 
