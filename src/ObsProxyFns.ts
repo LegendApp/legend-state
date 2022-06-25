@@ -54,7 +54,7 @@ export function obsNotify<T extends ObsProxy | ObsProxyUnsafe>(
 function _listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
     callback: ListenerFn<any>,
     prop: TProp,
-    target: ObsProxyUnsafe<T>
+    target: ObsProxy<T> | ObsProxyUnsafe<T>
 ) {
     const info = state.infos.get(target);
     if (!info) {
@@ -68,27 +68,21 @@ function _listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T
     return listener;
 }
 export function listenToObs<T extends ObsProxy | ObsProxyUnsafe>(obs: T, cb: ListenerFn<T>): ObsListener<T>;
-export function listenToObs<T extends ObsProxy | ObsProxyUnsafe>(obs: T, cb: ListenerFn<T>): ObsListener<T>[];
 export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
     obs: T,
     prop: TProp,
     cb: ListenerFn<T>
 ): ObsListenerWithProp<T, TProp>;
 export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
-    obs: T[],
-    prop: TProp,
-    cb: ListenerFn<T>
-): ObsListenerWithProp<T, TProp>[];
-export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
-    args: T[],
+    obs: T,
     prop: TProp,
     cb?: ListenerFn<T>
-): ObsListener<T> | ObsListener<T>[] | ObsListenerWithProp<T, TProp> | ObsListenerWithProp<T, TProp>[] {
+): ObsListener<T> | ObsListenerWithProp<T, TProp> {
     if (isFunction(prop)) {
         cb = prop as unknown as ListenerFn<T>;
         prop = undefined;
     }
-    return isArray(args) ? args.map(_listenToObs.bind(this, cb, prop)) : (_listenToObs(cb, prop as any, args) as any);
+    return _listenToObs(cb, prop as any, obs as ObsProxy<any>) as any;
 }
 
 export function onValue<T extends object>(

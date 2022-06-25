@@ -18,7 +18,7 @@ export function obsProxyComputed<T extends object, TA extends (ObsProxy | ObsPro
     const handler = onChanged.bind(this, proxy, args, compute);
 
     // Listen for changes
-    listenToObs(args, handler);
+    args.forEach((obs) => listenToObs(obs, handler));
 
     return proxy;
 }
