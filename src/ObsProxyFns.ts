@@ -16,7 +16,7 @@ import { state } from './ObsProxyState';
 
 const symbolHasValue = Symbol('__hasValue');
 
-function _obsNotify(target: ObsProxyUnsafe, listenerInfo: ObsListenerInfo) {
+function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
     const info = state.infos.get(target);
     if (info) {
         const listeners = info.listeners;
@@ -43,19 +43,14 @@ function _obsNotify(target: ObsProxyUnsafe, listenerInfo: ObsListenerInfo) {
     }
 }
 
-export function obsNotify<T extends ObsProxyChecker>(
-    target: T,
-    changedValue: ProxyValue<T>,
-    prevValue: ProxyValue<T>,
-    path: string[]
-) {
+export function obsNotify<T extends object>(target: ObsProxyChecker<T>, changedValue: T, prevValue: T, path: string[]) {
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
+function _listenToObs<T extends object, TProp extends keyof T>(
     callback: ListenerFn<any>,
     prop: TProp,
-    target: ObsProxy<T> | ObsProxyUnsafe<T>
+    target: ObsProxyChecker<T>
 ) {
     const info = state.infos.get(target);
     if (!info) {
@@ -68,14 +63,14 @@ function _listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
     info.listeners.push(listener);
     return listener;
 }
-export function listenToObs<T extends ObsProxyChecker>(obs: T, cb: ListenerFn<T>): ObsListener<T>;
-export function listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
-    obs: T,
+export function listenToObs<T extends object>(obs: T, cb: ListenerFn<T>): ObsListener<T>;
+export function listenToObs<T extends object, TProp extends keyof T>(
+    obs: ObsProxyChecker<T>,
     prop: TProp,
     cb: ListenerFn<T>
 ): ObsListenerWithProp<T, TProp>;
-export function listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
-    obs: T,
+export function listenToObs<T extends object, TProp extends keyof T>(
+    obs: ObsProxyChecker<T>,
     prop: TProp,
     cb?: ListenerFn<T>
 ): ObsListener<T> | ObsListenerWithProp<T, TProp> {
@@ -86,19 +81,15 @@ export function listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
     return _listenToObs(cb, prop as any, obs as ObsProxy<any>) as any;
 }
 
-export function onValue<T extends object>(
-    target: ObsProxy<T> | ObsProxyUnsafe<T>,
-    value: T,
-    cb?: (value: T) => void
-): Promise<T>;
+export function onValue<T extends object>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T>;
 export function onValue<T extends object, TProp extends keyof T>(
-    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    obs: ObsProxyChecker<T>,
     prop: TProp,
     value: T[TProp],
     cb?: (value?: T) => void
 ): Promise<T[TProp]>;
 export function onValue<T extends object, TProp extends keyof T>(
-    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    obs: ObsProxyChecker<T>,
     prop: TProp,
     value: T[TProp],
     cb?: (value?: T) => void
@@ -129,7 +120,7 @@ export function onValue<T extends object, TProp extends keyof T>(
 }
 
 export function onHasValue<T extends object, TProp extends keyof T>(
-    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    obs: ObsProxyChecker<T>,
     prop: TProp,
     cb?: (value: T) => void
 ): Promise<T[TProp]> {
@@ -138,7 +129,7 @@ export function onHasValue<T extends object, TProp extends keyof T>(
 }
 
 export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
-    obs: ObsProxy<T> | ObsProxyUnsafe<T>,
+    obs: ObsProxyChecker<T>,
     prop: TProp,
     cb?: () => void
 ): Promise<void> {

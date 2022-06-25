@@ -6,6 +6,7 @@ import type {
     ObsListenerInfo,
     ObsPersistRemote,
     ObsProxy,
+    ObsProxyChecker,
     ObsProxyUnsafe,
     PersistOptions,
     PersistOptionsRemote,
@@ -19,18 +20,20 @@ function replaceWildcard(str: string) {
     return str.replace(/\/?\*/, '');
 }
 
-function findStartsWithPath(str: string, args: string[]) {
-    return args.find((a) => {
-        a = replaceWildcard(a);
-        return a === '' || str.startsWith(a);
-    });
+function findStartsWithPath(...args: any): string {
+    return '';
+    // return args.find((a) => {
+    //     a = replaceWildcard(a);
+    //     return a === '' || str.startsWith(a);
+    // });
 }
 
-function findStartsWithPathInverse(str: string, args: string[]) {
-    return args.find((a) => {
-        a = replaceWildcard(a);
-        return a === '' || a.startsWith(str);
-    });
+function findStartsWithPathInverse(...args: any): string {
+    return '';
+    // return args.find((a) => {
+    //     a = replaceWildcard(a);
+    //     return a === '' || a.startsWith(str);
+    // });
 }
 
 export interface FirebaseFns {
@@ -104,18 +107,18 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await this.promiseAuthed.promise;
     }
-    private calculateDateModified(obs: ObsProxy | ObsProxyUnsafe) {
+    private calculateDateModified(obs: ObsProxyChecker) {
         const max = { v: 0 };
         if (isObject(obs.get())) {
             Object.keys(obs).forEach((key) => (max.v = Math.max(max.v, getObsModified(obs[key]))));
         }
         return max.v > 0 ? max.v : undefined;
     }
-    public listen<T extends ObsProxy | ObsProxyUnsafe>(
-        obs: T,
-        options: PersistOptionsRemote<ProxyValue<T>>,
+    public listen<T extends object>(
+        obs: ObsProxyChecker<T>,
+        options: PersistOptionsRemote<T>,
         onLoad: () => void,
-        onChange: (obs: T, value: any) => void
+        onChange: (obs: ObsProxy<T>, value: any) => void
     ) {
         const {
             firebase: { queryByModified },
@@ -125,21 +128,21 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
             // without modified
 
-            this.iterateListen(obs, options as PersistOptionsRemote<object>, queryByModified, onLoad, onChange, '');
+            this.iterateListen(obs, options, queryByModified, onLoad, onChange, '');
         } else {
             let dateModified: number;
             if (queryByModified === true) {
                 dateModified = this.calculateDateModified(obs);
             }
-            this._listen(obs, options as PersistOptionsRemote<object>, undefined, onLoad, onChange, '');
+            this._listen(obs, options, undefined, onLoad, onChange, '');
         }
     }
-    private iterateListen<T extends ObsProxy | ObsProxyUnsafe>(
-        obs: T,
+    private iterateListen<T extends object>(
+        obs: ObsProxyChecker<T>,
         options: PersistOptionsRemote<T>,
         queryByModified: object,
         onLoad: () => void,
-        onChange: (obs: T, value: any) => void,
+        onChange: (obs: ObsProxy<T>, value: any) => void,
         syncPathExtra: string
     ) {
         Object.keys(obs).forEach((key) => {
@@ -157,12 +160,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         });
     }
-    private async _listen<T extends ObsProxy | ObsProxyUnsafe>(
-        obs: T,
-        options: PersistOptionsRemote<ProxyValue<T>>,
+    private async _listen<T extends object>(
+        obs: ObsProxyChecker<T>,
+        options: PersistOptionsRemote<T>,
         dateModified: number,
         onLoad: () => void,
-        onChange: (obsProxy: T, value: any) => void,
+        onChange: (obsProxy: ObsProxy<T>, value: any) => void,
         syncPathExtra: string
     ) {
         const {

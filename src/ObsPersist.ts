@@ -4,6 +4,7 @@ import {
     ObsPersistLocalAsync,
     ObsPersistRemote,
     ObsPersistState,
+    ObsProxyChecker,
     ObsProxyUnsafe,
     PersistOptionsRemote,
     ProxyValue,
@@ -70,10 +71,10 @@ function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = false;
 }
 
-async function _obsPersist<T extends ObsProxy | ObsProxyUnsafe>(
+async function _obsPersist<T extends object>(
     proxyState: ObsProxy<ObsPersistState>,
-    obs: T,
-    persistOptions: PersistOptions<ProxyValue<T>>
+    obs: ObsProxyChecker<T>,
+    persistOptions: PersistOptions<T>
 ) {
     const { local, localPersistence, remote, remotePersistence } = persistOptions;
     const state: LocalState = { tempDisableSaveRemote: false };
@@ -124,8 +125,8 @@ async function _obsPersist<T extends ObsProxy | ObsProxyUnsafe>(
     }
 }
 
-export function obsPersist<T extends ObsProxy | ObsProxyUnsafe>(obs: T, persistOptions: PersistOptions<T>) {
+export function obsPersist<T extends object>(obs: ObsProxyChecker<T>, persistOptions: PersistOptions<T>) {
     const proxyState = obsProxy<ObsPersistState>({ isLoadedLocal: false, isLoadedRemote: false });
-    _obsPersist(proxyState, obs, persistOptions as PersistOptions<object>);
+    _obsPersist(proxyState, obs, persistOptions);
     return proxyState;
 }

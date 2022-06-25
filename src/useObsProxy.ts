@@ -58,7 +58,7 @@ const updateListeners = (
                 if (isArray(obs)) {
                     prop = obs[1];
                     obs = obs[0];
-                    listeners[i] = listenToObs(obs as ObsProxy, prop as keyof typeof obs, onChange);
+                    listeners[i] = listenToObs(obs as ObsProxy<Record<string, any>>, prop, onChange);
                 } else {
                     listeners[i] = listenToObs(obs, onChange);
                 }
