@@ -11,5 +11,6 @@ export interface StateInfo {
 
 export const state = {
     isInSetFn: false,
+    isInAssign: false,
     infos: new WeakMap<ObsProxyUnsafe, StateInfo>(),
 };

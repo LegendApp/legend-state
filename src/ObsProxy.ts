@@ -153,9 +153,9 @@ function setter(proxyOwner: ObsProxyUnsafe, prop: string | unknown, value?: any)
 
 function assigner(value: any) {
     // this = proxyOwner
-    state.isInSetFn = true;
+    state.isInAssign = true;
     Object.assign(this, value);
-    state.isInSetFn = false;
+    state.isInAssign = false;
 
     return this;
 }
@@ -207,6 +207,9 @@ const proxyGet = {
         if (state.isInSetFn) {
             // Set function handles notifying
             Reflect.set(target, prop, value);
+            return true;
+        } else if (state.isInAssign) {
+            setter(proxyOwner, prop, value);
             return true;
         } else {
             const info = state.infos.get(proxyOwner);

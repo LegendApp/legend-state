@@ -103,6 +103,64 @@ describe('Basic', () => {
     });
 });
 
+describe('Assign', () => {
+    test('assign', () => {
+        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } });
+
+        obs.test2.assign({ test3: { test4: 'hello' } });
+        expect(obs).toEqual({
+            test: 'hi',
+            test2: {
+                test3: {
+                    test4: 'hello',
+                },
+            },
+        });
+        expect(obs.get()).toEqual({
+            test: 'hi',
+            test2: {
+                test3: {
+                    test4: 'hello',
+                },
+            },
+        });
+        expect(obs.test2.test3).toEqual({
+            test4: 'hello',
+        });
+        expect(obs.test2.test3.get()).toEqual({
+            test4: 'hello',
+        });
+    });
+    test('assign with existing proxies', () => {
+        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } });
+        expect(obs.test2.test3.test4).toEqual('');
+
+        obs.test2.assign({ test3: { test4: 'hello' } });
+        expect(obs).toEqual({
+            test: 'hi',
+            test2: {
+                test3: {
+                    test4: 'hello',
+                },
+            },
+        });
+        expect(obs.get()).toEqual({
+            test: 'hi',
+            test2: {
+                test3: {
+                    test4: 'hello',
+                },
+            },
+        });
+        expect(obs.test2.test3).toEqual({
+            test4: 'hello',
+        });
+        expect(obs.test2.test3.get()).toEqual({
+            test4: 'hello',
+        });
+    });
+});
+
 describe('Safety', () => {
     test('unsafe', () => {
         const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
