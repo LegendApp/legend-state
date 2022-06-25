@@ -417,6 +417,7 @@ describe('Persist remote save', () => {
                 '@': '__serverTimestamp',
                 _: 'hi2',
             },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
             '/test/testuid/s/test/test4/test5': 'hi3',
         });
 
@@ -433,6 +434,7 @@ describe('Persist remote save', () => {
                 '@': '__serverTimestamp',
                 _: 'hi2',
             },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
             '/test/testuid/s/test/test4/test5': 'hi3',
             '/test/testuid/s/test/test4/test6/test7': 'hi4',
         });
@@ -447,6 +449,7 @@ describe('Persist remote save', () => {
                 test2: 'hi',
                 test3: 'hi2',
                 test4: {
+                    '@': '__serverTimestamp',
                     test5: 'hi3',
                     test6: {
                         test7: 'hi4',
@@ -456,52 +459,71 @@ describe('Persist remote save', () => {
         });
     });
 
-    // test('save queryByModified with path/* 2', async () => {
-    //     const obs = obsProxy({
-    //         test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
-    //     });
+    test('save queryByModified with path/* 2', async () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
 
-    //     const remoteOptions: PersistOptionsRemote = {
-    //         requireAuth: true,
-    //         firebase: {
-    //             syncPath: (uid) => `/test/${uid}/s/`,
-    //             queryByModified: { test: true },
-    //         },
-    //     };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-    //     obsPersist(obs, {
-    //         localPersistence: ObsPersistLocalStorage,
-    //         remotePersistence: ObsPersistFirebaseJest,
-    //         local: 'jestremote',
-    //         remote: remoteOptions,
-    //     });
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //     const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //     obs.test.set('test2', 'hi');
+        obs.test.set('test2', 'hi');
 
-    //     await promiseTimeout();
+        await promiseTimeout();
 
-    //     expect(remote['_constructBatchForSave']()).toEqual({
-    //         '/test/testuid/s/test/test2': {
-    //             '@': '__serverTimestamp',
-    //             _: 'hi',
-    //         },
-    //     });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+        });
 
-    //     obs.test.test4.test6.set('test7', 'hi4');
+        obs.test.test4.test6.set('test7', 'hi4');
 
-    //     await promiseTimeout();
+        await promiseTimeout();
 
-    //     expect(remote['_constructBatchForSave']()).toEqual({
-    //         '/test/testuid/s/test/test2': {
-    //             '@': '__serverTimestamp',
-    //             _: 'hi',
-    //         },
-    //         '/test/testuid/s/test/test4/@': '__serverTimestamp',
-    //         '/test/testuid/s/test/test4/test6/test7': 'hi4',
-    //     });
-    // });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+
+        await remote['promiseSaved'].promise;
+        await promiseTimeout();
+
+        // Should have saved with timestamp to local storage
+        expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
+            test: {
+                '@': '__serverTimestamp',
+                test2: 'hi',
+                test3: 'hello2',
+                test4: {
+                    '@': '__serverTimestamp',
+                    test5: 'hello3',
+                    test6: {
+                        test7: 'hi4',
+                    },
+                },
+            },
+        });
+    });
 });
 
 describe('Remote load', () => {
