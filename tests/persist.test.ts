@@ -44,6 +44,7 @@ beforeEach(() => {
     if (remote) {
         remote['_pendingSaves2'].delete(`/test/__SAVE__/s/`);
         remote['listeners'] = {};
+        remote['remoteData'] = {};
     }
 });
 
@@ -411,6 +412,35 @@ describe('Persist remote save', () => {
 });
 
 describe('Remote load', () => {
+    test('Persist remote load basic object', async () => {
+        const obs = obsProxy({ test: '', test2: '' });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+            },
+        };
+
+        initializeRemote({
+            test: 'hi1',
+            test2: 'hi2',
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state, 'isLoadedRemote');
+
+        expect(obs).toEqual({
+            test: 'hi1',
+            test2: 'hi2',
+        });
+
+        expect(getObsModified(obs)).toBeUndefined();
+    });
     test('Persist remote load dateModified', async () => {
         const obs = obsProxy({ test: { test2: '', test3: '' } });
 
@@ -445,8 +475,6 @@ describe('Remote load', () => {
             },
         });
 
-        onValue(obs.test, 'test2', 'hello', (value) => {});
-
         expect(getObsModified(obs.test)).toEqual(1000);
     });
 
@@ -459,7 +487,6 @@ describe('Remote load', () => {
                 syncPath: (uid) => `/test/${uid}/s/`,
                 // queryByModified: ['test', 'test4'],
                 queryByModified: {
-                    // @ts-ignore
                     test: true,
                     test4: true,
                 },
@@ -514,6 +541,128 @@ describe('Remote load', () => {
 
         expect(getObsModified(obs.test)).toEqual(1000);
     });
+    test('Persist remote load complex modified deep', async () => {
+        const obs = obsProxy({
+            test: { test2: { test3: { id: '' }, test4: { id: '' } } },
+            test6: { test7: { id: '' } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                // queryByModified: ['test', 'test4'],
+                queryByModified: {
+                    test: {
+                        test2: true,
+                    },
+                    test6: true,
+                },
+            },
+        };
+
+        initializeRemote({
+            test: {
+                test2: {
+                    test3: {
+                        '@': 1000,
+                        id: 'hi3',
+                    },
+                    test4: {
+                        '@': 1000,
+                        id: 'hi4',
+                    },
+                },
+            },
+            test6: {
+                test7: {
+                    '@': 1000,
+                    id: 'hi7',
+                },
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state, 'isLoadedRemote');
+
+        expect(obs).toEqual({
+            test: {
+                test2: {
+                    test3: { id: 'hi3', [symbolDateModified]: 1000 },
+                    test4: { id: 'hi4', [symbolDateModified]: 1000 },
+                },
+            },
+            test6: { test7: { id: 'hi7', [symbolDateModified]: 1000 } },
+        });
+    });
+    test('Persist remote load complex modified deep with other keys', async () => {
+        const obs = obsProxy({
+            test: { test2: { test3: { id: '' }, test4: { id: '' } }, test5: { test55: '' } },
+            test6: { test7: { id: '' } },
+            test8: { test9: '' },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        test2: true,
+                    },
+                    test6: true,
+                },
+            },
+        };
+
+        initializeRemote({
+            test: {
+                test2: {
+                    test3: {
+                        '@': 1000,
+                        id: 'hi3',
+                    },
+                    test4: {
+                        '@': 1000,
+                        id: 'hi4',
+                    },
+                },
+                test5: { test55: 'hi5' },
+            },
+            test6: {
+                test7: {
+                    '@': 1000,
+                    id: 'hi7',
+                },
+            },
+            test8: {
+                test9: 'hi9',
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state, 'isLoadedRemote');
+
+        expect(obs).toEqual({
+            test: {
+                test2: {
+                    test3: { id: 'hi3', [symbolDateModified]: 1000 },
+                    test4: { id: 'hi4', [symbolDateModified]: 1000 },
+                },
+                test5: { test55: 'hi5' },
+            },
+            test6: { test7: { id: 'hi7', [symbolDateModified]: 1000 } },
+            test8: { test9: 'hi9' },
+        });
+    });
 });
 
 describe('Remote change', () => {
@@ -524,7 +673,6 @@ describe('Remote change', () => {
             requireAuth: true,
             firebase: {
                 syncPath: (uid) => `/test/${uid}/s/`,
-                // queryByModified: true,
             },
         };
 
@@ -609,9 +757,7 @@ describe('Remote change', () => {
 });
 
 // TODO
-// tests for computed
-// get for symbolProxy
-// Make assign a helper function instead of on the proxy??
+// Proxy functions or helper functions? assign, listen, onValue, etc...
 
 // Persist
 // queryByModified for listening more tests

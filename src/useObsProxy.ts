@@ -1,7 +1,7 @@
-import { useForceRender } from '@legendapp/tools';
+import { isArray, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
 import { listenToObs } from './ObsProxyFns';
-import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 
 interface SavedRef {
@@ -9,7 +9,7 @@ interface SavedRef {
     listeners?: ObsListener[];
 }
 
-function useObsProxy<T extends ObsProxyUnsafe[]>(...args: T): T {
+function useObsProxy<T extends (ObsProxyChecker | [ObsProxyChecker, string])[]>(...args: T): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -39,14 +39,14 @@ function useObsProxy<T extends ObsProxyUnsafe[]>(...args: T): T {
 }
 
 const updateListeners = (
-    args: (ObsProxy | ObsProxyUnsafe)[],
+    args: (ObsProxy | ObsProxyUnsafe | [ObsProxy, string] | [ObsProxyUnsafe, string])[],
     prevArgs: (ObsProxy | ObsProxyUnsafe)[],
     listeners: ObsListener[],
     onChange: () => void
 ) => {
     const num = Math.max(args.length, prevArgs ? prevArgs.length : 0);
     for (let i = 0; i < num; i++) {
-        const obs = args[i];
+        let obs = args[i];
         if (!prevArgs || obs !== prevArgs[i]) {
             if (listeners[i]) {
                 disposeListener(listeners[i]);
@@ -54,7 +54,14 @@ const updateListeners = (
             }
 
             if (obs) {
-                listeners[i] = listenToObs(obs, onChange);
+                let prop: string;
+                if (isArray(obs)) {
+                    prop = obs[1];
+                    obs = obs[0];
+                    listeners[i] = listenToObs(obs as ObsProxy, prop as keyof typeof obs, onChange);
+                } else {
+                    listeners[i] = listenToObs(obs, onChange);
+                }
             }
         }
     }

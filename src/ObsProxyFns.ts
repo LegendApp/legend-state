@@ -7,6 +7,7 @@ import {
     ObsListenerInfo,
     ObsListenerWithProp,
     ObsProxy,
+    ObsProxyChecker,
     ObsProxyUnsafe,
     ProxyValue,
 } from './ObsProxyInterfaces';
@@ -42,7 +43,7 @@ function _obsNotify(target: ObsProxyUnsafe, listenerInfo: ObsListenerInfo) {
     }
 }
 
-export function obsNotify<T extends ObsProxy | ObsProxyUnsafe>(
+export function obsNotify<T extends ObsProxyChecker>(
     target: T,
     changedValue: ProxyValue<T>,
     prevValue: ProxyValue<T>,
@@ -51,7 +52,7 @@ export function obsNotify<T extends ObsProxy | ObsProxyUnsafe>(
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
+function _listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
     callback: ListenerFn<any>,
     prop: TProp,
     target: ObsProxy<T> | ObsProxyUnsafe<T>
@@ -67,13 +68,13 @@ function _listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T
     info.listeners.push(listener);
     return listener;
 }
-export function listenToObs<T extends ObsProxy | ObsProxyUnsafe>(obs: T, cb: ListenerFn<T>): ObsListener<T>;
-export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
+export function listenToObs<T extends ObsProxyChecker>(obs: T, cb: ListenerFn<T>): ObsListener<T>;
+export function listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
     obs: T,
     prop: TProp,
     cb: ListenerFn<T>
 ): ObsListenerWithProp<T, TProp>;
-export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends keyof T>(
+export function listenToObs<T extends ObsProxyChecker, TProp extends keyof T>(
     obs: T,
     prop: TProp,
     cb?: ListenerFn<T>
@@ -144,6 +145,6 @@ export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
     return onValue(obs, prop, true as T[TProp], cb) as unknown as Promise<void>;
 }
 
-export function getObsModified<T extends ObsProxy | ObsProxyUnsafe>(obs: T) {
+export function getObsModified<T extends ObsProxyChecker>(obs: T) {
     return obs.get?.()?.[symbolDateModified];
 }

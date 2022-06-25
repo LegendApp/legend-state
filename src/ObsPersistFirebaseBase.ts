@@ -1,4 +1,4 @@
-import { isNumber, isObject } from '@legendapp/tools';
+import { isNumber, isObject, isString } from '@legendapp/tools';
 import { getObsModified } from './ObsProxyFns';
 import { invertObject, transformObject, transformPath } from './FieldTransformer';
 import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
@@ -148,7 +148,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             const extra = syncPathExtra + key + '/';
             let dateModified;
             if (isObject(q)) {
-                console.log(key, 'object');
                 this.iterateListen(o, options, q, onLoad, onChange, extra);
             } else {
                 if (q === true) {
@@ -345,17 +344,20 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         onChange(() => {
             if (outerValue) {
-                Object.keys(outerValue).forEach((key) => {
-                    const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
+                if (isObject(outerValue)) {
+                    Object.keys(outerValue).forEach((key) => {
+                        const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
 
-                    obs.set(key, value[key]);
+                        obs.set(key, value[key]);
 
-                    const d = value[symbolDateModified];
-                    const od = getObsModified(obs);
-                    if (d && (!od || d > od)) {
-                        obs.set(symbolDateModified, value[symbolDateModified]);
-                    }
-                });
+                        const d = value[symbolDateModified];
+                        const od = getObsModified(obs);
+                        if (d && (!od || d > od)) {
+                            obs.set(symbolDateModified, value[symbolDateModified]);
+                        }
+                    });
+                }
+            } else {
             }
         });
 

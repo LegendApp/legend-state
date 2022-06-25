@@ -1,5 +1,3 @@
-const symbolProxy = Symbol('__proxy');
-
 export interface ObsProps<T> {
     get?(): T;
     set?(value: T): ObsProxy<T>;
@@ -13,13 +11,13 @@ export interface ObsPropsUnsafe<T> {
     assign?(value: T): ObsProxyUnsafe<T>;
 }
 
-export interface ObsListener<T extends ObsProxy | ObsProxyUnsafe = any> {
+export interface ObsListener<T extends ObsProxyChecker = any> {
     target: T;
     callback: ListenerFn<T>;
     /** @internal */
     _disposed?: boolean;
 }
-export interface ObsListenerWithProp<T extends ObsProxy | ObsProxyUnsafe = any, TProp extends keyof T = never>
+export interface ObsListenerWithProp<T extends ObsProxyChecker = any, TProp extends keyof T = never>
     extends Omit<ObsListener<T>, 'callback'> {
     prop?: TProp;
     callback: ListenerFn<T[TProp]>;
@@ -60,7 +58,7 @@ type ObsPropsUnsafeIfNotPrimitive<T> = T extends object ? ObsPropsUnsafe<T> : T;
 export type ObsProxyUnsafe<T = object> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafeIfNotPrimitive<T>;
 export type ObsProxy<T = object> = ObsPropsRecursive<T> & ObsPropsIfNotPrimitive<T>;
 
-export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t>
+export type ProxyValue<T extends ObsProxyChecker> = T extends ObsProxyUnsafe<infer t>
     ? t
     : T extends ObsProxy<infer t>
     ? t
@@ -69,10 +67,6 @@ export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxy
 export type MappedProxyValue<T extends ObsProxyUnsafe[]> = {
     [K in keyof T]: ProxyValue<T[K]>;
 };
-
-// type A = ObsProxy<{ test: { test2: { test3: string } } }>;
-// let a: A = {} as A;
-// a.test.test2 = { test3: 'hello' };
 
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
@@ -114,3 +108,4 @@ export interface ObsPersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
 }
+export type ObsProxyChecker = object & (ObsProxy | ObsProxyUnsafe);

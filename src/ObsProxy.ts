@@ -230,7 +230,6 @@ function _obsProxy<T extends object>(
         console.error('obsProxy value must be an object');
     }
     if (isPrimitive(value)) debugger;
-    // If it's a primitive it needs to be wrapped in { value } because Proxy requires an object
     const proxy = new Proxy(value, proxyGet);
     // Save proxy to state so it can be accessed later
     state.infos.set(proxy, { parent, prop, safe, target: value });

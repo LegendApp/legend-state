@@ -1,4 +1,13 @@
-import { obsProxyComputed, disposeListener, listenToObs, obsProxy, onHasValue, onTrue, onValue } from '../src';
+import {
+    obsProxyComputed,
+    disposeListener,
+    listenToObs,
+    obsProxy,
+    onHasValue,
+    onTrue,
+    onValue,
+    useObsProxy,
+} from '../src';
 
 describe('Basic', () => {
     test('Has value', () => {
@@ -229,6 +238,33 @@ describe('Listeners', () => {
             { changedValue: { val: 20 }, path: [], prevValue: { val: 10 } }
         );
     });
+    test('Listener called for each change', () => {
+        const obs = obsProxy({ val: 10 });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs.set({ val: 20 });
+        expect(handler).toHaveBeenCalledWith(
+            { val: 20 },
+            { changedValue: { val: 20 }, path: [], prevValue: { val: 10 } }
+        );
+        obs.set({ val: 21 });
+        expect(handler).toHaveBeenCalledWith(
+            { val: 21 },
+            { changedValue: { val: 21 }, path: [], prevValue: { val: 20 } }
+        );
+        obs.set({ val: 22 });
+        expect(handler).toHaveBeenCalledWith(
+            { val: 22 },
+            { changedValue: { val: 22 }, path: [], prevValue: { val: 21 } }
+        );
+        obs.set({ val: 23 });
+        expect(handler).toHaveBeenCalledWith(
+            { val: 23 },
+            { changedValue: { val: 23 }, path: [], prevValue: { val: 22 } }
+        );
+        expect(handler).toHaveBeenCalledTimes(4);
+    });
     test('Primitive listener with key', () => {
         const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
@@ -242,6 +278,17 @@ describe('Listeners', () => {
         listenToObs(obs, 'val', handler);
         obs.val.set('val2', 20);
         expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val', 'val2'], prevValue: 10 });
+    });
+    test('Listener with key fires only for key', () => {
+        const obs = obsProxy({ val: { val2: 10 }, val3: 'hello' });
+        const handler = jest.fn();
+        listenToObs(obs, 'val', handler);
+        obs.val.set('val2', 20);
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val', 'val2'], prevValue: 10 });
+        obs.set('val3', 'hihi');
+        obs.set('val3', 'hello again');
+        expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Object listener', () => {
         const obs = obsProxy({ test: 'hi' });
