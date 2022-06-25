@@ -44,7 +44,7 @@ type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends Array<any>
     : T[K] extends WeakSet<any>
     ? T[K]
     : T extends object
-    ? TProps & TRecurse
+    ? TRecurse & TProps
     : T[K];
 
 type ObsPropsRecursiveUnsafe<T> = {
@@ -57,8 +57,8 @@ type ObsPropsRecursive<T> = {
 type ObsPropsIfNotPrimitive<T> = T extends object ? ObsProps<T> : T;
 type ObsPropsUnsafeIfNotPrimitive<T> = T extends object ? ObsPropsUnsafe<T> : T;
 
-export type ObsProxyUnsafe<T = object> = ObsPropsUnsafeIfNotPrimitive<T> & ObsPropsRecursiveUnsafe<T>;
-export type ObsProxy<T = object> = ObsPropsIfNotPrimitive<T> & ObsPropsRecursive<T>;
+export type ObsProxyUnsafe<T = object> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafeIfNotPrimitive<T>;
+export type ObsProxy<T = object> = ObsPropsRecursive<T> & ObsPropsIfNotPrimitive<T>;
 
 export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t>
     ? t

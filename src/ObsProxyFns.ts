@@ -151,5 +151,5 @@ export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
 }
 
 export function getObsModified<T extends ObsProxy | ObsProxyUnsafe>(obs: T) {
-    return obs.get()[symbolDateModified];
+    return obs.get?.()?.[symbolDateModified];
 }

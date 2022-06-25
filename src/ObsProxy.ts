@@ -1,4 +1,4 @@
-import { isArray, isObject, isFunction, isString } from '@legendapp/tools';
+import { isArray, isObject, isFunction, isString, isNumber } from '@legendapp/tools';
 import { obsNotify } from './ObsProxyFns';
 import { ObsProxyUnsafe, ObsProxy } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
@@ -79,6 +79,7 @@ function setter(proxyOwner: ObsProxyUnsafe, prop: string | unknown, value?: any)
     state.isInSetFn = true;
     const info = state.infos.get(proxyOwner);
     const target = info.target;
+
     // There was no key
     if (arguments.length === 2) {
         value = prop;
@@ -112,8 +113,10 @@ function setter(proxyOwner: ObsProxyUnsafe, prop: string | unknown, value?: any)
             }
         }
         obsNotify(proxyOwner, value, prevValue, []);
+    } else if (typeof prop === 'symbol') {
+        target[prop] = value;
     } else if (isString(prop)) {
-        const proxy = info?.proxies?.get(prop);
+        const proxy = info?.proxies?.get(prop as string);
         if (proxy) {
             if (value === undefined) {
                 // Setting to undefined deletes this proxy

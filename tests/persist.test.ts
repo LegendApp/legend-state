@@ -1,5 +1,5 @@
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
-import { getObsModified, listenToObs, obsProxy, onTrue, PersistOptionsRemote } from '../src';
+import { getObsModified, listenToObs, ObsProxy, obsProxy, onTrue, onValue, PersistOptionsRemote } from '../src';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
@@ -47,6 +47,11 @@ beforeEach(() => {
     }
 });
 
+test('test', () => {
+    const obs = obsProxy({ val: true, val2: 'hi' });
+    onTrue(obs, 'val');
+});
+
 function initializeRemote(obj: object) {
     const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
@@ -67,32 +72,32 @@ function modifyRemote(path: string, obj: object) {
     remote.modify(basePath, path, obj);
 }
 
-// describe('Persist local', () => {
-//     test('Local', () => {
-//         const obs = obsProxy({});
+describe('Persist local', () => {
+    test('Local', () => {
+        const obs = obsProxy({ test: '' });
 
-//         obsPersist(obs, {
-//             local: 'jestlocal',
-//             localPersistence: ObsPersistLocalStorage,
-//         });
+        obsPersist(obs, {
+            local: 'jestlocal',
+            localPersistence: ObsPersistLocalStorage,
+        });
 
-//         obs.set({ test: 'hello' });
+        obs.set({ test: 'hello' });
 
-//         const localValue = global.localStorage.getItem('jestlocal');
+        const localValue = global.localStorage.getItem('jestlocal');
 
-//         // Should have saved to local storage
-//         expect(localValue).toBe(`{"test":"hello"}`);
+        // Should have saved to local storage
+        expect(localValue).toBe(`{"test":"hello"}`);
 
-//         // obs2 should load with the same value it was just saved as
-//         const obs2 = obsProxy({});
-//         obsPersist(obs2, {
-//             local: 'jestlocal',
-//             localPersistence: ObsPersistLocalStorage,
-//         });
+        // obs2 should load with the same value it was just saved as
+        const obs2 = obsProxy({});
+        obsPersist(obs2, {
+            local: 'jestlocal',
+            localPersistence: ObsPersistLocalStorage,
+        });
 
-//         expect(obs2.value).toEqual({ test: 'hello' });
-//     });
-// });
+        expect(obs2).toEqual({ test: 'hello' });
+    });
+});
 
 describe('Persist remote save', () => {
     test('Pending after save', () => {
@@ -114,7 +119,7 @@ describe('Persist remote save', () => {
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-        obs.test.test2 = 'hi';
+        obs.test.set('test2', 'hi');
 
         const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
 
@@ -123,7 +128,7 @@ describe('Persist remote save', () => {
             '/test/testuid/s/test/test2': 'hi',
         });
 
-        obs.test.test3 = 'hi2';
+        obs.test.set('test3', 'hi2');
 
         expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' }, test3: { [symbolSaveValue]: 'hi2' } } });
         expect(remote['_constructBatchForSave']()).toEqual({
@@ -131,7 +136,7 @@ describe('Persist remote save', () => {
             '/test/testuid/s/test/test3': 'hi2',
         });
 
-        obs.test = { test2: 'test2 hi', test3: 'test3 hi' };
+        obs.test.set({ test2: 'test2 hi', test3: 'test3 hi' });
 
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test3 hi' } },
@@ -140,7 +145,7 @@ describe('Persist remote save', () => {
             '/test/testuid/s/test': { test2: 'test2 hi', test3: 'test3 hi' },
         });
 
-        obs.test.test3 = 'test33333';
+        obs.test.set('test3', 'test33333');
 
         expect(pending).toEqual({
             test: { [symbolSaveValue]: { test2: 'test2 hi', test3: 'test33333' } },
@@ -430,15 +435,17 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state, 'isLoadedRemote');
 
-        expect(obs.value).toEqual({
+        expect(obs).toEqual({
             test: {
                 test2: 'hi',
                 test3: 'hi2',
                 [symbolDateModified]: 1000,
             },
         });
+
+        onValue(obs.test, 'test2', 'hello', (value) => {});
 
         expect(getObsModified(obs.test)).toEqual(1000);
     });
@@ -486,9 +493,9 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state, 'isLoadedRemote');
 
-        expect(obs.value).toEqual({
+        expect(obs).toEqual({
             test: {
                 test2: 'hi2',
                 test3: 'hi3',
@@ -509,98 +516,103 @@ describe('Remote load', () => {
     });
 });
 
-describe('Remote change', () => {
-    test('onChange', async () => {
-        const obs = obsProxy({ test: { test2: '', test3: '' } });
+// describe('Remote change', () => {
+//     test('onChange', async () => {
+//         const obs = obsProxy({ test: { test2: '', test3: '' } });
 
-        const remoteOptions: PersistOptionsRemote = {
-            requireAuth: true,
-            firebase: {
-                syncPath: (uid) => `/test/${uid}/s/`,
-                // queryByModified: true,
-            },
-        };
+//         const remoteOptions: PersistOptionsRemote = {
+//             requireAuth: true,
+//             firebase: {
+//                 syncPath: (uid) => `/test/${uid}/s/`,
+//                 // queryByModified: true,
+//             },
+//         };
 
-        initializeRemote({
-            test: {
-                '@': 1000,
-                test2: 'hi',
-                test3: 'hi3',
-            },
-        });
+//         initializeRemote({
+//             test: {
+//                 '@': 1000,
+//                 test2: 'hi',
+//                 test3: 'hi3',
+//             },
+//         });
 
-        const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
-            remote: remoteOptions,
-        });
+//         const state = obsPersist(obs, {
+//             remotePersistence: ObsPersistFirebaseJest,
+//             remote: remoteOptions,
+//         });
 
-        await onTrue(state.isLoadedRemote);
+//         await onTrue(state, 'isLoadedRemote');
 
-        modifyRemote('test', { '@': 1001, test2: 'hello2' });
+//         modifyRemote('test', { '@': 1001, test2: 'hello2' });
 
-        expect(obs.test.value).toEqual({
-            test2: 'hello2',
-            test3: 'hi3',
-            [symbolDateModified]: 1001,
-        });
+//         expect(obs.test.value).toEqual({
+//             test2: 'hello2',
+//             test3: 'hi3',
+//             [symbolDateModified]: 1001,
+//         });
 
-        expect(obs.test.test2.value).toEqual('hello2');
-        expect(obs.test.test3.value).toEqual('hi3');
-        expect(obs.test.value['@']).toEqual(undefined);
-        expect(getObsModified(obs.test)).toEqual(1001);
-    });
+//         expect(obs.test.test2.value).toEqual('hello2');
+//         expect(obs.test.test3.value).toEqual('hi3');
+//         expect(obs.test.value['@']).toEqual(undefined);
+//         expect(getObsModified(obs.test)).toEqual(1001);
+//     });
 
-    test('onChange with queryByModified', async () => {
-        const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
+//     test('onChange with queryByModified', async () => {
+//         const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
 
-        const remoteOptions: PersistOptionsRemote = {
-            requireAuth: true,
-            firebase: {
-                syncPath: (uid) => `/test/${uid}/s/`,
-                queryByModified: { test: true },
-            },
-        };
+//         const remoteOptions: PersistOptionsRemote = {
+//             requireAuth: true,
+//             firebase: {
+//                 syncPath: (uid) => `/test/${uid}/s/`,
+//                 queryByModified: { test: true },
+//             },
+//         };
 
-        initializeRemote({
-            test: {
-                test2: { '@': 1000, test22: 'hi' },
-                test3: { '@': 1000, test33: 'hi3' },
-            },
-        });
+//         initializeRemote({
+//             test: {
+//                 test2: { '@': 1000, test22: 'hi' },
+//                 test3: { '@': 1000, test33: 'hi3' },
+//             },
+//         });
 
-        const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
-            remote: remoteOptions,
-        });
+//         const state = obsPersist(obs, {
+//             remotePersistence: ObsPersistFirebaseJest,
+//             remote: remoteOptions,
+//         });
 
-        await onTrue(state.isLoadedRemote);
+//         await onTrue(state, 'isLoadedRemote');
 
-        modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
+//         modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
 
-        expect(obs.test.value).toEqual({
-            test2: {
-                test22: 'hello2',
-                [symbolDateModified]: 1001,
-            },
-            test3: {
-                test33: 'hi3',
-                [symbolDateModified]: 1000,
-            },
-        });
+//         expect(obs.test.value).toEqual({
+//             test2: {
+//                 test22: 'hello2',
+//                 [symbolDateModified]: 1001,
+//             },
+//             test3: {
+//                 test33: 'hi3',
+//                 [symbolDateModified]: 1000,
+//             },
+//         });
 
-        expect(obs.test.test2.test22.value).toEqual('hello2');
-        expect(obs.test.test3.test33.value).toEqual('hi3');
+//         expect(obs.test.test2.test22.value).toEqual('hello2');
+//         expect(obs.test.test3.test33.value).toEqual('hi3');
 
-        expect(obs.test.test2.value['@']).toEqual(undefined);
-        expect(obs.test.test3.value['@']).toEqual(undefined);
-        expect(obs.test.value['@']).toEqual(undefined);
+//         expect(obs.test.test2.value['@']).toEqual(undefined);
+//         expect(obs.test.test3.value['@']).toEqual(undefined);
+//         expect(obs.test.value['@']).toEqual(undefined);
 
-        expect(getObsModified(obs.test.test3)).toEqual(1000);
-        expect(getObsModified(obs.test.test2)).toEqual(1001);
-    });
-});
+//         expect(getObsModified(obs.test.test3)).toEqual(1000);
+//         expect(getObsModified(obs.test.test2)).toEqual(1001);
+//     });
+// });
 
 // TODO
+// tests for computed
+// get for symbolProxy
+// Make assign a helper function instead of on the proxy??
+
+// Persist
 // queryByModified for listening more tests
 // Fix save with new queryByModified
 // Modified needs to save locally
@@ -608,3 +620,8 @@ describe('Remote change', () => {
 // fieldtranslator
 // fieldtranslator keep datemodified symbol
 // Enforce syncPath ending in /
+// Use MMKV for local?
+
+// More tests
+// test read functions on array and map and stuff
+// Need to document

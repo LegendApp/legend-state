@@ -104,7 +104,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await this.promiseAuthed.promise;
     }
-    private calculateDateModified(obs: ObsProxyUnsafe) {
+    private calculateDateModified(obs: ObsProxy | ObsProxyUnsafe) {
         const max = { v: 0 };
         if (isObject(obs.get())) {
             Object.keys(obs).forEach((key) => (max.v = Math.max(max.v, getObsModified(obs[key]))));
@@ -115,7 +115,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         obs: T,
         options: PersistOptionsRemote<ProxyValue<T>>,
         onLoad: () => void,
-        onChange: (obs: ObsProxyUnsafe<T>, value: any) => void
+        onChange: (obs: T, value: any) => void
     ) {
         const {
             firebase: { queryByModified },
@@ -163,7 +163,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         options: PersistOptionsRemote<ProxyValue<T>>,
         dateModified: number,
         onLoad: () => void,
-        onChange: (obsProxy: ObsProxyUnsafe<T>, value: any) => void,
+        onChange: (obsProxy: T, value: any) => void,
         syncPathExtra: string
     ) {
         const {
@@ -336,7 +336,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     }
     private _onceValue(
         pathFirebase: string,
-        obs: ObsProxyUnsafe,
+        obs: ObsProxy<any> | ObsProxyUnsafe<any>,
         onLoad: () => void,
         onChange: (cb: () => void) => void,
         snapshot: any
@@ -348,12 +348,13 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 Object.keys(outerValue).forEach((key) => {
                     const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
 
-                    obs[key].set(value[key]);
+                    obs.set(key, value[key]);
 
                     const d = value[symbolDateModified];
                     const od = getObsModified(obs);
                     if (d && (!od || d > od)) {
-                        obs[symbolDateModified] = value[symbolDateModified];
+                        debugger;
+                        obs.set(symbolDateModified, value[symbolDateModified]);
                     }
                 });
             }
@@ -363,7 +364,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         this._hasLoadedValue[pathFirebase] = true;
     }
-    private _onChange(pathFirebase: string, obs: ObsProxyUnsafe, onChange: (cb: () => void) => void, snapshot: any) {
+    private _onChange(
+        pathFirebase: string,
+        obs: ObsProxy | ObsProxyUnsafe,
+        onChange: (cb: () => void) => void,
+        snapshot: any
+    ) {
         if (!this._hasLoadedValue[pathFirebase]) return;
 
         let val = snapshot.val();
