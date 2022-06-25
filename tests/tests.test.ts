@@ -1,4 +1,4 @@
-import { disposeListener, listenToObs, obsProxy, onHasValue, onTrue, onValue } from '../src';
+import { obsProxyComputed, disposeListener, listenToObs, obsProxy, onHasValue, onTrue, onValue } from '../src';
 
 describe('Basic', () => {
     test('Has value', () => {
@@ -81,35 +81,6 @@ describe('Basic', () => {
             }
         );
     });
-    test('unsafe', () => {
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
-        obs.test = 'hello';
-        obs.test2.test3 = { test4: 'hi5' };
-        expect(obs).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
-    });
-    test('error on unsafe', () => {
-        const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
-        expect(() => {
-            // @ts-ignore This is meant to error
-            obs.test = 'hello';
-        }).toThrow();
-        expect(() => {
-            // @ts-ignore This is meant to error
-            obs.test2.test3 = { test4: 'hi5' };
-        }).toThrow();
-        expect(obs.test).toEqual('hi');
-        consoleErrorMock.mockRestore();
-    });
-    test('safe using set function', () => {
-        const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
-        const obs = obsProxy({ test: 'hi' });
-        obs.set('test', 'hello');
-        expect(consoleErrorMock).not.toHaveBeenCalled();
-        expect(obs.test).toEqual('hello');
-
-        consoleErrorMock.mockRestore();
-    });
     test('modify value does not copy object', () => {
         const obs = obsProxy({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -129,6 +100,50 @@ describe('Basic', () => {
             path: ['test'],
             prevValue: { test2: 'hi' },
         });
+    });
+});
+
+describe('Safety', () => {
+    test('unsafe', () => {
+        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
+        obs.test = 'hello';
+        obs.test2.test3 = { test4: 'hi5' };
+        expect(obs).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
+    });
+    test('error modifying safe', () => {
+        const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
+        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
+        expect(() => {
+            // @ts-ignore This is meant to error
+            obs.test = 'hello';
+        }).toThrow();
+        expect(() => {
+            // @ts-ignore This is meant to error
+            obs.test2.test3 = { test4: 'hi5' };
+        }).toThrow();
+        expect(obs.test).toEqual('hi');
+        consoleErrorMock.mockRestore();
+    });
+    test('error object.assign on safe', () => {
+        const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
+        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
+        expect(() => {
+            Object.assign(obs, { test: 'hi2' });
+        }).toThrow();
+        expect(() => {
+            Object.assign(obs.test2.test3, { test4: 'hi4' });
+        }).toThrow();
+        expect(obs.test).toEqual('hi');
+        consoleErrorMock.mockRestore();
+    });
+    test('safe using set function', () => {
+        const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
+        const obs = obsProxy({ test: 'hi' });
+        obs.set('test', 'hello');
+        expect(consoleErrorMock).not.toHaveBeenCalled();
+        expect(obs.test).toEqual('hello');
+
+        consoleErrorMock.mockRestore();
     });
 });
 
@@ -410,5 +425,41 @@ describe('WeakSet', () => {
             { test: new WeakSet() },
             { changedValue: new WeakSet(), path: ['test'], prevValue: new WeakSet() }
         );
+    });
+});
+
+describe('Computed', () => {
+    test('Basic computed', () => {
+        const obs = obsProxy({ test: 10 });
+        const obs2 = obsProxy({ test: 20 });
+        const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
+
+        expect(computed).toEqual({ val: 30 });
+    });
+    test('Multiple computed changes', () => {
+        const obs = obsProxy({ test: 10 });
+        const obs2 = obsProxy({ test: 20 });
+        const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
+
+        expect(computed).toEqual({ val: 30 });
+
+        const handler = jest.fn();
+        listenToObs(computed, handler);
+
+        obs.set('test', 5);
+
+        expect(handler).toHaveBeenCalledWith(
+            { val: 25 },
+            { changedValue: { val: 25 }, path: [], prevValue: { val: 30 } }
+        );
+        expect(computed).toEqual({ val: 25 });
+
+        obs.set('test', 1);
+
+        expect(handler).toHaveBeenCalledWith(
+            { val: 21 },
+            { changedValue: { val: 21 }, path: [], prevValue: { val: 25 } }
+        );
+        expect(computed).toEqual({ val: 21 });
     });
 });

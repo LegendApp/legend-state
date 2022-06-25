@@ -88,7 +88,7 @@ export function listenToObs<T extends ObsProxy | ObsProxyUnsafe, TProp extends k
         cb = prop as unknown as ListenerFn<T>;
         prop = undefined;
     }
-    return isArray(args) ? args.map(_listenToObs.bind(this, prop, cb)) : (_listenToObs(cb, prop as any, args) as any);
+    return isArray(args) ? args.map(_listenToObs.bind(this, cb, prop)) : (_listenToObs(cb, prop as any, args) as any);
 }
 
 export function onValue<T extends object>(

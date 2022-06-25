@@ -5,3 +5,4 @@ export * from './useNewObsProxy';
 export * from './ObsProxyInterfaces';
 export * from './ObsProxyListener';
 export * from './ObsBatcher';
+export * from './ObsProxyComputed';

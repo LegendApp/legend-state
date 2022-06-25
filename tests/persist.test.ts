@@ -622,6 +622,10 @@ describe('Remote load', () => {
 // Enforce syncPath ending in /
 // Use MMKV for local?
 
+// Cool things outside of Bravely scope
+// Promises
+// Computed should do auto tracking
+
 // More tests
 // test read functions on array and map and stuff
 // Need to document

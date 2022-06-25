@@ -353,7 +353,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                     const d = value[symbolDateModified];
                     const od = getObsModified(obs);
                     if (d && (!od || d > od)) {
-                        debugger;
                         obs.set(symbolDateModified, value[symbolDateModified]);
                     }
                 });
