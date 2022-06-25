@@ -1,18 +1,9 @@
-import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
-import {
-    getObsModified,
-    listenToObs,
-    ObsProxy,
-    obsProxy,
-    onTrue,
-    onValue,
-    PersistOptionsRemote,
-    ProxyValue,
-} from '../src';
+import { getObsModified, obsProxy, onTrue, PersistOptionsRemote, ProxyValue } from '../src';
+import { symbolDateModified } from '../src/globals';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
+import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
-import { symbolDateModified } from '../src/globals';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -246,181 +237,181 @@ describe('Persist remote save', () => {
         });
     });
 
-    //     test('queryByModified with *', () => {
-    //         const obs = obsProxy({
-    //             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
-    //         });
+    test('queryByModified with queryByModified at root', () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: ['*'],
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: true,
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             localPersistence: ObsPersistLocalStorage,
-    //             remotePersistence: ObsPersistFirebaseJest,
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.test2 = 'hi';
+        obs.test.set('test2', 'hi');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test2': 'hi',
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+        });
 
-    //         obs.test.test3 = 'hi2';
+        obs.test.set('test3', 'hi2');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test2': 'hi',
-    //             '/test/testuid/s/test/test3': 'hi2',
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+        });
 
-    //         obs.test.test4.test5 = 'hi3';
+        obs.test.test4.set('test5', 'hi3');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test2': 'hi',
-    //             '/test/testuid/s/test/test3': 'hi2',
-    //             '/test/testuid/s/test/test4/test5': 'hi3',
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+        });
 
-    //         obs.test.test4.test6.test7 = 'hi4';
+        obs.test.test4.test6.set('test7', 'hi4');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test2': 'hi',
-    //             '/test/testuid/s/test/test3': 'hi2',
-    //             '/test/testuid/s/test/test4/test5': 'hi3',
-    //             '/test/testuid/s/test/test4/test6/test7': 'hi4',
-    //         });
-    //     });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/@': '__serverTimestamp',
+            '/test/testuid/s/test/test2': 'hi',
+            '/test/testuid/s/test/test3': 'hi2',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+    });
 
-    //     test('save queryByModified with path/*', () => {
-    //         const obs = obsProxy({
-    //             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
-    //         });
+    test('save queryByModified with path/*', () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: ['test/*'],
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             localPersistence: ObsPersistLocalStorage,
-    //             remotePersistence: ObsPersistFirebaseJest,
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.test2 = 'hi';
+        obs.test.set('test2', 'hi');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test2': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi',
-    //             },
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+        });
 
-    //         obs.test.test3 = 'hi2';
+        obs.test.set('test3', 'hi2');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test2': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi',
-    //             },
-    //             '/test/testuid/s/test/test3': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi2',
-    //             },
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+        });
 
-    //         obs.test.test4.test5 = 'hi3';
+        obs.test.test4.set('test5', 'hi3');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test2': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi',
-    //             },
-    //             '/test/testuid/s/test/test3': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi2',
-    //             },
-    //             '/test/testuid/s/test/test4/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test4/test5': 'hi3',
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+        });
 
-    //         obs.test.test4.test6.test7 = 'hi4';
+        obs.test.test4.test6.set('test7', 'hi4');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test2': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi',
-    //             },
-    //             '/test/testuid/s/test/test3': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi2',
-    //             },
-    //             '/test/testuid/s/test/test4/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test4/test5': 'hi3',
-    //             '/test/testuid/s/test/test4/test6/test7': 'hi4',
-    //         });
-    //     });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test5': 'hi3',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+    });
 
-    //     test('save queryByModified with path/* 2', () => {
-    //         const obs = obsProxy({
-    //             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
-    //         });
+    test('save queryByModified with path/* 2', () => {
+        const obs = obsProxy({
+            test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: ['test/*'],
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             localPersistence: ObsPersistLocalStorage,
-    //             remotePersistence: ObsPersistFirebaseJest,
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.test2 = 'hi';
+        obs.test.set('test2', 'hi');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test2': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi',
-    //             },
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+        });
 
-    //         obs.test.test4.test6.test7 = 'hi4';
+        obs.test.test4.test6.set('test7', 'hi4');
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test2': {
-    //                 '@': '__serverTimestamp',
-    //                 _: 'hi',
-    //             },
-    //             '/test/testuid/s/test/test4/@': '__serverTimestamp',
-    //             '/test/testuid/s/test/test4/test6/test7': 'hi4',
-    //         });
-    //     });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test4/@': '__serverTimestamp',
+            '/test/testuid/s/test/test4/test6/test7': 'hi4',
+        });
+    });
 });
 
 describe('Remote load', () => {

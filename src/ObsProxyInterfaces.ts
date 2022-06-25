@@ -1,7 +1,7 @@
 export interface ObsProps<T> {
     get?(): T;
     set?(value: T): ObsProxy<T>;
-    set?<K extends keyof T>(key: K, value: T[K]): ObsProxy<T>;
+    set?<K extends keyof T>(key: K | string, value: T[K]): ObsProxy<T>;
     assign?(value: T): ObsProxy<T>;
 }
 export interface ObsPropsUnsafe<T> {

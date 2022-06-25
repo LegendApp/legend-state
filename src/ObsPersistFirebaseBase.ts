@@ -415,7 +415,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 } else {
                     batch[basePath + path.slice(0, i + 1).join('/') + '/@'] = this.fns.serverTimestamp();
                 }
-                return;
+                return value;
             }
             o = o[path[i]];
         }
