@@ -11,6 +11,7 @@ import type {
     PersistOptions,
     PersistOptionsRemote,
     ProxyValue,
+    QueryByModified,
 } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
@@ -18,14 +19,6 @@ const Delimiter = '~';
 
 function replaceWildcard(str: string) {
     return str.replace(/\/?\*/, '');
-}
-
-function findStartsWithPath(...args: any): string {
-    return '';
-    // return args.find((a) => {
-    //     a = replaceWildcard(a);
-    //     return a === '' || str.startsWith(a);
-    // });
 }
 
 function findStartsWithPathInverse(...args: any): string {
@@ -252,40 +245,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (valSave !== undefined) {
             const queryByModified = options.firebase.queryByModified;
             if (queryByModified) {
-                let thisPath = path.join('/');
-                let datePath = findStartsWithPath(thisPath, queryByModified);
-                if (datePath) {
-                    const isWildcard = datePath.endsWith('*');
-                    if (isWildcard) {
-                        datePath = replaceWildcard(datePath);
-                        thisPath = thisPath.split('/').slice(0, -1).join('/');
-                    }
-                    const timestamp = this.fns.serverTimestamp();
-                    if (datePath === thisPath) {
-                        if (isObject(valSave)) {
-                            valSave['@'] = timestamp;
-                        } else {
-                            valSave = {
-                                '@': timestamp,
-                                _: valSave,
-                            };
-                        }
-                    } else {
-                        if (isWildcard) {
-                            datePath = thisPath
-                                .split('/')
-                                .slice(0, datePath === '' ? 1 : datePath.split('/').length + 1)
-                                .join('/');
-                        }
-                        batch[basePath + datePath + '/@'] = timestamp;
-                    }
-                } else if (findStartsWithPathInverse(thisPath, queryByModified)) {
-                    if (process.env.NODE_ENV === 'development' || process.env.JEST_WORKER_ID) {
-                        console.error(
-                            'Set a value at a higher level than queryByModified which will overwrite all dates'
-                        );
-                    }
-                }
+                valSave = this.insertDatesToSave(batch, queryByModified, basePath, path, valSave);
             }
             batch[basePath + path.join('/')] = valSave;
         } else {
@@ -409,5 +369,58 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             });
         }
         return record;
+    }
+    private insertDateToObject(value: any) {
+        const timestamp = this.fns.serverTimestamp();
+        if (isObject(value)) {
+            return Object.assign(value, {
+                '@': timestamp,
+            });
+        } else {
+            return {
+                '@': timestamp,
+                _: value,
+            };
+        }
+    }
+    private insertDatesToSaveObject(
+        batch: Record<string, string | object>,
+        queryByModified: QueryByModified<any>,
+        path: string,
+        value: any
+    ): object {
+        let o = queryByModified;
+        if (o === true) {
+            this.insertDateToObject(value);
+        } else if (isObject(value)) {
+            Object.keys(value).forEach((key) => {
+                value[key] = this.insertDatesToSaveObject(batch, queryByModified, path + '/' + key, value[key]);
+            });
+        }
+        return value;
+    }
+
+    private insertDatesToSave(
+        batch: Record<string, string | object>,
+        queryByModified: QueryByModified<any>,
+        basePath: string,
+        path: string[],
+        value: any
+    ) {
+        let o = queryByModified;
+        for (let i = 0; i < path.length; i++) {
+            if (o === true) {
+                if (i === path.length - 1 && !isObject(value)) {
+                    return this.insertDateToObject(value);
+                } else {
+                    batch[basePath + path.slice(0, i + 1).join('/') + '/@'] = this.fns.serverTimestamp();
+                }
+                return;
+            }
+            o = o[path[i]];
+        }
+        this.insertDatesToSaveObject(batch, o, basePath + path.join('/'), value);
+
+        return value;
     }
 }

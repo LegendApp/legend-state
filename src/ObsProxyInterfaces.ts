@@ -68,9 +68,11 @@ export type MappedProxyValue<T extends ObsProxyUnsafe[]> = {
     [K in keyof T]: ProxyValue<T[K]>;
 };
 
-export type QueryByModified<T> = {
-    [K in keyof T]-?: boolean | (T[K] extends object ? QueryByModified<T[K]> : boolean);
-};
+export type QueryByModified<T> =
+    | boolean
+    | {
+          [K in keyof T]: QueryByModified<T[K]>;
+      };
 
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
@@ -80,7 +82,7 @@ export interface PersistOptionsRemote<T = any> {
         syncPath: (uid: string) => `${string}/`;
         fieldTransforms?: any; // SameShapeWithStrings<T>;
         spreadPaths?: Exclude<keyof T, '_id' | 'id'>[];
-        queryByModified?: boolean | QueryByModified<T>;
+        queryByModified?: QueryByModified<T>;
     };
 }
 export interface PersistOptions<T = any> {

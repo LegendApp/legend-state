@@ -165,83 +165,86 @@ describe('Persist remote save', () => {
         });
     });
 
-    // test('Pending after save with modified primitive', () => {
-    //     const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+    test('Pending after save with modified primitive', () => {
+        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
 
-    //     const remoteOptions: PersistOptionsRemote<ProxyValue<typeof obs>> = {
-    //         requireAuth: true,
-    //         firebase: {
-    //             syncPath: (uid) => `/test/${uid}/s/`,
-    //             queryByModified: { test: true },
-    //         },
-    //     };
+        const remoteOptions: PersistOptionsRemote<ProxyValue<typeof obs>> = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-    //     obsPersist(obs, {
-    //         localPersistence: ObsPersistLocalStorage,
-    //         remotePersistence: ObsPersistFirebaseJest,
-    //         local: 'jestremote',
-    //         remote: remoteOptions,
-    //     });
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //     const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //     obs.test.set('test2', 'hi');
+        obs.test.set('test2', 'hi');
 
-    //     const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
 
-    //     expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' } } });
-    //     expect(remote['_constructBatchForSave']()).toEqual({
-    //         '/test/testuid/s/test/test2': {
-    //             '@': '__serverTimestamp',
-    //             _: 'hi',
-    //         },
-    //     });
+        expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+        });
 
-    //     obs.test.set('test3', 'hi2');
+        obs.test.set('test3', 'hi2');
 
-    //     expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' }, test3: { [symbolSaveValue]: 'hi2' } } });
-    //     expect(remote['_constructBatchForSave']()).toEqual({
-    //         '/test/testuid/s/test/test2': {
-    //             '@': '__serverTimestamp',
-    //             _: 'hi',
-    //         },
-    //         '/test/testuid/s/test/test3': 'hi2',
-    //     });
-    // });
+        expect(pending).toEqual({ test: { test2: { [symbolSaveValue]: 'hi' }, test3: { [symbolSaveValue]: 'hi2' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test2': {
+                '@': '__serverTimestamp',
+                _: 'hi',
+            },
+            '/test/testuid/s/test/test3': {
+                '@': '__serverTimestamp',
+                _: 'hi2',
+            },
+        });
+    });
 
-    // test('Pending after save with modified object', () => {
-    //     const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+    test('Pending after save with modified object', () => {
+        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
 
-    //     const remoteOptions: PersistOptionsRemote = {
-    //         requireAuth: true,
-    //         firebase: {
-    //             syncPath: (uid) => `/test/${uid}/s/`,
-    //             queryByModified: ['test'],
-    //         },
-    //     };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-    //     obsPersist(obs, {
-    //         localPersistence: ObsPersistLocalStorage,
-    //         remotePersistence: ObsPersistFirebaseJest,
-    //         local: 'jestremote',
-    //         remote: remoteOptions,
-    //     });
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //     const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //     obs.test.set({ test2: 'hi', test3: 'hi2' });
+        obs.test.set({ test2: 'hi', test3: 'hi2' });
 
-    //     const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('__SAVE__')).saves;
 
-    //     expect(pending).toEqual({ test: { [symbolSaveValue]: { test2: 'hi', test3: 'hi2' } } });
-    //     expect(remote['_constructBatchForSave']()).toEqual({
-    //         '/test/testuid/s/test': {
-    //             '@': '__serverTimestamp',
-    //             test2: 'hi',
-    //             test3: 'hi2',
-    //         },
-    //     });
-    // });
+        expect(pending).toEqual({ test: { [symbolSaveValue]: { test2: 'hi', test3: 'hi2' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test': {
+                '@': '__serverTimestamp',
+                test2: 'hi',
+                test3: 'hi2',
+            },
+        });
+    });
 
     //     test('queryByModified with *', () => {
     //         const obs = obsProxy({
