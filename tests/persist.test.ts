@@ -760,21 +760,17 @@ describe('Remote change', () => {
 });
 
 // TODO
-// Proxy functions or helper functions? assign, listen, onValue, etc...
 
 // Persist
-// queryByModified for listening more tests
-// Fix save with new queryByModified
 // Modified needs to save locally
 // queryByModified with local modified values
 // fieldtranslator
 // fieldtranslator keep datemodified symbol
 // Enforce syncPath ending in /
-// Use MMKV for local?
 
-// Cool things outside of Bravely scope
+// Things outside of Bravely scope
+// Use MMKV for local?
 // Promises
-// Computed should do auto tracking
 
 // More tests
 // test read functions on array and map and stuff

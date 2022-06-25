@@ -1,6 +1,6 @@
 import { isArray, isObject, isFunction, isString, isNumber } from '@legendapp/tools';
-import { obsNotify } from './ObsProxyFns';
-import { ObsProxyUnsafe, ObsProxy } from './ObsProxyInterfaces';
+import { listenToObs, obsNotify, onHasValue, onTrue, onValue } from './ObsProxyFns';
+import { ObsProxyUnsafe, ObsProxy, ObsPropsOn } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
 function isPrimitive(val: any) {
@@ -164,6 +164,22 @@ const ProxyFunctions = new Map([
     ['assign', assigner],
 ]);
 
+const ProxyOnFunctions = new Map<keyof ObsPropsOn, any>([
+    ['changed', listenToObs],
+    ['equals', onValue],
+    ['hasValue', onHasValue],
+    ['isTrue', onTrue],
+]);
+
+const proxyOn = new Proxy<{ obsProxy: ObsProxy }>(
+    { obsProxy: undefined },
+    {
+        get(target: { obsProxy: ObsProxy }, prop: keyof ObsPropsOn, proxyOwner: ObsProxyUnsafe) {
+            return ProxyOnFunctions.get(prop).bind(target.obsProxy, target.obsProxy);
+        },
+    }
+);
+
 const proxyGet = {
     get(target: any, prop: string, proxyOwner: ObsProxyUnsafe) {
         const info = state.infos.get(proxyOwner);
@@ -181,6 +197,10 @@ const proxyGet = {
 
             // Non-modifying functions pass straight through
             return target[prop].bind(target);
+        } else if (prop === 'on') {
+            // Set proxyOn target to this proxy and return it
+            proxyOn.obsProxy = proxyOwner;
+            return proxyOn;
         } else if (ProxyFunctions.has(prop)) {
             // Calling a proxy function returns a bound function
             // Note: This is after the check for isCollection so we don't overwrite the collection set function

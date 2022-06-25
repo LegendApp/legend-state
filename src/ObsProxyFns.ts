@@ -139,3 +139,20 @@ export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
 export function getObsModified<T extends ObsProxyChecker>(obs: T) {
     return obs.get?.()?.[symbolDateModified];
 }
+
+export function getListeners<T extends ObsProxyChecker>(obs: T) {
+    const info = state.infos.get(obs);
+    return info?.listeners || [];
+}
+
+export function unlisten<T extends ObsProxyChecker>(obs: T, cb: Function) {
+    const info = state.infos.get(obs);
+    if (info) {
+        const i = info.listeners.findIndex((listener) => listener.callback === cb);
+        if (i >= 0) {
+            const listener = info.listeners[i];
+            listener._disposed = true;
+            info.listeners.splice(i, 1);
+        }
+    }
+}
