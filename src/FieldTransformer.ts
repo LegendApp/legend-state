@@ -64,7 +64,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                                 if (v) {
                                     Object.keys(v).forEach((dictKey) => {
                                         if (!isString(dictKey)) debugger;
-                                        ret[k][dictKey] = transformObject(v[dictKey], map[key], key);
+                                        ret[k][dictKey] = transformObject(v[dictKey], map[key].__dict, key);
                                     });
                                 }
                             } else if (mapped.__obj) {
@@ -97,6 +97,8 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                 }
             }
         }
+
+        if (!ret) debugger;
 
         const d = ret[symbolDateModified as any];
         if (d) {

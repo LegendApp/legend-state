@@ -31,11 +31,11 @@ async function onObsChange<T extends object>(
     value: T,
     info: ObsListenerInfo
 ) {
-    if (!proxyState.isLoadedLocal) return;
-
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
 
     if (persistOptions.local) {
+        // TODO: What to do? Queue this until after loaded? Or throw error?
+        if (!proxyState.isLoadedLocal) return;
         persistenceLocal.setValue(persistOptions.local, value);
     }
 
