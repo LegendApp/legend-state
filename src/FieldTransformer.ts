@@ -1,5 +1,5 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
-import { obsProxy } from 'src/ObsProxy';
+import { symbolDateModified } from './globals';
 
 export function transformPath(path: string[], map: Record<string, any>) {
     const data: Record<string, any> = {};
@@ -20,7 +20,17 @@ export function transformPath(path: string[], map: Record<string, any>) {
 export function transformObject(dataIn: Record<string, any>, map: Record<string, any>, id?: string) {
     let ret: any = {};
     if (dataIn) {
-        if (isArray(dataIn)) {
+        if (map.__obj && isObject(dataIn)) {
+            ret = transformObject(dataIn, map.__obj);
+        } else if (map.__arr && isArray(dataIn)) {
+            ret = dataIn.map((v2) => transformObject(v2, map.__arr));
+        } else if (map.__dict && isObject(dataIn)) {
+            ret = {};
+            Object.keys(dataIn).forEach((dictKey) => {
+                if (!isString(dictKey)) debugger;
+                ret[dictKey] = transformObject(dataIn[dictKey], map.__dict);
+            });
+        } else if (isArray(dataIn)) {
             if (process.env.NODE_ENV === 'development') debugger;
             ret = dataIn.map((d) => map[d]);
         } else if (isString(dataIn)) {
@@ -33,6 +43,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                 if (key === '@') {
                     ret[key] = v;
                 } else {
+                    // TODO: May not need some of these since I added the checks above, but have more tests before removing
                     if (isObject(map.__dict)) {
                         ret[key] = {};
                         if (v) {
@@ -85,6 +96,11 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                     ret[map.id] = id;
                 }
             }
+        }
+
+        const d = ret[symbolDateModified as any];
+        if (d) {
+            ret[symbolDateModified as any] = d;
         }
     }
 

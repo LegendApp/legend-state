@@ -83,21 +83,21 @@ export type MappedProxyValue<T extends ObsProxyUnsafe[]> = {
 export type QueryByModified<T> =
     | boolean
     | {
-          [K in keyof T]: QueryByModified<T[K]>;
+          [K in keyof T]?: QueryByModified<T[K]>;
       };
 
-export interface PersistOptionsRemote<T = any> {
+export interface PersistOptionsRemote<T extends object = any> {
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
     firebase?: {
-        syncPath: (uid: string) => `${string}/`;
-        fieldTransforms?: any; // SameShapeWithStrings<T>;
+        syncPath: (uid: string) => `/${string}/`;
+        fieldTransforms?: SameShapeWithStrings<T>;
         spreadPaths?: Exclude<keyof T, '_id' | 'id'>[];
         queryByModified?: QueryByModified<T>;
     };
 }
-export interface PersistOptions<T = any> {
+export interface PersistOptions<T extends object = any> {
     local?: string;
     remote?: PersistOptionsRemote<T>;
     localPersistence?: any;
@@ -113,7 +113,7 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObsPersistRemote {
-    save<T>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
+    save<T extends object>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
     listen<T extends object>(
         obs: ObsProxyChecker<T>,
         options: PersistOptionsRemote<T>,
@@ -127,3 +127,33 @@ export interface ObsPersistState {
     isLoadedRemote: boolean;
 }
 export type ObsProxyChecker<T = object> = ObsProxy<T> | ObsProxyUnsafe<T>;
+
+export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
+export type ArrayValue<T> = T extends Array<infer t> ? t : never;
+
+type SameShapeWithStringsRecord<T> = {
+    [K in keyof Omit<T, '_id' | 'id'>]-?: T[K] extends Record<string, Record<string, any>>
+        ?
+              | {
+                    _: string;
+                    __dict: SameShapeWithStrings<RecordValue<T[K]>>;
+                }
+              | SameShapeWithStrings<T[K]>
+        : T[K] extends Array<infer t>
+        ? ((Record<string, string> | SameShapeWithStringsRecord<t>) & { _: string; __arr: boolean }) | string
+        : T[K] extends Record<string, object>
+        ?
+              | (
+                    | { _: string; __obj: SameShapeWithStrings<RecordValue<T[K]>> }
+                    | { _: string; __dict: SameShapeWithStrings<RecordValue<T[K]>> }
+                )
+              | string
+        : T[K] extends Record<string, any>
+        ?
+              | ({ _: string; __obj: SameShapeWithStrings<T[K]> } | { _: string; __dict: SameShapeWithStrings<T[K]> })
+              | string
+        : string | { _: string; __val: Record<string, string> };
+};
+type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
+    ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
+    : SameShapeWithStringsRecord<T>;

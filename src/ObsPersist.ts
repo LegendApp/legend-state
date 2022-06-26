@@ -1,19 +1,17 @@
-import { isNumber, isObject } from '@legendapp/tools';
+import { replaceKeyInObject, symbolDateModified } from './globals';
+import { ObsBatcher } from './ObsBatcher';
+import { obsProxy } from './ObsProxy';
+import { listenToObs } from './ObsProxyFns';
 import {
+    ObsListenerInfo,
     ObsPersistLocal,
-    ObsPersistLocalAsync,
     ObsPersistRemote,
     ObsPersistState,
+    ObsProxy,
     ObsProxyChecker,
-    ObsProxyUnsafe,
+    PersistOptions,
     PersistOptionsRemote,
-    ProxyValue,
 } from './ObsProxyInterfaces';
-import { ObsBatcher } from './ObsBatcher';
-import { listenToObs } from './ObsProxyFns';
-import { ObsListenerInfo, ObsProxy, PersistOptions } from './ObsProxyInterfaces';
-import { obsProxy } from './ObsProxy';
-import { replaceKeyInObject, symbolDateModified } from './globals';
 
 /** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
@@ -25,17 +23,7 @@ interface LocalState {
     persistenceRemote?: ObsPersistRemote;
 }
 
-function recursiveFindMaxModified(obj: object, max: { v: number }) {
-    if (isObject(obj)) {
-        if (isNumber(obj['@'])) {
-            max.v = Math.max(max.v, obj['@']);
-            // delete obj['@'];
-        }
-        Object.keys(obj).forEach((key) => key !== '@' && recursiveFindMaxModified(obj[key], max));
-    }
-}
-
-async function onObsChange<T>(
+async function onObsChange<T extends object>(
     proxyState: ObsProxy<ObsPersistState>,
     state: LocalState,
     obs: ObsProxy<T>,
@@ -104,6 +92,7 @@ function _obsPersist<T extends object>(
         }
 
         if (value !== null && value !== undefined) {
+            replaceKeyInObject(value, '@', symbolDateModified);
             obs.set(value);
         }
 
@@ -118,7 +107,7 @@ function _obsPersist<T extends object>(
 
         persistenceRemote.listen(
             obs,
-            remote as PersistOptionsRemote<object>,
+            remote as PersistOptionsRemote,
             () => {
                 proxyState.set('isLoadedRemote', true);
             },

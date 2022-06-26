@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
-import { invertObject, transformObject } from './FieldTransformer';
-import { constructObject, mergeDeep, removeNullUndefined, symbolDateModified } from './globals';
+import { invertObject, transformObject, transformPath } from './FieldTransformer';
+import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
 import { getObsModified } from './ObsProxyFns';
 import type {
     ObsListenerInfo,
@@ -73,7 +73,6 @@ function findMaxModified(obj: object, max: { v: number }) {
 export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private promiseAuthed: PromiseCallback<void>;
     private promiseSaved: PromiseCallback<void>;
-    private fieldTransformsIn: Record<string, any> = {};
     protected _batch: Record<string, any> = {};
     private _timeoutSave: any;
     private fns: FirebaseFns;
@@ -171,12 +170,17 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             await this.waitForAuth();
         }
 
-        const pathFirebase = syncPath(this.fns.getCurrentUser()) + syncPathExtra;
-
-        if (fieldTransforms) {
-            this.validateMap(fieldTransforms);
-            this.fieldTransformsIn[pathFirebase] = invertObject(fieldTransforms);
+        let fieldTransformsAtPath;
+        if (syncPathExtra && fieldTransforms) {
+            if (process.env.NODE_ENV === 'development') {
+                this.validateMap(fieldTransforms);
+            }
+            const pathArr = syncPathExtra.split('/').filter((a) => !!a);
+            fieldTransformsAtPath = invertObject(objectAtPath(pathArr, fieldTransforms));
+            syncPathExtra = transformPath(pathArr, fieldTransforms).join('/');
         }
+
+        const pathFirebase = syncPath(this.fns.getCurrentUser()) + syncPathExtra;
 
         let refPath = this.fns.ref(pathFirebase);
         if (dateModified && !isNaN(dateModified)) {
@@ -184,12 +188,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
 
         if (!once) {
-            const cb = this._onChange.bind(this, pathFirebase, obs, onChange);
+            const cb = this._onChange.bind(this, pathFirebase, obs, fieldTransformsAtPath, onChange);
             this.fns.onChildAdded(refPath, cb, (err) => console.error(err));
             this.fns.onChildChanged(refPath, cb, (err) => console.error(err));
         }
 
-        this.fns.once(refPath, this._onceValue.bind(this, pathFirebase, obs, onLoad, onChange));
+        this.fns.once(refPath, this._onceValue.bind(this, pathFirebase, obs, fieldTransformsAtPath, onLoad, onChange));
     }
     private _updatePendingSave(path: string[], value: object, pending: SaveInfoDictionary) {
         if (path.length === 0) {
@@ -310,22 +314,21 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const keys = key.split(Delimiter);
         value = constructObject(keys, value, dateModified);
 
-        const fieldTransformsIn = this.fieldTransformsIn[pathFirebase];
-        if (fieldTransformsIn) {
-            const transformed = transformObject(value, fieldTransformsIn);
-            value = transformed;
-        }
-
         return value;
     }
     private _onceValue(
         pathFirebase: string,
-        obs: ObsProxy<any> | ObsProxyUnsafe<any>,
+        obs: ObsProxy<Record<any, any>>,
+        fieldTransformsAtPath: object,
         onLoad: () => void,
         onChange: (cb: () => void) => void,
         snapshot: any
     ) {
         let outerValue = snapshot.val();
+
+        if (fieldTransformsAtPath) {
+            outerValue = transformObject(outerValue, fieldTransformsAtPath);
+        }
 
         onChange(() => {
             if (outerValue) {
@@ -353,6 +356,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private _onChange(
         pathFirebase: string,
         obs: ObsProxy | ObsProxyUnsafe,
+        fieldTransformsAtPath: object,
         onChange: (cb: () => void) => void,
         snapshot: any
     ) {
@@ -360,6 +364,10 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         let val = snapshot.val();
         if (val) {
+            if (fieldTransformsAtPath) {
+                debugger;
+                val = transformObject(val, fieldTransformsAtPath);
+            }
             const value = this._getChangeValue(pathFirebase, snapshot.key, val);
 
             if (!this.addValuesToPendingSaves(pathFirebase.split('/'), value)) {
