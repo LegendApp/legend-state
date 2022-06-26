@@ -1,5 +1,5 @@
 import { isObject } from '@legendapp/tools';
-import { invertObject, transformObject, transformPath } from './FieldTransformer';
+import { invertMap, transformObject, transformPath } from './FieldTransformer';
 import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
 import { getObsModified } from './ObsProxyFns';
 import type {
@@ -176,7 +176,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 this.validateMap(fieldTransforms);
             }
             const pathArr = syncPathExtra.split('/').filter((a) => !!a);
-            fieldTransformsAtPath = invertObject(objectAtPath(pathArr, fieldTransforms));
+            fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
             syncPathExtra = transformPath(pathArr, fieldTransforms).join('/');
         }
 
@@ -398,7 +398,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             if (fieldTransformsAtPath) {
                 key = transformPath([snapshot.key], fieldTransformsAtPath)[0];
                 val = transformObject({ [snapshot.key]: val }, fieldTransformsAtPath)[key];
-                syncPathExtra = transformPath(syncPathExtra.split('/'), invertObject(fieldTransforms)).join('/');
+                syncPathExtra = transformPath(syncPathExtra.split('/'), invertMap(fieldTransforms)).join('/');
             }
             const value = this._getChangeValue(path, key, val);
 

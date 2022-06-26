@@ -111,7 +111,12 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
     return ret;
 }
 
-export function invertObject(obj: Record<string, any>) {
+const invertedMaps = new WeakMap();
+
+export function invertMap(obj: Record<string, any>) {
+    const existing = invertedMaps.get(obj);
+    if (existing) return existing;
+
     const target: Record<string, any> = {} as any;
 
     Object.keys(obj).forEach((key) => {
@@ -120,7 +125,7 @@ export function invertObject(obj: Record<string, any>) {
         if (key !== '_') {
             if (key === '__obj' || key === '__dict' || key === '__arr' || key === '__val') {
                 if (isObject(val)) {
-                    target[key] = invertObject(val);
+                    target[key] = invertMap(val);
                 } else {
                     target[key] = val;
                 }
@@ -134,11 +139,13 @@ export function invertObject(obj: Record<string, any>) {
                     (val.__val && '__val');
                 if (prop) {
                     const k = val._;
-                    target[k] = Object.assign(invertObject(val), { _: key });
+                    target[k] = Object.assign(invertMap(val), { _: key });
                 }
             }
         }
     });
+
+    invertedMaps.set(obj, target);
 
     return target;
 }
