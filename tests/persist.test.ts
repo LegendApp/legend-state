@@ -1148,40 +1148,27 @@ describe('Field transform', () => {
         });
 
         // TODO: Saving locally should be the non-transformed version
-        // expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
-        //     test: {
-        //         testuid: {
-        //             s: {
-        //                 test: {
-        //                     test2: {
-        //                         '@': '__serverTimestamp',
-        //                         _: 'hello2',
-        //                     },
-        //                     test3: {
-        //                         '@': '__serverTimestamp',
-        //                         _: 'hello3',
-        //                     },
-        //                 },
-        //                 test4: {
-        //                     test5: {
-        //                         test6: 'hello6',
-        //                     },
-        //                 },
-        //                 test7: {
-        //                     test8: 'hello8',
-        //                 },
-        //             },
-        //         },
-        //     },
-        // });
+        expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
+            test: {
+                '@': '__serverTimestamp',
+                test2: 'hello2',
+                test3: 'hello3',
+            },
+            test4: {
+                test5: {
+                    test6: 'hello6',
+                },
+            },
+            test7: {
+                test8: 'hello8',
+            },
+        });
     });
 });
 
 // TODO
 
 // # Persist
-// Fieldtransform out when saving
-// Should not transform fields locally
 // fieldtranslator for more things
 
 // # Things outside of Bravely scope

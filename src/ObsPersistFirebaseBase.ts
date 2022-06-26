@@ -180,20 +180,29 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             syncPathExtra = transformPath(pathArr, fieldTransforms).join('/');
         }
 
-        const pathFirebase = syncPath(this.fns.getCurrentUser()) + syncPathExtra;
+        const pathFirebase = syncPath(this.fns.getCurrentUser());
+        const pathFull = pathFirebase + syncPathExtra;
 
-        let refPath = this.fns.ref(pathFirebase);
+        let refPath = this.fns.ref(pathFull);
         if (dateModified && !isNaN(dateModified)) {
             refPath = this.fns.orderByChild(refPath, '@', dateModified + 1);
         }
 
         if (!once) {
-            const cb = this._onChange.bind(this, pathFirebase, obs, fieldTransformsAtPath, onChange);
+            const cb = this._onChange.bind(
+                this,
+                pathFirebase,
+                syncPathExtra,
+                fieldTransforms,
+                obs,
+                fieldTransformsAtPath,
+                onChange
+            );
             this.fns.onChildAdded(refPath, cb, (err) => console.error(err));
             this.fns.onChildChanged(refPath, cb, (err) => console.error(err));
         }
 
-        this.fns.once(refPath, this._onceValue.bind(this, pathFirebase, obs, fieldTransformsAtPath, onLoad, onChange));
+        this.fns.once(refPath, this._onceValue.bind(this, pathFull, obs, fieldTransformsAtPath, onLoad, onChange));
     }
     private _updatePendingSave(path: string[], value: object, pending: SaveInfoDictionary) {
         if (path.length === 0) {
@@ -228,7 +237,9 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             await this.waitForAuth();
         }
 
+        value = JSON.parse(JSON.stringify(value));
         value = removeNullUndefined(value);
+        const valueSaved = JSON.parse(JSON.stringify(value));
         let path = info.path.slice();
 
         if (fieldTransforms) {
@@ -265,7 +276,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (valuesSaved?.length) {
             // Only want to return from saved one time
             this._pendingSaves2.delete(syncPath);
-            const valueSaved = JSON.parse(JSON.stringify(value));
             mergeDeep(valueSaved, ...valuesSaved);
             return valueSaved;
         }
@@ -334,7 +344,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         return value;
     }
     private _onceValue(
-        pathFirebase: string,
+        path: string,
         obs: ObsProxy<Record<any, any>>,
         fieldTransformsAtPath: object,
         onLoad: () => void,
@@ -351,7 +361,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             if (outerValue) {
                 if (isObject(outerValue)) {
                     Object.keys(outerValue).forEach((key) => {
-                        const value = this._getChangeValue(pathFirebase, key, outerValue[key]);
+                        const value = this._getChangeValue(path, key, outerValue[key]);
 
                         obs.set(key, value[key]);
 
@@ -368,16 +378,19 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         onLoad();
 
-        this._hasLoadedValue[pathFirebase] = true;
+        this._hasLoadedValue[path] = true;
     }
     private _onChange(
         pathFirebase: string,
+        syncPathExtra: string,
+        fieldTransforms: object,
         obs: ObsProxy | ObsProxyUnsafe,
         fieldTransformsAtPath: object,
         onChange: (cb: () => void) => void,
         snapshot: any
     ) {
-        if (!this._hasLoadedValue[pathFirebase]) return;
+        const path = pathFirebase + syncPathExtra;
+        if (!this._hasLoadedValue[path]) return;
 
         let val = snapshot.val();
         let key = snapshot.key;
@@ -385,10 +398,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             if (fieldTransformsAtPath) {
                 key = transformPath([snapshot.key], fieldTransformsAtPath)[0];
                 val = transformObject({ [snapshot.key]: val }, fieldTransformsAtPath)[key];
+                syncPathExtra = transformPath(syncPathExtra.split('/'), invertObject(fieldTransforms)).join('/');
             }
-            const value = this._getChangeValue(pathFirebase, key, val);
+            const value = this._getChangeValue(path, key, val);
 
-            if (!this.addValuesToPendingSaves(pathFirebase.split('/'), value)) {
+            const pathTransformed = pathFirebase + syncPathExtra;
+            if (!this.addValuesToPendingSaves(pathTransformed.split('/'), value)) {
                 onChange(() => {
                     obs.assign(value);
                 });
