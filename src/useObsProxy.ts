@@ -1,7 +1,7 @@
 import { isArray, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
 import { listenToObs } from './ObsProxyFns';
-import { ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 
 interface SavedRef {
@@ -9,7 +9,7 @@ interface SavedRef {
     listeners?: ObsListener[];
 }
 
-function useObsProxy<T extends (ObsProxyChecker | [ObsProxyChecker, string])[]>(...args: T): T {
+function useObsProxy<T extends (ObsProxyChecker | [ObsProxyChecker, string])[]>(...args: T): MappedProxyValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -35,7 +35,7 @@ function useObsProxy<T extends (ObsProxyChecker | [ObsProxyChecker, string])[]>(
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return args;
+    return args.map((obs) => (obs ? (isArray(obs) ? obs[0].get()[obs[1]] : obs.get()) : obs)) as MappedProxyValue<T>;
 }
 
 const updateListeners = (

@@ -76,8 +76,8 @@ export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxy
     ? t
     : T;
 
-export type MappedProxyValue<T extends ObsProxyUnsafe[]> = {
-    [K in keyof T]: ProxyValue<T[K]>;
+export type MappedProxyValue<T extends (ObsProxyChecker | [ObsProxyChecker, string])[]> = {
+    [K in keyof T]: T[K] extends Array<any> ? ProxyValue<T[K][0]>[T[K][1]] : ProxyValue<T[K]>;
 };
 
 export type QueryByModified<T> =

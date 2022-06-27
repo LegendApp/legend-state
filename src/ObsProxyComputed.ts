@@ -1,18 +1,18 @@
 import { obsProxy } from './ObsProxy';
 import { listenToObs } from './ObsProxyFns';
-import { MappedProxyValue, ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { MappedProxyValue, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
 
-function onChanged(proxy: ObsProxy, args: (ObsProxy | ObsProxyUnsafe)[], compute: (...args: any) => any) {
+function onChanged(proxy: ObsProxy, args: ObsProxyChecker[], compute: (...args: any) => any) {
     const value = compute(...args);
     proxy.set(value);
 }
 
-export function obsProxyComputed<T extends object, TA extends (ObsProxy | ObsProxyUnsafe)[]>(
+export function obsProxyComputed<T extends object, TA extends ObsProxyChecker[]>(
     args: TA,
-    compute: (...args: TA) => T
+    compute: (...args: MappedProxyValue<TA>) => T
 ) {
     // Create a proxy for this computed variable
-    const proxy = obsProxy<T>(compute(...args));
+    const proxy = obsProxy<T>(compute(...(args.map((obs) => obs.get()) as MappedProxyValue<TA>)));
 
     // Create a handler for this proxy
     const handler = onChanged.bind(this, proxy, args, compute);
