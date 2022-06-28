@@ -20,40 +20,40 @@ function isCollection(obj: any) {
     return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
 }
 
-const MapModifiers = new Map([
-    ['clear', true],
-    ['delete', true],
-    ['set', true],
-]);
+const MapModifiers = {
+    clear: true,
+    delete: true,
+    set: true,
+};
 
-const ArrayModifiers = new Map([
-    ['copyWithin', true],
-    ['fill', true],
-    ['from', true],
-    ['pop', true],
-    ['push', true],
-    ['reverse', true],
-    ['shift', true],
-    ['sort', true],
-    ['splice', true],
-    ['unshift', true],
-]);
+const ArrayModifiers = {
+    copyWithin: true,
+    fill: true,
+    from: true,
+    pop: true,
+    push: true,
+    reverse: true,
+    shift: true,
+    sort: true,
+    splice: true,
+    unshift: true,
+};
 
-const SetModifiers = new Map([
-    ['add', true],
-    ['clear', true],
-    ['delete', true],
-]);
+const SetModifiers = {
+    add: true,
+    clear: true,
+    delete: true,
+};
 
-const WeakMapModifiers = new Map([
-    ['set', true],
-    ['delete', true],
-]);
+const WeakMapModifiers = {
+    set: true,
+    delete: true,
+};
 
-const WeakSetModifiers = new Map([
-    ['add', true],
-    ['delete', true],
-]);
+const WeakSetModifiers = {
+    add: true,
+    delete: true,
+};
 
 function collectionSetter(prop: string, proxyOwner: ObsProxyUnsafe, ...args: any[]) {
     // this = target
@@ -182,16 +182,16 @@ const proxyOn = new Proxy<{ obsProxy: ObsProxy }>(
 );
 
 const proxyGet = {
-    get(target: any, prop: string, proxyOwner: ObsProxyUnsafe) {
+    get(target: any, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
             if (
-                (target instanceof Map && MapModifiers.has(prop)) ||
-                (target instanceof WeakMap && WeakMapModifiers.has(prop)) ||
-                (target instanceof Set && SetModifiers.has(prop)) ||
-                (target instanceof WeakSet && WeakSetModifiers.has(prop)) ||
-                (isArray(target) && ArrayModifiers.has(prop))
+                (target instanceof Map && MapModifiers[prop]) ||
+                (target instanceof WeakMap && WeakMapModifiers[prop]) ||
+                (target instanceof Set && SetModifiers[prop]) ||
+                (target instanceof WeakSet && WeakSetModifiers[prop]) ||
+                (isArray(target) && ArrayModifiers[prop])
             ) {
                 return collectionSetter.bind(target, prop, proxyOwner);
             }
