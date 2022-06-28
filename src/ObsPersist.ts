@@ -1,3 +1,4 @@
+import { config } from './configureObsProxy';
 import { replaceKeyInObject, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { obsProxy } from './ObsProxy';
@@ -69,7 +70,9 @@ function _obsPersist<T extends object>(
     obs: ObsProxyChecker<T>,
     persistOptions: PersistOptions<T>
 ) {
-    const { local, localPersistence, remote, remotePersistence } = persistOptions;
+    const { local, remote } = persistOptions;
+    const localPersistence = persistOptions.localPersistence || config.persist?.localPersistence;
+    const remotePersistence = persistOptions.remotePersistence || config.persist?.remotePersistence;
     const state: LocalState = { tempDisableSaveRemote: false };
 
     listenToObs(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));

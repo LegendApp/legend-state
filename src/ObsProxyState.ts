@@ -1,12 +1,12 @@
-import { ObsListener, ObsListenerWithProp, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { ObsListener, ObsListenerWithProp, ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
 
 export interface StateInfo {
     prop: string;
     target: object;
     safe: boolean;
     listeners?: (ObsListener | ObsListenerWithProp)[];
-    proxies?: Map<string, ObsProxyUnsafe>;
-    parent?: ObsProxyUnsafe;
+    proxies?: Map<string, ObsProxy>;
+    parent?: ObsProxy;
 }
 
 export const state = {

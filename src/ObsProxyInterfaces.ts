@@ -9,11 +9,11 @@ export interface ObsPropsOn<T extends object = object> {
     isTrue<TProp extends keyof T>(prop: TProp, cb: ListenerFn<T>): Promise<T[TProp]>;
 }
 export interface ObsProps<T extends object> {
-    get?(): T;
-    set?(value: T): ObsProxy<T>;
-    set?<K extends keyof T>(key: K | string, value: T[K]): ObsProxy<T>;
-    assign?(value: T): ObsProxy<T>;
-    on?: ObsPropsOn<T>;
+    get(): T;
+    set(value: T): ObsProxy<T>;
+    set<K extends keyof T>(key: K | string, value: T[K]): ObsProxy<T>;
+    assign(value: T): ObsProxy<T>;
+    on: ObsPropsOn<T>;
 }
 export interface ObsPropsUnsafe<T extends object> {
     get?(): T;

@@ -241,12 +241,7 @@ const proxyGet = {
     },
 };
 
-function _obsProxy<T extends object>(
-    value: T,
-    safe: boolean,
-    parent?: ObsProxyUnsafe,
-    prop?: string
-): ObsProxyUnsafe<T> {
+function _obsProxy<T extends object>(value: T, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxyUnsafe<T> {
     if (process.env.NODE_ENV === 'development' && isPrimitive(value)) {
         console.error('obsProxy value must be an object');
     }

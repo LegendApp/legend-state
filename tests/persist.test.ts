@@ -1167,8 +1167,11 @@ describe('Field transform', () => {
 });
 
 // TODO
+// useObsProxy should batch listeners?
+// useObsProxy API sucks with having to use array. How to do it better?
 
 // # Persist
+// Querybymodified with dict
 // fieldtranslator for more things
 
 // # Things outside of Bravely scope
