@@ -1,3 +1,4 @@
+// @ts-ignore
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
     DatabaseReference,
@@ -12,13 +13,16 @@ import {
     startAt,
     update,
     Unsubscribe,
+    // @ts-ignore
 } from 'firebase/database';
 import { isObjectEmpty } from 'src/FieldTransformer';
 import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
 
 export class ObsPersistFirebaseWeb extends ObsPersistFirebaseBase {
     constructor() {
-        super({
+        super();
+
+        this.setFns({
             getCurrentUser: () => getAuth().currentUser?.uid,
             ref: (path: string) => ref(getDatabase(), path),
             orderByChild: (ref: DatabaseReference, child: string, start: number) =>

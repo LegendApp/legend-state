@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { obsProxy } from './ObsProxy';
-import { ObsProxy } from './ObsProxyInterfaces';
+import { obsProxy } from '../ObsProxy';
+import { ObsProxy } from '../ObsProxyInterfaces';
 import { useObsProxy } from './useObsProxy';
 
 function useNewObsProxy<T extends object>(value: T, observe?: boolean): ObsProxy<T> {

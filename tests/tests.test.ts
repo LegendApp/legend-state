@@ -1,13 +1,4 @@
-import {
-    obsProxyComputed,
-    disposeListener,
-    listenToObs,
-    obsProxy,
-    onHasValue,
-    onTrue,
-    onValue,
-    useObsProxy,
-} from '../src';
+import { disposeListener, listenToObs, obsProxy, obsProxyComputed } from '../src';
 
 describe('Basic', () => {
     test('Has value', () => {

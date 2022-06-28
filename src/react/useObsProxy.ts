@@ -1,8 +1,8 @@
 import { isArray, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
-import { listenToObs } from './ObsProxyFns';
-import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
-import { disposeListener } from './ObsProxyListener';
+import { listenToObs } from '../ObsProxyFns';
+import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from '../ObsProxyInterfaces';
+import { disposeListener } from '../ObsProxyListener';
 
 interface SavedRef {
     args?: ObsProxyUnsafe[];

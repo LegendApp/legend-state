@@ -1,29 +1,27 @@
 {
     "compilerOptions": {
-        "target": "es5",
+        "outDir": "dist",
+        "target": "es2018",
         "lib": [
             "dom",
             "dom.iterable",
             "esnext"
         ],
-        "experimentalDecorators": true, /* Enables experimental support for ES7 decorators. */
-        "allowJs": true,
         "skipLibCheck": true,
         "strict": false,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
-        "noEmit": true,
         "incremental": true,
         "esModuleInterop": true,
-        "module": "esnext",
         "moduleResolution": "node",
-        "resolveJsonModule": true,
         "isolatedModules": true,
         "jsx": "preserve",
         "baseUrl": ".",
         "rootDirs": [
             "./src",
         ],
+        "declaration": true,
+        "sourceMap": true,
     },
     "include": [
         "**/*.ts",
