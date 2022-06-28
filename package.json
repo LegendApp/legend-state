@@ -1,15 +1,28 @@
 {
+    "name": "ObsProxy",
+    "version": "0.0.1",
     "sideEffects": false,
-    "main": "dist/commonjs/",
-    "module": "dist/module/",
-    "types": "index.d.ts",
-    "react-native": "src/",
+    "main": "dist/",
+    "types": "dist/src/index.d.ts",
     "source": "src/",
     "exports": {
         ".": "./dist/src/index.js",
         "./react": "./dist/src/react/index.js",
         "./web": "./dist/src/web/index.js",
         "./package.json": "./package.json"
+    },
+    "typesVersions": {
+        "*": {
+            "./": [
+                "dist/src/index.d.ts"
+            ],
+            "./react": [
+                "dist/src/react/index.d.ts"
+            ],
+            "./web": [
+                "dist/src/web/index.d.ts"
+            ]
+        }
     },
     "files": [
         "dist",

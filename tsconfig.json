@@ -22,6 +22,11 @@
         ],
         "declaration": true,
         "sourceMap": true,
+        "paths": {
+            "react": [
+                "node_modules/react"
+            ]
+        }
     },
     "include": [
         "**/*.ts",
