@@ -69,7 +69,7 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
         let prevValue: any;
         prevValue = Object.assign({}, target);
         // If this has a proxy parent, replace this proxy with a new proxy and copy over listeners
-        if (info.parent) {
+        if (value && info.parent) {
             const parentInfo = state.infos.get(info.parent);
             // Duplicate the old proxy with the new value
             const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
@@ -77,7 +77,10 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
             parentInfo.target[info.prop] = value;
             // Move the listeners to the new proxy
             const infoNew = state.infos.get(proxyNew);
-            infoNew.listeners = info.listeners;
+            if (info.listeners) {
+                infoNew.listeners = info.listeners;
+                infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
+            }
 
             // Replace the proxy on the parent
             parentInfo.proxies.set(info.prop, proxyNew);
