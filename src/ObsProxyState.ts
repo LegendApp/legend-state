@@ -1,4 +1,4 @@
-import { ObsListener, ObsListenerWithProp, ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { ObsListener, ObsListenerWithProp, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 
 export interface StateInfo {
     prop: string;
@@ -12,5 +12,7 @@ export interface StateInfo {
 export const state = {
     isInSetFn: false,
     isInAssign: false,
-    infos: new WeakMap<ObsProxyUnsafe, StateInfo>(),
+    isTrackingPrimitives: false,
+    trackedPrimitives: [] as [ObsProxy, string][],
+    infos: new WeakMap<ObsProxyChecker, StateInfo>(),
 };

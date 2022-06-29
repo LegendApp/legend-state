@@ -1,24 +1,8 @@
 import { isArray, isObject, isFunction, isString, isNumber } from '@legendapp/tools';
+import { isCollection, isPrimitive } from './globals';
 import { listenToObs, obsNotify, onHasValue, onTrue, onValue } from './ObsProxyFns';
 import { ObsProxyUnsafe, ObsProxy, ObsPropsOn } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
-
-function isPrimitive(val: any) {
-    return (
-        !isObject(val) &&
-        !isArray(val) &&
-        !(val instanceof WeakMap) &&
-        !(val instanceof WeakSet) &&
-        !(val instanceof Error) &&
-        !(val instanceof Date) &&
-        !(val instanceof String) &&
-        !(val instanceof ArrayBuffer)
-    );
-}
-
-function isCollection(obj: any) {
-    return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
-}
 
 const MapModifiers = {
     clear: true,
@@ -216,8 +200,9 @@ const proxyGet = {
                 }
                 proxy = _obsProxy(target[prop], info.safe, proxyOwner, prop);
                 info.proxies.set(prop, proxy);
+            } else if (state.isTrackingPrimitives && !proxy && isPrimitive(target[prop])) {
+                state.trackedPrimitives.push([proxyOwner, prop]);
             }
-
             return proxy || target[prop];
         }
     },

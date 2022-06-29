@@ -1,4 +1,4 @@
-import { isObject } from '@legendapp/tools';
+import { isArray, isObject } from '@legendapp/tools';
 
 export const symbolDateModified = Symbol('__dateModified');
 
@@ -83,4 +83,21 @@ export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any) 
         });
     }
     return obj;
+}
+
+export function isPrimitive(val: any) {
+    return (
+        !isObject(val) &&
+        !isArray(val) &&
+        !(val instanceof WeakMap) &&
+        !(val instanceof WeakSet) &&
+        !(val instanceof Error) &&
+        !(val instanceof Date) &&
+        !(val instanceof String) &&
+        !(val instanceof ArrayBuffer)
+    );
+}
+
+export function isCollection(obj: any) {
+    return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
 }

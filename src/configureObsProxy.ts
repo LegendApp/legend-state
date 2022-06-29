@@ -1,9 +1,10 @@
+import { ClassConstructor } from 'common/Obs/ObservableInterfaces';
 import { ObsPersistLocal, ObsPersistRemote } from './ObsProxyInterfaces';
 
 interface Config {
     persist?: {
-        localPersistence?: ObsPersistLocal;
-        remotePersistence?: ObsPersistRemote;
+        localPersistence?: ClassConstructor<ObsPersistLocal>;
+        remotePersistence?: ClassConstructor<ObsPersistRemote>;
     };
 }
 

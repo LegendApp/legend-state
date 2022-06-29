@@ -89,7 +89,7 @@ function _obsPersist<T extends object>(
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
                 console.error(`Called persist with the same local name multiple times: ${local}`);
-                return;
+                // return;
             }
             usedNames.set(local, true);
         }
