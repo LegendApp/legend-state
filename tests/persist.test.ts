@@ -1168,7 +1168,8 @@ describe('Field transform', () => {
 
 // TODO
 // useObsProxy should batch listeners?
-// useObsProxy API sucks with having to use array. How to do it better?
+// Does set replacing a deep object fire listeners on props and children?
+// Encryption
 
 // # Persist
 // Querybymodified with dict
@@ -1176,7 +1177,9 @@ describe('Field transform', () => {
 
 // # Things outside of Bravely scope
 // Use MMKV for local?
+// Functions inside proxy as actions should not be proxied and be bound to the proxy as this
 // Promises
+// useSyncExternalStore
 
 // # More tests
 // test read functions on array and map and stuff

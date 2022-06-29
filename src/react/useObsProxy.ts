@@ -1,5 +1,4 @@
 import { isArray, useForceRender } from '@legendapp/tools';
-import { listeners } from 'process';
 import { useEffect, useRef } from 'react';
 import { isPrimitive } from '../globals';
 import { listenToObs } from '../ObsProxyFns';
@@ -10,7 +9,7 @@ import { state } from '../ObsProxyState';
 interface SavedRef {
     args?: ObsProxyChecker[];
     primitives?: [ObsProxy, string][];
-    listenersArgs?: ObsListener[];
+    listeners?: ObsListener[];
 }
 
 function useObsProxy<T extends any[]>(fn: () => T): MappedProxyValue<T> {
@@ -18,7 +17,7 @@ function useObsProxy<T extends any[]>(fn: () => T): MappedProxyValue<T> {
     const ref = useRef<SavedRef>();
     if (!ref.current) {
         ref.current = {
-            listenersArgs: [],
+            listeners: [],
         };
     }
 
@@ -33,14 +32,14 @@ function useObsProxy<T extends any[]>(fn: () => T): MappedProxyValue<T> {
     state.isTrackingPrimitives = false;
 
     // Compare to previous args and update listeners if any changed or first mount
-    updateListeners(args, prevArgs, primitives, ref.current.listenersArgs, forceRender);
+    updateListeners(args, prevArgs, primitives, ref.current.listeners, forceRender);
 
     // Dispose listeners on unmount
     useEffect(
         () => () => {
-            if (ref.current.listenersArgs) {
-                ref.current.listenersArgs.forEach(disposeListener);
-                ref.current.listenersArgs = [];
+            if (ref.current.listeners) {
+                ref.current.listeners.forEach(disposeListener);
+                ref.current.listeners = [];
             }
         },
         []
@@ -53,7 +52,7 @@ const updateListeners = (
     args: ObsProxyChecker[],
     prevArgs: (ObsProxy | ObsProxyUnsafe)[],
     primitives: [ObsProxy, string][],
-    listenersArgs: ObsListener[],
+    listeners: ObsListener[],
     onChange: () => void
 ) => {
     const num = Math.max(args.length, prevArgs ? prevArgs.length : 0);
@@ -62,17 +61,17 @@ const updateListeners = (
         let obs = args[i];
         const prev = prevArgs?.[i];
         let prop: string = undefined;
-        if (isPrimitive(obs)) {
+        if (obs && isPrimitive(obs)) {
             [obs, prop] = args[i] = primitives[indexPrimitive++];
         }
         if (!prevArgs || (prop ? obs !== prev[0] || prop !== prev[1] : obs !== prevArgs[i])) {
-            if (listenersArgs[i]) {
-                disposeListener(listenersArgs[i]);
-                listenersArgs[i] = undefined;
+            if (listeners[i]) {
+                disposeListener(listeners[i]);
+                listeners[i] = undefined;
             }
 
             if (obs) {
-                listenersArgs[i] =
+                listeners[i] =
                     prop !== undefined ? listenToObs(obs as any, prop, onChange) : listenToObs(obs, onChange);
             }
         }
