@@ -73,10 +73,12 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
 
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+        state.skipNotifyFor.push(proxyOwner);
         if (value) {
             // 2. Set all of the new properties on the target
             proxyOwner.assign(value);
         }
+        state.skipNotifyFor.pop();
         obsNotify(proxyOwner, value, prevValue, []);
     } else if (typeof prop === 'symbol') {
         target[prop] = value;

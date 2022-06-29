@@ -15,4 +15,5 @@ export const state = {
     isTrackingPrimitives: false,
     trackedPrimitives: [] as [ObsProxy, string][],
     infos: new WeakMap<ObsProxyChecker, StateInfo>(),
+    skipNotifyFor: [] as ObsProxyChecker[],
 };

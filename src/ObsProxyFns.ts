@@ -28,7 +28,10 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
             for (let i = 0; i < listeners.length; i++) {
                 const listener = listeners[i];
                 const prop = (listener as ObsListenerWithProp<any>).prop;
-                if (!prop || prop === listenerInfo.path[0]) {
+                // Notify this listener if:
+                // 1. If prop: The prop matches the path of the change
+                // 2. No prop: This target is not being skipped (if getting called during an assign)
+                if (prop ? prop === listenerInfo.path[0] : !state.skipNotifyFor.includes(target)) {
                     ObsBatcher.notify(listener.callback, prop ? value[prop] : value, listenerInfo);
                 }
             }
