@@ -68,35 +68,14 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
         value = prop;
         let prevValue: any;
         prevValue = Object.assign({}, target);
-        // If this has a proxy parent, replace this proxy with a new proxy and copy over listeners
-        if (value && info.parent) {
-            const parentInfo = state.infos.get(info.parent);
-            // Duplicate the old proxy with the new value
-            const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
-            // Set the raw value on the target
-            parentInfo.target[info.prop] = value;
-            // Move the listeners to the new proxy
-            const infoNew = state.infos.get(proxyNew);
-            if (info.listeners) {
-                infoNew.listeners = info.listeners;
-                infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
-            }
 
-            // Replace the proxy on the parent
-            parentInfo.proxies.set(info.prop, proxyNew);
+        // Note that this will set a duplicate of the passed value. We may want to fix that sometime.
 
-            // Delete the old proxy from state
-            state.infos.delete(proxyOwner);
-            proxyOwner = proxyNew;
-        } else {
-            // Don't have a parent so there's no context to replace it with a new proxy, so have to just copy the values onto the target
-
-            // 1. Delete keys that no longer exist
-            Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
-            if (value) {
-                // 2. Set all of the new properties on the target
-                Object.assign(proxyOwner, value);
-            }
+        // 1. Delete keys that no longer exist
+        Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+        if (value) {
+            // 2. Set all of the new properties on the target
+            proxyOwner.assign(value);
         }
         obsNotify(proxyOwner, value, prevValue, []);
     } else if (typeof prop === 'symbol') {
@@ -210,12 +189,12 @@ const proxyGet = {
         }
     },
     set(target: any, prop: string, value: any, proxyOwner: ObsProxy) {
-        if (state.isInSetFn) {
+        if (state.isInAssign) {
+            setter(proxyOwner, prop, value);
+            return true;
+        } else if (state.isInSetFn) {
             // Set function handles notifying
             Reflect.set(target, prop, value);
-            return true;
-        } else if (state.isInAssign) {
-            setter(proxyOwner, prop, value);
             return true;
         } else {
             const info = state.infos.get(proxyOwner);

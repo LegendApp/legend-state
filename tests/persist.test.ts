@@ -1172,6 +1172,7 @@ describe('Field transform', () => {
 // Encryption
 
 // # Persist
+// Does setting a proxy to null delete it in firebase?
 // Querybymodified with dict
 // fieldtranslator for more things
 

@@ -1,5 +1,6 @@
-import { ClassConstructor } from 'common/Obs/ObservableInterfaces';
 import { ObsPersistLocal, ObsPersistRemote } from './ObsProxyInterfaces';
+
+type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 
 interface Config {
     persist?: {
