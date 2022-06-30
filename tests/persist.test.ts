@@ -673,6 +673,68 @@ describe('Persist remote save', () => {
 
         await remote['promiseSaved'].promise;
     });
+
+    test('save queryByModified with complex dict', async () => {
+        const obs = obsProxy<{
+            test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }> }>;
+        }>({
+            test: {},
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        '*': {
+                            test2: true,
+                            test4: '*',
+                        },
+                    },
+                },
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set('test1', {
+            test2: {
+                test3: 'hi3',
+            },
+            test4: {
+                container1: {
+                    text: 'hi1',
+                },
+            },
+        });
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test1': {
+                test2: {
+                    '@': '__serverTimestamp',
+                    test3: 'hi3',
+                },
+                test4: {
+                    container1: {
+                        '@': '__serverTimestamp',
+                        text: 'hi1',
+                    },
+                },
+            },
+        });
+
+        await remote['promiseSaved'].promise;
+    });
 });
 
 describe('Remote load', () => {
