@@ -295,7 +295,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 const {
                     firebase: { fieldTransforms },
                 } = options;
-                if (queryByModified !== true && fieldTransforms) {
+                if (queryByModified !== true && queryByModified !== '*' && fieldTransforms) {
                     queryByModified = transformObject(queryByModified, fieldTransforms);
                 }
                 valSave = this.insertDatesToSave(batch, queryByModified, basePath, path, valSave);
@@ -453,9 +453,14 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let o = queryByModified;
         if (o === true) {
             this.insertDateToObject(value);
-        } else if (isObject(value)) {
+        } else if (o === '*' || isObject(value)) {
             Object.keys(value).forEach((key) => {
-                value[key] = this.insertDatesToSaveObject(batch, queryByModified, path + '/' + key, value[key]);
+                value[key] = this.insertDatesToSaveObject(
+                    batch,
+                    o === '*' ? true : queryByModified,
+                    path + '/' + key,
+                    value[key]
+                );
             });
         }
         return value;
@@ -490,6 +495,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 o = o[path[i]];
             }
         }
+
         this.insertDatesToSaveObject(batch, o, basePath + path.join('/'), value);
 
         return value;

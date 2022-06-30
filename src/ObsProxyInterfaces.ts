@@ -82,6 +82,7 @@ export type MappedProxyValue<T extends (ObsProxyChecker | [ObsProxyChecker, stri
 
 export type QueryByModified<T> =
     | boolean
+    | '*'
     | {
           [K in keyof T]?: QueryByModified<T[K]>;
       };

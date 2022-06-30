@@ -1,4 +1,4 @@
-import { isArray, isFunction, isString } from '@legendapp/tools';
+import { isFunction, isString } from '@legendapp/tools';
 import { symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import {
@@ -8,8 +8,6 @@ import {
     ObsListenerWithProp,
     ObsProxy,
     ObsProxyChecker,
-    ObsProxyUnsafe,
-    ProxyValue,
 } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 import { state } from './ObsProxyState';

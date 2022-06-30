@@ -62,10 +62,14 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;
                                 ret[k] = {};
                                 if (v) {
-                                    Object.keys(v).forEach((dictKey) => {
-                                        if (!isString(dictKey)) debugger;
-                                        ret[k][dictKey] = transformObject(v[dictKey], map[key].__dict, key);
-                                    });
+                                    if (v === '*') {
+                                        ret[k] = v;
+                                    } else {
+                                        Object.keys(v).forEach((dictKey) => {
+                                            if (!isString(dictKey)) debugger;
+                                            ret[k][dictKey] = transformObject(v[dictKey], map[key].__dict, key);
+                                        });
+                                    }
                                 }
                             } else if (mapped.__obj) {
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;

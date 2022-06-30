@@ -391,7 +391,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('save queryByModified with path/*', async () => {
+    test('save queryByModified at root', async () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
@@ -558,6 +558,120 @@ describe('Persist remote save', () => {
                 },
             },
         });
+    });
+
+    test('save queryByModified with dict', async () => {
+        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+            test: {},
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: '*' },
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
+        obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test1': {
+                container1: {
+                    '@': '__serverTimestamp',
+                    text: 'hi',
+                },
+                container2: {
+                    '@': '__serverTimestamp',
+                    text: 'hi2',
+                },
+            },
+            '/test/testuid/s/test/test2': {
+                container3: {
+                    '@': '__serverTimestamp',
+                    text: 'hi3',
+                },
+                container4: {
+                    '@': '__serverTimestamp',
+                    text: 'hi4',
+                },
+            },
+        });
+
+        await remote['promiseSaved'].promise;
+    });
+
+    test('save queryByModified with dict and field transforms', async () => {
+        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+            test: {},
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: '*' },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __dict: {
+                            text: 't2',
+                        },
+                    },
+                },
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
+        obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t/test1': {
+                container1: {
+                    '@': '__serverTimestamp',
+                    text: 'hi',
+                },
+                container2: {
+                    '@': '__serverTimestamp',
+                    text: 'hi2',
+                },
+            },
+            '/test/testuid/s/t/test2': {
+                container3: {
+                    '@': '__serverTimestamp',
+                    text: 'hi3',
+                },
+                container4: {
+                    '@': '__serverTimestamp',
+                    text: 'hi4',
+                },
+            },
+        });
+
+        await remote['promiseSaved'].promise;
     });
 });
 
@@ -1168,13 +1282,11 @@ describe('Field transform', () => {
 
 // TODO
 // useObsProxy should batch listeners?
-// Does set replacing a deep object fire listeners on props and children?
-// Encryption
 
 // # Persist
 // Does setting a proxy to null delete it in firebase?
-// Querybymodified with dict
-// fieldtranslator for more things
+// Test fieldtranslator for more things
+// Encryption
 
 // # Things outside of Bravely scope
 // Use MMKV for local?
