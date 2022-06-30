@@ -46,9 +46,9 @@ describe('Basic', () => {
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: { test4: 'hi' } } } },
             {
-                changedValue: { test4: 'hi' },
-                path: ['test', 'test2', 'test3'],
-                prevValue: { test4: '' },
+                changedValue: 'hi',
+                path: ['test', 'test2', 'test3', 'test4'],
+                prevValue: '',
             }
         );
 
@@ -96,9 +96,10 @@ describe('Basic', () => {
         obs.test.set(newVal);
         expect(obs.test.get()).toEqual(newVal);
         expect(obs).toEqual({ test: newVal });
+        expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(newVal, {
             changedValue: { test2: 'hello' },
-            path: ['test'],
+            path: [],
             prevValue: { test2: 'hi' },
         });
     });
@@ -262,14 +263,14 @@ describe('Listeners', () => {
         const handler = jest.fn();
         listenToObs(obs, 'val', handler);
         obs.set('val', 20);
-        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: ['val'], prevValue: 10 });
+        expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
     });
     test('Non Primitive listener with key', () => {
         const obs = obsProxy({ val: { val2: 10 } });
         const handler = jest.fn();
         listenToObs(obs, 'val', handler);
         obs.val.set('val2', 20);
-        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val', 'val2'], prevValue: 10 });
+        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val2'], prevValue: 10 });
     });
     test('Listener with key fires only for key', () => {
         const obs = obsProxy({ val: { val2: 10 }, val3: 'hello' });
@@ -277,7 +278,7 @@ describe('Listeners', () => {
         listenToObs(obs, 'val', handler);
         obs.val.set('val2', 20);
         expect(handler).toHaveBeenCalledTimes(1);
-        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val', 'val2'], prevValue: 10 });
+        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val2'], prevValue: 10 });
         obs.set('val3', 'hihi');
         obs.set('val3', 'hello again');
         expect(handler).toHaveBeenCalledTimes(1);
@@ -338,6 +339,40 @@ describe('Listeners', () => {
             { test: ['hi', 'hello'] },
             { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
         );
+    });
+    test('Path to change is correct at every level ', () => {
+        const obs = obsProxy({ test1: { test2: { test3: { test4: '' } } } });
+        const handlerRoot = jest.fn();
+        listenToObs(obs, handlerRoot);
+        const handler1 = jest.fn();
+        listenToObs(obs.test1, handler1);
+        const handler2 = jest.fn();
+        listenToObs(obs.test1.test2, handler2);
+        const handler3 = jest.fn();
+        listenToObs(obs.test1.test2.test3, handler3);
+        const handler4 = jest.fn();
+        listenToObs(obs.test1.test2.test3, 'test4', handler4);
+
+        obs.test1.test2.test3.set('test4', 'hi');
+
+        expect(handlerRoot).toHaveBeenCalledWith(
+            { test1: { test2: { test3: { test4: 'hi' } } } },
+            { changedValue: 'hi', path: ['test1', 'test2', 'test3', 'test4'], prevValue: '' }
+        );
+        expect(handler1).toHaveBeenCalledWith(
+            { test2: { test3: { test4: 'hi' } } },
+            { changedValue: 'hi', path: ['test2', 'test3', 'test4'], prevValue: '' }
+        );
+        expect(handler2).toHaveBeenCalledWith(
+            { test3: { test4: 'hi' } },
+            { changedValue: 'hi', path: ['test3', 'test4'], prevValue: '' }
+        );
+        expect(handler3).toHaveBeenCalledWith({ test4: 'hi' }, { changedValue: 'hi', path: ['test4'], prevValue: '' });
+        expect(handler4).toHaveBeenCalledWith('hi', {
+            changedValue: 'hi',
+            path: [],
+            prevValue: '',
+        });
     });
 });
 describe('on functions', () => {
@@ -578,7 +613,7 @@ describe('Deep changes keep listeners', () => {
 
         expect(handler).toHaveBeenCalledWith('hi there', {
             changedValue: 'hi there',
-            path: ['test', 'test2', 'test3'],
+            path: [],
             prevValue: 'hello',
         });
     });
@@ -598,7 +633,7 @@ describe('Deep changes keep listeners', () => {
 
         expect(handler).toHaveBeenCalledWith('hi there', {
             changedValue: 'hi there',
-            path: ['test', 'test2', 'test3'],
+            path: [],
             prevValue: 'hello',
         });
     });

@@ -1,4 +1,3 @@
-import { ListenerFn } from 'src';
 import { isObjectEmpty } from '../src/FieldTransformer';
 import { objectAtPath } from '../src/globals';
 import { ObsPersistFirebaseBase } from '../src/ObsPersistFirebaseBase';

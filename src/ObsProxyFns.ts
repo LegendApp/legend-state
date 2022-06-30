@@ -30,7 +30,12 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
                 // 1. If prop: The prop matches the path of the change
                 // 2. No prop: This target is not being skipped (if getting called during an assign)
                 if (prop ? prop === listenerInfo.path[0] : !state.skipNotifyFor.includes(target)) {
-                    ObsBatcher.notify(listener.callback, prop ? value[prop] : value, listenerInfo);
+                    let propListenerInfo = listenerInfo;
+                    if (prop) {
+                        propListenerInfo = Object.assign({}, listenerInfo);
+                        propListenerInfo.path = listenerInfo.path.slice(1);
+                    }
+                    ObsBatcher.notify(listener.callback, prop ? value[prop] : value, propListenerInfo);
                 }
             }
         }
@@ -38,8 +43,9 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
         // Notify parents
         const parent = info.parent;
         if (parent) {
-            listenerInfo.path.splice(0, 0, info.prop);
-            _obsNotify(parent, listenerInfo);
+            const parentListenerInfo = Object.assign({}, listenerInfo);
+            parentListenerInfo.path = [info.prop].concat(listenerInfo.path);
+            _obsNotify(parent, parentListenerInfo);
         }
     }
 }
