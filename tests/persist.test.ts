@@ -676,7 +676,7 @@ describe('Persist remote save', () => {
 
     test('save queryByModified with complex dict', async () => {
         const obs = obsProxy<{
-            test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }> }>;
+            test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }>; test5: string }>;
         }>({
             test: {},
         });
@@ -688,7 +688,7 @@ describe('Persist remote save', () => {
                 queryByModified: {
                     test: {
                         '*': {
-                            test2: true,
+                            '*': true,
                             test4: '*',
                         },
                     },
@@ -714,6 +714,7 @@ describe('Persist remote save', () => {
                     text: 'hi1',
                 },
             },
+            test5: 'hi5',
         });
 
         await promiseTimeout();
@@ -729,6 +730,10 @@ describe('Persist remote save', () => {
                         '@': '__serverTimestamp',
                         text: 'hi1',
                     },
+                },
+                test5: {
+                    '@': '__serverTimestamp',
+                    _: 'hi5',
                 },
             },
         });

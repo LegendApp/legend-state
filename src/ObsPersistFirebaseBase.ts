@@ -452,12 +452,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     ): object {
         let o = queryByModified;
         if (o === true) {
-            this.insertDateToObject(value);
+            value = this.insertDateToObject(value);
         } else if (o === '*' || isObject(value)) {
             Object.keys(value).forEach((key) => {
                 value[key] = this.insertDatesToSaveObject(
                     batch,
-                    o === '*' ? true : o[key],
+                    o === '*' ? true : o[key] || o['*'],
                     path + '/' + key,
                     value[key]
                 );
