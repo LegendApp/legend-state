@@ -63,7 +63,7 @@ export function objectAtPath(path: string[], value: object) {
     for (let i = 0; i < path.length; i++) {
         if (o) {
             const p = path[i];
-            o = o[p];
+            o = o[p] || o['__dict'];
         }
     }
 

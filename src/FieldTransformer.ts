@@ -40,7 +40,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                 if (key === '__obj' || key === '__dict' || key === '__arr' || key === '_id') return;
                 let v = dataIn[key];
 
-                if (key === '@') {
+                if (key === '@' || key === '*') {
                     ret[key] = v;
                 } else {
                     // TODO: May not need some of these since I added the checks above, but have more tests before removing
