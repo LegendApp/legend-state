@@ -735,6 +735,87 @@ describe('Persist remote save', () => {
 
         await remote['promiseSaved'].promise;
     });
+
+    test('save queryByModified with complex dict transformed', async () => {
+        const obs = obsProxy<{
+            test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }> }>;
+        }>({
+            test: {},
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        '*': {
+                            test2: true,
+                            test4: '*',
+                        },
+                    },
+                },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __dict: {
+                            test2: {
+                                _: 't2',
+                                __obj: {
+                                    test3: 't3',
+                                },
+                            },
+                            test4: {
+                                _: 't4',
+                                __dict: {
+                                    text: 'tt',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        obsPersist(obs, {
+            localPersistence: ObsPersistLocalStorage,
+            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set('test1', {
+            test2: {
+                test3: 'hi3',
+            },
+            test4: {
+                container1: {
+                    text: 'hi1',
+                },
+            },
+        });
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t/test1': {
+                t2: {
+                    '@': '__serverTimestamp',
+                    t3: 'hi3',
+                },
+                t4: {
+                    container1: {
+                        '@': '__serverTimestamp',
+                        tt: 'hi1',
+                    },
+                },
+            },
+        });
+
+        await remote['promiseSaved'].promise;
+    });
 });
 
 describe('Remote load', () => {
