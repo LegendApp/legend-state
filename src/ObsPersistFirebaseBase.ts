@@ -418,7 +418,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         pathFirebase: string,
         syncPathExtra: string,
         fieldTransforms: object,
-        obs: ObsProxy | ObsProxyUnsafe,
+        obs: ObsProxyChecker,
         fieldTransformsAtPath: object,
         onChange: (cb: () => void) => void,
         snapshot: any

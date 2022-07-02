@@ -172,6 +172,6 @@ const ProxyOnFunctions: Record<EventType, Function> = {
     true: onTrue,
 };
 
-export function on(obs: ObsProxyChecker, eventType: EventType, ...args) {
+export function on(obs: ObsProxyChecker, _: any, eventType: EventType, ...args) {
     return ProxyOnFunctions[eventType](obs, ...args);
 }
