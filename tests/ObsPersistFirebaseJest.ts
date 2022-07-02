@@ -1,5 +1,4 @@
-import { isObjectEmpty } from '../src/FieldTransformer';
-import { objectAtPath } from '../src/globals';
+import { objectAtPath, isObjectEmpty } from '../src/globals';
 import { ObsPersistFirebaseBase } from '../src/ObsPersistFirebaseBase';
 
 function _mergeBatch(target: object, batchEntry: string[], value: any) {

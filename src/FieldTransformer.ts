@@ -157,7 +157,3 @@ export function invertMap(obj: Record<string, any>) {
 
     return target;
 }
-
-export function isObjectEmpty(obj: object) {
-    return obj && Object.keys(obj).length === 0;
-}

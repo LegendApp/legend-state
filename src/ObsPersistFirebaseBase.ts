@@ -1,8 +1,15 @@
 import { isObject } from '@legendapp/tools';
-import { invertMap, transformObject, transformPath } from './FieldTransformer';
-import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
-import { getObsModified } from './ObsProxyFns';
 import { config } from './configureObsProxy';
+import { invertMap, transformObject, transformPath } from './FieldTransformer';
+import {
+    constructObject,
+    isNullOrUndefined,
+    isObjectEmpty,
+    mergeDeep,
+    objectAtPath,
+    symbolDateModified,
+} from './globals';
+import { getObsModified } from './ObsProxyFns';
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
@@ -234,7 +241,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
 
         value = JSON.parse(JSON.stringify(value));
-        value = removeNullUndefined(value);
         const valueSaved = JSON.parse(JSON.stringify(value));
         let path = info.path.slice();
 
@@ -296,7 +302,10 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 }
                 valSave = this.insertDatesToSave(batch, queryByModified, basePath, path, valSave);
             }
-            batch[basePath + path.join('/')] = valSave;
+            const pathThis = basePath + path.join('/');
+            if (!batch[pathThis]) {
+                batch[basePath + path.join('/')] = valSave;
+            }
         } else {
             Object.keys(saves).forEach((key) => {
                 this._constructBatch(options, batch, basePath, saves[key] as any, ...path, key);
@@ -518,9 +527,13 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 return value;
             } else if (isObject(o)) {
                 o = o[path[i]] || o['*'];
-            } else if (i < path.length - 1) {
+            } else if (o === '*') {
                 const pathThis = basePath + path.slice(0, i + 1).join('/');
-                batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                if (isNullOrUndefined(value) || isObjectEmpty(value)) {
+                    batch[pathThis] = { '@': this.fns.serverTimestamp() };
+                } else {
+                    batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                }
                 return value;
             }
         }

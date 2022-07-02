@@ -15,7 +15,7 @@ import {
     Unsubscribe,
     // @ts-ignore
 } from 'firebase/database';
-import { isObjectEmpty } from '../FieldTransformer';
+import { isObjectEmpty } from 'src/globals';
 import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
 
 export class ObsPersistFirebaseWeb extends ObsPersistFirebaseBase {

@@ -908,9 +908,11 @@ describe('Persist remote save', () => {
             },
         });
 
-        obsPersist(obs, {
+        const state = obsPersist(obs, {
             remote: remoteOptions,
         });
+
+        await onTrue(state, 'isLoadedRemote');
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
@@ -920,7 +922,72 @@ describe('Persist remote save', () => {
 
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/clients/clientID/outer/inner/id1/@': '__serverTimestamp',
-            '/test/testuid/s/clients/clientID/outer/inner/id1/text': 'hi1',
+            '/test/testuid/s/clients/clientID/outer/inner/id1/text': 'hi111',
+        });
+
+        await remote['promiseSaved'].promise;
+    });
+
+    test('Set a deep property to null', async () => {
+        const obs = obsProxy({
+            clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    clients: {
+                        '*': {
+                            '*': true,
+                            outer: {
+                                inner: '*',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        initializeRemote({
+            clients: {
+                clientID: {
+                    profile: {
+                        '@': 1000,
+                        name: 'hi name',
+                    },
+                    outer: {
+                        inner: {
+                            id1: {
+                                '@': 1000,
+                                text: 'hi1',
+                            },
+                            id2: {
+                                '@': 1000,
+                                _: 'hi1',
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
+
+        await onTrue(state, 'isLoadedRemote');
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.clients.clientID.outer.inner.set('id1', null);
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/clients/clientID/outer/inner/id1': {
+                '@': '__serverTimestamp',
+            },
         });
 
         await remote['promiseSaved'].promise;

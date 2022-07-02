@@ -43,20 +43,39 @@ export function mergeDeep(target, ...sources) {
     return mergeDeep(target, ...sources);
 }
 
-export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
-    if (a === undefined) return null;
-    // @ts-ignore
-    const out: T = {};
-    Object.keys(a).forEach((key) => {
-        const v = a[key];
-        if (v !== null && v !== undefined) {
-            // @ts-ignore
-            out[key] = isObject(v) ? removeNullUndefined(v) : v;
-        }
-    });
-
-    return out;
+export function isNullOrUndefined(val: any) {
+    return val === null || val === undefined;
 }
+
+// export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
+//     if (a === undefined) return null;
+//     // @ts-ignore
+//     const out: T = {};
+//     Object.keys(a).forEach((key) => {
+//         const v = a[key];
+//         if (v !== null && v !== undefined) {
+//             // @ts-ignore
+//             out[key] = isObject(v) ? removeNullUndefined(v) : v;
+//         }
+//     });
+
+//     return out;
+// }
+
+// export function removeUndefined<T extends Record<string, any>>(a: T): T {
+//     if (a === undefined) return null;
+//     // @ts-ignore
+//     const out: T = {};
+//     Object.keys(a).forEach((key) => {
+//         const v = a[key];
+//         if (v !== undefined) {
+//             // @ts-ignore
+//             out[key] = isObject(v) ? removeUndefined(v) : v;
+//         }
+//     });
+
+//     return out;
+// }
 
 export function objectAtPath(path: string[], value: object) {
     let o = value;
@@ -100,4 +119,8 @@ export function isPrimitive(val: any) {
 
 export function isCollection(obj: any) {
     return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
+}
+
+export function isObjectEmpty(obj: object) {
+    return obj && Object.keys(obj).length === 0;
 }
