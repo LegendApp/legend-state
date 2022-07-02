@@ -70,6 +70,7 @@ function setter(proxyOwner: ObsProxy, target: any, prop: string | unknown, value
 
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+        // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
         state.skipNotifyFor.push(proxyOwner);
         if (value) {
             // 2. Copy the values onto the target which will update all children proxies
@@ -83,12 +84,13 @@ function setter(proxyOwner: ObsProxy, target: any, prop: string | unknown, value
             const parentInfo = state.infos.get(info.parent);
             // Duplicate the old proxy with the new value
             const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
-            // Set the raw value on the target
+            // Set the raw value on the parent's target
             parentInfo.target[info.prop] = value;
-            // Move the listeners to the new proxy
+            // Move the old proxy's listeners to the new proxy
             const infoNew = state.infos.get(proxyNew);
             if (info.listeners) {
                 infoNew.listeners = info.listeners;
+                // Need to retarget the listeners to the new proxy
                 infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
             }
             // Replace the proxy on the parent
