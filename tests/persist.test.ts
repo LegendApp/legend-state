@@ -1,4 +1,4 @@
-import { getObsModified, obsProxy, onTrue, PersistOptionsRemote, ProxyValue } from '../src';
+import { configureObsProxy, getObsModified, obsProxy, onTrue, PersistOptionsRemote, ProxyValue } from '../src';
 import { symbolDateModified } from '../src/globals';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
@@ -34,6 +34,14 @@ function promiseTimeout() {
 
 // @ts-ignore
 global.localStorage = new LocalStorageMock();
+
+configureObsProxy({
+    persist: {
+        localPersistence: ObsPersistLocalStorage,
+        remotePersistence: ObsPersistFirebaseJest,
+        saveTimeout: 16,
+    },
+});
 
 // jest.setTimeout(100000);
 
@@ -78,7 +86,6 @@ describe('Persist local', () => {
 
         obsPersist(obs, {
             local: 'jestlocal',
-            localPersistence: ObsPersistLocalStorage,
         });
 
         obs.set({ test: 'hello' });
@@ -92,7 +99,6 @@ describe('Persist local', () => {
         const obs2 = obsProxy({});
         obsPersist(obs2, {
             local: 'jestlocal',
-            localPersistence: ObsPersistLocalStorage,
         });
 
         expect(obs2).toEqual({ test: 'hello' });
@@ -115,7 +121,6 @@ describe('Persist local', () => {
 
         obsPersist(obs, {
             local: 'jestlocal',
-            localPersistence: ObsPersistLocalStorage,
         });
 
         expect(obs).toEqual({
@@ -138,8 +143,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -217,8 +220,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -276,8 +277,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -322,8 +321,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -405,8 +402,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -508,8 +503,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -569,13 +562,11 @@ describe('Persist remote save', () => {
             requireAuth: true,
             firebase: {
                 syncPath: (uid) => `/test/${uid}/s/`,
-                queryByModified: { test: '*' },
+                queryByModified: { test: { '*': '*' } },
             },
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -635,8 +626,63 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
+        obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t/test1': {
+                container1: {
+                    text: 'hi',
+                },
+                container2: {
+                    text: 'hi2',
+                },
+            },
+            '/test/testuid/s/t/test1/@': '__serverTimestamp',
+            '/test/testuid/s/t/test2': {
+                container3: {
+                    text: 'hi3',
+                },
+                container4: {
+                    text: 'hi4',
+                },
+            },
+            '/test/testuid/s/t/test2/@': '__serverTimestamp',
+        });
+
+        await remote['promiseSaved'].promise;
+    });
+
+    test('save queryByModified with dict and field transforms */*', async () => {
+        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+            test: {},
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: { '*': '*' } },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __dict: {
+                            text: 't2',
+                        },
+                    },
+                },
+            },
+        };
+
+        obsPersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -697,8 +743,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -783,8 +827,6 @@ describe('Persist remote save', () => {
         };
 
         obsPersist(obs, {
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -821,6 +863,68 @@ describe('Persist remote save', () => {
 
         await remote['promiseSaved'].promise;
     });
+
+    test('Save a deep property', async () => {
+        const obs = obsProxy({
+            clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    clients: {
+                        '*': {
+                            '*': true,
+                            outer: {
+                                inner: '*',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        initializeRemote({
+            clients: {
+                clientID: {
+                    profile: {
+                        '@': 1000,
+                        name: 'hi name',
+                    },
+                    outer: {
+                        inner: {
+                            id1: {
+                                '@': 1000,
+                                text: 'hi1',
+                            },
+                            id2: {
+                                '@': 1000,
+                                _: 'hi1',
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        obsPersist(obs, {
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.clients.clientID.outer.inner.id1.set('text', 'hi111');
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/clients/clientID/outer/inner/id1/@': '__serverTimestamp',
+            '/test/testuid/s/clients/clientID/outer/inner/id1/text': 'hi1',
+        });
+
+        await remote['promiseSaved'].promise;
+    });
 });
 
 describe('Remote load', () => {
@@ -840,7 +944,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -873,7 +976,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -927,7 +1029,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -993,7 +1094,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -1055,7 +1155,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -1088,7 +1187,7 @@ describe('Remote load', () => {
                         '*': {
                             '*': true,
                             outer: {
-                                inner: true,
+                                inner: '*',
                             },
                         },
                     },
@@ -1120,7 +1219,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -1197,7 +1295,6 @@ describe('Remote load', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -1245,7 +1342,6 @@ describe('Remote change', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -1285,7 +1381,6 @@ describe('Remote change', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: remoteOptions,
         });
 
@@ -1348,7 +1443,6 @@ describe('Field transform', () => {
         });
 
         const state = obsPersist(obs, {
-            remotePersistence: ObsPersistFirebaseJest,
             remote: {
                 requireAuth: true,
                 firebase: {
@@ -1410,8 +1504,6 @@ describe('Field transform', () => {
 
         const state = obsPersist(obs, {
             local: 'jestremote',
-            localPersistence: ObsPersistLocalStorage,
-            remotePersistence: ObsPersistFirebaseJest,
             remote: {
                 requireAuth: true,
                 firebase: {
@@ -1503,6 +1595,7 @@ describe('Field transform', () => {
 
 // TODO
 // useObsProxy should batch listeners?
+// Need a delete function?
 
 // # Persist
 // Load from local should convert @ to symbol

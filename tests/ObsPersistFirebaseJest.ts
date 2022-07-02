@@ -84,7 +84,6 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
                 }
             });
         }
-        this.SaveTimeout = 16;
     }
     initializeRemote(obj: object) {
         this.remoteData = obj;

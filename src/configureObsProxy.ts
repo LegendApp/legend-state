@@ -6,6 +6,7 @@ interface Config {
     persist?: {
         localPersistence?: ClassConstructor<ObsPersistLocal>;
         remotePersistence?: ClassConstructor<ObsPersistRemote>;
+        saveTimeout?: number;
     };
 }
 

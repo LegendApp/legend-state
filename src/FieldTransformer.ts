@@ -66,8 +66,12 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                                         ret[k] = v;
                                     } else {
                                         Object.keys(v).forEach((dictKey) => {
-                                            if (!isString(dictKey)) debugger;
-                                            ret[k][dictKey] = transformObject(v[dictKey], map[key].__dict, key);
+                                            if (process.env.NODE_ENV === 'development' && !isString(dictKey)) debugger;
+                                            if (v[dictKey] === '*') {
+                                                ret[k] = v;
+                                            } else {
+                                                ret[k][dictKey] = transformObject(v[dictKey], map[key].__dict, key);
+                                            }
                                         });
                                     }
                                 }

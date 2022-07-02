@@ -2,6 +2,7 @@ import { isObject } from '@legendapp/tools';
 import { invertMap, transformObject, transformPath } from './FieldTransformer';
 import { constructObject, mergeDeep, objectAtPath, removeNullUndefined, symbolDateModified } from './globals';
 import { getObsModified } from './ObsProxyFns';
+import { config } from './configureObsProxy';
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
@@ -64,12 +65,6 @@ interface PendingSaves {
     values: any[];
 }
 
-function findMaxModified(obj: object, max: { v: number }) {
-    if (isObject(obj)) {
-        Object.keys(obj).forEach((key) => (max.v = Math.max(max.v, obj['@'])));
-    }
-}
-
 export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private promiseAuthed: PromiseCallback<void>;
     private promiseSaved: PromiseCallback<void>;
@@ -77,10 +72,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private _timeoutSave: any;
     private fns: FirebaseFns;
     private _hasLoadedValue: Record<string, boolean> = {};
-    protected SaveTimeout = 3000;
+    private SaveTimeout;
     private _pendingSaves2: Map<string, PendingSaves> = new Map();
 
     constructor() {
+        this.SaveTimeout = config?.persist?.saveTimeout || 3000;
         this._onTimeoutSave = this._onTimeoutSave.bind(this);
     }
     protected setFns(fns: FirebaseFns) {
@@ -522,6 +518,10 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 return value;
             } else if (isObject(o)) {
                 o = o[path[i]] || o['*'];
+            } else if (i < path.length - 1) {
+                const pathThis = basePath + path.slice(0, i + 1).join('/');
+                batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                return value;
             }
         }
 
