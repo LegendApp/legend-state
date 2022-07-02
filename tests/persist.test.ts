@@ -1509,6 +1509,7 @@ describe('Field transform', () => {
 // Does setting a proxy to null delete it in firebase?
 // Test fieldtranslator for more things
 // Encryption
+// Set should not assign and keep original value, but also keep child listeners
 
 // # Things outside of Bravely scope
 // Use MMKV for local?

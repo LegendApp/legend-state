@@ -59,7 +59,7 @@ function getter(proxyOwner: ObsProxy) {
 function setter(proxyOwner: ObsProxy, prop: unknown);
 function setter(proxyOwner: ObsProxy, prop: string, value: any);
 function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
-    state.isInSetFn = true;
+    state.inSetFn = Math.max(0, state.inSetFn++);
     const info = state.infos.get(proxyOwner);
     const target = info.target;
 
@@ -113,15 +113,15 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
             }
         }
     }
-    state.isInSetFn = false;
+    state.inSetFn--;
 
     return this;
 }
 
 function assigner(proxyOwner: ObsProxy, value: any) {
-    state.isInAssign = true;
+    state.inAssign = Math.max(0, state.inAssign + 1);
     Object.assign(proxyOwner, value);
-    state.isInAssign = false;
+    state.inAssign--;
 
     return this;
 }
@@ -191,10 +191,10 @@ const proxyGet = {
         }
     },
     set(target: any, prop: string, value: any, proxyOwner: ObsProxy) {
-        if (state.isInAssign) {
+        if (state.inAssign > 0) {
             setter(proxyOwner, prop, value);
             return true;
-        } else if (state.isInSetFn) {
+        } else if (state.inSetFn > 0) {
             // Set function handles notifying
             Reflect.set(target, prop, value);
             return true;

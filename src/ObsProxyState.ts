@@ -10,8 +10,8 @@ export interface StateInfo {
 }
 
 export const state = {
-    isInSetFn: false,
-    isInAssign: false,
+    inSetFn: 0,
+    inAssign: 0,
     isTrackingPrimitives: false,
     trackedPrimitives: [] as [ObsProxy, string][],
     infos: new WeakMap<ObsProxyChecker, StateInfo>(),
