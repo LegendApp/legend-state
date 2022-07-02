@@ -2,6 +2,7 @@ import { isFunction, isString } from '@legendapp/tools';
 import { symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import {
+    EventType,
     ListenerFn,
     ObsListener,
     ObsListenerInfo,
@@ -88,14 +89,14 @@ export function listenToObs<T extends object, TProp extends keyof T>(
     return _listenToObs(cb, prop as any, obs as ObsProxy<any>) as any;
 }
 
-export function onValue<T extends object>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T>;
-export function onValue<T extends object, TProp extends keyof T>(
+export function onEquals<T extends object>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T>;
+export function onEquals<T extends object, TProp extends keyof T>(
     obs: ObsProxyChecker<T>,
     prop: TProp,
     value: T[TProp],
     cb?: (value?: T) => void
 ): Promise<T[TProp]>;
-export function onValue<T extends object, TProp extends keyof T>(
+export function onEquals<T extends object, TProp extends keyof T>(
     obs: ObsProxyChecker<T>,
     prop: TProp,
     value: T[TProp],
@@ -132,7 +133,7 @@ export function onHasValue<T extends object, TProp extends keyof T>(
     cb?: (value: T) => void
 ): Promise<T[TProp]> {
     // @ts-ignore
-    return onValue(obs, prop, symbolHasValue as any, cb);
+    return onEquals(obs, prop, symbolHasValue as any, cb);
 }
 
 export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
@@ -140,7 +141,7 @@ export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
     prop: TProp,
     cb?: () => void
 ): Promise<void> {
-    return onValue(obs, prop, true as T[TProp], cb) as unknown as Promise<void>;
+    return onEquals(obs, prop, true as T[TProp], cb) as unknown as Promise<void>;
 }
 
 export function getObsModified<T extends ObsProxyChecker>(obs: T) {
@@ -162,4 +163,15 @@ export function unlisten<T extends ObsProxyChecker>(obs: T, cb: Function) {
             info.listeners.splice(i, 1);
         }
     }
+}
+
+const ProxyOnFunctions: Record<EventType, Function> = {
+    change: listenToObs,
+    equals: onEquals,
+    hasValue: onHasValue,
+    true: onTrue,
+};
+
+export function on(obs: ObsProxyChecker, eventType: EventType, ...args) {
+    return ProxyOnFunctions[eventType](obs, ...args);
 }

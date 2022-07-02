@@ -1678,3 +1678,4 @@ describe('Field transform', () => {
 // # More tests
 // test read functions on array and map and stuff
 // Need to document
+// Promises return from on functions

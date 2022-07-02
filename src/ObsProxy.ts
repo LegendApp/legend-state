@@ -1,7 +1,7 @@
-import { isArray, isObject, isFunction, isString, isNumber } from '@legendapp/tools';
+import { isArray, isFunction, isString } from '@legendapp/tools';
 import { isCollection, isPrimitive } from './globals';
-import { listenToObs, obsNotify, onHasValue, onTrue, onValue } from './ObsProxyFns';
-import { ObsProxyUnsafe, ObsProxy, ObsPropsOn } from './ObsProxyInterfaces';
+import { obsNotify, on } from './ObsProxyFns';
+import { ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
 const MapModifiers = {
@@ -149,28 +149,12 @@ function assigner(proxyOwner: ObsProxy, value: any) {
     return this;
 }
 
-const ProxyFunctions = new Map([
-    ['get', getter],
-    ['set', setter],
-    ['assign', assigner],
-]);
-
-const ProxyOnFunctions = new Map<keyof ObsPropsOn, any>([
-    ['changed', listenToObs],
-    ['equals', onValue],
-    ['hasValue', onHasValue],
-    ['isTrue', onTrue],
-]);
-
-const proxyOn = new Proxy<{ obsProxy: ObsProxy }>(
-    { obsProxy: undefined },
-    {
-        get(target: { obsProxy: ObsProxy }, prop: keyof ObsPropsOn, proxyOwner: ObsProxyUnsafe) {
-            // Return a listener function bound to the target obsProxy
-            return ProxyOnFunctions.get(prop).bind(target.obsProxy, target.obsProxy);
-        },
-    }
-);
+const ProxyFunctions = {
+    get: getter,
+    set: setter,
+    assign: assigner,
+    on: on,
+};
 
 const proxyGet = {
     get(target: any, prop: string, proxyOwner: ObsProxy) {
@@ -189,14 +173,10 @@ const proxyGet = {
 
             // Non-modifying functions pass straight through
             return target[prop].bind(target);
-        } else if (prop === 'on') {
-            // Set proxyOn target to this proxy and return it
-            proxyOn.obsProxy = proxyOwner;
-            return proxyOn;
-        } else if (ProxyFunctions.has(prop)) {
+        } else if (ProxyFunctions[prop]) {
             // Calling a proxy function returns a bound function
             // Note: This is after the check for isCollection so we don't overwrite the collection set function
-            return ProxyFunctions.get(prop).bind(proxyOwner, proxyOwner);
+            return ProxyFunctions[prop].bind(proxyOwner, proxyOwner);
         } else {
             let proxy = info.proxies?.get(prop);
 

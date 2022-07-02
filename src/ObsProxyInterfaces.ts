@@ -1,27 +1,39 @@
-export interface ObsPropsOn<T extends object = object> {
-    changed(cb: ListenerFn<T>): ObsListener<T>;
-    changed<TProp extends keyof T>(prop: TProp, cb: ListenerFn<T>): ObsListenerWithProp<T, TProp>;
-    equals(value: T, cb: ListenerFn<T>): Promise<T>;
-    equals<TProp extends keyof T>(prop: TProp, value: T[TProp], cb: ListenerFn<T>): Promise<T[TProp]>;
-    hasValue(cb: ListenerFn<T>): Promise<T>;
-    hasValue<TProp extends keyof T>(prop: TProp, cb: ListenerFn<T>): Promise<T[TProp]>;
-    isTrue(cb: ListenerFn<T>): Promise<T>;
-    isTrue<TProp extends keyof T>(prop: TProp, cb: ListenerFn<T>): Promise<T[TProp]>;
-}
+export type EventType = 'change' | 'equals' | 'hasValue' | 'true';
+
 export interface ObsProps<T extends object> {
     get(): T;
     set(value: T): ObsProxy<T>;
     set<K extends keyof T>(key: K | string, value: T[K]): ObsProxy<T>;
     assign(value: T): ObsProxy<T>;
-    on: ObsPropsOn<T>;
+    on(eventType: EventType, cb: ListenerFn<T>): ObsListener<T>;
+    on<T extends ObsProxyChecker, TProp extends keyof T>(
+        eventType: 'change',
+        prop: TProp,
+        cb: ListenerFn<T>
+    ): ObsListenerWithProp<T, TProp>;
+    on<T extends ObsProxyChecker, TProp extends keyof T>(
+        eventType: 'equals',
+        prop: TProp,
+        value: T[TProp],
+        cb?: (value?: T) => void
+    ): { listener: ObsListenerWithProp<T, TProp>; promise: Promise<T[TProp]> };
+    on<T extends ObsProxyChecker, TProp extends keyof T>(
+        eventType: 'hasValue',
+        prop: TProp,
+        cb?: (value?: T) => void
+    ): { listener: ObsListenerWithProp<T, TProp>; promise: Promise<T[TProp]> };
+    on<T extends ObsProxyChecker, TProp extends keyof T>(
+        eventType: 'true',
+        prop: TProp,
+        cb?: (value?: T) => void
+    ): { listener: ObsListenerWithProp<T, TProp>; promise: Promise<T[TProp]> };
+    on<T extends ObsProxyChecker, TProp extends keyof T>(
+        eventType: EventType,
+        prop: TProp,
+        cb?: (value?: T) => void
+    ): any;
 }
-export interface ObsPropsUnsafe<T extends object> {
-    get?(): T;
-    set?(value: T): ObsProxyUnsafe<T>;
-    set?<K extends keyof T>(key: K, value: T[K]): ObsProxyUnsafe<T>;
-    assign?(value: T): ObsProxyUnsafe<T>;
-    on?: ObsPropsOn<T>;
-}
+export type ObsPropsUnsafe<T extends object> = Partial<ObsProps<T>>;
 
 export interface ObsListener<T extends object = any> {
     target: ObsProxy<T>;
