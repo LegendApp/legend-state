@@ -327,6 +327,29 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         await this.fns.update(batch);
         promiseSaved.resolve();
     }
+    private _convertFBTimestamps(obj: any) {
+        let value = obj;
+        // Database value can be either { @: number, _: object } or { @: number, ...rest }
+        const dateModified = value['@'];
+        delete value['@'];
+        if (value._) {
+            value = value._;
+        } else if (Object.keys(value).length === 1 && value['@']) {
+            value = undefined;
+        }
+
+        if (isObject(value)) {
+            Object.keys(value).forEach((k) => {
+                value[k] = this._convertFBTimestamps(value[k]);
+            });
+        }
+
+        if (dateModified && isObject(value)) {
+            value[symbolDateModified as any] = dateModified;
+        }
+
+        return value;
+    }
     private _getChangeValue(pathFirebase: string, key: string, snapVal: any) {
         let value = snapVal;
         // Database value can be either { @: number, _: object } or { @: number, ...rest }
@@ -336,6 +359,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             value = value._;
         } else if (Object.keys(value).length === 1 && value['@']) {
             value = undefined;
+        }
+
+        if (isObject(value)) {
+            Object.keys(value).forEach((k) => {
+                value[k] = this._convertFBTimestamps(value[k]);
+            });
         }
 
         const keys = key.split(Delimiter);

@@ -1074,6 +1074,79 @@ describe('Remote load', () => {
         });
     });
 
+    test('Persist remote load with nested timestamps', async () => {
+        const obs = obsProxy({
+            clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    clients: {
+                        '*': {
+                            '*': true,
+                            outer: {
+                                inner: true,
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        initializeRemote({
+            clients: {
+                clientID: {
+                    profile: {
+                        '@': 1000,
+                        name: 'hi name',
+                    },
+                    outer: {
+                        inner: {
+                            id1: {
+                                '@': 1000,
+                                text: 'hi1',
+                            },
+                            id2: {
+                                '@': 1000,
+                                _: 'hi1',
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remotePersistence: ObsPersistFirebaseJest,
+            remote: remoteOptions,
+        });
+
+        await onTrue(state, 'isLoadedRemote');
+
+        expect(obs).toEqual({
+            clients: {
+                clientID: {
+                    profile: {
+                        [symbolDateModified]: 1000,
+                        name: 'hi name',
+                    },
+                    outer: {
+                        inner: {
+                            id1: {
+                                [symbolDateModified]: 1000,
+                                text: 'hi1',
+                            },
+                            id2: 'hi1',
+                        },
+                    },
+                },
+            },
+        });
+    });
+
     test('Persist remote load with local timestamps', async () => {
         global.localStorage.setItem(
             'jestlocal',
@@ -1432,6 +1505,7 @@ describe('Field transform', () => {
 // useObsProxy should batch listeners?
 
 // # Persist
+// Load from local should convert @ to symbol
 // Does setting a proxy to null delete it in firebase?
 // Test fieldtranslator for more things
 // Encryption
@@ -1441,6 +1515,7 @@ describe('Field transform', () => {
 // Functions inside proxy as actions should not be proxied and be bound to the proxy as this
 // Promises
 // useSyncExternalStore
+// How to use it as a trigger by just notifying
 
 // # More tests
 // test read functions on array and map and stuff
