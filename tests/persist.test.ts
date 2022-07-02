@@ -1662,14 +1662,11 @@ describe('Field transform', () => {
 
 // TODO
 // useObsProxy should batch listeners?
-// Need a delete function?
+// Need a delete function??
 
 // # Persist
 // Load from local should convert @ to symbol
-// Does setting a proxy to null delete it in firebase?
-// Test fieldtranslator for more things
 // Encryption
-// Set should not assign and keep original value, but also keep child listeners
 
 // # Things outside of Bravely scope
 // Use MMKV for local?

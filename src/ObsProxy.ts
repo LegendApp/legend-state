@@ -69,7 +69,7 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
         let prevValue: any;
         prevValue = Object.assign({}, target);
 
-        // Note that this will set a duplicate of the passed value. We may want to fix that sometime.
+        // Copy the values onto the target which will update all children proxies
 
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
@@ -79,6 +79,29 @@ function setter(proxyOwner: ObsProxy, prop: string | unknown, value?: any) {
             proxyOwner.assign(value);
         }
         state.skipNotifyFor.pop();
+
+        // 3. If this has a proxy parent, replace this proxy with a new proxy and copy over listeners
+        if (value && info.parent) {
+            const parentInfo = state.infos.get(info.parent);
+            // Duplicate the old proxy with the new value
+            const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
+            // Set the raw value on the target
+            parentInfo.target[info.prop] = value;
+            // Move the listeners to the new proxy
+            const infoNew = state.infos.get(proxyNew);
+            if (info.listeners) {
+                infoNew.listeners = info.listeners;
+                infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
+            }
+
+            // Replace the proxy on the parent
+            parentInfo.proxies.set(info.prop, proxyNew);
+
+            // Delete the old proxy from state
+            state.infos.delete(proxyOwner);
+            proxyOwner = proxyNew;
+        }
+
         obsNotify(proxyOwner, value, prevValue, []);
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
@@ -210,11 +233,11 @@ const proxyGet = {
     },
 };
 
-function _obsProxy<T extends object>(value: T, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxyUnsafe<T> {
+function _obsProxy<T extends object>(value: T, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxy<T> {
     if (process.env.NODE_ENV === 'development' && isPrimitive(value)) {
         console.error('obsProxy value must be an object');
     }
-    if (isPrimitive(value)) debugger;
+    if (process.env.NODE_ENV === 'development' && isPrimitive(value)) debugger;
     const proxy = new Proxy(value, proxyGet);
     // Save proxy to state so it can be accessed later
     state.infos.set(proxy, { parent, prop, safe, target: value });

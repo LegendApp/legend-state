@@ -11,6 +11,16 @@ describe('Basic', () => {
         expect(obs.val).toEqual(10);
         expect(obs.get().val).toEqual(10);
     });
+    test('Child objects are proxies', () => {
+        const obs = obsProxy({ val: { child: {} } });
+        const handler = jest.fn();
+        listenToObs(obs.val.child, handler);
+        obs.val.child.set({ hello: true });
+        expect(handler).toHaveBeenCalledWith(
+            { hello: true },
+            { changedValue: { hello: true }, path: [], prevValue: {} }
+        );
+    });
     test('modify value', () => {
         const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
@@ -81,13 +91,12 @@ describe('Basic', () => {
             }
         );
     });
-    // Don't care about this for now, maybe can fix later
-    // test('modify value does not copy object', () => {
-    //     const obs = obsProxy({ test: { test2: 'hi' } });
-    //     const newVal = { test2: 'hello' };
-    //     obs.test.set(newVal);
-    //     expect(obs.test.get()).toBe(newVal);
-    // });
+    test('modify value does not copy object', () => {
+        const obs = obsProxy({ test: { test2: 'hi' } });
+        const newVal = { test2: 'hello' };
+        obs.test.set(newVal);
+        expect(obs.test.get()).toBe(newVal);
+    });
     test('modify value retains old listeners', () => {
         const obs = obsProxy({ test: { test2: 'hi' } });
         const handler = jest.fn();
