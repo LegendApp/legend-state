@@ -96,7 +96,7 @@ function _obsPersist<T extends object>(
 
         if (value !== null && value !== undefined) {
             replaceKeyInObject(value, '@', symbolDateModified);
-            obs.set(value);
+            obs.assign(value);
         }
 
         proxyState.set('isLoadedLocal', true);
