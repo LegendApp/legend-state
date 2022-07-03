@@ -310,17 +310,55 @@ describe('Listeners', () => {
             { changedValue: undefined, path: ['test', 'test2', 'test3'], prevValue: 'hi' }
         );
     });
-    // TODOOBS
-    // test('Deep object set undefined', () => {
-    //     const obs = obsProxy({ test: { test2: { test3: 'hi' } } });
-    //     const handler = jest.fn();
-    //     listenToObs(obs, handler);
-    //     obs.test.test2.set(undefined);
-    //     expect(handler).toHaveBeenCalledWith(
-    //         { test: { test2: undefined } },
-    //         { changedValue: undefined, path: ['test', 'test2'], prevValue: { test3: 'hi' } }
-    //     );
-    // });
+    test('Set undefined', () => {
+        const obs = obsProxy({ test: 'hi' });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.set(undefined);
+        expect(handler).toHaveBeenCalledWith(undefined, {
+            changedValue: undefined,
+            path: [],
+            prevValue: { test: 'hi' },
+        });
+    });
+    test('Deep object set undefined', () => {
+        const obs = obsProxy({ test: { test2: { test3: 'hi' } } });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test.test2.set(undefined);
+        expect(handler).toHaveBeenCalledWith(
+            { test: { test2: undefined } },
+            { changedValue: undefined, path: ['test', 'test2'], prevValue: { test3: 'hi' } }
+        );
+    });
+    test('Start null set to something', () => {
+        const obs = obsProxy({ test: null });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test.set({ test2: 'hi' });
+        expect(handler).toHaveBeenCalledWith(
+            { test: { test2: 'hi' } },
+            {
+                changedValue: { test2: 'hi' },
+                path: ['test'],
+                prevValue: null,
+            }
+        );
+    });
+    test('Start undefined set to something', () => {
+        const obs = obsProxy({ test: undefined });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test.set({ test2: 'hi' });
+        expect(handler).toHaveBeenCalledWith(
+            { test: { test2: 'hi' } },
+            {
+                changedValue: { test2: 'hi' },
+                path: ['test'],
+                prevValue: undefined,
+            }
+        );
+    });
 });
 describe('Arrays', () => {
     test('Array push', () => {

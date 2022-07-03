@@ -68,12 +68,17 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
     if (arguments.length < 4) {
         value = prop;
         prop = undefined;
+
         if (info.primitive) {
             const parentInfo = state.infos.get(info.parent);
             const prevValue = target._value;
 
             target._value = value;
             parentInfo.target[info.prop] = value;
+
+            if (!isPrimitive(value)) {
+                info.primitive = false;
+            }
 
             obsNotify(proxyOwner, value, prevValue, []);
         } else {
@@ -87,12 +92,15 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             if (value) {
                 // 2. Copy the values onto the target which will update all children proxies
                 proxyOwner.assign(value);
+            } else {
+                info.primitive = true;
+                target._value = value;
             }
             state.skipNotifyFor.pop();
 
             // 3. If this has a proxy parent, replace this proxy with a new proxy and copy over listeners.
             // This has to be done to ensure the proxy's target is equal to the value.
-            if (value && info.parent) {
+            if (info.parent) {
                 const parentInfo = state.infos.get(info.parent);
                 // Duplicate the old proxy with the new value
                 const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
@@ -167,7 +175,7 @@ const ProxyFunctions = new Map<any, any>([
 ]);
 
 const proxyGet = {
-    get(target: any, prop: string, proxyOwner: ObsProxy) {
+    get(target: object, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
@@ -193,7 +201,7 @@ const proxyGet = {
             // Getting a property creates a proxy for it
             if (
                 !proxy &&
-                target[prop] !== undefined &&
+                target.hasOwnProperty(prop) !== undefined &&
                 !info.primitive &&
                 !isFunction(target[prop]) &&
                 !isArray(target)
