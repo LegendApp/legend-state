@@ -7,7 +7,7 @@ function onChanged(proxy: ObsProxy, args: ObsProxyChecker[], compute: (...args: 
     proxy.set(value);
 }
 
-export function obsProxyComputed<T extends object, TA extends ObsProxyChecker[]>(
+export function obsProxyComputed<T, TA extends ObsProxyChecker[]>(
     args: TA,
     compute: (...args: MappedProxyValue<TA>) => T
 ) {

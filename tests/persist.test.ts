@@ -1659,8 +1659,7 @@ describe('Field transform', () => {
 
 // TODO
 // useObsProxy should batch listeners?
-// What happens if you convert a primitive to an object?
-//     If that's doable, support objects as undefined
+// Do string functions work on primitives?
 
 // # Persist
 // Load from local should convert @ to symbol

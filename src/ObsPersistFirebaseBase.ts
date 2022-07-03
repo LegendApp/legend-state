@@ -109,7 +109,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
         return max.v > 0 ? max.v : undefined;
     }
-    public listen<T extends object>(
+    public listen<T>(
         obs: ObsProxyChecker<T>,
         options: PersistOptionsRemote<T>,
         onLoad: () => void,
@@ -132,7 +132,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             this._listen(obs, options, undefined, onLoad, onChange, '');
         }
     }
-    private iterateListen<T extends object>(
+    private iterateListen<T>(
         obs: ObsProxyChecker<T>,
         options: PersistOptionsRemote<T>,
         queryByModified: object,
@@ -155,7 +155,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         });
     }
-    private async _listen<T extends object>(
+    private async _listen<T>(
         obs: ObsProxyChecker<T>,
         options: PersistOptionsRemote<T>,
         dateModified: number,
@@ -397,7 +397,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                     Object.keys(outerValue).forEach((key) => {
                         const value = this._getChangeValue(path, key, outerValue[key]);
 
-                        obs[key].set(value[key]);
+                        obs.set(key, value[key]);
 
                         const d = value[symbolDateModified];
                         const od = getObsModified(obs);

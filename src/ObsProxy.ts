@@ -69,58 +69,45 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
         value = prop;
         prop = undefined;
 
-        if (info.primitive) {
-            const parentInfo = state.infos.get(info.parent);
-            const prevValue = target._value;
+        const prevValue = info.primitive ? target._value : Object.assign({}, target);
 
+        // 1. Delete keys that no longer exist
+        Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+        // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
+        state.skipNotifyFor.push(proxyOwner);
+        if (isPrimitive(value)) {
+            info.primitive = true;
             target._value = value;
-            parentInfo.target[info.prop] = value;
-
-            if (!isPrimitive(value)) {
-                info.primitive = false;
-            }
-
-            obsNotify(proxyOwner, value, prevValue, []);
         } else {
-            let prevValue: any;
-            prevValue = Object.assign({}, target);
-
-            // 1. Delete keys that no longer exist
-            Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
-            // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
-            state.skipNotifyFor.push(proxyOwner);
-            if (value) {
-                // 2. Copy the values onto the target which will update all children proxies
-                proxyOwner.assign(value);
-            } else {
-                info.primitive = true;
-                target._value = value;
-            }
-            state.skipNotifyFor.pop();
-
-            // 3. If this has a proxy parent, replace this proxy with a new proxy and copy over listeners.
-            // This has to be done to ensure the proxy's target is equal to the value.
-            if (info.parent) {
-                const parentInfo = state.infos.get(info.parent);
-                // Duplicate the old proxy with the new value
-                const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
-                // Set the raw value on the parent's target
-                parentInfo.target[info.prop] = value;
-                // Move the old proxy's listeners to the new proxy
-                const infoNew = state.infos.get(proxyNew);
-                if (info.listeners) {
-                    infoNew.listeners = info.listeners;
-                    // Need to retarget the listeners to the new proxy
-                    infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
-                }
-                // Replace the proxy on the parent
-                parentInfo.proxies.set(info.prop, proxyNew);
-                // Delete the old proxy from state
-                state.infos.delete(proxyOwner);
-                proxyOwner = proxyNew;
-            }
-            obsNotify(proxyOwner, value, prevValue, []);
+            info.primitive = false;
+            // 2. Copy the values onto the target which will update all children proxies
+            proxyOwner.assign(value);
         }
+        state.skipNotifyFor.pop();
+
+        // 3. If this has a proxy parent, replace this proxy with a new proxy and copy over listeners.
+        // This has to be done to ensure the proxy's target is equal to the value.
+        if (info.parent) {
+            const parentInfo = state.infos.get(info.parent);
+            // Duplicate the old proxy with the new value
+            const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
+            // Set the raw value on the parent's target
+            parentInfo.target[info.prop] = value;
+            // Move the old proxy's listeners to the new proxy
+            const infoNew = state.infos.get(proxyNew);
+            if (info.listeners) {
+                infoNew.listeners = info.listeners;
+                // Need to retarget the listeners to the new proxy
+                infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
+            }
+            // Replace the proxy on the parent
+            parentInfo.proxies.set(info.prop, proxyNew);
+            // Delete the old proxy from state
+            state.infos.delete(proxyOwner);
+            proxyOwner = proxyNew;
+        }
+        obsNotify(proxyOwner, value, prevValue, []);
+        // }
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
     } else if (isString(prop)) {

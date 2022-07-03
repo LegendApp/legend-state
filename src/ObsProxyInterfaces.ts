@@ -62,8 +62,8 @@ export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxy
     ? t
     : T;
 
-export type MappedProxyValue<T extends (ObsProxyChecker | [ObsProxyChecker, string])[]> = {
-    [K in keyof T]: T[K] extends Array<any> ? ProxyValue<T[K][0]>[T[K][1]] : ProxyValue<T[K]>;
+export type MappedProxyValue<T extends ObsProxyChecker[]> = {
+    [K in keyof T]: ProxyValue<T[K]>;
 };
 
 export type QueryByModified<T> =
@@ -73,7 +73,7 @@ export type QueryByModified<T> =
           [K in keyof T]?: QueryByModified<T[K]>;
       };
 
-export interface PersistOptionsRemote<T extends object = any> {
+export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
@@ -84,7 +84,7 @@ export interface PersistOptionsRemote<T extends object = any> {
         queryByModified?: QueryByModified<T>;
     };
 }
-export interface PersistOptions<T extends object = any> {
+export interface PersistOptions<T = any> {
     local?: string;
     remote?: PersistOptionsRemote<T>;
     localPersistence?: any;
@@ -100,8 +100,8 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObsPersistRemote {
-    save<T extends object>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
-    listen<T extends object>(
+    save<T>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
+    listen<T>(
         obs: ObsProxyChecker<T>,
         options: PersistOptionsRemote<T>,
         onLoad: () => void,
@@ -113,7 +113,7 @@ export interface ObsPersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
 }
-export type ObsProxyChecker<T = object> = ObsProxy<T> | ObsProxyUnsafe<T>;
+export type ObsProxyChecker<T = any> = ObsProxy<T> | ObsProxyUnsafe<T>;
 
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;

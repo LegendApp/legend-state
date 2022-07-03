@@ -9,12 +9,11 @@ const symbolHasValue = Symbol('__hasValue');
 function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
     const info = state.infos.get(target);
     if (info) {
-        const listeners = info.listeners;
-
-        const value = target.get();
-
         // Notify all listeners
-        if (listeners) {
+        if (info.listeners) {
+            // Clone because listener handlers may unlisten and modify the original array
+            const listeners = info.listeners.slice();
+            const value = target.get();
             for (let i = 0; i < listeners.length; i++) {
                 const listener = listeners[i];
                 // Notify this listener if this target is not being skipped (if getting called during an assign)
@@ -34,11 +33,11 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
     }
 }
 
-export function obsNotify<T extends object>(target: ObsProxyChecker<T>, changedValue: T, prevValue: T, path: string[]) {
+export function obsNotify<T>(target: ObsProxyChecker<T>, changedValue: T, prevValue: T, path: string[]) {
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T extends object>(callback: ListenerFn<any>, target: ObsProxyChecker<T>) {
+function _listenToObs<T>(callback: ListenerFn<any>, target: ObsProxyChecker<T>) {
     const info = state.infos.get(target);
     if (!info) {
         throw new Error('Can only listen to instances of ObsProxy');
@@ -50,7 +49,7 @@ function _listenToObs<T extends object>(callback: ListenerFn<any>, target: ObsPr
     info.listeners.push(listener);
     return listener;
 }
-export function listenToObs<T extends object>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
+export function listenToObs<T>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
     return _listenToObs(cb, obs as ObsProxy<any>) as any;
 }
 
@@ -74,7 +73,7 @@ export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) =
     });
 }
 
-export function onHasValue<T extends object>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): Promise<T> {
+export function onHasValue<T>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): Promise<T> {
     // @ts-ignore
     return onEquals(obs, symbolHasValue as any, cb);
 }

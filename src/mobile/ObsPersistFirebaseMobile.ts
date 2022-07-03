@@ -1,7 +1,5 @@
 import firebase from '@react-native-firebase/app';
 import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
-
-import globals from 'common/globals';
 import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
 
 export class ObsPersistFirebaseMobile extends ObsPersistFirebaseBase {
