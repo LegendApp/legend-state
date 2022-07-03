@@ -99,7 +99,7 @@ function _obsPersist<T extends object>(
             obs.assign(value);
         }
 
-        proxyState.set('isLoadedLocal', true);
+        proxyState.isLoadedLocal.set(true);
     }
     if (remote) {
         if (!mapPersistences.has(remotePersistence)) {
@@ -112,7 +112,7 @@ function _obsPersist<T extends object>(
             obs,
             remote as PersistOptionsRemote,
             () => {
-                proxyState.set('isLoadedRemote', true);
+                proxyState.isLoadedRemote.set(true);
             },
             onChangeRemote.bind(this, state)
         );

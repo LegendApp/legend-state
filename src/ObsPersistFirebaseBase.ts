@@ -397,12 +397,13 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                     Object.keys(outerValue).forEach((key) => {
                         const value = this._getChangeValue(path, key, outerValue[key]);
 
-                        obs.set(key, value[key]);
+                        obs[key].set(value[key]);
 
                         const d = value[symbolDateModified];
                         const od = getObsModified(obs);
                         if (d && (!od || d > od)) {
-                            obs.set(symbolDateModified, value[symbolDateModified]);
+                            // TODOOBS
+                            // obs[symbolDateModified as any].set(value[symbolDateModified]);
                         }
                     });
                 }

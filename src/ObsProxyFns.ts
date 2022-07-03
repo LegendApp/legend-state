@@ -1,15 +1,6 @@
-import { isFunction, isString } from '@legendapp/tools';
 import { symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
-import {
-    EventType,
-    ListenerFn,
-    ObsListener,
-    ObsListenerInfo,
-    ObsListenerWithProp,
-    ObsProxy,
-    ObsProxyChecker,
-} from './ObsProxyInterfaces';
+import { EventType, ListenerFn, ObsListener, ObsListenerInfo, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 import { state } from './ObsProxyState';
 
@@ -26,17 +17,9 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
         if (listeners) {
             for (let i = 0; i < listeners.length; i++) {
                 const listener = listeners[i];
-                const prop = (listener as ObsListenerWithProp<any>).prop;
-                // Notify this listener if:
-                // 1. If prop: The prop matches the path of the change
-                // 2. No prop: This target is not being skipped (if getting called during an assign)
-                if (prop ? prop === listenerInfo.path[0] : !state.skipNotifyFor.includes(target)) {
-                    let propListenerInfo = listenerInfo;
-                    if (prop) {
-                        propListenerInfo = Object.assign({}, listenerInfo);
-                        propListenerInfo.path = listenerInfo.path.slice(1);
-                    }
-                    ObsBatcher.notify(listener.callback, prop ? value[prop] : value, propListenerInfo);
+                // Notify this listener if this target is not being skipped (if getting called during an assign)
+                if (!state.skipNotifyFor.includes(target)) {
+                    ObsBatcher.notify(listener.callback, value, listenerInfo);
                 }
             }
         }
@@ -55,11 +38,7 @@ export function obsNotify<T extends object>(target: ObsProxyChecker<T>, changedV
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T extends object, TProp extends keyof T>(
-    callback: ListenerFn<any>,
-    prop: TProp,
-    target: ObsProxyChecker<T>
-) {
+function _listenToObs<T extends object>(callback: ListenerFn<any>, target: ObsProxyChecker<T>) {
     const info = state.infos.get(target);
     if (!info) {
         throw new Error('Can only listen to instances of ObsProxy');
@@ -67,47 +46,15 @@ function _listenToObs<T extends object, TProp extends keyof T>(
     if (!info.listeners) {
         info.listeners = [];
     }
-    const listener = { target, prop, callback } as ObsListenerWithProp<T, TProp>;
+    const listener = { target, callback } as ObsListener<T>;
     info.listeners.push(listener);
     return listener;
 }
-export function listenToObs<T extends object>(obs: T, cb: ListenerFn<T>): ObsListener<T>;
-export function listenToObs<T extends object, TProp extends keyof T>(
-    obs: ObsProxyChecker<T>,
-    prop: TProp,
-    cb: ListenerFn<T>
-): ObsListenerWithProp<T, TProp>;
-export function listenToObs<T extends object, TProp extends keyof T>(
-    obs: ObsProxyChecker<T>,
-    prop: TProp,
-    cb?: ListenerFn<T>
-): ObsListener<T> | ObsListenerWithProp<T, TProp> {
-    if (isFunction(prop)) {
-        cb = prop as unknown as ListenerFn<T>;
-        prop = undefined;
-    }
-    return _listenToObs(cb, prop as any, obs as ObsProxy<any>) as any;
+export function listenToObs<T extends object>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
+    return _listenToObs(cb, obs as ObsProxy<any>) as any;
 }
 
-export function onEquals<T extends object>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T>;
-export function onEquals<T extends object, TProp extends keyof T>(
-    obs: ObsProxyChecker<T>,
-    prop: TProp,
-    value: T[TProp],
-    cb?: (value?: T) => void
-): Promise<T[TProp]>;
-export function onEquals<T extends object, TProp extends keyof T>(
-    obs: ObsProxyChecker<T>,
-    prop: TProp,
-    value: T[TProp],
-    cb?: (value?: T) => void
-): Promise<T[TProp]> {
-    if ((!value || isFunction(value)) && !isString(prop)) {
-        cb = value as unknown as (value: T) => void;
-        value = prop as any;
-        prop = undefined;
-    }
-
+export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T> {
     return new Promise<any>((resolve) => {
         let isDone = false;
         let listener: ObsListener<T>;
@@ -121,27 +68,19 @@ export function onEquals<T extends object, TProp extends keyof T>(
             }
             return isDone;
         }
-        if (!check(prop ? obs[prop] : obs.get())) {
-            listener = listenToObs(obs, prop, check);
+        if (!check(obs.get())) {
+            listener = listenToObs(obs, check);
         }
     });
 }
 
-export function onHasValue<T extends object, TProp extends keyof T>(
-    obs: ObsProxyChecker<T>,
-    prop: TProp,
-    cb?: (value: T) => void
-): Promise<T[TProp]> {
+export function onHasValue<T extends object>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): Promise<T> {
     // @ts-ignore
-    return onEquals(obs, prop, symbolHasValue as any, cb);
+    return onEquals(obs, symbolHasValue as any, cb);
 }
 
-export function onTrue<T extends Record<TProp, boolean>, TProp extends keyof T>(
-    obs: ObsProxyChecker<T>,
-    prop: TProp,
-    cb?: () => void
-): Promise<void> {
-    return onEquals(obs, prop, true as T[TProp], cb) as unknown as Promise<void>;
+export function onTrue<T extends boolean>(obs: ObsProxyChecker<T>, cb?: () => void): Promise<void> {
+    return onEquals(obs, true as T, cb) as unknown as Promise<void>;
 }
 
 export function getObsModified<T extends ObsProxyChecker>(obs: T) {

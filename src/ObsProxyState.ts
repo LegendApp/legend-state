@@ -1,10 +1,11 @@
-import { ObsListener, ObsListenerWithProp, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
+import { ObsListener, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 
 export interface StateInfo {
     prop: string;
     target: object;
     safe: boolean;
-    listeners?: (ObsListener | ObsListenerWithProp)[];
+    primitive: boolean;
+    listeners?: ObsListener[];
     proxies?: Map<string, ObsProxy>;
     parent?: ObsProxy;
 }

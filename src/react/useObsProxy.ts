@@ -71,8 +71,7 @@ const updateListeners = (
             }
 
             if (obs) {
-                listeners[i] =
-                    prop !== undefined ? listenToObs(obs as any, prop, onChange) : listenToObs(obs, onChange);
+                listeners[i] = prop !== undefined ? listenToObs(obs as any, onChange) : listenToObs(obs, onChange);
             }
         }
     }

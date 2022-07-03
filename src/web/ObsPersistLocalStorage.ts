@@ -12,15 +12,9 @@ export class ObsPersistLocalStorage implements ObsPersistLocal {
         }
         return this.data[id];
     }
-    public async getModified(id: string) {
-        return this.getValue(id + '@');
-    }
     public async setValue(id: string, value: any) {
         this.data[id] = value;
         this.save(id);
-    }
-    public async setModified(id: string, value: number) {
-        return this.setValue(id + '@', value);
     }
     public async deleteById(id: string) {
         delete this.data[id];

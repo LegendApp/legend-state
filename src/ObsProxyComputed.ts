@@ -3,7 +3,7 @@ import { listenToObs } from './ObsProxyFns';
 import { MappedProxyValue, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
 
 function onChanged(proxy: ObsProxy, args: ObsProxyChecker[], compute: (...args: any) => any) {
-    const value = compute(...args);
+    const value = compute(...args.map((arg) => arg.get()));
     proxy.set(value);
 }
 
