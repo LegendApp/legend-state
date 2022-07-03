@@ -72,8 +72,6 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             const parentInfo = state.infos.get(info.parent);
             const prevValue = target._value;
 
-            if (target === 20) debugger;
-
             target._value = value;
             parentInfo.target[info.prop] = value;
 

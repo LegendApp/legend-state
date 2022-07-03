@@ -3,6 +3,7 @@ export type EventType = 'change' | 'equals' | 'hasValue' | 'true';
 export interface ObsProps<T> {
     get(): T;
     set(value: T): ObsProxy<T>;
+    set<K extends keyof T>(key: K | string, value: T[K]): ObsProxy<T[K]>;
     assign(value: T): ObsProxy<T>;
     on(eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
     on(eventType: 'equals', value: T, cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };

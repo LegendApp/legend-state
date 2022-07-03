@@ -552,319 +552,316 @@ describe('Persist remote save', () => {
             },
         });
     });
-    // TODOOBS
-    // test('save queryByModified with dict', async () => {
-    //     const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
-    //         test: {},
-    //     });
+    test('save queryByModified with dict', async () => {
+        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+            test: {},
+        });
 
-    //     const remoteOptions: PersistOptionsRemote = {
-    //         requireAuth: true,
-    //         firebase: {
-    //             syncPath: (uid) => `/test/${uid}/s/`,
-    //             queryByModified: { test: { '*': '*' } },
-    //         },
-    //     };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: { '*': '*' } },
+            },
+        };
 
-    //     obsPersist(obs, {
-    //         local: 'jestremote',
-    //         remote: remoteOptions,
-    //     });
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //     const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //     obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
-    //     obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
+        obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
+        obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
 
-    //     await promiseTimeout();
+        await promiseTimeout();
 
-    //     expect(remote['_constructBatchForSave']()).toEqual({
-    //         '/test/testuid/s/test/test1': {
-    //             container1: {
-    //                 '@': '__serverTimestamp',
-    //                 text: 'hi',
-    //             },
-    //             container2: {
-    //                 '@': '__serverTimestamp',
-    //                 text: 'hi2',
-    //             },
-    //         },
-    //         '/test/testuid/s/test/test2': {
-    //             container3: {
-    //                 '@': '__serverTimestamp',
-    //                 text: 'hi3',
-    //             },
-    //             container4: {
-    //                 '@': '__serverTimestamp',
-    //                 text: 'hi4',
-    //             },
-    //         },
-    //     });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test1': {
+                container1: {
+                    '@': '__serverTimestamp',
+                    text: 'hi',
+                },
+                container2: {
+                    '@': '__serverTimestamp',
+                    text: 'hi2',
+                },
+            },
+            '/test/testuid/s/test/test2': {
+                container3: {
+                    '@': '__serverTimestamp',
+                    text: 'hi3',
+                },
+                container4: {
+                    '@': '__serverTimestamp',
+                    text: 'hi4',
+                },
+            },
+        });
 
-    //     await remote['promiseSaved'].promise;
-    // });
+        await remote['promiseSaved'].promise;
+    });
 
-    // TODOOBS
-    //     test('save queryByModified with dict and field transforms', async () => {
-    //         const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
-    //             test: {},
-    //         });
+    test('save queryByModified with dict and field transforms', async () => {
+        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+            test: {},
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: { test: '*' },
-    //                 fieldTransforms: {
-    //                     test: {
-    //                         _: 't',
-    //                         __dict: {
-    //                             text: 't2',
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: '*' },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __dict: {
+                            text: 't2',
+                        },
+                    },
+                },
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
-    //         obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
+        obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
+        obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
 
-    //         await promiseTimeout();
+        await promiseTimeout();
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/t/test1': {
-    //                 container1: {
-    //                     text: 'hi',
-    //                 },
-    //                 container2: {
-    //                     text: 'hi2',
-    //                 },
-    //             },
-    //             '/test/testuid/s/t/test1/@': '__serverTimestamp',
-    //             '/test/testuid/s/t/test2': {
-    //                 container3: {
-    //                     text: 'hi3',
-    //                 },
-    //                 container4: {
-    //                     text: 'hi4',
-    //                 },
-    //             },
-    //             '/test/testuid/s/t/test2/@': '__serverTimestamp',
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t/test1': {
+                container1: {
+                    text: 'hi',
+                },
+                container2: {
+                    text: 'hi2',
+                },
+            },
+            '/test/testuid/s/t/test1/@': '__serverTimestamp',
+            '/test/testuid/s/t/test2': {
+                container3: {
+                    text: 'hi3',
+                },
+                container4: {
+                    text: 'hi4',
+                },
+            },
+            '/test/testuid/s/t/test2/@': '__serverTimestamp',
+        });
 
-    //         await remote['promiseSaved'].promise;
-    //     });
+        await remote['promiseSaved'].promise;
+    });
 
-    //     test('save queryByModified with dict and field transforms */*', async () => {
-    //         const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
-    //             test: {},
-    //         });
+    test('save queryByModified with dict and field transforms */*', async () => {
+        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+            test: {},
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: { test: { '*': '*' } },
-    //                 fieldTransforms: {
-    //                     test: {
-    //                         _: 't',
-    //                         __dict: {
-    //                             text: 't2',
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: { '*': '*' } },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __dict: {
+                            text: 't2',
+                        },
+                    },
+                },
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
-    //         obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
+        obs.test.set('test1', { container1: { text: 'hi' }, container2: { text: 'hi2' } });
+        obs.test.set('test2', { container3: { text: 'hi3' }, container4: { text: 'hi4' } });
 
-    //         await promiseTimeout();
+        await promiseTimeout();
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/t/test1': {
-    //                 container1: {
-    //                     '@': '__serverTimestamp',
-    //                     text: 'hi',
-    //                 },
-    //                 container2: {
-    //                     '@': '__serverTimestamp',
-    //                     text: 'hi2',
-    //                 },
-    //             },
-    //             '/test/testuid/s/t/test2': {
-    //                 container3: {
-    //                     '@': '__serverTimestamp',
-    //                     text: 'hi3',
-    //                 },
-    //                 container4: {
-    //                     '@': '__serverTimestamp',
-    //                     text: 'hi4',
-    //                 },
-    //             },
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t/test1': {
+                container1: {
+                    '@': '__serverTimestamp',
+                    text: 'hi',
+                },
+                container2: {
+                    '@': '__serverTimestamp',
+                    text: 'hi2',
+                },
+            },
+            '/test/testuid/s/t/test2': {
+                container3: {
+                    '@': '__serverTimestamp',
+                    text: 'hi3',
+                },
+                container4: {
+                    '@': '__serverTimestamp',
+                    text: 'hi4',
+                },
+            },
+        });
 
-    //         await remote['promiseSaved'].promise;
-    //     });
+        await remote['promiseSaved'].promise;
+    });
 
-    // TODOOBS
-    //     test('save queryByModified with complex dict', async () => {
-    //         const obs = obsProxy<{
-    //             test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }>; test5: string }>;
-    //         }>({
-    //             test: {},
-    //         });
+    test('save queryByModified with complex dict', async () => {
+        const obs = obsProxy<{
+            test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }>; test5: string }>;
+        }>({
+            test: {},
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: {
-    //                     test: {
-    //                         '*': {
-    //                             '*': true,
-    //                             test4: '*',
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        '*': {
+                            '*': true,
+                            test4: '*',
+                        },
+                    },
+                },
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.set('test1', {
-    //             test2: {
-    //                 test3: 'hi3',
-    //             },
-    //             test4: {
-    //                 container1: {
-    //                     text: 'hi1',
-    //                 },
-    //             },
-    //             test5: 'hi5',
-    //         });
+        obs.test.set('test1', {
+            test2: {
+                test3: 'hi3',
+            },
+            test4: {
+                container1: {
+                    text: 'hi1',
+                },
+            },
+            test5: 'hi5',
+        });
 
-    //         await promiseTimeout();
+        await promiseTimeout();
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/test/test1': {
-    //                 test2: {
-    //                     '@': '__serverTimestamp',
-    //                     test3: 'hi3',
-    //                 },
-    //                 test4: {
-    //                     container1: {
-    //                         '@': '__serverTimestamp',
-    //                         text: 'hi1',
-    //                     },
-    //                 },
-    //                 test5: {
-    //                     '@': '__serverTimestamp',
-    //                     _: 'hi5',
-    //                 },
-    //             },
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test/test1': {
+                test2: {
+                    '@': '__serverTimestamp',
+                    test3: 'hi3',
+                },
+                test4: {
+                    container1: {
+                        '@': '__serverTimestamp',
+                        text: 'hi1',
+                    },
+                },
+                test5: {
+                    '@': '__serverTimestamp',
+                    _: 'hi5',
+                },
+            },
+        });
 
-    //         await remote['promiseSaved'].promise;
-    //     });
+        await remote['promiseSaved'].promise;
+    });
 
-    //     test('save queryByModified with complex dict transformed', async () => {
-    //         const obs = obsProxy<{
-    //             test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }> }>;
-    //         }>({
-    //             test: {},
-    //         });
+    test('save queryByModified with complex dict transformed', async () => {
+        const obs = obsProxy<{
+            test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }> }>;
+        }>({
+            test: {},
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: {
-    //                     test: {
-    //                         '*': {
-    //                             test2: true,
-    //                             test4: '*',
-    //                         },
-    //                     },
-    //                 },
-    //                 fieldTransforms: {
-    //                     test: {
-    //                         _: 't',
-    //                         __dict: {
-    //                             test2: {
-    //                                 _: 't2',
-    //                                 __obj: {
-    //                                     test3: 't3',
-    //                                 },
-    //                             },
-    //                             test4: {
-    //                                 _: 't4',
-    //                                 __dict: {
-    //                                     text: 'tt',
-    //                                 },
-    //                             },
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        '*': {
+                            test2: true,
+                            test4: '*',
+                        },
+                    },
+                },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __dict: {
+                            test2: {
+                                _: 't2',
+                                __obj: {
+                                    test3: 't3',
+                                },
+                            },
+                            test4: {
+                                _: 't4',
+                                __dict: {
+                                    text: 'tt',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
 
-    //         obsPersist(obs, {
-    //             local: 'jestremote',
-    //             remote: remoteOptions,
-    //         });
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
 
-    //         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
-    //         obs.test.set('test1', {
-    //             test2: {
-    //                 test3: 'hi3',
-    //             },
-    //             test4: {
-    //                 container1: {
-    //                     text: 'hi1',
-    //                 },
-    //             },
-    //         });
+        obs.test.set('test1', {
+            test2: {
+                test3: 'hi3',
+            },
+            test4: {
+                container1: {
+                    text: 'hi1',
+                },
+            },
+        });
 
-    //         await promiseTimeout();
+        await promiseTimeout();
 
-    //         expect(remote['_constructBatchForSave']()).toEqual({
-    //             '/test/testuid/s/t/test1': {
-    //                 t2: {
-    //                     '@': '__serverTimestamp',
-    //                     t3: 'hi3',
-    //                 },
-    //                 t4: {
-    //                     container1: {
-    //                         '@': '__serverTimestamp',
-    //                         tt: 'hi1',
-    //                     },
-    //                 },
-    //             },
-    //         });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t/test1': {
+                t2: {
+                    '@': '__serverTimestamp',
+                    t3: 'hi3',
+                },
+                t4: {
+                    container1: {
+                        '@': '__serverTimestamp',
+                        tt: 'hi1',
+                    },
+                },
+            },
+        });
 
-    //         await remote['promiseSaved'].promise;
-    //     });
+        await remote['promiseSaved'].promise;
+    });
 
     test('Save a deep property', async () => {
         const obs = obsProxy({
@@ -1119,547 +1116,546 @@ describe('Remote load', () => {
             },
         });
 
-        expect(getObsModified(obs.test.get())).toEqual(1000);
+        expect(getObsModified(obs.test)).toEqual(1000);
     });
-    //     test('Persist remote load complex modified deep', async () => {
-    //         const obs = obsProxy({
-    //             test: { test2: { test3: { id: '' }, test4: { id: '' } } },
-    //             test6: { test7: { id: '' } },
-    //         });
+    test('Persist remote load complex modified deep', async () => {
+        const obs = obsProxy({
+            test: { test2: { test3: { id: '' }, test4: { id: '' } } },
+            test6: { test7: { id: '' } },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: {
-    //                     test: {
-    //                         test2: true,
-    //                     },
-    //                     test6: true,
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        test2: true,
+                    },
+                    test6: true,
+                },
+            },
+        };
 
-    //         initializeRemote({
-    //             test: {
-    //                 test2: {
-    //                     test3: {
-    //                         '@': 1000,
-    //                         id: 'hi3',
-    //                     },
-    //                     test4: {
-    //                         '@': 1000,
-    //                         id: 'hi4',
-    //                     },
-    //                 },
-    //             },
-    //             test6: {
-    //                 test7: {
-    //                     '@': 1000,
-    //                     id: 'hi7',
-    //                 },
-    //             },
-    //         });
+        initializeRemote({
+            test: {
+                test2: {
+                    test3: {
+                        '@': 1000,
+                        id: 'hi3',
+                    },
+                    test4: {
+                        '@': 1000,
+                        id: 'hi4',
+                    },
+                },
+            },
+            test6: {
+                test7: {
+                    '@': 1000,
+                    id: 'hi7',
+                },
+            },
+        });
 
-    //         const state = obsPersist(obs, {
-    //             remote: remoteOptions,
-    //         });
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
 
-    //         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-    //         expect(obs).toEqual({
-    //             test: {
-    //                 test2: {
-    //                     test3: { id: 'hi3', [symbolDateModified]: 1000 },
-    //                     test4: { id: 'hi4', [symbolDateModified]: 1000 },
-    //                 },
-    //             },
-    //             test6: { test7: { id: 'hi7', [symbolDateModified]: 1000 } },
-    //         });
-    //     });
-    //     test('Persist remote load complex modified deep with other keys', async () => {
-    //         const obs = obsProxy({
-    //             test: { test2: { test3: { id: '' }, test4: { id: '' } }, test5: { test55: '' } },
-    //             test6: { test7: { id: '' } },
-    //             test8: { test9: '' },
-    //         });
+        expect(obs.get()).toEqual({
+            test: {
+                test2: {
+                    test3: { id: 'hi3', [symbolDateModified]: 1000 },
+                    test4: { id: 'hi4', [symbolDateModified]: 1000 },
+                },
+            },
+            test6: { test7: { id: 'hi7', [symbolDateModified]: 1000 } },
+        });
+    });
+    test('Persist remote load complex modified deep with other keys', async () => {
+        const obs = obsProxy({
+            test: { test2: { test3: { id: '' }, test4: { id: '' } }, test5: { test55: '' } },
+            test6: { test7: { id: '' } },
+            test8: { test9: '' },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: {
-    //                     test: {
-    //                         test2: true,
-    //                     },
-    //                     test6: true,
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: {
+                        test2: true,
+                    },
+                    test6: true,
+                },
+            },
+        };
 
-    //         initializeRemote({
-    //             test: {
-    //                 test2: {
-    //                     test3: {
-    //                         '@': 1000,
-    //                         id: 'hi3',
-    //                     },
-    //                     test4: {
-    //                         '@': 1000,
-    //                         id: 'hi4',
-    //                     },
-    //                 },
-    //                 test5: { test55: 'hi5' },
-    //             },
-    //             test6: {
-    //                 test7: {
-    //                     '@': 1000,
-    //                     id: 'hi7',
-    //                 },
-    //             },
-    //             test8: {
-    //                 test9: 'hi9',
-    //             },
-    //         });
+        initializeRemote({
+            test: {
+                test2: {
+                    test3: {
+                        '@': 1000,
+                        id: 'hi3',
+                    },
+                    test4: {
+                        '@': 1000,
+                        id: 'hi4',
+                    },
+                },
+                test5: { test55: 'hi5' },
+            },
+            test6: {
+                test7: {
+                    '@': 1000,
+                    id: 'hi7',
+                },
+            },
+            test8: {
+                test9: 'hi9',
+            },
+        });
 
-    //         const state = obsPersist(obs, {
-    //             remote: remoteOptions,
-    //         });
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
 
-    //         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-    //         expect(obs).toEqual({
-    //             test: {
-    //                 test2: {
-    //                     test3: { id: 'hi3', [symbolDateModified]: 1000 },
-    //                     test4: { id: 'hi4', [symbolDateModified]: 1000 },
-    //                 },
-    //                 test5: { test55: 'hi5' },
-    //             },
-    //             test6: { test7: { id: 'hi7', [symbolDateModified]: 1000 } },
-    //             test8: { test9: 'hi9' },
-    //         });
-    //     });
+        expect(obs.get()).toEqual({
+            test: {
+                test2: {
+                    test3: { id: 'hi3', [symbolDateModified]: 1000 },
+                    test4: { id: 'hi4', [symbolDateModified]: 1000 },
+                },
+                test5: { test55: 'hi5' },
+            },
+            test6: { test7: { id: 'hi7', [symbolDateModified]: 1000 } },
+            test8: { test9: 'hi9' },
+        });
+    });
 
-    //     test('Persist remote load with nested timestamps', async () => {
-    //         const obs = obsProxy({
-    //             clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
-    //         });
+    test('Persist remote load with nested timestamps', async () => {
+        const obs = obsProxy({
+            clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: {
-    //                     clients: {
-    //                         '*': {
-    //                             '*': true,
-    //                             outer: {
-    //                                 inner: '*',
-    //                             },
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    clients: {
+                        '*': {
+                            '*': true,
+                            outer: {
+                                inner: '*',
+                            },
+                        },
+                    },
+                },
+            },
+        };
 
-    //         initializeRemote({
-    //             clients: {
-    //                 clientID: {
-    //                     profile: {
-    //                         '@': 1000,
-    //                         name: 'hi name',
-    //                     },
-    //                     outer: {
-    //                         inner: {
-    //                             id1: {
-    //                                 '@': 1000,
-    //                                 text: 'hi1',
-    //                             },
-    //                             id2: {
-    //                                 '@': 1000,
-    //                                 _: 'hi1',
-    //                             },
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         });
+        initializeRemote({
+            clients: {
+                clientID: {
+                    profile: {
+                        '@': 1000,
+                        name: 'hi name',
+                    },
+                    outer: {
+                        inner: {
+                            id1: {
+                                '@': 1000,
+                                text: 'hi1',
+                            },
+                            id2: {
+                                '@': 1000,
+                                _: 'hi1',
+                            },
+                        },
+                    },
+                },
+            },
+        });
 
-    //         const state = obsPersist(obs, {
-    //             remote: remoteOptions,
-    //         });
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
 
-    //         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-    //         expect(obs).toEqual({
-    //             clients: {
-    //                 clientID: {
-    //                     profile: {
-    //                         [symbolDateModified]: 1000,
-    //                         name: 'hi name',
-    //                     },
-    //                     outer: {
-    //                         inner: {
-    //                             id1: {
-    //                                 [symbolDateModified]: 1000,
-    //                                 text: 'hi1',
-    //                             },
-    //                             id2: 'hi1',
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         });
-    //     });
+        expect(obs.get()).toEqual({
+            clients: {
+                clientID: {
+                    profile: {
+                        [symbolDateModified]: 1000,
+                        name: 'hi name',
+                    },
+                    outer: {
+                        inner: {
+                            id1: {
+                                [symbolDateModified]: 1000,
+                                text: 'hi1',
+                            },
+                            id2: 'hi1',
+                        },
+                    },
+                },
+            },
+        });
+    });
 
-    //     test('Persist remote load with local timestamps', async () => {
-    //         global.localStorage.setItem(
-    //             'jestlocal',
-    //             JSON.stringify({
-    //                 test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
-    //                 test4: { test5: { '@': 1001, test6: 'hi6' } },
-    //                 test7: { test8: 'hi8' },
-    //             })
-    //         );
+    test('Persist remote load with local timestamps', async () => {
+        global.localStorage.setItem(
+            'jestlocal',
+            JSON.stringify({
+                test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
+                test4: { test5: { '@': 1001, test6: 'hi6' } },
+                test7: { test8: 'hi8' },
+            })
+        );
 
-    //         const obs = obsProxy({
-    //             test: { test2: '', test3: '' },
-    //             test4: { test5: { test6: '' } },
-    //             test7: { test8: '' },
-    //         });
+        const obs = obsProxy({
+            test: { test2: '', test3: '' },
+            test4: { test5: { test6: '' } },
+            test7: { test8: '' },
+        });
 
-    //         const remoteOptions: PersistOptionsRemote = {
-    //             requireAuth: true,
-    //             firebase: {
-    //                 syncPath: (uid) => `/test/${uid}/s/`,
-    //                 queryByModified: {
-    //                     test: true,
-    //                     test4: true,
-    //                 },
-    //             },
-    //         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    test: true,
+                    test4: true,
+                },
+            },
+        };
 
-    //         initializeRemote({
-    //             test: {
-    //                 test2: {
-    //                     '@': 1000,
-    //                     _: 'hi2',
-    //                 },
-    //                 test3: {
-    //                     '@': 1000,
-    //                     _: 'hi3',
-    //                 },
-    //             },
-    //             test4: {
-    //                 test5: {
-    //                     '@': 1002,
-    //                     test6: 'hihi6',
-    //                 },
-    //             },
-    //             test7: {
-    //                 test8: 'hi8',
-    //             },
-    //         });
+        initializeRemote({
+            test: {
+                test2: {
+                    '@': 1000,
+                    _: 'hi2',
+                },
+                test3: {
+                    '@': 1000,
+                    _: 'hi3',
+                },
+            },
+            test4: {
+                test5: {
+                    '@': 1002,
+                    test6: 'hihi6',
+                },
+            },
+            test7: {
+                test8: 'hi8',
+            },
+        });
 
-    //         const state = obsPersist(obs, {
-    //             remote: remoteOptions,
-    //         });
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
 
-    //         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-    //         expect(obs).toEqual({
-    //             test: {
-    //                 test2: 'hi2',
-    //                 test3: 'hi3',
-    //                 [symbolDateModified]: 1000,
-    //             },
-    //             test4: {
-    //                 test5: {
-    //                     [symbolDateModified]: 1002,
-    //                     test6: 'hihi6',
-    //                 },
-    //             },
-    //             test7: {
-    //                 test8: 'hi8',
-    //             },
-    //         });
+        expect(obs.get()).toEqual({
+            test: {
+                test2: 'hi2',
+                test3: 'hi3',
+                [symbolDateModified]: 1000,
+            },
+            test4: {
+                test5: {
+                    [symbolDateModified]: 1002,
+                    test6: 'hihi6',
+                },
+            },
+            test7: {
+                test8: 'hi8',
+            },
+        });
 
-    //         expect(getObsModified(obs.test)).toEqual(1000);
-    //         expect(getObsModified(obs.test4.test5)).toEqual(1002);
-    //     });
+        expect(getObsModified(obs.test)).toEqual(1000);
+        expect(getObsModified(obs.test4.test5)).toEqual(1002);
+    });
 });
 
-// describe('Remote change', () => {
-//     test('onChange', async () => {
-//         const obs = obsProxy({ test: { test2: '', test3: '' } });
+describe('Remote change', () => {
+    test('onChange', async () => {
+        const obs = obsProxy({ test: { test2: '', test3: '' } });
 
-//         const remoteOptions: PersistOptionsRemote = {
-//             requireAuth: true,
-//             firebase: {
-//                 syncPath: (uid) => `/test/${uid}/s/`,
-//             },
-//         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+            },
+        };
 
-//         initializeRemote({
-//             test: {
-//                 '@': 1000,
-//                 test2: 'hi',
-//                 test3: 'hi3',
-//             },
-//         });
+        initializeRemote({
+            test: {
+                '@': 1000,
+                test2: 'hi',
+                test3: 'hi3',
+            },
+        });
 
-//         const state = obsPersist(obs, {
-//             remote: remoteOptions,
-//         });
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
 
-//         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-//         modifyRemote('test', { '@': 1001, test2: 'hello2' });
+        modifyRemote('test', { '@': 1001, test2: 'hello2' });
 
-//         expect(obs.test.get()).toEqual({
-//             test2: 'hello2',
-//             test3: 'hi3',
-//             [symbolDateModified]: 1001,
-//         });
+        expect(obs.test.get()).toEqual({
+            test2: 'hello2',
+            test3: 'hi3',
+            [symbolDateModified]: 1001,
+        });
 
-//         expect(obs.test.test2).toEqual('hello2');
-//         expect(obs.test.test3).toEqual('hi3');
-//         expect(obs.test['@']).toEqual(undefined);
-//         expect(obs.test.get()['@']).toEqual(undefined);
-//         expect(getObsModified(obs.test)).toEqual(1001);
-//     });
+        expect(obs.test.test2.get()).toEqual('hello2');
+        expect(obs.test.test3.get()).toEqual('hi3');
+        expect(obs.test.get()['@']).toEqual(undefined);
+        expect(getObsModified(obs.test)).toEqual(1001);
+    });
 
-//     test('onChange with queryByModified', async () => {
-//         const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
+    test('onChange with queryByModified', async () => {
+        const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
 
-//         const remoteOptions: PersistOptionsRemote = {
-//             requireAuth: true,
-//             firebase: {
-//                 syncPath: (uid) => `/test/${uid}/s/`,
-//                 queryByModified: { test: true },
-//             },
-//         };
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: { test: true },
+            },
+        };
 
-//         initializeRemote({
-//             test: {
-//                 test2: { '@': 1000, test22: 'hi' },
-//                 test3: { '@': 1000, test33: 'hi3' },
-//             },
-//         });
+        initializeRemote({
+            test: {
+                test2: { '@': 1000, test22: 'hi' },
+                test3: { '@': 1000, test33: 'hi3' },
+            },
+        });
 
-//         const state = obsPersist(obs, {
-//             remote: remoteOptions,
-//         });
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
 
-//         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-//         modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
+        modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
 
-//         expect(obs.test.get()).toEqual({
-//             test2: {
-//                 test22: 'hello2',
-//                 [symbolDateModified]: 1001,
-//             },
-//             test3: {
-//                 test33: 'hi3',
-//                 [symbolDateModified]: 1000,
-//             },
-//         });
+        expect(obs.test.get()).toEqual({
+            test2: {
+                test22: 'hello2',
+                [symbolDateModified]: 1001,
+            },
+            test3: {
+                test33: 'hi3',
+                [symbolDateModified]: 1000,
+            },
+        });
 
-//         expect(obs.test.test2.test22).toEqual('hello2');
-//         expect(obs.test.test3.test33).toEqual('hi3');
+        expect(obs.test.test2.test22.get()).toEqual('hello2');
+        expect(obs.test.test3.test33.get()).toEqual('hi3');
 
-//         expect(obs.test.test2['@']).toEqual(undefined);
-//         expect(obs.test.test3['@']).toEqual(undefined);
-//         expect(obs.test['@']).toEqual(undefined);
+        expect(obs.test.test2.get()['@']).toEqual(undefined);
+        expect(obs.test.test3.get()['@']).toEqual(undefined);
+        expect(obs.test.get()['@']).toEqual(undefined);
 
-//         expect(getObsModified(obs.test.test3)).toEqual(1000);
-//         expect(getObsModified(obs.test.test2)).toEqual(1001);
-//     });
-// });
+        expect(getObsModified(obs.test.test3)).toEqual(1000);
+        expect(getObsModified(obs.test.test2)).toEqual(1001);
+    });
+});
 
-// describe('Field transform', () => {
-//     test('Field transform in', async () => {
-//         const obs = obsProxy({
-//             test: { test2: '', test3: '' },
-//             test4: { test5: { test6: '' } },
-//             test7: { test8: '' },
-//         });
+describe('Field transform', () => {
+    test('Field transform in', async () => {
+        const obs = obsProxy({
+            test: { test2: '', test3: '' },
+            test4: { test5: { test6: '' } },
+            test7: { test8: '' },
+        });
 
-//         initializeRemote({
-//             t: {
-//                 t2: {
-//                     '@': 1000,
-//                     _: 'hi2',
-//                 },
-//                 t3: {
-//                     '@': 1000,
-//                     _: 'hi3',
-//                 },
-//             },
-//             t4: {
-//                 // This is a dictionary so don't convert its ids
-//                 test5: {
-//                     '@': 1002,
-//                     t6: 'hihi6',
-//                 },
-//             },
-//             t7: {
-//                 t8: 'hi8',
-//             },
-//         });
+        initializeRemote({
+            t: {
+                t2: {
+                    '@': 1000,
+                    _: 'hi2',
+                },
+                t3: {
+                    '@': 1000,
+                    _: 'hi3',
+                },
+            },
+            t4: {
+                // This is a dictionary so don't convert its ids
+                test5: {
+                    '@': 1002,
+                    t6: 'hihi6',
+                },
+            },
+            t7: {
+                t8: 'hi8',
+            },
+        });
 
-//         const state = obsPersist(obs, {
-//             remote: {
-//                 requireAuth: true,
-//                 firebase: {
-//                     syncPath: (uid) => `/test/${uid}/s/`,
-//                     fieldTransforms: {
-//                         test: {
-//                             _: 't',
-//                             __obj: {
-//                                 test2: 't2',
-//                                 test3: 't3',
-//                             },
-//                         },
-//                         test4: {
-//                             _: 't4',
-//                             __dict: {
-//                                 test6: 't6',
-//                             },
-//                         },
-//                         test7: {
-//                             _: 't7',
-//                             __obj: {
-//                                 test8: 't8',
-//                             },
-//                         },
-//                     },
-//                     queryByModified: {
-//                         test: true,
-//                         test4: true,
-//                     },
-//                 },
-//             },
-//         });
+        const state = obsPersist(obs, {
+            remote: {
+                requireAuth: true,
+                firebase: {
+                    syncPath: (uid) => `/test/${uid}/s/`,
+                    fieldTransforms: {
+                        test: {
+                            _: 't',
+                            __obj: {
+                                test2: 't2',
+                                test3: 't3',
+                            },
+                        },
+                        test4: {
+                            _: 't4',
+                            __dict: {
+                                test6: 't6',
+                            },
+                        },
+                        test7: {
+                            _: 't7',
+                            __obj: {
+                                test8: 't8',
+                            },
+                        },
+                    },
+                    queryByModified: {
+                        test: true,
+                        test4: true,
+                    },
+                },
+            },
+        });
 
-//         await onTrue(state, 'isLoadedRemote');
+        await onTrue(state.isLoadedRemote);
 
-//         expect(obs).toEqual({
-//             test: {
-//                 test2: 'hi2',
-//                 test3: 'hi3',
-//                 [symbolDateModified]: 1000,
-//             },
-//             test4: {
-//                 test5: {
-//                     [symbolDateModified]: 1002,
-//                     test6: 'hihi6',
-//                 },
-//             },
-//             test7: {
-//                 test8: 'hi8',
-//             },
-//         });
-//     });
-//     test('Field transform out', async () => {
-//         const obs = obsProxy({
-//             test: { test2: '', test3: '' },
-//             test4: { test5: { test6: '' } },
-//             test7: { test8: '' },
-//         });
+        expect(obs.get()).toEqual({
+            test: {
+                test2: 'hi2',
+                test3: 'hi3',
+                [symbolDateModified]: 1000,
+            },
+            test4: {
+                test5: {
+                    [symbolDateModified]: 1002,
+                    test6: 'hihi6',
+                },
+            },
+            test7: {
+                test8: 'hi8',
+            },
+        });
+    });
+    test('Field transform out', async () => {
+        const obs = obsProxy({
+            test: { test2: '', test3: '' },
+            test4: { test5: { test6: '' } },
+            test7: { test8: '' },
+        });
 
-//         const state = obsPersist(obs, {
-//             local: 'jestremote',
-//             remote: {
-//                 requireAuth: true,
-//                 firebase: {
-//                     syncPath: (uid) => `/test/${uid}/s/`,
-//                     queryByModified: { test: true, test4: true },
-//                     fieldTransforms: {
-//                         test: {
-//                             _: 't',
-//                             __obj: {
-//                                 test2: 't2',
-//                                 test3: 't3',
-//                             },
-//                         },
-//                         test4: {
-//                             _: 't4',
-//                             __dict: {
-//                                 test6: 't6',
-//                             },
-//                         },
-//                         test7: {
-//                             _: 't7',
-//                             __obj: {
-//                                 test8: 't8',
-//                             },
-//                         },
-//                     },
-//                 },
-//             },
-//         });
+        const state = obsPersist(obs, {
+            local: 'jestremote',
+            remote: {
+                requireAuth: true,
+                firebase: {
+                    syncPath: (uid) => `/test/${uid}/s/`,
+                    queryByModified: { test: true, test4: true },
+                    fieldTransforms: {
+                        test: {
+                            _: 't',
+                            __obj: {
+                                test2: 't2',
+                                test3: 't3',
+                            },
+                        },
+                        test4: {
+                            _: 't4',
+                            __dict: {
+                                test6: 't6',
+                            },
+                        },
+                        test7: {
+                            _: 't7',
+                            __obj: {
+                                test8: 't8',
+                            },
+                        },
+                    },
+                },
+            },
+        });
 
-//         obs.test.set('test2', 'hello2');
-//         obs.test.set('test3', 'hello3');
-//         obs.test4.test5.set('test6', 'hello6');
-//         obs.test7.set('test8', 'hello8');
+        obs.test.set('test2', 'hello2');
+        obs.test.set('test3', 'hello3');
+        obs.test4.test5.set('test6', 'hello6');
+        obs.test7.set('test8', 'hello8');
 
-//         await onTrue(state, 'isLoadedRemote');
-//         await promiseTimeout();
+        await onTrue(state.isLoadedRemote);
+        await promiseTimeout();
 
-//         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
-//         await remote['promiseSaved'].promise;
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+        await remote['promiseSaved'].promise;
 
-//         await promiseTimeout();
+        await promiseTimeout();
 
-//         expect(remote['remoteData']).toEqual({
-//             test: {
-//                 testuid: {
-//                     s: {
-//                         t: {
-//                             t2: {
-//                                 '@': '__serverTimestamp',
-//                                 _: 'hello2',
-//                             },
-//                             t3: {
-//                                 '@': '__serverTimestamp',
-//                                 _: 'hello3',
-//                             },
-//                         },
-//                         t4: {
-//                             test5: {
-//                                 t6: 'hello6',
-//                             },
-//                         },
-//                         t7: {
-//                             t8: 'hello8',
-//                         },
-//                     },
-//                 },
-//             },
-//         });
+        expect(remote['remoteData']).toEqual({
+            test: {
+                testuid: {
+                    s: {
+                        t: {
+                            t2: {
+                                '@': '__serverTimestamp',
+                                _: 'hello2',
+                            },
+                            t3: {
+                                '@': '__serverTimestamp',
+                                _: 'hello3',
+                            },
+                        },
+                        t4: {
+                            test5: {
+                                t6: 'hello6',
+                            },
+                        },
+                        t7: {
+                            t8: 'hello8',
+                        },
+                    },
+                },
+            },
+        });
 
-//         // TODO: Saving locally should be the non-transformed version
-//         expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
-//             test: {
-//                 '@': '__serverTimestamp',
-//                 test2: 'hello2',
-//                 test3: 'hello3',
-//             },
-//             test4: {
-//                 test5: {
-//                     test6: 'hello6',
-//                 },
-//             },
-//             test7: {
-//                 test8: 'hello8',
-//             },
-//         });
-//     });
-// });
+        // TODO: Saving locally should be the non-transformed version
+        expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
+            test: {
+                '@': '__serverTimestamp',
+                test2: 'hello2',
+                test3: 'hello3',
+            },
+            test4: {
+                test5: {
+                    test6: 'hello6',
+                },
+            },
+            test7: {
+                test8: 'hello8',
+            },
+        });
+    });
+});
 
 // TODO
 // useObsProxy should batch listeners?
