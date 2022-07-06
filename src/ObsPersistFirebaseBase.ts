@@ -3,6 +3,7 @@ import { config } from './configureObsProxy';
 import { invertMap, transformObject, transformPath } from './FieldTransformer';
 import {
     constructObject,
+    getDateModifiedKey,
     isNullOrUndefined,
     isObjectEmpty,
     mergeDeep,
@@ -16,24 +17,10 @@ import type {
     ObsProxy,
     ObsProxyChecker,
     ObsProxyUnsafe,
-    PersistOptionsRemote,
+    PersistOptions,
     QueryByModified,
 } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
-
-const Delimiter = '~';
-
-function replaceWildcard(str: string) {
-    return str.replace(/\/?\*/, '');
-}
-
-function findStartsWithPathInverse(...args: any): string {
-    return '';
-    // return args.find((a) => {
-    //     a = replaceWildcard(a);
-    //     return a === '' || a.startsWith(str);
-    // });
-}
 
 export interface FirebaseFns {
     getCurrentUser: () => string;
@@ -67,7 +54,7 @@ type SaveInfoDictionary<T = any> = {
 };
 
 interface PendingSaves {
-    options: PersistOptionsRemote;
+    options: PersistOptions;
     saves: SaveInfoDictionary;
     values: any[];
 }
@@ -111,13 +98,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     }
     public listen<T>(
         obs: ObsProxyChecker<T>,
-        options: PersistOptionsRemote<T>,
+        options: PersistOptions<T>,
         onLoad: () => void,
         onChange: (obs: ObsProxy<T>, value: any) => void
     ) {
-        const {
-            firebase: { queryByModified },
-        } = options;
+        const { queryByModified } = options.remote.firebase;
 
         if (isObject(queryByModified)) {
             // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
@@ -134,7 +119,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     }
     private iterateListen<T>(
         obs: ObsProxyChecker<T>,
-        options: PersistOptionsRemote<T>,
+        options: PersistOptions<T>,
         queryByModified: object,
         onLoad: () => void,
         onChange: (obs: ObsProxy<T>, value: any) => void,
@@ -157,7 +142,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     }
     private async _listen<T>(
         obs: ObsProxyChecker<T>,
-        options: PersistOptionsRemote<T>,
+        options: PersistOptions<T>,
         dateModified: number,
         onLoad: () => void,
         onChange: (obsProxy: ObsProxy<T>, value: any) => void,
@@ -167,21 +152,23 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             once,
             requireAuth,
             firebase: { syncPath, fieldTransforms },
-        } = options;
+        } = options.remote;
 
         if (requireAuth) {
             await this.waitForAuth();
         }
 
+        const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
+
         let fieldTransformsAtPath;
         if (fieldTransforms) {
             if (process.env.NODE_ENV === 'development') {
-                this.validateMap(fieldTransforms);
+                this.validateMap(fieldTransforms, dateModifiedKey);
             }
             if (syncPathExtra) {
                 const pathArr = syncPathExtra.split('/').filter((a) => !!a);
                 fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
-                syncPathExtra = transformPath(pathArr, fieldTransforms).join('/');
+                syncPathExtra = transformPath(pathArr, fieldTransforms, dateModifiedKey).join('/');
             } else {
                 fieldTransformsAtPath = invertMap(fieldTransforms);
             }
@@ -192,7 +179,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         let refPath = this.fns.ref(pathFull);
         if (dateModified && !isNaN(dateModified)) {
-            refPath = this.fns.orderByChild(refPath, '@', dateModified + 1);
+            refPath = this.fns.orderByChild(refPath, dateModifiedKey, dateModified + 1);
         }
 
         if (!once) {
@@ -203,13 +190,17 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 fieldTransforms,
                 obs,
                 fieldTransformsAtPath,
+                dateModifiedKey,
                 onChange
             );
             this.fns.onChildAdded(refPath, cb, (err) => console.error(err));
             this.fns.onChildChanged(refPath, cb, (err) => console.error(err));
         }
 
-        this.fns.once(refPath, this._onceValue.bind(this, pathFull, obs, fieldTransformsAtPath, onLoad, onChange));
+        this.fns.once(
+            refPath,
+            this._onceValue.bind(this, pathFull, obs, fieldTransformsAtPath, dateModifiedKey, onLoad, onChange)
+        );
     }
     private _updatePendingSave(path: string[], value: object, pending: SaveInfoDictionary) {
         if (path.length === 0) {
@@ -235,11 +226,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         }
     }
-    public async save<T>(options: PersistOptionsRemote, value: T, info: ObsListenerInfo) {
+    public async save<T>(options: PersistOptions, value: T, info: ObsListenerInfo) {
         const {
             requireAuth,
+            saveTimeout,
             firebase: { fieldTransforms },
-        } = options;
+        } = options.remote;
         if (requireAuth) {
             await this.waitForAuth();
         }
@@ -248,15 +240,18 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const valueSaved = JSON.parse(JSON.stringify(value));
         let path = info.path.slice();
 
+        const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
+
         if (fieldTransforms) {
-            value = transformObject(value, fieldTransforms);
+            value = transformObject(value, fieldTransforms, dateModifiedKey);
             path = transformPath(
                 info.path.filter((a) => !!a),
-                fieldTransforms
+                fieldTransforms,
+                dateModifiedKey
             );
         }
 
-        const syncPath = options.firebase.syncPath(this.fns.getCurrentUser());
+        const syncPath = options.remote.firebase.syncPath(this.fns.getCurrentUser());
         if (!this._pendingSaves2.has(syncPath)) {
             this._pendingSaves2.set(syncPath, { options, saves: {}, values: [] });
         }
@@ -268,9 +263,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             this.promiseSaved = new PromiseCallback();
         }
 
-        if (this.SaveTimeout) {
+        const timeout = saveTimeout ?? this.SaveTimeout;
+
+        if (timeout) {
             if (this._timeoutSave) clearTimeout(this._timeoutSave);
-            this._timeoutSave = setTimeout(this._onTimeoutSave, this.SaveTimeout);
+            this._timeoutSave = setTimeout(this._onTimeoutSave, timeout);
         } else {
             this._onTimeoutSave();
         }
@@ -287,24 +284,26 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     private _constructBatch(
-        options: PersistOptionsRemote,
+        options: PersistOptions,
         batch: Record<string, string | object>,
         basePath: string,
         saves: SaveInfoDictionary,
         ...path: string[]
     ) {
+        const {
+            firebase: { fieldTransforms },
+        } = options.remote;
+        const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
+
         // @ts-ignore
         let valSave = saves[symbolSaveValue];
         if (valSave !== undefined) {
-            let queryByModified = options.firebase.queryByModified;
+            let queryByModified = options.remote.firebase.queryByModified;
             if (queryByModified) {
-                const {
-                    firebase: { fieldTransforms },
-                } = options;
                 if (queryByModified !== true && queryByModified !== '*' && fieldTransforms) {
-                    queryByModified = transformObject(queryByModified, fieldTransforms);
+                    queryByModified = transformObject(queryByModified, fieldTransforms, dateModifiedKey);
                 }
-                valSave = this.insertDatesToSave(batch, queryByModified, basePath, path, valSave);
+                valSave = this.insertDatesToSave(batch, queryByModified, dateModifiedKey, basePath, path, valSave);
             }
             const pathThis = basePath + path.join('/');
             if (!batch[pathThis]) {
@@ -319,7 +318,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private _constructBatchForSave() {
         const batch = {};
         this._pendingSaves2.forEach(({ options, saves }) => {
-            const basePath = options.firebase.syncPath(this.fns.getCurrentUser());
+            const basePath = options.remote.firebase.syncPath(this.fns.getCurrentUser());
             this._constructBatch(options, batch, basePath, saves);
         });
 
@@ -336,20 +335,20 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         await this.fns.update(batch);
         promiseSaved.resolve();
     }
-    private _convertFBTimestamps(obj: any) {
+    private _convertFBTimestamps(obj: any, dateModifiedKey: string) {
         let value = obj;
         // Database value can be either { @: number, _: object } or { @: number, ...rest }
-        const dateModified = value['@'];
-        delete value['@'];
+        const dateModified = value[dateModifiedKey];
+        delete value[dateModifiedKey];
         if (value._) {
             value = value._;
-        } else if (Object.keys(value).length === 1 && value['@']) {
+        } else if (Object.keys(value).length === 1 && value[dateModifiedKey]) {
             value = undefined;
         }
 
         if (isObject(value)) {
             Object.keys(value).forEach((k) => {
-                value[k] = this._convertFBTimestamps(value[k]);
+                value[k] = this._convertFBTimestamps(value[k], dateModifiedKey);
             });
         }
 
@@ -359,25 +358,24 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         return value;
     }
-    private _getChangeValue(pathFirebase: string, key: string, snapVal: any) {
+    private _getChangeValue(key: string, snapVal: any, dateModifiedKey: string) {
         let value = snapVal;
         // Database value can be either { @: number, _: object } or { @: number, ...rest }
-        const dateModified = value['@'];
-        delete value['@'];
+        const dateModified = value[dateModifiedKey];
+        delete value[dateModifiedKey];
         if (value._) {
             value = value._;
-        } else if (Object.keys(value).length === 1 && value['@']) {
+        } else if (Object.keys(value).length === 1 && value[dateModifiedKey]) {
             value = undefined;
         }
 
         if (isObject(value)) {
             Object.keys(value).forEach((k) => {
-                value[k] = this._convertFBTimestamps(value[k]);
+                value[k] = this._convertFBTimestamps(value[k], dateModifiedKey);
             });
         }
 
-        const keys = key.split(Delimiter);
-        value = constructObject(keys, value, dateModified);
+        value = constructObject([key], value, dateModified);
 
         return value;
     }
@@ -385,6 +383,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         path: string,
         obs: ObsProxy<Record<any, any>>,
         fieldTransformsAtPath: object,
+        dateModifiedKey: string,
         onLoad: () => void,
         onChange: (cb: () => void) => void,
         snapshot: any
@@ -392,14 +391,14 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let outerValue = snapshot.val();
 
         if (fieldTransformsAtPath) {
-            outerValue = transformObject(outerValue, fieldTransformsAtPath);
+            outerValue = transformObject(outerValue, fieldTransformsAtPath, dateModifiedKey);
         }
 
         onChange(() => {
             if (outerValue) {
                 if (isObject(outerValue)) {
                     Object.keys(outerValue).forEach((key) => {
-                        const value = this._getChangeValue(path, key, outerValue[key]);
+                        const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
 
                         obs.set(key, value[key]);
 
@@ -424,6 +423,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         fieldTransforms: object,
         obs: ObsProxyChecker,
         fieldTransformsAtPath: object,
+        dateModifiedKey: string,
         onChange: (cb: () => void) => void,
         snapshot: any
     ) {
@@ -434,11 +434,15 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let key = snapshot.key;
         if (val) {
             if (fieldTransformsAtPath) {
-                key = transformPath([snapshot.key], fieldTransformsAtPath)[0];
-                val = transformObject({ [snapshot.key]: val }, fieldTransformsAtPath)[key];
-                syncPathExtra = transformPath(syncPathExtra.split('/'), invertMap(fieldTransforms)).join('/');
+                key = transformPath([snapshot.key], fieldTransformsAtPath, dateModifiedKey)[0];
+                val = transformObject({ [snapshot.key]: val }, fieldTransformsAtPath, dateModifiedKey)[key];
+                syncPathExtra = transformPath(
+                    syncPathExtra.split('/'),
+                    invertMap(fieldTransforms),
+                    dateModifiedKey
+                ).join('/');
             }
-            const value = this._getChangeValue(path, key, val);
+            const value = this._getChangeValue(key, val, dateModifiedKey);
 
             const pathTransformed = pathFirebase + syncPathExtra;
             if (!this.addValuesToPendingSaves(pathTransformed.split('/'), value)) {
@@ -448,7 +452,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         }
     }
-    private validateMap(record: Record<string, any>) {
+    private validateMap(record: Record<string, any>, dateModifiedKey: string) {
         if (process.env.NODE_ENV === 'development') {
             const values = Object.entries(record)
                 .filter(([key]) => key !== '__dict' && key !== '__obj' && key !== '__arr' && key !== '_')
@@ -460,24 +464,24 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 debugger;
             }
             values.forEach((val) => {
-                if (val === '@' || val === '_') {
+                if (val === dateModifiedKey || val === '_') {
                     console.error('Field transform map uses a reserved value:', val);
                 } else if (isObject(val)) {
-                    this.validateMap(val);
+                    this.validateMap(val, dateModifiedKey);
                 }
             });
         }
         return record;
     }
-    private insertDateToObject(value: any) {
+    private insertDateToObject(value: any, dateModifiedKey: string) {
         const timestamp = this.fns.serverTimestamp();
         if (isObject(value)) {
             return Object.assign(value, {
-                '@': timestamp,
+                [dateModifiedKey]: timestamp,
             });
         } else {
             return {
-                '@': timestamp,
+                [dateModifiedKey]: timestamp,
                 _: value,
             };
         }
@@ -485,17 +489,19 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private insertDatesToSaveObject(
         batch: Record<string, string | object>,
         queryByModified: QueryByModified<any>,
+        dateModifiedKey: string,
         path: string,
         value: any
     ): object {
         let o = queryByModified;
         if (o === true) {
-            value = this.insertDateToObject(value);
+            value = this.insertDateToObject(value, dateModifiedKey);
         } else if (o === '*' || isObject(value)) {
             Object.keys(value).forEach((key) => {
                 value[key] = this.insertDatesToSaveObject(
                     batch,
                     o === '*' ? true : o[key] || o['*'],
+                    dateModifiedKey,
                     path + '/' + key,
                     value[key]
                 );
@@ -506,6 +512,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private insertDatesToSave(
         batch: Record<string, string | object>,
         queryByModified: QueryByModified<any>,
+        dateModifiedKey: string,
         basePath: string,
         path: string[],
         value: any
@@ -515,18 +522,18 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             if (o === true) {
                 if (i === path.length - 1) {
                     if (!isObject(value)) {
-                        return this.insertDateToObject(value);
+                        return this.insertDateToObject(value, dateModifiedKey);
                     } else {
                         const pathThis = basePath + path.slice(0, i + 1).join('/');
                         if (isObject(value)) {
-                            value['@'] = this.fns.serverTimestamp();
+                            value[dateModifiedKey] = this.fns.serverTimestamp();
                         } else {
-                            batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                            batch[pathThis + '/' + dateModifiedKey] = this.fns.serverTimestamp();
                         }
                     }
                 } else {
                     const pathThis = basePath + path.slice(0, i + 1).join('/');
-                    batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                    batch[pathThis + '/' + dateModifiedKey] = this.fns.serverTimestamp();
                 }
                 return value;
             } else if (isObject(o)) {
@@ -534,15 +541,15 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             } else if (o === '*') {
                 const pathThis = basePath + path.slice(0, i + 1).join('/');
                 if (isNullOrUndefined(value) || isObjectEmpty(value)) {
-                    batch[pathThis] = { '@': this.fns.serverTimestamp() };
+                    batch[pathThis] = { [dateModifiedKey]: this.fns.serverTimestamp() };
                 } else {
-                    batch[pathThis + '/@'] = this.fns.serverTimestamp();
+                    batch[pathThis + '/' + dateModifiedKey] = this.fns.serverTimestamp();
                 }
                 return value;
             }
         }
 
-        this.insertDatesToSaveObject(batch, o, basePath + path.join('/'), value);
+        this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
 
         return value;
     }

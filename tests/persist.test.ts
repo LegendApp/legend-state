@@ -310,6 +310,49 @@ describe('Persist remote save', () => {
         });
     });
 
+    test('Pending after save with different dateModifiedKey', async () => {
+        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: true,
+            },
+        };
+
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+            dateModifiedKey: 'd',
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set({ test2: 'hi', test3: 'hi2' });
+
+        await promiseTimeout();
+
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('testuid')).saves;
+
+        expect(pending).toEqual({ test: { [symbolSaveValue]: { test2: 'hi', test3: 'hi2' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/test': {
+                d: '__serverTimestamp',
+                test2: 'hi',
+                test3: 'hi2',
+            },
+        });
+
+        await remote['promiseSaved'].promise;
+        await promiseTimeout();
+
+        // Should have saved with timestamp to local storage
+        expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
+            test: { d: '__serverTimestamp', test2: 'hi', test3: 'hi2' },
+        });
+    });
+
     test('queryByModified with queryByModified at root', async () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },

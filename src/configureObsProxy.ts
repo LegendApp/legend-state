@@ -7,6 +7,7 @@ interface Config {
         localPersistence?: ClassConstructor<ObsPersistLocal>;
         remotePersistence?: ClassConstructor<ObsPersistRemote>;
         saveTimeout?: number;
+        dateModifiedKey?: string;
     };
 }
 

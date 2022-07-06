@@ -1,5 +1,5 @@
 import { config } from './configureObsProxy';
-import { replaceKeyInObject, symbolDateModified } from './globals';
+import { getDateModifiedKey, replaceKeyInObject, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { obsProxy } from './ObsProxy';
 import { listenToObs } from './ObsProxyFns';
@@ -34,6 +34,8 @@ async function onObsChange<T>(
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
 
+    const dateModifiedKey = getDateModifiedKey(persistOptions.dateModifiedKey || config.persist?.dateModifiedKey);
+
     if (persistOptions.local) {
         // TODO: What to do? Queue this until after loaded? Or throw error?
         if (!proxyState.isLoadedLocal) return;
@@ -41,12 +43,12 @@ async function onObsChange<T>(
     }
 
     if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
-        const saved = await persistenceRemote.save(persistOptions.remote, value, info);
+        const saved = await persistenceRemote.save(persistOptions, value, info);
         if (saved) {
             if (persistOptions.local) {
                 persistenceLocal.setValue(
                     persistOptions.local,
-                    replaceKeyInObject(saved as object, symbolDateModified, '@')
+                    replaceKeyInObject(saved as object, symbolDateModified, dateModifiedKey)
                 );
             }
         }
@@ -83,6 +85,8 @@ export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOp
 
         const value = persistenceLocal.getValue(local);
 
+        const dateModifiedKey = getDateModifiedKey(persistOptions.dateModifiedKey || config.persist?.dateModifiedKey);
+
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
                 console.error(`Called persist with the same local name multiple times: ${local}`);
@@ -92,7 +96,7 @@ export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOp
         }
 
         if (value !== null && value !== undefined) {
-            replaceKeyInObject(value, '@', symbolDateModified);
+            replaceKeyInObject(value, dateModifiedKey, symbolDateModified);
             obs.assign(value);
         }
 
@@ -109,7 +113,7 @@ export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOp
 
         persistenceRemote.listen(
             obs,
-            remote as PersistOptionsRemote,
+            persistOptions,
             () => {
                 proxyState.isLoadedRemote.set(true);
             },

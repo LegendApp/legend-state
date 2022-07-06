@@ -26,7 +26,7 @@ export class ObsPersistFirebaseWeb extends ObsPersistFirebaseBase {
             getCurrentUser: () => getAuth().currentUser?.uid,
             ref: (path: string) => ref(getDatabase(), path),
             orderByChild: (ref: DatabaseReference, child: string, start: number) =>
-                query(ref, orderByChild('@'), startAt(start)),
+                query(ref, orderByChild(child), startAt(start)),
             update: (object: object) => update(ref(getDatabase()), object),
             once: (ref: DatabaseReference, callback) => {
                 let unsubscribe: Unsubscribe;

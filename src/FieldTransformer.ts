@@ -1,13 +1,13 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
 import { symbolDateModified } from './globals';
 
-export function transformPath(path: string[], map: Record<string, any>) {
+export function transformPath(path: string[], map: Record<string, any>, dateModifiedKey: string) {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
         d = d[path[i]] = i === path.length - 1 ? null : {};
     }
-    let value = transformObject(data, map);
+    let value = transformObject(data, map, dateModifiedKey);
     const pathOut = [];
     for (let i = 0; i < path.length; i++) {
         const key = Object.keys(value)[0];
@@ -17,7 +17,12 @@ export function transformPath(path: string[], map: Record<string, any>) {
     return pathOut;
 }
 
-export function transformObject(dataIn: Record<string, any>, map: Record<string, any>, id?: string) {
+export function transformObject(
+    dataIn: Record<string, any>,
+    map: Record<string, any>,
+    dateModifiedKey: string,
+    id?: string
+) {
     let ret: any = {};
     if (dataIn) {
         if ((map as unknown as string) === '*') {
@@ -25,14 +30,14 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
         } else if (isString(dataIn)) {
             ret = map[dataIn] || dataIn;
         } else if (map.__obj && isObject(dataIn)) {
-            ret = transformObject(dataIn, map.__obj);
+            ret = transformObject(dataIn, map.__obj, dateModifiedKey);
         } else if (map.__arr && isArray(dataIn)) {
-            ret = dataIn.map((v2) => transformObject(v2, map.__arr));
+            ret = dataIn.map((v2) => transformObject(v2, map.__arr, dateModifiedKey));
         } else if (map.__dict && isObject(dataIn)) {
             ret = {};
             Object.keys(dataIn).forEach((dictKey) => {
                 if (!isString(dictKey)) debugger;
-                ret[dictKey] = transformObject(dataIn[dictKey], map.__dict);
+                ret[dictKey] = transformObject(dataIn[dictKey], map.__dict, dateModifiedKey);
             });
         } else if (isArray(dataIn)) {
             if (process.env.NODE_ENV === 'development') debugger;
@@ -44,14 +49,14 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                 if (key === '__obj' || key === '__dict' || key === '__arr' || key === '_id') return;
                 let v = dataIn[key];
 
-                if (key === '@' || key === '*') {
+                if (key === dateModifiedKey || key === '*') {
                     ret[key] = v;
                 } else {
                     // TODO: May not need some of these since I added the checks above, but have more tests before removing
                     if (isObject(map.__dict)) {
                         ret[key] = {};
                         if (v) {
-                            ret[key] = transformObject(v, map.__dict, key);
+                            ret[key] = transformObject(v, map.__dict, dateModifiedKey, key);
                         }
                     } else {
                         if (process.env.NODE_ENV === 'development' && map[key] === undefined && !map['*']) {
@@ -74,17 +79,22 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                                             if (v[dictKey] === '*') {
                                                 ret[k] = v;
                                             } else {
-                                                ret[k][dictKey] = transformObject(v[dictKey], map[key].__dict, key);
+                                                ret[k][dictKey] = transformObject(
+                                                    v[dictKey],
+                                                    map[key].__dict,
+                                                    dateModifiedKey,
+                                                    key
+                                                );
                                             }
                                         });
                                     }
                                 }
                             } else if (mapped.__obj) {
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;
-                                ret[k] = isObject(v) ? transformObject(v, map[key], key) : v;
+                                ret[k] = isObject(v) ? transformObject(v, map[key], dateModifiedKey, key) : v;
                             } else if (mapped.__arr) {
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;
-                                ret[k] = v.map((v2) => transformObject(v2, mapped.__arr, key));
+                                ret[k] = v.map((v2) => transformObject(v2, mapped.__arr, dateModifiedKey, key));
                             } else if (mapped.__val) {
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;
                                 if (process.env.NODE_ENV === 'development' && !isString(v)) debugger;

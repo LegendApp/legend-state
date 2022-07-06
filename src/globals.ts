@@ -1,4 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
+import { config } from './configureObsProxy';
 
 export const symbolDateModified = Symbol('__dateModified');
 
@@ -123,4 +124,7 @@ export function isCollection(obj: any) {
 
 export function isObjectEmpty(obj: object) {
     return obj && Object.keys(obj).length === 0;
+}
+export function getDateModifiedKey(dateModifiedKey: string) {
+    return dateModifiedKey || config.persist?.dateModifiedKey || '@';
 }

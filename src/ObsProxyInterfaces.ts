@@ -75,6 +75,7 @@ export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
+    saveTimeout?: number;
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
         fieldTransforms?: SameShapeWithStrings<T>;
@@ -87,6 +88,7 @@ export interface PersistOptions<T = any> {
     remote?: PersistOptionsRemote<T>;
     localPersistence?: any;
     remotePersistence?: any;
+    dateModifiedKey?: string;
 }
 
 export interface ObsPersistLocal {
@@ -98,10 +100,10 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObsPersistRemote {
-    save<T>(options: PersistOptionsRemote<T>, value: T, info: ObsListenerInfo): Promise<T>;
+    save<T>(options: PersistOptions<T>, value: T, info: ObsListenerInfo): Promise<T>;
     listen<T>(
         obs: ObsProxyChecker<T>,
-        options: PersistOptionsRemote<T>,
+        options: PersistOptions<T>,
         onLoad: () => void,
         onChange: (obs: ObsProxy<T>, value: any) => void
     );
