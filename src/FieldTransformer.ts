@@ -20,7 +20,11 @@ export function transformPath(path: string[], map: Record<string, any>) {
 export function transformObject(dataIn: Record<string, any>, map: Record<string, any>, id?: string) {
     let ret: any = {};
     if (dataIn) {
-        if (map.__obj && isObject(dataIn)) {
+        if ((map as unknown as string) === '*') {
+            ret = dataIn;
+        } else if (isString(dataIn)) {
+            ret = map[dataIn] || dataIn;
+        } else if (map.__obj && isObject(dataIn)) {
             ret = transformObject(dataIn, map.__obj);
         } else if (map.__arr && isArray(dataIn)) {
             ret = dataIn.map((v2) => transformObject(v2, map.__arr));
@@ -80,7 +84,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                                 ret[k] = isObject(v) ? transformObject(v, map[key], key) : v;
                             } else if (mapped.__arr) {
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;
-                                ret[k] = v.map((v2) => transformObject(v2, map[key], key));
+                                ret[k] = v.map((v2) => transformObject(v2, mapped.__arr, key));
                             } else if (mapped.__val) {
                                 if (process.env.NODE_ENV === 'development' && !isString(k)) debugger;
                                 if (process.env.NODE_ENV === 'development' && !isString(v)) debugger;
@@ -122,6 +126,8 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
 const invertedMaps = new WeakMap();
 
 export function invertMap(obj: Record<string, any>) {
+    if (isString(obj)) return obj;
+
     const existing = invertedMaps.get(obj);
     if (existing) return existing;
 

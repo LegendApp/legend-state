@@ -1,6 +1,10 @@
 import firebase from '@react-native-firebase/app';
+import '@react-native-firebase/auth';
+import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
 import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
+
+console.log('imported auth');
 
 export class ObsPersistFirebaseMobile extends ObsPersistFirebaseBase {
     constructor() {
@@ -17,7 +21,8 @@ export class ObsPersistFirebaseMobile extends ObsPersistFirebaseBase {
             onChildAdded: (ref: FirebaseDatabaseTypes.Query, callback) => ref.on('child_added', callback),
             onChildChanged: (ref: FirebaseDatabaseTypes.Query, callback) => ref.on('child_changed', callback),
             serverTimestamp: () => firebase.database.ServerValue.TIMESTAMP,
-            onAuthStateChanged: (callback) => firebase.auth().onUserChanged(callback),
+            onAuthStateChanged: (callback: (user: FirebaseAuthTypes.User) => void) =>
+                firebase.auth().onUserChanged(callback),
         });
     }
 }

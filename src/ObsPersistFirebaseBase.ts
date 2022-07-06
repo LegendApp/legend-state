@@ -174,13 +174,17 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
 
         let fieldTransformsAtPath;
-        if (syncPathExtra && fieldTransforms) {
+        if (fieldTransforms) {
             if (process.env.NODE_ENV === 'development') {
                 this.validateMap(fieldTransforms);
             }
-            const pathArr = syncPathExtra.split('/').filter((a) => !!a);
-            fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
-            syncPathExtra = transformPath(pathArr, fieldTransforms).join('/');
+            if (syncPathExtra) {
+                const pathArr = syncPathExtra.split('/').filter((a) => !!a);
+                fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
+                syncPathExtra = transformPath(pathArr, fieldTransforms).join('/');
+            } else {
+                fieldTransformsAtPath = invertMap(fieldTransforms);
+            }
         }
 
         const pathFirebase = syncPath(this.fns.getCurrentUser());

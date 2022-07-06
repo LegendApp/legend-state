@@ -65,17 +65,14 @@ function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = false;
 }
 
-function _obsPersist<T>(
-    proxyState: ObsProxy<ObsPersistState>,
-    obs: ObsProxyChecker<T>,
-    persistOptions: PersistOptions<T>
-) {
+export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOptions<T>) {
     const { local, remote } = persistOptions;
     const localPersistence = persistOptions.localPersistence || config.persist?.localPersistence;
     const remotePersistence = persistOptions.remotePersistence || config.persist?.remotePersistence;
     const state: LocalState = { tempDisableSaveRemote: false };
 
-    listenToObs(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
+    let isLoadedLocal = false;
+    let clearLocal: () => Promise<void>;
 
     if (local) {
         if (!mapPersistences.has(localPersistence)) {
@@ -99,7 +96,9 @@ function _obsPersist<T>(
             obs.assign(value);
         }
 
-        proxyState.isLoadedLocal.set(true);
+        clearLocal = () => Promise.resolve(persistenceLocal.deleteById(local));
+
+        isLoadedLocal = true;
     }
     if (remote) {
         if (!mapPersistences.has(remotePersistence)) {
@@ -117,10 +116,14 @@ function _obsPersist<T>(
             onChangeRemote.bind(this, state)
         );
     }
-}
 
-export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOptions<T>) {
-    const proxyState = obsProxy<ObsPersistState>({ isLoadedLocal: false, isLoadedRemote: false });
-    _obsPersist(proxyState, obs, persistOptions);
+    const proxyState = obsProxy<ObsPersistState>({
+        isLoadedLocal,
+        isLoadedRemote: false,
+        clearLocal,
+    });
+
+    listenToObs(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
+
     return proxyState;
 }

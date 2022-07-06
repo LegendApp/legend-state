@@ -4,7 +4,7 @@ export interface ObsProps<T> {
     get(): T;
     set(value: T): ObsProxy<T>;
     set<K extends keyof T>(key: K | string, value: T[K]): ObsProxy<T[K]>;
-    assign(value: T): ObsProxy<T>;
+    assign(value: T | Partial<T>): ObsProxy<T>;
     on(eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
     on(eventType: 'equals', value: T, cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
@@ -31,15 +31,13 @@ export interface ObsListenerInfo {
 
 export type ListenerFn<T> = (value: T, info: ObsListenerInfo) => void;
 
-type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends Array<any>
-    ? T[K]
-    : T[K] extends Map<any, any>
-    ? T[K]
-    : T[K] extends WeakMap<any, any>
-    ? T[K]
-    : T[K] extends Set<any>
-    ? T[K]
-    : T[K] extends WeakSet<any>
+type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends
+    | Function
+    | Array<any>
+    | Map<any, any>
+    | WeakMap<any, any>
+    | Set<any>
+    | WeakSet<any>
     ? T[K]
     : T extends object
     ? TRecurse & TProps
@@ -112,6 +110,7 @@ export interface ObsPersistRemote {
 export interface ObsPersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
+    clearLocal: () => Promise<void>;
 }
 export type ObsProxyChecker<T = any> = ObsProxy<T> | ObsProxyUnsafe<T>;
 
@@ -119,7 +118,7 @@ export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 
 type SameShapeWithStringsRecord<T> = {
-    [K in keyof Omit<T, '_id' | 'id'>]-?: T[K] extends Record<string, Record<string, any>>
+    [K in keyof Omit<T, '_id' | 'id'>]-?: '*' | string | T[K] extends Record<string, Record<string, any>>
         ?
               | {
                     _: string;
@@ -127,11 +126,19 @@ type SameShapeWithStringsRecord<T> = {
                 }
               | SameShapeWithStrings<T[K]>
         : T[K] extends Array<infer t>
-        ? ((Record<string, string> | SameShapeWithStringsRecord<t>) & { _: string; __arr: boolean }) | string
+        ?
+              | {
+                    _: string;
+                    __arr: SameShapeWithStrings<t> | Record<string, string>;
+                }
+              | string
         : T[K] extends Record<string, object>
         ?
               | (
-                    | { _: string; __obj: SameShapeWithStrings<RecordValue<T[K]>> }
+                    | {
+                          _: string;
+                          __obj: SameShapeWithStrings<RecordValue<T[K]>> | SameShapeWithStrings<T[K]>;
+                      }
                     | { _: string; __dict: SameShapeWithStrings<RecordValue<T[K]>> }
                 )
               | string

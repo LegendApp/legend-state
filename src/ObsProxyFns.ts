@@ -1,4 +1,4 @@
-import { symbolDateModified } from './globals';
+import { isObjectEmpty, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { EventType, ListenerFn, ObsListener, ObsListenerInfo, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
@@ -58,8 +58,13 @@ export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) =
         let isDone = false;
         let listener: ObsListener<T>;
         function check(newValue) {
-            // If value param is symbolHasValue, then this is from onHasValue so resolve if newValue is anything but undefined
-            if (!isDone && newValue !== undefined && (value === (symbolHasValue as any) || newValue === value)) {
+            if (
+                !isDone &&
+                (value === (symbolHasValue as any)
+                    ? // If value param is symbolHasValue, then this is from onHasValue so resolve if newValue is anything but undefined or empty object
+                      newValue !== undefined && newValue !== null && newValue !== !isObjectEmpty(newValue)
+                    : newValue === value)
+            ) {
                 isDone = true;
                 cb?.(newValue);
                 resolve(value);

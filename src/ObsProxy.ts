@@ -198,8 +198,6 @@ const proxyGet = {
                 }
                 proxy = _obsProxy(target[prop], info.safe, proxyOwner, prop);
                 info.proxies.set(prop, proxy);
-                // } else if (state.isTrackingPrimitives && !proxy && isPrimitive(target[prop])) {
-                //     state.trackedPrimitives.push([proxyOwner, prop]);
             }
             return proxy || target[prop];
         }
@@ -234,9 +232,9 @@ function _obsProxy<T>(value: T, safe: boolean, parent?: ObsProxy, prop?: string)
     return proxy;
 }
 
-function obsProxy<T>(value: T): ObsProxy<T>;
+function obsProxy<T>(value?: T): ObsProxy<T>;
 function obsProxy<T>(value: T, unsafe: true): ObsProxyUnsafe<T>;
-function obsProxy<T>(value: T = undefined, unsafe?: boolean): ObsProxy<T> | ObsProxyUnsafe<T> {
+function obsProxy<T>(value?: T, unsafe?: boolean): ObsProxy<T> | ObsProxyUnsafe<T> {
     return _obsProxy(value, !unsafe);
 }
 

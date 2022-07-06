@@ -1,4 +1,7 @@
-import { configureObsProxy, getObsModified, obsProxy, onTrue, PersistOptionsRemote, ProxyValue } from '../src';
+import { obsProxy } from '../src/ObsProxy';
+import { getObsModified, onTrue } from '../src/ObsProxyFns';
+import { PersistOptionsRemote, ProxyValue } from '../src/ObsProxyInterfaces';
+import { configureObsProxy } from '../src/configureObsProxy';
 import { symbolDateModified } from '../src/globals';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
@@ -1658,15 +1661,13 @@ describe('Field transform', () => {
 });
 
 // TODO
-// useObsProxy should batch listeners?
 // Do string functions work on primitives?
 
 // # Persist
 // Load from local should convert @ to symbol
 // Encryption
 
-// # Things outside of Bravely scope
-// Use MMKV for local?
+// # Things outside of Bravely scopea
 // Functions inside proxy as actions should not be proxied and be bound to the proxy as this
 // Promises
 // useSyncExternalStore

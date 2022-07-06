@@ -26,6 +26,10 @@ export class ObsPersistMMKV implements ObsPersistLocal {
     }
     private save(id: string) {
         const v = this.data[id];
-        storage.set(id, JSON.stringify(v));
+        if (v !== undefined) {
+            storage.set(id, JSON.stringify(v));
+        } else {
+            storage.delete(id);
+        }
     }
 }
