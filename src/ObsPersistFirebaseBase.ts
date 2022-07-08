@@ -159,7 +159,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const {
             once,
             requireAuth,
-            firebase: { syncPath, fieldTransforms },
+            firebase: { syncPath, fieldTransforms, ignoreKeys },
         } = options.remote;
 
         if (requireAuth) {
@@ -176,7 +176,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             if (syncPathExtra) {
                 const pathArr = syncPathExtra.split('/').filter((a) => !!a);
                 fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
-                syncPathExtra = transformPath(pathArr, fieldTransforms, dateModifiedKey).join('/');
+                syncPathExtra = transformPath(pathArr, fieldTransforms, ignoreKeys, dateModifiedKey).join('/');
             } else {
                 fieldTransformsAtPath = invertMap(fieldTransforms);
             }
@@ -247,7 +247,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const {
             requireAuth,
             saveTimeout,
-            firebase: { fieldTransforms },
+            firebase: { fieldTransforms, ignoreKeys },
         } = options.remote;
         if (requireAuth) {
             await this.waitForAuth();
@@ -260,10 +260,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
 
         if (fieldTransforms) {
-            value = transformObject(value, fieldTransforms, dateModifiedKey);
+            value = transformObject(value, fieldTransforms, ignoreKeys, dateModifiedKey);
             path = transformPath(
                 info.path.filter((a) => !!a),
                 fieldTransforms,
+                ignoreKeys,
                 dateModifiedKey
             );
         }
@@ -308,7 +309,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         ...path: string[]
     ) {
         const {
-            firebase: { fieldTransforms },
+            firebase: { fieldTransforms, ignoreKeys },
         } = options.remote;
         const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
 
@@ -318,7 +319,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             let queryByModified = options.remote.firebase.queryByModified;
             if (queryByModified) {
                 if (queryByModified !== true && queryByModified !== '*' && fieldTransforms) {
-                    queryByModified = transformObject(queryByModified, fieldTransforms, dateModifiedKey);
+                    queryByModified = transformObject(queryByModified, fieldTransforms, ignoreKeys, dateModifiedKey);
                 }
                 valSave = this.insertDatesToSave(batch, queryByModified, dateModifiedKey, basePath, path, valSave);
             }
@@ -409,7 +410,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let outerValue = snapshot.val();
 
         if (fieldTransformsAtPath) {
-            outerValue = transformObject(outerValue, fieldTransformsAtPath, dateModifiedKey);
+            outerValue = transformObject(outerValue, fieldTransformsAtPath, undefined, dateModifiedKey);
         }
 
         if (outerValue && isObject(outerValue)) {
@@ -449,13 +450,16 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         let key = snapshot.key;
         if (val) {
             if (fieldTransformsAtPath) {
-                key = transformPath([snapshot.key], fieldTransformsAtPath, dateModifiedKey)[0];
-                val = transformObject({ [snapshot.key]: val }, fieldTransformsAtPath, dateModifiedKey)[key];
-                syncPathExtra = transformPath(
-                    syncPathExtra.split('/'),
-                    invertMap(fieldTransforms),
-                    dateModifiedKey
-                ).join('/');
+                key = transformPath([snapshot.key], fieldTransformsAtPath, undefined, dateModifiedKey)[0];
+                val = transformObject({ [snapshot.key]: val }, fieldTransformsAtPath, undefined, dateModifiedKey)[key];
+                if (syncPathExtra) {
+                    syncPathExtra = transformPath(
+                        syncPathExtra.split('/'),
+                        invertMap(fieldTransforms),
+                        undefined,
+                        dateModifiedKey
+                    ).join('/');
+                }
             }
             const value = this._getChangeValue(key, val, dateModifiedKey);
 

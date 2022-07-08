@@ -663,7 +663,9 @@ describe('Persist remote save', () => {
                     test: {
                         _: 't',
                         __dict: {
-                            text: 't2',
+                            __dict: {
+                                text: 't2',
+                            },
                         },
                     },
                 },
@@ -685,19 +687,19 @@ describe('Persist remote save', () => {
         expect(remote['_constructBatchForSave']()).toEqual({
             '/test/testuid/s/t/test1': {
                 container1: {
-                    text: 'hi',
+                    t2: 'hi',
                 },
                 container2: {
-                    text: 'hi2',
+                    t2: 'hi2',
                 },
             },
             '/test/testuid/s/t/test1/@': '__serverTimestamp',
             '/test/testuid/s/t/test2': {
                 container3: {
-                    text: 'hi3',
+                    t2: 'hi3',
                 },
                 container4: {
-                    text: 'hi4',
+                    t2: 'hi4',
                 },
             },
             '/test/testuid/s/t/test2/@': '__serverTimestamp',
@@ -720,7 +722,9 @@ describe('Persist remote save', () => {
                     test: {
                         _: 't',
                         __dict: {
-                            text: 't2',
+                            __dict: {
+                                text: 't2',
+                            },
                         },
                     },
                 },
@@ -743,21 +747,21 @@ describe('Persist remote save', () => {
             '/test/testuid/s/t/test1': {
                 container1: {
                     '@': '__serverTimestamp',
-                    text: 'hi',
+                    t2: 'hi',
                 },
                 container2: {
                     '@': '__serverTimestamp',
-                    text: 'hi2',
+                    t2: 'hi2',
                 },
             },
             '/test/testuid/s/t/test2': {
                 container3: {
                     '@': '__serverTimestamp',
-                    text: 'hi3',
+                    t2: 'hi3',
                 },
                 container4: {
                     '@': '__serverTimestamp',
-                    text: 'hi4',
+                    t2: 'hi4',
                 },
             },
         });
@@ -1033,6 +1037,47 @@ describe('Persist remote save', () => {
             '/test/testuid/s/clients/clientID/outer/inner/id1': {
                 '@': '__serverTimestamp',
             },
+        });
+
+        await remote['promiseSaved'].promise;
+    });
+    test('ignoreKeys', async () => {
+        const obs = obsProxy({ test: { id: 'id0', text: 'text0' } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                ignoreKeys: { id: true },
+                fieldTransforms: {
+                    test: {
+                        _: 't',
+                        __obj: {
+                            text: 't2',
+                        },
+                    },
+                },
+            },
+        };
+
+        const state = obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        await onTrue(state.isLoadedRemote);
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.set({ id: 'id1', text: 'text1' });
+
+        await promiseTimeout();
+
+        const pending = remote['_pendingSaves2'].get(remoteOptions.firebase.syncPath('testuid')).saves;
+
+        expect(pending).toEqual({ t: { [symbolSaveValue]: { t2: 'text1' } } });
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/t': { t2: 'text1' },
         });
 
         await remote['promiseSaved'].promise;
@@ -1714,6 +1759,7 @@ describe('Field transform', () => {
 // TODO
 // Do string functions work on primitives?
 // Set should do batch when assigning?
+// Change save to use the changedValue and path instead of the value, much better when transforming
 
 // # Persist
 // Load from local with null values should not overwrite default values

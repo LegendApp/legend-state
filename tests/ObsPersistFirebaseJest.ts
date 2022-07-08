@@ -47,7 +47,7 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
                     const prev = clone(this.remoteData);
                     mergeBatch(this.remoteData, obj);
 
-                    this.notifyListners(prev);
+                    this.notifyListeners(prev);
 
                     resolve();
                 });
@@ -100,9 +100,9 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
 
         Object.assign(o, obj);
 
-        this.notifyListners(prev);
+        this.notifyListeners(prev);
     }
-    private notifyListners(prev: object) {
+    private notifyListeners(prev: object) {
         Object.keys(this.listeners).forEach((listenerPath) => {
             const pathArr = listenerPath.split('/').filter((a) => !!a);
             const dataAtPath = clone(objectAtPath(pathArr, this.remoteData));

@@ -80,8 +80,8 @@ export interface PersistOptionsRemote<T = any> {
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
         fieldTransforms?: SameShapeWithStrings<T>;
-        spreadPaths?: Exclude<keyof T, '_id' | 'id'>[];
         queryByModified?: QueryByModified<T>;
+        ignoreKeys?: Record<string, true>;
     };
 }
 export interface PersistOptions<T = any> {
