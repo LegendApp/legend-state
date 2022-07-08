@@ -118,3 +118,15 @@ const ProxyOnFunctions: Record<EventType, Function> = {
 export function on(obs: ObsProxyChecker, _: any, eventType: EventType, ...args) {
     return ProxyOnFunctions[eventType](obs, ...args);
 }
+
+export function assignDeep<T extends ObsProxyChecker>(obs: T, cb: Function) {
+    const info = state.infos.get(obs);
+    if (info) {
+        const i = info.listeners.findIndex((listener) => listener.callback === cb);
+        if (i >= 0) {
+            const listener = info.listeners[i];
+            listener._disposed = true;
+            info.listeners.splice(i, 1);
+        }
+    }
+}

@@ -1,4 +1,6 @@
 import { isArray, isObject } from '@legendapp/tools';
+import { ObsProxy } from './ObsProxyInterfaces';
+import { state } from './ObsProxyState';
 import { config } from './configureObsProxy';
 
 export const symbolDateModified = Symbol('__dateModified');
@@ -27,17 +29,39 @@ export function mergeDeep(target, ...sources) {
     if (!sources.length) return target;
     const source = sources.shift();
 
+    const needsSet = isProxy(target);
+
     if (isObject(target) && isObject(source)) {
         if (source[symbolDateModified as any]) {
-            target[symbolDateModified as any] = source[symbolDateModified as any];
+            if (needsSet) {
+                target.set(symbolDateModified, source[symbolDateModified as any]);
+            } else {
+                target[symbolDateModified as any] = source[symbolDateModified as any];
+            }
         }
         for (const key in source) {
             if (isObject(source[key])) {
-                if (!isObject(target[key])) target[key] = {};
-                if (!target[key]) Object.assign(target, { [key]: {} });
+                if (!isObject(target[key])) {
+                    if (needsSet) {
+                        target.set(key, {});
+                    } else {
+                        target[key] = {};
+                    }
+                }
+                if (!target[key]) {
+                    if (needsSet) {
+                        target.assign({ [key]: {} });
+                    } else {
+                        Object.assign(target, { [key]: {} });
+                    }
+                }
                 mergeDeep(target[key], source[key]);
             } else {
-                Object.assign(target, { [key]: source[key] });
+                if (isProxy(target)) {
+                    target.assign({ [key]: source[key] });
+                } else {
+                    Object.assign(target, { [key]: source[key] });
+                }
             }
         }
     }
@@ -48,20 +72,21 @@ export function isNullOrUndefined(val: any) {
     return val === null || val === undefined;
 }
 
-// export function removeNullUndefined<T extends Record<string, any>>(a: T): T {
-//     if (a === undefined) return null;
-//     // @ts-ignore
-//     const out: T = {};
-//     Object.keys(a).forEach((key) => {
-//         const v = a[key];
-//         if (v !== null && v !== undefined) {
-//             // @ts-ignore
-//             out[key] = isObject(v) ? removeNullUndefined(v) : v;
-//         }
-//     });
+export function isProxy(obj: any): obj is ObsProxy {
+    return state.infos.has(obj);
+}
 
-//     return out;
-// }
+export function removeNullUndefined<T extends Record<string, any>>(a: T) {
+    if (a === undefined) return null;
+    // @ts-ignore
+    Object.keys(a).forEach((key) => {
+        const v = a[key];
+        if (v === null || v === undefined) {
+            delete a[key];
+        } else if (isObject(v)) {
+        }
+    });
+}
 
 // export function removeUndefined<T extends Record<string, any>>(a: T): T {
 //     if (a === undefined) return null;
@@ -90,19 +115,22 @@ export function objectAtPath(path: string[], value: object) {
     return o;
 }
 
-export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any) {
+export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, clone: boolean) {
     if (isObject(obj)) {
+        const target = clone ? {} : obj;
         if (obj[keySource]) {
-            obj[keyTarget] = obj[keySource];
-            delete obj[keySource];
+            target[keyTarget] = obj[keySource];
+            delete target[keySource];
         }
         Object.keys(obj).forEach((key) => {
             if (key !== keySource) {
-                replaceKeyInObject(obj[key], keySource, keyTarget);
+                target[key] = replaceKeyInObject(obj[key], keySource, keyTarget, clone);
             }
         });
+        return target;
+    } else {
+        return obj;
     }
-    return obj;
 }
 
 export function isPrimitive(val: any) {

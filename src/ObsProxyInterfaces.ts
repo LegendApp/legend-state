@@ -51,8 +51,8 @@ type ObsPropsRecursive<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>, ObsProps<T[K]>>;
 };
 
-export type ObsProxyUnsafe<T = object> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
-export type ObsProxy<T = object> = ObsPropsRecursive<T> & ObsProps<T>;
+export type ObsProxyUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
+export type ObsProxy<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
 
 export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t>
     ? t
@@ -67,6 +67,7 @@ export type MappedProxyValue<T extends ObsProxyChecker[]> = {
 export type QueryByModified<T> =
     | boolean
     | '*'
+    | { '*': '*' | true }
     | {
           [K in keyof T]?: QueryByModified<T[K]>;
       };
@@ -120,8 +121,12 @@ export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 
 type SameShapeWithStringsRecord<T> = {
-    [K in keyof Omit<T, '_id' | 'id'>]-?: '*' | string | T[K] extends Record<string, Record<string, any>>
+    [K in keyof Omit<T, '_id' | 'id'>]-?: T[K] extends Record<string, Record<string, any>>
         ?
+              | {
+                    _: string;
+                    __obj: SameShapeWithStrings<RecordValue<T[K]>> | SameShapeWithStrings<T[K]>;
+                }
               | {
                     _: string;
                     __dict: SameShapeWithStrings<RecordValue<T[K]>>;

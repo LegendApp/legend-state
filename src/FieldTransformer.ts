@@ -100,8 +100,8 @@ export function transformObject(
                                 if (process.env.NODE_ENV === 'development' && !isString(v)) debugger;
                                 ret[k] = mapped.__val[v];
                             } else {
-                                if (!isString(mapped)) debugger;
-                                ret[mapped] = v;
+                                if (v && !isString(mapped)) debugger;
+                                ret[k || mapped] = v;
                             }
                         }
                     }
@@ -138,38 +138,42 @@ const invertedMaps = new WeakMap();
 export function invertMap(obj: Record<string, any>) {
     if (isString(obj)) return obj;
 
-    const existing = invertedMaps.get(obj);
-    if (existing) return existing;
+    try {
+        const existing = invertedMaps.get(obj);
+        if (existing) return existing;
 
-    const target: Record<string, any> = {} as any;
+        const target: Record<string, any> = {} as any;
 
-    Object.keys(obj).forEach((key) => {
-        const val = obj[key];
-        if (process.env.NODE_ENV === 'development' && target[val]) debugger;
-        if (key !== '_') {
-            if (key === '__obj' || key === '__dict' || key === '__arr' || key === '__val') {
-                if (isObject(val)) {
-                    target[key] = invertMap(val);
-                } else {
-                    target[key] = val;
-                }
-            } else if (typeof val === 'string') {
-                target[val] = key;
-            } else if (isObject(val)) {
-                const prop =
-                    (val.__obj && '__obj') ||
-                    (val.__dict && '__dict') ||
-                    (val.__arr && '__arr') ||
-                    (val.__val && '__val');
-                if (prop) {
-                    const k = val._;
-                    target[k] = Object.assign(invertMap(val), { _: key });
+        Object.keys(obj).forEach((key) => {
+            const val = obj[key];
+            if (process.env.NODE_ENV === 'development' && target[val]) debugger;
+            if (key !== '_') {
+                if (key === '__obj' || key === '__dict' || key === '__arr' || key === '__val') {
+                    if (isObject(val)) {
+                        target[key] = invertMap(val);
+                    } else {
+                        target[key] = val;
+                    }
+                } else if (typeof val === 'string') {
+                    target[val] = key;
+                } else if (isObject(val)) {
+                    const prop =
+                        (val.__obj && '__obj') ||
+                        (val.__dict && '__dict') ||
+                        (val.__arr && '__arr') ||
+                        (val.__val && '__val');
+                    if (prop) {
+                        const k = val._;
+                        target[k] = Object.assign(invertMap(val), { _: key });
+                    }
                 }
             }
-        }
-    });
+        });
+        invertedMaps.set(obj, target);
 
-    invertedMaps.set(obj, target);
-
-    return target;
+        return target;
+    } catch (e) {
+        console.log(e);
+        debugger;
+    }
 }

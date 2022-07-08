@@ -92,7 +92,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private calculateDateModified(obs: ObsProxyChecker) {
         const max = { v: 0 };
         if (isObject(obs.get())) {
-            Object.keys(obs).forEach((key) => (max.v = Math.max(max.v, getObsModified(obs[key]))));
+            Object.keys(obs).forEach((key) => {
+                const dateModified = getObsModified(obs[key]);
+                if (dateModified) {
+                    max.v = Math.max(max.v, dateModified);
+                }
+            });
         }
         return max.v > 0 ? max.v : undefined;
     }
@@ -111,10 +116,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             this.iterateListen(obs, options, queryByModified, onLoad, onChange, '');
         } else {
             let dateModified: number;
-            if (queryByModified === true) {
+            if (queryByModified === true || queryByModified === '*') {
                 dateModified = this.calculateDateModified(obs);
             }
-            this._listen(obs, options, undefined, onLoad, onChange, '');
+
+            this._listen(obs, options, queryByModified, dateModified, onLoad, onChange, '');
         }
     }
     private iterateListen<T>(
@@ -133,16 +139,18 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             if (isObject(q)) {
                 this.iterateListen(o, options, q, onLoad, onChange, extra);
             } else {
-                if (q === true) {
+                if (q === true || q === '*') {
                     dateModified = this.calculateDateModified(o);
                 }
-                this._listen(o, options, dateModified, onLoad, onChange, extra);
+
+                this._listen(o, options, q, dateModified, onLoad, onChange, extra);
             }
         });
     }
     private async _listen<T>(
         obs: ObsProxyChecker<T>,
         options: PersistOptions<T>,
+        queryByModified: any,
         dateModified: number,
         onLoad: () => void,
         onChange: (obsProxy: ObsProxy<T>, value: any) => void,
@@ -185,12 +193,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (!once) {
             const cb = this._onChange.bind(
                 this,
-                pathFirebase,
-                syncPathExtra,
-                fieldTransforms,
                 obs,
+                pathFirebase,
+                fieldTransforms,
                 fieldTransformsAtPath,
                 dateModifiedKey,
+                syncPathExtra,
                 onChange
             );
             this.fns.onChildAdded(refPath, cb, (err) => console.error(err));
@@ -199,7 +207,16 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         this.fns.once(
             refPath,
-            this._onceValue.bind(this, pathFull, obs, fieldTransformsAtPath, dateModifiedKey, onLoad, onChange)
+            this._onceValue.bind(
+                this,
+                obs,
+                pathFull,
+                fieldTransformsAtPath,
+                dateModifiedKey,
+                queryByModified,
+                onLoad,
+                onChange
+            )
         );
     }
     private _updatePendingSave(path: string[], value: object, pending: SaveInfoDictionary) {
@@ -207,6 +224,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             Object.assign(pending, { [symbolSaveValue]: value });
         } else {
             const p = path[0];
+            if (!value) debugger;
             const v = value[p];
 
             // If already have a save info here then don't need to go deeper on the path. Just overwrite the value.
@@ -235,6 +253,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (requireAuth) {
             await this.waitForAuth();
         }
+
+        const valBefore = value;
 
         value = JSON.parse(JSON.stringify(value));
         const valueSaved = JSON.parse(JSON.stringify(value));
@@ -327,7 +347,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private async _onTimeoutSave() {
         this._timeoutSave = undefined;
 
-        const batch = this._constructBatchForSave();
+        const batch = JSON.parse(JSON.stringify(this._constructBatchForSave()));
 
         const promiseSaved = this.promiseSaved;
         this.promiseSaved = undefined;
@@ -380,10 +400,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         return value;
     }
     private _onceValue(
-        path: string,
         obs: ObsProxy<Record<any, any>>,
+        path: string,
         fieldTransformsAtPath: object,
         dateModifiedKey: string,
+        queryByModified: any,
         onLoad: () => void,
         onChange: (cb: () => void) => void,
         snapshot: any
@@ -394,8 +415,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             outerValue = transformObject(outerValue, fieldTransformsAtPath, dateModifiedKey);
         }
 
-        onChange(() => {
-            if (outerValue) {
+        if (outerValue) {
+            onChange(() => {
                 if (isObject(outerValue)) {
                     Object.keys(outerValue).forEach((key) => {
                         const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
@@ -409,21 +430,20 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                         }
                     });
                 }
-            } else {
-            }
-        });
+            });
+        }
 
         onLoad();
 
         this._hasLoadedValue[path] = true;
     }
     private _onChange(
-        pathFirebase: string,
-        syncPathExtra: string,
-        fieldTransforms: object,
         obs: ObsProxyChecker,
+        pathFirebase: string,
+        fieldTransforms: object,
         fieldTransformsAtPath: object,
         dateModifiedKey: string,
+        syncPathExtra: string,
         onChange: (cb: () => void) => void,
         snapshot: any
     ) {

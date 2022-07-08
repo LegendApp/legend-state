@@ -131,36 +131,118 @@ describe('Basic', () => {
     });
 
     test('Set undefined to value and back', () => {
-        const obs = obsProxy({ test: undefined });
+        const obs = obsProxy({ test: { test2: { test3: undefined } } });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
 
-        expect(obs.test.get()).toEqual(undefined);
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
 
-        obs.test.set({ test2: 'hi' });
+        obs.test.test2.test3.set({ test4: 'hi4', test5: 'hi5' });
 
-        expect(obs.test.get()).toEqual({ test2: 'hi' });
-        expect(obs.get()).toEqual({ test: { test2: 'hi' } });
+        expect(obs.test.test2.test3.get()).toEqual({ test4: 'hi4', test5: 'hi5' });
+        expect(obs.test.test2.get()).toEqual({ test3: { test4: 'hi4', test5: 'hi5' } });
+        expect(obs.test.get()).toEqual({ test2: { test3: { test4: 'hi4', test5: 'hi5' } } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: { test4: 'hi4', test5: 'hi5' } } } });
 
         expect(handler).toHaveBeenCalledWith(
-            { test2: 'hi' },
+            { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
             {
-                changedValue: { test2: 'hi' },
-                path: [],
+                changedValue: { test4: 'hi4', test5: 'hi5' },
+                path: ['test2', 'test3'],
                 prevValue: undefined,
             }
         );
 
-        obs.test.set(undefined);
+        obs.test.test2.test3.set(undefined);
 
-        expect(obs.test.get()).toEqual(undefined);
-        expect(obs.get()).toEqual({ test: undefined });
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: undefined } } });
 
-        expect(handler).toHaveBeenCalledWith(undefined, {
-            changedValue: undefined,
-            path: [],
-            prevValue: { test2: 'hi' },
-        });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: undefined } },
+            {
+                changedValue: undefined,
+                path: ['test2', 'test3'],
+                prevValue: { test4: 'hi4', test5: 'hi5' },
+            }
+        );
+
+        obs.test.test2.test3.set({ test4: 'hi6', test5: 'hi7' });
+
+        expect(obs.test.test2.test3.get()).toEqual({ test4: 'hi6', test5: 'hi7' });
+        expect(obs.test.test2.get()).toEqual({ test3: { test4: 'hi6', test5: 'hi7' } });
+        expect(obs.test.get()).toEqual({ test2: { test3: { test4: 'hi6', test5: 'hi7' } } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: { test4: 'hi6', test5: 'hi7' } } } });
+
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: { test4: 'hi6', test5: 'hi7' } } },
+            {
+                changedValue: { test4: 'hi6', test5: 'hi7' },
+                path: ['test2', 'test3'],
+                prevValue: undefined,
+            }
+        );
+    });
+    test('Set deep primitive undefined to value and back', () => {
+        const obs = obsProxy({ test: { test2: { test3: undefined } } });
+        const handler = jest.fn();
+        listenToObs(obs.test, handler);
+
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+
+        obs.test.test2.test3.set('hi');
+
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
+        expect(obs.test.get()).toEqual({ test2: { test3: 'hi' } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: 'hi' } } });
+
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: 'hi' } },
+            {
+                changedValue: 'hi',
+                path: ['test2', 'test3'],
+                prevValue: undefined,
+            }
+        );
+
+        obs.test.test2.test3.set(undefined);
+
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: undefined } } });
+
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: undefined } },
+            {
+                changedValue: undefined,
+                path: ['test2', 'test3'],
+                prevValue: 'hi',
+            }
+        );
+
+        obs.test.test2.test3.set('hi');
+
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
+        expect(obs.test.get()).toEqual({ test2: { test3: 'hi' } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: 'hi' } } });
+
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: 'hi' } },
+            {
+                changedValue: 'hi',
+                path: ['test2', 'test3'],
+                prevValue: undefined,
+            }
+        );
     });
 });
 

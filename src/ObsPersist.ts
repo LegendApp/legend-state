@@ -1,5 +1,5 @@
 import { config } from './configureObsProxy';
-import { getDateModifiedKey, replaceKeyInObject, symbolDateModified } from './globals';
+import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { obsProxy } from './ObsProxy';
 import { listenToObs } from './ObsProxyFns';
@@ -11,7 +11,6 @@ import {
     ObsProxy,
     ObsProxyChecker,
     PersistOptions,
-    PersistOptionsRemote,
 } from './ObsProxyInterfaces';
 
 /** @internal */
@@ -34,21 +33,26 @@ async function onObsChange<T>(
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
 
-    const dateModifiedKey = getDateModifiedKey(persistOptions.dateModifiedKey || config.persist?.dateModifiedKey);
+    const dateModifiedKey = '@';
 
     if (persistOptions.local) {
         // TODO: What to do? Queue this until after loaded? Or throw error?
         if (!proxyState.isLoadedLocal) return;
-        persistenceLocal.setValue(persistOptions.local, value);
+
+        persistenceLocal.setValue(
+            persistOptions.local,
+            replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
+        );
     }
 
     if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
+        // console.log('save', value);
         const saved = await persistenceRemote.save(persistOptions, value, info);
         if (saved) {
             if (persistOptions.local) {
                 persistenceLocal.setValue(
                     persistOptions.local,
-                    replaceKeyInObject(saved as object, symbolDateModified, dateModifiedKey)
+                    replaceKeyInObject(saved as object, symbolDateModified, dateModifiedKey, /*clone*/ false)
                 );
             }
         }
@@ -83,9 +87,9 @@ export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOp
         const persistenceLocal = mapPersistences.get(localPersistence) as ObsPersistLocal;
         state.persistenceLocal = persistenceLocal;
 
-        const value = persistenceLocal.getValue(local);
+        let value = persistenceLocal.getValue(local);
 
-        const dateModifiedKey = getDateModifiedKey(persistOptions.dateModifiedKey || config.persist?.dateModifiedKey);
+        const dateModifiedKey = '@';
 
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
@@ -96,8 +100,9 @@ export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOp
         }
 
         if (value !== null && value !== undefined) {
-            replaceKeyInObject(value, dateModifiedKey, symbolDateModified);
-            obs.assign(value);
+            replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
+            removeNullUndefined(value);
+            mergeDeep(obs, value);
         }
 
         clearLocal = () => Promise.resolve(persistenceLocal.deleteById(local));

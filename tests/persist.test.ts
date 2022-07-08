@@ -349,7 +349,7 @@ describe('Persist remote save', () => {
 
         // Should have saved with timestamp to local storage
         expect(JSON.parse(global.localStorage.getItem('jestremote'))).toEqual({
-            test: { d: '__serverTimestamp', test2: 'hi', test3: 'hi2' },
+            test: { '@': '__serverTimestamp', test2: 'hi', test3: 'hi2' },
         });
     });
 
@@ -535,7 +535,7 @@ describe('Persist remote save', () => {
         });
     });
 
-    test('save queryByModified with path/* 2', async () => {
+    test('save queryByModified 2', async () => {
         const obs = obsProxy({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
@@ -1709,6 +1709,7 @@ describe('Field transform', () => {
 // # Persist
 // Load from local should convert @ to symbol
 // Encryption
+// Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
 // # Things outside of Bravely scopea
 // Functions inside proxy as actions should not be proxied and be bound to the proxy as this
