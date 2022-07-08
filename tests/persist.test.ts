@@ -1705,9 +1705,10 @@ describe('Field transform', () => {
 
 // TODO
 // Do string functions work on primitives?
+// Set should do batch when assigning?
 
 // # Persist
-// Load from local should convert @ to symbol
+// Load from local with null values should not overwrite default values
 // Encryption
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
@@ -1721,3 +1722,6 @@ describe('Field transform', () => {
 // test read functions on array and map and stuff
 // Need to document
 // Promises return from on functions
+
+// # To document
+// Values coming in as null from remote is not really supported

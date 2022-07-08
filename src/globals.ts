@@ -30,8 +30,9 @@ export function mergeDeep(target, ...sources) {
     const source = sources.shift();
 
     const needsSet = isProxy(target);
+    const targetValue = needsSet ? target.get() : target;
 
-    if (isObject(target) && isObject(source)) {
+    if (isObject(targetValue) && isObject(source)) {
         if (source[symbolDateModified as any]) {
             if (needsSet) {
                 target.set(symbolDateModified, source[symbolDateModified as any]);
@@ -41,14 +42,14 @@ export function mergeDeep(target, ...sources) {
         }
         for (const key in source) {
             if (isObject(source[key])) {
-                if (!isObject(target[key])) {
+                if (!isObject(targetValue[key])) {
                     if (needsSet) {
                         target.set(key, {});
                     } else {
                         target[key] = {};
                     }
                 }
-                if (!target[key]) {
+                if (!targetValue[key]) {
                     if (needsSet) {
                         target.assign({ [key]: {} });
                     } else {
@@ -84,6 +85,7 @@ export function removeNullUndefined<T extends Record<string, any>>(a: T) {
         if (v === null || v === undefined) {
             delete a[key];
         } else if (isObject(v)) {
+            removeNullUndefined(v);
         }
     });
 }

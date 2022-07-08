@@ -224,7 +224,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             Object.assign(pending, { [symbolSaveValue]: value });
         } else {
             const p = path[0];
-            if (!value) debugger;
             const v = value[p];
 
             // If already have a save info here then don't need to go deeper on the path. Just overwrite the value.
@@ -253,8 +252,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         if (requireAuth) {
             await this.waitForAuth();
         }
-
-        const valBefore = value;
 
         value = JSON.parse(JSON.stringify(value));
         const valueSaved = JSON.parse(JSON.stringify(value));
