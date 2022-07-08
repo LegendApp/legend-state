@@ -8,7 +8,9 @@ const symbolHasValue = Symbol('__hasValue');
 
 function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
     const info = state.infos.get(target);
-    if (info) {
+    const skipNotifyFor = state.skipNotifyFor;
+    // Notify this listener if this target is not being skipped (if getting called during an assign)
+    if (info && !skipNotifyFor.includes(target)) {
         // Notify all listeners
         if (info.listeners) {
             // Clone because listener handlers may unlisten and modify the original array
@@ -16,10 +18,7 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
             const value = target.get();
             for (let i = 0; i < listeners.length; i++) {
                 const listener = listeners[i];
-                // Notify this listener if this target is not being skipped (if getting called during an assign)
-                if (!state.skipNotifyFor.includes(target)) {
-                    ObsBatcher.notify(listener.callback, value, listenerInfo);
-                }
+                ObsBatcher.notify(listener.callback, value, listenerInfo);
             }
         }
 

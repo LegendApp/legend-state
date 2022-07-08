@@ -35,19 +35,19 @@ describe('Basic', () => {
         expect(obs.get()).toEqual({ val: 20 });
         expect(handler).toHaveBeenCalledWith({ val: 20 }, { changedValue: 20, path: ['val'], prevValue: 10 });
 
-        // disposeListener(listener1);
+        disposeListener(listener1);
 
-        // const handle2 = jest.fn();
-        // listenToObs(obs, handle2);
+        const handle2 = jest.fn();
+        listenToObs(obs, handle2);
 
-        // // Set whole object
-        // obs.set({ val: 30 });
-        // expect(obs.get()).toEqual({ val: 30 });
-        // expect(obs.val.get()).toEqual(30);
-        // expect(handle2).toHaveBeenCalledWith(
-        //     { val: 30 },
-        //     { changedValue: { val: 30 }, path: [], prevValue: { val: 20 } }
-        // );
+        // Set whole object
+        obs.set({ val: 30 });
+        expect(obs.get()).toEqual({ val: 30 });
+        expect(obs.val.get()).toEqual(30);
+        expect(handle2).toHaveBeenCalledWith(
+            { val: 30 },
+            { changedValue: { val: 30 }, path: [], prevValue: { val: 20 } }
+        );
     });
     test('modify value deep', () => {
         const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
@@ -59,9 +59,9 @@ describe('Basic', () => {
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: { test4: 'hi' } } } },
             {
-                changedValue: 'hi',
-                path: ['test', 'test2', 'test3', 'test4'],
-                prevValue: '',
+                changedValue: { test4: 'hi' },
+                path: ['test', 'test2', 'test3'],
+                prevValue: { test4: '' },
             }
         );
 
@@ -474,6 +474,21 @@ describe('Listeners', () => {
             { test: { test2: 'hi' } },
             {
                 changedValue: { test2: 'hi' },
+                path: ['test'],
+                prevValue: undefined,
+            }
+        );
+    });
+    test('Set with object should only fire listeners once', () => {
+        const obs = obsProxy({ test: undefined });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test.set({ test2: 'hi', test3: 'hi3', test4: 'hi4' });
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith(
+            { test: { test2: 'hi', test3: 'hi3', test4: 'hi4' } },
+            {
+                changedValue: { test2: 'hi', test3: 'hi3', test4: 'hi4' },
                 path: ['test'],
                 prevValue: undefined,
             }
