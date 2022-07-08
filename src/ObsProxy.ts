@@ -1,4 +1,4 @@
-import { isArray, isFunction, isString } from '@legendapp/tools';
+import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { isCollection, isPrimitive } from './globals';
 import { obsNotify, on } from './ObsProxyFns';
 import { ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
@@ -110,8 +110,9 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
         // }
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
-    } else if (isString(prop)) {
-        const proxy = info?.proxies?.get(prop as string);
+    } else if (isString(prop) || isNumber(prop)) {
+        const propStr = String(prop);
+        const proxy = info?.proxies?.get(prop);
         if (proxy) {
             if (value === undefined) {
                 // Setting to undefined deletes this proxy
@@ -119,7 +120,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
                 state.infos.delete(proxy);
                 info.proxies.delete(prop);
                 target[prop] = value;
-                obsNotify(proxyOwner, value, prevValue, [prop]);
+                obsNotify(proxyOwner, value, prevValue, [propStr]);
             } else {
                 // If prop has a proxy, forward the set into the proxy
                 setter(proxy, target[prop], value);
@@ -137,7 +138,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             if (value !== prevValue) {
                 target[prop] = value;
                 // Notify listeners of changes.
-                obsNotify(proxyOwner, value, prevValue, [prop]);
+                obsNotify(proxyOwner, value, prevValue, [propStr]);
             }
         }
     }

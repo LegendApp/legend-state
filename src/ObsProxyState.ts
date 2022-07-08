@@ -6,7 +6,7 @@ export interface StateInfo {
     safe: boolean;
     primitive: boolean;
     listeners?: ObsListener[];
-    proxies?: Map<string, ObsProxy>;
+    proxies?: Map<string | number, ObsProxy>;
     parent?: ObsProxy;
 }
 

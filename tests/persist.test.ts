@@ -1286,7 +1286,17 @@ describe('Remote load', () => {
 
     test('Persist remote load with nested timestamps', async () => {
         const obs = obsProxy({
-            clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
+            clients: {
+                clientID: {
+                    profile: { name: '' },
+                    outer: {
+                        inner: {
+                            id1: { text: '' },
+                            id2: '',
+                        },
+                    },
+                },
+            },
         });
 
         const remoteOptions: PersistOptionsRemote = {
@@ -1295,11 +1305,9 @@ describe('Remote load', () => {
                 syncPath: (uid) => `/test/${uid}/s/`,
                 queryByModified: {
                     clients: {
-                        '*': {
-                            '*': true,
-                            outer: {
-                                inner: '*',
-                            },
+                        '*': true,
+                        outer: {
+                            inner: '*',
                         },
                     },
                 },

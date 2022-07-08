@@ -44,6 +44,9 @@ export function transformObject(
             ret = dataIn.map((d) => map[d]);
         } else if (isString(dataIn)) {
             ret = map[dataIn];
+        } else if (isString(map)) {
+            // Field map is a string so don't need to transform any deeper
+            ret = dataIn;
         } else {
             Object.keys(dataIn).forEach((key) => {
                 if (key === '__obj' || key === '__dict' || key === '__arr' || key === '_id') return;

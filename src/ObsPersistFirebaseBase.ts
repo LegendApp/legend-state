@@ -133,7 +133,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     ) {
         Object.keys(obs).forEach((key) => {
             const o = obs[key];
-            const q = queryByModified[key];
+            const q = queryByModified[key] || queryByModified['*'];
             const extra = syncPathExtra + key + '/';
             let dateModified;
             if (isObject(q)) {
@@ -412,21 +412,19 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             outerValue = transformObject(outerValue, fieldTransformsAtPath, dateModifiedKey);
         }
 
-        if (outerValue) {
+        if (outerValue && isObject(outerValue)) {
             onChange(() => {
-                if (isObject(outerValue)) {
-                    Object.keys(outerValue).forEach((key) => {
-                        const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
+                Object.keys(outerValue).forEach((key) => {
+                    const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
 
-                        obs.set(key, value[key]);
+                    obs.set(key, value[key]);
 
-                        const d = value[symbolDateModified];
-                        const od = getObsModified(obs);
-                        if (d && (!od || d > od)) {
-                            obs.set(symbolDateModified, d);
-                        }
-                    });
-                }
+                    const d = value[symbolDateModified];
+                    const od = getObsModified(obs);
+                    if (d && (!od || d > od)) {
+                        obs.set(symbolDateModified, d);
+                    }
+                });
             });
         }
 

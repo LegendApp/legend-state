@@ -244,6 +244,22 @@ describe('Basic', () => {
             }
         );
     });
+    test('Set number key', () => {
+        const obs = obsProxy({ test: {} as Record<number, string> });
+        const handler = jest.fn();
+        listenToObs(obs.test, handler);
+
+        obs.test.set(1, 'hi');
+
+        expect(handler).toHaveBeenCalledWith(
+            { '1': 'hi' },
+            {
+                changedValue: 'hi',
+                path: ['1'],
+                prevValue: undefined,
+            }
+        );
+    });
 });
 
 describe('Assign', () => {
