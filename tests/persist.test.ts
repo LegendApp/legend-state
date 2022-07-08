@@ -617,10 +617,8 @@ describe('Persist remote save', () => {
             test: {
                 '@': '__serverTimestamp',
                 test2: 'hi',
-                test3: 'hello2',
                 test4: {
                     '@': '__serverTimestamp',
-                    test5: 'hello3',
                     test6: {
                         test7: 'hi4',
                     },
@@ -1880,8 +1878,6 @@ describe('Adjust data', () => {
 
 // TODO
 // Do string functions work on primitives?
-// Set should do batch when assigning?
-// Change save to use the changedValue and path instead of the value, much better when transforming
 
 // # Persist
 // Load from local with null values should not overwrite default values

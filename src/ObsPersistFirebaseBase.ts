@@ -231,7 +231,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
             // If already have a save info here then don't need to go deeper on the path. Just overwrite the value.
             if (pending[p] && pending[p][symbolSaveValue] !== undefined) {
-                pending[p][symbolSaveValue] = v;
+                if (isObject(pending[p][symbolSaveValue])) {
+                    mergeDeep(pending[p][symbolSaveValue], v);
+                } else {
+                    pending[p][symbolSaveValue] = v;
+                }
             } else {
                 // 1. If nothing here
                 // 2. If other strings here
@@ -246,7 +250,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         }
     }
-    public async save<T>(options: PersistOptions, value: T, info: ObsListenerInfo) {
+    public async save<T>(options: PersistOptions, _: T, info: ObsListenerInfo) {
         const {
             requireAuth,
             saveTimeout,
@@ -256,7 +260,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             await this.waitForAuth();
         }
 
-        value = JSON.parse(JSON.stringify(value));
+        let value = constructObject(info.path, JSON.parse(JSON.stringify(info.changedValue)));
         const valueSaved = JSON.parse(JSON.stringify(value));
         let path = info.path.slice();
 
