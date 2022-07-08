@@ -7,6 +7,7 @@ import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
+import { isObject, isString } from '@legendapp/tools';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -31,8 +32,19 @@ class LocalStorageMock {
     }
 }
 
-function promiseTimeout() {
-    return new Promise((resolve) => setTimeout(resolve, 0));
+function promiseTimeout(time?: number) {
+    return new Promise((resolve) => setTimeout(resolve, time || 0));
+}
+
+function recursiveReplaceStrings(val: any, replacer: (val: string) => string) {
+    if (isString(val)) {
+        return replacer(val);
+    } else if (isObject(val)) {
+        Object.keys(val).forEach((key) => {
+            val[key] = recursiveReplaceStrings(val[key], replacer);
+        });
+    }
+    return val;
 }
 
 // @ts-ignore
@@ -1513,6 +1525,8 @@ describe('Remote change', () => {
 
         modifyRemote('test', { '@': 1001, test2: 'hello2' });
 
+        await promiseTimeout();
+
         expect(obs.test.get()).toEqual({
             test2: 'hello2',
             test3: 'hi3',
@@ -1550,6 +1564,8 @@ describe('Remote change', () => {
         await onTrue(state.isLoadedRemote);
 
         modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
+
+        await promiseTimeout();
 
         expect(obs.test.get()).toEqual({
             test2: {
@@ -1751,6 +1767,95 @@ describe('Field transform', () => {
             },
             test7: {
                 test8: 'hello8',
+            },
+        });
+    });
+});
+
+describe('Adjust data', () => {
+    test('adjust save data', async () => {
+        const obs = obsProxy({ test: { test2: 'hello' } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            adjustData: {
+                load: async (value, path) => {
+                    debugger;
+                    return recursiveReplaceStrings(value, (val) => val.replace('_adjusted', ''));
+                },
+                save: async (value, basePath, path) => {
+                    return value + '_adjusted';
+                },
+            },
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+            },
+        };
+
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.test.test2.set('hi');
+
+        await promiseTimeout();
+
+        await remote['promiseSaved'].promise;
+
+        expect(remote['remoteData']).toEqual({
+            test: {
+                testuid: {
+                    s: {
+                        test: {
+                            test2: 'hi_adjusted',
+                        },
+                    },
+                },
+            },
+        });
+    });
+
+    test('adjust incoming data', async () => {
+        const obs = obsProxy({ test: { test2: 'hello' } });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            adjustData: {
+                load: async (value, path) => {
+                    return recursiveReplaceStrings(value, (val) => val.replace('_adjusted', ''));
+                },
+                save: async (value, basePath, path) => {
+                    return value + '_adjusted';
+                },
+            },
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+            },
+        };
+
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        initializeRemote({
+            test: {
+                test2: 'hi_adjusted',
+            },
+        });
+
+        const state = obsPersist(obs, {
+            remote: remoteOptions,
+        });
+
+        await onTrue(state.isLoadedRemote);
+
+        expect(obs.get()).toEqual({
+            test: {
+                test2: 'hi',
             },
         });
     });

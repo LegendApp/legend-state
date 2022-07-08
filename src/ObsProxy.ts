@@ -106,8 +106,9 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             state.infos.delete(proxyOwner);
             proxyOwner = proxyNew;
         }
-        obsNotify(proxyOwner, value, prevValue, []);
-        // }
+        if (value !== prevValue) {
+            obsNotify(proxyOwner, value, prevValue, []);
+        }
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
     } else if (isString(prop) || isNumber(prop)) {

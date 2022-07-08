@@ -77,6 +77,10 @@ export interface PersistOptionsRemote<T = any> {
     once?: boolean;
     requireAuth?: boolean;
     saveTimeout?: number;
+    adjustData?: {
+        load: (value: any, path: string) => Promise<any>;
+        save: (value: any, basePath: string, path: string[]) => Promise<any>;
+    };
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
         fieldTransforms?: SameShapeWithStrings<T>;

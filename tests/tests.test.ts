@@ -260,6 +260,16 @@ describe('Basic', () => {
             }
         );
     });
+
+    test('Set does not fire if unchanged', () => {
+        const obs = obsProxy({ test: { test1: 'hi' } });
+        const handler = jest.fn();
+        listenToObs(obs.test, handler);
+
+        obs.test.test1.set('hi');
+
+        expect(handler).toHaveBeenCalledTimes(0);
+    });
 });
 
 describe('Assign', () => {

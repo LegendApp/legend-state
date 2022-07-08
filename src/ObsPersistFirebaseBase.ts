@@ -18,6 +18,7 @@ import type {
     ObsProxyChecker,
     ObsProxyUnsafe,
     PersistOptions,
+    PersistOptionsRemote,
     QueryByModified,
 } from './ObsProxyInterfaces';
 import { PromiseCallback } from './PromiseCallback';
@@ -65,7 +66,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     protected _batch: Record<string, any> = {};
     private _timeoutSave: any;
     private fns: FirebaseFns;
-    private _hasLoadedValue: Record<string, boolean> = {};
+    private _hasLoadedValue: Record<string, boolean | Promise<boolean>> = {};
     private SaveTimeout;
     private _pendingSaves2: Map<string, PendingSaves> = new Map();
 
@@ -159,6 +160,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         const {
             once,
             requireAuth,
+            adjustData,
             firebase: { syncPath, fieldTransforms, ignoreKeys },
         } = options.remote;
 
@@ -197,6 +199,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 pathFirebase,
                 fieldTransforms,
                 fieldTransformsAtPath,
+                adjustData,
                 dateModifiedKey,
                 syncPathExtra,
                 onChange
@@ -212,8 +215,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 obs,
                 pathFull,
                 fieldTransformsAtPath,
+                adjustData,
                 dateModifiedKey,
-                queryByModified,
                 onLoad,
                 onChange
             )
@@ -342,13 +345,43 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         return batch;
     }
+    private async _adjustSaveData(
+        options: PersistOptions,
+        basePath: string,
+        saves: SaveInfoDictionary,
+        ...path: string[]
+    ): Promise<any> {
+        const { adjustData } = options.remote;
+
+        if (adjustData) {
+            let valSave = saves[symbolSaveValue as any];
+            if (valSave !== undefined) {
+                saves[symbolSaveValue as any] = await adjustData.save(valSave, basePath, path);
+            } else {
+                await Promise.all(
+                    Object.keys(saves).map((key) =>
+                        this._adjustSaveData(options, basePath, saves[key] as any, ...path, key)
+                    )
+                );
+            }
+        }
+    }
     private async _onTimeoutSave() {
         this._timeoutSave = undefined;
 
-        const batch = JSON.parse(JSON.stringify(this._constructBatchForSave()));
-
         const promiseSaved = this.promiseSaved;
         this.promiseSaved = undefined;
+
+        const promisesAdjustData: Promise<void>[] = [];
+        this._pendingSaves2.forEach(({ options, saves }) => {
+            const basePath = options.remote.firebase.syncPath(this.fns.getCurrentUser());
+            promisesAdjustData.push(this._adjustSaveData(options, basePath, saves));
+        });
+
+        await Promise.all(promisesAdjustData);
+
+        const batch = this._constructBatchForSave();
+
         // console.log('Save', batch);
         await this.fns.update(batch);
         promiseSaved.resolve();
@@ -401,8 +434,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         obs: ObsProxy<Record<any, any>>,
         path: string,
         fieldTransformsAtPath: object,
+        adjustData: PersistOptionsRemote['adjustData'],
         dateModifiedKey: string,
-        queryByModified: any,
         onLoad: () => void,
         onChange: (cb: () => void) => void,
         snapshot: any
@@ -414,37 +447,49 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
 
         if (outerValue && isObject(outerValue)) {
-            onChange(() => {
-                Object.keys(outerValue).forEach((key) => {
-                    const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
+            this._hasLoadedValue[path] = new Promise<boolean>(async (resolve) => {
+                if (adjustData) {
+                    await adjustData.load(outerValue, path);
+                }
+                onChange(() => {
+                    Object.keys(outerValue).forEach((key) => {
+                        const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
 
-                    obs.set(key, value[key]);
+                        obs.set(key, value[key]);
 
-                    const d = value[symbolDateModified];
-                    const od = getObsModified(obs);
-                    if (d && (!od || d > od)) {
-                        obs.set(symbolDateModified, d);
-                    }
+                        const d = value[symbolDateModified];
+                        const od = getObsModified(obs);
+                        if (d && (!od || d > od)) {
+                            obs.set(symbolDateModified, d);
+                        }
+                    });
+
+                    resolve(true);
+
+                    this._hasLoadedValue[path] = true;
                 });
             });
+        } else {
+            this._hasLoadedValue[path] = true;
         }
 
         onLoad();
-
-        this._hasLoadedValue[path] = true;
     }
-    private _onChange(
+    private async _onChange(
         obs: ObsProxyChecker,
         pathFirebase: string,
         fieldTransforms: object,
         fieldTransformsAtPath: object,
+        adjustData: PersistOptionsRemote['adjustData'],
         dateModifiedKey: string,
         syncPathExtra: string,
         onChange: (cb: () => void) => void,
         snapshot: any
     ) {
         const path = pathFirebase + syncPathExtra;
-        if (!this._hasLoadedValue[path]) return;
+        const waitForLoad = this._hasLoadedValue[path];
+        if (!waitForLoad) return;
+        if (waitForLoad !== true) await waitForLoad;
 
         let val = snapshot.val();
         let key = snapshot.key;
@@ -465,6 +510,9 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
             const pathTransformed = pathFirebase + syncPathExtra;
             if (!this.addValuesToPendingSaves(pathTransformed.split('/'), value)) {
+                if (adjustData) {
+                    await adjustData.load(value, path);
+                }
                 onChange(() => {
                     obs.assign(value);
                 });
