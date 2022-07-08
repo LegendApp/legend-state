@@ -7,7 +7,7 @@ import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
-import { isObject, isString } from '@legendapp/tools';
+import { isArray, isObject, isString } from '@legendapp/tools';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -36,15 +36,33 @@ function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
 
-function recursiveReplaceStrings(val: any, replacer: (val: string) => string) {
-    if (isString(val)) {
-        return replacer(val);
-    } else if (isObject(val)) {
-        Object.keys(val).forEach((key) => {
-            val[key] = recursiveReplaceStrings(val[key], replacer);
-        });
+export async function recursiveReplaceStrings<T extends string | object | number | boolean>(
+    value: T,
+    replacer: (val: string) => string
+): Promise<T> {
+    if (isArray(value)) {
+        await Promise.all(
+            value.map((v, i) =>
+                recursiveReplaceStrings(v, replacer).then((val) => {
+                    value[i] = val;
+                })
+            )
+        );
     }
-    return val;
+    if (isObject(value)) {
+        await Promise.all(
+            Object.keys(value).map((k) =>
+                recursiveReplaceStrings(value[k], replacer).then((val) => {
+                    value[k] = val;
+                })
+            )
+        );
+    }
+    if (isString(value)) {
+        value = await new Promise((resolve) => resolve(replacer(value as string) as T));
+    }
+
+    return value;
 }
 
 // @ts-ignore
@@ -1780,11 +1798,10 @@ describe('Adjust data', () => {
             requireAuth: true,
             adjustData: {
                 load: async (value, path) => {
-                    debugger;
                     return recursiveReplaceStrings(value, (val) => val.replace('_adjusted', ''));
                 },
                 save: async (value, basePath, path) => {
-                    return value + '_adjusted';
+                    return recursiveReplaceStrings(value, (val) => val + '_adjusted');
                 },
             },
             firebase: {
@@ -1828,7 +1845,7 @@ describe('Adjust data', () => {
                     return recursiveReplaceStrings(value, (val) => val.replace('_adjusted', ''));
                 },
                 save: async (value, basePath, path) => {
-                    return value + '_adjusted';
+                    return recursiveReplaceStrings(value, (val) => val + '_adjusted');
                 },
             },
             firebase: {

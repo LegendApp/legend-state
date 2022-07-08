@@ -78,7 +78,7 @@ export interface PersistOptionsRemote<T = any> {
     requireAuth?: boolean;
     saveTimeout?: number;
     adjustData?: {
-        load: (value: any, path: string) => Promise<any>;
+        load: (value: any, basePath: string) => Promise<any>;
         save: (value: any, basePath: string, path: string[]) => Promise<any>;
     };
     firebase?: {

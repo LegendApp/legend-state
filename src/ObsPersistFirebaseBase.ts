@@ -380,7 +380,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await Promise.all(promisesAdjustData);
 
-        const batch = this._constructBatchForSave();
+        const batch = JSON.parse(JSON.stringify(this._constructBatchForSave()));
 
         // console.log('Save', batch);
         await this.fns.update(batch);
@@ -465,15 +465,13 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                     });
 
                     resolve(true);
-
                     this._hasLoadedValue[path] = true;
+                    onLoad();
                 });
             });
         } else {
             this._hasLoadedValue[path] = true;
         }
-
-        onLoad();
     }
     private async _onChange(
         obs: ObsProxyChecker,
@@ -509,10 +507,10 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             const value = this._getChangeValue(key, val, dateModifiedKey);
 
             const pathTransformed = pathFirebase + syncPathExtra;
+            if (adjustData) {
+                await adjustData.load(value, pathFirebase);
+            }
             if (!this.addValuesToPendingSaves(pathTransformed.split('/'), value)) {
-                if (adjustData) {
-                    await adjustData.load(value, path);
-                }
                 onChange(() => {
                     obs.assign(value);
                 });
