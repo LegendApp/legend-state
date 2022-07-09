@@ -156,6 +156,7 @@ const proxyGet = {
         const target = info.target as any;
         if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
+            // Note: This comes first so we don't overwrite the collection set function
             if (
                 (target instanceof Map && MapModifiers[prop]) ||
                 (target instanceof WeakMap && WeakMapModifiers[prop]) ||
@@ -170,7 +171,6 @@ const proxyGet = {
             return target[prop].bind(target);
         } else if (ProxyFunctions.has(prop)) {
             // Calling a proxy function returns a bound function
-            // Note: This is after the check for isCollection so we don't overwrite the collection set function
             return ProxyFunctions.get(prop).bind(proxyOwner, proxyOwner, target);
         } else {
             let proxy = info.proxies?.get(prop);
@@ -205,6 +205,7 @@ const proxyGet = {
             return true;
         } else {
             const info = state.infos.get(proxyOwner);
+            // Only allow setting if this proxy is not safe
             if (!info.safe) {
                 setter(proxyOwner, target, prop, value);
                 return true;
