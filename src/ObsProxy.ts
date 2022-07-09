@@ -62,6 +62,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string, value: any);
 function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = state.infos.get(proxyOwner);
+    if (!info) debugger;
     const target = info.target as any;
 
     // There was no prop

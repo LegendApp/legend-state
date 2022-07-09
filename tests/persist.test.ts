@@ -1394,6 +1394,10 @@ describe('Remote load', () => {
                         '@': 1000,
                         name: 'hi name',
                     },
+                    basic: {
+                        '@': 1001,
+                        _: 'basictext',
+                    },
                     outer: {
                         inner: {
                             id1: {
@@ -1419,10 +1423,12 @@ describe('Remote load', () => {
         expect(obs.get()).toEqual({
             clients: {
                 clientID: {
+                    [symbolDateModified]: 1001,
                     profile: {
                         [symbolDateModified]: 1000,
                         name: 'hi name',
                     },
+                    basic: 'basictext',
                     outer: {
                         inner: {
                             id1: {
@@ -1758,6 +1764,7 @@ describe('Field transform', () => {
                         },
                         t4: {
                             test5: {
+                                '@': '__serverTimestamp',
                                 t6: 'hello6',
                             },
                         },
@@ -1778,6 +1785,7 @@ describe('Field transform', () => {
             },
             test4: {
                 test5: {
+                    '@': '__serverTimestamp',
                     test6: 'hello6',
                 },
             },
@@ -1880,8 +1888,6 @@ describe('Adjust data', () => {
 // Do string functions work on primitives?
 
 // # Persist
-// Load from local with null values should not overwrite default values
-// Encryption
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
 // # Things outside of Bravely scopea

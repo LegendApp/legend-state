@@ -132,19 +132,23 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         onChange: (obs: ObsProxy<T>, value: any) => void,
         syncPathExtra: string
     ) {
+        const { ignoreKeys } = options.remote.firebase;
         Object.keys(obs).forEach((key) => {
-            const o = obs[key];
-            const q = queryByModified[key] || queryByModified['*'];
-            const extra = syncPathExtra + key + '/';
-            let dateModified;
-            if (isObject(q)) {
-                this.iterateListen(o, options, q, onLoad, onChange, extra);
-            } else {
-                if (q === true || q === '*') {
-                    dateModified = this.calculateDateModified(o);
-                }
+            if (!ignoreKeys || !ignoreKeys[key]) {
+                const o = obs[key];
+                const q = queryByModified[key] || queryByModified['*'];
+                const extra = syncPathExtra + key + '/';
 
-                this._listen(o, options, q, dateModified, onLoad, onChange, extra);
+                let dateModified;
+                if (isObject(q)) {
+                    this.iterateListen(o, options, q, onLoad, onChange, extra);
+                } else {
+                    if (q === true || q === '*') {
+                        dateModified = this.calculateDateModified(o);
+                    }
+
+                    this._listen(o, options, q, dateModified, onLoad, onChange, extra);
+                }
             }
         });
     }
@@ -177,6 +181,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
             if (syncPathExtra) {
                 const pathArr = syncPathExtra.split('/').filter((a) => !!a);
+                const obj = objectAtPath(pathArr, fieldTransforms);
+                if (!obj) debugger;
                 fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
                 syncPathExtra = transformPath(pathArr, fieldTransforms, ignoreKeys, dateModifiedKey).join('/');
             } else {

@@ -6,12 +6,16 @@ import { config } from './configureObsProxy';
 export const symbolDateModified = Symbol('__dateModified');
 
 export function constructObject(path: string[], value: any, dateModified?: any) {
-    const out = {};
+    let out = {};
     let o = out;
-    for (let i = 0; i < path.length; i++) {
-        const p = path[i];
-        o[p] = i === path.length - 1 ? value : {};
-        o = o[p];
+    if (path.length > 0) {
+        for (let i = 0; i < path.length; i++) {
+            const p = path[i];
+            o[p] = i === path.length - 1 ? value : {};
+            o = o[p];
+        }
+    } else {
+        out = o = value;
     }
 
     if (dateModified) {
@@ -110,7 +114,7 @@ export function objectAtPath(path: string[], value: object) {
     for (let i = 0; i < path.length; i++) {
         if (o) {
             const p = path[i];
-            o = o[p] || o['__dict'];
+            o = o[p] || o['__dict'] || o['__obj']?.[p];
         }
     }
 
