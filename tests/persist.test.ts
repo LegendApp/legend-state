@@ -1436,6 +1436,7 @@ describe('Remote load', () => {
                                 text: 'hi1',
                             },
                             id2: 'hi1',
+                            [symbolDateModified]: 1000,
                         },
                     },
                 },

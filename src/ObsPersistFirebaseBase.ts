@@ -399,7 +399,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
     private _convertFBTimestamps(obj: any, dateModifiedKey: string) {
         let value = obj;
         // Database value can be either { @: number, _: object } or { @: number, ...rest }
-        const dateModified = value[dateModifiedKey];
+        let dateModified = value[dateModifiedKey];
         delete value[dateModifiedKey];
         if (value._) {
             value = value._;
@@ -409,32 +409,22 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         if (isObject(value)) {
             Object.keys(value).forEach((k) => {
-                value[k] = this._convertFBTimestamps(value[k], dateModifiedKey);
+                const { dateModified: d, value: v } = this._convertFBTimestamps(value[k], dateModifiedKey);
+                value[k] = v;
+                if (d) {
+                    dateModified = Math.max(dateModified || 0, d);
+                }
             });
+            if (dateModified) {
+                value[symbolDateModified as any] = dateModified;
+                dateModified = undefined;
+            }
         }
 
-        if (dateModified && isObject(value)) {
-            value[symbolDateModified as any] = dateModified;
-        }
-
-        return value;
+        return { dateModified, value };
     }
     private _getChangeValue(key: string, snapVal: any, dateModifiedKey: string) {
-        let value = snapVal;
-        // Database value can be either { @: number, _: object } or { @: number, ...rest }
-        const dateModified = value[dateModifiedKey];
-        delete value[dateModifiedKey];
-        if (value._) {
-            value = value._;
-        } else if (Object.keys(value).length === 1 && value[dateModifiedKey]) {
-            value = undefined;
-        }
-
-        if (isObject(value)) {
-            Object.keys(value).forEach((k) => {
-                value[k] = this._convertFBTimestamps(value[k], dateModifiedKey);
-            });
-        }
+        let { value, dateModified } = this._convertFBTimestamps(snapVal, dateModifiedKey);
 
         value = constructObject([key], value, dateModified);
 
@@ -462,17 +452,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                     await adjustData.load(outerValue, path);
                 }
                 onChange(() => {
-                    Object.keys(outerValue).forEach((key) => {
-                        const value = this._getChangeValue(key, outerValue[key], dateModifiedKey);
-
-                        obs.set(key, value[key]);
-
-                        const d = value[symbolDateModified];
-                        const od = getObsModified(obs);
-                        if (d && (!od || d > od)) {
-                            obs.set(symbolDateModified, d);
-                        }
-                    });
+                    const { value } = this._convertFBTimestamps(outerValue, dateModifiedKey);
+                    obs.assign(value);
 
                     resolve(true);
                     this._hasLoadedValue[path] = true;
