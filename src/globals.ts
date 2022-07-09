@@ -162,3 +162,6 @@ export function isObjectEmpty(obj: object) {
 export function getDateModifiedKey(dateModifiedKey: string) {
     return dateModifiedKey || config.persist?.dateModifiedKey || '@';
 }
+export function jsonEqual(obj1: any, obj2: any) {
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+}

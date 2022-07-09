@@ -1,5 +1,5 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
-import { isCollection, isPrimitive } from './globals';
+import { isCollection, isPrimitive, jsonEqual } from './globals';
 import { obsNotify, on } from './ObsProxyFns';
 import { ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
@@ -93,7 +93,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             parentInfo.target[info.prop] = value;
         }
 
-        if (value !== prevValue) {
+        if (!jsonEqual(value, prevValue)) {
             obsNotify(proxyOwner, value, prevValue, []);
         }
     } else if (typeof prop === 'symbol') {
@@ -123,7 +123,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             }
         } else {
             const prevValue = target[prop];
-            if (value !== prevValue) {
+            if (!jsonEqual(value, prevValue)) {
                 target[prop] = value;
                 // Notify listeners of changes.
                 obsNotify(proxyOwner, value, prevValue, [propStr]);
