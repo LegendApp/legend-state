@@ -65,6 +65,10 @@ describe('Basic', () => {
             }
         );
 
+        expect(obs.get()).toEqual({
+            test: { test2: { test3: { test4: 'hi' } } },
+        });
+
         obs.test.test2.test3.test4.set('hi2');
         expect(obs.test.test2.test3.test4.get()).toEqual('hi2');
         expect(handler).toHaveBeenCalledWith(
@@ -75,6 +79,10 @@ describe('Basic', () => {
                 prevValue: 'hi',
             }
         );
+
+        expect(obs.get()).toEqual({
+            test: { test2: { test3: { test4: 'hi2' } } },
+        });
     });
     test('set function deep', () => {
         const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });

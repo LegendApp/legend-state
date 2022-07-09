@@ -83,30 +83,16 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             info.primitive = false;
             // 2. Copy the values onto the target which will update all children proxies
             proxyOwner.assign(value);
+            info.target = value;
         }
         state.skipNotifyFor.pop();
 
-        // 3. If this has a proxy parent, replace this proxy with a new proxy and copy over listeners.
-        // This has to be done to ensure the proxy's target is equal to the value.
+        // 3. If this has a proxy parent, update the parent's target with this value
         if (info.parent) {
             const parentInfo = state.infos.get(info.parent);
-            // Duplicate the old proxy with the new value
-            const proxyNew = _obsProxy(value, info.safe, info.parent, info.prop);
-            // Set the raw value on the parent's target
             parentInfo.target[info.prop] = value;
-            // Move the old proxy's listeners to the new proxy
-            const infoNew = state.infos.get(proxyNew);
-            if (info.listeners) {
-                infoNew.listeners = info.listeners;
-                // Need to retarget the listeners to the new proxy
-                infoNew.listeners.forEach((listener) => (listener.target = proxyNew));
-            }
-            // Replace the proxy on the parent
-            parentInfo.proxies.set(info.prop, proxyNew);
-            // Delete the old proxy from state
-            state.infos.delete(proxyOwner);
-            proxyOwner = proxyNew;
         }
+
         if (value !== prevValue) {
             obsNotify(proxyOwner, value, prevValue, []);
         }
@@ -165,8 +151,9 @@ const ProxyFunctions = new Map<any, any>([
 ]);
 
 const proxyGet = {
-    get(target: object, prop: string, proxyOwner: ObsProxy) {
+    get(_: any, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
+        const target = info.target as any;
         if (isFunction(target[prop]) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
             if (
@@ -205,7 +192,10 @@ const proxyGet = {
             return proxy || target[prop];
         }
     },
-    set(target: any, prop: string, value: any, proxyOwner: ObsProxy) {
+    set(_: any, prop: string, value: any, proxyOwner: ObsProxy) {
+        const info = state.infos.get(proxyOwner);
+        const target = info.target as any;
+
         if (state.inAssign > 0) {
             setter(proxyOwner, target, prop, value);
             return true;
