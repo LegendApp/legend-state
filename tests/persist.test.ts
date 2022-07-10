@@ -1892,6 +1892,7 @@ describe('Adjust data', () => {
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
 // # Things outside of Bravely scopea
+// Handle setting with another proxy, goes into infinite recursion? Should call get on it?
 // Functions inside proxy as actions should not be proxied and be bound to the proxy as this
 // Promises
 // useSyncExternalStore

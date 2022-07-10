@@ -63,34 +63,49 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = state.infos.get(proxyOwner);
     if (!info) debugger;
+
+    // Need to keep both target and targetOriginal up to date. targetOriginal may not be
+    // an === match but it needs to have the same keys.
     const target = info.target as any;
+    const targetOriginal = info.targetOriginal;
 
     // There was no prop
     if (arguments.length < 4) {
         value = prop;
         prop = undefined;
 
+        const isValuePrimitive = isPrimitive(value);
+
         const prevValue = info.primitive ? target._value : Object.assign({}, target);
 
         // 1. Delete keys that no longer exist
-        Object.keys(target).forEach((key) => (!value || value[key] === undefined) && delete target[key]);
+        Object.keys(target).forEach((key) => {
+            if (!value || isValuePrimitive !== info.primitive || value[key] === undefined) {
+                delete target[key];
+                delete targetOriginal[key];
+                info.proxies?.delete(key);
+            }
+        });
         // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
         state.skipNotifyFor.push(proxyOwner);
-        if (isPrimitive(value)) {
+        if (isValuePrimitive) {
             info.primitive = true;
             target._value = value;
         } else {
             info.primitive = false;
-            // 2. Copy the values onto the target which will update all children proxies
+            // 2. Assign the values onto the target which will update all children proxies, but would leave this
+            // as a shallow copy of the the value
             proxyOwner.assign(value);
+            Object.assign(targetOriginal, value);
             info.target = value;
         }
         state.skipNotifyFor.pop();
 
-        // 3. If this has a proxy parent, update the parent's target with this value
+        // 3. If this has a proxy parent, update the parent's target with this value to fix the shallow copy problem
         if (info.parent) {
             const parentInfo = state.infos.get(info.parent);
             parentInfo.target[info.prop] = value;
+            parentInfo.targetOriginal[info.prop] = value;
         }
 
         if (!jsonEqual(value, prevValue)) {
@@ -98,6 +113,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
         }
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
+        targetOriginal[prop] = value;
     } else if (isString(prop) || isNumber(prop)) {
         const propStr = String(prop);
         const proxy = info?.proxies?.get(prop);
@@ -108,6 +124,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
                 state.infos.delete(proxy);
                 info.proxies.delete(prop);
                 target[prop] = value;
+                targetOriginal[prop] = value;
                 obsNotify(proxyOwner, value, prevValue, [propStr]);
             } else {
                 // If prop has a proxy, forward the set into the proxy
@@ -118,6 +135,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             if (prop !== 'length' && target[prop] !== value) {
                 const prevValue = target.slice();
                 target[prop] = value;
+                targetOriginal[prop] = value;
                 // Notify listeners of changes.
                 obsNotify(proxyOwner, target, prevValue, []);
             }
@@ -125,6 +143,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             const prevValue = target[prop];
             if (!jsonEqual(value, prevValue)) {
                 target[prop] = value;
+                targetOriginal[prop] = value;
                 // Notify listeners of changes.
                 obsNotify(proxyOwner, value, prevValue, [propStr]);
             }
@@ -221,7 +240,7 @@ function _obsProxy<T>(value: T, safe: boolean, parent?: ObsProxy, prop?: string)
     const target = primitive ? { _value: value } : (value as unknown as object);
     const proxy = new Proxy(target, proxyGet);
     // Save proxy to state so it can be accessed later
-    state.infos.set(proxy, { parent, prop, safe, target, primitive });
+    state.infos.set(proxy, { parent, prop, safe, target, primitive, targetOriginal: target });
 
     return proxy;
 }

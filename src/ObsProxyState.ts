@@ -3,6 +3,7 @@ import { ObsListener, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 export interface StateInfo {
     prop: string;
     target: object;
+    targetOriginal: object;
     safe: boolean;
     primitive: boolean;
     listeners?: ObsListener[];

@@ -852,4 +852,119 @@ describe('Deep changes keep listeners', () => {
             prevValue: 'hello',
         });
     });
+
+    test('Deep set keeps keys', () => {
+        const obs = obsProxy({ test: { test2: {} as Record<string, any> } });
+
+        obs.test.test2.set('a1', { text: 'ta1' });
+
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1']);
+
+        obs.test.test2.set('a2', { text: 'ta2' });
+
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1', 'a2']);
+
+        obs.test.test2.set('a3', { text: 'ta3' });
+
+        expect(obs.get()).toEqual({
+            test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } } },
+        });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1', 'a2', 'a3']);
+    });
+
+    test('Set shallow of deep object keeps keys', () => {
+        const obs = obsProxy({ test: { test2: { a0: { text: 't0' } } as Record<string, any> } });
+
+        obs.test.set({ test2: { a1: { text: 'ta1' } } });
+
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1']);
+
+        obs.test.set({ test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } });
+
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1', 'a2']);
+
+        obs.test.test2.set('a3', { text: 'ta3' });
+
+        expect(obs.get()).toEqual({
+            test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } } },
+        });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1', 'a2', 'a3']);
+
+        obs.test.test2.set('a4', { text: 'ta4' });
+
+        expect(obs.get()).toEqual({
+            test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' }, a4: { text: 'ta4' } } },
+        });
+        expect(obs.test.test2.get()).toEqual({
+            a1: { text: 'ta1' },
+            a2: { text: 'ta2' },
+            a3: { text: 'ta3' },
+            a4: { text: 'ta4' },
+        });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3', 'a4']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1', 'a2', 'a3', 'a4']);
+
+        obs.test.test2.assign({ a5: { text: 'ta5' } });
+
+        expect(obs.get()).toEqual({
+            test: {
+                test2: {
+                    a1: { text: 'ta1' },
+                    a2: { text: 'ta2' },
+                    a3: { text: 'ta3' },
+                    a4: { text: 'ta4' },
+                    a5: { text: 'ta5' },
+                },
+            },
+        });
+        expect(obs.test.test2.get()).toEqual({
+            a1: { text: 'ta1' },
+            a2: { text: 'ta2' },
+            a3: { text: 'ta3' },
+            a4: { text: 'ta4' },
+            a5: { text: 'ta5' },
+        });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
+        expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3', 'a4', 'a5']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a1', 'a2', 'a3', 'a4', 'a5']);
+
+        obs.test.test2.set({ a6: { text: 'ta6' } });
+
+        expect(obs.get()).toEqual({
+            test: {
+                test2: {
+                    a6: { text: 'ta6' },
+                },
+            },
+        });
+        expect(obs.test.test2.get()).toEqual({
+            a6: { text: 'ta6' },
+        });
+        expect(obs.test.test2.a1.get()).toEqual(undefined);
+        expect(Object.keys(obs.test.test2)).toEqual(['a6']);
+        expect(Object.keys(obs.test.test2.get())).toEqual(['a6']);
+    });
 });
