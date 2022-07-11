@@ -605,7 +605,19 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         }
 
-        this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
+        if (o === true && isObject(value)) {
+            Object.keys(value).forEach((key) => {
+                this.insertDatesToSaveObject(
+                    batch,
+                    o,
+                    dateModifiedKey,
+                    basePath + path.join('/') + '/' + key,
+                    value[key]
+                );
+            });
+        } else {
+            this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
+        }
 
         return value;
     }

@@ -941,6 +941,57 @@ describe('Persist remote save', () => {
         await remote['promiseSaved'].promise;
     });
 
+    test('save queryByModified with complex dict 2', async () => {
+        const obs = obsProxy({
+            a: { a1: 'a2' },
+            shared: {
+                measures: {} as Record<string, { date: number }>,
+            },
+        });
+
+        const remoteOptions: PersistOptionsRemote = {
+            requireAuth: true,
+            firebase: {
+                syncPath: (uid) => `/test/${uid}/s/`,
+                queryByModified: {
+                    '*': true,
+                    shared: {
+                        measures: true,
+                    },
+                },
+            },
+        };
+
+        initializeRemote({
+            a: {},
+            shared: {
+                measures: {},
+            },
+        });
+
+        obsPersist(obs, {
+            local: 'jestremote',
+            remote: remoteOptions,
+        });
+
+        const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
+
+        obs.shared.measures.set({ m: { date: 1000 } });
+
+        await promiseTimeout();
+
+        expect(remote['_constructBatchForSave']()).toEqual({
+            '/test/testuid/s/shared/measures': {
+                m: {
+                    '@': '__serverTimestamp',
+                    date: 1000,
+                },
+            },
+        });
+
+        await remote['promiseSaved'].promise;
+    });
+
     test('Save a deep property', async () => {
         const obs = obsProxy({
             clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
