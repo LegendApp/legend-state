@@ -269,6 +269,81 @@ describe('Basic', () => {
         );
     });
 
+    test('Set number key multiple times', () => {
+        const obs = obsProxy({ test: { t: {} as Record<number, any> } });
+        const handler = jest.fn();
+        listenToObs(obs.test, handler);
+
+        obs.test.t.set('1000', { test1: { text: ['hi'] } });
+        expect(obs.get()).toEqual({
+            test: {
+                t: {
+                    '1000': {
+                        test1: { text: ['hi'] },
+                    },
+                },
+            },
+        });
+
+        expect(handler).toHaveBeenCalledWith(
+            { t: { '1000': { test1: { text: ['hi'] } } } },
+            {
+                changedValue: { test1: { text: ['hi'] } },
+                path: ['t', '1000'],
+                prevValue: undefined,
+            }
+        );
+        expect(Object.keys(obs.test.t[1000])).toEqual(['test1']);
+
+        obs.test.t.set(1000, { test1: { text: ['hi'] }, test2: { text: ['hi2'] } });
+        expect(obs.get()).toEqual({
+            test: {
+                t: {
+                    '1000': {
+                        test1: { text: ['hi'] },
+                        test2: { text: ['hi2'] },
+                    },
+                },
+            },
+        });
+
+        expect(Object.keys(obs.test.t.get()['1000'])).toEqual(['test1', 'test2']);
+        expect(Object.keys(obs.test.t['1000'])).toEqual(['test1', 'test2']);
+
+        expect(obs.test.t.get()).toEqual({
+            1000: {
+                test1: { text: ['hi'] },
+                test2: { text: ['hi2'] },
+            },
+        });
+
+        expect(handler).toHaveBeenCalledWith(
+            { t: { 1000: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } } } },
+            {
+                changedValue: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
+                path: ['t', '1000'],
+                prevValue: { test1: { text: ['hi'] } },
+            }
+        );
+
+        obs.test.t.set(1000, { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
+        expect(obs.test.t.get()).toEqual({
+            1000: {
+                test1: { text: ['hiz'], text2: 'hiz2' },
+                test2: { text: ['hi2'] },
+            },
+        });
+
+        expect(handler).toHaveBeenCalledWith(
+            { t: { 1000: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } } } },
+            {
+                changedValue: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } },
+                path: ['t', '1000'],
+                prevValue: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
+            }
+        );
+    });
+
     test('Set does not fire if unchanged', () => {
         const obs = obsProxy({ test: { test1: 'hi' } });
         const handler = jest.fn();

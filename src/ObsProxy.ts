@@ -86,8 +86,10 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
                 info.proxies?.delete(key);
             }
         });
+
         // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
         state.skipNotifyFor.push(proxyOwner);
+
         if (isValuePrimitive) {
             info.primitive = true;
             target._value = value;
@@ -99,6 +101,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
             Object.assign(targetOriginal, value);
             info.target = value;
         }
+
         state.skipNotifyFor.pop();
 
         // 3. If this has a proxy parent, update the parent's target with this value to fix the shallow copy problem
@@ -116,13 +119,13 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
         targetOriginal[prop] = value;
     } else if (isString(prop) || isNumber(prop)) {
         const propStr = String(prop);
-        const proxy = info?.proxies?.get(prop);
+        const proxy = info?.proxies?.get(propStr);
         if (proxy) {
             if (value === undefined) {
                 // Setting to undefined deletes this proxy
                 const prevValue = target[prop];
                 state.infos.delete(proxy);
-                info.proxies.delete(prop);
+                info.proxies.delete(propStr);
                 target[prop] = value;
                 targetOriginal[prop] = value;
                 obsNotify(proxyOwner, value, prevValue, [propStr]);
