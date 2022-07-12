@@ -195,6 +195,10 @@ const proxyGet = {
             // Non-modifying functions pass straight through
             return targetValue.bind(target);
         } else if (ProxyFunctions.has(prop)) {
+            if (state.isTracking) {
+                state.updateTracking(proxyOwner, undefined, info);
+            }
+
             // Calling a proxy function returns a bound function
             return ProxyFunctions.get(prop).bind(proxyOwner, proxyOwner, target);
         } else {
@@ -202,6 +206,9 @@ const proxyGet = {
             if (config.extendPrototypes) {
                 state.lastAccessedProxy.proxy = proxyOwner;
                 state.lastAccessedProxy.prop = prop;
+            }
+            if (state.isTracking) {
+                state.updateTracking(proxyOwner, prop, info);
             }
 
             if (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) {

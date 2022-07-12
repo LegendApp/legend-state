@@ -1938,6 +1938,8 @@ describe('Adjust data', () => {
 
 // TODO
 // Usage tracking for useObsProxy/ObsProxyComputed?
+// useObsProxy should take a function that returns an array or an object, and track usage
+// Test unsafe with listeners
 // Should be using reflect?
 
 // # Persist

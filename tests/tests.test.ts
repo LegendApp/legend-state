@@ -16,6 +16,13 @@ describe('Basic', () => {
         expect(obs.get()).toEqual({ val: 10 });
         expect(obs.val).toEqual(10);
     });
+    test('Comparisons', () => {
+        const obs = obsProxy({ val: 10 });
+        expect(obs).toEqual({ val: 10 });
+        expect(obs.val < 20).toEqual(true);
+        // @ts-ignore
+        expect(obs.val < undefined).toEqual(false);
+    });
     test('Primitive access', () => {
         const obs = obsProxy({ val: 10 });
         expect(obs.val).toEqual(10);
@@ -880,65 +887,43 @@ describe('WeakSet', () => {
 
 describe('Computed', () => {
     test('Basic computed', () => {
-        const obs = obsProxy({ test: 10 });
-        const obs2 = obsProxy({ test: 20 });
-        const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
-
-        expect(computed.get()).toEqual({ val: 30 });
-    });
-    test('Multiple computed changes', () => {
-        const obs = obsProxy({ test: 10 });
-        const obs2 = obsProxy({ test: 20 });
-        const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
-
-        expect(computed.get()).toEqual({ val: 30 });
-
-        const handler = jest.fn();
-        listenToObs(computed, handler);
-
-        obs.test.set(5);
-
-        expect(handler).toHaveBeenCalledWith(
-            { val: 25 },
-            { changedValue: { val: 25 }, path: [], prevValue: { val: 30 } }
-        );
-        expect(computed.get()).toEqual({ val: 25 });
-
-        obs.test.set(1);
-
-        expect(handler).toHaveBeenCalledWith(
-            { val: 21 },
-            { changedValue: { val: 21 }, path: [], prevValue: { val: 25 } }
-        );
-        expect(computed.get()).toEqual({ val: 21 });
-    });
-
-    test('Computed primitives', () => {
         const obs = obsProxy({ test: 10, test2: 20 });
-        const computed = obsProxyComputed([obs.prop('test'), obs.prop('test2')], (val1, val2) => ({
-            val: val1 + val2,
-        }));
+        const computed = obsProxyComputed(() => obs.test + obs.test2);
+        expect(computed.get()).toEqual(30);
+    });
 
-        expect(computed.get()).toEqual({ val: 30 });
+    test('Computed root promitives', () => {
+        const obs = obsProxy(10);
+        const obs2 = obsProxy(20);
+        const computed = obsProxyComputed(() => obs.get() + obs2.get());
+        expect(computed.get()).toEqual(30);
+
+        const handler = jest.fn();
+        listenToObs(computed, handler);
+
+        obs.set(5);
+
+        expect(handler).toHaveBeenCalledWith(25, { changedValue: 25, path: [], prevValue: 30 });
+        expect(computed.get()).toEqual(25);
+    });
+
+    test('Multiple computed changes', () => {
+        const obs = obsProxy({ test: 10, test2: 20 });
+        const computed = obsProxyComputed(() => obs.test + obs.test2);
+        expect(computed.get()).toEqual(30);
 
         const handler = jest.fn();
         listenToObs(computed, handler);
 
         obs.test.set(5);
 
-        expect(handler).toHaveBeenCalledWith(
-            { val: 25 },
-            { changedValue: { val: 25 }, path: [], prevValue: { val: 30 } }
-        );
-        expect(computed.get()).toEqual({ val: 25 });
+        expect(handler).toHaveBeenCalledWith(25, { changedValue: 25, path: [], prevValue: 30 });
+        expect(computed.get()).toEqual(25);
 
         obs.test.set(1);
 
-        expect(handler).toHaveBeenCalledWith(
-            { val: 21 },
-            { changedValue: { val: 21 }, path: [], prevValue: { val: 25 } }
-        );
-        expect(computed.get()).toEqual({ val: 21 });
+        expect(handler).toHaveBeenCalledWith(21, { changedValue: 21, path: [], prevValue: 25 });
+        expect(computed.get()).toEqual(21);
     });
 });
 
