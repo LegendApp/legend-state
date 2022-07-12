@@ -1,19 +1,47 @@
-import { disposeListener, listenToObs, obsProxy, obsProxyComputed } from '../src';
+import {
+    configureObsProxy,
+    disposeListener,
+    getProxyFromPrimitive,
+    listenToObs,
+    obsProxy,
+    obsProxyComputed,
+} from '../src';
+
+configureObsProxy();
 
 describe('Basic', () => {
     test('Has value', () => {
         const obs = obsProxy({ val: 10 });
+        expect(obs).toEqual({ val: 10 });
         expect(obs.get()).toEqual({ val: 10 });
-        expect(obs.val.get()).toEqual(10);
+        expect(obs.val).toEqual(10);
     });
     test('Primitive access', () => {
         const obs = obsProxy({ val: 10 });
+        expect(obs.val).toEqual(10);
         expect(obs.val.get()).toEqual(10);
         expect(obs.get().val).toEqual(10);
+
+        obs.val.set(20);
+
+        expect(obs.get().val).toEqual(20);
+        expect(obs.val).toEqual(20);
+        expect(obs.val).toBe(20);
     });
     test('Primitive proxy', () => {
         const obs = obsProxy(10);
+        expect(obs).toEqual({ _value: 10 });
         expect(obs.get()).toEqual(10);
+    });
+    test('Primitive prop', () => {
+        const obs = obsProxy({ val: 10 });
+        expect(obs.val).toEqual(10);
+        expect(getProxyFromPrimitive(obs.val)).toEqual({ _value: 10 });
+
+        obs.val.set(20);
+
+        expect(obs.val).toEqual(20);
+        expect(getProxyFromPrimitive(obs.val)).toEqual({ _value: 20 });
     });
     test('Child objects are proxies', () => {
         const obs = obsProxy({ val: { child: {} } });
@@ -487,7 +515,7 @@ describe('Listeners', () => {
     test('Primitive listener with key', () => {
         const obs = obsProxy({ val: 10 });
         const handler = jest.fn();
-        listenToObs(obs.val, handler);
+        obs.val.on('change', handler);
         obs.val.set(20);
         expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
     });
@@ -634,15 +662,15 @@ describe('Arrays', () => {
     test('Path to change is correct at every level ', () => {
         const obs = obsProxy({ test1: { test2: { test3: { test4: '' } } } });
         const handlerRoot = jest.fn();
-        listenToObs(obs, handlerRoot);
+        obs.on('change', handlerRoot);
         const handler1 = jest.fn();
-        listenToObs(obs.test1, handler1);
+        obs.test1.on('change', handler1);
         const handler2 = jest.fn();
-        listenToObs(obs.test1.test2, handler2);
+        obs.test1.test2.on('change', handler2);
         const handler3 = jest.fn();
-        listenToObs(obs.test1.test2.test3, handler3);
+        obs.test1.test2.test3.on('change', handler3);
         const handler4 = jest.fn();
-        listenToObs(obs.test1.test2.test3.test4, handler4);
+        obs.test1.test2.test3.test4.on('change', handler4);
         obs.test1.test2.test3.test4.set('hi');
         expect(handlerRoot).toHaveBeenCalledWith(
             { test1: { test2: { test3: { test4: 'hi' } } } },
@@ -851,17 +879,45 @@ describe('WeakSet', () => {
 });
 
 describe('Computed', () => {
-    // test('Basic computed', () => {
-    //     const obs = obsProxy({ test: 10 });
-    //     const obs2 = obsProxy({ test: 20 });
-    //     const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
+    test('Basic computed', () => {
+        const obs = obsProxy({ test: 10 });
+        const obs2 = obsProxy({ test: 20 });
+        const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
 
-    //     expect(computed.get()).toEqual({ val: 30 });
-    // });
+        expect(computed.get()).toEqual({ val: 30 });
+    });
     test('Multiple computed changes', () => {
         const obs = obsProxy({ test: 10 });
         const obs2 = obsProxy({ test: 20 });
         const computed = obsProxyComputed([obs, obs2], (val1, val2) => ({ val: val1.test + val2.test }));
+
+        expect(computed.get()).toEqual({ val: 30 });
+
+        const handler = jest.fn();
+        listenToObs(computed, handler);
+
+        obs.test.set(5);
+
+        expect(handler).toHaveBeenCalledWith(
+            { val: 25 },
+            { changedValue: { val: 25 }, path: [], prevValue: { val: 30 } }
+        );
+        expect(computed.get()).toEqual({ val: 25 });
+
+        obs.test.set(1);
+
+        expect(handler).toHaveBeenCalledWith(
+            { val: 21 },
+            { changedValue: { val: 21 }, path: [], prevValue: { val: 25 } }
+        );
+        expect(computed.get()).toEqual({ val: 21 });
+    });
+
+    test('Computed primitives', () => {
+        const obs = obsProxy({ test: 10, test2: 20 });
+        const computed = obsProxyComputed([obs.prop('test'), obs.prop('test2')], (val1, val2) => ({
+            val: val1 + val2,
+        }));
 
         expect(computed.get()).toEqual({ val: 30 });
 

@@ -121,7 +121,7 @@ export function transformObject(
                                 if (process.env.NODE_ENV === 'development' && !isString(v)) debugger;
                                 ret[k] = mapped.__val[v];
                             } else {
-                                if (v && !isString(mapped)) debugger;
+                                if (v && !isString(k || mapped)) debugger;
                                 ret[k || mapped] = v;
                             }
                         }
@@ -163,8 +163,6 @@ export function invertMap(obj: Record<string, any>) {
     if (existing) return existing;
 
     const target: Record<string, any> = {} as any;
-
-    if (!isObject(obj)) debugger;
 
     Object.keys(obj).forEach((key) => {
         const val = obj[key];

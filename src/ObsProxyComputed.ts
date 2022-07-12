@@ -1,6 +1,5 @@
 import { obsProxy } from './ObsProxy';
-import { listenToObs } from './ObsProxyFns';
-import { MappedProxyValue, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { MappedProxyValue, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 
 function onChanged(proxy: ObsProxy, args: ObsProxyChecker[], compute: (...args: any) => any) {
     const value = compute(...args.map((arg) => arg.get()));
@@ -18,7 +17,7 @@ export function obsProxyComputed<T, TA extends ObsProxyChecker[] = any>(
     const handler = onChanged.bind(this, proxy, args, compute);
 
     // Listen for changes
-    args.forEach((obs) => listenToObs(obs, handler));
+    args.forEach((obs) => obs.on('change', handler));
 
     return proxy;
 }

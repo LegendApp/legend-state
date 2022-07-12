@@ -83,7 +83,6 @@ export function isProxy(obj: any): obj is ObsProxy {
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;
-    // @ts-ignore
     Object.keys(a).forEach((key) => {
         const v = a[key];
         if (v === null || v === undefined) {
@@ -93,21 +92,6 @@ export function removeNullUndefined<T extends Record<string, any>>(a: T) {
         }
     });
 }
-
-// export function removeUndefined<T extends Record<string, any>>(a: T): T {
-//     if (a === undefined) return null;
-//     // @ts-ignore
-//     const out: T = {};
-//     Object.keys(a).forEach((key) => {
-//         const v = a[key];
-//         if (v !== undefined) {
-//             // @ts-ignore
-//             out[key] = isObject(v) ? removeUndefined(v) : v;
-//         }
-//     });
-
-//     return out;
-// }
 
 export function objectAtPath(path: string[], value: object) {
     let o = value;

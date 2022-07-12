@@ -1,13 +1,13 @@
-import { obsProxy } from '../src/ObsProxy';
-import { getObsModified, onTrue } from '../src/ObsProxyFns';
-import { PersistOptionsRemote, ProxyValue } from '../src/ObsProxyInterfaces';
+import { isArray, isObject, isString } from '@legendapp/tools';
 import { configureObsProxy } from '../src/configureObsProxy';
 import { symbolDateModified } from '../src/globals';
 import { mapPersistences, obsPersist } from '../src/ObsPersist';
 import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
+import { obsProxy } from '../src/ObsProxy';
+import { getObsModified, onTrue } from '../src/ObsProxyFns';
+import { PersistOptionsRemote, ProxyValue } from '../src/ObsProxyInterfaces';
 import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
 import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
-import { isArray, isObject, isString } from '@legendapp/tools';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -1937,7 +1937,8 @@ describe('Adjust data', () => {
 });
 
 // TODO
-// Do string functions work on primitives?
+// Usage tracking for useObsProxy/ObsProxyComputed?
+// Should be using reflect?
 
 // # Persist
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?

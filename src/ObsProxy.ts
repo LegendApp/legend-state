@@ -1,6 +1,7 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
+import { config } from './configureObsProxy';
 import { isCollection, isPrimitive, jsonEqual } from './globals';
-import { obsNotify, on } from './ObsProxyFns';
+import { obsNotify, on, prop } from './ObsProxyFns';
 import { ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
@@ -170,13 +171,15 @@ const ProxyFunctions = new Map<any, any>([
     ['set', setter],
     ['assign', assigner],
     ['on', on],
+    ['prop', prop],
 ]);
 
 const proxyGet = {
     get(_: any, prop: string, proxyOwner: ObsProxy) {
         const info = state.infos.get(proxyOwner);
         const target = info.target as any;
-        if (isFunction(target[prop]) && isCollection(target)) {
+        const targetValue = target[prop];
+        if (isFunction(targetValue) && isCollection(target)) {
             // If this is a modifying function on a collection, use custom setter which notifies of changes
             // Note: This comes first so we don't overwrite the collection set function
             if (
@@ -190,28 +193,39 @@ const proxyGet = {
             }
 
             // Non-modifying functions pass straight through
-            return target[prop].bind(target);
+            return targetValue.bind(target);
         } else if (ProxyFunctions.has(prop)) {
             // Calling a proxy function returns a bound function
             return ProxyFunctions.get(prop).bind(proxyOwner, proxyOwner, target);
         } else {
-            let proxy = info.proxies?.get(prop);
-
-            // Getting a property creates a proxy for it
-            if (
-                !proxy &&
-                target.hasOwnProperty(prop) !== undefined &&
-                !info.primitive &&
-                !isFunction(target[prop]) &&
-                !isArray(target)
-            ) {
-                if (!info.proxies) {
-                    info.proxies = new Map();
-                }
-                proxy = _obsProxy(target[prop], info.safe, proxyOwner, prop);
-                info.proxies.set(prop, proxy);
+            // Update lastAccessedProxy to support extended prototype functions on primitives
+            if (config.extendPrototypes) {
+                state.lastAccessedProxy.proxy = proxyOwner;
+                state.lastAccessedProxy.prop = prop;
             }
-            return proxy || target[prop];
+
+            if (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) {
+                // Get proxy for prop if it's not a primitive or using prop(key)
+                state.inProp = false;
+                let proxy = info.proxies?.get(prop);
+
+                // Getting a property creates a proxy for it
+                if (
+                    !proxy &&
+                    target.hasOwnProperty(prop) !== undefined &&
+                    !isFunction(targetValue) &&
+                    !isArray(target)
+                ) {
+                    if (!info.proxies) {
+                        info.proxies = new Map();
+                    }
+                    proxy = _obsProxy(targetValue, info.safe, proxyOwner, prop);
+                    info.proxies.set(prop, proxy);
+                }
+                return proxy || targetValue;
+            } else {
+                return targetValue;
+            }
         }
     },
     set(_: any, prop: string, value: any, proxyOwner: ObsProxy) {

@@ -54,7 +54,7 @@ const updateListeners = (
             }
 
             if (obs) {
-                listeners[i] = listenToObs(obs, onChange);
+                listeners[i] = obs.on('change', onChange);
             }
         }
     }

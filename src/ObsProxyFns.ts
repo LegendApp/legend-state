@@ -1,4 +1,4 @@
-import { isObjectEmpty, symbolDateModified } from './globals';
+import { isObjectEmpty, isPrimitive, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { EventType, ListenerFn, ObsListener, ObsListenerInfo, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
@@ -54,6 +54,9 @@ export function listenToObs<T>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
 
 export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T> {
     return new Promise<any>((resolve) => {
+        if (isPrimitive(obs)) {
+            obs = getProxyFromPrimitive(obs);
+        }
         let isDone = false;
         let listener: ObsListener<T>;
         function check(newValue) {
@@ -78,7 +81,6 @@ export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) =
 }
 
 export function onHasValue<T>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): Promise<T> {
-    // @ts-ignore
     return onEquals(obs, symbolHasValue as any, cb);
 }
 
@@ -126,6 +128,20 @@ export function assignDeep<T extends ObsProxyChecker>(obs: T, cb: Function) {
             const listener = info.listeners[i];
             listener._disposed = true;
             info.listeners.splice(i, 1);
+        }
+    }
+}
+
+export function prop(obs: ObsProxyChecker, _: any, prop: string | number) {
+    state.inProp = true;
+    return obs[prop];
+}
+
+export function getProxyFromPrimitive(primitive: any) {
+    if (state.lastAccessedProxy) {
+        const { proxy, prop } = state.lastAccessedProxy;
+        if (proxy[prop] === primitive) {
+            return proxy.prop(prop);
         }
     }
 }

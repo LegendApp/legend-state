@@ -107,6 +107,7 @@ export class ObsPersistFirebaseJest extends ObsPersistFirebaseBase {
             const pathArr = listenerPath.split('/').filter((a) => !!a);
             const dataAtPath = clone(objectAtPath(pathArr, this.remoteData));
             const prevAtPath = clone(objectAtPath(pathArr, prev));
+            if (!dataAtPath) debugger;
             Object.keys(dataAtPath).forEach((key) => {
                 if (!prevAtPath || !deepCompare(dataAtPath[key], prevAtPath[key])) {
                     const out = { key, val: () => dataAtPath[key] };
