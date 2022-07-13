@@ -14,13 +14,10 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
     if (info && !skipNotifyFor.includes(target)) {
         // Notify all listeners
         if (info.listeners) {
-            // Clone because listener handlers may unlisten and modify the original array
-            const listeners = info.listeners.slice();
             const value = target.get();
-            for (let i = 0; i < listeners.length; i++) {
-                const listener = listeners[i];
-                ObsBatcher.notify(listener.callback, value, listenerInfo);
-            }
+            info.listeners.forEach((listener) => {
+                ObsBatcher.notify(listener, value, listenerInfo);
+            });
         }
 
         // Notify parents
@@ -43,10 +40,10 @@ function _listenToObs<T>(callback: ListenerFn<any>, target: ObsProxyChecker<T>) 
         throw new Error('Can only listen to instances of ObsProxy');
     }
     if (!info.listeners) {
-        info.listeners = [];
+        info.listeners = new Set();
     }
     const listener = { target, callback } as ObsListener<T>;
-    info.listeners.push(listener);
+    info.listeners.add(callback);
     return listener;
 }
 export function listenToObs<T>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
@@ -93,20 +90,10 @@ export function getObsModified<T extends ObsProxyChecker>(obs: T) {
     return obs.get?.()?.[symbolDateModified];
 }
 
-export function getListeners<T extends ObsProxyChecker>(obs: T) {
-    const info = state.infos.get(obs);
-    return info?.listeners || [];
-}
-
-export function unlisten<T extends ObsProxyChecker>(obs: T, cb: Function) {
+export function unlisten<T extends ObsProxyChecker>(obs: T, cb: ListenerFn<any>) {
     const info = state.infos.get(obs);
     if (info) {
-        const i = info.listeners.findIndex((listener) => listener.callback === cb);
-        if (i >= 0) {
-            const listener = info.listeners[i];
-            listener._disposed = true;
-            info.listeners.splice(i, 1);
-        }
+        info.listeners.delete(cb);
     }
 }
 
@@ -119,18 +106,6 @@ const ProxyOnFunctions: Record<EventType, Function> = {
 
 export function on(obs: ObsProxyChecker, _: any, eventType: EventType, ...args) {
     return ProxyOnFunctions[eventType](obs, ...args);
-}
-
-export function assignDeep<T extends ObsProxyChecker>(obs: T, cb: Function) {
-    const info = state.infos.get(obs);
-    if (info) {
-        const i = info.listeners.findIndex((listener) => listener.callback === cb);
-        if (i >= 0) {
-            const listener = info.listeners[i];
-            listener._disposed = true;
-            info.listeners.splice(i, 1);
-        }
-    }
 }
 
 export function prop(obs: ObsProxyChecker, _: any, prop: string | number) {

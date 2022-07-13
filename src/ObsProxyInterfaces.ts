@@ -22,8 +22,6 @@ export type ObsPropsUnsafe<T> = Partial<ObsProps<T>>;
 export interface ObsListener<T = any> {
     target: ObsProxy<T>;
     callback: ListenerFn<T>;
-    /** @internal */
-    _disposed?: boolean;
 }
 
 export interface ObsListenerInfo {

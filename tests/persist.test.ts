@@ -1953,7 +1953,6 @@ describe('Adjust data', () => {
 // useSyncExternalStore
 // How to use it as a trigger by just notifying
 // React suspense
-// Listeners as Set instead of array? Better for perf?
 
 // # More tests
 // test read functions on array and map and stuff
