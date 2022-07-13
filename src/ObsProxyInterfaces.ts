@@ -61,7 +61,7 @@ export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxy
     ? t
     : T;
 
-export type MappedProxyValue<T extends ObsProxyChecker[]> = {
+export type MappedProxyValue<T extends ObsProxyChecker[] | Record<string, ObsProxyChecker>> = {
     [K in keyof T]: ProxyValue<T[K]>;
 };
 

@@ -1,70 +1,17 @@
-import { useForceRender } from '@legendapp/tools';
+import { useForceRender, isArray } from '@legendapp/tools';
 import { useEffect, useRef, MutableRefObject } from 'react';
 import { isProxy } from '../globals';
 import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from '../ObsProxyInterfaces';
 import { disposeListener } from '../ObsProxyListener';
 import { state } from '../ObsProxyState';
 
-interface SavedRef {
-    args?: ObsProxyChecker[];
-    listeners?: ObsListener[];
-}
-
 interface SavedRefTrack {
     proxies: [ObsProxy, string, ObsListener][];
 }
 
-function useObsProxy<T extends ObsProxyChecker[]>(...args: T): MappedProxyValue<T> {
-    const forceRender = useForceRender();
-    const ref = useRef<SavedRef>();
-    if (!ref.current) {
-        ref.current = {
-            listeners: [],
-        };
-    }
-
-    // Compare to previous args and update listeners if any changed or first mount
-    updateListeners(args, ref.current.args, ref.current.listeners, forceRender);
-
-    ref.current.args = args;
-
-    // Dispose listeners on unmount
-    useEffect(
-        () => () => {
-            if (ref.current.listeners) {
-                ref.current.listeners.forEach(disposeListener);
-                ref.current.listeners = [];
-            }
-        },
-        []
-    ); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return args.map((obs) => (obs ? obs.get() : obs)) as MappedProxyValue<T>;
-}
-
-const updateListeners = (
-    args: ObsProxyChecker[],
-    prevArgs: (ObsProxy | ObsProxyUnsafe)[],
-    listeners: ObsListener[],
-    onChange: () => void
-) => {
-    const num = Math.max(args.length, prevArgs ? prevArgs.length : 0);
-    for (let i = 0; i < num; i++) {
-        let obs = args[i];
-        if (!prevArgs || obs !== prevArgs[i]) {
-            if (listeners[i]) {
-                disposeListener(listeners[i]);
-                listeners[i] = undefined;
-            }
-
-            if (obs) {
-                listeners[i] = obs.on('change', onChange);
-            }
-        }
-    }
-};
-
-function useObsProxyTrack<T extends ObsProxyChecker[]>(fn: () => T): MappedProxyValue<T> {
+export function useObsProxy<T extends ObsProxyChecker[] | Record<string, ObsProxyChecker>>(
+    fn: () => T
+): MappedProxyValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRefTrack>();
     if (!ref.current) {
@@ -77,8 +24,12 @@ function useObsProxyTrack<T extends ObsProxyChecker[]>(fn: () => T): MappedProxy
 
     const ret = fn();
 
+    const isArr = isArray(ret);
+
+    const arr = (isArr ? ret : Object.values(ret)) as ObsProxy[];
+
     // Compare to previous args and update listeners if any changed or first mount
-    updateListenersTrack(ret as ObsProxy[], ref.current, forceRender);
+    updateListeners(arr as ObsProxy[], ref.current, forceRender);
 
     // Reset state
     state.isTracking = false;
@@ -96,10 +47,20 @@ function useObsProxyTrack<T extends ObsProxyChecker[]>(fn: () => T): MappedProxy
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return ret.map((obs) => (obs && isProxy(obs) ? obs.get() : obs)) as MappedProxyValue<T>;
+    if (isArr) {
+        return arr.map((obs) => (obs && isProxy(obs) ? obs.get() : obs)) as unknown as MappedProxyValue<T>;
+    } else {
+        Object.keys(ret).forEach((key) => {
+            const obs = ret[key];
+            if (isProxy(obs)) {
+                ret[key] = obs.get();
+            }
+        });
+        return ret as MappedProxyValue<T>;
+    }
 }
 
-const updateListenersTrack = (ret: ObsProxy[], saved: SavedRefTrack, onChange: () => void) => {
+const updateListeners = (ret: ObsProxy[], saved: SavedRefTrack, onChange: () => void) => {
     const tracked = state.trackedProxies;
     const trackedRoots = state.trackedRootProxies;
     for (let i = 0; i < ret.length; i++) {
@@ -145,5 +106,3 @@ const updateListenersTrack = (ret: ObsProxy[], saved: SavedRefTrack, onChange: (
         }
     }
 };
-
-export { useObsProxy, useObsProxyTrack };

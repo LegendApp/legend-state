@@ -35,12 +35,13 @@ async function onObsChange<T>(
 
     const dateModifiedKey = '@';
 
-    if (persistOptions.local) {
+    const local = persistOptions.local;
+    if (local) {
         // TODO: What to do? Queue this until after loaded? Or throw error?
         if (!proxyState.isLoadedLocal) return;
 
         persistenceLocal.setValue(
-            persistOptions.local,
+            local,
             replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
         );
     }
@@ -49,11 +50,17 @@ async function onObsChange<T>(
         // console.log('save', value);
         const saved = await persistenceRemote.save(persistOptions, value, info);
         if (saved) {
-            if (persistOptions.local) {
-                persistenceLocal.setValue(
-                    persistOptions.local,
-                    replaceKeyInObject(saved as object, symbolDateModified, dateModifiedKey, /*clone*/ false)
+            if (local) {
+                const cur = persistenceLocal.getValue(local);
+                const replaced = replaceKeyInObject(
+                    saved as object,
+                    symbolDateModified,
+                    dateModifiedKey,
+                    /*clone*/ false
                 );
+                const toSave = cur ? mergeDeep(cur, replaced) : replaced;
+
+                persistenceLocal.setValue(local, toSave);
             }
         }
     }

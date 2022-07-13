@@ -140,7 +140,10 @@ export function prop(obs: ObsProxyChecker, _: any, prop: string | number) {
 export function getProxyFromPrimitive(primitive: any) {
     if (state.lastAccessedProxy) {
         const { proxy, prop } = state.lastAccessedProxy;
-        if (proxy[prop] === primitive) {
+        const info = state.infos.get(proxy);
+        // Make sure the primitive being accessed is the one from lastAccessedProxy
+        // == instead of === because some platforms like React native fail here on ===
+        if (info.target[prop] == primitive) {
             return proxy.prop(prop);
         }
     }

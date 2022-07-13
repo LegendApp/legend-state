@@ -16,7 +16,6 @@ import type {
     ObsPersistRemote,
     ObsProxy,
     ObsProxyChecker,
-    ObsProxyUnsafe,
     PersistOptions,
     PersistOptionsRemote,
     QueryByModified,
@@ -173,6 +172,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
 
         const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
+        const pathFirebase = syncPath(this.fns.getCurrentUser());
 
         let fieldTransformsAtPath;
         if (fieldTransforms) {
@@ -181,8 +181,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
             if (syncPathExtra) {
                 const pathArr = syncPathExtra.split('/').filter((a) => !!a);
-                const obj = objectAtPath(pathArr, fieldTransforms);
-                if (!obj) debugger;
                 fieldTransformsAtPath = invertMap(objectAtPath(pathArr, fieldTransforms));
                 syncPathExtra = transformPath(pathArr, fieldTransforms, ignoreKeys, dateModifiedKey).join('/');
             } else {
@@ -190,7 +188,6 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             }
         }
 
-        const pathFirebase = syncPath(this.fns.getCurrentUser());
         const pathFull = pathFirebase + syncPathExtra;
 
         let refPath = this.fns.ref(pathFull);
@@ -616,7 +613,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 );
             });
         } else {
-            this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
+        this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
         }
 
         return value;

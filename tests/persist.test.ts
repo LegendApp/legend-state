@@ -617,8 +617,10 @@ describe('Persist remote save', () => {
             test: {
                 '@': '__serverTimestamp',
                 test2: 'hi',
+                test3: 'hello2',
                 test4: {
                     '@': '__serverTimestamp',
+                    test5: 'hello3',
                     test6: {
                         test7: 'hi4',
                     },
@@ -1937,8 +1939,7 @@ describe('Adjust data', () => {
 });
 
 // TODO
-// Usage tracking for useObsProxy/ObsProxyComputed?
-// useObsProxy should take a function that returns an array or an object, and track usage
+// Persist crashing on RN when setting undefined?
 // Test unsafe with listeners
 // Should be using reflect?
 
@@ -1946,11 +1947,13 @@ describe('Adjust data', () => {
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
 // # Things outside of Bravely scopea
-// Handle setting with another proxy, goes into infinite recursion? Should call get on it?
+// Handle setting with another proxy, goes into infinite recursion? Should call get on it? Should throw error?
 // Functions inside proxy as actions should not be proxied and be bound to the proxy as this
 // Promises
 // useSyncExternalStore
 // How to use it as a trigger by just notifying
+// React suspense
+// Listeners as Set instead of array? Better for perf?
 
 // # More tests
 // test read functions on array and map and stuff
