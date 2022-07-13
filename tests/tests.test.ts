@@ -35,6 +35,18 @@ describe('Basic', () => {
         expect(obs.val).toEqual(20);
         expect(obs.val).toBe(20);
     });
+    test('Deep primitive access', () => {
+        const obs = obsProxy({ val: { val2: { val3: 10 } } });
+        expect(obs.val.val2.val3).toEqual(10);
+        expect(obs.val.val2.val3.get()).toEqual(10);
+        expect(obs.val.val2.get().val3).toEqual(10);
+
+        obs.val.val2.val3.set(20);
+
+        expect(obs.val.val2.val3).toEqual(20);
+        expect(obs.val.val2.val3.get()).toEqual(20);
+        expect(obs.val.val2.get().val3).toEqual(20);
+    });
     test('Primitive proxy', () => {
         const obs = obsProxy(10);
         expect(obs).toEqual({ _value: 10 });
@@ -1103,5 +1115,42 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2.a1.get()).toEqual(undefined);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
         expect(Object.keys(obs.test.test2.get())).toEqual(['a6']);
+    });
+});
+
+describe('Delete', () => {
+    test('Delete property', () => {
+        const obs = obsProxy({ val: true });
+        obs.delete('val');
+        expect(obs.get()).toEqual({});
+        expect(obs).toEqual({});
+        expect(Object.keys(obs.get())).toEqual([]);
+        expect(Object.keys(obs)).toEqual([]);
+
+        const obs2 = obsProxy({ val: true, val2: true });
+        obs2.delete('val');
+        expect(obs2.get()).toEqual({ val2: true });
+        expect(Object.keys(obs2.get())).toEqual(['val2']);
+        expect(Object.keys(obs2)).toEqual(['val2']);
+
+        obs2.delete('val2');
+        expect(obs2.get()).toEqual({});
+        expect(Object.keys(obs2.get())).toEqual([]);
+        expect(Object.keys(obs2)).toEqual([]);
+    });
+
+    test('Delete self', () => {
+        const obs = obsProxy({ val: true });
+        obs.val.delete();
+        expect(obs.get()).toEqual({});
+        expect(obs).toEqual({});
+        expect(Object.keys(obs.get())).toEqual([]);
+        expect(Object.keys(obs)).toEqual([]);
+
+        const obs2 = obsProxy({ val: true, val2: true });
+        obs2.val.delete();
+        expect(obs2.get()).toEqual({ val2: true });
+        expect(Object.keys(obs2.get())).toEqual(['val2']);
+        expect(Object.keys(obs2)).toEqual(['val2']);
     });
 });

@@ -13,7 +13,7 @@ export function extendPrototypes() {
                 }
             };
         const toOverride = [Number, Boolean, String];
-        ['assign', 'get', 'on', 'set'].forEach((key) => {
+        ['assign', 'get', 'on', 'set', 'delete'].forEach((key) => {
             toOverride.forEach((override) => (override.prototype[key] = fn(key)));
         });
     }

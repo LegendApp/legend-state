@@ -1,3 +1,4 @@
+import { isObject } from '@legendapp/tools';
 import { isObjectEmpty, isPrimitive, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
 import { EventType, ListenerFn, ObsListener, ObsListenerInfo, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
@@ -147,4 +148,34 @@ export function getProxyFromPrimitive(primitive: any) {
             return proxy.prop(prop);
         }
     }
+}
+
+export function deleteFn(obs: ObsProxyChecker, target: any, prop?: string | number) {
+    const info = state.infos.get(obs);
+    if (prop !== undefined) {
+        const targetOriginal = info.targetOriginal;
+
+        const prevValue = info.primitive ? target._value : Object.assign({}, target);
+
+        const shouldNotify = isObject(target) && target.hasOwnProperty(prop);
+
+        delete target[prop];
+        delete targetOriginal[prop];
+        info.proxies?.delete(prop);
+
+        if (shouldNotify) {
+            obsNotify(obs, target, prevValue, []);
+        }
+    } else {
+        // Delete self
+        const parent = info.parent;
+        if (parent) {
+            const parentInfo = state.infos.get(info.parent);
+            if (parentInfo) {
+                deleteFn(parent, parentInfo.target, info.prop);
+            }
+        }
+    }
+
+    return obs;
 }

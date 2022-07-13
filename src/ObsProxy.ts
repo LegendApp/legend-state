@@ -1,7 +1,7 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { config } from './configureObsProxy';
 import { isCollection, isPrimitive, jsonEqual } from './globals';
-import { obsNotify, on, prop } from './ObsProxyFns';
+import { deleteFn, obsNotify, on, prop } from './ObsProxyFns';
 import { ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
@@ -172,6 +172,7 @@ const ProxyFunctions = new Map<any, any>([
     ['assign', assigner],
     ['on', on],
     ['prop', prop],
+    ['delete', deleteFn],
 ]);
 
 const proxyGet = {

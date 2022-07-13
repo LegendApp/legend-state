@@ -6,6 +6,8 @@ export interface ObsProps<T> {
     set<K extends keyof T>(key: K | string | number, value: T[K]): ObsProxy<T[K]>;
     assign(value: T | Partial<T>): ObsProxy<T>;
     prop<K extends keyof T>(prop: K): ObsProxy<T[K]>;
+    delete(): ObsProxy<T>;
+    delete<K extends keyof T>(key: K | string | number): ObsProxy<T>;
     on(eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
     on(eventType: 'equals', value: T, cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
