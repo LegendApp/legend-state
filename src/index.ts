@@ -6,3 +6,4 @@ export * from './ObsProxyInterfaces';
 export * from './ObsProxyListener';
 export * from './ObsBatcher';
 export * from './ObsProxyComputed';
+export * from './ObsProxyTrigger';

@@ -5,6 +5,7 @@ import {
     listenToObs,
     obsProxy,
     obsProxyComputed,
+    obsProxyTrigger,
 } from '../src';
 
 configureObsProxy();
@@ -1152,5 +1153,23 @@ describe('Delete', () => {
         expect(obs2.get()).toEqual({ val2: true });
         expect(Object.keys(obs2.get())).toEqual(['val2']);
         expect(Object.keys(obs2)).toEqual(['val2']);
+    });
+});
+
+describe('Trigger', () => {
+    test('Trigger', () => {
+        const trigger = obsProxyTrigger();
+        const handler = jest.fn();
+        trigger.on(handler);
+
+        expect(handler).not.toHaveBeenCalled();
+
+        trigger.notify();
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        trigger.notify();
+        trigger.notify();
+        trigger.notify();
+        expect(handler).toHaveBeenCalledTimes(4);
     });
 });

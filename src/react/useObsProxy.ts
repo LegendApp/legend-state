@@ -1,7 +1,7 @@
-import { useForceRender, isArray } from '@legendapp/tools';
-import { useEffect, useRef, MutableRefObject } from 'react';
-import { isProxy } from '../globals';
-import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyUnsafe } from '../ObsProxyInterfaces';
+import { isArray, useForceRender } from '@legendapp/tools';
+import { useEffect, useRef } from 'react';
+import { isProxy, isTrigger } from '../globals';
+import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyTrigger } from '../ObsProxyInterfaces';
 import { disposeListener } from '../ObsProxyListener';
 import { state } from '../ObsProxyState';
 
@@ -9,7 +9,7 @@ interface SavedRefTrack {
     proxies: [ObsProxy, string, ObsListener][];
 }
 
-export function useObsProxy<T extends ObsProxyChecker[] | Record<string, ObsProxyChecker>>(
+export function useObsProxy<T extends (ObsProxyChecker | ObsProxyTrigger)[] | Record<string, ObsProxyChecker>>(
     fn: () => T
 ): MappedProxyValue<T> {
     const forceRender = useForceRender();
@@ -48,7 +48,9 @@ export function useObsProxy<T extends ObsProxyChecker[] | Record<string, ObsProx
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (isArr) {
-        return arr.map((obs) => (obs && isProxy(obs) ? obs.get() : obs)) as unknown as MappedProxyValue<T>;
+        return arr.map(
+            (obs) => obs && (isTrigger(obs) ? undefined : isProxy(obs) ? obs.get() : obs)
+        ) as unknown as MappedProxyValue<T>;
     } else {
         Object.keys(ret).forEach((key) => {
             const obs = ret[key];

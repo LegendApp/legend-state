@@ -54,14 +54,23 @@ type ObsPropsRecursive<T> = {
 
 export type ObsProxyUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
 export type ObsProxy<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
+export interface ObsProxyTrigger {
+    notify(): void;
+    on(cb?: () => void): ObsListener<void>;
+    on(eventType: 'change', cb?: () => void): ObsListener<void>;
+}
 
-export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe> = T extends ObsProxyUnsafe<infer t>
+export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe | ObsProxyTrigger> = T extends ObsProxy<infer t>
     ? t
-    : T extends ObsProxy<infer t>
+    : T extends ObsProxyTrigger
+    ? void
+    : T extends ObsProxyUnsafe<infer t>
     ? t
     : T;
 
-export type MappedProxyValue<T extends ObsProxyChecker[] | Record<string, ObsProxyChecker>> = {
+export type MappedProxyValue<
+    T extends (ObsProxyChecker | ObsProxyTrigger)[] | Record<string, ObsProxyChecker | ObsProxyTrigger>
+> = {
     [K in keyof T]: ProxyValue<T[K]>;
 };
 
