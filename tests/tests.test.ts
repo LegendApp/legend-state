@@ -242,6 +242,7 @@ describe('Basic', () => {
         obs.test.test2.test3.set('hi');
 
         expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.test3).toEqual('hi');
         expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
         expect(obs.test.get()).toEqual({ test2: { test3: 'hi' } });
         expect(obs.get()).toEqual({ test: { test2: { test3: 'hi' } } });
@@ -273,7 +274,9 @@ describe('Basic', () => {
 
         obs.test.test2.test3.set('hi');
 
+        expect(obs.test.test2.test3).toEqual('hi');
         expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2).toEqual({ test3: 'hi' });
         expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
         expect(obs.test.get()).toEqual({ test2: { test3: 'hi' } });
         expect(obs.get()).toEqual({ test: { test2: { test3: 'hi' } } });
@@ -284,6 +287,24 @@ describe('Basic', () => {
                 changedValue: 'hi',
                 path: ['test2', 'test3'],
                 prevValue: undefined,
+            }
+        );
+
+        obs.test.test2.set({ test3: 'hi2' });
+
+        expect(obs.test.test2.test3).toEqual('hi2');
+        expect(obs.test.test2.test3.get()).toEqual('hi2');
+        expect(obs.test.test2).toEqual({ test3: 'hi2' });
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi2' });
+        expect(obs.test.get()).toEqual({ test2: { test3: 'hi2' } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: 'hi2' } } });
+
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: 'hi2' } },
+            {
+                changedValue: { test3: 'hi2' },
+                path: ['test2'],
+                prevValue: { test3: 'hi' },
             }
         );
     });

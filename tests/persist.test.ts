@@ -1954,6 +1954,7 @@ describe('Adjust data', () => {
 
 // # More tests
 // test read functions on array and map and stuff
+// Save multiple items in a record should merge correctly
 // Need to document
 // Promises return from on functions
 
