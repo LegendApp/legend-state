@@ -11,8 +11,11 @@ export class ObsPersistMMKV implements ObsPersistLocal {
     public getValue(id: string) {
         if (this.data[id] === undefined) {
             try {
-                return JSON.parse(storage.getString(id));
-            } catch {}
+                const value = storage.getString(id);
+                return value ? JSON.parse(value) : undefined;
+            } catch {
+                console.log('failed to parse', id);
+            }
         }
         return this.data[id];
     }
@@ -22,12 +25,20 @@ export class ObsPersistMMKV implements ObsPersistLocal {
     }
     public async deleteById(id: string) {
         delete this.data[id];
-        this.save(id);
+        storage.delete(id);
     }
     private save(id: string) {
+        return this._save(id);
+    }
+    private _save(id: string) {
         const v = this.data[id];
         if (v !== undefined) {
-            storage.set(id, JSON.stringify(v));
+            try {
+                storage.set(id, JSON.stringify(v));
+            } catch (err) {
+                console.error(err);
+                debugger;
+            }
         } else {
             storage.delete(id);
         }

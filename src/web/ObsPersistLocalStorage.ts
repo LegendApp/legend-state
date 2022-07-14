@@ -7,8 +7,11 @@ export class ObsPersistLocalStorage implements ObsPersistLocal {
         if (typeof localStorage === 'undefined') return undefined;
         if (this.data[id] === undefined) {
             try {
-                return JSON.parse(localStorage.getItem(id));
-            } catch {}
+                const value = localStorage.getItem(id);
+                return value ? JSON.parse(value) : undefined;
+            } catch {
+                console.log('failed to parse', id);
+            }
         }
         return this.data[id];
     }
@@ -18,7 +21,7 @@ export class ObsPersistLocalStorage implements ObsPersistLocal {
     }
     public async deleteById(id: string) {
         delete this.data[id];
-        this.save(id);
+        localStorage.removeItem(id);
     }
     private save(id: string) {
         if (typeof localStorage === 'undefined') return;

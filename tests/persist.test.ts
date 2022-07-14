@@ -1939,6 +1939,7 @@ describe('Adjust data', () => {
 });
 
 // TODO
+// Delete should persist null to firebase
 // Persist crashing on RN when setting undefined?
 // Test unsafe with listeners
 // Should be using reflect?

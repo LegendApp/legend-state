@@ -263,52 +263,63 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
             await this.waitForAuth();
         }
 
-        let value = constructObject(info.path, JSON.parse(JSON.stringify(info.changedValue)));
-        const valueSaved = JSON.parse(JSON.stringify(value));
-        let path = info.path.slice();
+        try {
+            if (info.changedValue === undefined) {
+                info.changedValue = null;
+            }
 
-        const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
+            let value = info.changedValue
+                ? constructObject(info.path, JSON.parse(JSON.stringify(info.changedValue)))
+                : info.changedValue;
+            const valueSaved = value ? JSON.parse(JSON.stringify(value)) : value;
+            let path = info.path.slice();
 
-        if (fieldTransforms) {
-            value = transformObject(value, fieldTransforms, ignoreKeys, dateModifiedKey);
-            path = transformPath(
-                info.path.filter((a) => !!a),
-                fieldTransforms,
-                ignoreKeys,
-                dateModifiedKey
-            );
-        }
+            const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
 
-        const syncPath = options.remote.firebase.syncPath(this.fns.getCurrentUser());
-        if (!this._pendingSaves2.has(syncPath)) {
-            this._pendingSaves2.set(syncPath, { options, saves: {}, values: [] });
-        }
-        const pending = this._pendingSaves2.get(syncPath).saves;
+            if (fieldTransforms) {
+                value = transformObject(value, fieldTransforms, ignoreKeys, dateModifiedKey);
+                path = transformPath(
+                    info.path.filter((a) => !!a),
+                    fieldTransforms,
+                    ignoreKeys,
+                    dateModifiedKey
+                );
+            }
 
-        this._updatePendingSave(path, value as unknown as object, pending);
+            const syncPath = options.remote.firebase.syncPath(this.fns.getCurrentUser());
+            if (!this._pendingSaves2.has(syncPath)) {
+                this._pendingSaves2.set(syncPath, { options, saves: {}, values: [] });
+            }
+            const pending = this._pendingSaves2.get(syncPath).saves;
 
-        if (!this.promiseSaved) {
-            this.promiseSaved = new PromiseCallback();
-        }
+            this._updatePendingSave(path, value as unknown as object, pending);
 
-        const timeout = saveTimeout ?? this.SaveTimeout;
+            if (!this.promiseSaved) {
+                this.promiseSaved = new PromiseCallback();
+            }
 
-        if (timeout) {
-            if (this._timeoutSave) clearTimeout(this._timeoutSave);
-            this._timeoutSave = setTimeout(this._onTimeoutSave, timeout);
-        } else {
-            this._onTimeoutSave();
-        }
+            const timeout = saveTimeout ?? this.SaveTimeout;
 
-        await this.promiseSaved.promise;
+            if (timeout) {
+                if (this._timeoutSave) clearTimeout(this._timeoutSave);
+                this._timeoutSave = setTimeout(this._onTimeoutSave, timeout);
+            } else {
+                this._onTimeoutSave();
+            }
 
-        const valuesSaved = this._pendingSaves2.get(syncPath)?.values;
+            await this.promiseSaved.promise;
 
-        if (valuesSaved?.length) {
-            // Only want to return from saved one time
-            this._pendingSaves2.delete(syncPath);
-            mergeDeep(valueSaved, ...valuesSaved);
-            return valueSaved;
+            const valuesSaved = this._pendingSaves2.get(syncPath)?.values;
+
+            if (valuesSaved?.length) {
+                // Only want to return from saved one time
+                this._pendingSaves2.delete(syncPath);
+                mergeDeep(valueSaved, ...valuesSaved);
+                return valueSaved;
+            }
+        } catch (err) {
+            console.error(err, info.changedValue);
+            debugger;
         }
     }
     private _constructBatch(
@@ -613,7 +624,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 );
             });
         } else {
-        this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
+            this.insertDatesToSaveObject(batch, o, dateModifiedKey, basePath + path.join('/'), value);
         }
 
         return value;
