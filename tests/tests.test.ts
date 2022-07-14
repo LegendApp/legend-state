@@ -68,7 +68,7 @@ describe('Basic', () => {
         expect(getProxyFromPrimitive(obs.val)).toEqual({ _value: 20 });
     });
     test('Child objects are proxies', () => {
-        const obs = obsProxy({ val: { child: {} } });
+        const obs = obsProxy({ val: { child: {} as any } });
         const handler = jest.fn();
         listenToObs(obs.val.child, handler);
         obs.val.child.set({ hello: true });

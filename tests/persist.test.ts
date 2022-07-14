@@ -1946,15 +1946,11 @@ describe('Adjust data', () => {
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
 // # Things outside of Bravely scopea
-// Handle setting with another proxy, goes into infinite recursion? Should call get on it? Should throw error?
 // useSyncExternalStore
 
 // # More tests
 // test read functions on array and map and stuff
 // Save multiple items in a record should merge correctly
-// Array modifications should only notify once
-// Need to document
-// Promises return from on functions
 
 // # To document
 // Values coming in as null from remote is not really supported

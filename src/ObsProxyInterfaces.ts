@@ -4,9 +4,9 @@ export type ObsProxyFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete'
 
 export interface ObsProps<T> {
     get(): T;
-    set(value: T): ObsProxy<T>;
-    set<K extends keyof T>(key: K | string | number, value: T[K]): ObsProxy<T[K]>;
-    assign(value: T | Partial<T>): ObsProxy<T>;
+    set(value: ValidObsProxyParam<T>): ObsProxy<T>;
+    set<K extends keyof T>(key: K | string | number, value: ValidObsProxyParam<T[K]>): ObsProxy<T[K]>;
+    assign(value: ValidObsProxyParam<T> | Partial<ValidObsProxyParam<T>>): ObsProxy<T>;
     prop<K extends keyof T>(prop: K): ObsProxy<T[K]>;
     delete(): ObsProxy<T>;
     delete<K extends keyof T>(key: K | string | number): ObsProxy<T>;
@@ -181,6 +181,8 @@ type DisallowedAttributes<T extends string> = Partial<Record<T, void>>;
 export type ValidObsProxyParam<T> = T extends Record<string, any>
     ? T extends Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>
         ? T
+        : T extends ObsProxy
+        ? never
         : { [K in keyof T]: ValidObsProxyParam<T[K]> } & DisallowedAttributes<ObsProxyFnName>
     : T;
 export interface OnReturnValue<T> {
