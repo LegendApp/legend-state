@@ -1,5 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { ObsProxy } from './ObsProxyInterfaces';
+import { ObsProxy, ObsProxyTrigger } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 import { config } from './configureObsProxy';
 
@@ -79,6 +79,10 @@ export function isNullOrUndefined(val: any) {
 
 export function isProxy(obj: any): obj is ObsProxy {
     return state.infos.has(obj);
+}
+
+export function isTrigger(obj: any): obj is ObsProxyTrigger {
+    return isObject(obj) && obj.hasOwnProperty('notify') && obj.hasOwnProperty('on');
 }
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
