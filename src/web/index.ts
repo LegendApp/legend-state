@@ -1,2 +1,2 @@
-export * from './ObsPersistFirebaseWeb';
-export * from './ObsPersistLocalStorage';
+export * from './ObservablePersistFirebaseWeb';
+export * from './ObservablePersistLocalStorage';

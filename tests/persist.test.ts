@@ -1,13 +1,13 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
-import { configureObsProxy } from '../src/configureObsProxy';
+import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
-import { mapPersistences, obsPersist } from '../src/ObsPersist';
-import { symbolSaveValue } from '../src/ObsPersistFirebaseBase';
-import { obsProxy } from '../src/ObsProxy';
-import { getObsModified, onTrue } from '../src/ObsProxyFns';
-import { PersistOptionsRemote, ProxyValue } from '../src/ObsProxyInterfaces';
-import { ObsPersistLocalStorage } from '../src/web/ObsPersistLocalStorage';
-import { ObsPersistFirebaseJest } from './ObsPersistFirebaseJest';
+import { mapPersistences, observablePersist } from '../src/ObservablePersist';
+import { symbolSaveValue } from '../src/ObservablePersistFirebaseBase';
+import { observable } from '../src/Observable';
+import { getObsModified, onTrue } from '../src/ObservableFns';
+import { PersistOptionsRemote, ObservableValue } from '../src/ObservableInterfaces';
+import { ObsPersistLocalStorage } from '../src/web/ObservablePersistLocalStorage';
+import { ObsPersistFirebaseJest } from './ObservablePersistFirebaseJest';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -68,7 +68,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
 // @ts-ignore
 global.localStorage = new LocalStorageMock();
 
-configureObsProxy({
+configureObservable({
     persist: {
         localPersistence: ObsPersistLocalStorage,
         remotePersistence: ObsPersistFirebaseJest,
@@ -76,7 +76,7 @@ configureObsProxy({
     },
 });
 
-// jest.setTimeout(100000);
+// jest.setTimeout(10000);
 
 beforeEach(() => {
     global.localStorage.clear();
@@ -115,9 +115,9 @@ function modifyRemote(path: string, obj: object) {
 
 describe('Persist local', () => {
     test('Saves to local', () => {
-        const obs = obsProxy({ test: '' });
+        const obs = observable({ test: '' });
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestlocal',
         });
 
@@ -129,8 +129,8 @@ describe('Persist local', () => {
         expect(localValue).toBe(`{"test":"hello"}`);
 
         // obs2 should load with the same value it was just saved as
-        const obs2 = obsProxy({});
-        obsPersist(obs2, {
+        const obs2 = observable({});
+        observablePersist(obs2, {
             local: 'jestlocal',
         });
 
@@ -146,13 +146,13 @@ describe('Persist local', () => {
             })
         );
 
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: '', test3: '' },
             test4: { test5: { test6: '' } },
             test7: { test8: '' },
         });
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestlocal',
         });
 
@@ -166,7 +166,7 @@ describe('Persist local', () => {
 
 describe('Persist remote save', () => {
     test('Pending after save', async () => {
-        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+        const obs = observable({ test: { test2: 'hello', test3: 'hello2' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -175,11 +175,10 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
-
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
         obs.test.test2.set('hi');
@@ -242,9 +241,9 @@ describe('Persist remote save', () => {
     });
 
     test('Pending after save with modified primitive', async () => {
-        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+        const obs = observable({ test: { test2: 'hello', test3: 'hello2' } });
 
-        const remoteOptions: PersistOptionsRemote<ProxyValue<typeof obs>> = {
+        const remoteOptions: PersistOptionsRemote<ObservableValue<typeof obs>> = {
             requireAuth: true,
             firebase: {
                 syncPath: (uid) => `/test/${uid}/s/`,
@@ -252,7 +251,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -299,7 +298,7 @@ describe('Persist remote save', () => {
     });
 
     test('Pending after save with modified object', async () => {
-        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+        const obs = observable({ test: { test2: 'hello', test3: 'hello2' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -309,7 +308,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -341,7 +340,7 @@ describe('Persist remote save', () => {
     });
 
     test('Pending after save with different dateModifiedKey', async () => {
-        const obs = obsProxy({ test: { test2: 'hello', test3: 'hello2' } });
+        const obs = observable({ test: { test2: 'hello', test3: 'hello2' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -351,7 +350,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
             dateModifiedKey: 'd',
@@ -384,7 +383,7 @@ describe('Persist remote save', () => {
     });
 
     test('queryByModified with queryByModified at root', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
 
@@ -396,7 +395,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -465,7 +464,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified at root', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
 
@@ -477,7 +476,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -566,7 +565,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified 2', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: 'hello', test3: 'hello2', test4: { test5: 'hello3', test6: { test7: 'hello4' } } },
         });
 
@@ -578,7 +577,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -629,7 +628,7 @@ describe('Persist remote save', () => {
         });
     });
     test('save queryByModified with dict', async () => {
-        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+        const obs = observable<{ test: Record<string, Record<string, { text: string }>> }>({
             test: {},
         });
 
@@ -641,7 +640,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -680,7 +679,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified with dict and field transforms', async () => {
-        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+        const obs = observable<{ test: Record<string, Record<string, { text: string }>> }>({
             test: {},
         });
 
@@ -702,7 +701,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -739,7 +738,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified with dict and field transforms */*', async () => {
-        const obs = obsProxy<{ test: Record<string, Record<string, { text: string }>> }>({
+        const obs = observable<{ test: Record<string, Record<string, { text: string }>> }>({
             test: {},
         });
 
@@ -761,7 +760,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -800,7 +799,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified with complex dict', async () => {
-        const obs = obsProxy<{
+        const obs = observable<{
             test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }>; test5: string }>;
         }>({
             test: {},
@@ -821,7 +820,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -865,7 +864,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified with complex dict transformed', async () => {
-        const obs = obsProxy<{
+        const obs = observable<{
             test: Record<string, { test2: { test3: string }; test4: Record<string, { text: string }> }>;
         }>({
             test: {},
@@ -905,7 +904,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -944,7 +943,7 @@ describe('Persist remote save', () => {
     });
 
     test('save queryByModified with complex dict 2', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             a: { a1: 'a2' },
             shared: {
                 measures: {} as Record<string, { date: number }>,
@@ -971,7 +970,7 @@ describe('Persist remote save', () => {
             },
         });
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -995,7 +994,7 @@ describe('Persist remote save', () => {
     });
 
     test('Save a deep property', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
         });
 
@@ -1038,7 +1037,7 @@ describe('Persist remote save', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1059,7 +1058,7 @@ describe('Persist remote save', () => {
     });
 
     test('Set a deep property to null', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             clients: { clientID: { profile: { name: '' }, outer: { inner: { id1: { text: '' }, id2: '' } } } },
         });
 
@@ -1102,7 +1101,7 @@ describe('Persist remote save', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1123,7 +1122,7 @@ describe('Persist remote save', () => {
         await remote['promiseSaved'].promise;
     });
     test('ignoreKeys', async () => {
-        const obs = obsProxy({ test: { id: 'id0', text: 'text0' } });
+        const obs = observable({ test: { id: 'id0', text: 'text0' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1141,7 +1140,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1167,7 +1166,7 @@ describe('Persist remote save', () => {
 
 describe('Remote load', () => {
     test('Persist remote load basic object', async () => {
-        const obs = obsProxy({ test: '', test2: '' });
+        const obs = observable({ test: '', test2: '' });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1181,7 +1180,7 @@ describe('Remote load', () => {
             test2: 'hi2',
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1195,7 +1194,7 @@ describe('Remote load', () => {
         expect(getObsModified(obs)).toBeUndefined();
     });
     test('Persist remote load dateModified', async () => {
-        const obs = obsProxy({ test: { test2: '', test3: '' } });
+        const obs = observable({ test: { test2: '', test3: '' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1213,7 +1212,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1230,7 +1229,11 @@ describe('Remote load', () => {
         expect(getObsModified(obs.test)).toEqual(1000);
     });
     test('Persist remote load complex modified', async () => {
-        const obs = obsProxy({ test: { test2: '', test3: '' }, test4: { test5: { test6: '' } }, test7: { test8: '' } });
+        const obs = observable({
+            test: { test2: '', test3: '' },
+            test4: { test5: { test6: '' } },
+            test7: { test8: '' },
+        });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1265,7 +1268,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1291,7 +1294,7 @@ describe('Remote load', () => {
         expect(getObsModified(obs.test)).toEqual(1000);
     });
     test('Persist remote load complex modified deep', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: { test3: { id: '' }, test4: { id: '' } } },
             test6: { test7: { id: '' } },
         });
@@ -1330,7 +1333,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1347,7 +1350,7 @@ describe('Remote load', () => {
         });
     });
     test('Persist remote load complex modified deep with other keys', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: { test3: { id: '' }, test4: { id: '' } }, test5: { test55: '' } },
             test6: { test7: { id: '' } },
             test8: { test9: '' },
@@ -1391,7 +1394,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1411,7 +1414,7 @@ describe('Remote load', () => {
     });
 
     test('Persist remote load with nested timestamps', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             clients: {
                 clientID: {
                     profile: { name: '' },
@@ -1467,7 +1470,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1507,7 +1510,7 @@ describe('Remote load', () => {
             })
         );
 
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: '', test3: '' },
             test4: { test5: { test6: '' } },
             test7: { test8: '' },
@@ -1546,7 +1549,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1576,7 +1579,7 @@ describe('Remote load', () => {
 
 describe('Remote change', () => {
     test('onChange', async () => {
-        const obs = obsProxy({ test: { test2: '', test3: '' } });
+        const obs = observable({ test: { test2: '', test3: '' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1593,7 +1596,7 @@ describe('Remote change', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1616,7 +1619,7 @@ describe('Remote change', () => {
     });
 
     test('onChange with queryByModified', async () => {
-        const obs = obsProxy({ test: { test2: { test22: '' }, test3: { test33: '' } } });
+        const obs = observable({ test: { test2: { test22: '' }, test3: { test33: '' } } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1633,7 +1636,7 @@ describe('Remote change', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 
@@ -1668,7 +1671,7 @@ describe('Remote change', () => {
 
 describe('Field transform', () => {
     test('Field transform in', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: '', test3: '' },
             test4: { test5: { test6: '' } },
             test7: { test8: '' },
@@ -1697,7 +1700,7 @@ describe('Field transform', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: {
                 requireAuth: true,
                 firebase: {
@@ -1751,13 +1754,13 @@ describe('Field transform', () => {
         });
     });
     test('Field transform out', async () => {
-        const obs = obsProxy({
+        const obs = observable({
             test: { test2: '', test3: '' },
             test4: { test5: { test6: '' } },
             test7: { test8: '' },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             local: 'jestremote',
             remote: {
                 requireAuth: true,
@@ -1852,7 +1855,7 @@ describe('Field transform', () => {
 
 describe('Adjust data', () => {
     test('adjust save data', async () => {
-        const obs = obsProxy({ test: { test2: 'hello' } });
+        const obs = observable({ test: { test2: 'hello' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1869,7 +1872,7 @@ describe('Adjust data', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1896,7 +1899,7 @@ describe('Adjust data', () => {
     });
 
     test('adjust incoming data', async () => {
-        const obs = obsProxy({ test: { test2: 'hello' } });
+        const obs = observable({ test: { test2: 'hello' } });
 
         const remoteOptions: PersistOptionsRemote = {
             requireAuth: true,
@@ -1913,7 +1916,7 @@ describe('Adjust data', () => {
             },
         };
 
-        obsPersist(obs, {
+        observablePersist(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1924,7 +1927,7 @@ describe('Adjust data', () => {
             },
         });
 
-        const state = obsPersist(obs, {
+        const state = observablePersist(obs, {
             remote: remoteOptions,
         });
 

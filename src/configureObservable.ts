@@ -1,5 +1,5 @@
 import { extendPrototypes } from './PrimitivePrototypes';
-import { ObsPersistLocal, ObsPersistRemote } from './ObsProxyInterfaces';
+import { ObsPersistLocal, ObsPersistRemote } from './ObservableInterfaces';
 
 type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 
@@ -16,7 +16,7 @@ interface Config {
 /** @internal **/
 export const config: Config = { extendPrototypes: true };
 
-export function configureObsProxy(options?: Config) {
+export function configureObservable(options?: Config) {
     Object.assign(config, options);
     if (config.extendPrototypes) {
         extendPrototypes();

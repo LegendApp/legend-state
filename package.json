@@ -1,5 +1,5 @@
 {
-    "name": "ObsProxy",
+    "name": "Observable",
     "version": "0.0.1",
     "sideEffects": false,
     "main": "dist/",

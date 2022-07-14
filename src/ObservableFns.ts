@@ -1,21 +1,21 @@
 import { isObject } from '@legendapp/tools';
 import { isObjectEmpty, isPrimitive, symbolDateModified } from './globals';
-import { ObsBatcher } from './ObsBatcher';
+import { ObsBatcher } from './ObservableBatcher';
 import {
     EventType,
     ListenerFn,
     ObsListener,
     ObsListenerInfo,
-    ObsProxy,
-    ObsProxyChecker,
+    Observable,
+    ObservableChecker,
     OnReturnValue,
-} from './ObsProxyInterfaces';
-import { disposeListener } from './ObsProxyListener';
-import { state } from './ObsProxyState';
+} from './ObservableInterfaces';
+import { disposeListener } from './ObservableListener';
+import { state } from './ObservableState';
 
 const symbolHasValue = Symbol('__hasValue');
 
-function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
+function _obsNotify(target: ObservableChecker, listenerInfo: ObsListenerInfo) {
     const info = state.infos.get(target);
     const skipNotifyFor = state.skipNotifyFor;
     // Notify this listener if this target is not being skipped (if getting called during an assign)
@@ -38,14 +38,14 @@ function _obsNotify(target: ObsProxyChecker, listenerInfo: ObsListenerInfo) {
     }
 }
 
-export function obsNotify<T>(target: ObsProxyChecker<T>, changedValue: T, prevValue: T, path: string[]) {
+export function obsNotify<T>(target: ObservableChecker<T>, changedValue: T, prevValue: T, path: string[]) {
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T>(callback: ListenerFn<any>, target: ObsProxyChecker<T>) {
+function _listenToObs<T>(callback: ListenerFn<any>, target: ObservableChecker<T>) {
     const info = state.infos.get(target);
     if (!info) {
-        throw new Error('Can only listen to instances of ObsProxy');
+        throw new Error('Can only listen to instances of Observable');
     }
     if (!info.listeners) {
         info.listeners = new Set();
@@ -55,15 +55,15 @@ function _listenToObs<T>(callback: ListenerFn<any>, target: ObsProxyChecker<T>) 
     return listener;
 }
 export function listenToObs<T>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
-    return _listenToObs(cb, obs as ObsProxy<any>) as any;
+    return _listenToObs(cb, obs as Observable<any>) as any;
 }
 
-export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): OnReturnValue<T> {
+export function onEquals<T>(obs: ObservableChecker<T>, value: T, cb?: (value: T) => void): OnReturnValue<T> {
     let listener: ObsListener<T>;
 
     const promise = new Promise<any>((resolve) => {
         if (isPrimitive(obs)) {
-            obs = getProxyFromPrimitive(obs);
+            obs = getObservableFromPrimitive(obs);
         }
         let isDone = false;
         function check(newValue) {
@@ -92,42 +92,42 @@ export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) =
     };
 }
 
-export function onHasValue<T>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): OnReturnValue<T> {
+export function onHasValue<T>(obs: ObservableChecker<T>, cb?: (value: T) => void): OnReturnValue<T> {
     return onEquals(obs, symbolHasValue as any, cb);
 }
 
-export function onTrue<T extends boolean>(obs: ObsProxyChecker<T>, cb?: () => void): OnReturnValue<T> {
+export function onTrue<T extends boolean>(obs: ObservableChecker<T>, cb?: () => void): OnReturnValue<T> {
     return onEquals(obs, true as T, cb);
 }
 
-export function getObsModified<T extends ObsProxyChecker>(obs: T) {
+export function getObsModified<T extends ObservableChecker>(obs: T) {
     return obs.get?.()?.[symbolDateModified];
 }
 
-export function unlisten<T extends ObsProxyChecker>(obs: T, cb: ListenerFn<any>) {
+export function unlisten<T extends ObservableChecker>(obs: T, cb: ListenerFn<any>) {
     const info = state.infos.get(obs);
     if (info) {
         info.listeners.delete(cb);
     }
 }
 
-const ProxyOnFunctions: Record<EventType, Function> = {
+const ObservableOnFunctions: Record<EventType, Function> = {
     change: listenToObs,
     equals: onEquals,
     hasValue: onHasValue,
     true: onTrue,
 };
 
-export function on(obs: ObsProxyChecker, _: any, eventType: EventType, ...args) {
-    return ProxyOnFunctions[eventType](obs, ...args);
+export function on(obs: ObservableChecker, _: any, eventType: EventType, ...args) {
+    return ObservableOnFunctions[eventType](obs, ...args);
 }
 
-export function prop(obs: ObsProxyChecker, _: any, prop: string | number) {
+export function prop(obs: ObservableChecker, _: any, prop: string | number) {
     state.inProp = true;
     return obs[prop];
 }
 
-export function getProxyFromPrimitive(primitive: any) {
+export function getObservableFromPrimitive(primitive: any) {
     if (state.lastAccessedProxy) {
         const { proxy, prop } = state.lastAccessedProxy;
         const info = state.infos.get(proxy);
@@ -139,7 +139,7 @@ export function getProxyFromPrimitive(primitive: any) {
     }
 }
 
-export function deleteFn(obs: ObsProxyChecker, target: any, prop?: string | number) {
+export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number) {
     const info = state.infos.get(obs);
     if (prop !== undefined) {
         const targetOriginal = info.targetOriginal;

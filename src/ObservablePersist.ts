@@ -1,17 +1,17 @@
-import { config } from './configureObsProxy';
+import { config } from './configureObservable';
 import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
-import { ObsBatcher } from './ObsBatcher';
-import { obsProxy } from './ObsProxy';
-import { listenToObs } from './ObsProxyFns';
+import { ObsBatcher } from './ObservableBatcher';
+import { observable } from './Observable';
+import { listenToObs } from './ObservableFns';
 import {
     ObsListenerInfo,
     ObsPersistLocal,
     ObsPersistRemote,
     ObsPersistState,
-    ObsProxy,
-    ObsProxyChecker,
+    Observable,
+    ObservableChecker,
     PersistOptions,
-} from './ObsProxyInterfaces';
+} from './ObservableInterfaces';
 
 /** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
@@ -24,9 +24,9 @@ interface LocalState {
 }
 
 async function onObsChange<T>(
-    proxyState: ObsProxy<ObsPersistState>,
+    proxyState: Observable<ObsPersistState>,
     state: LocalState,
-    obs: ObsProxy<T>,
+    obs: Observable<T>,
     persistOptions: PersistOptions<T>,
     value: T,
     info: ObsListenerInfo
@@ -78,7 +78,7 @@ function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = false;
 }
 
-export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOptions<T>) {
+export function observablePersist<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
     const { local, remote } = persistOptions;
     const localPersistence = persistOptions.localPersistence || config.persist?.localPersistence;
     const remotePersistence = persistOptions.remotePersistence || config.persist?.remotePersistence;
@@ -133,7 +133,7 @@ export function obsPersist<T>(obs: ObsProxyChecker<T>, persistOptions: PersistOp
         );
     }
 
-    const proxyState = obsProxy<ObsPersistState>({
+    const proxyState = observable<ObsPersistState>({
         isLoadedLocal,
         isLoadedRemote: false,
         clearLocal,

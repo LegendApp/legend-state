@@ -1,35 +1,35 @@
 import {
-    configureObsProxy,
+    configureObservable,
     disposeListener,
-    getProxyFromPrimitive,
+    getObservableFromPrimitive,
     listenToObs,
-    obsProxy,
-    obsProxyComputed,
-    obsProxyTrigger,
+    observable,
+    observableComputed,
+    observableTrigger,
 } from '../src';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
 
-configureObsProxy();
+configureObservable();
 
 describe('Basic', () => {
     test('Has value', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         expect(obs).toEqual({ val: 10 });
         expect(obs.get()).toEqual({ val: 10 });
         expect(obs.val).toEqual(10);
     });
     test('Comparisons', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         expect(obs).toEqual({ val: 10 });
         expect(obs.val < 20).toEqual(true);
         // @ts-ignore
         expect(obs.val < undefined).toEqual(false);
     });
     test('Primitive access', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         expect(obs.val).toEqual(10);
         expect(obs.val.get()).toEqual(10);
         expect(obs.get().val).toEqual(10);
@@ -41,7 +41,7 @@ describe('Basic', () => {
         expect(obs.val).toBe(20);
     });
     test('Deep primitive access', () => {
-        const obs = obsProxy({ val: { val2: { val3: 10 } } });
+        const obs = observable({ val: { val2: { val3: 10 } } });
         expect(obs.val.val2.val3).toEqual(10);
         expect(obs.val.val2.val3.get()).toEqual(10);
         expect(obs.val.val2.get().val3).toEqual(10);
@@ -53,22 +53,22 @@ describe('Basic', () => {
         expect(obs.val.val2.get().val3).toEqual(20);
     });
     test('Primitive proxy', () => {
-        const obs = obsProxy(10);
+        const obs = observable(10);
         expect(obs).toEqual({ _value: 10 });
         expect(obs.get()).toEqual(10);
     });
     test('Primitive prop', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         expect(obs.val).toEqual(10);
-        expect(getProxyFromPrimitive(obs.val)).toEqual({ _value: 10 });
+        expect(getObservableFromPrimitive(obs.val)).toEqual({ _value: 10 });
 
         obs.val.set(20);
 
         expect(obs.val).toEqual(20);
-        expect(getProxyFromPrimitive(obs.val)).toEqual({ _value: 20 });
+        expect(getObservableFromPrimitive(obs.val)).toEqual({ _value: 20 });
     });
     test('Child objects are proxies', () => {
-        const obs = obsProxy({ val: { child: {} as any } });
+        const obs = observable({ val: { child: {} as any } });
         const handler = jest.fn();
         listenToObs(obs.val.child, handler);
         obs.val.child.set({ hello: true });
@@ -78,7 +78,7 @@ describe('Basic', () => {
         );
     });
     test('modify value', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         const handler = jest.fn();
         const listener1 = listenToObs(obs, handler);
 
@@ -102,7 +102,7 @@ describe('Basic', () => {
         );
     });
     test('modify value deep', () => {
-        const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
+        const obs = observable({ test: { test2: { test3: { test4: '' } } } });
         const handler = jest.fn();
         listenToObs(obs, handler);
 
@@ -137,7 +137,7 @@ describe('Basic', () => {
         });
     });
     test('set function deep', () => {
-        const obs = obsProxy({ test: { test2: { test3: { test4: '' } } } });
+        const obs = observable({ test: { test2: { test3: { test4: '' } } } });
         const handler = jest.fn();
         listenToObs(obs, handler);
 
@@ -154,13 +154,13 @@ describe('Basic', () => {
         );
     });
     test('modify value does not copy object', () => {
-        const obs = obsProxy({ test: { test2: 'hi' } });
+        const obs = observable({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
         obs.test.set(newVal);
         expect(obs.test.get()).toBe(newVal);
     });
     test('modify value retains old listeners', () => {
-        const obs = obsProxy({ test: { test2: 'hi' } });
+        const obs = observable({ test: { test2: 'hi' } });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
         const newVal = { test2: 'hello' };
@@ -175,7 +175,7 @@ describe('Basic', () => {
         });
     });
     test('set returns correct value', () => {
-        const obs = obsProxy({ test: '' });
+        const obs = observable({ test: '' });
 
         const ret = obs.set({ test: 'hello' });
         expect(ret.get()).toEqual({ test: 'hello' });
@@ -185,13 +185,13 @@ describe('Basic', () => {
         expect(obs.test.get()).toEqual('hello');
     });
     test('undefined is undefined', () => {
-        const obs = obsProxy({ test: undefined });
+        const obs = observable({ test: undefined });
 
         expect(obs.test.get()).toEqual(undefined);
     });
 
     test('Set undefined to value and back', () => {
-        const obs = obsProxy({ test: { test2: { test3: undefined } } });
+        const obs = observable({ test: { test2: { test3: undefined } } });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
 
@@ -248,7 +248,7 @@ describe('Basic', () => {
         );
     });
     test('Set deep primitive undefined to value and back', () => {
-        const obs = obsProxy({ test: { test2: { test3: undefined } } });
+        const obs = observable({ test: { test2: { test3: undefined } } });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
 
@@ -326,7 +326,7 @@ describe('Basic', () => {
         );
     });
     test('Set number key', () => {
-        const obs = obsProxy({ test: {} as Record<number, string> });
+        const obs = observable({ test: {} as Record<number, string> });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
 
@@ -343,7 +343,7 @@ describe('Basic', () => {
     });
 
     test('Set number key multiple times', () => {
-        const obs = obsProxy({ test: { t: {} as Record<number, any> } });
+        const obs = observable({ test: { t: {} as Record<number, any> } });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
 
@@ -418,7 +418,7 @@ describe('Basic', () => {
     });
 
     test('Set does not fire if unchanged', () => {
-        const obs = obsProxy({ test: { test1: 'hi' } });
+        const obs = observable({ test: { test1: 'hi' } });
         const handler = jest.fn();
         listenToObs(obs.test, handler);
 
@@ -430,7 +430,7 @@ describe('Basic', () => {
 
 describe('Assign', () => {
     test('assign', () => {
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } });
+        const obs = observable({ test: 'hi', test2: { test3: { test4: '' } } });
 
         obs.test2.assign({ test3: { test4: 'hello' } });
         expect(obs.get()).toEqual({
@@ -446,7 +446,7 @@ describe('Assign', () => {
         });
     });
     test('assign with existing proxies', () => {
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } });
+        const obs = observable({ test: 'hi', test2: { test3: { test4: '' } } });
         expect(obs.test2.test3.test4.get()).toEqual('');
 
         obs.test2.assign({ test3: { test4: 'hello' } });
@@ -466,20 +466,20 @@ describe('Assign', () => {
 
 describe('Safety', () => {
     test('unsafe', () => {
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
+        const obs = observable({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
         obs.test = 'hello';
         obs.test2.test3 = { test4: 'hi5' };
         expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
     });
     test('unsafe with set', () => {
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
+        const obs = observable({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
         obs.test = 'hello';
         obs.test2.test3.set({ test4: 'hi5' });
         expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
     });
     test('error modifying safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
+        const obs = observable({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
         expect(() => {
             // @ts-ignore This is meant to error
             obs.test = 'hello';
@@ -493,7 +493,7 @@ describe('Safety', () => {
     });
     test('error object.assign on safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
-        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
+        const obs = observable({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
         expect(() => {
             Object.assign(obs, { test: 'hi2' });
         }).toThrow();
@@ -505,7 +505,7 @@ describe('Safety', () => {
     });
     test('safe using set function', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
-        const obs = obsProxy({ test: 'hi' });
+        const obs = observable({ test: 'hi' });
         obs.test.set('hello');
         expect(consoleErrorMock).not.toHaveBeenCalled();
         expect(obs.test.get()).toEqual('hello');
@@ -516,7 +516,7 @@ describe('Safety', () => {
 
 describe('Listeners', () => {
     test('Primitive listener', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         const handler = jest.fn();
         listenToObs(obs, handler);
         expect(handler).not.toHaveBeenCalled();
@@ -537,7 +537,7 @@ describe('Listeners', () => {
         }).toThrow();
     });
     test('Listener called for each change', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         const handler = jest.fn();
         listenToObs(obs, handler);
         expect(handler).not.toHaveBeenCalled();
@@ -564,21 +564,21 @@ describe('Listeners', () => {
         expect(handler).toHaveBeenCalledTimes(4);
     });
     test('Primitive listener with key', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         const handler = jest.fn();
         obs.val.on('change', handler);
         obs.val.set(20);
         expect(handler).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
     });
     test('Non Primitive listener with key', () => {
-        const obs = obsProxy({ val: { val2: 10 } });
+        const obs = observable({ val: { val2: 10 } });
         const handler = jest.fn();
         listenToObs(obs.val, handler);
         obs.val.val2.set(20);
         expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val2'], prevValue: 10 });
     });
     test('Listener with key fires only for key', () => {
-        const obs = obsProxy({ val: { val2: 10 }, val3: 'hello' });
+        const obs = observable({ val: { val2: 10 }, val3: 'hello' });
         const handler = jest.fn();
         listenToObs(obs.val, handler);
         obs.val.val2.set(20);
@@ -589,7 +589,7 @@ describe('Listeners', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Object listener', () => {
-        const obs = obsProxy({ test: 'hi' });
+        const obs = observable({ test: 'hi' });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.set('hello');
@@ -599,7 +599,7 @@ describe('Listeners', () => {
         );
     });
     test('Deep object listener', () => {
-        const obs = obsProxy({ test: { test2: { test3: 'hi' } } });
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.test2.test3.set('hello');
@@ -609,7 +609,7 @@ describe('Listeners', () => {
         );
     });
     test('Deep object set primitive undefined', () => {
-        const obs = obsProxy({ test: { test2: { test3: 'hi' } } });
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.test2.test3.set(undefined);
@@ -619,7 +619,7 @@ describe('Listeners', () => {
         );
     });
     test('Set undefined', () => {
-        const obs = obsProxy({ test: 'hi' });
+        const obs = observable({ test: 'hi' });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.set(undefined);
@@ -630,7 +630,7 @@ describe('Listeners', () => {
         });
     });
     test('Deep object set undefined', () => {
-        const obs = obsProxy({ test: { test2: { test3: 'hi' } } });
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.test2.set(undefined);
@@ -640,7 +640,7 @@ describe('Listeners', () => {
         );
     });
     test('Start null set to something', () => {
-        const obs = obsProxy({ test: null });
+        const obs = observable({ test: null });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.set({ test2: 'hi' });
@@ -654,7 +654,7 @@ describe('Listeners', () => {
         );
     });
     test('Start undefined set to something', () => {
-        const obs = obsProxy({ test: undefined });
+        const obs = observable({ test: undefined });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.set({ test2: 'hi' });
@@ -668,7 +668,7 @@ describe('Listeners', () => {
         );
     });
     test('Set with object should only fire listeners once', () => {
-        const obs = obsProxy({ test: undefined });
+        const obs = observable({ test: undefined });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.set({ test2: 'hi', test3: 'hi3', test4: 'hi4' });
@@ -683,7 +683,7 @@ describe('Listeners', () => {
         );
     });
     test('Listener promises', async () => {
-        const obs = obsProxy({ test: 'hi' });
+        const obs = observable({ test: 'hi' });
         const promise = obs.test.on('equals', 'hi2').promise;
         let didResolve = false;
 
@@ -699,7 +699,7 @@ describe('Listeners', () => {
         expect(didResolve).toEqual(true);
     });
     test('Path to change is correct at every level ', () => {
-        const obs = obsProxy({ test1: { test2: { test3: { test4: '' } } } });
+        const obs = observable({ test1: { test2: { test3: { test4: '' } } } });
         const handlerRoot = jest.fn();
         obs.on('change', handlerRoot);
         const handler1 = jest.fn();
@@ -733,7 +733,7 @@ describe('Listeners', () => {
 });
 describe('Arrays', () => {
     test('Array push', () => {
-        const obs = obsProxy({ test: ['hi'] });
+        const obs = observable({ test: ['hi'] });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.push('hello');
@@ -744,13 +744,13 @@ describe('Arrays', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Array set at index should fail on safe', () => {
-        const obs = obsProxy({ test: ['hi'] });
+        const obs = observable({ test: ['hi'] });
         expect(() => {
             obs.test[1] = 'hello';
         }).toThrow();
     });
     test('Array set at index should succeed on unsafe', () => {
-        const obs = obsProxy({ test: ['hi'] }, /*unsafe*/ true);
+        const obs = observable({ test: ['hi'] }, /*unsafe*/ true);
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test[1] = 'hello';
@@ -762,7 +762,7 @@ describe('Arrays', () => {
 });
 describe('on functions', () => {
     test('onValue with prop', () => {
-        const obs = obsProxy({ val: 10 });
+        const obs = observable({ val: 10 });
         const handler = jest.fn();
         obs.val.on('equals', 20, handler);
         expect(handler).not.toHaveBeenCalled();
@@ -770,7 +770,7 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledWith(20);
     });
     test('onValue deep', () => {
-        const obs = obsProxy({ test: { test2: '', test3: '' } });
+        const obs = observable({ test: { test2: '', test3: '' } });
         const handler = jest.fn();
         obs.test.test2.on('equals', 'hello', handler);
         expect(handler).not.toHaveBeenCalled();
@@ -780,7 +780,7 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledWith('hello');
     });
     test('onTrue', () => {
-        const obs = obsProxy({ val: false });
+        const obs = observable({ val: false });
         const handler = jest.fn();
         obs.val.on('true', handler);
         expect(handler).not.toHaveBeenCalled();
@@ -788,7 +788,7 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledWith(true);
     });
     test('onTrue starting true', () => {
-        const obs = obsProxy({ val: true });
+        const obs = observable({ val: true });
         const handler = jest.fn();
         obs.val.on('true', handler);
         expect(handler).toHaveBeenCalled();
@@ -798,7 +798,7 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('onHasValue with false', () => {
-        const obs = obsProxy({ val: false });
+        const obs = observable({ val: false });
         const handler = jest.fn();
         obs.val.on('hasValue', handler);
         expect(handler).toHaveBeenCalled();
@@ -807,7 +807,7 @@ describe('on functions', () => {
     });
     // TOOOBS
     // test('onHasValue with undefined', () => {
-    //     const obs = obsProxy({ val: undefined });
+    //     const obs = observable({ val: undefined });
     //     const handler = jest.fn();
     //     obs.val.on('hasValue', handler);
     //     expect(handler).not.toHaveBeenCalled();
@@ -818,7 +818,7 @@ describe('on functions', () => {
 
 describe('Map', () => {
     test('Map set', () => {
-        const obs = obsProxy({ test: new Map() });
+        const obs = observable({ test: new Map() });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.set('key', 'hello');
@@ -829,7 +829,7 @@ describe('Map', () => {
     });
 
     test('Map clear', () => {
-        const obs = obsProxy({ test: new Map() });
+        const obs = observable({ test: new Map() });
         const handler = jest.fn();
         obs.test.set('key', 'hello');
         listenToObs(obs, handler);
@@ -841,7 +841,7 @@ describe('Map', () => {
     });
 
     test('Map delete', () => {
-        const obs = obsProxy({ test: new Map() });
+        const obs = observable({ test: new Map() });
         const handler = jest.fn();
         obs.test.set('key', 'hello');
         listenToObs(obs, handler);
@@ -856,7 +856,7 @@ describe('Map', () => {
 describe('WeakMap', () => {
     const key = { key: 'key' };
     test('WeakMap set', () => {
-        const obs = obsProxy({ test: new WeakMap() });
+        const obs = observable({ test: new WeakMap() });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.set(key, 'hello');
@@ -868,7 +868,7 @@ describe('WeakMap', () => {
     });
 
     test('WeakMap delete', () => {
-        const obs = obsProxy({ test: new WeakMap() });
+        const obs = observable({ test: new WeakMap() });
         const handler = jest.fn();
         obs.test.set(key, 'hello');
         listenToObs(obs, handler);
@@ -883,7 +883,7 @@ describe('WeakMap', () => {
 
 describe('Set', () => {
     test('Set add', () => {
-        const obs = obsProxy({ test: new Set() });
+        const obs = observable({ test: new Set() });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.add('testval');
@@ -894,7 +894,7 @@ describe('Set', () => {
     });
 
     test('Set clear', () => {
-        const obs = obsProxy({ test: new Set() });
+        const obs = observable({ test: new Set() });
         const handler = jest.fn();
         obs.test.add('testval');
         listenToObs(obs, handler);
@@ -906,7 +906,7 @@ describe('Set', () => {
     });
 
     test('Set delete', () => {
-        const obs = obsProxy({ test: new Set() });
+        const obs = observable({ test: new Set() });
         const handler = jest.fn();
         obs.test.add('testval');
         listenToObs(obs, handler);
@@ -922,7 +922,7 @@ describe('WeakSet', () => {
     const key = { key: 'key' };
 
     test('WeakSet add', () => {
-        const obs = obsProxy({ test: new WeakSet() });
+        const obs = observable({ test: new WeakSet() });
         const handler = jest.fn();
         listenToObs(obs, handler);
         obs.test.add(key);
@@ -934,7 +934,7 @@ describe('WeakSet', () => {
     });
 
     test('WeakSet delete', () => {
-        const obs = obsProxy({ test: new WeakSet() });
+        const obs = observable({ test: new WeakSet() });
         const handler = jest.fn();
         obs.test.add(key);
         listenToObs(obs, handler);
@@ -948,15 +948,15 @@ describe('WeakSet', () => {
 
 describe('Computed', () => {
     test('Basic computed', () => {
-        const obs = obsProxy({ test: 10, test2: 20 });
-        const computed = obsProxyComputed(() => obs.test + obs.test2);
+        const obs = observable({ test: 10, test2: 20 });
+        const computed = observableComputed(() => obs.test + obs.test2);
         expect(computed.get()).toEqual(30);
     });
 
     test('Computed root promitives', () => {
-        const obs = obsProxy(10);
-        const obs2 = obsProxy(20);
-        const computed = obsProxyComputed(() => obs.get() + obs2.get());
+        const obs = observable(10);
+        const obs2 = observable(20);
+        const computed = observableComputed(() => obs.get() + obs2.get());
         expect(computed.get()).toEqual(30);
 
         const handler = jest.fn();
@@ -969,8 +969,8 @@ describe('Computed', () => {
     });
 
     test('Multiple computed changes', () => {
-        const obs = obsProxy({ test: 10, test2: 20 });
-        const computed = obsProxyComputed(() => obs.test + obs.test2);
+        const obs = observable({ test: 10, test2: 20 });
+        const computed = observableComputed(() => obs.test + obs.test2);
         expect(computed.get()).toEqual(30);
 
         const handler = jest.fn();
@@ -990,7 +990,7 @@ describe('Computed', () => {
 
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
-        const obs = obsProxy({ test: { test2: { test3: 'hello' } } });
+        const obs = observable({ test: { test2: { test3: 'hello' } } });
 
         const handler = jest.fn();
         obs.test.test2.test3.on('change', handler);
@@ -1010,7 +1010,7 @@ describe('Deep changes keep listeners', () => {
         });
     });
     test('Deep assign keeps listeners', () => {
-        const obs = obsProxy({ test: { test2: { test3: 'hello' } } });
+        const obs = observable({ test: { test2: { test3: 'hello' } } });
 
         const handler = jest.fn();
         obs.test.test2.test3.on('change', handler);
@@ -1031,7 +1031,7 @@ describe('Deep changes keep listeners', () => {
     });
 
     test('Deep set keeps keys', () => {
-        const obs = obsProxy({ test: { test2: {} as Record<string, any> } });
+        const obs = observable({ test: { test2: {} as Record<string, any> } });
 
         obs.test.test2.set('a1', { text: 'ta1' });
 
@@ -1061,7 +1061,7 @@ describe('Deep changes keep listeners', () => {
     });
 
     test('Set shallow of deep object keeps keys', () => {
-        const obs = obsProxy({ test: { test2: { a0: { text: 't0' } } as Record<string, any> } });
+        const obs = observable({ test: { test2: { a0: { text: 't0' } } as Record<string, any> } });
 
         obs.test.set({ test2: { a1: { text: 'ta1' } } });
 
@@ -1148,14 +1148,14 @@ describe('Deep changes keep listeners', () => {
 
 describe('Delete', () => {
     test('Delete property', () => {
-        const obs = obsProxy({ val: true });
+        const obs = observable({ val: true });
         obs.delete('val');
         expect(obs.get()).toEqual({});
         expect(obs).toEqual({});
         expect(Object.keys(obs.get())).toEqual([]);
         expect(Object.keys(obs)).toEqual([]);
 
-        const obs2 = obsProxy({ val: true, val2: true });
+        const obs2 = observable({ val: true, val2: true });
         obs2.delete('val');
         expect(obs2.get()).toEqual({ val2: true });
         expect(Object.keys(obs2.get())).toEqual(['val2']);
@@ -1168,14 +1168,14 @@ describe('Delete', () => {
     });
 
     test('Delete self', () => {
-        const obs = obsProxy({ val: true });
+        const obs = observable({ val: true });
         obs.val.delete();
         expect(obs.get()).toEqual({});
         expect(obs).toEqual({});
         expect(Object.keys(obs.get())).toEqual([]);
         expect(Object.keys(obs)).toEqual([]);
 
-        const obs2 = obsProxy({ val: true, val2: true });
+        const obs2 = observable({ val: true, val2: true });
         obs2.val.delete();
         expect(obs2.get()).toEqual({ val2: true });
         expect(Object.keys(obs2.get())).toEqual(['val2']);
@@ -1185,7 +1185,7 @@ describe('Delete', () => {
 
 describe('Trigger', () => {
     test('Trigger', () => {
-        const trigger = obsProxyTrigger();
+        const trigger = observableTrigger();
         const handler = jest.fn();
         trigger.on(handler);
 
@@ -1203,7 +1203,7 @@ describe('Trigger', () => {
 
 describe('Functions', () => {
     test('Function not proxied', () => {
-        const obs = obsProxy({ val: true, fn: () => obs.val });
+        const obs = observable({ val: true, fn: () => obs.val });
 
         expect(obs.fn()).toBe(true);
     });
@@ -1212,7 +1212,7 @@ describe('Functions', () => {
 describe('Proxy promise values', () => {
     test('Proxy promise value', async () => {
         const promise = Promise.resolve(10);
-        const obs = obsProxy({ promise });
+        const obs = observable({ promise });
 
         expect(obs.promise).resolves.toEqual(10);
     });

@@ -1,4 +1,4 @@
-import { ObsPersistLocal } from '../ObsProxyInterfaces';
+import { ObsPersistLocal } from '../ObservableInterfaces';
 import { MMKV } from 'react-native-mmkv';
 
 const storage = new MMKV({

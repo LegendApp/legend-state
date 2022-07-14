@@ -1,9 +1,9 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
-import { config } from './configureObsProxy';
+import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual } from './globals';
-import { deleteFn, obsNotify, on, prop } from './ObsProxyFns';
-import { ObsProxy, ObsProxyFnName, ObsProxyUnsafe, ValidObsProxyParam } from './ObsProxyInterfaces';
-import { state } from './ObsProxyState';
+import { deleteFn, obsNotify, on, prop } from './ObservableFns';
+import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './ObservableInterfaces';
+import { state } from './ObservableState';
 
 const MapModifiers = {
     clear: true,
@@ -40,7 +40,7 @@ const WeakSetModifiers = {
     delete: true,
 };
 
-function collectionSetter(prop: string, proxyOwner: ObsProxy, ...args: any[]) {
+function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) {
     // this = target
     const prevValue =
         (this instanceof Map && new Map(this)) ||
@@ -53,14 +53,14 @@ function collectionSetter(prop: string, proxyOwner: ObsProxy, ...args: any[]) {
     obsNotify(proxyOwner, this, prevValue, []);
 }
 
-function getter(proxyOwner: ObsProxy, target: any) {
+function getter(proxyOwner: Observable, target: any) {
     const info = state.infos.get(proxyOwner);
     return info.primitive ? target._value : target;
 }
 
-function setter(proxyOwner: ObsProxy, _: any, value: any);
-function setter(proxyOwner: ObsProxy, _: any, prop: string, value: any);
-function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: any) {
+function setter(proxyOwner: Observable, _: any, value: any);
+function setter(proxyOwner: Observable, _: any, prop: string, value: any);
+function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = state.infos.get(proxyOwner);
     if (!info) debugger;
@@ -158,7 +158,7 @@ function setter(proxyOwner: ObsProxy, _: any, prop: string | unknown, value?: an
     return prop ? proxyOwner[prop as string] : proxyOwner;
 }
 
-function assigner(proxyOwner: ObsProxy, target: any, value: any) {
+function assigner(proxyOwner: Observable, target: any, value: any) {
     state.inAssign = Math.max(0, state.inAssign + 1);
     Object.assign(proxyOwner, value);
     state.inAssign--;
@@ -166,7 +166,7 @@ function assigner(proxyOwner: ObsProxy, target: any, value: any) {
     return this;
 }
 
-const ProxyFunctions = new Map<ObsProxyFnName, any>([
+const ProxyFunctions = new Map<ObservableFnName, any>([
     ['get', getter],
     ['set', setter],
     ['assign', assigner],
@@ -176,7 +176,7 @@ const ProxyFunctions = new Map<ObsProxyFnName, any>([
 ]);
 
 const proxyGet = {
-    get(_: any, prop: string, proxyOwner: ObsProxy) {
+    get(_: any, prop: string, proxyOwner: Observable) {
         const info = state.infos.get(proxyOwner);
         const target = info.target as any;
         const targetValue = target[prop];
@@ -195,13 +195,13 @@ const proxyGet = {
 
             // Non-modifying functions pass straight through
             return targetValue.bind(target);
-        } else if (ProxyFunctions.has(prop as ObsProxyFnName)) {
+        } else if (ProxyFunctions.has(prop as ObservableFnName)) {
             if (state.isTracking) {
                 state.updateTracking(proxyOwner, undefined, info);
             }
 
             // Calling a proxy function returns a bound function
-            return ProxyFunctions.get(prop as ObsProxyFnName).bind(proxyOwner, proxyOwner, target);
+            return ProxyFunctions.get(prop as ObservableFnName).bind(proxyOwner, proxyOwner, target);
         } else {
             // Update lastAccessedProxy to support extended prototype functions on primitives
             if (config.extendPrototypes) {
@@ -227,7 +227,7 @@ const proxyGet = {
                     if (!info.proxies) {
                         info.proxies = new Map();
                     }
-                    proxy = _obsProxy(targetValue, info.safe, proxyOwner, prop);
+                    proxy = _observable(targetValue, info.safe, proxyOwner, prop);
                     info.proxies.set(prop, proxy);
                 }
                 return proxy || targetValue;
@@ -236,7 +236,7 @@ const proxyGet = {
             }
         }
     },
-    set(_: any, prop: string, value: any, proxyOwner: ObsProxy) {
+    set(_: any, prop: string, value: any, proxyOwner: Observable) {
         const info = state.infos.get(proxyOwner);
         const target = info.target as any;
 
@@ -260,7 +260,12 @@ const proxyGet = {
     },
 };
 
-function _obsProxy<T>(value: ValidObsProxyParam<T>, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxy<T> {
+function _observable<T>(
+    value: ValidObservableParam<T>,
+    safe: boolean,
+    parent?: Observable,
+    prop?: string
+): Observable<T> {
     const primitive = isPrimitive(value);
     const target = primitive ? { _value: value } : (value as unknown as object);
     const proxy = new Proxy(target, proxyGet);
@@ -270,10 +275,10 @@ function _obsProxy<T>(value: ValidObsProxyParam<T>, safe: boolean, parent?: ObsP
     return proxy;
 }
 
-function obsProxy<T>(value?: ValidObsProxyParam<T>): ObsProxy<T>;
-function obsProxy<T>(value: ValidObsProxyParam<T>, unsafe: true): ObsProxyUnsafe<T>;
-function obsProxy<T>(value?: ValidObsProxyParam<T>, unsafe?: boolean): ObsProxy<T> | ObsProxyUnsafe<T> {
-    return _obsProxy(value, !unsafe);
+function observable<T>(value?: ValidObservableParam<T>): Observable<T>;
+function observable<T>(value: ValidObservableParam<T>, unsafe: true): ObservableUnsafe<T>;
+function observable<T>(value?: ValidObservableParam<T>, unsafe?: boolean): Observable<T> | ObservableUnsafe<T> {
+    return _observable(value, !unsafe);
 }
 
-export { obsProxy };
+export { observable };

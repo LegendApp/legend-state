@@ -1,15 +1,15 @@
 export type EventType = 'change' | 'equals' | 'hasValue' | 'true';
 
-export type ObsProxyFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
+export type ObservableFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
 
 export interface ObsProps<T> {
     get(): T;
-    set(value: ValidObsProxyParam<T>): ObsProxy<T>;
-    set<K extends keyof T>(key: K | string | number, value: ValidObsProxyParam<T[K]>): ObsProxy<T[K]>;
-    assign(value: ValidObsProxyParam<T> | Partial<ValidObsProxyParam<T>>): ObsProxy<T>;
-    prop<K extends keyof T>(prop: K): ObsProxy<T[K]>;
-    delete(): ObsProxy<T>;
-    delete<K extends keyof T>(key: K | string | number): ObsProxy<T>;
+    set(value: ValidObservableParam<T>): Observable<T>;
+    set<K extends keyof T>(key: K | string | number, value: ValidObservableParam<T[K]>): Observable<T[K]>;
+    assign(value: ValidObservableParam<T> | Partial<ValidObservableParam<T>>): Observable<T>;
+    prop<K extends keyof T>(prop: K): Observable<T[K]>;
+    delete(): Observable<T>;
+    delete<K extends keyof T>(key: K | string | number): Observable<T>;
     on(eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
     on(eventType: 'equals', value: T, cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
@@ -22,7 +22,7 @@ export interface ObsProps<T> {
 export type ObsPropsUnsafe<T> = Partial<ObsProps<T>>;
 
 export interface ObsListener<T = any> {
-    target: ObsProxy<T>;
+    target: Observable<T>;
     callback: ListenerFn<T>;
 }
 
@@ -55,26 +55,26 @@ type ObsPropsRecursive<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>, ObsProps<T[K]>>;
 };
 
-export type ObsProxyUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
-export type ObsProxy<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
-export interface ObsProxyTrigger {
+export type ObservableUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
+export type Observable<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
+export interface ObservableTrigger {
     notify(): void;
     on(cb?: () => void): ObsListener<void>;
     on(eventType: 'change', cb?: () => void): ObsListener<void>;
 }
 
-export type ProxyValue<T extends ObsProxy | ObsProxyUnsafe | ObsProxyTrigger> = T extends ObsProxy<infer t>
+export type ObservableValue<T extends Observable | ObservableUnsafe | ObservableTrigger> = T extends Observable<infer t>
     ? t
-    : T extends ObsProxyTrigger
+    : T extends ObservableTrigger
     ? void
-    : T extends ObsProxyUnsafe<infer t>
+    : T extends ObservableUnsafe<infer t>
     ? t
     : T;
 
-export type MappedProxyValue<
-    T extends (ObsProxyChecker | ObsProxyTrigger)[] | Record<string, ObsProxyChecker | ObsProxyTrigger>
+export type MappedObservableValue<
+    T extends (ObservableChecker | ObservableTrigger)[] | Record<string, ObservableChecker | ObservableTrigger>
 > = {
-    [K in keyof T]: ProxyValue<T[K]>;
+    [K in keyof T]: ObservableValue<T[K]>;
 };
 
 export type QueryByModified<T> =
@@ -120,10 +120,10 @@ export interface ObsPersistLocalAsync extends ObsPersistLocal {
 export interface ObsPersistRemote {
     save<T>(options: PersistOptions<T>, value: T, info: ObsListenerInfo): Promise<T>;
     listen<T>(
-        obs: ObsProxyChecker<T>,
+        obs: ObservableChecker<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: ObsProxy<T>, value: any) => void
+        onChange: (obs: Observable<T>, value: any) => void
     );
 }
 
@@ -132,7 +132,7 @@ export interface ObsPersistState {
     isLoadedRemote: boolean;
     clearLocal: () => Promise<void>;
 }
-export type ObsProxyChecker<T = any> = ObsProxy<T> | ObsProxyUnsafe<T>;
+export type ObservableChecker<T = any> = Observable<T> | ObservableUnsafe<T>;
 
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
@@ -178,12 +178,12 @@ type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
 
 type DisallowedAttributes<T extends string> = Partial<Record<T, void>>;
 
-export type ValidObsProxyParam<T> = T extends Record<string, any>
+export type ValidObservableParam<T> = T extends Record<string, any>
     ? T extends Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>
         ? T
-        : T extends ObsProxy
+        : T extends Observable
         ? never
-        : { [K in keyof T]: ValidObsProxyParam<T[K]> } & DisallowedAttributes<ObsProxyFnName>
+        : { [K in keyof T]: ValidObservableParam<T[K]> } & DisallowedAttributes<ObservableFnName>
     : T;
 export interface OnReturnValue<T> {
     promise: Promise<T>;

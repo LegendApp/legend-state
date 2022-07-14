@@ -1,5 +1,5 @@
 import { isObject } from '@legendapp/tools';
-import { config } from './configureObsProxy';
+import { config } from './configureObservable';
 import { invertMap, transformObject, transformPath } from './FieldTransformer';
 import {
     clone,
@@ -11,16 +11,16 @@ import {
     objectAtPath,
     symbolDateModified,
 } from './globals';
-import { getObsModified } from './ObsProxyFns';
+import { getObsModified } from './ObservableFns';
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
-    ObsProxy,
-    ObsProxyChecker,
+    Observable,
+    ObservableChecker,
     PersistOptions,
     PersistOptionsRemote,
     QueryByModified,
-} from './ObsProxyInterfaces';
+} from './ObservableInterfaces';
 import { PromiseCallback } from './PromiseCallback';
 
 export interface FirebaseFns {
@@ -90,7 +90,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
 
         await this.promiseAuthed.promise;
     }
-    private calculateDateModified(obs: ObsProxyChecker) {
+    private calculateDateModified(obs: ObservableChecker) {
         const max = { v: 0 };
         if (isObject(obs.get())) {
             Object.keys(obs).forEach((key) => {
@@ -103,10 +103,10 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         return max.v > 0 ? max.v : undefined;
     }
     public listen<T>(
-        obs: ObsProxyChecker<T>,
+        obs: ObservableChecker<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: ObsProxy<T>, value: any) => void
+        onChange: (obs: Observable<T>, value: any) => void
     ) {
         const { queryByModified } = options.remote.firebase;
 
@@ -125,11 +125,11 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     private iterateListen<T>(
-        obs: ObsProxyChecker<T>,
+        obs: ObservableChecker<T>,
         options: PersistOptions<T>,
         queryByModified: object,
         onLoad: () => void,
-        onChange: (obs: ObsProxy<T>, value: any) => void,
+        onChange: (obs: Observable<T>, value: any) => void,
         syncPathExtra: string
     ) {
         const { ignoreKeys } = options.remote.firebase;
@@ -153,12 +153,12 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         });
     }
     private async _listen<T>(
-        obs: ObsProxyChecker<T>,
+        obs: ObservableChecker<T>,
         options: PersistOptions<T>,
         queryByModified: any,
         dateModified: number,
         onLoad: () => void,
-        onChange: (obsProxy: ObsProxy<T>, value: any) => void,
+        onChange: (observable: Observable<T>, value: any) => void,
         syncPathExtra: string
     ) {
         const {
@@ -269,8 +269,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 info.changedValue = null;
             }
 
-        let value = constructObject(info.path, clone(info.changedValue));
-        const valueSaved = value ? clone(value) : value;
+            let value = constructObject(info.path, clone(info.changedValue));
+            const valueSaved = value ? clone(value) : value;
             let path = info.path.slice();
 
             const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);
@@ -438,7 +438,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         return value;
     }
     private _onceValue(
-        obs: ObsProxy<Record<any, any>>,
+        obs: Observable<Record<any, any>>,
         path: string,
         fieldTransformsAtPath: object,
         adjustData: PersistOptionsRemote['adjustData'],
@@ -472,7 +472,7 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
         }
     }
     private async _onChange(
-        obs: ObsProxyChecker,
+        obs: ObservableChecker,
         pathFirebase: string,
         fieldTransforms: object,
         fieldTransformsAtPath: object,

@@ -2,7 +2,7 @@ import firebase from '@react-native-firebase/app';
 import '@react-native-firebase/auth';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
-import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
+import { ObsPersistFirebaseBase } from '../ObservablePersistFirebaseBase';
 
 console.log('imported auth');
 

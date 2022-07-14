@@ -1,17 +1,23 @@
 import { isArray, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
-import { isProxy, isTrigger } from '../globals';
-import { MappedProxyValue, ObsListener, ObsProxy, ObsProxyChecker, ObsProxyTrigger } from '../ObsProxyInterfaces';
-import { disposeListener } from '../ObsProxyListener';
-import { state } from '../ObsProxyState';
+import { isObservable, isTrigger } from '../globals';
+import {
+    MappedObservableValue,
+    ObsListener,
+    Observable,
+    ObservableChecker,
+    ObservableTrigger,
+} from '../ObservableInterfaces';
+import { disposeListener } from '../ObservableListener';
+import { state } from '../ObservableState';
 
 interface SavedRefTrack {
-    proxies: [ObsProxy, string, ObsListener][];
+    proxies: [Observable, string, ObsListener][];
 }
 
-export function useObsProxy<T extends (ObsProxyChecker | ObsProxyTrigger)[] | Record<string, ObsProxyChecker>>(
+export function useObservables<T extends (ObservableChecker | ObservableTrigger)[] | Record<string, ObservableChecker>>(
     fn: () => T
-): MappedProxyValue<T> {
+): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRefTrack>();
     if (!ref.current) {
@@ -26,10 +32,10 @@ export function useObsProxy<T extends (ObsProxyChecker | ObsProxyTrigger)[] | Re
 
     const isArr = isArray(ret);
 
-    const arr = (isArr ? ret : Object.values(ret)) as ObsProxy[];
+    const arr = (isArr ? ret : Object.values(ret)) as Observable[];
 
     // Compare to previous args and update listeners if any changed or first mount
-    updateListeners(arr as ObsProxy[], ref.current, forceRender);
+    updateListeners(arr as Observable[], ref.current, forceRender);
 
     // Reset state
     state.isTracking = false;
@@ -49,20 +55,20 @@ export function useObsProxy<T extends (ObsProxyChecker | ObsProxyTrigger)[] | Re
 
     if (isArr) {
         return arr.map(
-            (obs) => obs && (isTrigger(obs) ? undefined : isProxy(obs) ? obs.get() : obs)
-        ) as unknown as MappedProxyValue<T>;
+            (obs) => obs && (isTrigger(obs) ? undefined : isObservable(obs) ? obs.get() : obs)
+        ) as unknown as MappedObservableValue<T>;
     } else {
         Object.keys(ret).forEach((key) => {
             const obs = ret[key];
-            if (isProxy(obs)) {
+            if (isObservable(obs)) {
                 ret[key] = obs.get();
             }
         });
-        return ret as MappedProxyValue<T>;
+        return ret as MappedObservableValue<T>;
     }
 }
 
-const updateListeners = (ret: ObsProxy[], saved: SavedRefTrack, onChange: () => void) => {
+const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () => void) => {
     const tracked = state.trackedProxies;
     const trackedRoots = state.trackedRootProxies;
     for (let i = 0; i < ret.length; i++) {
@@ -93,17 +99,17 @@ const updateListeners = (ret: ObsProxy[], saved: SavedRefTrack, onChange: () => 
     for (let i = 0; i < tracked.length; i++) {
         const p = tracked[i];
         if (p) {
-            const [proxy, prop] = p;
+            const [obs, prop] = p;
             let found = false;
             for (let u = 0; u < saved.proxies.length; u++) {
-                if (saved.proxies[u][0] === proxy && saved.proxies[u][1] === prop) {
+                if (saved.proxies[u][0] === obs && saved.proxies[u][1] === prop) {
                     found = true;
                     break;
                 }
             }
-            if (!found && isProxy(proxy)) {
-                const listener = (prop ? proxy.prop(prop) : proxy).on('change', onChange);
-                saved.proxies.push([proxy, prop, listener]);
+            if (!found && isObservable(obs)) {
+                const listener = (prop ? obs.prop(prop) : obs).on('change', onChange);
+                saved.proxies.push([obs, prop, listener]);
             }
         }
     }

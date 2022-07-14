@@ -1,7 +1,7 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { ObsProxy, ObsProxyTrigger } from './ObsProxyInterfaces';
-import { state } from './ObsProxyState';
-import { config } from './configureObsProxy';
+import { Observable, ObservableTrigger } from './ObservableInterfaces';
+import { state } from './ObservableState';
+import { config } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
 
@@ -33,7 +33,7 @@ export function mergeDeep(target, ...sources) {
     if (!sources.length) return target;
     const source = sources.shift();
 
-    const needsSet = isProxy(target);
+    const needsSet = isObservable(target);
     const targetValue = needsSet ? target.get() : target;
 
     if (isObject(targetValue) && isObject(source)) {
@@ -62,7 +62,7 @@ export function mergeDeep(target, ...sources) {
                 }
                 mergeDeep(target[key], source[key]);
             } else {
-                if (isProxy(target)) {
+                if (isObservable(target)) {
                     target.assign({ [key]: source[key] });
                 } else {
                     Object.assign(target, { [key]: source[key] });
@@ -77,11 +77,11 @@ export function isNullOrUndefined(val: any) {
     return val === null || val === undefined;
 }
 
-export function isProxy(obj: any): obj is ObsProxy {
+export function isObservable(obj: any): obj is Observable {
     return state.infos.has(obj);
 }
 
-export function isTrigger(obj: any): obj is ObsProxyTrigger {
+export function isTrigger(obj: any): obj is ObservableTrigger {
     return isObject(obj) && obj.hasOwnProperty('notify') && obj.hasOwnProperty('on');
 }
 

@@ -1,2 +1,2 @@
-export * from './useNewObsProxy';
-export * from './useObsProxy';
+export * from './useNewObservable';
+export * from './useObservables';

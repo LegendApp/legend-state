@@ -1,4 +1,4 @@
-import { getProxyFromPrimitive } from './ObsProxyFns';
+import { getObservableFromPrimitive } from './ObservableFns';
 
 let didOverride = false;
 
@@ -7,9 +7,9 @@ export function extendPrototypes() {
         didOverride = true;
         const fn = (name: string) =>
             function (...args: any) {
-                const proxy = getProxyFromPrimitive(this);
-                if (proxy) {
-                    return proxy[name](...args);
+                const obs = getObservableFromPrimitive(this);
+                if (obs) {
+                    return obs[name](...args);
                 }
             };
         const toOverride = [Number, Boolean, String];

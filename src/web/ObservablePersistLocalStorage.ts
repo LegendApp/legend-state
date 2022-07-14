@@ -1,4 +1,4 @@
-import { ObsPersistLocal } from '../ObsProxyInterfaces';
+import { ObsPersistLocal } from '../ObservableInterfaces';
 
 export class ObsPersistLocalStorage implements ObsPersistLocal {
     data: Record<string, any> = {};

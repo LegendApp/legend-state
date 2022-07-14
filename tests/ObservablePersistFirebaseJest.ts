@@ -1,5 +1,5 @@
 import { objectAtPath, isObjectEmpty } from '../src/globals';
-import { ObsPersistFirebaseBase } from '../src/ObsPersistFirebaseBase';
+import { ObsPersistFirebaseBase } from '../src/ObservablePersistFirebaseBase';
 
 function _mergeBatch(target: object, batchEntry: string[], value: any) {
     let o = target;

@@ -1,4 +1,4 @@
-import { ListenerFn, ObsListener, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
+import { ListenerFn, ObsListener, Observable, ObservableChecker } from './ObservableInterfaces';
 
 export interface StateInfo {
     prop: string;
@@ -7,9 +7,9 @@ export interface StateInfo {
     safe: boolean;
     primitive: boolean;
     listeners?: Set<ListenerFn<any>>;
-    proxies?: Map<string | number, ObsProxy>;
-    proxiesProps?: Map<string | number, ObsProxy>;
-    parent?: ObsProxy;
+    proxies?: Map<string | number, Observable>;
+    proxiesProps?: Map<string | number, Observable>;
+    parent?: Observable;
 }
 
 export const state = {
@@ -17,12 +17,12 @@ export const state = {
     inAssign: 0,
     isTracking: false,
     inProp: false,
-    trackedRootProxies: [] as ObsProxy[],
-    trackedProxies: [] as [ObsProxy, string][],
-    lastAccessedProxy: { proxy: undefined as ObsProxy, prop: undefined as string | number },
-    infos: new WeakMap<ObsProxyChecker, StateInfo>(),
-    skipNotifyFor: [] as ObsProxyChecker[],
-    updateTracking: (proxy: ObsProxy, prop: any, info: StateInfo) => {
+    trackedRootProxies: [] as Observable[],
+    trackedProxies: [] as [Observable, string][],
+    lastAccessedProxy: { proxy: undefined as Observable, prop: undefined as string | number },
+    infos: new WeakMap<ObservableChecker, StateInfo>(),
+    skipNotifyFor: [] as ObservableChecker[],
+    updateTracking: (proxy: Observable, prop: any, info: StateInfo) => {
         const prev = state.trackedProxies[state.trackedProxies.length - 1];
         if (prev && info.parent && prev[0] === info.parent && prev[1] == info.prop) {
             state.trackedProxies[state.trackedProxies.length - 1] = [proxy, prop];

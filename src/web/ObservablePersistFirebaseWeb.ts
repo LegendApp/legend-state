@@ -16,7 +16,7 @@ import {
     // @ts-ignore
 } from 'firebase/database';
 import { isObjectEmpty } from '../globals';
-import { ObsPersistFirebaseBase } from '../ObsPersistFirebaseBase';
+import { ObsPersistFirebaseBase } from '../ObservablePersistFirebaseBase';
 
 export class ObsPersistFirebaseWeb extends ObsPersistFirebaseBase {
     constructor() {

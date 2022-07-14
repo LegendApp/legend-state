@@ -1,5 +1,5 @@
-import { ObsListener } from './ObsProxyInterfaces';
-import { state } from './ObsProxyState';
+import { ObsListener } from './ObservableInterfaces';
+import { state } from './ObservableState';
 
 export function disposeListener(listener: ObsListener) {
     if (listener) {
