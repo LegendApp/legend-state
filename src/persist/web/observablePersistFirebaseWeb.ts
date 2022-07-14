@@ -15,8 +15,8 @@ import {
     Unsubscribe,
     // @ts-ignore
 } from 'firebase/database';
-import { isObjectEmpty } from '../globals';
-import { ObsPersistFirebaseBase } from '../ObservablePersistFirebaseBase';
+import { isObjectEmpty } from '../../globals';
+import { ObsPersistFirebaseBase } from '../observablePersistFirebaseBase';
 
 export class ObsPersistFirebaseWeb extends ObsPersistFirebaseBase {
     constructor() {

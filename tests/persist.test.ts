@@ -1,32 +1,28 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
 import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
-import { mapPersistences, observablePersist } from '../src/ObservablePersist';
-import { symbolSaveValue } from '../src/ObservablePersistFirebaseBase';
-import { observable } from '../src/Observable';
-import { getObsModified, onTrue } from '../src/ObservableFns';
-import { PersistOptionsRemote, ObservableValue } from '../src/ObservableInterfaces';
-import { ObsPersistLocalStorage } from '../src/web/ObservablePersistLocalStorage';
-import { ObsPersistFirebaseJest } from './ObservablePersistFirebaseJest';
+import { mapPersistences, observablePersist } from '../src/persist/persistObservable';
+import { symbolSaveValue } from '../src/persist/observablePersistFirebaseBase';
+import { observable } from '../src/observable';
+import { getObsModified, onTrue } from '../src/observableFns';
+import { PersistOptionsRemote, ObservableValue } from '../src/observableInterfaces';
+import { ObsPersistLocalStorage } from '../src/persist/web/observablePersistLocalStorage';
+import { ObsPersistFirebaseJest } from './observablePersistFirebaseJest';
 
 class LocalStorageMock {
     store: Record<any, any>;
     constructor() {
         this.store = {};
     }
-
     clear() {
         this.store = {};
     }
-
     getItem(key) {
         return this.store[key] || null;
     }
-
     setItem(key, value) {
         this.store[key] = String(value);
     }
-
     removeItem(key) {
         delete this.store[key];
     }

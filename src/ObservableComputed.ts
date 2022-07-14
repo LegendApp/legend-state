@@ -1,6 +1,6 @@
-import { observable } from './Observable';
-import { Observable, ValidObservableParam } from './ObservableInterfaces';
-import { state } from './ObservableState';
+import { observable } from './observable';
+import { Observable, ValidObservableParam } from './observableInterfaces';
+import { state } from './observableState';
 
 function onChanged<T>(observable: Observable, fn: () => T) {
     observable.set(fn());

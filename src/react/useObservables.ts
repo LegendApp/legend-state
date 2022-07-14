@@ -7,9 +7,9 @@ import {
     Observable,
     ObservableChecker,
     ObservableTrigger,
-} from '../ObservableInterfaces';
-import { disposeListener } from '../ObservableListener';
-import { state } from '../ObservableState';
+} from '../observableInterfaces';
+import { disposeListener } from '../observableListener';
+import { state } from '../observableState';
 
 interface SavedRefTrack {
     proxies: [Observable, string, ObsListener][];

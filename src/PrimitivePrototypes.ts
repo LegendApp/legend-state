@@ -1,4 +1,4 @@
-import { getObservableFromPrimitive } from './ObservableFns';
+import { getObservableFromPrimitive } from './observableFns';
 
 let didOverride = false;
 

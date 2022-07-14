@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
 import { isObjectEmpty, isPrimitive, symbolDateModified } from './globals';
-import { ObsBatcher } from './ObservableBatcher';
+import { ObsBatcher } from './observableBatcher';
 import {
     EventType,
     ListenerFn,
@@ -9,9 +9,9 @@ import {
     Observable,
     ObservableChecker,
     OnReturnValue,
-} from './ObservableInterfaces';
-import { disposeListener } from './ObservableListener';
-import { state } from './ObservableState';
+} from './observableInterfaces';
+import { disposeListener } from './observableListener';
+import { state } from './observableState';
 
 const symbolHasValue = Symbol('__hasValue');
 

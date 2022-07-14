@@ -1,4 +1,4 @@
-import { ObsPersistLocal } from '../ObservableInterfaces';
+import { ObsPersistLocal } from '../../observableInterfaces';
 
 export class ObsPersistLocalStorage implements ObsPersistLocal {
     data: Record<string, any> = {};

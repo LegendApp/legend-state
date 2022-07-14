@@ -1,6 +1,6 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { Observable, ObservableTrigger } from './ObservableInterfaces';
-import { state } from './ObservableState';
+import type { Observable, ObservableTrigger } from './observableInterfaces';
+import { state } from './observableState';
 import { config } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');

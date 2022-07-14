@@ -1,4 +1,4 @@
-import { ListenerFn, ObsListener, Observable, ObservableChecker } from './ObservableInterfaces';
+import { ListenerFn, Observable, ObservableChecker } from './observableInterfaces';
 
 export interface StateInfo {
     prop: string;

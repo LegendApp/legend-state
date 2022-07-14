@@ -1,9 +1,9 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual } from './globals';
-import { deleteFn, obsNotify, on, prop } from './ObservableFns';
-import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './ObservableInterfaces';
-import { state } from './ObservableState';
+import { deleteFn, obsNotify, on, prop } from './observableFns';
+import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './observableInterfaces';
+import { state } from './observableState';
 
 const MapModifiers = {
     clear: true,

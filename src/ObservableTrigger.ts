@@ -1,5 +1,5 @@
-import { observable } from './Observable';
-import type { Observable, ObservableTrigger } from './ObservableInterfaces';
+import { observable } from './observable';
+import type { Observable, ObservableTrigger } from './observableInterfaces';
 
 function triggerNotifier(obs: Observable<number>) {
     obs.set(obs.get() + 1);

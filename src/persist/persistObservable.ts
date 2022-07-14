@@ -1,8 +1,8 @@
-import { config } from './configureObservable';
-import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
-import { ObsBatcher } from './ObservableBatcher';
-import { observable } from './Observable';
-import { listenToObs } from './ObservableFns';
+import { config } from '../configureObservable';
+import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
+import { ObsBatcher } from '../observableBatcher';
+import { observable } from '../observable';
+import { listenToObs } from '../observableFns';
 import {
     ObsListenerInfo,
     ObsPersistLocal,
@@ -11,7 +11,7 @@ import {
     Observable,
     ObservableChecker,
     PersistOptions,
-} from './ObservableInterfaces';
+} from '../observableInterfaces';
 
 /** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();

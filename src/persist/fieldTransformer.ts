@@ -1,5 +1,5 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
-import { symbolDateModified } from './globals';
+import { symbolDateModified } from '../globals';
 
 export function transformPath(
     path: string[],

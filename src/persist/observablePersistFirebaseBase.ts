@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
-import { config } from './configureObservable';
-import { invertMap, transformObject, transformPath } from './FieldTransformer';
+import { config } from '../configureObservable';
+import { invertMap, transformObject, transformPath } from './fieldTransformer';
 import {
     clone,
     constructObject,
@@ -10,8 +10,8 @@ import {
     mergeDeep,
     objectAtPath,
     symbolDateModified,
-} from './globals';
-import { getObsModified } from './ObservableFns';
+} from '../globals';
+import { getObsModified } from '../observableFns';
 import type {
     ObsListenerInfo,
     ObsPersistRemote,
@@ -20,8 +20,8 @@ import type {
     PersistOptions,
     PersistOptionsRemote,
     QueryByModified,
-} from './ObservableInterfaces';
-import { PromiseCallback } from './PromiseCallback';
+} from '../observableInterfaces';
+import { PromiseCallback } from '../promiseCallback';
 
 export interface FirebaseFns {
     getCurrentUser: () => string;
