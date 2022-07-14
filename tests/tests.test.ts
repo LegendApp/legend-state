@@ -8,6 +8,10 @@ import {
     obsProxyTrigger,
 } from '../src';
 
+function promiseTimeout(time?: number) {
+    return new Promise((resolve) => setTimeout(resolve, time || 0));
+}
+
 configureObsProxy();
 
 describe('Basic', () => {
@@ -677,6 +681,22 @@ describe('Listeners', () => {
                 prevValue: undefined,
             }
         );
+    });
+    test('Listener promises', async () => {
+        const obs = obsProxy({ test: 'hi' });
+        const promise = obs.test.on('equals', 'hi2').promise;
+        let didResolve = false;
+
+        promise.then(() => (didResolve = true));
+        expect(didResolve).toEqual(false);
+
+        await promiseTimeout(16);
+
+        obs.test.set('hi2');
+
+        await promiseTimeout(16);
+
+        expect(didResolve).toEqual(true);
     });
 });
 describe('Arrays', () => {

@@ -1042,7 +1042,7 @@ describe('Persist remote save', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
@@ -1106,7 +1106,7 @@ describe('Persist remote save', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
@@ -1146,7 +1146,7 @@ describe('Persist remote save', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
 
@@ -1185,7 +1185,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: 'hi1',
@@ -1217,7 +1217,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {
@@ -1269,7 +1269,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {
@@ -1334,7 +1334,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {
@@ -1395,7 +1395,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {
@@ -1471,7 +1471,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             clients: {
@@ -1550,7 +1550,7 @@ describe('Remote load', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {
@@ -1597,7 +1597,7 @@ describe('Remote change', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         modifyRemote('test', { '@': 1001, test2: 'hello2' });
 
@@ -1637,7 +1637,7 @@ describe('Remote change', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         modifyRemote('test/test2', { '@': 1001, test22: 'hello2' });
 
@@ -1731,7 +1731,7 @@ describe('Field transform', () => {
             },
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {
@@ -1794,7 +1794,7 @@ describe('Field transform', () => {
         obs.test4.test5.set('test6', 'hello6');
         obs.test7.set('test8', 'hello8');
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
         await promiseTimeout();
 
         const remote = mapPersistences.get(ObsPersistFirebaseJest) as ObsPersistFirebaseJest;
@@ -1928,7 +1928,7 @@ describe('Adjust data', () => {
             remote: remoteOptions,
         });
 
-        await onTrue(state.isLoadedRemote);
+        await onTrue(state.isLoadedRemote).promise;
 
         expect(obs.get()).toEqual({
             test: {

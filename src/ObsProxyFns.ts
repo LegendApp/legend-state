@@ -1,7 +1,15 @@
 import { isObject } from '@legendapp/tools';
 import { isObjectEmpty, isPrimitive, symbolDateModified } from './globals';
 import { ObsBatcher } from './ObsBatcher';
-import { EventType, ListenerFn, ObsListener, ObsListenerInfo, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
+import {
+    EventType,
+    ListenerFn,
+    ObsListener,
+    ObsListenerInfo,
+    ObsProxy,
+    ObsProxyChecker,
+    OnReturnValue,
+} from './ObsProxyInterfaces';
 import { disposeListener } from './ObsProxyListener';
 import { state } from './ObsProxyState';
 
@@ -50,13 +58,14 @@ export function listenToObs<T>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
     return _listenToObs(cb, obs as ObsProxy<any>) as any;
 }
 
-export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): Promise<T> {
-    return new Promise<any>((resolve) => {
+export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) => void): OnReturnValue<T> {
+    let listener: ObsListener<T>;
+
+    const promise = new Promise<any>((resolve) => {
         if (isPrimitive(obs)) {
             obs = getProxyFromPrimitive(obs);
         }
         let isDone = false;
-        let listener: ObsListener<T>;
         function check(newValue) {
             if (
                 !isDone &&
@@ -76,14 +85,19 @@ export function onEquals<T>(obs: ObsProxyChecker<T>, value: T, cb?: (value: T) =
             listener = listenToObs(obs, check);
         }
     });
+
+    return {
+        promise,
+        listener,
+    };
 }
 
-export function onHasValue<T>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): Promise<T> {
+export function onHasValue<T>(obs: ObsProxyChecker<T>, cb?: (value: T) => void): OnReturnValue<T> {
     return onEquals(obs, symbolHasValue as any, cb);
 }
 
-export function onTrue<T extends boolean>(obs: ObsProxyChecker<T>, cb?: () => void): Promise<void> {
-    return onEquals(obs, true as T, cb) as unknown as Promise<void>;
+export function onTrue<T extends boolean>(obs: ObsProxyChecker<T>, cb?: () => void): OnReturnValue<T> {
+    return onEquals(obs, true as T, cb);
 }
 
 export function getObsModified<T extends ObsProxyChecker>(obs: T) {

@@ -182,3 +182,7 @@ export type ValidObsProxyParam<T> = T extends Record<string, any>
         ? T
         : { [K in keyof T]: ValidObsProxyParam<T[K]> } & DisallowedAttributes<ObsProxyFnName>
     : T;
+export interface OnReturnValue<T> {
+    promise: Promise<T>;
+    listener: ObsListener<T>;
+}
