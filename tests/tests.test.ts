@@ -698,34 +698,6 @@ describe('Listeners', () => {
 
         expect(didResolve).toEqual(true);
     });
-});
-describe('Arrays', () => {
-    test('Array push', () => {
-        const obs = obsProxy({ test: ['hi'] });
-        const handler = jest.fn();
-        listenToObs(obs, handler);
-        obs.test.push('hello');
-        expect(handler).toHaveBeenCalledWith(
-            { test: ['hi', 'hello'] },
-            { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
-        );
-    });
-    test('Array set at index should fail on safe', () => {
-        const obs = obsProxy({ test: ['hi'] });
-        expect(() => {
-            obs.test[1] = 'hello';
-        }).toThrow();
-    });
-    test('Array set at index should succeed on unsafe', () => {
-        const obs = obsProxy({ test: ['hi'] }, /*unsafe*/ true);
-        const handler = jest.fn();
-        listenToObs(obs, handler);
-        obs.test[1] = 'hello';
-        expect(handler).toHaveBeenCalledWith(
-            { test: ['hi', 'hello'] },
-            { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
-        );
-    });
     test('Path to change is correct at every level ', () => {
         const obs = obsProxy({ test1: { test2: { test3: { test4: '' } } } });
         const handlerRoot = jest.fn();
@@ -757,6 +729,35 @@ describe('Arrays', () => {
             path: [],
             prevValue: '',
         });
+    });
+});
+describe('Arrays', () => {
+    test('Array push', () => {
+        const obs = obsProxy({ test: ['hi'] });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test.push('hello');
+        expect(handler).toHaveBeenCalledWith(
+            { test: ['hi', 'hello'] },
+            { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+        );
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Array set at index should fail on safe', () => {
+        const obs = obsProxy({ test: ['hi'] });
+        expect(() => {
+            obs.test[1] = 'hello';
+        }).toThrow();
+    });
+    test('Array set at index should succeed on unsafe', () => {
+        const obs = obsProxy({ test: ['hi'] }, /*unsafe*/ true);
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test[1] = 'hello';
+        expect(handler).toHaveBeenCalledWith(
+            { test: ['hi', 'hello'] },
+            { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+        );
     });
 });
 describe('on functions', () => {
@@ -1197,5 +1198,22 @@ describe('Trigger', () => {
         trigger.notify();
         trigger.notify();
         expect(handler).toHaveBeenCalledTimes(4);
+    });
+});
+
+describe('Functions', () => {
+    test('Function not proxied', () => {
+        const obs = obsProxy({ val: true, fn: () => obs.val });
+
+        expect(obs.fn()).toBe(true);
+    });
+});
+
+describe('Proxy promise values', () => {
+    test('Proxy promise value', async () => {
+        const promise = Promise.resolve(10);
+        const obs = obsProxy({ promise });
+
+        expect(obs.promise).resolves.toEqual(10);
     });
 });

@@ -212,18 +212,18 @@ const proxyGet = {
                 state.updateTracking(proxyOwner, prop, info);
             }
 
-            if (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) {
+            if (
+                (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) &&
+                !(targetValue instanceof Promise) &&
+                !isFunction(targetValue) &&
+                !isArray(target)
+            ) {
                 // Get proxy for prop if it's not a primitive or using prop(key)
                 state.inProp = false;
                 let proxy = info.proxies?.get(prop);
 
                 // Getting a property creates a proxy for it
-                if (
-                    !proxy &&
-                    target.hasOwnProperty(prop) !== undefined &&
-                    !isFunction(targetValue) &&
-                    !isArray(target)
-                ) {
+                if (!proxy && target.hasOwnProperty(prop) !== undefined) {
                     if (!info.proxies) {
                         info.proxies = new Map();
                     }

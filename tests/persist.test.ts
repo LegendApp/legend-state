@@ -1941,20 +1941,13 @@ describe('Adjust data', () => {
 // TODO
 // Delete should persist null to firebase
 // Persist crashing on RN when setting undefined?
-// Test unsafe with listeners
-// Should be using reflect?
-// Test promises returned by on()
 
 // # Persist
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
 
 // # Things outside of Bravely scopea
 // Handle setting with another proxy, goes into infinite recursion? Should call get on it? Should throw error?
-// Functions inside proxy as actions should not be proxied and be bound to the proxy as this
-// Promises
 // useSyncExternalStore
-// How to use it as a trigger by just notifying
-// React suspense
 
 // # More tests
 // test read functions on array and map and stuff

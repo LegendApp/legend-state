@@ -41,6 +41,7 @@ type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends
     | WeakMap<any, any>
     | Set<any>
     | WeakSet<any>
+    | Promise<any>
     ? T[K]
     : T extends object
     ? TRecurse & TProps
