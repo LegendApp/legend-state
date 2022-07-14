@@ -1,5 +1,7 @@
 export type EventType = 'change' | 'equals' | 'hasValue' | 'true';
 
+export type ObsProxyFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
+
 export interface ObsProps<T> {
     get(): T;
     set(value: T): ObsProxy<T>;
@@ -172,3 +174,11 @@ type SameShapeWithStringsRecord<T> = {
 type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
     ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
     : SameShapeWithStringsRecord<T>;
+
+type DisallowedAttributes<T extends string> = Partial<Record<T, void>>;
+
+export type ValidObsProxyParam<T> = T extends Record<string, any>
+    ? T extends Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>
+        ? T
+        : { [K in keyof T]: ValidObsProxyParam<T[K]> } & DisallowedAttributes<ObsProxyFnName>
+    : T;

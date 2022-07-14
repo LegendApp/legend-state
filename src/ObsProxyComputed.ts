@@ -1,12 +1,12 @@
-import { state } from './ObsProxyState';
 import { obsProxy } from './ObsProxy';
-import { MappedProxyValue, ObsProxy, ObsProxyChecker } from './ObsProxyInterfaces';
+import { ObsProxy, ValidObsProxyParam } from './ObsProxyInterfaces';
+import { state } from './ObsProxyState';
 
 function onChanged<T>(proxy: ObsProxy, fn: () => T) {
     proxy.set(fn());
 }
 
-export function obsProxyComputed<T>(fn: () => T) {
+export function obsProxyComputed<T>(fn: () => ValidObsProxyParam<T>) {
     state.isTracking = true;
 
     // Create a proxy for this computed variable

@@ -2,7 +2,7 @@ import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { config } from './configureObsProxy';
 import { isCollection, isPrimitive, jsonEqual } from './globals';
 import { deleteFn, obsNotify, on, prop } from './ObsProxyFns';
-import { ObsProxy, ObsProxyUnsafe } from './ObsProxyInterfaces';
+import { ObsProxy, ObsProxyFnName, ObsProxyUnsafe, ValidObsProxyParam } from './ObsProxyInterfaces';
 import { state } from './ObsProxyState';
 
 const MapModifiers = {
@@ -166,7 +166,7 @@ function assigner(proxyOwner: ObsProxy, target: any, value: any) {
     return this;
 }
 
-const ProxyFunctions = new Map<any, any>([
+const ProxyFunctions = new Map<ObsProxyFnName, any>([
     ['get', getter],
     ['set', setter],
     ['assign', assigner],
@@ -195,13 +195,13 @@ const proxyGet = {
 
             // Non-modifying functions pass straight through
             return targetValue.bind(target);
-        } else if (ProxyFunctions.has(prop)) {
+        } else if (ProxyFunctions.has(prop as ObsProxyFnName)) {
             if (state.isTracking) {
                 state.updateTracking(proxyOwner, undefined, info);
             }
 
             // Calling a proxy function returns a bound function
-            return ProxyFunctions.get(prop).bind(proxyOwner, proxyOwner, target);
+            return ProxyFunctions.get(prop as ObsProxyFnName).bind(proxyOwner, proxyOwner, target);
         } else {
             // Update lastAccessedProxy to support extended prototype functions on primitives
             if (config.extendPrototypes) {
@@ -260,7 +260,7 @@ const proxyGet = {
     },
 };
 
-function _obsProxy<T>(value: T, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxy<T> {
+function _obsProxy<T>(value: ValidObsProxyParam<T>, safe: boolean, parent?: ObsProxy, prop?: string): ObsProxy<T> {
     const primitive = isPrimitive(value);
     const target = primitive ? { _value: value } : (value as unknown as object);
     const proxy = new Proxy(target, proxyGet);
@@ -270,9 +270,9 @@ function _obsProxy<T>(value: T, safe: boolean, parent?: ObsProxy, prop?: string)
     return proxy;
 }
 
-function obsProxy<T>(value?: T): ObsProxy<T>;
-function obsProxy<T>(value: T, unsafe: true): ObsProxyUnsafe<T>;
-function obsProxy<T>(value?: T, unsafe?: boolean): ObsProxy<T> | ObsProxyUnsafe<T> {
+function obsProxy<T>(value?: ValidObsProxyParam<T>): ObsProxy<T>;
+function obsProxy<T>(value: ValidObsProxyParam<T>, unsafe: true): ObsProxyUnsafe<T>;
+function obsProxy<T>(value?: ValidObsProxyParam<T>, unsafe?: boolean): ObsProxy<T> | ObsProxyUnsafe<T> {
     return _obsProxy(value, !unsafe);
 }
 

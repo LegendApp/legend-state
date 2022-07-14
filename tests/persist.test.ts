@@ -1943,7 +1943,7 @@ describe('Adjust data', () => {
 // Persist crashing on RN when setting undefined?
 // Test unsafe with listeners
 // Should be using reflect?
-// Promises returned by on()
+// Test promises returned by on()
 
 // # Persist
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
@@ -1959,6 +1959,7 @@ describe('Adjust data', () => {
 // # More tests
 // test read functions on array and map and stuff
 // Save multiple items in a record should merge correctly
+// Array modifications should only notify once
 // Need to document
 // Promises return from on functions
 
