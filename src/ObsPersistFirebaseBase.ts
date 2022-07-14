@@ -2,6 +2,7 @@ import { isObject } from '@legendapp/tools';
 import { config } from './configureObsProxy';
 import { invertMap, transformObject, transformPath } from './FieldTransformer';
 import {
+    clone,
     constructObject,
     getDateModifiedKey,
     isNullOrUndefined,
@@ -268,10 +269,8 @@ export class ObsPersistFirebaseBase implements ObsPersistRemote {
                 info.changedValue = null;
             }
 
-            let value = info.changedValue
-                ? constructObject(info.path, JSON.parse(JSON.stringify(info.changedValue)))
-                : info.changedValue;
-            const valueSaved = value ? JSON.parse(JSON.stringify(value)) : value;
+        let value = constructObject(info.path, clone(info.changedValue));
+        const valueSaved = value ? clone(value) : value;
             let path = info.path.slice();
 
             const dateModifiedKey = getDateModifiedKey(options.dateModifiedKey || config.persist?.dateModifiedKey);

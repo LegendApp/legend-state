@@ -467,6 +467,12 @@ describe('Safety', () => {
         obs.test2.test3 = { test4: 'hi5' };
         expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
     });
+    test('unsafe with set', () => {
+        const obs = obsProxy({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
+        obs.test = 'hello';
+        obs.test2.test3.set({ test4: 'hi5' });
+        expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
+    });
     test('error modifying safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = obsProxy({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
