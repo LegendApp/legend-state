@@ -76,7 +76,7 @@ const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () =
         if (r && !trackedRoots.includes(r)) {
             const info = state.infos.get(r);
             if (info) {
-                tracked.push([r, undefined]);
+                tracked.push([r, undefined, false]);
             }
         }
     }
@@ -99,7 +99,7 @@ const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () =
     for (let i = 0; i < tracked.length; i++) {
         const p = tracked[i];
         if (p) {
-            const [obs, prop] = p;
+            const [obs, prop, shallow] = p;
             let found = false;
             for (let u = 0; u < saved.proxies.length; u++) {
                 if (saved.proxies[u][0] === obs && saved.proxies[u][1] === prop) {
@@ -108,7 +108,10 @@ const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () =
                 }
             }
             if (!found && isObservable(obs)) {
-                const listener = (prop ? obs.prop(prop) : obs).on('change', onChange);
+                const listener = (prop ? obs.prop(prop) : obs).on(
+                    shallow ? 'changeShallow' : 'change',
+                    onChange
+                ) as ObsListener;
                 saved.proxies.push([obs, prop, listener]);
             }
         }

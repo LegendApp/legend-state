@@ -1,4 +1,4 @@
-export type EventType = 'change' | 'equals' | 'hasValue' | 'true';
+export type EventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export type ObservableFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
 
@@ -11,6 +11,7 @@ export interface ObsProps<T> {
     delete(): Observable<T>;
     delete<K extends keyof T>(key: K | string | number): Observable<T>;
     on(eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
+    on(eventType: 'changeShallow', cb: ListenerFn<T>): ObsListener<T>;
     on(eventType: 'equals', value: T, cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(eventType: 'true', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
@@ -24,6 +25,7 @@ export type ObsPropsUnsafe<T> = Partial<ObsProps<T>>;
 export interface ObsListener<T = any> {
     target: Observable<T>;
     callback: ListenerFn<T>;
+    shallow: boolean;
 }
 
 export interface ObsListenerInfo {

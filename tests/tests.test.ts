@@ -6,7 +6,9 @@ import {
     observable,
     observableComputed,
     observableTrigger,
+    shallow,
 } from '../src';
+import { state } from '../src/observableState';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -837,15 +839,65 @@ describe('on functions', () => {
         obs.val.set(true);
         expect(handler).toHaveBeenCalledTimes(1);
     });
-    // TOOOBS
-    // test('onHasValue with undefined', () => {
-    //     const obs = observable({ val: undefined });
-    //     const handler = jest.fn();
-    //     obs.val.on('hasValue', handler);
-    //     expect(handler).not.toHaveBeenCalled();
-    //     obs.val.set(true);
-    //     expect(handler).toHaveBeenCalledWith(true);
-    // });
+    test('onHasValue with undefined', () => {
+        const obs = observable({ val: undefined });
+        const handler = jest.fn();
+        obs.val.on('hasValue', handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs.val.set(true);
+        expect(handler).toHaveBeenCalledWith(true);
+    });
+    test('Shallow', () => {
+        const obs = observable({ val: false } as { val: boolean; val2?: number });
+        const handler = jest.fn();
+        obs.on('changeShallow', handler);
+        obs.val.set(true);
+        expect(handler).not.toHaveBeenCalled();
+
+        obs.set('val2', 10);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('Shallow', () => {
+    test('Shallow set primitive', () => {
+        const obs = observable({ val: false } as { val: boolean; val2?: number });
+        const handler = jest.fn();
+        obs.on('changeShallow', handler);
+        obs.val.set(true);
+        expect(handler).not.toHaveBeenCalled();
+
+        obs.val2.set(10);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Shallow deep object', () => {
+        const obs = observable({ val: { val2: { val3: 'hi' } } });
+        const handler = jest.fn();
+        obs.on('changeShallow', handler);
+        obs.val.val2.val3.set('hello');
+        expect(handler).not.toHaveBeenCalled();
+    });
+
+    test('Shallow function sets trackedProxies', () => {
+        const obs = observable({ val: { val2: true } });
+
+        state.isTracking = true;
+
+        const a = shallow(obs.val);
+        const tracked = state.trackedProxies[0];
+
+        expect(tracked[0]).toBe(obs.val);
+        expect(tracked[1]).toEqual(undefined);
+        expect(tracked[2]).toEqual(true);
+        expect(a.get() === obs.val.get());
+
+        // Reset state
+        state.isTracking = false;
+        state.trackedProxies = [];
+        state.trackedRootProxies = [];
+    });
 });
 
 describe('Map', () => {

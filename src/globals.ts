@@ -4,6 +4,7 @@ import { state } from './observableState';
 import { config } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
+export const symbolShallow = Symbol('__shallow');
 
 export function constructObject(path: string[], value: any, dateModified?: any) {
     let out = {};

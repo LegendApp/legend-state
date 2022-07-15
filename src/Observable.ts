@@ -1,6 +1,6 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { config } from './configureObservable';
-import { isCollection, isPrimitive, jsonEqual } from './globals';
+import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
 import { deleteFn, obsNotify, on, prop } from './observableFns';
 import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './observableInterfaces';
 import { state } from './observableState';
@@ -197,11 +197,16 @@ const proxyGet = {
             return targetValue.bind(target);
         } else if (ProxyFunctions.has(prop as ObservableFnName)) {
             if (state.isTracking) {
-                state.updateTracking(proxyOwner, undefined, info);
+                state.updateTracking(proxyOwner, undefined, info, /*shallow*/ false);
             }
 
             // Calling a proxy function returns a bound function
             return ProxyFunctions.get(prop as ObservableFnName).bind(proxyOwner, proxyOwner, target);
+        } else if ((prop as any) === symbolShallow) {
+            if (state.isTracking) {
+                state.updateTracking(proxyOwner, undefined, info, /*shallow*/ true);
+            }
+            return proxyOwner;
         } else {
             // Update lastAccessedProxy to support extended prototype functions on primitives
             if (config.extendPrototypes) {
@@ -209,7 +214,7 @@ const proxyGet = {
                 state.lastAccessedProxy.prop = prop;
             }
             if (state.isTracking) {
-                state.updateTracking(proxyOwner, prop, info);
+                state.updateTracking(proxyOwner, prop, info, /*shallow*/ false);
             }
 
             if (
