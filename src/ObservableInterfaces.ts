@@ -34,29 +34,31 @@ export interface ObsListenerInfo {
 
 export type ListenerFn<T> = (value: T, info: ObsListenerInfo) => void;
 
-type Recurse<T, K extends keyof T, TRecurse, TProps> = T[K] extends
+type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
-    | Array<any>
     | Map<any, any>
     | WeakMap<any, any>
     | Set<any>
     | WeakSet<any>
     | Promise<any>
     ? T[K]
+    : T[K] extends Array<any>
+    ? T[K] & { [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]> }
     : T extends object
-    ? TRecurse & TProps
+    ? TRecurse
     : T[K];
 
 type ObsPropsRecursiveUnsafe<T> = {
-    [K in keyof T]: Recurse<T, K, ObsPropsRecursiveUnsafe<T[K]>, ObsPropsUnsafe<T[K]>>;
+    [K in keyof T]: Recurse<T, K, ObservableUnsafe<T[K]>>;
 };
 
 type ObsPropsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObsPropsRecursive<T[K]>, ObsProps<T[K]>>;
+    readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
 };
 
 export type ObservableUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
 export type Observable<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
+
 export interface ObservableTrigger {
     notify(): void;
     on(cb?: () => void): ObsListener<void>;

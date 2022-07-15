@@ -215,8 +215,7 @@ const proxyGet = {
             if (
                 (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) &&
                 !(targetValue instanceof Promise) &&
-                !isFunction(targetValue) &&
-                !isArray(target)
+                !isFunction(targetValue)
             ) {
                 // Get proxy for prop if it's not a primitive or using prop(key)
                 state.inProp = false;

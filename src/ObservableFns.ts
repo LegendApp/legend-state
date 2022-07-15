@@ -42,20 +42,17 @@ export function obsNotify<T>(target: ObservableChecker<T>, changedValue: T, prev
     _obsNotify(target, { changedValue, prevValue, path });
 }
 
-function _listenToObs<T>(callback: ListenerFn<any>, target: ObservableChecker<T>) {
-    const info = state.infos.get(target);
+export function listenToObs<T>(obs: ObservableChecker<T>, callback: ListenerFn<T>): ObsListener<T> {
+    const info = state.infos.get(obs);
     if (!info) {
         throw new Error('Can only listen to instances of Observable');
     }
     if (!info.listeners) {
         info.listeners = new Set();
     }
-    const listener = { target, callback } as ObsListener<T>;
+    const listener = { target: obs, callback } as ObsListener<T>;
     info.listeners.add(callback);
     return listener;
-}
-export function listenToObs<T>(obs: T, cb: ListenerFn<T>): ObsListener<T> {
-    return _listenToObs(cb, obs as Observable<any>) as any;
 }
 
 export function onEquals<T>(obs: ObservableChecker<T>, value: T, cb?: (value: T) => void): OnReturnValue<T> {

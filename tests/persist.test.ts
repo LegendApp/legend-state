@@ -1940,6 +1940,8 @@ describe('Adjust data', () => {
 // TODO
 // Delete should persist null to firebase
 // Persist crashing on RN when setting undefined?
+// Should listeners fire all the way up the tree? Seems like we'd want that in some cases but not all...
+// Maybe prevValue is too expensive to compute? Make it optional?
 
 // # Persist
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?

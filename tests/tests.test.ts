@@ -25,7 +25,7 @@ describe('Basic', () => {
         const obs = observable({ val: 10 });
         expect(obs).toEqual({ val: 10 });
         expect(obs.val < 20).toEqual(true);
-        // @ts-ignore
+        // @ts-expect-error
         expect(obs.val < undefined).toEqual(false);
     });
     test('Primitive access', () => {
@@ -481,11 +481,11 @@ describe('Safety', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = observable({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
         expect(() => {
-            // @ts-ignore This is meant to error
+            // @ts-expect-error
             obs.test = 'hello';
         }).toThrow();
         expect(() => {
-            // @ts-ignore This is meant to error
+            // @ts-expect-error
             obs.test2.test3 = { test4: 'hi5' };
         }).toThrow();
         expect(obs.test.get()).toEqual('hi');
@@ -528,11 +528,9 @@ describe('Listeners', () => {
     });
     test('Fail with invalid obs', () => {
         expect(() => {
-            // @ts-ignore This is meant to error
             listenToObs({ hi: true }, () => {});
         }).toThrow();
         expect(() => {
-            // @ts-ignore This is meant to error
             listenToObs(true, () => {});
         }).toThrow();
     });
@@ -746,6 +744,7 @@ describe('Arrays', () => {
     test('Array set at index should fail on safe', () => {
         const obs = observable({ test: ['hi'] });
         expect(() => {
+            // @ts-expect-error
             obs.test[1] = 'hello';
         }).toThrow();
     });
@@ -757,6 +756,39 @@ describe('Arrays', () => {
         expect(handler).toHaveBeenCalledWith(
             { test: ['hi', 'hello'] },
             { changedValue: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+        );
+    });
+    test('Array listener', () => {
+        const obs = observable({ test: [{ text: 'hi' }] });
+        const handler = jest.fn();
+        listenToObs(obs, handler);
+        obs.test[0].text.set('hello');
+        expect(handler).toHaveBeenCalledWith(
+            { test: [{ text: 'hello' }] },
+            { changedValue: 'hello', path: ['test', '0', 'text'], prevValue: 'hi' }
+        );
+    });
+    test('Listener on object in array', () => {
+        const obs = observable({ test: [{ text: 'hi' }] });
+        const handler = jest.fn();
+        obs.test[0].text.on('change', handler);
+        obs.test[0].text.set('hello');
+        expect(handler).toHaveBeenCalledWith('hello', {
+            changedValue: 'hello',
+            path: [],
+            prevValue: 'hi',
+        });
+
+        const handler2 = jest.fn();
+        obs.test[0].on('change', handler2);
+        obs.test[0].text.set('hello2');
+        expect(handler2).toHaveBeenCalledWith(
+            { text: 'hello2' },
+            {
+                changedValue: 'hello2',
+                path: ['text'],
+                prevValue: 'hello',
+            }
         );
     });
 });
