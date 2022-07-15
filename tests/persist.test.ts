@@ -1938,6 +1938,7 @@ describe('Adjust data', () => {
 });
 
 // TODO
+// useObservables should not need to track proxies, can just call 'on' on all the arguments?
 // Delete should persist null to firebase
 // Persist crashing on RN when setting undefined?
 // Should listeners fire all the way up the tree? Seems like we'd want that in some cases but not all...

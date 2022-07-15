@@ -6,6 +6,7 @@ export interface StateInfo {
     targetOriginal: object;
     safe: boolean;
     primitive: boolean;
+    readonly?: boolean;
     listeners?: Set<ObsListener>;
     proxies?: Map<string | number, Observable>;
     proxiesProps?: Map<string | number, Observable>;

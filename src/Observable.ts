@@ -65,6 +65,10 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
     const info = state.infos.get(proxyOwner);
     if (!info) debugger;
 
+    if (info.readonly) {
+        return proxyOwner;
+    }
+
     // Need to keep both target and targetOriginal up to date. targetOriginal may not be
     // an === match but it needs to have the same keys.
     const target = info.target as any;

@@ -1036,7 +1036,6 @@ describe('Computed', () => {
         const computed = observableComputed(() => obs.test + obs.test2);
         expect(computed.get()).toEqual(30);
     });
-
     test('Computed root promitives', () => {
         const obs = observable(10);
         const obs2 = observable(20);
@@ -1044,21 +1043,20 @@ describe('Computed', () => {
         expect(computed.get()).toEqual(30);
 
         const handler = jest.fn();
-        listenToObs(computed, handler);
+        computed.on('change', handler);
 
         obs.set(5);
 
         expect(handler).toHaveBeenCalledWith(25, { changedValue: 25, path: [], prevValue: 30 });
         expect(computed.get()).toEqual(25);
     });
-
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
         const computed = observableComputed(() => obs.test + obs.test2);
         expect(computed.get()).toEqual(30);
 
         const handler = jest.fn();
-        listenToObs(computed, handler);
+        computed.on('change', handler);
 
         obs.test.set(5);
 
@@ -1069,6 +1067,25 @@ describe('Computed', () => {
 
         expect(handler).toHaveBeenCalledWith(21, { changedValue: 21, path: [], prevValue: 25 });
         expect(computed.get()).toEqual(21);
+    });
+    test('Cannot directly set a computed', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const computed = observableComputed(() => obs.test + obs.test2);
+
+        // @ts-expect-error
+        computed.set(40);
+
+        expect(computed.get()).toEqual(30);
+
+        // @ts-expect-error
+        computed.delete();
+
+        expect(computed.get()).toEqual(30);
+
+        // @ts-expect-error
+        computed.assign({ text: 'hi' });
+
+        expect(computed.get()).toEqual(30);
     });
 });
 

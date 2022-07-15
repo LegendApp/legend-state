@@ -60,6 +60,7 @@ type ObsPropsRecursive<T> = {
 
 export type ObservableUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
 export type Observable<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
+export type ObservableComputed<T = any> = Omit<Observable<T>, 'set' | 'assign' | 'delete'>;
 
 export interface ObservableTrigger {
     notify(): void;
