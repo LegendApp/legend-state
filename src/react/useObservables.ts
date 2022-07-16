@@ -1,6 +1,6 @@
 import { isArray, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
-import { isObservable, isObservableEvent } from '../globals';
+import { isObservable, isObservableEvent } from '../observableFns';
 import {
     MappedObservableValue,
     ObsListener,

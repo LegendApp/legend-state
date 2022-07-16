@@ -1,21 +1,21 @@
 import { config } from '../configureObservable';
-import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
-import { observableBatcher } from '../observableBatcher';
+import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
 import { observable } from '../observable';
-import { listenToObservable } from '../observableFns';
+import { observableBatcher } from '../observableBatcher';
+import { listenToObservable, mergeDeep } from '../observableFns';
 import {
+    Observable,
+    ObservableChecker,
     ObsListenerInfo,
     ObsPersistLocal,
     ObsPersistRemote,
     ObsPersistState,
-    Observable,
-    ObservableChecker,
     PersistOptions,
 } from '../types/observableInterfaces';
 
-/** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
+const dateModifiedKey = '@';
 
 interface LocalState {
     tempDisableSaveRemote: boolean;
@@ -24,21 +24,17 @@ interface LocalState {
 }
 
 async function onObsChange<T>(
-    proxyState: Observable<ObsPersistState>,
+    obsState: Observable<ObsPersistState>,
     state: LocalState,
-    obs: Observable<T>,
     persistOptions: PersistOptions<T>,
     value: T,
     info: ObsListenerInfo
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
 
-    const dateModifiedKey = '@';
-
     const local = persistOptions.local;
     if (local) {
-        // TODO: What to do? Queue this until after loaded? Or throw error?
-        if (!proxyState.isLoadedLocal) return;
+        if (!obsState.isLoadedLocal) return;
 
         persistenceLocal.setValue(
             local,
@@ -47,7 +43,6 @@ async function onObsChange<T>(
     }
 
     if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
-        // console.log('save', value);
         const saved = await persistenceRemote.save(persistOptions, value, info);
         if (saved) {
             if (local) {
@@ -127,19 +122,19 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
             obs,
             persistOptions,
             () => {
-                proxyState.isLoadedRemote.set(true);
+                obsState.isLoadedRemote.set(true);
             },
             onChangeRemote.bind(this, state)
         );
     }
 
-    const proxyState = observable<ObsPersistState>({
+    const obsState = observable<ObsPersistState>({
         isLoadedLocal,
         isLoadedRemote: false,
         clearLocal,
     });
 
-    listenToObservable(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
+    listenToObservable(obs, onObsChange.bind(this, obsState, state, persistOptions));
 
-    return proxyState;
+    return obsState;
 }

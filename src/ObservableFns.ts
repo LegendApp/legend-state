@@ -8,6 +8,8 @@ import {
     ObsListener,
     ObsListenerInfo,
     OnReturnValue,
+    Observable,
+    ObservableEvent,
 } from './types/observableInterfaces';
 import { disposeListener } from './observableListener';
 import { state } from './observableState';
@@ -190,4 +192,56 @@ export function deleteFn(obs: ObservableChecker, target: any, prop?: string | nu
 
 export function shallow(obs: ObservableChecker) {
     return obs[symbolShallow as any];
+}
+
+export function isObservable(obj: any): obj is Observable {
+    return state.infos.has(obj);
+}
+
+export function isObservableEvent(obj: any): obj is ObservableEvent {
+    return isObject(obj) && obj.hasOwnProperty('notify') && obj.hasOwnProperty('on');
+}
+
+export function mergeDeep(target: any, ...sources: any[]) {
+    if (!sources.length) return target;
+    const source = sources.shift();
+
+    const needsSet = isObservable(target);
+    const targetValue = needsSet ? target.get() : target;
+
+    if (isObject(targetValue) && isObject(source)) {
+        if (source[symbolDateModified as any]) {
+            if (needsSet) {
+                target.set(symbolDateModified, source[symbolDateModified as any]);
+            } else {
+                target[symbolDateModified as any] = source[symbolDateModified as any];
+            }
+        }
+        for (const key in source) {
+            if (isObject(source[key])) {
+                if (!isObject(targetValue[key])) {
+                    if (needsSet) {
+                        target.set(key, {});
+                    } else {
+                        target[key] = {};
+                    }
+                }
+                if (!targetValue[key]) {
+                    if (needsSet) {
+                        target.assign({ [key]: {} });
+                    } else {
+                        Object.assign(target, { [key]: {} });
+                    }
+                }
+                mergeDeep(target[key], source[key]);
+            } else {
+                if (isObservable(target)) {
+                    target.assign({ [key]: source[key] });
+                } else {
+                    Object.assign(target, { [key]: source[key] });
+                }
+            }
+        }
+    }
+    return mergeDeep(target, ...sources);
 }

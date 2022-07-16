@@ -127,24 +127,3 @@ describe('Persist local', () => {
         });
     });
 });
-
-// TODO
-// Delete should persist null to firebase
-// Persist crashing on RN when setting undefined?
-// Maybe prevValue is too expensive to compute? Make it optional?
-// What helper functions to expose externally? deepAssign?
-// Export interfaces from /types
-
-// # Persist
-// Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
-
-// # Things outside of Bravely scopea
-// useSyncExternalStore
-
-// # More tests
-// test read functions on array and map and stuff
-// Save multiple items in a record should merge correctly
-
-// # To document
-// Values coming in as null from remote is not really supported
-// ObservableBatcher
