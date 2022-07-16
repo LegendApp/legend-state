@@ -62,22 +62,22 @@ export type ObservableUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUns
 export type Observable<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
 export type ObservableComputed<T = any> = Omit<Observable<T>, 'set' | 'assign' | 'delete'>;
 
-export interface ObservableTrigger {
-    notify(): void;
+export interface ObservableEvent {
+    fire(): void;
     on(cb?: () => void): ObsListener<void>;
     on(eventType: 'change', cb?: () => void): ObsListener<void>;
 }
 
-export type ObservableValue<T extends Observable | ObservableUnsafe | ObservableTrigger> = T extends Observable<infer t>
+export type ObservableValue<T extends Observable | ObservableUnsafe | ObservableEvent> = T extends Observable<infer t>
     ? t
-    : T extends ObservableTrigger
+    : T extends ObservableEvent
     ? void
     : T extends ObservableUnsafe<infer t>
     ? t
     : T;
 
 export type MappedObservableValue<
-    T extends (ObservableChecker | ObservableTrigger)[] | Record<string, ObservableChecker | ObservableTrigger>
+    T extends (ObservableChecker | ObservableEvent)[] | Record<string, ObservableChecker | ObservableEvent>
 > = {
     [K in keyof T]: ObservableValue<T[K]>;
 };

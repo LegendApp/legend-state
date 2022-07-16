@@ -5,7 +5,7 @@ const storage = new MMKV({
     id: `obsPersist`,
 });
 
-export class ObsPersistMMKV implements ObsPersistLocal {
+export class observablePersistMMKV implements ObsPersistLocal {
     data: Record<string, any> = {};
 
     public getValue(id: string) {

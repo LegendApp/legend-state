@@ -1,6 +1,6 @@
 import { config } from '../configureObservable';
 import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
-import { ObsBatcher } from '../observableBatcher';
+import { observableBatcher } from '../observableBatcher';
 import { observable } from '../observable';
 import { listenToObs } from '../observableFns';
 import {
@@ -69,16 +69,16 @@ async function onObsChange<T>(
 function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = true;
 
-    ObsBatcher.beginBatch();
+    observableBatcher.beginBatch();
 
     cb();
 
-    ObsBatcher.endBatch();
+    observableBatcher.endBatch();
 
     state.tempDisableSaveRemote = false;
 }
 
-export function observablePersist<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
+export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
     const { local, remote } = persistOptions;
     const localPersistence = persistOptions.localPersistence || config.persist?.localPersistence;
     const remotePersistence = persistOptions.remotePersistence || config.persist?.remotePersistence;

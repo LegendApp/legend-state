@@ -2,8 +2,6 @@ import { renderHook, act } from '@testing-library/react-hooks';
 import { configureObservable, observable, shallow } from '../src';
 import { useObservables } from '../src/react';
 
-configureObservable();
-
 describe('React Hooks', () => {
     test('useObservables', () => {
         let numRenders = 0;

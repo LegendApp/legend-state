@@ -1,6 +1,6 @@
 import { isObject } from '@legendapp/tools';
 import { isObjectEmpty, isPrimitive, symbolDateModified, symbolShallow } from './globals';
-import { ObsBatcher } from './observableBatcher';
+import { observableBatcher } from './observableBatcher';
 import {
     EventType,
     ListenerFn,
@@ -28,7 +28,7 @@ function _obsNotify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fr
                     !listener.shallow ||
                     (value === undefined) !== (listenerInfo.prevValue === undefined)
                 ) {
-                    ObsBatcher.notify(listener.callback, value, listenerInfo);
+                    observableBatcher.notify(listener.callback, value, listenerInfo);
                 }
             });
         }

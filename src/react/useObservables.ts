@@ -1,12 +1,12 @@
 import { isArray, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
-import { isObservable, isTrigger } from '../globals';
+import { isObservable, isObservableEvent } from '../globals';
 import {
     MappedObservableValue,
     ObsListener,
     Observable,
     ObservableChecker,
-    ObservableTrigger,
+    ObservableEvent,
 } from '../observableInterfaces';
 import { disposeListener } from '../observableListener';
 import { state } from '../observableState';
@@ -15,7 +15,7 @@ interface SavedRefTrack {
     proxies: [Observable, string, ObsListener][];
 }
 
-export function useObservables<T extends (ObservableChecker | ObservableTrigger)[] | Record<string, ObservableChecker>>(
+export function useObservables<T extends (ObservableChecker | ObservableEvent)[] | Record<string, ObservableChecker>>(
     fn: () => T
 ): MappedObservableValue<T> {
     const forceRender = useForceRender();
@@ -55,7 +55,7 @@ export function useObservables<T extends (ObservableChecker | ObservableTrigger)
 
     if (isArr) {
         return arr.map(
-            (obs) => obs && (isTrigger(obs) ? undefined : isObservable(obs) ? obs.get() : obs)
+            (obs) => obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs)
         ) as unknown as MappedObservableValue<T>;
     } else {
         Object.keys(ret).forEach((key) => {

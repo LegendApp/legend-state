@@ -6,11 +6,11 @@ let _batch: { cb: ListenerFn<any>; value: any; info: ObsListenerInfo }[] = [];
 
 function onActionTimeout() {
     if (_batch.length > 0) {
-        ObsBatcher.endBatch(/*force*/ true);
+        observableBatcher.endBatch(/*force*/ true);
     }
 }
 
-export namespace ObsBatcher {
+export namespace observableBatcher {
     export function batch(fn: () => void) {
         beginBatch();
         fn();

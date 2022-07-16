@@ -1,5 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
-import type { Observable, ObservableTrigger } from './observableInterfaces';
+import type { Observable, ObservableEvent } from './observableInterfaces';
 import { state } from './observableState';
 import { config } from './configureObservable';
 
@@ -82,7 +82,7 @@ export function isObservable(obj: any): obj is Observable {
     return state.infos.has(obj);
 }
 
-export function isTrigger(obj: any): obj is ObservableTrigger {
+export function isObservableEvent(obj: any): obj is ObservableEvent {
     return isObject(obj) && obj.hasOwnProperty('notify') && obj.hasOwnProperty('on');
 }
 

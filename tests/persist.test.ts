@@ -1,7 +1,7 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
 import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
-import { mapPersistences, observablePersist } from '../src/persist/persistObservable';
+import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 import { symbolSaveValue } from '../src/persist/observablePersistFirebaseBase';
 import { observable } from '../src/observable';
 import { getObsModified, onTrue } from '../src/observableFns';
@@ -113,7 +113,7 @@ describe('Persist local', () => {
     test('Saves to local', () => {
         const obs = observable({ test: '' });
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestlocal',
         });
 
@@ -126,7 +126,7 @@ describe('Persist local', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        observablePersist(obs2, {
+        persistObservable(obs2, {
             local: 'jestlocal',
         });
 
@@ -148,7 +148,7 @@ describe('Persist local', () => {
             test7: { test8: '' },
         });
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestlocal',
         });
 
@@ -171,7 +171,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -247,7 +247,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -304,7 +304,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -346,7 +346,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
             dateModifiedKey: 'd',
@@ -391,7 +391,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -472,7 +472,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -573,7 +573,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -636,7 +636,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -697,7 +697,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -756,7 +756,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -816,7 +816,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -900,7 +900,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -966,7 +966,7 @@ describe('Persist remote save', () => {
             },
         });
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1033,7 +1033,7 @@ describe('Persist remote save', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1097,7 +1097,7 @@ describe('Persist remote save', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1136,7 +1136,7 @@ describe('Persist remote save', () => {
             },
         };
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1176,7 +1176,7 @@ describe('Remote load', () => {
             test2: 'hi2',
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1208,7 +1208,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1264,7 +1264,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1329,7 +1329,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1390,7 +1390,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1466,7 +1466,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1545,7 +1545,7 @@ describe('Remote load', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1592,7 +1592,7 @@ describe('Remote change', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1632,7 +1632,7 @@ describe('Remote change', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1696,7 +1696,7 @@ describe('Field transform', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: {
                 requireAuth: true,
                 firebase: {
@@ -1756,7 +1756,7 @@ describe('Field transform', () => {
             test7: { test8: '' },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             local: 'jestremote',
             remote: {
                 requireAuth: true,
@@ -1868,7 +1868,7 @@ describe('Adjust data', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1912,7 +1912,7 @@ describe('Adjust data', () => {
             },
         };
 
-        observablePersist(obs, {
+        persistObservable(obs, {
             local: 'jestremote',
             remote: remoteOptions,
         });
@@ -1923,7 +1923,7 @@ describe('Adjust data', () => {
             },
         });
 
-        const state = observablePersist(obs, {
+        const state = persistObservable(obs, {
             remote: remoteOptions,
         });
 
@@ -1938,11 +1938,11 @@ describe('Adjust data', () => {
 });
 
 // TODO
-// useObservables should not need to track proxies, can just call 'on' on all the arguments?
 // Delete should persist null to firebase
 // Persist crashing on RN when setting undefined?
-// Should listeners fire all the way up the tree? Seems like we'd want that in some cases but not all...
 // Maybe prevValue is too expensive to compute? Make it optional?
+// What helper functions to expose externally? deepAssign?
+// Map
 
 // # Persist
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?
@@ -1956,3 +1956,4 @@ describe('Adjust data', () => {
 
 // # To document
 // Values coming in as null from remote is not really supported
+// ObservableBatcher

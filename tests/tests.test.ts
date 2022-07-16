@@ -5,7 +5,7 @@ import {
     listenToObs,
     observable,
     observableComputed,
-    observableTrigger,
+    observableEvent,
     shallow,
 } from '../src';
 import { state } from '../src/observableState';
@@ -13,8 +13,6 @@ import { state } from '../src/observableState';
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
-
-configureObservable();
 
 describe('Basic', () => {
     test('Has value', () => {
@@ -847,7 +845,10 @@ describe('on functions', () => {
         obs.val.set(true);
         expect(handler).toHaveBeenCalledWith(true);
     });
-    test('Shallow', () => {
+});
+
+describe('Shallow', () => {
+    test('Shallow 1', () => {
         const obs = observable({ val: false } as { val: boolean; val2?: number });
         const handler = jest.fn();
         obs.on('changeShallow', handler);
@@ -858,9 +859,6 @@ describe('on functions', () => {
 
         expect(handler).toHaveBeenCalledTimes(1);
     });
-});
-
-describe('Shallow', () => {
     test('Shallow set primitive', () => {
         const obs = observable({ val: false } as { val: boolean; val2?: number });
         const handler = jest.fn();
@@ -911,7 +909,6 @@ describe('Map', () => {
             { changedValue: new Map([['key', 'hello']]), path: ['test'], prevValue: new Map() }
         );
     });
-
     test('Map clear', () => {
         const obs = observable({ test: new Map() });
         const handler = jest.fn();
@@ -923,7 +920,6 @@ describe('Map', () => {
             { changedValue: new Map(), path: ['test'], prevValue: new Map([['key', 'hello']]) }
         );
     });
-
     test('Map delete', () => {
         const obs = observable({ test: new Map() });
         const handler = jest.fn();
@@ -1284,20 +1280,20 @@ describe('Delete', () => {
     });
 });
 
-describe('Trigger', () => {
-    test('Trigger', () => {
-        const trigger = observableTrigger();
+describe('Event', () => {
+    test('Event', () => {
+        const event = observableEvent();
         const handler = jest.fn();
-        trigger.on(handler);
+        event.on(handler);
 
         expect(handler).not.toHaveBeenCalled();
 
-        trigger.notify();
+        event.fire();
         expect(handler).toHaveBeenCalledTimes(1);
 
-        trigger.notify();
-        trigger.notify();
-        trigger.notify();
+        event.fire();
+        event.fire();
+        event.fire();
         expect(handler).toHaveBeenCalledTimes(4);
     });
 });
