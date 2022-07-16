@@ -1,4 +1,4 @@
-export type EventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
+export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export type ObservableFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
 
@@ -16,7 +16,7 @@ export interface ObsProps<T> {
     on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(eventType: 'true', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
     on(
-        eventType: EventType,
+        eventType: ObservableEventType,
         cb?: (value?: T) => void
     ): ObsListener<T> | { listener: ObsListener<T>; promise: Promise<T> };
 }

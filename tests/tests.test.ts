@@ -1,13 +1,5 @@
-import {
-    configureObservable,
-    disposeListener,
-    getObservableFromPrimitive,
-    listenToObs,
-    observable,
-    observableComputed,
-    observableEvent,
-    shallow,
-} from '../src';
+import { disposeListener, observable, observableComputed, observableEvent, shallow } from '../src';
+import { getObservableFromPrimitive, listenToObservable } from '../src/observableFns';
 import { state } from '../src/observableState';
 
 function promiseTimeout(time?: number) {
@@ -70,7 +62,7 @@ describe('Basic', () => {
     test('Child objects are proxies', () => {
         const obs = observable({ val: { child: {} as any } });
         const handler = jest.fn();
-        listenToObs(obs.val.child, handler);
+        listenToObservable(obs.val.child, handler);
         obs.val.child.set({ hello: true });
         expect(handler).toHaveBeenCalledWith(
             { hello: true },
@@ -80,7 +72,7 @@ describe('Basic', () => {
     test('modify value', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        const listener1 = listenToObs(obs, handler);
+        const listener1 = listenToObservable(obs, handler);
 
         // Set primitive
         obs.val.set(20);
@@ -90,7 +82,7 @@ describe('Basic', () => {
         disposeListener(listener1);
 
         const handle2 = jest.fn();
-        listenToObs(obs, handle2);
+        listenToObservable(obs, handle2);
 
         // Set whole object
         obs.set({ val: 30 });
@@ -104,7 +96,7 @@ describe('Basic', () => {
     test('modify value deep', () => {
         const obs = observable({ test: { test2: { test3: { test4: '' } } } });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
 
         obs.test.test2.test3.set({ test4: 'hi' });
         expect(obs.test.test2.test3.test4.get()).toEqual('hi');
@@ -139,7 +131,7 @@ describe('Basic', () => {
     test('set function deep', () => {
         const obs = observable({ test: { test2: { test3: { test4: '' } } } });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
 
         const ret = obs.test.test2.test3.test4.set('hi');
         expect(ret.get()).toEqual('hi');
@@ -162,7 +154,7 @@ describe('Basic', () => {
     test('modify value retains old listeners', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const handler = jest.fn();
-        listenToObs(obs.test, handler);
+        listenToObservable(obs.test, handler);
         const newVal = { test2: 'hello' };
         obs.test.set(newVal);
         expect(obs.test.get()).toEqual(newVal);
@@ -193,7 +185,7 @@ describe('Basic', () => {
     test('Set undefined to value and back', () => {
         const obs = observable({ test: { test2: { test3: undefined } } });
         const handler = jest.fn();
-        listenToObs(obs.test, handler);
+        listenToObservable(obs.test, handler);
 
         expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
         expect(obs.test.test2.get()).toEqual({ test3: undefined });
@@ -250,7 +242,7 @@ describe('Basic', () => {
     test('Set deep primitive undefined to value and back', () => {
         const obs = observable({ test: { test2: { test3: undefined } } });
         const handler = jest.fn();
-        listenToObs(obs.test, handler);
+        listenToObservable(obs.test, handler);
 
         expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
         expect(obs.test.test2.get()).toEqual({ test3: undefined });
@@ -328,7 +320,7 @@ describe('Basic', () => {
     test('Set number key', () => {
         const obs = observable({ test: {} as Record<number, string> });
         const handler = jest.fn();
-        listenToObs(obs.test, handler);
+        listenToObservable(obs.test, handler);
 
         obs.test.set(1, 'hi');
 
@@ -345,7 +337,7 @@ describe('Basic', () => {
     test('Set number key multiple times', () => {
         const obs = observable({ test: { t: {} as Record<number, any> } });
         const handler = jest.fn();
-        listenToObs(obs.test, handler);
+        listenToObservable(obs.test, handler);
 
         obs.test.t.set('1000', { test1: { text: ['hi'] } });
         expect(obs.get()).toEqual({
@@ -416,15 +408,22 @@ describe('Basic', () => {
             }
         );
     });
-
     test('Set does not fire if unchanged', () => {
         const obs = observable({ test: { test1: 'hi' } });
         const handler = jest.fn();
-        listenToObs(obs.test, handler);
+        listenToObservable(obs.test, handler);
 
         obs.test.test1.set('hi');
 
         expect(handler).toHaveBeenCalledTimes(0);
+    });
+    test('Equality', () => {
+        const obs = observable({ val: 10 });
+        const v = { val: 20 };
+        obs.set(v);
+        expect(obs === v).toEqual(false);
+        expect(obs == v).toEqual(false);
+        expect(obs.get() === v).toEqual(true);
     });
 });
 
@@ -518,7 +517,7 @@ describe('Listeners', () => {
     test('Primitive listener', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.set({ val: 20 });
         expect(handler).toHaveBeenCalledWith(
@@ -528,16 +527,16 @@ describe('Listeners', () => {
     });
     test('Fail with invalid obs', () => {
         expect(() => {
-            listenToObs({ hi: true }, () => {});
+            listenToObservable({ hi: true }, () => {});
         }).toThrow();
         expect(() => {
-            listenToObs(true, () => {});
+            listenToObservable(true, () => {});
         }).toThrow();
     });
     test('Listener called for each change', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.set({ val: 20 });
         expect(handler).toHaveBeenCalledWith(
@@ -571,14 +570,14 @@ describe('Listeners', () => {
     test('Non Primitive listener with key', () => {
         const obs = observable({ val: { val2: 10 } });
         const handler = jest.fn();
-        listenToObs(obs.val, handler);
+        listenToObservable(obs.val, handler);
         obs.val.val2.set(20);
         expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val2'], prevValue: 10 });
     });
     test('Listener with key fires only for key', () => {
         const obs = observable({ val: { val2: 10 }, val3: 'hello' });
         const handler = jest.fn();
-        listenToObs(obs.val, handler);
+        listenToObservable(obs.val, handler);
         obs.val.val2.set(20);
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith({ val2: 20 }, { changedValue: 20, path: ['val2'], prevValue: 10 });
@@ -589,7 +588,7 @@ describe('Listeners', () => {
     test('Object listener', () => {
         const obs = observable({ test: 'hi' });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.set('hello');
         expect(handler).toHaveBeenCalledWith(
             { test: 'hello' },
@@ -599,7 +598,7 @@ describe('Listeners', () => {
     test('Deep object listener', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.test2.test3.set('hello');
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: 'hello' } } },
@@ -609,7 +608,7 @@ describe('Listeners', () => {
     test('Deep object set primitive undefined', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.test2.test3.set(undefined);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: undefined } } },
@@ -619,7 +618,7 @@ describe('Listeners', () => {
     test('Set undefined', () => {
         const obs = observable({ test: 'hi' });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.set(undefined);
         expect(handler).toHaveBeenCalledWith(undefined, {
             changedValue: undefined,
@@ -630,7 +629,7 @@ describe('Listeners', () => {
     test('Deep object set undefined', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.test2.set(undefined);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: undefined } },
@@ -640,7 +639,7 @@ describe('Listeners', () => {
     test('Start null set to something', () => {
         const obs = observable({ test: null });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.set({ test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
@@ -654,7 +653,7 @@ describe('Listeners', () => {
     test('Start undefined set to something', () => {
         const obs = observable({ test: undefined });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.set({ test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
@@ -668,7 +667,7 @@ describe('Listeners', () => {
     test('Set with object should only fire listeners once', () => {
         const obs = observable({ test: undefined });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.set({ test2: 'hi', test3: 'hi3', test4: 'hi4' });
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
@@ -733,7 +732,7 @@ describe('Arrays', () => {
     test('Array push', () => {
         const obs = observable({ test: ['hi'] });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.push('hello');
         expect(handler).toHaveBeenCalledWith(
             { test: ['hi', 'hello'] },
@@ -751,7 +750,7 @@ describe('Arrays', () => {
     test('Array set at index should succeed on unsafe', () => {
         const obs = observable({ test: ['hi'] }, /*unsafe*/ true);
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test[1] = 'hello';
         expect(handler).toHaveBeenCalledWith(
             { test: ['hi', 'hello'] },
@@ -761,7 +760,7 @@ describe('Arrays', () => {
     test('Array listener', () => {
         const obs = observable({ test: [{ text: 'hi' }] });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test[0].text.set('hello');
         expect(handler).toHaveBeenCalledWith(
             { test: [{ text: 'hello' }] },
@@ -902,7 +901,7 @@ describe('Map', () => {
     test('Map set', () => {
         const obs = observable({ test: new Map() });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.set('key', 'hello');
         expect(handler).toHaveBeenCalledWith(
             { test: new Map([['key', 'hello']]) },
@@ -913,7 +912,7 @@ describe('Map', () => {
         const obs = observable({ test: new Map() });
         const handler = jest.fn();
         obs.test.set('key', 'hello');
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.clear();
         expect(handler).toHaveBeenCalledWith(
             { test: new Map() },
@@ -924,7 +923,7 @@ describe('Map', () => {
         const obs = observable({ test: new Map() });
         const handler = jest.fn();
         obs.test.set('key', 'hello');
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.delete('key');
         expect(handler).toHaveBeenCalledWith(
             { test: new Map() },
@@ -938,7 +937,7 @@ describe('WeakMap', () => {
     test('WeakMap set', () => {
         const obs = observable({ test: new WeakMap() });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.set(key, 'hello');
         expect(handler).toHaveBeenCalledWith(
             { test: new WeakMap([[key, 'hello']]) },
@@ -951,7 +950,7 @@ describe('WeakMap', () => {
         const obs = observable({ test: new WeakMap() });
         const handler = jest.fn();
         obs.test.set(key, 'hello');
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.delete(key);
         expect(handler).toHaveBeenCalledWith(
             { test: new WeakMap() },
@@ -965,7 +964,7 @@ describe('Set', () => {
     test('Set add', () => {
         const obs = observable({ test: new Set() });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.add('testval');
         expect(handler).toHaveBeenCalledWith(
             { test: new Set(['testval']) },
@@ -977,7 +976,7 @@ describe('Set', () => {
         const obs = observable({ test: new Set() });
         const handler = jest.fn();
         obs.test.add('testval');
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.clear();
         expect(handler).toHaveBeenCalledWith(
             { test: new Set() },
@@ -989,7 +988,7 @@ describe('Set', () => {
         const obs = observable({ test: new Set() });
         const handler = jest.fn();
         obs.test.add('testval');
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.delete('testval');
         expect(handler).toHaveBeenCalledWith(
             { test: new Set() },
@@ -1004,7 +1003,7 @@ describe('WeakSet', () => {
     test('WeakSet add', () => {
         const obs = observable({ test: new WeakSet() });
         const handler = jest.fn();
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.add(key);
         expect(handler).toHaveBeenCalledWith(
             { test: new WeakSet([key]) },
@@ -1017,7 +1016,7 @@ describe('WeakSet', () => {
         const obs = observable({ test: new WeakSet() });
         const handler = jest.fn();
         obs.test.add(key);
-        listenToObs(obs, handler);
+        listenToObservable(obs, handler);
         obs.test.delete(key);
         expect(handler).toHaveBeenCalledWith(
             { test: new WeakSet() },

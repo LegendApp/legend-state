@@ -1942,7 +1942,7 @@ describe('Adjust data', () => {
 // Persist crashing on RN when setting undefined?
 // Maybe prevValue is too expensive to compute? Make it optional?
 // What helper functions to expose externally? deepAssign?
-// Map
+// Export interfaces from /types
 
 // # Persist
 // Test that null or undefined in local does not overwrite defaults, maybe don't allow saving null or undefined at all?

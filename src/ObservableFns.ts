@@ -2,7 +2,7 @@ import { isObject } from '@legendapp/tools';
 import { isObjectEmpty, isPrimitive, symbolDateModified, symbolShallow } from './globals';
 import { observableBatcher } from './observableBatcher';
 import {
-    EventType,
+    ObservableEventType,
     ListenerFn,
     ObservableChecker,
     ObsListener,
@@ -14,7 +14,7 @@ import { state } from './observableState';
 
 const symbolHasValue = Symbol('__hasValue');
 
-function _obsNotify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fromChild?: boolean) {
+function _notify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fromChild?: boolean) {
     const info = state.infos.get(target);
     const skipNotifyFor = state.skipNotifyFor;
     // Notify this listener if this target is not being skipped (if getting called during an assign)
@@ -38,20 +38,24 @@ function _obsNotify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fr
         if (parent) {
             const parentListenerInfo = Object.assign({}, listenerInfo);
             parentListenerInfo.path = [info.prop].concat(listenerInfo.path);
-            _obsNotify(parent, parentListenerInfo, /*fromChild*/ true);
+            _notify(parent, parentListenerInfo, /*fromChild*/ true);
         }
     }
 }
 
-export function obsNotify<T>(target: ObservableChecker<T>, changedValue: T, prevValue: T, path: string[]) {
-    _obsNotify(target, { changedValue, prevValue, path });
+export function notifyObservable<T>(target: ObservableChecker<T>, changedValue: T, prevValue: T, path: string[]) {
+    _notify(target, { changedValue, prevValue, path });
 }
 
-export function listenToObsShallow<T>(obs: ObservableChecker<T>, callback: ListenerFn<T>): ObsListener<T> {
-    return listenToObs(obs, callback, /*shallow*/ true);
+export function listenToObservableShallow<T>(obs: ObservableChecker<T>, callback: ListenerFn<T>): ObsListener<T> {
+    return listenToObservable(obs, callback, /*shallow*/ true);
 }
 
-export function listenToObs<T>(obs: ObservableChecker<T>, callback: ListenerFn<T>, shallow?: boolean): ObsListener<T> {
+export function listenToObservable<T>(
+    obs: ObservableChecker<T>,
+    callback: ListenerFn<T>,
+    shallow?: boolean
+): ObsListener<T> {
     const info = state.infos.get(obs);
     if (!info) {
         throw new Error('Can only listen to instances of Observable');
@@ -88,7 +92,7 @@ export function onEquals<T>(obs: ObservableChecker<T>, value: T, cb?: (value: T)
             return isDone;
         }
         if (!check(obs.get())) {
-            listener = listenToObs(obs, check);
+            listener = listenToObservable(obs, check);
         }
     });
 
@@ -122,15 +126,15 @@ export function unlisten<T extends ObservableChecker>(obs: T, cb: ListenerFn<any
     }
 }
 
-const ObservableOnFunctions: Record<EventType, Function> = {
-    change: listenToObs,
-    changeShallow: listenToObsShallow,
+const ObservableOnFunctions: Record<ObservableEventType, Function> = {
+    change: listenToObservable,
+    changeShallow: listenToObservableShallow,
     equals: onEquals,
     hasValue: onHasValue,
     true: onTrue,
 };
 
-export function on(obs: ObservableChecker, _: any, eventType: EventType, ...args) {
+export function on(obs: ObservableChecker, _: any, eventType: ObservableEventType, ...args) {
     return ObservableOnFunctions[eventType](obs, ...args);
 }
 
@@ -167,7 +171,7 @@ export function deleteFn(obs: ObservableChecker, target: any, prop?: string | nu
             info.proxies?.delete(prop);
 
             if (shouldNotify) {
-                obsNotify(obs, target, prevValue, []);
+                notifyObservable(obs, target, prevValue, []);
             }
         } else {
             // Delete self

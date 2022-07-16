@@ -2,7 +2,7 @@ import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { extendPrototypes } from './primitivePrototypes';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
-import { deleteFn, obsNotify, on, prop } from './observableFns';
+import { deleteFn, notifyObservable, on, prop } from './observableFns';
 import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './observableInterfaces';
 import { state } from './observableState';
 
@@ -51,7 +51,7 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
 
     (this[prop] as Function).apply(this, args);
 
-    obsNotify(proxyOwner, this, prevValue, []);
+    notifyObservable(proxyOwner, this, prevValue, []);
 }
 
 function getter(proxyOwner: Observable, target: any) {
@@ -118,7 +118,7 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
         }
 
         if (!jsonEqual(value, prevValue)) {
-            obsNotify(proxyOwner, value, prevValue, []);
+            notifyObservable(proxyOwner, value, prevValue, []);
         }
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
@@ -134,7 +134,7 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
                 info.proxies.delete(propStr);
                 target[prop] = value;
                 targetOriginal[prop] = value;
-                obsNotify(proxyOwner, value, prevValue, [propStr]);
+                notifyObservable(proxyOwner, value, prevValue, [propStr]);
             } else {
                 // If prop has a proxy, forward the set into the proxy
                 setter(proxy, target[prop], value);
@@ -146,7 +146,7 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
                 target[prop] = value;
                 targetOriginal[prop] = value;
                 // Notify listeners of changes.
-                obsNotify(proxyOwner, target, prevValue, []);
+                notifyObservable(proxyOwner, target, prevValue, []);
             }
         } else {
             const prevValue = target[prop];
@@ -154,7 +154,7 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
                 target[prop] = value;
                 targetOriginal[prop] = value;
                 // Notify listeners of changes.
-                obsNotify(proxyOwner, value, prevValue, [propStr]);
+                notifyObservable(proxyOwner, value, prevValue, [propStr]);
             }
         }
     }

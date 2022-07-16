@@ -2,7 +2,7 @@ import { config } from '../configureObservable';
 import { mergeDeep, removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
 import { observableBatcher } from '../observableBatcher';
 import { observable } from '../observable';
-import { listenToObs } from '../observableFns';
+import { listenToObservable } from '../observableFns';
 import {
     ObsListenerInfo,
     ObsPersistLocal,
@@ -139,7 +139,7 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         clearLocal,
     });
 
-    listenToObs(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
+    listenToObservable(obs, onObsChange.bind(this, proxyState, state, obs, persistOptions));
 
     return proxyState;
 }
