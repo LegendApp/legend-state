@@ -1,7 +1,7 @@
 import { isFunction } from '@legendapp/tools';
 import { useMemo } from 'react';
 import { observable } from '../observable';
-import { Observable, ValidObservableParam } from '../observableInterfaces';
+import { Observable, ValidObservableParam } from '../types/observableInterfaces';
 import { useObservables } from './useObservables';
 
 function useNewObservable<T>(

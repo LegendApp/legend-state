@@ -1,39 +1,25 @@
 {
-    "name": "Observable",
-    "version": "0.0.1",
+    "name": "@legendapp/state",
+    "version": "0.9.0",
+    "description": "legend-state",
     "sideEffects": false,
-    "main": "dist/",
-    "types": "dist/src/index.d.ts",
-    "source": "src/",
-    "exports": {
-        ".": "./dist/src/index.js",
-        "./react": "./dist/src/react/index.js",
-        "./web": "./dist/src/web/index.js",
-        "./package.json": "./package.json"
-    },
-    "typesVersions": {
-        "*": {
-            "./": [
-                "dist/src/index.d.ts"
-            ],
-            "./react": [
-                "dist/src/react/index.d.ts"
-            ],
-            "./web": [
-                "dist/src/web/index.d.ts"
-            ]
-        }
-    },
+    "main": "./index.js",
+    "types": "./index.d.ts",
     "files": [
-        "dist",
-        "src"
+        "**"
     ],
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "tsc",
+        "build": "tsc && cp package.json dist/package.json && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "preversion": "npm run build",
         "postversion": "git push --follow-tags"
+    },
+    "exports": {
+        ".": "./index.js",
+        "./react": "./react/index.js",
+        "./persist": "./persist/index.js",
+        "./types": "./types/index.d.ts"
     },
     "devDependencies": {
         "@testing-library/react-hooks": "^8.0.1",
@@ -41,8 +27,10 @@
         "@types/react": "^18.0.1",
         "@types/react-dom": "^18.0.0",
         "jest": "^27.0.6",
+        "json": "^11.0.0",
         "prettier": "^2.7.1",
         "react": "^18.0.0",
+        "react-native-mmkv": "^2.4.3",
         "react-test-renderer": "^18.2.0",
         "rimraf": "^3.0.2",
         "ts-jest": "^27.0.4",
@@ -53,11 +41,28 @@
         "@legendapp/tools": "^1.0.3"
     },
     "peerDependencies": {
-        "firebase": "^9.6.10"
+        "react": ">=16.8",
+        "react-native-mmkv": "^2"
     },
     "peerDependenciesMeta": {
-        "firebase": {
+        "react": {
+            "optional": true
+        },
+        "react-native-mmkv": {
             "optional": true
         }
+    },
+    "author": "Legend <contact@legendapp.com> (https://github.com/LegendApp)",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/LegendApp/legend-state.git"
+    },
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/LegendApp/legend-state/issues"
+    },
+    "homepage": "https://github.com/LegendApp/legend-state#readme",
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org/"
     }
 }

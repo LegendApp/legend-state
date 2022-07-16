@@ -7,7 +7,7 @@ import {
     Observable,
     ObservableChecker,
     ObservableEvent,
-} from '../observableInterfaces';
+} from '../types/observableInterfaces';
 import { disposeListener } from '../observableListener';
 import { state } from '../observableState';
 

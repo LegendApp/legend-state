@@ -1,1 +1,1 @@
-export * from './persistObservable';
+export { persistObservable } from './persistObservable';

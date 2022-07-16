@@ -8,7 +8,7 @@ import {
     ObsListener,
     ObsListenerInfo,
     OnReturnValue,
-} from './observableInterfaces';
+} from './types/observableInterfaces';
 import { disposeListener } from './observableListener';
 import { state } from './observableState';
 

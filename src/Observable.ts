@@ -3,7 +3,7 @@ import { extendPrototypes } from './primitivePrototypes';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
 import { deleteFn, notifyObservable, on, prop } from './observableFns';
-import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './observableInterfaces';
+import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './types/observableInterfaces';
 import { state } from './observableState';
 
 const MapModifiers = {

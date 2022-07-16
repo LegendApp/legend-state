@@ -1,5 +1,5 @@
 import { extendPrototypes } from './primitivePrototypes';
-import { ObsPersistLocal, ObsPersistRemote } from './observableInterfaces';
+import { ObsPersistLocal, ObsPersistRemote } from './types/observableInterfaces';
 
 type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 

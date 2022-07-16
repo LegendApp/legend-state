@@ -1,5 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
-import type { Observable, ObservableEvent } from './observableInterfaces';
+import type { Observable, ObservableEvent } from './types/observableInterfaces';
 import { state } from './observableState';
 import { config } from './configureObservable';
 

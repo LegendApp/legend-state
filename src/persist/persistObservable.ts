@@ -11,7 +11,7 @@ import {
     Observable,
     ObservableChecker,
     PersistOptions,
-} from '../observableInterfaces';
+} from '../types/observableInterfaces';
 
 /** @internal */
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
