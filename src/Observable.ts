@@ -1,4 +1,5 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
+import { extendPrototypes } from './primitivePrototypes';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
 import { deleteFn, obsNotify, on, prop } from './observableFns';
@@ -286,6 +287,9 @@ function _observable<T>(
 function observable<T>(value?: ValidObservableParam<T>): Observable<T>;
 function observable<T>(value: ValidObservableParam<T>, unsafe: true): ObservableUnsafe<T>;
 function observable<T>(value?: ValidObservableParam<T>, unsafe?: boolean): Observable<T> | ObservableUnsafe<T> {
+    if (!state.didOverride && config.extendPrototypes) {
+        extendPrototypes();
+    }
     return _observable(value, !unsafe);
 }
 

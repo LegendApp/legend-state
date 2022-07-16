@@ -5,4 +5,4 @@ export * from './observableInterfaces';
 export * from './observableListener';
 export * from './observableBatcher';
 export * from './observableComputed';
-export * from './observableTrigger';
+export * from './observableEvent';

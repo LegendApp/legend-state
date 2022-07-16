@@ -1,4 +1,4 @@
-import { ListenerFn, Observable, ObservableChecker, ObsListener } from './observableInterfaces';
+import { Observable, ObservableChecker, ObsListener } from './observableInterfaces';
 
 export interface StateInfo {
     prop: string;
@@ -18,6 +18,7 @@ export const state = {
     inAssign: 0,
     isTracking: false,
     inProp: false,
+    didOverride: false,
     trackedRootProxies: [] as Observable[],
     trackedProxies: [] as [Observable, string, boolean][],
     lastAccessedProxy: { proxy: undefined as Observable, prop: undefined as string | number },

@@ -1,10 +1,9 @@
+import { state } from './observableState';
 import { getObservableFromPrimitive } from './observableFns';
 
-let didOverride = false;
-
 export function extendPrototypes() {
-    if (!didOverride) {
-        didOverride = true;
+    if (!state.didOverride) {
+        state.didOverride = true;
         const fn = (name: string) =>
             function (...args: any) {
                 const obs = getObservableFromPrimitive(this);
