@@ -12,6 +12,8 @@ import {
 } from './types/observableInterfaces';
 import { state } from './observableState';
 
+const { infos, skipNotifyFor, updateTracking, lastAccessedProxy } = state;
+
 const MapModifiers = {
     clear: true,
     delete: true,
@@ -61,7 +63,7 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
 }
 
 function _getter(proxyOwner: Observable) {
-    const info = state.infos.get(proxyOwner);
+    const info = infos.get(proxyOwner);
     const target = info.target as any;
     return info.primitive ? target._value : target;
 }
@@ -70,7 +72,7 @@ export function _setter(proxyOwner: Observable, _: any, value: any);
 export function _setter(proxyOwner: Observable, _: any, prop: string, value: any);
 export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
-    const info = state.infos.get(proxyOwner);
+    const info = infos.get(proxyOwner);
     if (!info) debugger;
 
     if (info.readonly) {
@@ -101,7 +103,7 @@ export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, 
         });
 
         // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
-        state.skipNotifyFor.push(proxyOwner);
+        skipNotifyFor.push(proxyOwner);
 
         if (isValuePrimitive) {
             info.primitive = true;
@@ -115,11 +117,11 @@ export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, 
             info.target = value;
         }
 
-        state.skipNotifyFor.pop();
+        skipNotifyFor.pop();
 
         // 3. If this has a proxy parent, update the parent's target with this value to fix the shallow copy problem
         if (info.parent) {
-            const parentInfo = state.infos.get(info.parent);
+            const parentInfo = infos.get(info.parent);
             parentInfo.target[info.prop] = value;
             parentInfo.targetOriginal[info.prop] = value;
         }
@@ -137,10 +139,9 @@ export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, 
             if (value === undefined) {
                 // Setting to undefined deletes this proxy
                 const prevValue = target[prop];
-                state.infos.delete(proxy);
+                infos.delete(proxy);
                 info.proxies.delete(propStr);
-                target[prop] = value;
-                targetOriginal[prop] = value;
+                target[prop] = targetOriginal[prop] = value;
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             } else {
                 // If prop has a proxy, forward the set into the proxy
@@ -150,16 +151,14 @@ export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, 
             // Ignore array length changing because that's caused by mutations which already notified.
             if (prop !== 'length' && target[prop] !== value) {
                 const prevValue = target.slice();
-                target[prop] = value;
-                targetOriginal[prop] = value;
+                target[prop] = targetOriginal[prop] = value;
                 // Notify listeners of changes.
                 notifyObservable(proxyOwner, target, prevValue, []);
             }
         } else {
             const prevValue = target[prop];
             if (!jsonEqual(value, prevValue)) {
-                target[prop] = value;
-                targetOriginal[prop] = value;
+                target[prop] = targetOriginal[prop] = value;
                 // Notify listeners of changes.
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             }
@@ -205,7 +204,7 @@ const ProxyFunctions = new Map<ObservableFnName, any>([
 
 const proxyGet = {
     get(_: any, prop: string, proxyOwner: Observable) {
-        const info = state.infos.get(proxyOwner);
+        const info = infos.get(proxyOwner);
         const target = info.target as any;
         const targetValue = target[prop];
         if (isFunction(targetValue) && isCollection(target)) {
@@ -224,26 +223,21 @@ const proxyGet = {
             // Non-modifying functions pass straight through
             return targetValue.bind(target);
         } else if (ProxyFunctions.has(prop as ObservableFnName)) {
-            if (state.isTracking) {
-                state.updateTracking(proxyOwner, undefined, info, /*shallow*/ false);
-            }
+            updateTracking(proxyOwner, undefined, info, /*shallow*/ false);
 
             // Calling a proxy function returns a bound function
             return ProxyFunctions.get(prop as ObservableFnName).bind(proxyOwner, proxyOwner, target);
         } else if ((prop as any) === symbolShallow) {
-            if (state.isTracking) {
-                state.updateTracking(proxyOwner, undefined, info, /*shallow*/ true);
-            }
+            updateTracking(proxyOwner, undefined, info, /*shallow*/ true);
             return proxyOwner;
         } else {
             // Update lastAccessedProxy to support extended prototype functions on primitives
             if (config.extendPrototypes) {
-                state.lastAccessedProxy.proxy = proxyOwner;
-                state.lastAccessedProxy.prop = prop;
+                lastAccessedProxy.proxy = proxyOwner;
+                lastAccessedProxy.prop = prop;
             }
-            if (state.isTracking) {
-                state.updateTracking(proxyOwner, prop, info, /*shallow*/ false);
-            }
+
+            updateTracking(proxyOwner, prop, info, /*shallow*/ false);
 
             if (
                 (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) &&
@@ -269,7 +263,7 @@ const proxyGet = {
         }
     },
     set(_: any, prop: string, value: any, proxyOwner: Observable) {
-        const info = state.infos.get(proxyOwner);
+        const info = infos.get(proxyOwner);
         const target = info.target as any;
 
         if (state.inAssign > 0) {
@@ -280,7 +274,7 @@ const proxyGet = {
             Reflect.set(target, prop, value);
             return true;
         } else {
-            const info = state.infos.get(proxyOwner);
+            const info = infos.get(proxyOwner);
             // Only allow setting if this proxy is not safe
             if (!info.safe) {
                 _setter(proxyOwner, target, prop, value);
@@ -302,7 +296,7 @@ function _observable<T>(
     const target = primitive ? { _value: value } : (value as unknown as object);
     const proxy = new Proxy(target, proxyGet);
     // Save proxy to state so it can be accessed later
-    state.infos.set(proxy, { parent, prop, safe, target, primitive, targetOriginal: target });
+    infos.set(proxy, { parent, prop, safe, target, primitive, targetOriginal: target });
 
     return proxy;
 }

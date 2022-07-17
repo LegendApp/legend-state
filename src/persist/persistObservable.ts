@@ -1,4 +1,3 @@
-import { ObservablePersistLocalStorage } from './web';
 import { config } from '../configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
 import { observable } from '../observable';
@@ -7,12 +6,13 @@ import { listenToObservable, mergeDeep } from '../observableFns';
 import type {
     Observable,
     ObservableChecker,
-    ObsListenerInfo,
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
+    ObsListenerInfo,
     PersistOptions,
 } from '../types/observableInterfaces';
+import { ObservablePersistLocalStorage } from './web';
 
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();

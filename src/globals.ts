@@ -1,38 +1,8 @@
 import { isArray, isObject } from '@legendapp/tools';
-import type { Observable, ObservableEvent } from './types/observableInterfaces';
-import { state } from './observableState';
 import { config } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
-
-export function constructObject(path: string[], value: any, dateModified?: any) {
-    let out = {};
-    let o = out;
-    if (path.length > 0) {
-        for (let i = 0; i < path.length; i++) {
-            const p = path[i];
-            o[p] = i === path.length - 1 ? value : {};
-            o = o[p];
-        }
-    } else {
-        out = o = value;
-    }
-
-    if (dateModified) {
-        if (isObject(o)) {
-            o[symbolDateModified as any] = dateModified;
-        } else {
-            out[symbolDateModified as any] = dateModified;
-        }
-    }
-
-    return out;
-}
-
-export function isNullOrUndefined(val: any) {
-    return val === null || val === undefined;
-}
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;
@@ -44,18 +14,6 @@ export function removeNullUndefined<T extends Record<string, any>>(a: T) {
             removeNullUndefined(v);
         }
     });
-}
-
-export function objectAtPath(path: string[], value: object) {
-    let o = value;
-    for (let i = 0; i < path.length; i++) {
-        if (o) {
-            const p = path[i];
-            o = o[p] || o['__dict'] || o['__obj']?.[p];
-        }
-    }
-
-    return o;
 }
 
 export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, clone: boolean) {
