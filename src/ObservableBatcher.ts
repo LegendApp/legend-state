@@ -6,21 +6,21 @@ let _batch: { cb: ListenerFn<any>; value: any; info: ObsListenerInfo }[] = [];
 
 function onActionTimeout() {
     if (_batch.length > 0) {
-        observableBatcher.endBatch(/*force*/ true);
+        observableBatcher.end(/*force*/ true);
     }
 }
 
 export namespace observableBatcher {
     export function batch(fn: () => void) {
-        beginBatch();
+        begin();
         fn();
-        endBatch();
+        end();
     }
-    export function beginBatch() {
+    export function begin() {
         numInBatch++;
         timeoutOnce('batch_beginAction', onActionTimeout, 0);
     }
-    export function endBatch(force?: boolean) {
+    export function end(force?: boolean) {
         numInBatch--;
         if (numInBatch <= 0 || force) {
             numInBatch = 0;

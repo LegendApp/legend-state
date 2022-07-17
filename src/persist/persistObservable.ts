@@ -64,11 +64,11 @@ async function onObsChange<T>(
 function onChangeRemote(state: LocalState, cb: () => void) {
     state.tempDisableSaveRemote = true;
 
-    observableBatcher.beginBatch();
+    observableBatcher.begin();
 
     cb();
 
-    observableBatcher.endBatch();
+    observableBatcher.end();
 
     state.tempDisableSaveRemote = false;
 }
