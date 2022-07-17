@@ -1,15 +1,16 @@
+import { ObservablePersistLocalStorage } from './web';
 import { config } from '../configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
 import { observable } from '../observable';
 import { observableBatcher } from '../observableBatcher';
 import { listenToObservable, mergeDeep } from '../observableFns';
-import {
+import type {
     Observable,
     ObservableChecker,
     ObsListenerInfo,
-    ObsPersistLocal,
-    ObsPersistRemote,
-    ObsPersistState,
+    ObservablePersistLocal,
+    ObservablePersistRemote,
+    ObservablePersistState,
     PersistOptions,
 } from '../types/observableInterfaces';
 
@@ -17,14 +18,19 @@ export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
 const dateModifiedKey = '@';
 
+let platformDefaultPersistence =
+    typeof window !== 'undefined' && typeof window.localStorage !== undefined
+        ? ObservablePersistLocalStorage
+        : undefined;
+
 interface LocalState {
     tempDisableSaveRemote: boolean;
-    persistenceLocal?: ObsPersistLocal;
-    persistenceRemote?: ObsPersistRemote;
+    persistenceLocal?: ObservablePersistLocal;
+    persistenceRemote?: ObservablePersistRemote;
 }
 
 async function onObsChange<T>(
-    obsState: Observable<ObsPersistState>,
+    obsState: Observable<ObservablePersistState>,
     state: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
@@ -75,7 +81,8 @@ function onChangeRemote(state: LocalState, cb: () => void) {
 
 export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
     const { local, remote } = persistOptions;
-    const localPersistence = persistOptions.localPersistence || config.persist?.localPersistence;
+    const localPersistence =
+        persistOptions.localPersistence || config.persist?.localPersistence || platformDefaultPersistence;
     const remotePersistence = persistOptions.remotePersistence || config.persist?.remotePersistence;
     const state: LocalState = { tempDisableSaveRemote: false };
 
@@ -83,10 +90,13 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
     let clearLocal: () => Promise<void>;
 
     if (local) {
+        if (!localPersistence) {
+            throw new Error('Local persistence is not configured');
+        }
         if (!mapPersistences.has(localPersistence)) {
             mapPersistences.set(localPersistence, new localPersistence());
         }
-        const persistenceLocal = mapPersistences.get(localPersistence) as ObsPersistLocal;
+        const persistenceLocal = mapPersistences.get(localPersistence) as ObservablePersistLocal;
         state.persistenceLocal = persistenceLocal;
 
         let value = persistenceLocal.getValue(local);
@@ -112,10 +122,13 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         isLoadedLocal = true;
     }
     if (remote) {
+        if (!remotePersistence) {
+            throw new Error('Remote persistence is not configured');
+        }
         if (!mapPersistences.has(remotePersistence)) {
             mapPersistences.set(remotePersistence, new remotePersistence());
         }
-        const persistenceRemote = mapPersistences.get(remotePersistence) as ObsPersistRemote;
+        const persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
         state.persistenceRemote = persistenceRemote;
 
         persistenceRemote.listen(
@@ -128,7 +141,7 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         );
     }
 
-    const obsState = observable<ObsPersistState>({
+    const obsState = observable<ObservablePersistState>({
         isLoadedLocal,
         isLoadedRemote: false,
         clearLocal,

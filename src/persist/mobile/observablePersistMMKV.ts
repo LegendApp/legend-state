@@ -1,11 +1,11 @@
-import { ObsPersistLocal } from '../../types/observableInterfaces';
+import type { ObservablePersistLocal } from '../../types/observableInterfaces';
 import { MMKV } from 'react-native-mmkv';
 
 const storage = new MMKV({
     id: `obsPersist`,
 });
 
-export class observablePersistMMKV implements ObsPersistLocal {
+export class ObservablePersistMMKV implements ObservablePersistLocal {
     data: Record<string, any> = {};
 
     public getValue(id: string) {

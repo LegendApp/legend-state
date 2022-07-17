@@ -1,6 +1,6 @@
-import { ObsPersistLocal } from '../../types/observableInterfaces';
+import type { ObservablePersistLocal } from '../../types/observableInterfaces';
 
-export class ObsPersistLocalStorage implements ObsPersistLocal {
+export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     data: Record<string, any> = {};
 
     public getValue(id: string) {

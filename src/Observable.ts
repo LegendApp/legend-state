@@ -2,8 +2,14 @@ import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { extendPrototypes } from './primitivePrototypes';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
-import { deleteFn, notifyObservable, on, prop } from './observableFns';
-import { Observable, ObservableFnName, ObservableUnsafe, ValidObservableParam } from './types/observableInterfaces';
+import { deleteFn, getObservableFromPrimitive, notifyObservable, on, prop } from './observableFns';
+import {
+    Observable,
+    ObservableFnName,
+    ObservableUnsafe,
+    ValidObservableParam,
+    ObservableChecker,
+} from './types/observableInterfaces';
 import { state } from './observableState';
 
 const MapModifiers = {
@@ -54,14 +60,15 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
     notifyObservable(proxyOwner, this, prevValue, []);
 }
 
-function getter(proxyOwner: Observable, target: any) {
+function _getter(proxyOwner: Observable) {
     const info = state.infos.get(proxyOwner);
+    const target = info.target as any;
     return info.primitive ? target._value : target;
 }
 
-function setter(proxyOwner: Observable, _: any, value: any);
-function setter(proxyOwner: Observable, _: any, prop: string, value: any);
-function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
+export function _setter(proxyOwner: Observable, _: any, value: any);
+export function _setter(proxyOwner: Observable, _: any, prop: string, value: any);
+export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = state.infos.get(proxyOwner);
     if (!info) debugger;
@@ -137,7 +144,7 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             } else {
                 // If prop has a proxy, forward the set into the proxy
-                setter(proxy, target[prop], value);
+                _setter(proxy, target[prop], value);
             }
         } else if (isArray(target)) {
             // Ignore array length changing because that's caused by mutations which already notified.
@@ -163,7 +170,7 @@ function setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: 
     return prop ? proxyOwner[prop as string] : proxyOwner;
 }
 
-function assigner(proxyOwner: Observable, target: any, value: any) {
+function _assigner(proxyOwner: Observable, _: any, value: any) {
     state.inAssign = Math.max(0, state.inAssign + 1);
     Object.assign(proxyOwner, value);
     state.inAssign--;
@@ -171,10 +178,26 @@ function assigner(proxyOwner: Observable, target: any, value: any) {
     return this;
 }
 
+function binder(fn, obs: ObservableChecker) {
+    if (isPrimitive(obs)) {
+        obs = getObservableFromPrimitive(obs);
+    }
+    return fn.bind(obs, obs, undefined);
+}
+export function setter<T>(obs: ObservableChecker<T>) {
+    return binder(_setter, obs);
+}
+export function getter<T>(obs: ObservableChecker<T>) {
+    return binder(_getter, obs);
+}
+export function assigner<T>(obs: ObservableChecker<T>) {
+    return binder(_assigner, obs);
+}
+
 const ProxyFunctions = new Map<ObservableFnName, any>([
-    ['get', getter],
-    ['set', setter],
-    ['assign', assigner],
+    ['get', _getter],
+    ['set', _setter],
+    ['assign', _assigner],
     ['on', on],
     ['prop', prop],
     ['delete', deleteFn],
@@ -250,7 +273,7 @@ const proxyGet = {
         const target = info.target as any;
 
         if (state.inAssign > 0) {
-            setter(proxyOwner, target, prop, value);
+            _setter(proxyOwner, target, prop, value);
             return true;
         } else if (state.inSetFn > 0) {
             // Set function handles notifying
@@ -260,7 +283,7 @@ const proxyGet = {
             const info = state.infos.get(proxyOwner);
             // Only allow setting if this proxy is not safe
             if (!info.safe) {
-                setter(proxyOwner, target, prop, value);
+                _setter(proxyOwner, target, prop, value);
                 return true;
             }
 

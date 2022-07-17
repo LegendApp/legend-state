@@ -1,3 +1,4 @@
+import { assigner, getter, setter } from '../src/observable';
 import { disposeListener, observable, observableComputed, observableEvent, shallow } from '../src';
 import { getObservableFromPrimitive, listenToObservable } from '../src/observableFns';
 import { state } from '../src/observableState';
@@ -58,6 +59,29 @@ describe('Basic', () => {
 
         expect(obs.val).toEqual(20);
         expect(getObservableFromPrimitive(obs.val)).toEqual({ _value: 20 });
+    });
+    test('Primitive setter bound', () => {
+        const obs = observable({ val: 10, val2: 'hello' });
+
+        // Cache the functions
+        const get = getter(obs.val);
+        const set = setter(obs.val);
+        const assign = assigner(obs);
+
+        // Misdirect
+        obs.val2.set('hi');
+
+        // Call setter
+        set(20);
+
+        expect(obs.val).toEqual(20);
+        expect(obs.val.get()).toEqual(20);
+
+        expect(get()).toEqual(20);
+
+        assign({ val: 30 });
+
+        expect(get()).toEqual(30);
     });
     test('Child objects are proxies', () => {
         const obs = observable({ val: { child: {} as any } });

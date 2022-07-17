@@ -119,15 +119,15 @@ export interface PersistOptions<T = any> {
     dateModifiedKey?: string;
 }
 
-export interface ObsPersistLocal {
+export interface ObservablePersistLocal {
     getValue<T = any>(path: string): T;
     setValue(path: string, value: any): void;
     deleteById(path: string): void;
 }
-export interface ObsPersistLocalAsync extends ObsPersistLocal {
+export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
-export interface ObsPersistRemote {
+export interface ObservablePersistRemote {
     save<T>(options: PersistOptions<T>, value: T, info: ObsListenerInfo): Promise<T>;
     listen<T>(
         obs: ObservableChecker<T>,
@@ -137,7 +137,7 @@ export interface ObsPersistRemote {
     );
 }
 
-export interface ObsPersistState {
+export interface ObservablePersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
     clearLocal: () => Promise<void>;

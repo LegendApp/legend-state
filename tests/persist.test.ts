@@ -3,7 +3,7 @@ import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
-import { ObsPersistLocalStorage } from '../src/persist/web/observablePersistLocalStorage';
+import { ObservablePersistLocalStorage } from '../src/persist/web/observablePersistLocalStorage';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -62,7 +62,7 @@ global.localStorage = new LocalStorageMock();
 
 configureObservable({
     persist: {
-        localPersistence: ObsPersistLocalStorage,
+        localPersistence: ObservablePersistLocalStorage,
         saveTimeout: 16,
     },
 });
@@ -71,7 +71,7 @@ configureObservable({
 
 beforeEach(() => {
     global.localStorage.clear();
-    const local = mapPersistences.get(ObsPersistLocalStorage) as ObsPersistLocalStorage;
+    const local = mapPersistences.get(ObservablePersistLocalStorage) as ObservablePersistLocalStorage;
     if (local) {
         local.data = {};
     }

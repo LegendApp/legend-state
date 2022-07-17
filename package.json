@@ -11,9 +11,10 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "tsc && cp package.json dist/package.json && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "tsc && cp package.json dist/package.json && cp -r dist/src/* dist/ && rm -rf dist/src && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "preversion": "npm run build",
-        "postversion": "git push --follow-tags"
+        "postversion": "git push --follow-tags",
+        "jestclear": "jest --clearCache"
     },
     "exports": {
         ".": "./index.js",

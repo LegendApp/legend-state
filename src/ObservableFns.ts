@@ -151,7 +151,7 @@ export function getObservableFromPrimitive(primitive: any) {
         const info = state.infos.get(proxy);
         // Make sure the primitive being accessed is the one from lastAccessedProxy
         // == instead of === because some platforms like React native fail here on ===
-        if (info.target[prop] == primitive) {
+        if (info && info.target[prop] == primitive) {
             return proxy.prop(prop);
         }
     }
