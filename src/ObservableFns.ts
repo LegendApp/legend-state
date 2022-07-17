@@ -14,11 +14,12 @@ import {
 import { disposeListener } from './observableListener';
 import { state } from './observableState';
 
+const { infos, skipNotifyFor, lastAccessedProxy } = state;
+
 const symbolHasValue = Symbol('__hasValue');
 
 function _notify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fromChild?: boolean) {
-    const info = state.infos.get(target);
-    const skipNotifyFor = state.skipNotifyFor;
+    const info = infos.get(target);
     // Notify this listener if this target is not being skipped (if getting called during an assign)
     if (info && !skipNotifyFor.includes(target)) {
         // Notify all listeners
@@ -58,8 +59,8 @@ export function listenToObservable<T>(
     callback: ListenerFn<T>,
     shallow?: boolean
 ): ObsListener<T> {
-    const info = state.infos.get(obs);
-    if (!info) {
+    const info = infos.get(obs);
+    if (!info && process.env.NODE_ENV === 'development') {
         throw new Error('Can only listen to instances of Observable');
     }
     if (!info.listeners) {
@@ -112,12 +113,8 @@ export function onTrue<T extends boolean>(obs: ObservableChecker<T>, cb?: () => 
     return onEquals(obs, true as T, cb);
 }
 
-export function getObsModified<T extends ObservableChecker>(obs: T) {
-    return obs.get?.()?.[symbolDateModified];
-}
-
 export function unlisten<T extends ObservableChecker>(obs: T, cb: ListenerFn<any>) {
-    const info = state.infos.get(obs);
+    const info = infos.get(obs);
     if (info) {
         for (const listener of info.listeners) {
             if (listener.callback === cb) {
@@ -146,9 +143,9 @@ export function prop(obs: ObservableChecker, _: any, prop: string | number) {
 }
 
 export function getObservableFromPrimitive(primitive: any) {
-    if (state.lastAccessedProxy) {
-        const { proxy, prop } = state.lastAccessedProxy;
-        const info = state.infos.get(proxy);
+    if (lastAccessedProxy) {
+        const { proxy, prop } = lastAccessedProxy;
+        const info = infos.get(proxy);
         // Make sure the primitive being accessed is the one from lastAccessedProxy
         // == instead of === because some platforms like React native fail here on ===
         if (info && info.target[prop] == primitive) {
@@ -158,7 +155,7 @@ export function getObservableFromPrimitive(primitive: any) {
 }
 
 export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number) {
-    const info = state.infos.get(obs);
+    const info = infos.get(obs);
 
     if (!info.readonly) {
         if (prop !== undefined) {
@@ -179,7 +176,7 @@ export function deleteFn(obs: ObservableChecker, target: any, prop?: string | nu
             // Delete self
             const parent = info.parent;
             if (parent) {
-                const parentInfo = state.infos.get(info.parent);
+                const parentInfo = infos.get(info.parent);
                 if (parentInfo) {
                     deleteFn(parent, parentInfo.target, info.prop);
                 }
@@ -195,7 +192,7 @@ export function shallow(obs: ObservableChecker) {
 }
 
 export function isObservable(obj: any): obj is Observable {
-    return state.infos.has(obj);
+    return infos.has(obj);
 }
 
 export function isObservableEvent(obj: any): obj is ObservableEvent {
