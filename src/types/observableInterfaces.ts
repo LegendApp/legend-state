@@ -77,10 +77,15 @@ export type ObservableValue<T extends Observable | ObservableUnsafe | Observable
     : T;
 
 export type MappedObservableValue<
-    T extends (ObservableChecker | ObservableEvent)[] | Record<string, ObservableChecker | ObservableEvent>
-> = {
-    [K in keyof T]: ObservableValue<T[K]>;
-};
+    T extends
+        | (ObservableChecker | ObservableEvent)
+        | (ObservableChecker | ObservableEvent)[]
+        | Record<string, ObservableChecker | ObservableEvent>
+> = T extends ObservableChecker | ObservableEvent
+    ? ObservableValue<T>
+    : {
+          [K in keyof T]: ObservableValue<T[K]>;
+      };
 
 export type QueryByModified<T> =
     | boolean

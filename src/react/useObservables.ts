@@ -1,4 +1,4 @@
-import { isArray, useForceRender } from '@legendapp/tools';
+import { isArray, isObject, useForceRender } from '@legendapp/tools';
 import { useEffect, useRef } from 'react';
 import { isObservable, isObservableEvent } from '../observableFns';
 import {
@@ -7,6 +7,7 @@ import {
     Observable,
     ObservableChecker,
     ObservableEvent,
+    ObservableValue,
 } from '../types/observableInterfaces';
 import { disposeListener } from '../observableListener';
 import { state } from '../observableState';
@@ -15,9 +16,16 @@ interface SavedRefTrack {
     proxies: [Observable, string, ObsListener][];
 }
 
-export function useObservables<T extends (ObservableChecker | ObservableEvent)[] | Record<string, ObservableChecker>>(
-    fn: () => T
-): MappedObservableValue<T> {
+function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): ObservableValue<T> {
+    return obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs);
+}
+
+export function useObservables<
+    T extends
+        | (ObservableChecker | ObservableEvent)
+        | (ObservableChecker | ObservableEvent)[]
+        | Record<string, ObservableChecker>
+>(fn: () => T): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRefTrack>();
     if (!ref.current) {
@@ -28,11 +36,12 @@ export function useObservables<T extends (ObservableChecker | ObservableEvent)[]
 
     state.isTracking = true;
 
-    const ret = fn();
+    const args = fn();
 
-    const isArr = isArray(ret);
+    const isArr = isArray(args);
+    const isObj = !isArr && isObject(args);
 
-    const arr = (isArr ? ret : Object.values(ret)) as Observable[];
+    const arr = (isArr ? args : isObj ? Object.values(args) : [args]) as Observable[];
 
     // Compare to previous args and update listeners if any changed or first mount
     updateListeners(arr as Observable[], ref.current, forceRender);
@@ -54,17 +63,13 @@ export function useObservables<T extends (ObservableChecker | ObservableEvent)[]
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (isArr) {
-        return arr.map(
-            (obs) => obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs)
-        ) as unknown as MappedObservableValue<T>;
+        return arr.map(getRawValue) as any;
+    } else if (isObj) {
+        const ret = args;
+        Object.keys(args).forEach((key) => (ret[key] = getRawValue(args[key])));
+        return ret as any;
     } else {
-        Object.keys(ret).forEach((key) => {
-            const obs = ret[key];
-            if (isObservable(obs)) {
-                ret[key] = obs.get();
-            }
-        });
-        return ret as MappedObservableValue<T>;
+        return getRawValue(args);
     }
 }
 
