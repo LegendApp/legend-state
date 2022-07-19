@@ -1380,3 +1380,41 @@ describe('Proxy promise values', () => {
         expect(obs.promise).resolves.toEqual(10);
     });
 });
+
+describe('Batching', () => {
+    test('Assign is batched', async () => {
+        const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+
+        const handler = jest.fn();
+        obs.num1.on('change', handler);
+        obs.num2.on('change', handler);
+        obs.num3.on('change', handler);
+
+        obs.assign({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    test('Setting is batched', async () => {
+        const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+
+        const handler = jest.fn();
+        obs.num1.on('change', handler);
+        obs.num2.on('change', handler);
+        obs.num3.on('change', handler);
+
+        obs.set({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+});

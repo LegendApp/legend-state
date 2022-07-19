@@ -1,4 +1,5 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
+import { observableBatcher } from './observableBatcher';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
 import { deleteFn, notifyObservable, observableProp, prop, _on } from './observableFns';
@@ -62,15 +63,15 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
     notifyObservable(proxyOwner, this, prevValue, []);
 }
 
-function _getter(proxyOwner: Observable) {
+function _get(proxyOwner: Observable) {
     const info = infos.get(proxyOwner);
     const target = info.target as any;
     return info.primitive ? target._value : target;
 }
 
-export function _setter(proxyOwner: Observable, _: any, value: any);
-export function _setter(proxyOwner: Observable, _: any, prop: string, value: any);
-export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
+function _set(proxyOwner: Observable, _: any, value: any);
+function _set(proxyOwner: Observable, _: any, prop: string, value: any);
+function _set(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = infos.get(proxyOwner);
     if (!info) debugger;
@@ -145,7 +146,7 @@ export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, 
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             } else {
                 // If prop has a proxy, forward the set into the proxy
-                _setter(proxy, target[prop], value);
+                _set(proxy, target[prop], value);
             }
         } else if (isArray(target)) {
             // Ignore array length changing because that's caused by mutations which already notified.
@@ -169,12 +170,21 @@ export function _setter(proxyOwner: Observable, _: any, prop: string | unknown, 
     return prop ? proxyOwner[prop as string] : proxyOwner;
 }
 
-function _assigner(proxyOwner: Observable, _: any, value: any) {
+function _assign(proxyOwner: Observable, _: any, value: any) {
     state.inAssign = Math.max(0, state.inAssign + 1);
+    observableBatcher.begin();
     Object.assign(proxyOwner, value);
+    observableBatcher.end();
     state.inAssign--;
 
     return this;
+}
+
+export function _setWrapper() {
+    state.inSetFn = Math.max(0, state.inSetFn++);
+    const ret = _set.apply(this, arguments);
+    state.inSetFn--;
+    return ret;
 }
 
 function binder(fn, obs: ObservableChecker) {
@@ -182,19 +192,19 @@ function binder(fn, obs: ObservableChecker) {
     return fn.bind(obs, obs, undefined);
 }
 export function setter<T>(obs: ObservableChecker<T>) {
-    return binder(_setter, obs);
+    return binder(_set, obs);
 }
 export function getter<T>(obs: ObservableChecker<T>) {
-    return binder(_getter, obs);
+    return binder(_get, obs);
 }
 export function assigner<T>(obs: ObservableChecker<T>) {
-    return binder(_assigner, obs);
+    return binder(_assign, obs);
 }
 
 const ProxyFunctions = new Map<ObservableFnName, any>([
-    ['get', _getter],
-    ['set', _setter],
-    ['assign', _assigner],
+    ['get', _get],
+    ['set', _set],
+    ['assign', _assign],
     ['on', _on],
     ['prop', observableProp],
     ['delete', deleteFn],
@@ -265,7 +275,7 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
         const target = info.target as any;
 
         if (state.inAssign > 0) {
-            _setter(proxyOwner, target, prop, value);
+            _set(proxyOwner, target, prop, value);
             return true;
         } else if (state.inSetFn > 0) {
             // Set function handles notifying
@@ -275,7 +285,7 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             const info = infos.get(proxyOwner);
             // Only allow setting if this proxy is not safe
             if (!info.safe) {
-                _setter(proxyOwner, target, prop, value);
+                _set(proxyOwner, target, prop, value);
                 return true;
             }
 
