@@ -168,19 +168,15 @@ function _set(proxyOwner: ObservableChecker, _: any, prop: string | number | sym
 
 function _assign(proxyOwner: Observable, _: any, value: any) {
     state.inAssign = Math.max(0, state.inAssign + 1);
+
+    // Batch all the changes while assigning
     observableBatcher.begin();
     Object.assign(proxyOwner, value);
     observableBatcher.end();
+
     state.inAssign--;
 
     return this;
-}
-
-export function _setWrapper() {
-    state.inSetFn = Math.max(0, state.inSetFn++);
-    const ret = _set.apply(this, arguments);
-    state.inSetFn--;
-    return ret;
 }
 
 function binder(fn, obs: ObservableChecker) {
@@ -204,18 +200,21 @@ export function deleteFn(obs: ObservableChecker, target: any, prop?: string | nu
         if (prop !== undefined) {
             const targetOriginal = info.targetOriginal;
 
+            // First set to undefined
             _set(obs, target, prop, undefined);
 
+            // Then fully delete the keys from the object
             delete target[prop];
             delete targetOriginal[prop];
 
+            // Remove the child proxy from state
             const child = info.proxies.get(prop);
             if (child) {
                 info.proxies.delete(prop);
                 state.infos.delete(child);
             }
         } else {
-            // Delete self
+            // Delete self forwards into parent
             const parent = info.parent;
             if (parent) {
                 const parentInfo = infos.get(info.parent);
