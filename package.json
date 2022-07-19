@@ -3,6 +3,7 @@
     "version": "0.9.0",
     "description": "legend-state",
     "sideEffects": false,
+    "private": true,
     "main": "./index.js",
     "types": "./index.d.ts",
     "files": [
@@ -22,6 +23,9 @@
         "./persist": "./persist/index.js",
         "./types": "./types/index.d.ts"
     },
+    "dependencies": {
+        "@legendapp/tools": "^2.0.0-alpha.3"
+    },
     "devDependencies": {
         "@testing-library/react-hooks": "^8.0.1",
         "@types/jest": "^26.0.24",
@@ -37,9 +41,6 @@
         "ts-jest": "^27.0.4",
         "tslib": "^2.4.0",
         "typescript": "^4.7.4"
-    },
-    "dependencies": {
-        "@legendapp/tools": "^1.0.3"
     },
     "peerDependencies": {
         "react": ">=16.8",
