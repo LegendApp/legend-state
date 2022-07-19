@@ -1,8 +1,8 @@
-import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
+import { isArray, isFunction, isNumber, isObject, isString } from '@legendapp/tools';
 import { observableBatcher } from './observableBatcher';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
-import { deleteFn, notifyObservable, observableProp, prop, _on } from './observableFns';
+import { notifyObservable, observableProp, prop, _on } from './observableFns';
 import { state } from './observableState';
 import { extendPrototypes } from './primitivePrototypes';
 import {
@@ -69,9 +69,9 @@ function _get(proxyOwner: Observable) {
     return info.primitive ? target._value : target;
 }
 
-function _set(proxyOwner: Observable, _: any, value: any);
-function _set(proxyOwner: Observable, _: any, prop: string, value: any);
-function _set(proxyOwner: Observable, _: any, prop: string | unknown, value?: any) {
+function _set(proxyOwner: ObservableChecker, _: any, value: any);
+function _set(proxyOwner: ObservableChecker, _: any, prop: string | number | symbol, value: any);
+function _set(proxyOwner: ObservableChecker, _: any, prop: string | number | symbol | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = infos.get(proxyOwner);
     if (!info) debugger;
@@ -97,9 +97,15 @@ function _set(proxyOwner: Observable, _: any, prop: string | unknown, value?: an
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => {
             if (!value || isValuePrimitive !== info.primitive || value[key] === undefined) {
+                if (info.proxies) {
+                    const child = info.proxies.get(key);
+                    if (child) {
+                        child.set(undefined);
+                        info.proxies.delete(key);
+                    }
+                }
                 delete target[key];
                 delete targetOriginal[key];
-                info.proxies?.delete(key);
             }
         });
 
@@ -137,17 +143,8 @@ function _set(proxyOwner: Observable, _: any, prop: string | unknown, value?: an
         const propStr = String(prop);
         const proxy = info?.proxies?.get(propStr);
         if (proxy) {
-            if (value === undefined) {
-                // Setting to undefined deletes this proxy
-                const prevValue = target[prop];
-                infos.delete(proxy);
-                info.proxies.delete(propStr);
-                target[prop] = targetOriginal[prop] = value;
-                notifyObservable(proxyOwner, value, prevValue, [propStr]);
-            } else {
-                // If prop has a proxy, forward the set into the proxy
-                _set(proxy, target[prop], value);
-            }
+            // If prop has a proxy, forward the set into the proxy
+            _set(proxy, target[prop], value);
         } else if (isArray(target)) {
             // Ignore array length changing because that's caused by mutations which already notified.
             if (prop !== 'length' && target[prop] !== value) {
@@ -199,6 +196,32 @@ export function getter<T>(obs: ObservableChecker<T>) {
 }
 export function assigner<T>(obs: ObservableChecker<T>) {
     return binder(_assign, obs);
+}
+
+export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number | symbol) {
+    const info = infos.get(obs);
+
+    if (!info.readonly) {
+        if (prop !== undefined) {
+            const targetOriginal = info.targetOriginal;
+
+            _set(obs, target, prop, undefined);
+
+            delete target[prop];
+            delete targetOriginal[prop];
+        } else {
+            // Delete self
+            const parent = info.parent;
+            if (parent) {
+                const parentInfo = infos.get(info.parent);
+                if (parentInfo) {
+                    deleteFn(parent, parentInfo.target, info.prop);
+                }
+            }
+        }
+    }
+
+    return obs;
 }
 
 const ProxyFunctions = new Map<ObservableFnName, any>([

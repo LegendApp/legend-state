@@ -795,6 +795,43 @@ describe('Listeners', () => {
             prevValue: '',
         });
     });
+    test('Set with deep listener', () => {
+        const obs = observable({ obj: { test: 'hi' } });
+        const handler = jest.fn();
+        listenToObservable(obs.obj.test, handler);
+        obs.set({ obj: { test: 'hello' } });
+        expect(handler).toHaveBeenCalledWith('hello', {
+            changedValue: 'hello',
+            path: [],
+            prevValue: 'hi',
+        });
+    });
+    test('Set undefined deep with deep listener', () => {
+        const obs = observable({ obj: { test: 'hi' } });
+        const handler = jest.fn();
+        listenToObservable(obs.obj.test, handler);
+
+        obs.obj.test.set(undefined);
+
+        expect(handler).toHaveBeenCalledWith(undefined, {
+            changedValue: undefined,
+            path: [],
+            prevValue: 'hi',
+        });
+    });
+    test('Set undefined with deep listener', () => {
+        const obs = observable({ obj: { test: 'hi' } });
+        const handler = jest.fn();
+        listenToObservable(obs.obj.test, handler);
+
+        obs.set(undefined);
+
+        expect(handler).toHaveBeenCalledWith(undefined, {
+            changedValue: undefined,
+            path: [],
+            prevValue: 'hi',
+        });
+    });
 });
 describe('Arrays', () => {
     test('Array push', () => {
@@ -1343,6 +1380,37 @@ describe('Delete', () => {
         expect(obs2.get()).toEqual({ val2: true });
         expect(Object.keys(obs2.get())).toEqual(['val2']);
         expect(Object.keys(obs2)).toEqual(['val2']);
+    });
+    test('Delete property fires listeners', () => {
+        const obs = observable({ obj: { val: true } });
+        const handler = jest.fn();
+
+        obs.obj.val.on('change', handler);
+
+        obs.obj.delete('val');
+
+        expect(handler).toHaveBeenCalledWith(undefined, {
+            changedValue: undefined,
+            path: [],
+            prevValue: true,
+        });
+
+        expect(Object.keys(obs.obj)).toEqual([]);
+        expect(Object.keys(obs.obj.get())).toEqual([]);
+    });
+    test('Delete fires listeners of children', () => {
+        const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } } });
+        const handler = jest.fn();
+
+        obs.obj.num1.on('change', handler);
+
+        obs.delete('obj');
+
+        expect(handler).toHaveBeenCalledWith(undefined, {
+            changedValue: undefined,
+            path: [],
+            prevValue: 1,
+        });
     });
 });
 

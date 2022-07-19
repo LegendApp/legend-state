@@ -191,39 +191,6 @@ export function prop(obs: ObservableChecker) {
     return obs;
 }
 
-export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number | symbol) {
-    const info = infos.get(obs);
-
-    if (!info.readonly) {
-        if (prop !== undefined) {
-            const targetOriginal = info.targetOriginal;
-
-            const prevValue = info.primitive ? target._value : Object.assign({}, target);
-
-            const shouldNotify = isObject(target) && target.hasOwnProperty(prop);
-
-            delete target[prop];
-            delete targetOriginal[prop];
-            info.proxies?.delete(prop);
-
-            if (shouldNotify) {
-                notifyObservable(obs, target, prevValue, []);
-            }
-        } else {
-            // Delete self
-            const parent = info.parent;
-            if (parent) {
-                const parentInfo = infos.get(info.parent);
-                if (parentInfo) {
-                    deleteFn(parent, parentInfo.target, info.prop);
-                }
-            }
-        }
-    }
-
-    return obs;
-}
-
 export function shallow(obs: ObservableChecker) {
     return obs[symbolShallow as any];
 }
