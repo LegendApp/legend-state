@@ -554,6 +554,31 @@ describe('Safety', () => {
 
         consoleErrorMock.mockRestore();
     });
+    test('Direct delete has ts error', () => {
+        const obs = observable({ val: true });
+
+        expect(() => {
+            // @ts-expect-error
+            delete obs.val;
+        }).toThrowError();
+
+        expect(obs.val.get()).toEqual(true);
+
+        const obsUnsafe = observable({ val: true }, /*unsafe*/ true);
+
+        delete obsUnsafe.val;
+
+        expect(obsUnsafe.val.get()).toEqual(undefined);
+    });
+    test('Error on defineProperty', () => {
+        const obs = observable({ val: true });
+
+        expect(() => {
+            Object.defineProperty(obs, 'prop', { value: 10, writable: true });
+        }).toThrowError();
+
+        expect(obs.val.get()).toEqual(true);
+    });
 });
 
 describe('Listeners', () => {
@@ -1318,12 +1343,6 @@ describe('Delete', () => {
         expect(obs2.get()).toEqual({ val2: true });
         expect(Object.keys(obs2.get())).toEqual(['val2']);
         expect(Object.keys(obs2)).toEqual(['val2']);
-    });
-    test('Direct delete has ts error', () => {
-        const obs = observable({ val: true });
-
-        // @ts-expect-error
-        delete obs.val;
     });
 });
 

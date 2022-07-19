@@ -200,7 +200,7 @@ const ProxyFunctions = new Map<ObservableFnName, any>([
     ['delete', deleteFn],
 ]);
 
-const proxyGet = {
+const proxyHandlerUnsafe: ProxyHandler<any> = {
     get(_: any, prop: string | symbol, proxyOwner: Observable) {
         const info = infos.get(proxyOwner);
         const target = info.target as any;
@@ -284,6 +284,18 @@ const proxyGet = {
     },
 };
 
+const proxyHandler = Object.assign(
+    {
+        deleteProperty() {
+            return false;
+        },
+        defineProperty() {
+            return false;
+        },
+    },
+    proxyHandlerUnsafe
+);
+
 function _observable<T>(
     value: ValidObservableParam<T>,
     safe: boolean,
@@ -292,7 +304,7 @@ function _observable<T>(
 ): Observable<T> {
     const primitive = isPrimitive(value);
     const target = primitive ? { _value: value } : (value as unknown as object);
-    const proxy = new Proxy(target, proxyGet);
+    const proxy = new Proxy(target, safe ? proxyHandler : proxyHandlerUnsafe);
     // Save proxy to state so it can be accessed later
     infos.set(proxy, { parent, prop, safe, target, primitive, targetOriginal: target });
 
