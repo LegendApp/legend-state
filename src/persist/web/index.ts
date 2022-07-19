@@ -1,1 +1,1 @@
-export * from './observablePersistLocalStorage';
+export * from './ObservablePersistLocalStorage';

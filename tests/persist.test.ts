@@ -3,7 +3,7 @@ import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
-import { ObservablePersistLocalStorage } from '../src/persist/web/observablePersistLocalStorage';
+import { ObservablePersistLocalStorage } from '../src/persist/web/ObservablePersistLocalStorage';
 
 class LocalStorageMock {
     store: Record<any, any>;

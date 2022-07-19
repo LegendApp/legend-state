@@ -1,6 +1,6 @@
 import { assigner, getter, setter } from '../src/observable';
 import { disposeListener, observable, observableComputed, observableEvent, shallow } from '../src';
-import { getObservableFromPrimitive, listenToObservable } from '../src/observableFns';
+import { getObservableFromPrimitive, listen, listenToObservable } from '../src/observableFns';
 import { state } from '../src/observableState';
 
 function promiseTimeout(time?: number) {
@@ -82,6 +82,25 @@ describe('Basic', () => {
         assign({ val: 30 });
 
         expect(get()).toEqual(30);
+    });
+    test('Listen to primitive', () => {
+        const obs = observable({ val: 10 });
+        const handler1 = jest.fn();
+        const handler2 = jest.fn();
+
+        obs.val.on('change', handler1);
+        listen(obs.val, 'change', handler2);
+
+        obs.val.set(20);
+
+        expect(handler1).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+        expect(handler2).toHaveBeenCalledWith(20, { changedValue: 20, path: [], prevValue: 10 });
+    });
+    test('No assign on primitives', () => {
+        const obs = observable({ val: 10 });
+
+        // @ts-expect-error
+        obs.val.assign({ text: 'hi' });
     });
     test('Child objects are proxies', () => {
         const obs = observable({ val: { child: {} as any } });
@@ -1286,7 +1305,6 @@ describe('Delete', () => {
         expect(Object.keys(obs2.get())).toEqual([]);
         expect(Object.keys(obs2)).toEqual([]);
     });
-
     test('Delete self', () => {
         const obs = observable({ val: true });
         obs.val.delete();
@@ -1300,6 +1318,12 @@ describe('Delete', () => {
         expect(obs2.get()).toEqual({ val2: true });
         expect(Object.keys(obs2.get())).toEqual(['val2']);
         expect(Object.keys(obs2)).toEqual(['val2']);
+    });
+    test('Direct delete has ts error', () => {
+        const obs = observable({ val: true });
+
+        // @ts-expect-error
+        delete obs.val;
     });
 });
 

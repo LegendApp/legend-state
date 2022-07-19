@@ -1,4 +1,5 @@
-import { isArray, isObject, useForceRender } from '@legendapp/tools';
+import { isArray, isObject } from '@legendapp/tools';
+import { useForceRender } from '@legendapp/tools/react';
 import { useEffect, useRef } from 'react';
 import { isObservable, isObservableEvent } from '../observableFns';
 import {

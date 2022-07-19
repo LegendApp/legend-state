@@ -2,7 +2,7 @@ import { config } from '../configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
 import { observable } from '../observable';
 import { observableBatcher } from '../observableBatcher';
-import { listenToObservable, mergeDeep } from '../observableFns';
+import { listenToObservable, merge } from '../observableFns';
 import type {
     Observable,
     ObservableChecker,
@@ -42,7 +42,7 @@ async function onObsChange<T>(
     if (local) {
         if (!obsState.isLoadedLocal) return;
 
-        persistenceLocal.setValue(
+        persistenceLocal.set(
             local,
             replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
         );
@@ -52,16 +52,16 @@ async function onObsChange<T>(
         const saved = await persistenceRemote.save(persistOptions, value, info);
         if (saved) {
             if (local) {
-                const cur = persistenceLocal.getValue(local);
+                const cur = persistenceLocal.get(local);
                 const replaced = replaceKeyInObject(
                     saved as object,
                     symbolDateModified,
                     dateModifiedKey,
                     /*clone*/ false
                 );
-                const toSave = cur ? mergeDeep(cur, replaced) : replaced;
+                const toSave = cur ? merge(cur, replaced) : replaced;
 
-                persistenceLocal.setValue(local, toSave);
+                persistenceLocal.set(local, toSave);
             }
         }
     }
@@ -99,7 +99,7 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         const persistenceLocal = mapPersistences.get(localPersistence) as ObservablePersistLocal;
         state.persistenceLocal = persistenceLocal;
 
-        let value = persistenceLocal.getValue(local);
+        let value = persistenceLocal.get(local);
 
         const dateModifiedKey = '@';
 
@@ -114,10 +114,10 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         if (value !== null && value !== undefined) {
             replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
             removeNullUndefined(value);
-            mergeDeep(obs, value);
+            merge(obs, value);
         }
 
-        clearLocal = () => Promise.resolve(persistenceLocal.deleteById(local));
+        clearLocal = () => Promise.resolve(persistenceLocal.delete(local));
 
         isLoadedLocal = true;
     }
@@ -147,7 +147,7 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         clearLocal,
     });
 
-    listenToObservable(obs, onObsChange.bind(this, obsState, state, persistOptions));
+    obs.on('change', onObsChange.bind(this, obsState, state, persistOptions));
 
     return obsState;
 }

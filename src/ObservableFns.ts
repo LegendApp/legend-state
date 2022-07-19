@@ -59,6 +59,9 @@ export function listenToObservable<T>(
     callback: ListenerFn<T>,
     shallow?: boolean
 ): ObsListener<T> {
+    // Get the stable observable if it's a primitive
+    obs = prop(obs);
+
     const info = infos.get(obs);
     if (!info && process.env.NODE_ENV === 'development') {
         throw new Error('Can only listen to instances of Observable');
@@ -75,9 +78,9 @@ export function onEquals<T>(obs: ObservableChecker<T>, value: T, cb?: (value: T)
     let listener: ObsListener<T>;
 
     const promise = new Promise<any>((resolve) => {
-        if (isPrimitive(obs)) {
-            obs = getObservableFromPrimitive(obs);
-        }
+        // Get the stable observable if it's a primitive
+        obs = prop(obs);
+
         let isDone = false;
         function check(newValue) {
             if (
@@ -133,11 +136,38 @@ const ObservableOnFunctions: Record<ObservableEventType, Function> = {
     true: onTrue,
 };
 
-export function on(obs: ObservableChecker, _: any, eventType: ObservableEventType, ...args) {
+export function _on(obs: ObservableChecker, _: any, eventType: ObservableEventType, ...args) {
     return ObservableOnFunctions[eventType](obs, ...args);
 }
 
-export function prop(obs: ObservableChecker, _: any, prop: string | number) {
+export function listen<T>(obs: ObservableChecker<T>, eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
+export function listen<T>(obs: ObservableChecker<T>, eventType: 'changeShallow', cb: ListenerFn<T>): ObsListener<T>;
+export function listen<T>(
+    obs: ObservableChecker<T>,
+    eventType: 'equals',
+    value: T,
+    cb?: (value?: T) => void
+): { listener: ObsListener<T>; promise: Promise<T> };
+export function listen<T>(
+    obs: ObservableChecker<T>,
+    eventType: 'hasValue',
+    cb?: (value?: T) => void
+): { listener: ObsListener<T>; promise: Promise<T> };
+export function listen<T>(
+    obs: ObservableChecker<T>,
+    eventType: 'true',
+    cb?: (value?: T) => void
+): { listener: ObsListener<T>; promise: Promise<T> };
+export function listen<T>(
+    obs: ObservableChecker<T>,
+    eventType: ObservableEventType,
+    cb?: (value?: T) => void
+): ObsListener<T> | { listener: ObsListener<T>; promise: Promise<T> };
+export function listen<T>(obs: ObservableChecker<T>, eventType: ObservableEventType, ...args) {
+    return ObservableOnFunctions[eventType](obs, ...args);
+}
+
+export function observableProp(obs: ObservableChecker, _: any, prop: string | number) {
     state.inProp = true;
     return obs[prop];
 }
@@ -152,6 +182,13 @@ export function getObservableFromPrimitive(primitive: any) {
             return proxy.prop(prop);
         }
     }
+}
+
+export function prop(obs: ObservableChecker) {
+    if (isPrimitive(obs)) {
+        obs = getObservableFromPrimitive(obs);
+    }
+    return obs;
 }
 
 export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number) {
@@ -196,10 +233,10 @@ export function isObservable(obj: any): obj is Observable {
 }
 
 export function isObservableEvent(obj: any): obj is ObservableEvent {
-    return isObject(obj) && obj.hasOwnProperty('notify') && obj.hasOwnProperty('on');
+    return isObject(obj) && obj.hasOwnProperty('fire') && obj.hasOwnProperty('on');
 }
 
-export function mergeDeep(target: any, ...sources: any[]) {
+export function merge(target: any, ...sources: any[]) {
     if (!sources.length) return target;
     const source = sources.shift();
 
@@ -230,7 +267,7 @@ export function mergeDeep(target: any, ...sources: any[]) {
                         Object.assign(target, { [key]: {} });
                     }
                 }
-                mergeDeep(target[key], source[key]);
+                merge(target[key], source[key]);
             } else {
                 if (isObservable(target)) {
                     target.assign({ [key]: source[key] });
@@ -240,5 +277,5 @@ export function mergeDeep(target: any, ...sources: any[]) {
             }
         }
     }
-    return mergeDeep(target, ...sources);
+    return merge(target, ...sources);
 }

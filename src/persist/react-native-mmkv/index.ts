@@ -8,7 +8,7 @@ const storage = new MMKV({
 export class ObservablePersistMMKV implements ObservablePersistLocal {
     data: Record<string, any> = {};
 
-    public getValue(id: string) {
+    public get(id: string) {
         if (this.data[id] === undefined) {
             try {
                 const value = storage.getString(id);
@@ -19,11 +19,11 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         }
         return this.data[id];
     }
-    public async setValue(id: string, value: any) {
+    public async set(id: string, value: any) {
         this.data[id] = value;
         this.save(id);
     }
-    public async deleteById(id: string) {
+    public async delete(id: string) {
         delete this.data[id];
         storage.delete(id);
     }

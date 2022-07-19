@@ -3,7 +3,7 @@ import type { ObservablePersistLocal } from '../../types/observableInterfaces';
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     data: Record<string, any> = {};
 
-    public getValue(id: string) {
+    public get(id: string) {
         if (typeof localStorage === 'undefined') return undefined;
         if (this.data[id] === undefined) {
             try {
@@ -15,11 +15,11 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         }
         return this.data[id];
     }
-    public async setValue(id: string, value: any) {
+    public async set(id: string, value: any) {
         this.data[id] = value;
         this.save(id);
     }
-    public async deleteById(id: string) {
+    public async delete(id: string) {
         delete this.data[id];
         localStorage.removeItem(id);
     }

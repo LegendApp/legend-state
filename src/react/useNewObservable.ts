@@ -10,7 +10,7 @@ function useNewObservable<T>(
 ): [Observable<T>, T] {
     const obs = useMemo(() => observable(isFunction(value) ? value() : value), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (observe) {
+    if (observe !== false) {
         useObservables(() => [obs]);
     }
 

@@ -1,16 +1,16 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
-import { extendPrototypes } from './primitivePrototypes';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
-import { deleteFn, getObservableFromPrimitive, notifyObservable, on, prop } from './observableFns';
+import { deleteFn, notifyObservable, observableProp, prop, _on } from './observableFns';
+import { state } from './observableState';
+import { extendPrototypes } from './primitivePrototypes';
 import {
     Observable,
+    ObservableChecker,
     ObservableFnName,
     ObservableUnsafe,
     ValidObservableParam,
-    ObservableChecker,
 } from './types/observableInterfaces';
-import { state } from './observableState';
 
 const { infos, skipNotifyFor, updateTracking, lastAccessedProxy } = state;
 
@@ -178,9 +178,7 @@ function _assigner(proxyOwner: Observable, _: any, value: any) {
 }
 
 function binder(fn, obs: ObservableChecker) {
-    if (isPrimitive(obs)) {
-        obs = getObservableFromPrimitive(obs);
-    }
+    obs = prop(obs);
     return fn.bind(obs, obs, undefined);
 }
 export function setter<T>(obs: ObservableChecker<T>) {
@@ -197,8 +195,8 @@ const ProxyFunctions = new Map<ObservableFnName, any>([
     ['get', _getter],
     ['set', _setter],
     ['assign', _assigner],
-    ['on', on],
-    ['prop', prop],
+    ['on', _on],
+    ['prop', observableProp],
     ['delete', deleteFn],
 ]);
 

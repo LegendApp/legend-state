@@ -114,15 +114,15 @@ export interface PersistOptionsRemote<T = any> {
 export interface PersistOptions<T = any> {
     local?: string;
     remote?: PersistOptionsRemote<T>;
-    localPersistence?: any;
-    remotePersistence?: any;
+    localPersistence?: ClassConstructor<ObservablePersistLocal>;
+    remotePersistence?: ClassConstructor<ObservablePersistRemote>;
     dateModifiedKey?: string;
 }
 
 export interface ObservablePersistLocal {
-    getValue<T = any>(path: string): T;
-    setValue(path: string, value: any): void;
-    deleteById(path: string): void;
+    get<T = any>(path: string): T;
+    set(path: string, value: any): void;
+    delete(path: string): void;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
@@ -199,3 +199,5 @@ export interface OnReturnValue<T> {
     promise: Promise<T>;
     listener: ObsListener<T>;
 }
+
+export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
