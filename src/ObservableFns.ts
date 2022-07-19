@@ -40,7 +40,7 @@ function _notify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fromC
         const parent = info.parent;
         if (parent) {
             const parentListenerInfo = Object.assign({}, listenerInfo);
-            parentListenerInfo.path = [info.prop].concat(listenerInfo.path);
+            parentListenerInfo.path = [info.prop as string].concat(listenerInfo.path);
             _notify(parent, parentListenerInfo, /*fromChild*/ true);
         }
     }
@@ -191,7 +191,7 @@ export function prop(obs: ObservableChecker) {
     return obs;
 }
 
-export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number) {
+export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number | symbol) {
     const info = infos.get(obs);
 
     if (!info.readonly) {

@@ -1,15 +1,15 @@
 import { Observable, ObservableChecker, ObsListener } from './types/observableInterfaces';
 
 export interface StateInfo {
-    prop: string;
+    prop: string | number | symbol;
     target: object;
     targetOriginal: object;
     safe: boolean;
     primitive: boolean;
     readonly?: boolean;
     listeners?: Set<ObsListener>;
-    proxies?: Map<string | number, Observable>;
-    proxiesProps?: Map<string | number, Observable>;
+    proxies?: Map<string | number | symbol, Observable>;
+    proxiesProps?: Map<string | number | symbol, Observable>;
     parent?: Observable;
 }
 
@@ -21,7 +21,7 @@ export const state = {
     didOverride: false,
     trackedRootProxies: [] as Observable[],
     trackedProxies: [] as [Observable, string, boolean][],
-    lastAccessedProxy: { proxy: undefined as Observable, prop: undefined as string | number },
+    lastAccessedProxy: { proxy: undefined as Observable, prop: undefined as string | number | symbol },
     infos: new WeakMap<ObservableChecker, StateInfo>(),
     skipNotifyFor: [] as ObservableChecker[],
     updateTracking: (proxy: Observable, prop: any, info: StateInfo, shallow: boolean) => {

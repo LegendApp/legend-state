@@ -201,7 +201,7 @@ const ProxyFunctions = new Map<ObservableFnName, any>([
 ]);
 
 const proxyGet = {
-    get(_: any, prop: string, proxyOwner: Observable) {
+    get(_: any, prop: string | symbol, proxyOwner: Observable) {
         const info = infos.get(proxyOwner);
         const target = info.target as any;
         const targetValue = target[prop];
@@ -288,7 +288,7 @@ function _observable<T>(
     value: ValidObservableParam<T>,
     safe: boolean,
     parent?: Observable,
-    prop?: string
+    prop?: string | number | symbol
 ): Observable<T> {
     const primitive = isPrimitive(value);
     const target = primitive ? { _value: value } : (value as unknown as object);
