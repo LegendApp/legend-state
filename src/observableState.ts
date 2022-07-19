@@ -9,7 +9,6 @@ export interface StateInfo {
     readonly?: boolean;
     listeners?: Set<ObsListener>;
     proxies?: Map<string | number | symbol, Observable>;
-    proxiesProps?: Map<string | number | symbol, Observable>;
     parent?: Observable;
 }
 

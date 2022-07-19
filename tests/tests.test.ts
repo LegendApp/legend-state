@@ -1412,6 +1412,22 @@ describe('Delete', () => {
             prevValue: 1,
         });
     });
+
+    test('Delete removes proxies from state', () => {
+        const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj2: { text: 'hi' } } });
+        const handler = jest.fn();
+
+        const obsNum1 = obs.obj.prop('num1');
+        const obsObj = obs.obj;
+
+        obs.obj.num1.on('change', handler);
+        obs.delete('obj');
+
+        const obsState = state.infos.get(obs);
+        expect(obsState.proxies.has('obj')).toEqual(false);
+        expect(state.infos.has(obsNum1)).toEqual(false);
+        expect(state.infos.has(obsObj)).toEqual(false);
+    });
 });
 
 describe('Event', () => {

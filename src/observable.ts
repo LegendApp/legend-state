@@ -100,8 +100,7 @@ function _set(proxyOwner: ObservableChecker, _: any, prop: string | number | sym
                 if (info.proxies) {
                     const child = info.proxies.get(key);
                     if (child) {
-                        child.set(undefined);
-                        info.proxies.delete(key);
+                        proxyOwner.delete(key);
                     }
                 }
                 delete target[key];
@@ -209,6 +208,12 @@ export function deleteFn(obs: ObservableChecker, target: any, prop?: string | nu
 
             delete target[prop];
             delete targetOriginal[prop];
+
+            const child = info.proxies.get(prop);
+            if (child) {
+                info.proxies.delete(prop);
+                state.infos.delete(child);
+            }
         } else {
             // Delete self
             const parent = info.parent;
