@@ -1,14 +1,22 @@
 import { isFunction } from '@legendapp/tools';
 import { useMemo } from 'react';
+import { persistObservable } from '../persist';
 import { observable } from '../observable';
-import { Observable, ValidObservableParam } from '../types/observableInterfaces';
+import { Observable, ValidObservableParam, PersistOptions } from '../types/observableInterfaces';
 import { useObservables } from './useObservables';
 
 function useNewObservable<T>(
     value: ValidObservableParam<T> | (() => ValidObservableParam<T>),
-    observe?: boolean
+    observe?: boolean,
+    persist?: PersistOptions<T>
 ): [Observable<T>, T] {
-    const obs = useMemo(() => observable(isFunction(value) ? value() : value), []); // eslint-disable-line react-hooks/exhaustive-deps
+    const obs = useMemo(() => {
+        const ret = observable(isFunction(value) ? value() : value);
+        if (persist) {
+            persistObservable(ret, persist);
+        }
+        return ret;
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe !== false) {
         useObservables(() => [obs]);
