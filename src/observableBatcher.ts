@@ -1,8 +1,8 @@
 import { timeoutOnce } from '@legendapp/tools';
-import { ListenerFn, ObsListenerInfo } from './types/observableInterfaces';
+import { ListenerFn, ObservableListenerInfo } from './types/observableInterfaces';
 
 let numInBatch = 0;
-let _batch: { cb: ListenerFn<any>; value: any; info: ObsListenerInfo }[] = [];
+let _batch: { cb: ListenerFn<any>; value: any; info: ObservableListenerInfo }[] = [];
 
 function onActionTimeout() {
     if (_batch.length > 0) {
@@ -28,7 +28,7 @@ export namespace observableBatcher {
             _batch = [];
         }
     }
-    export function notify(cb: ListenerFn<any>, value: any, info: ObsListenerInfo) {
+    export function notify(cb: ListenerFn<any>, value: any, info: ObservableListenerInfo) {
         if (numInBatch > 0) {
             for (let i = 0; i < _batch.length; i++) {
                 const n = _batch[i];

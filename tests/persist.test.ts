@@ -61,10 +61,8 @@ export async function recursiveReplaceStrings<T extends string | object | number
 global.localStorage = new LocalStorageMock();
 
 configureObservable({
-    persist: {
-        localPersistence: ObservablePersistLocalStorage,
-        saveTimeout: 16,
-    },
+    persistLocal: ObservablePersistLocalStorage,
+    saveTimeout: 16,
 });
 
 // jest.setTimeout(10000);

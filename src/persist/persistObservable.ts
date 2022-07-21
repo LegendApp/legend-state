@@ -1,4 +1,4 @@
-import { config } from '../configureObservable';
+import { observableConfiguration } from '../configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
 import { observable } from '../observable';
 import { observableBatcher } from '../observableBatcher';
@@ -9,7 +9,7 @@ import type {
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
-    ObsListenerInfo,
+    ObservableListenerInfo,
     PersistOptions,
 } from '../types/observableInterfaces';
 import { ObservablePersistLocalStorage } from './web';
@@ -34,7 +34,7 @@ async function onObsChange<T>(
     state: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
-    info: ObsListenerInfo
+    info: ObservableListenerInfo
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
 
@@ -82,8 +82,8 @@ function onChangeRemote(state: LocalState, cb: () => void) {
 export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
     const { local, remote } = persistOptions;
     const localPersistence =
-        persistOptions.localPersistence || config.persist?.localPersistence || platformDefaultPersistence;
-    const remotePersistence = persistOptions.remotePersistence || config.persist?.remotePersistence;
+        persistOptions.persistLocal || observableConfiguration.persistLocal || platformDefaultPersistence;
+    const remotePersistence = persistOptions.persistRemote || observableConfiguration?.persistRemote;
     const state: LocalState = { tempDisableSaveRemote: false };
 
     let isLoadedLocal = false;

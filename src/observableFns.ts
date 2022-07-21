@@ -1,12 +1,12 @@
-import { isObject } from '@legendapp/tools';
-import { isObjectEmpty, isPrimitive, symbolDateModified, symbolShallow } from './globals';
+import { isObject, isObjectEmpty } from '@legendapp/tools';
+import { isPrimitive, symbolDateModified, symbolShallow } from './globals';
 import { observableBatcher } from './observableBatcher';
 import {
     ObservableEventType,
     ListenerFn,
     ObservableChecker,
-    ObsListener,
-    ObsListenerInfo,
+    ObservableListener,
+    ObservableListenerInfo,
     OnReturnValue,
     Observable,
     ObservableEvent,
@@ -18,7 +18,7 @@ const { infos, skipNotifyFor, lastAccessedProxy } = state;
 
 const symbolHasValue = Symbol('__hasValue');
 
-function _notify(target: ObservableChecker, listenerInfo: ObsListenerInfo, fromChild?: boolean) {
+function _notify(target: ObservableChecker, listenerInfo: ObservableListenerInfo, fromChild?: boolean) {
     const info = infos.get(target);
     // Notify this listener if this target is not being skipped (if getting called during an assign)
     if (info && !skipNotifyFor.includes(target)) {
@@ -50,7 +50,10 @@ export function notifyObservable<T>(target: ObservableChecker<T>, changedValue: 
     _notify(target, { changedValue, prevValue, path });
 }
 
-export function listenToObservableShallow<T>(obs: ObservableChecker<T>, callback: ListenerFn<T>): ObsListener<T> {
+export function listenToObservableShallow<T>(
+    obs: ObservableChecker<T>,
+    callback: ListenerFn<T>
+): ObservableListener<T> {
     return listenToObservable(obs, callback, /*shallow*/ true);
 }
 
@@ -58,7 +61,7 @@ export function listenToObservable<T>(
     obs: ObservableChecker<T>,
     callback: ListenerFn<T>,
     shallow?: boolean
-): ObsListener<T> {
+): ObservableListener<T> {
     // Get the stable observable if it's a primitive
     obs = prop(obs);
 
@@ -69,13 +72,13 @@ export function listenToObservable<T>(
     if (!info.listeners) {
         info.listeners = new Set();
     }
-    const listener = { target: obs, callback, shallow } as ObsListener<T>;
+    const listener = { target: obs, callback, shallow } as ObservableListener<T>;
     info.listeners.add(listener);
     return listener;
 }
 
 export function onEquals<T>(obs: ObservableChecker<T>, value: T, cb?: (value: T) => void): OnReturnValue<T> {
-    let listener: ObsListener<T>;
+    let listener: ObservableListener<T>;
 
     const promise = new Promise<any>((resolve) => {
         // Get the stable observable if it's a primitive
@@ -140,29 +143,33 @@ export function _on(obs: ObservableChecker, _: any, eventType: ObservableEventTy
     return ObservableOnFunctions[eventType](obs, ...args);
 }
 
-export function listen<T>(obs: ObservableChecker<T>, eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
-export function listen<T>(obs: ObservableChecker<T>, eventType: 'changeShallow', cb: ListenerFn<T>): ObsListener<T>;
+export function listen<T>(obs: ObservableChecker<T>, eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
+export function listen<T>(
+    obs: ObservableChecker<T>,
+    eventType: 'changeShallow',
+    cb: ListenerFn<T>
+): ObservableListener<T>;
 export function listen<T>(
     obs: ObservableChecker<T>,
     eventType: 'equals',
     value: T,
     cb?: (value?: T) => void
-): { listener: ObsListener<T>; promise: Promise<T> };
+): { listener: ObservableListener<T>; promise: Promise<T> };
 export function listen<T>(
     obs: ObservableChecker<T>,
     eventType: 'hasValue',
     cb?: (value?: T) => void
-): { listener: ObsListener<T>; promise: Promise<T> };
+): { listener: ObservableListener<T>; promise: Promise<T> };
 export function listen<T>(
     obs: ObservableChecker<T>,
     eventType: 'true',
     cb?: (value?: T) => void
-): { listener: ObsListener<T>; promise: Promise<T> };
+): { listener: ObservableListener<T>; promise: Promise<T> };
 export function listen<T>(
     obs: ObservableChecker<T>,
     eventType: ObservableEventType,
     cb?: (value?: T) => void
-): ObsListener<T> | { listener: ObsListener<T>; promise: Promise<T> };
+): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
 export function listen<T>(obs: ObservableChecker<T>, eventType: ObservableEventType, ...args) {
     return ObservableOnFunctions[eventType](obs, ...args);
 }

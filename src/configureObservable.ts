@@ -3,20 +3,17 @@ import { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } fro
 
 interface Config {
     extendPrototypes?: boolean;
-    persist?: {
-        localPersistence?: ClassConstructor<ObservablePersistLocal>;
-        remotePersistence?: ClassConstructor<ObservablePersistRemote>;
-        saveTimeout?: number;
-        dateModifiedKey?: string;
-    };
+    persistLocal?: ClassConstructor<ObservablePersistLocal>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    saveTimeout?: number;
+    dateModifiedKey?: string;
 }
 
-/** @internal **/
-export const config: Config = { extendPrototypes: true };
+export const observableConfiguration: Config = { extendPrototypes: true };
 
 export function configureObservable(options?: Config) {
-    Object.assign(config, options);
-    if (config.extendPrototypes) {
+    Object.assign(observableConfiguration, options);
+    if (observableConfiguration.extendPrototypes) {
         extendPrototypes();
     }
 }

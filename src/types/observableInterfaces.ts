@@ -2,7 +2,7 @@ export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasVa
 
 export type ObservableFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
 
-export interface ObsProps<T> {
+export interface ObservableProps<T> {
     get(): T;
     set(value: ValidObservableParam<T>): Observable<T>;
     set<K extends keyof T>(key: K | string | number, value: ValidObservableParam<T[K]>): Observable<T[K]>;
@@ -10,31 +10,35 @@ export interface ObsProps<T> {
     prop<K extends keyof T>(prop: K): Observable<T[K]>;
     delete(): Observable<T>;
     delete<K extends keyof T>(key: K | string | number): Observable<T>;
-    on(eventType: 'change', cb: ListenerFn<T>): ObsListener<T>;
-    on(eventType: 'changeShallow', cb: ListenerFn<T>): ObsListener<T>;
-    on(eventType: 'equals', value: T, cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
-    on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
-    on(eventType: 'true', cb?: (value?: T) => void): { listener: ObsListener<T>; promise: Promise<T> };
+    on(eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
+    on(eventType: 'changeShallow', cb: ListenerFn<T>): ObservableListener<T>;
+    on(
+        eventType: 'equals',
+        value: T,
+        cb?: (value?: T) => void
+    ): { listener: ObservableListener<T>; promise: Promise<T> };
+    on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    on(eventType: 'true', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
     on(
         eventType: ObservableEventType,
         cb?: (value?: T) => void
-    ): ObsListener<T> | { listener: ObsListener<T>; promise: Promise<T> };
+    ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
 }
-export type ObsPropsUnsafe<T> = Partial<ObsProps<T>>;
+export type ObservablePropsUnsafe<T> = Partial<ObservableProps<T>>;
 
-export interface ObsListener<T = any> {
+export interface ObservableListener<T = any> {
     target: Observable<T>;
     callback: ListenerFn<T>;
     shallow: boolean;
 }
 
-export interface ObsListenerInfo {
+export interface ObservableListenerInfo {
     changedValue: any;
     prevValue: any;
     path: string[];
 }
 
-export type ListenerFn<T> = (value: T, info: ObsListenerInfo) => void;
+export type ListenerFn<T> = (value: T, info: ObservableListenerInfo) => void;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -50,22 +54,22 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     ? TRecurse
     : T[K];
 
-type ObsPropsRecursiveUnsafe<T> = {
+type ObservablePropsRecursiveUnsafe<T> = {
     [K in keyof T]: Recurse<T, K, ObservableUnsafe<T[K]>>;
 };
 
-type ObsPropsRecursive<T> = {
+type ObservablePropsRecursive<T> = {
     readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
 };
 
-export type ObservableUnsafe<T = any> = ObsPropsRecursiveUnsafe<T> & ObsPropsUnsafe<T>;
-export type Observable<T = any> = ObsPropsRecursive<T> & ObsProps<T>;
+export type ObservableUnsafe<T = any> = ObservablePropsRecursiveUnsafe<T> & ObservablePropsUnsafe<T>;
+export type Observable<T = any> = ObservablePropsRecursive<T> & ObservableProps<T>;
 export type ObservableComputed<T = any> = Omit<Observable<T>, 'set' | 'assign' | 'delete'>;
 
 export interface ObservableEvent {
     fire(): void;
-    on(cb?: () => void): ObsListener<void>;
-    on(eventType: 'change', cb?: () => void): ObsListener<void>;
+    on(cb?: () => void): ObservableListener<void>;
+    on(eventType: 'change', cb?: () => void): ObservableListener<void>;
 }
 
 export type ObservableValue<T extends Observable | ObservableUnsafe | ObservableEvent> = T extends Observable<infer t>
@@ -114,8 +118,8 @@ export interface PersistOptionsRemote<T = any> {
 export interface PersistOptions<T = any> {
     local?: string;
     remote?: PersistOptionsRemote<T>;
-    localPersistence?: ClassConstructor<ObservablePersistLocal>;
-    remotePersistence?: ClassConstructor<ObservablePersistRemote>;
+    persistLocal?: ClassConstructor<ObservablePersistLocal>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote>;
     dateModifiedKey?: string;
 }
 
@@ -128,7 +132,7 @@ export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T>(options: PersistOptions<T>, value: T, info: ObsListenerInfo): Promise<T>;
+    save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo): Promise<T>;
     listen<T>(
         obs: ObservableChecker<T>,
         options: PersistOptions<T>,
@@ -197,7 +201,7 @@ export type ValidObservableParam<T> = T extends Record<string, any>
     : T;
 export interface OnReturnValue<T> {
     promise: Promise<T>;
-    listener: ObsListener<T>;
+    listener: ObservableListener<T>;
 }
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;

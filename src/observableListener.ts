@@ -1,7 +1,7 @@
-import { ObsListener } from './types/observableInterfaces';
+import { ObservableListener } from './types/observableInterfaces';
 import { state } from './observableState';
 
-export function disposeListener(listener: ObsListener) {
+export function disposeListener(listener: ObservableListener) {
     if (listener) {
         const info = state.infos.get(listener.target);
         if (info.listeners) {

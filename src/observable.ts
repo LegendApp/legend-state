@@ -1,5 +1,5 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
-import { config } from './configureObservable';
+import { observableConfiguration } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
 import { observableBatcher } from './observableBatcher';
 import { notifyObservable, observableProp, prop, _on } from './observableFns';
@@ -267,7 +267,7 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             return proxyOwner;
         } else {
             // Update lastAccessedProxy to support extended prototype functions on primitives
-            if (config.extendPrototypes) {
+            if (observableConfiguration.extendPrototypes) {
                 lastAccessedProxy.proxy = proxyOwner;
                 lastAccessedProxy.prop = prop;
             }
@@ -351,7 +351,7 @@ function _observable<T>(
 function observable<T>(value?: ValidObservableParam<T>): Observable<T>;
 function observable<T>(value: ValidObservableParam<T>, unsafe: true): ObservableUnsafe<T>;
 function observable<T>(value?: ValidObservableParam<T>, unsafe?: boolean): Observable<T> | ObservableUnsafe<T> {
-    if (!state.didOverride && config.extendPrototypes) {
+    if (!state.didOverride && observableConfiguration.extendPrototypes) {
         extendPrototypes();
     }
     return _observable(value, !unsafe);

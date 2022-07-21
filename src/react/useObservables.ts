@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { isObservable, isObservableEvent } from '../observableFns';
 import {
     MappedObservableValue,
-    ObsListener,
+    ObservableListener,
     Observable,
     ObservableChecker,
     ObservableEvent,
@@ -14,7 +14,7 @@ import { disposeListener } from '../observableListener';
 import { state } from '../observableState';
 
 interface SavedRefTrack {
-    proxies: [Observable, string, ObsListener][];
+    proxies: [Observable, string, ObservableListener][];
 }
 
 function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): ObservableValue<T> {
@@ -117,7 +117,7 @@ const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () =
                 const listener = (prop ? obs.prop(prop) : obs).on(
                     shallow ? 'changeShallow' : 'change',
                     onChange
-                ) as ObsListener;
+                ) as ObservableListener;
                 saved.proxies.push([obs, prop, listener]);
             }
         }

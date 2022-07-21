@@ -1,12 +1,14 @@
 {
     "name": "@legendapp/state",
-    "version": "0.9.0",
+    "version": "0.9.1-alpha.7",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
     "main": "./index.js",
     "types": "./index.d.ts",
-    "files": ["**"],
+    "files": [
+        "**"
+    ],
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
@@ -19,12 +21,15 @@
     },
     "exports": {
         ".": "./index.js",
+        "./internal": "./internal/index.js",
         "./react": "./react/index.js",
         "./persist": "./persist/index.js",
+        "./persist/web": "./persist/web/index.js",
+        "./persist/mobile": "./persist/mobile/index.js",
         "./types": "./types/index.d.ts"
     },
     "dependencies": {
-        "@legendapp/tools": "^2.0.0-alpha.3"
+        "@legendapp/tools": "^2.0.0-alpha.6"
     },
     "devDependencies": {
         "@testing-library/react-hooks": "^8.0.1",

@@ -65,6 +65,11 @@ function Component() {
 
 Full documentation is still in progress, but will be at [the website](https://www.legendapp.com/dev/state/) shortly.
 
+## Todo
+
+[] Remote persistence to Firebase
+[] useSyncExternalStore for React 18
+
 ## 👩‍⚖️ License
 
 [MIT](LICENSE)

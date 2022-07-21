@@ -6,7 +6,7 @@ import { Observable, ValidObservableParam, PersistOptions } from '../types/obser
 import { useObservables } from './useObservables';
 
 function useNewObservable<T>(
-    value: ValidObservableParam<T> | (() => ValidObservableParam<T>),
+    value: (() => ValidObservableParam<T>) | ValidObservableParam<T>,
     observe?: boolean,
     persist?: PersistOptions<T>
 ): [Observable<T>, T] {

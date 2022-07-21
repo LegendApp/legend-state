@@ -1,5 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { config } from './configureObservable';
+import { observableConfiguration } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
@@ -51,11 +51,8 @@ export function isCollection(obj: any) {
     return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
 }
 
-export function isObjectEmpty(obj: object) {
-    return obj && Object.keys(obj).length === 0;
-}
 export function getDateModifiedKey(dateModifiedKey: string) {
-    return dateModifiedKey || config.persist?.dateModifiedKey || '@';
+    return dateModifiedKey || observableConfiguration.dateModifiedKey || '@';
 }
 export function jsonEqual(obj1: any, obj2: any) {
     return JSON.stringify(obj1) === JSON.stringify(obj2);

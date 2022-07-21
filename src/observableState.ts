@@ -1,4 +1,4 @@
-import { Observable, ObservableChecker, ObsListener } from './types/observableInterfaces';
+import { Observable, ObservableChecker, ObservableListener } from './types/observableInterfaces';
 
 export interface StateInfo {
     prop: string | number | symbol;
@@ -7,7 +7,7 @@ export interface StateInfo {
     safe: boolean;
     primitive: boolean;
     readonly?: boolean;
-    listeners?: Set<ObsListener>;
+    listeners?: Set<ObservableListener>;
     proxies?: Map<string | number | symbol, Observable>;
     parent?: Observable;
 }
