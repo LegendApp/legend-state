@@ -6,16 +6,16 @@
     "private": true,
     "main": "./index.js",
     "types": "./index.d.ts",
-    "files": [
-        "**"
-    ],
+    "files": ["**"],
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
         "build": "tsc && cp package.json dist/package.json && cp -r dist/src/* dist/ && rm -rf dist/src && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "test": "jest",
         "preversion": "npm run build",
         "postversion": "git push --follow-tags",
-        "jestclear": "jest --clearCache"
+        "jestclear": "jest --clearCache",
+        "publish": "npm run build && cd dist && npm publish"
     },
     "exports": {
         ".": "./index.js",
@@ -55,6 +55,13 @@
         }
     },
     "author": "Legend <contact@legendapp.com> (https://github.com/LegendApp)",
+    "keywords": [
+        "react",
+        "react-native",
+        "state",
+        "hooks",
+        "proxy"
+    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/LegendApp/legend-state.git"

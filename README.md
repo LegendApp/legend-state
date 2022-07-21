@@ -59,7 +59,7 @@ function Component() {
 
 ## Documentation
 
-See [the website](https://www.legendapp.com/dev/state/) the the full documentation.
+Full documentation is still in progress, but will be at [the website](https://www.legendapp.com/dev/state/) shortly.
 
 ## 👩‍⚖️ License
 
