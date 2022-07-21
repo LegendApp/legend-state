@@ -1,4 +1,4 @@
-# Legend State
+# Legend-State
 
 Legend-State is a proxy-based observable library designed to be both:
 
@@ -7,7 +7,11 @@ Legend-State is a proxy-based observable library designed to be both:
 
 The core is platform agnostic so you can use it in vanilla JS or any framework to create and listen to observables. It includes hooks for React and React Native, and has plugins for automatically persisting to storage.
 
+## Install
+
 `npm install @legendapp/state` or `yarn add @legendapp/state`
+
+## Example
 
 ```jsx
 // Create an observable object
