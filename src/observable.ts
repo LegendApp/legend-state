@@ -1,7 +1,7 @@
-import { isArray, isFunction, isNumber, isObject, isString } from '@legendapp/tools';
-import { observableBatcher } from './observableBatcher';
+import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { config } from './configureObservable';
 import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
+import { observableBatcher } from './observableBatcher';
 import { notifyObservable, observableProp, prop, _on } from './observableFns';
 import { state } from './observableState';
 import { extendPrototypes } from './primitivePrototypes';
