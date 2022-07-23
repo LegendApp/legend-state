@@ -33,6 +33,8 @@ export interface ObservableListener<T = any> {
     target: Observable<T>;
     callback: ListenerFn<T>;
     shallow: boolean;
+    dispose: () => void;
+    isDisposed: boolean;
 }
 
 export interface ObservableListenerInfo {

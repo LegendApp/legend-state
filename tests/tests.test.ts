@@ -1,5 +1,5 @@
+import { observable, observableComputed, observableEvent, shallow } from '../src';
 import { assigner, getter, setter } from '../src/observable';
-import { disposeListener, observable, observableComputed, observableEvent, shallow } from '../src';
 import { getObservableFromPrimitive, listen, listenToObservable } from '../src/observableFns';
 import { state } from '../src/observableState';
 
@@ -122,7 +122,9 @@ describe('Basic', () => {
         expect(obs.get()).toEqual({ val: 20 });
         expect(handler).toHaveBeenCalledWith({ val: 20 }, { changedValue: 20, path: ['val'], prevValue: 10 });
 
-        disposeListener(listener1);
+        listener1.dispose();
+
+        expect(listener1.isDisposed).toEqual(true);
 
         const handle2 = jest.fn();
         listenToObservable(obs, handle2);

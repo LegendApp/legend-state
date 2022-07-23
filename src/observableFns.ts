@@ -11,7 +11,6 @@ import {
     Observable,
     ObservableEvent,
 } from './observableInterfaces';
-import { disposeListener } from './observableListener';
 import { state } from './observableState';
 
 const { infos, skipNotifyFor, lastAccessedProxy } = state;
@@ -50,6 +49,16 @@ export function notifyObservable<T>(target: ObservableChecker<T>, changedValue: 
     _notify(target, { changedValue, prevValue, path });
 }
 
+export function disposeListener(listener: ObservableListener) {
+    if (listener && !listener.isDisposed) {
+        listener.isDisposed = true;
+        const info = state.infos.get(listener.target);
+        if (info.listeners) {
+            info.listeners.delete(listener);
+        }
+    }
+}
+
 export function listenToObservableShallow<T>(
     obs: ObservableChecker<T>,
     callback: ListenerFn<T>
@@ -73,6 +82,7 @@ export function listenToObservable<T>(
         info.listeners = new Set();
     }
     const listener = { target: obs, callback, shallow } as ObservableListener<T>;
+    listener.dispose = disposeListener.bind(listener, listener);
     info.listeners.add(listener);
     return listener;
 }

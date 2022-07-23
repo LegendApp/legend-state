@@ -1,5 +1,4 @@
 export { configureObservable } from './configureObservable';
-export { disposeListener } from './observableListener';
 export { assigner, getter, observable, setter } from './observable';
 export { observableBatcher } from './observableBatcher';
 export { observableComputed } from './observableComputed';

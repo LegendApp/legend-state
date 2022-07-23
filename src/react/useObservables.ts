@@ -4,14 +4,13 @@ import { useEffect, useRef } from 'react';
 import { isObservable, isObservableEvent } from '../observableFns';
 import {
     MappedObservableValue,
-    ObservableListener,
     Observable,
     ObservableChecker,
     ObservableCheckerLoose,
     ObservableEvent,
+    ObservableListener,
     ObservableValue,
 } from '../observableInterfaces';
-import { disposeListener } from '../observableListener';
 import { state } from '../observableState';
 
 interface SavedRefTrack {
@@ -54,7 +53,7 @@ export function useObservables<
     useEffect(
         () => () => {
             if (ref.current.proxies) {
-                ref.current.proxies.forEach((p) => disposeListener(p[2]));
+                ref.current.proxies.forEach((p) => p[2].dispose());
                 ref.current.proxies = [];
             }
         },
@@ -96,7 +95,7 @@ const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () =
         }
         if (!found) {
             saved.proxies.splice(i--, 1);
-            disposeListener(p[2]);
+            p[2].dispose();
         }
     }
     // Listen to all tracked proxies
