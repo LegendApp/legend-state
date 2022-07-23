@@ -7,6 +7,7 @@ import {
     ObservableListener,
     Observable,
     ObservableChecker,
+    ObservableCheckerLoose,
     ObservableEvent,
     ObservableValue,
 } from '../observableInterfaces';
@@ -22,10 +23,7 @@ function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): Obs
 }
 
 export function useObservables<
-    T extends
-        | (ObservableChecker | ObservableEvent)
-        | (ObservableChecker | ObservableEvent)[]
-        | Record<string, ObservableChecker>
+    T extends ObservableCheckerLoose | ObservableCheckerLoose[] | Record<string, ObservableCheckerLoose>
 >(fn: () => T): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRefTrack>();

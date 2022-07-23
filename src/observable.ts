@@ -8,6 +8,7 @@ import { extendPrototypes } from './primitivePrototypes';
 import {
     Observable,
     ObservableChecker,
+    ObservableCheckerWriteable,
     ObservableFnName,
     ObservableUnsafe,
     ValidObservableParam,
@@ -69,9 +70,9 @@ function _get(proxyOwner: Observable) {
     return info.primitive ? target._value : target;
 }
 
-function _set(proxyOwner: ObservableChecker, _: any, value: any);
-function _set(proxyOwner: ObservableChecker, _: any, prop: string | number | symbol, value: any);
-function _set(proxyOwner: ObservableChecker, _: any, prop: string | number | symbol | unknown, value?: any) {
+function _set(proxyOwner: ObservableCheckerWriteable, _: any, value: any);
+function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | number | symbol, value: any);
+function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | number | symbol | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = infos.get(proxyOwner);
     if (!info) debugger;
@@ -183,17 +184,17 @@ function binder(fn, obs: ObservableChecker) {
     obs = prop(obs);
     return fn.bind(obs, obs, undefined);
 }
-export function setter<T>(obs: ObservableChecker<T>) {
+export function setter<T>(obs: ObservableCheckerWriteable<T>) {
     return binder(_set, obs);
 }
 export function getter<T>(obs: ObservableChecker<T>) {
     return binder(_get, obs);
 }
-export function assigner<T>(obs: ObservableChecker<T>) {
+export function assigner<T>(obs: ObservableCheckerWriteable<T>) {
     return binder(_assign, obs);
 }
 
-export function deleteFn(obs: ObservableChecker, target: any, prop?: string | number | symbol) {
+export function deleteFn(obs: ObservableCheckerWriteable, target: any, prop?: string | number | symbol) {
     const info = infos.get(obs);
 
     if (!info.readonly) {

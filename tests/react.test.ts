@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-hooks';
-import { observable, shallow } from '../src';
+import { observable, observableComputed, shallow } from '../src';
 import { useObservables } from '../src/react';
 
 describe('React Hooks', () => {
@@ -23,10 +23,8 @@ describe('React Hooks', () => {
         expect(val.val2.val3).toEqual('hi');
     });
     test('useObservables with object returns object', () => {
-        let numRenders = 0;
         const obs = observable({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
-            numRenders++;
             return useObservables(() => ({ val3: obs.val.val2.val3 }));
         });
         const { val3 } = result.current;
@@ -34,10 +32,8 @@ describe('React Hooks', () => {
         expect(val3).toEqual('hello');
     });
     test('useObservables with single obs return single obs', () => {
-        let numRenders = 0;
         const obs = observable({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
-            numRenders++;
             return useObservables(() => obs.val.val2.val3);
         });
         const val3 = result.current;
@@ -101,5 +97,17 @@ describe('React Hooks', () => {
         expect(numRenders).toEqual(2);
         expect(val[0].text).toEqual('hi');
         expect(val[1].text).toEqual('hi2');
+    });
+    test('useObservables with computed', () => {
+        let numRenders = 0;
+        const obs = observable({ val: 'hello', val2: 'there' });
+        const computed = observableComputed(() => ({ test: obs.val + ' ' + obs.val2 }));
+
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables(() => [computed]);
+        });
+        const [{ test: full }] = result.current;
+        expect(full).toEqual('hello there');
     });
 });

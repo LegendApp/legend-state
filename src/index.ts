@@ -1,9 +1,18 @@
 export { configureObservable } from './configureObservable';
-export { observable, setter, getter, assigner } from './observable';
-export { prop, shallow, isObservable, isObservableEvent, merge, listen, unlisten } from './observableFns';
 export { disposeListener } from './observableListener';
+export { assigner, getter, observable, setter } from './observable';
 export { observableBatcher } from './observableBatcher';
 export { observableComputed } from './observableComputed';
 export { observableEvent } from './observableEvent';
-export { persistObservable } from './persistObservable';
+export {
+    disposeListener,
+    isObservable,
+    isObservableEvent,
+    listen,
+    merge,
+    prop,
+    shallow,
+    unlisten,
+} from './observableFns';
 export * from './observableInterfaces';
+export { persistObservable } from './persistObservable';
