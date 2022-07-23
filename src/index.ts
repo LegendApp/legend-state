@@ -5,3 +5,5 @@ export { disposeListener } from './observableListener';
 export { observableBatcher } from './observableBatcher';
 export { observableComputed } from './observableComputed';
 export { observableEvent } from './observableEvent';
+export { persistObservable } from './persistObservable';
+export * from './observableInterfaces';

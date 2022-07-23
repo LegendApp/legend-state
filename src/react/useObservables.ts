@@ -9,7 +9,7 @@ import {
     ObservableChecker,
     ObservableEvent,
     ObservableValue,
-} from '../types/observableInterfaces';
+} from '../observableInterfaces';
 import { disposeListener } from '../observableListener';
 import { state } from '../observableState';
 

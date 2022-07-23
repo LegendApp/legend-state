@@ -1,4 +1,4 @@
-import { ObservableChecker } from '../types';
+import { ObservableChecker } from '../observableInterfaces';
 import { useCallback } from 'react';
 import { assigner, getter, setter } from '../observable';
 

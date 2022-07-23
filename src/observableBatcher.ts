@@ -1,5 +1,5 @@
 import { timeoutOnce } from '@legendapp/tools';
-import { ListenerFn, ObservableListenerInfo } from './types/observableInterfaces';
+import { ListenerFn, ObservableListenerInfo } from './observableInterfaces';
 
 let numInBatch = 0;
 let _batch: { cb: ListenerFn<any>; value: any; info: ObservableListenerInfo }[] = [];

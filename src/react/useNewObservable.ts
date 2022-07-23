@@ -1,8 +1,8 @@
 import { isFunction } from '@legendapp/tools';
 import { useMemo } from 'react';
-import { persistObservable } from '../persist';
+import { persistObservable } from '../persistObservable';
 import { observable } from '../observable';
-import { Observable, ValidObservableParam, PersistOptions } from '../types/observableInterfaces';
+import { Observable, ValidObservableParam, PersistOptions } from '../observableInterfaces';
 import { useObservables } from './useObservables';
 
 function useNewObservable<T>(

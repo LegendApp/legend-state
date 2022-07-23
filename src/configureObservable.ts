@@ -1,5 +1,5 @@
 import { extendPrototypes } from './primitivePrototypes';
-import { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } from './types/observableInterfaces';
+import { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } from './observableInterfaces';
 
 interface Config {
     extendPrototypes?: boolean;

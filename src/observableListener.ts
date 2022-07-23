@@ -1,4 +1,4 @@
-import { ObservableListener } from './types/observableInterfaces';
+import { ObservableListener } from './observableInterfaces';
 import { state } from './observableState';
 
 export function disposeListener(listener: ObservableListener) {

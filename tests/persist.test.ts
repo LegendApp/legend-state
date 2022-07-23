@@ -2,8 +2,8 @@ import { isArray, isObject, isString } from '@legendapp/tools';
 import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';
-import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
-import { ObservablePersistLocalStorage } from '../src/persist/web/ObservablePersistLocalStorage';
+import { mapPersistences, persistObservable } from '../src/persistObservable';
+import { ObservablePersistLocalStorage } from '../src/local-storage';
 
 class LocalStorageMock {
     store: Record<any, any>;

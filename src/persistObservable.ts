@@ -1,18 +1,18 @@
-import { observableConfiguration } from '../configureObservable';
-import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from '../globals';
-import { observable } from '../observable';
-import { observableBatcher } from '../observableBatcher';
-import { listenToObservable, merge } from '../observableFns';
+import { observableConfiguration } from './configureObservable';
+import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
+import { ObservablePersistLocalStorage } from './local-storage';
+import { observable } from './observable';
+import { observableBatcher } from './observableBatcher';
+import { merge } from './observableFns';
 import type {
     Observable,
     ObservableChecker,
+    ObservableListenerInfo,
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
-    ObservableListenerInfo,
     PersistOptions,
-} from '../types/observableInterfaces';
-import { ObservablePersistLocalStorage } from './web';
+} from './observableInterfaces';
 
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();

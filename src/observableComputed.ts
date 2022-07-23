@@ -1,5 +1,5 @@
 import { observable } from './observable';
-import { Observable, ObservableComputed, ValidObservableParam } from './types/observableInterfaces';
+import { Observable, ObservableComputed, ValidObservableParam } from './observableInterfaces';
 import { state } from './observableState';
 
 function onChanged<T>(observable: Observable, fn: () => T) {

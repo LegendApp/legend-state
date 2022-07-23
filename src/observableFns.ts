@@ -10,7 +10,7 @@ import {
     OnReturnValue,
     Observable,
     ObservableEvent,
-} from './types/observableInterfaces';
+} from './observableInterfaces';
 import { disposeListener } from './observableListener';
 import { state } from './observableState';
 
@@ -90,12 +90,13 @@ export function onEquals<T>(obs: ObservableChecker<T>, value: T, cb?: (value: T)
                 !isDone &&
                 (value === (symbolHasValue as any)
                     ? // If value param is symbolHasValue, then this is from onHasValue so resolve if newValue is anything but undefined or empty object
-                      newValue !== undefined && newValue !== null && newValue !== !isObjectEmpty(newValue)
+                      newValue !== undefined && newValue !== null && !isObjectEmpty(newValue)
                     : newValue === value)
             ) {
                 isDone = true;
                 cb?.(newValue);
                 resolve(value);
+
                 disposeListener(listener);
             }
             return isDone;

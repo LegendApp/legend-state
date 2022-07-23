@@ -1,4 +1,4 @@
-import type { ObservablePersistLocal } from '../../types/observableInterfaces';
+import type { ObservablePersistLocal } from '../observableInterfaces';
 import { MMKV } from 'react-native-mmkv';
 
 const storage = new MMKV({

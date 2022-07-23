@@ -11,7 +11,7 @@ import {
     ObservableFnName,
     ObservableUnsafe,
     ValidObservableParam,
-} from './types/observableInterfaces';
+} from './observableInterfaces';
 
 const { infos, skipNotifyFor, updateTracking, lastAccessedProxy } = state;
 

@@ -1,5 +1,5 @@
 import { observable } from './observable';
-import type { Observable, ObservableEvent } from './types/observableInterfaces';
+import type { Observable, ObservableEvent } from './observableInterfaces';
 
 function eventNotifier(obs: Observable<number>) {
     obs.set(obs.get() + 1);
