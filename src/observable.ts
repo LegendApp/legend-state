@@ -159,6 +159,9 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
             const prevValue = target[prop];
             if (!jsonEqual(value, prevValue)) {
                 target[prop] = targetOriginal[prop] = value;
+                info.primitive = false;
+                delete target[symbolValue];
+                delete targetOriginal[symbolValue];
                 // Notify listeners of changes.
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             }

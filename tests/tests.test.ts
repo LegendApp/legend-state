@@ -228,7 +228,15 @@ describe('Basic', () => {
 
         expect(obs.test.get()).toEqual(undefined);
     });
+    test('set to null', () => {
+        const obs = observable({ test: { test2: { test3: {} } } });
 
+        obs.test.test2.test3.set(null);
+
+        expect(JSON.stringify(obs.test.get()).includes('_value')).toEqual(false);
+        expect(JSON.stringify(obs.test.test2.get()).includes('_value')).toEqual(false);
+        expect(JSON.stringify(obs.test.test2.test3.get()).includes('_value')).toEqual(false);
+    });
     test('Set undefined to value and back', () => {
         const obs = observable({ test: { test2: { test3: undefined } } });
         const handler = jest.fn();
@@ -471,6 +479,15 @@ describe('Basic', () => {
         expect(obs === v).toEqual(false);
         expect(obs == v).toEqual(false);
         expect(obs.get() === v).toEqual(true);
+    });
+    test('Primitive has no keys', () => {
+        const obs = observable({ val: 10 });
+        expect(Object.keys(obs.val)).toEqual([]);
+    });
+    test('Set key on undefined', () => {
+        const obs = observable({ val: undefined });
+        obs.val.set('key', 10);
+        expect(obs.val.get()).toEqual({ key: 10 });
     });
 });
 
