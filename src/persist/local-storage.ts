@@ -10,7 +10,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
                 const value = localStorage.getItem(id);
                 return value ? JSON.parse(value) : undefined;
             } catch {
-                console.log('failed to parse', id);
+                console.error('ObservablePersistLocalStorage failed to parse', id);
             }
         }
         return this.data[id];

@@ -1,6 +1,8 @@
 import { act, renderHook } from '@testing-library/react-hooks';
-import { observable, observableComputed, shallow } from '../src';
-import { useObservables } from '../src/react';
+import { observable } from '../src/observable';
+import { observableComputed } from '../src/observableComputed';
+import { shallow } from '../src/observableFns';
+import { useObservables } from '../src/react/useObservables';
 
 describe('React Hooks', () => {
     test('useObservables', () => {

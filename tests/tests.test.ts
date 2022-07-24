@@ -1,6 +1,7 @@
-import { observable, observableComputed, observableEvent, shallow } from '../src';
-import { assigner, getter, setter } from '../src/observable';
-import { getObservableFromPrimitive, listen, listenToObservable } from '../src/observableFns';
+import { assigner, getter, observable, setter } from '../src/observable';
+import { observableComputed } from '../src/observableComputed';
+import { observableEvent } from '../src/observableEvent';
+import { getObservableFromPrimitive, listen, listenToObservable, shallow } from '../src/observableFns';
 import { state } from '../src/observableState';
 
 function promiseTimeout(time?: number) {

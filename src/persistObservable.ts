@@ -1,6 +1,6 @@
 import { observableConfiguration } from './configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
-import { ObservablePersistLocalStorage } from './local-storage';
+import { ObservablePersistLocalStorage } from './persist/local-storage';
 import { observable } from './observable';
 import { observableBatcher } from './observableBatcher';
 import { merge } from './observableFns';

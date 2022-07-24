@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "0.9.1-alpha.12",
+    "version": "0.9.1-alpha.14",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
@@ -12,7 +12,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "tsc && cp package.json dist/package.json && cp -r dist/src/* dist/ && rm -rf dist/src && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "tsc && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "preversion": "npm run build",
         "postversion": "git push --follow-tags",
@@ -21,13 +21,13 @@
     },
     "exports": {
         ".": "./index.js",
-        "./internal": "./internal/index.js",
-        "./local-storage": "./local-storage/index.js",
-        "./mmkv": "./mmkv/index.js",
-        "./react": "./react/index.js"
+        "./internal": "./internal.js",
+        "./local-storage": "./local-storage.js",
+        "./mmkv": "./mmkv.js",
+        "./react": "./react.js"
     },
     "dependencies": {
-        "@legendapp/tools": "^2.0.0-alpha.7"
+        "@legendapp/tools": "^2.0.0-alpha.14"
     },
     "devDependencies": {
         "@testing-library/react-hooks": "^8.0.1",
