@@ -1415,8 +1415,7 @@ describe('Delete', () => {
             prevValue: 1,
         });
     });
-
-    test('Delete removes proxies from state', () => {
+    test('Delete does not remove proxy children', () => {
         const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj2: { text: 'hi' } } });
         const handler = jest.fn();
 
@@ -1427,9 +1426,25 @@ describe('Delete', () => {
         obs.delete('obj');
 
         const obsState = state.infos.get(obs);
-        expect(obsState.proxies.has('obj')).toEqual(false);
-        expect(state.infos.has(obsNum1)).toEqual(false);
-        expect(state.infos.has(obsObj)).toEqual(false);
+        expect(obsState.proxies.has('obj')).toEqual(true);
+        expect(state.infos.has(obsNum1)).toEqual(true);
+        expect(state.infos.has(obsObj)).toEqual(true);
+        expect(Object.keys(obs)).toEqual([]);
+        expect(obs.obj.get()).toEqual(undefined);
+    });
+
+    test('Delete and re-add reuses proxies', () => {
+        const obs = observable({ obj: { num1: 1 } });
+
+        const objInfo = state.infos.get(obs.obj);
+
+        obs.delete('obj');
+
+        obs.set({ obj: { num1: 2 } });
+
+        const objInfo2 = state.infos.get(obs.obj);
+
+        expect(objInfo).toBe(objInfo2);
     });
 });
 

@@ -101,7 +101,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
                 if (info.proxies) {
                     const child = info.proxies.get(key);
                     if (child) {
-                        proxyOwner.delete(key);
+                        child.set(undefined);
                     }
                 }
                 delete target[key];
@@ -208,12 +208,8 @@ export function deleteFn(obs: ObservableCheckerWriteable, target: any, prop?: st
             delete target[prop];
             delete targetOriginal[prop];
 
-            // Remove the child proxy from state
-            const child = info.proxies.get(prop);
-            if (child) {
-                info.proxies.delete(prop);
-                state.infos.delete(child);
-            }
+            // TODO Should find a way to remove from state.infos or there will be a memory leak if deleting
+            // unique keys often. Re-addeding the same prop will reuse the same proxy.
         } else {
             // Delete self forwards into parent
             const parent = info.parent;
