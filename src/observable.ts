@@ -1,6 +1,6 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { observableConfiguration } from './configureObservable';
-import { isCollection, isPrimitive, jsonEqual, symbolShallow } from './globals';
+import { isCollection, isPrimitive, jsonEqual, symbolShallow, symbolValue } from './globals';
 import { observableBatcher } from './observableBatcher';
 import { notifyObservable, observableProp, prop, _on } from './observableFns';
 import { state } from './observableState';
@@ -67,7 +67,7 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
 function _get(proxyOwner: Observable) {
     const info = infos.get(proxyOwner);
     const target = info.target as any;
-    return info.primitive ? target._value : target;
+    return info.primitive ? target[symbolValue] : target;
 }
 
 function _set(proxyOwner: ObservableCheckerWriteable, _: any, value: any);
@@ -93,7 +93,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 
         const isValuePrimitive = isPrimitive(value);
 
-        const prevValue = info.primitive ? target._value : Object.assign({}, target);
+        const prevValue = info.primitive ? target[symbolValue] : Object.assign({}, target);
 
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => {
@@ -114,9 +114,11 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 
         if (isValuePrimitive) {
             info.primitive = true;
-            target._value = value;
+            target[symbolValue] = value;
         } else {
             info.primitive = false;
+            delete target[symbolValue];
+            delete targetOriginal[symbolValue];
             // 2. Assign the values onto the target which will update all children proxies, but would leave this
             // as a shallow copy of the the value
             proxyOwner.assign(value);
@@ -337,7 +339,7 @@ function _observable<T>(
     prop?: string | number | symbol
 ): Observable<T> {
     const primitive = isPrimitive(value);
-    const target = primitive ? { _value: value } : (value as unknown as object);
+    const target = primitive ? { [symbolValue]: value } : (value as unknown as object);
     const proxy = new Proxy(target, safe ? proxyHandler : proxyHandlerUnsafe);
     // Save proxy to state so it can be accessed later
     infos.set(proxy, { parent, prop, safe, target, primitive, targetOriginal: target });

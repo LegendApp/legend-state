@@ -1,3 +1,4 @@
+import { symbolValue } from '../src/globals';
 import { assigner, getter, observable, setter } from '../src/observable';
 import { observableComputed } from '../src/observableComputed';
 import { observableEvent } from '../src/observableEvent';
@@ -48,18 +49,18 @@ describe('Basic', () => {
     });
     test('Primitive proxy', () => {
         const obs = observable(10);
-        expect(obs).toEqual({ _value: 10 });
+        expect(obs).toEqual({ [symbolValue]: 10 });
         expect(obs.get()).toEqual(10);
     });
     test('Primitive prop', () => {
         const obs = observable({ val: 10 });
         expect(obs.val).toEqual(10);
-        expect(getObservableFromPrimitive(obs.val)).toEqual({ _value: 10 });
+        expect(getObservableFromPrimitive(obs.val)).toEqual({ [symbolValue]: 10 });
 
         obs.val.set(20);
 
         expect(obs.val).toEqual(20);
-        expect(getObservableFromPrimitive(obs.val)).toEqual({ _value: 20 });
+        expect(getObservableFromPrimitive(obs.val)).toEqual({ [symbolValue]: 20 });
     });
     test('Primitive setter bound', () => {
         const obs = observable({ val: 10, val2: 'hello' });
