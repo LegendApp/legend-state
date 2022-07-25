@@ -1,4 +1,4 @@
-import { timeoutOnce } from '@legendapp/tools';
+import { clearTimeoutOnce, timeoutOnce } from '@legendapp/tools';
 import { ListenerFn, ObservableListenerInfo } from './observableInterfaces';
 
 let numInBatch = 0;
@@ -24,8 +24,11 @@ export namespace observableBatcher {
         numInBatch--;
         if (numInBatch <= 0 || force) {
             numInBatch = 0;
-            _batch.forEach(({ cb, value, info }) => cb(value, info));
+            // Save batch locally first because it could batch more while looping over computeds
+            const batch = _batch;
             _batch = [];
+            batch.forEach(({ cb, value, info }) => cb(value, info));
+            clearTimeoutOnce('batch_beginAction');
         }
     }
     export function notify(cb: ListenerFn<any>, value: any, info: ObservableListenerInfo) {

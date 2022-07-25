@@ -121,7 +121,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
             delete targetOriginal[symbolValue];
             // 2. Assign the values onto the target which will update all children proxies, but would leave this
             // as a shallow copy of the the value
-            proxyOwner.assign(value);
+            _assign(proxyOwner as Observable, target, value);
             Object.assign(targetOriginal, value);
             info.target = value;
         }
@@ -175,14 +175,29 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 function _assign(proxyOwner: Observable, _: any, value: any) {
     state.inAssign = Math.max(0, state.inAssign + 1);
 
-    // Batch all the changes while assigning
-    observableBatcher.begin();
     Object.assign(proxyOwner, value);
-    observableBatcher.end();
 
     state.inAssign--;
 
     return this;
+}
+
+function __assign(proxyOwner: Observable, _: any, value: any) {
+    // Batch all the changes while assigning
+    observableBatcher.begin();
+    const ret = _assign(proxyOwner, _, value);
+    observableBatcher.end();
+
+    return ret;
+}
+
+function __set(proxyOwner: Observable) {
+    // Batch all the changes while assigning
+    observableBatcher.begin();
+    const ret = _set.apply(proxyOwner, arguments);
+    observableBatcher.end();
+
+    return ret;
 }
 
 function binder(fn, obs: ObservableChecker) {
@@ -232,8 +247,8 @@ export function deleteFn(obs: ObservableCheckerWriteable, target: any, prop?: st
 
 const ProxyFunctions = new Map<ObservableFnName, any>([
     ['get', _get],
-    ['set', _set],
-    ['assign', _assign],
+    ['set', __set],
+    ['assign', __assign],
     ['on', _on],
     ['prop', observableProp],
     ['delete', deleteFn],
