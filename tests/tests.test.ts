@@ -1,3 +1,4 @@
+import { observableBatcher } from '../src/observableBatcher';
 import { symbolValue } from '../src/globals';
 import { assigner, getter, observable, setter } from '../src/observable';
 import { observableComputed } from '../src/observableComputed';
@@ -1535,6 +1536,26 @@ describe('Batching', () => {
             obj: { text: 'hello' },
         });
 
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Batching is batched', async () => {
+        const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+        const handler = jest.fn();
+        obs.num1.on('change', handler);
+        obs.num2.on('change', handler);
+        obs.num3.on('change', handler);
+        observableBatcher.begin();
+        observableBatcher.begin();
+        observableBatcher.begin();
+        obs.set({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+        observableBatcher.end();
+        observableBatcher.end();
+        observableBatcher.end();
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });

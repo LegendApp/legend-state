@@ -55,9 +55,6 @@ export function isCollection(obj: any) {
 export function getDateModifiedKey(dateModifiedKey: string) {
     return dateModifiedKey || observableConfiguration.dateModifiedKey || '@';
 }
-export function jsonEqual(obj1: any, obj2: any) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-}
 
 export function clone(obj: any) {
     return obj === undefined || obj === null ? obj : JSON.parse(JSON.stringify(obj));

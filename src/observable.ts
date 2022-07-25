@@ -1,6 +1,6 @@
 import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
 import { observableConfiguration } from './configureObservable';
-import { isCollection, isPrimitive, jsonEqual, symbolShallow, symbolValue } from './globals';
+import { clone, isCollection, isPrimitive, symbolShallow, symbolValue } from './globals';
 import { observableBatcher } from './observableBatcher';
 import { notifyObservable, observableProp, prop, _on } from './observableFns';
 import { state } from './observableState';
@@ -135,7 +135,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
             parentInfo.targetOriginal[info.prop] = value;
         }
 
-        if (!jsonEqual(value, prevValue)) {
+        if (value !== prevValue) {
             notifyObservable(proxyOwner, value, prevValue, []);
         }
     } else if (typeof prop === 'symbol') {
@@ -156,8 +156,8 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
                 notifyObservable(proxyOwner, target, prevValue, []);
             }
         } else {
-            const prevValue = target[prop];
-            if (!jsonEqual(value, prevValue)) {
+            const prevValue = clone(target[prop]);
+            if (value !== prevValue) {
                 target[prop] = targetOriginal[prop] = value;
                 info.primitive = false;
                 delete target[symbolValue];
