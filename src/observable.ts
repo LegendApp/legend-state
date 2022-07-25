@@ -93,7 +93,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 
         const isValuePrimitive = isPrimitive(value);
 
-        const prevValue = info.primitive ? target[symbolValue] : Object.assign({}, target);
+        const prevValue = info.primitive ? target[symbolValue] : clone(target);
 
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => {
