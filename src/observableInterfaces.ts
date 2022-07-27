@@ -54,7 +54,10 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Promise<any>
     ? T[K]
     : T[K] extends Array<any>
-    ? T[K] & { [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]> }
+    ? T[K] &
+          ObservableProps<T[K]> & {
+              [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]>;
+          }
     : T extends object
     ? TRecurse
     : T[K];

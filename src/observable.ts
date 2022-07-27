@@ -1,8 +1,8 @@
-import { isArray, isFunction, isNumber, isString } from '@legendapp/tools';
+import { isArray, isFunction, isNumber, isObject, isString } from '@legendapp/tools';
 import { observableConfiguration } from './configureObservable';
 import { clone, isCollection, isPrimitive, symbolShallow, symbolValue } from './globals';
 import { observableBatcher } from './observableBatcher';
-import { notifyObservable, observableProp, prop, _on } from './observableFns';
+import { notifyChildrenDeleted, notifyObservable, observableProp, prop, _on } from './observableFns';
 import { state } from './observableState';
 import { extendPrototypes } from './primitivePrototypes';
 import {
@@ -94,16 +94,19 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 
         const prevValue = info.primitive ? target[symbolValue] : clone(target);
 
+        const needsNotifyUndefined = !value || isValuePrimitive !== info.primitive;
+
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => {
-            if (!value || isValuePrimitive !== info.primitive || value[key] === undefined) {
+            if (needsNotifyUndefined || (value[key] === undefined && value[+key] === undefined)) {
                 if (info.proxies) {
                     const child = info.proxies.get(key);
                     if (child) {
-                        child.set(undefined);
+                        notifyChildrenDeleted(child);
+                        info.proxies.delete(key);
                     }
                 }
-                delete target[key];
+                // Delete key on original
                 delete targetOriginal[key];
             }
         });
@@ -113,15 +116,26 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 
         if (isValuePrimitive) {
             info.primitive = true;
-            target[symbolValue] = value;
+            info.target = { [symbolValue]: value };
         } else {
             info.primitive = false;
-            delete target[symbolValue];
-            delete targetOriginal[symbolValue];
-            // 2. Assign the values onto the target which will update all children proxies, but would leave this
-            // as a shallow copy of the the value
-            _assign(proxyOwner as Observable, target, value);
-            Object.assign(targetOriginal, value);
+
+            if (info.proxies) {
+                info.proxies.forEach((child) => {
+                    const childInfo = infos.get(child);
+                    const prop = childInfo.prop;
+                    if (value[prop]) {
+                        child.set(value[childInfo.prop]);
+                    }
+                });
+                // 2. Assign the values onto the target which will update all children proxies, but would leave this
+                // as a shallow copy of the the value
+                // _assign(proxyOwner as Observable, target, value);
+            }
+            // Make sure keys are set on original
+            if (isObject(value)) {
+                Object.assign(targetOriginal, value);
+            }
             info.target = value;
         }
 
@@ -161,7 +175,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
                 info.primitive = false;
                 delete target[symbolValue];
                 delete targetOriginal[symbolValue];
-                // Notify listeners of changes.
+                // Notify listeners of changes
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             }
         }
@@ -291,6 +305,7 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             updateTracking(proxyOwner, prop, info, /*shallow*/ false);
 
             if (
+                prop !== symbolValue &&
                 (state.inProp || targetValue === undefined || targetValue === null || !isPrimitive(targetValue)) &&
                 !(targetValue instanceof Promise) &&
                 !isFunction(targetValue)

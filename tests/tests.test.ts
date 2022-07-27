@@ -620,13 +620,13 @@ describe('Safety', () => {
         expect(obsUnsafe.val.get()).toEqual(undefined);
     });
     test('Error on defineProperty', () => {
-        const obs = observable({ val: true });
+        const obs = observable({ val: 100 });
 
         expect(() => {
             Object.defineProperty(obs, 'prop', { value: 10, writable: true });
         }).toThrowError();
 
-        expect(obs.val.get()).toEqual(true);
+        expect(obs.val.get()).toEqual(100);
     });
 });
 
@@ -868,18 +868,14 @@ describe('Listeners', () => {
             prevValue: 'hi',
         });
     });
-    test('Set undefined with deep listener', () => {
-        const obs = observable({ obj: { test: 'hi' } });
+    test('Clear array fires listener once', () => {
+        const obs = observable({ arr: ['hi', 'hello', 'there'] });
         const handler = jest.fn();
-        listenToObservable(obs.obj.test, handler);
+        listenToObservable(obs.arr, handler);
 
-        obs.set(undefined);
+        obs.set('arr', []);
 
-        expect(handler).toHaveBeenCalledWith(undefined, {
-            changedValue: undefined,
-            path: [],
-            prevValue: 'hi',
-        });
+        expect(handler).toHaveBeenCalledTimes(1);
     });
 });
 describe('Arrays', () => {
@@ -943,6 +939,63 @@ describe('Arrays', () => {
                 prevValue: 'hello',
             }
         );
+    });
+    test('Array set', () => {
+        const obs = observable({ test: [] });
+        const handler = jest.fn();
+        obs.on('change', handler);
+
+        obs.test.set([1, 2, 3, 4, 5]);
+
+        expect(handler).toBeCalledWith(
+            { test: [1, 2, 3, 4, 5] },
+            {
+                changedValue: [1, 2, 3, 4, 5],
+                path: ['test'],
+                prevValue: [],
+            }
+        );
+
+        expect(obs.test.map((a) => a)).toEqual([1, 2, 3, 4, 5]);
+
+        obs.set('test', [1, 2, 3, 4, 5, 6]);
+
+        expect(handler).toBeCalledWith(
+            { test: [1, 2, 3, 4, 5, 6] },
+            {
+                changedValue: [1, 2, 3, 4, 5, 6],
+                path: ['test'],
+                prevValue: [1, 2, 3, 4, 5],
+            }
+        );
+    });
+    test('Array swap', () => {
+        const obs = observable({ test: [1, 2, 3, 4, 5] });
+
+        let tmp = obs.test[1];
+        obs.test.set(1, obs.test[4]);
+        obs.test.set(4, tmp);
+
+        expect(obs.test).toEqual([1, 5, 3, 4, 2]);
+
+        tmp = obs.test[1];
+        obs.test.set(1, obs.test[4]);
+        obs.test.set(4, tmp);
+
+        expect(obs.test).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    test('Array swap if empty', () => {
+        const obs = observable({ test: [] });
+
+        let tmp = obs.test[1].get();
+        obs.test.set(1, obs.test[4].get());
+
+        expect(obs.test.get()).toEqual([undefined, undefined]);
+
+        obs.test.set(4, tmp);
+
+        expect(obs.test.get()).toEqual([undefined, undefined, undefined, undefined, undefined]);
     });
 });
 describe('on functions', () => {

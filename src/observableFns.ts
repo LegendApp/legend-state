@@ -5,6 +5,7 @@ import {
     ListenerFn,
     Observable,
     ObservableChecker,
+    ObservableCheckerWriteable,
     ObservableEvent,
     ObservableEventType,
     ObservableListener,
@@ -49,10 +50,20 @@ export function notifyObservable<T>(target: ObservableChecker<T>, changedValue: 
     _notify(target, { changedValue, prevValue, path });
 }
 
+export function notifyChildrenDeleted(obs: ObservableCheckerWriteable) {
+    const info = infos.get(obs);
+    if (info.proxies) {
+        info.proxies.forEach(notifyChildrenDeleted);
+    }
+    if (info.listeners) {
+        obs.set(undefined);
+    }
+}
+
 export function disposeListener(listener: ObservableListener) {
     if (listener && !listener.isDisposed) {
         listener.isDisposed = true;
-        const info = state.infos.get(listener.target);
+        const info = infos.get(listener.target);
         if (info.listeners) {
             info.listeners.delete(listener);
         }

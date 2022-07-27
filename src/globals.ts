@@ -57,5 +57,11 @@ export function getDateModifiedKey(dateModifiedKey: string) {
 }
 
 export function clone(obj: any) {
-    return obj === undefined || obj === null ? obj : JSON.parse(JSON.stringify(obj));
+    return obj === undefined || obj === null
+        ? obj
+        : isArray(obj)
+        ? obj.slice()
+        : isObject(obj)
+        ? Object.assign({}, obj)
+        : JSON.parse(JSON.stringify(obj));
 }
