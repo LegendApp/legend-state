@@ -186,8 +186,11 @@ export function listen<T>(obs: ObservableChecker<T>, eventType: ObservableEventT
 }
 
 export function observableProp(obs: ObservableChecker, _: any, prop: string | number) {
+    // Set inProp so that the proxy `get` function will always return a proxy and not a primitive
     state.inProp = true;
-    return obs[prop];
+    const ret = obs[prop];
+    state.inProp = false;
+    return ret;
 }
 
 export function getObservableFromPrimitive(primitive: any) {

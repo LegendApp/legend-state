@@ -296,11 +296,11 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
                 !(targetValue instanceof Promise) &&
                 !isFunction(targetValue)
             ) {
-                // Get proxy for prop if it's not a primitive or using prop(key)
+                // Get proxy for prop if it's not a primitive or if using `prop` function
                 state.inProp = false;
                 let proxy = info.proxies?.get(prop);
 
-                // Getting a property creates a proxy for it
+                // Getting a property creates an observable proxy for it
                 if (!proxy && target.hasOwnProperty(prop) !== undefined) {
                     if (!info.proxies) {
                         info.proxies = new Map();
@@ -322,12 +322,13 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             _set(proxyOwner, target, prop, value);
             return true;
         } else if (state.inSetFn > 0) {
-            // Set function handles notifying
+            // If this assignment comes from within a set function it's allowed.
+            // Notifying listeners will be handled elsewhere
             Reflect.set(target, prop, value);
             return true;
         } else {
             const info = infos.get(proxyOwner);
-            // Only allow setting if this proxy is not safe
+            // Only allow setting directly if this proxy is unsafe
             if (!info.safe) {
                 _set(proxyOwner, target, prop, value);
                 return true;
@@ -335,7 +336,7 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
 
             if (process.env.NODE_ENV === 'development') {
                 throw new Error(
-                    'Cannot directly assign to an observable. See https://www.legendapp.com/dev/state/safety/'
+                    'Cannot directly assign to an observable. Use observable.set(...) or observable.assign(...) instead. See https://www.legendapp.com/dev/state/safety/'
                 );
             }
 
@@ -344,12 +345,23 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
     },
 };
 
+// Safe observables also don't allow defining or deleting properties
 const proxyHandler = Object.assign(
     {
         deleteProperty() {
+            if (process.env.NODE_ENV === 'development') {
+                throw new Error(
+                    'Cannot directly delete an observable. Use observable.delete() instead. See https://www.legendapp.com/dev/state/safety/'
+                );
+            }
             return false;
         },
         defineProperty() {
+            if (process.env.NODE_ENV === 'development') {
+                throw new Error(
+                    'Cannot defineProperty on an observable. See https://www.legendapp.com/dev/state/safety/'
+                );
+            }
             return false;
         },
     },
