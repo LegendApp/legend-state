@@ -541,6 +541,33 @@ describe('Safety', () => {
         obs.test2.test3.set({ test4: 'hi5' });
         expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: 'hi5' } } });
     });
+    test('unsafe set fires listeners', () => {
+        const obs = observable({ test: 'hi', test2: { test3: { test4: '' } } }, /*unsafe*/ true);
+        const handler = jest.fn();
+        obs.on('change', handler);
+        obs.test = 'hello';
+        expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: '' } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test: 'hello', test2: { test3: { test4: '' } } },
+            {
+                changedValue: 'hello',
+                path: ['test'],
+                prevValue: 'hi',
+            }
+        );
+
+        obs.test2.test3.test4 = 'hi2';
+
+        expect(obs.get()).toEqual({ test: 'hello', test2: { test3: { test4: 'hi2' } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test: 'hello', test2: { test3: { test4: 'hi2' } } },
+            {
+                changedValue: 'hi2',
+                path: ['test2', 'test3', 'test4'],
+                prevValue: '',
+            }
+        );
+    });
     test('error modifying safe', () => {
         const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
         const obs = observable({ test: 'hi', test2: { test3: { test4: 'hi4' } } });
