@@ -6,6 +6,11 @@ let _batch: { cb: ListenerFn<any>; value: any; info: ObservableListenerInfo }[] 
 
 function onActionTimeout() {
     if (_batch.length > 0) {
+        if (process.env.NODE_ENV === 'development') {
+            console.error(
+                'Forcibly completing observableBatcher because end() was never called. This may be due to an uncaught error between begin() and end().'
+            );
+        }
         observableBatcher.end(/*force*/ true);
     }
 }
@@ -35,17 +40,19 @@ export namespace observableBatcher {
     }
     export function begin() {
         numInBatch++;
+        // Set a timeout to call end() in case end() is never called or there's an uncaught error
         timeoutOnce('batch_beginAction', onActionTimeout, 0);
     }
     export function end(force?: boolean) {
         numInBatch--;
         if (numInBatch <= 0 || force) {
+            clearTimeoutOnce('batch_beginAction');
             numInBatch = 0;
-            // Save batch locally first because it could batch more while looping over computeds
+            // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
+            // This can happen with observableComputed for example.
             const batch = _batch;
             _batch = [];
             batch.forEach(({ cb, value, info }) => cb(value, info));
-            clearTimeoutOnce('batch_beginAction');
         }
     }
 }

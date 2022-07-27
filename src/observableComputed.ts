@@ -1,15 +1,20 @@
 import { observable } from './observable';
-import { Observable, ObservableComputed, ValidObservableParam } from './observableInterfaces';
+import type { Observable, ObservableComputed, ValidObservableParam } from './observableInterfaces';
 import { state } from './observableState';
 
 function onChanged<T>(observable: Observable, fn: () => T) {
     const info = state.infos.get(observable);
+
+    const value = fn();
+
+    // Temporarily disable readonly to set the new value
     info.readonly = false;
-    observable.set(fn());
+    observable.set(value);
     info.readonly = true;
 }
 
 export function observableComputed<T>(fn: () => ValidObservableParam<T>): ObservableComputed<T> {
+    // Set isTracking so that the proxy `get` function will track accessed proxies
     state.isTracking = true;
 
     // Create an observable for this computed variable

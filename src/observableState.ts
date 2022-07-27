@@ -1,6 +1,6 @@
 import { Observable, ObservableChecker, ObservableListener } from './observableInterfaces';
 
-export interface StateInfo {
+interface StateInfo {
     prop: string | number | symbol;
     target: object;
     targetOriginal: object;
