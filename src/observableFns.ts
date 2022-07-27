@@ -1,15 +1,15 @@
 import { isObject, isObjectEmpty } from '@legendapp/tools';
 import { isPrimitive, symbolDateModified, symbolShallow } from './globals';
-import { observableBatcher } from './observableBatcher';
+import { observableBatcherNotify } from './observableBatcher';
 import {
-    ObservableEventType,
     ListenerFn,
+    Observable,
     ObservableChecker,
+    ObservableEvent,
+    ObservableEventType,
     ObservableListener,
     ObservableListenerInfo,
     OnReturnValue,
-    Observable,
-    ObservableEvent,
 } from './observableInterfaces';
 import { state } from './observableState';
 
@@ -30,7 +30,7 @@ function _notify(target: ObservableChecker, listenerInfo: ObservableListenerInfo
                     !listener.shallow ||
                     (value === undefined) !== (listenerInfo.prevValue === undefined)
                 ) {
-                    observableBatcher.notify(listener.callback, value, listenerInfo);
+                    observableBatcherNotify(listener.callback, value, listenerInfo);
                 }
             });
         }

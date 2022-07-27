@@ -10,6 +10,23 @@ function onActionTimeout() {
     }
 }
 
+export function observableBatcherNotify(cb: ListenerFn<any>, value: any, info: ObservableListenerInfo) {
+    if (numInBatch > 0) {
+        for (let i = 0; i < _batch.length; i++) {
+            const n = _batch[i];
+            // If this callback already exists, make sure it has the latest value but do not add it
+            if (n.cb === cb) {
+                n.value = value;
+                n.info = info;
+                return;
+            }
+        }
+        _batch.push({ cb, value, info });
+    } else {
+        cb(value, info);
+    }
+}
+
 export namespace observableBatcher {
     export function batch(fn: () => void) {
         begin();
@@ -29,22 +46,6 @@ export namespace observableBatcher {
             _batch = [];
             batch.forEach(({ cb, value, info }) => cb(value, info));
             clearTimeoutOnce('batch_beginAction');
-        }
-    }
-    export function notify(cb: ListenerFn<any>, value: any, info: ObservableListenerInfo) {
-        if (numInBatch > 0) {
-            for (let i = 0; i < _batch.length; i++) {
-                const n = _batch[i];
-                // If this callback already exists, make sure it has the latest value but do not add it
-                if (n.cb === cb) {
-                    n.value = value;
-                    n.info = info;
-                    return;
-                }
-            }
-            _batch.push({ cb, value, info });
-        } else {
-            cb(value, info);
         }
     }
 }
