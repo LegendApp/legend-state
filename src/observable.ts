@@ -75,7 +75,7 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
 function _get(proxyOwner: Observable) {
     const info = infos.get(proxyOwner);
     const target = info.target as any;
-    return info.primitive ? target[symbolValue] : target;
+    return info.disposed ? undefined : info.primitive ? target[symbolValue] : target;
 }
 
 function _set(proxyOwner: ObservableCheckerWriteable, _: any, value: any);
@@ -230,8 +230,10 @@ export function deleteFn(obs: ObservableCheckerWriteable, target: any, prop?: st
 
     if (!info.readonly) {
         if (prop !== undefined) {
-            // First set to undefined
-            _set(obs, target, prop, undefined);
+            // First notify of deletion
+            if (info.proxies?.has(prop)) {
+                notifyChildrenDeleted(obs.prop(prop));
+            }
 
             // Then fully delete the keys from the object
             delete target[prop];

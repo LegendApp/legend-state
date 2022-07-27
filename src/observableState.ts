@@ -9,6 +9,7 @@ interface StateInfo {
     listeners?: Set<ObservableListener>;
     proxies?: Map<string | number | symbol, Observable>;
     parent?: Observable;
+    disposed?: boolean;
 }
 
 export const state = {

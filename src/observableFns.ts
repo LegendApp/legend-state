@@ -52,11 +52,13 @@ export function notifyObservable<T>(target: ObservableChecker<T>, changedValue: 
 
 export function notifyChildrenDeleted(obs: ObservableCheckerWriteable) {
     const info = infos.get(obs);
+    const value = obs.get();
+    info.disposed = true;
     if (info.proxies) {
         info.proxies.forEach(notifyChildrenDeleted);
     }
     if (info.listeners) {
-        obs.set(undefined);
+        notifyObservable(obs, undefined, value, []);
     }
 }
 
