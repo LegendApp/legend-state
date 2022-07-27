@@ -279,7 +279,7 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
 
             // Calling a proxy function returns a bound function
             return ProxyFunctions.get(prop as ObservableFnName).bind(proxyOwner, proxyOwner, target);
-        } else if ((prop as any) === symbolShallow) {
+        } else if (prop === symbolShallow) {
             updateTracking(proxyOwner, undefined, info, /*shallow*/ true);
             return proxyOwner;
         } else {
@@ -331,6 +331,12 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             if (!info.safe) {
                 _set(proxyOwner, target, prop, value);
                 return true;
+            }
+
+            if (process.env.NODE_ENV === 'development') {
+                throw new Error(
+                    'Cannot directly assign to an observable. See https://www.legendapp.com/dev/state/safety/'
+                );
             }
 
             return false;

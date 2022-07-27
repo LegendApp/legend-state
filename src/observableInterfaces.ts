@@ -158,6 +158,8 @@ export type ObservableCheckerWriteable<T = any> = Observable<T> | ObservableUnsa
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 
+// This converts the state object's shape to the field transformer's shape
+// TODO: FieldTransformer and this shape can likely be refactored to be simpler
 type SameShapeWithStringsRecord<T> = {
     [K in keyof Omit<T, '_id' | 'id'>]-?: T[K] extends Record<string, Record<string, any>>
         ?

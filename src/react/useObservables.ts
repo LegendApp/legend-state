@@ -13,7 +13,7 @@ import {
 } from '../observableInterfaces';
 import { state } from '../observableState';
 
-interface SavedRefTrack {
+interface SavedRef {
     proxies: [Observable, string, ObservableListener][];
 }
 
@@ -21,11 +21,18 @@ function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): Obs
     return obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs);
 }
 
+/**
+ * A React hook that listens to observables and returns their values.
+ *
+ * @param fn A function that returns a single observable, an array of observables, or a flat object of observables
+ *
+ * @see https://www.legendapp.com/dev/state/react/#useobservables
+ */
 export function useObservables<
     T extends ObservableCheckerLoose | ObservableCheckerLoose[] | Record<string, ObservableCheckerLoose>
 >(fn: () => T): MappedObservableValue<T> {
     const forceRender = useForceRender();
-    const ref = useRef<SavedRefTrack>();
+    const ref = useRef<SavedRef>();
     if (!ref.current) {
         ref.current = {
             proxies: [],
@@ -60,10 +67,11 @@ export function useObservables<
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Return the raw values based on the shape of the arguments
     if (isArr) {
         return arr.map(getRawValue) as any;
     } else if (isObj) {
-        const ret = args;
+        const ret = {};
         Object.keys(args).forEach((key) => (ret[key] = getRawValue(args[key])));
         return ret as any;
     } else {
@@ -71,9 +79,11 @@ export function useObservables<
     }
 }
 
-const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () => void) => {
+const updateListeners = (ret: Observable[], saved: SavedRef, onChange: () => void) => {
     const tracked = state.trackedProxies;
     const trackedRoots = state.trackedRootProxies;
+    // Passing the root of an observable will not trigger any tracking from the proxies, so
+    // need to add them to the array of observables to listen
     for (let i = 0; i < ret.length; i++) {
         const r = ret[i];
         if (r && !trackedRoots.includes(r)) {
@@ -101,21 +111,29 @@ const updateListeners = (ret: Observable[], saved: SavedRefTrack, onChange: () =
     // Listen to all tracked proxies
     for (let i = 0; i < tracked.length; i++) {
         const p = tracked[i];
+        // Skip arguments that are undefined
         if (p) {
             const [obs, prop, shallow] = p;
-            let found = false;
-            for (let u = 0; u < saved.proxies.length; u++) {
-                if (saved.proxies[u][0] === obs && saved.proxies[u][1] === prop) {
-                    found = true;
-                    break;
+
+            // Skip arguments that are not observables
+            if (isObservable(obs)) {
+                let found = false;
+                // If already listening to this observable, can skip it
+                for (let u = 0; u < saved.proxies.length; u++) {
+                    if (saved.proxies[u][0] === obs && saved.proxies[u][1] === prop) {
+                        found = true;
+                        break;
+                    }
                 }
-            }
-            if (!found && isObservable(obs)) {
-                const listener = (prop ? obs.prop(prop) : obs).on(
-                    shallow ? 'changeShallow' : 'change',
-                    onChange
-                ) as ObservableListener;
-                saved.proxies.push([obs, prop, listener]);
+                if (!found) {
+                    // Listen to the observable, by prop if applicable, and by `changeShallow`
+                    // if the argument was shallow(...)
+                    const listener = (prop ? obs.prop(prop) : obs).on(
+                        shallow ? 'changeShallow' : 'change',
+                        onChange
+                    ) as ObservableListener;
+                    saved.proxies.push([obs, prop, listener]);
+                }
             }
         }
     }

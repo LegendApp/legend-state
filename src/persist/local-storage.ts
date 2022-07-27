@@ -1,7 +1,7 @@
 import type { ObservablePersistLocal } from '../observableInterfaces';
 
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
-    data: Record<string, any> = {};
+    private data: Record<string, any> = {};
 
     public get(id: string) {
         if (typeof localStorage === 'undefined') return undefined;

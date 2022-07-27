@@ -71,7 +71,7 @@ beforeEach(() => {
     global.localStorage.clear();
     const local = mapPersistences.get(ObservablePersistLocalStorage) as ObservablePersistLocalStorage;
     if (local) {
-        local.data = {};
+        local['data'] = {};
     }
 });
 
@@ -98,30 +98,33 @@ describe('Persist local', () => {
 
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
-    test('Loads from local with modified', () => {
-        global.localStorage.setItem(
-            'jestlocal',
-            JSON.stringify({
-                test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
-                test4: { test5: { '@': 1001, test6: 'hi6' } },
-                test7: { test8: 'hi8' },
-            })
-        );
+    // TODO: Put this back when adding remote persistence
+    // test('Loads from local with modified', () => {
+    //     global.localStorage.setItem(
+    //         'jestlocal',
+    //         JSON.stringify({
+    //             test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
+    //             test4: { test5: { '@': 1001, test6: 'hi6' } },
+    //             test7: { test8: 'hi8' },
+    //         })
+    //     );
 
-        const obs = observable({
-            test: { test2: '', test3: '' },
-            test4: { test5: { test6: '' } },
-            test7: { test8: '' },
-        });
+    //     const obs = observable({
+    //         test: { test2: '', test3: '' },
+    //         test4: { test5: { test6: '' } },
+    //         test7: { test8: '' },
+    //     });
 
-        persistObservable(obs, {
-            local: 'jestlocal',
-        });
+    //     persistObservable(obs, {
+    //         local: 'jestlocal',
+    //         // persistRemote: //
+    //         remote: {},
+    //     });
 
-        expect(obs.get()).toEqual({
-            test: { [symbolDateModified]: 1000, test2: 'hi2', test3: 'hi3' },
-            test4: { test5: { [symbolDateModified]: 1001, test6: 'hi6' } },
-            test7: { test8: 'hi8' },
-        });
-    });
+    //     expect(obs.get()).toEqual({
+    //         test: { [symbolDateModified]: 1000, test2: 'hi2', test3: 'hi3' },
+    //         test4: { test5: { [symbolDateModified]: 1001, test6: 'hi6' } },
+    //         test7: { test8: 'hi8' },
+    //     });
+    // });
 });
