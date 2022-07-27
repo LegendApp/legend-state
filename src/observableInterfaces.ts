@@ -124,8 +124,9 @@ export interface PersistOptions<T = any> {
 
 export interface ObservablePersistLocal {
     get<T = any>(path: string): T;
-    set(path: string, value: any): void;
-    delete(path: string): void;
+    set(path: string, value: any): Promise<void>;
+    delete(path: string): Promise<void>;
+    load?(path: string): Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;

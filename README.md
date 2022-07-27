@@ -68,6 +68,7 @@ Full documentation is still in progress, but will be at [the website](https://ww
 ## Todo
 
 -   [] Remote persistence to Firebase
+-   [] Conflict resolution for remote persistence
 -   [] useSyncExternalStore for React 18
 
 ## 👩‍⚖️ License

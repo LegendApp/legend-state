@@ -210,18 +210,20 @@ export function prop(obs: ObservableChecker) {
 }
 
 export function shallow(obs: ObservableChecker) {
-    return obs[symbolShallow as any];
+    // Access the shallow symbol on the observable which triggers a special case in
+    // the `get` function for updating the tracking shallowly
+    return obs[symbolShallow];
 }
 
 export function isObservable(obj: any): obj is Observable {
-    return infos.has(obj);
+    return obj && infos.has(obj);
 }
 
 export function isObservableEvent(obj: any): obj is ObservableEvent {
     return isObject(obj) && obj.hasOwnProperty('fire') && obj.hasOwnProperty('on');
 }
 
-export function merge(target: any, ...sources: any[]) {
+export function mergeIntoObservable(target: ObservableChecker, ...sources: any[]) {
     if (!sources.length) return target;
     const source = sources.shift();
 
@@ -233,7 +235,7 @@ export function merge(target: any, ...sources: any[]) {
             if (needsSet) {
                 target.set(symbolDateModified, source[symbolDateModified as any]);
             } else {
-                target[symbolDateModified as any] = source[symbolDateModified as any];
+                target[symbolDateModified] = source[symbolDateModified as any];
             }
         }
         for (const key in source) {
@@ -252,7 +254,7 @@ export function merge(target: any, ...sources: any[]) {
                         Object.assign(target, { [key]: {} });
                     }
                 }
-                merge(target[key], source[key]);
+                mergeIntoObservable(target[key], source[key]);
             } else {
                 if (isObservable(target)) {
                     target.assign({ [key]: source[key] });
@@ -262,5 +264,5 @@ export function merge(target: any, ...sources: any[]) {
             }
         }
     }
-    return merge(target, ...sources);
+    return mergeIntoObservable(target, ...sources);
 }

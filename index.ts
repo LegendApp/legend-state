@@ -8,7 +8,7 @@ export {
     isObservable,
     isObservableEvent,
     listen,
-    merge,
+    mergeIntoObservable,
     prop,
     shallow,
     unlisten,

@@ -3,7 +3,7 @@ import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './g
 import { ObservablePersistLocalStorage } from './persist/local-storage';
 import { observable } from './observable';
 import { observableBatcher } from './observableBatcher';
-import { merge } from './observableFns';
+import { mergeIntoObservable } from './observableFns';
 import type {
     Observable,
     ObservableChecker,
@@ -18,7 +18,7 @@ export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
 const dateModifiedKey = '@';
 
-let platformDefaultPersistence =
+const platformDefaultPersistence =
     typeof window !== 'undefined' && typeof window.localStorage !== undefined
         ? ObservablePersistLocalStorage
         : undefined;
@@ -31,35 +31,46 @@ interface LocalState {
 
 async function onObsChange<T>(
     obsState: Observable<ObservablePersistState>,
-    state: LocalState,
+    localState: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
     info: ObservableListenerInfo
 ) {
-    const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = state;
+    const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
 
     const local = persistOptions.local;
+    const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
     if (local) {
-        if (!obsState.isLoadedLocal) return;
+        if (!obsState.isLoadedLocal) {
+            console.error('WARNING: An observable was changed before being loaded from persistence');
+            return;
+        }
 
-        persistenceLocal.set(
-            local,
-            replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
-        );
+        // If saving remotely convert symbolDateModified to dateModifiedKey before saving locally
+        // as peristing may not include symbols correctly
+        const localValue = saveRemote
+            ? replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
+            : value;
+
+        // Save to local persistence
+        persistenceLocal.set(local, localValue);
     }
 
-    if (!tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly) {
+    if (saveRemote) {
+        // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
+        // server value different than the saved value (like Firebase has server timestamps for dateModified)
         const saved = await persistenceRemote.save(persistOptions, value, info);
         if (saved) {
             if (local) {
                 const cur = persistenceLocal.get(local);
+                // Replace the dateModifiedKey and remove null/undefined before saving
                 const replaced = replaceKeyInObject(
-                    saved as object,
+                    removeNullUndefined(saved as object),
                     symbolDateModified,
                     dateModifiedKey,
                     /*clone*/ false
                 );
-                const toSave = cur ? merge(cur, replaced) : replaced;
+                const toSave = cur ? mergeIntoObservable(cur, replaced) : replaced;
 
                 persistenceLocal.set(local, toSave);
             }
@@ -67,87 +78,103 @@ async function onObsChange<T>(
     }
 }
 
-function onChangeRemote(state: LocalState, cb: () => void) {
-    state.tempDisableSaveRemote = true;
+function onChangeRemote(localState: LocalState, cb: () => void) {
+    // Remote changes should only update local state
+    localState.tempDisableSaveRemote = true;
 
-    observableBatcher.begin();
+    observableBatcher.batch(cb);
 
-    cb();
-
-    observableBatcher.end();
-
-    state.tempDisableSaveRemote = false;
+    localState.tempDisableSaveRemote = false;
 }
 
-export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
+async function loadLocal(
+    obs: ObservableChecker,
+    persistOptions: PersistOptions,
+    obsState: Observable<ObservablePersistState>,
+    localState: LocalState
+) {
     const { local, remote } = persistOptions;
     const localPersistence =
         persistOptions.persistLocal || observableConfiguration.persistLocal || platformDefaultPersistence;
-    const remotePersistence = persistOptions.persistRemote || observableConfiguration?.persistRemote;
-    const state: LocalState = { tempDisableSaveRemote: false };
-
-    let isLoadedLocal = false;
-    let clearLocal: () => Promise<void>;
 
     if (local) {
         if (!localPersistence) {
             throw new Error('Local persistence is not configured');
         }
+        // Ensure there's only one instance of the persistence plugin
         if (!mapPersistences.has(localPersistence)) {
             mapPersistences.set(localPersistence, new localPersistence());
         }
-        const persistenceLocal = mapPersistences.get(localPersistence) as ObservablePersistLocal;
-        state.persistenceLocal = persistenceLocal;
+        const persistenceLocal = (localState.persistenceLocal = mapPersistences.get(
+            localPersistence
+        ) as ObservablePersistLocal);
 
+        // If persistence has an asynchronous load, wait for it
+        if (persistenceLocal.load) {
+            await persistenceLocal.load(local);
+        }
+
+        // Get the value from state
         let value = persistenceLocal.get(local);
 
-        const dateModifiedKey = '@';
-
+        // Warn on duplicate usage of local names
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
                 console.error(`Called persist with the same local name multiple times: ${local}`);
-                // return;
             }
             usedNames.set(local, true);
         }
 
+        // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
-            replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
-            removeNullUndefined(value);
-            merge(obs, value);
+            if (remote) {
+                replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
+            }
+            mergeIntoObservable(obs, value);
         }
 
-        clearLocal = () => Promise.resolve(persistenceLocal.delete(local));
+        obsState.set('clearLocal', () => persistenceLocal.delete(local));
 
-        isLoadedLocal = true;
+        obsState.isLoadedLocal.set(true);
     }
+}
+
+export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
+    const obsState = observable<ObservablePersistState>({
+        isLoadedLocal: false,
+        isLoadedRemote: false,
+        clearLocal: undefined,
+    });
+
+    const { remote } = persistOptions;
+    const remotePersistence = persistOptions.persistRemote || observableConfiguration?.persistRemote;
+    const localState: LocalState = { tempDisableSaveRemote: false };
+
+    loadLocal(obs, persistOptions, obsState, localState);
+
     if (remote) {
         if (!remotePersistence) {
             throw new Error('Remote persistence is not configured');
         }
+        // Ensure there's only one instance of the persistence plugin
         if (!mapPersistences.has(remotePersistence)) {
             mapPersistences.set(remotePersistence, new remotePersistence());
         }
-        const persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
-        state.persistenceRemote = persistenceRemote;
+        localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
 
-        persistenceRemote.listen(
-            obs,
-            persistOptions,
-            () => {
-                obsState.isLoadedRemote.set(true);
-            },
-            onChangeRemote.bind(this, state)
-        );
+        obsState.isLoadedLocal.on('true', () => {
+            localState.persistenceRemote.listen(
+                obs,
+                persistOptions,
+                () => {
+                    obsState.isLoadedRemote.set(true);
+                },
+                onChangeRemote.bind(this, localState)
+            );
+        });
     }
 
-    const obsState = observable<ObservablePersistState>({
-        isLoadedLocal,
-        isLoadedRemote: false,
-        clearLocal,
-    });
-
-    obs.on('change', onObsChange.bind(this, obsState, state, persistOptions));
+    obs.on('change', onObsChange.bind(this, obsState, localState, persistOptions));
 
     return obsState;
 }
