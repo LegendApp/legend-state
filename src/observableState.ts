@@ -3,7 +3,6 @@ import { Observable, ObservableChecker, ObservableListener } from './observableI
 interface StateInfo {
     prop: string | number | symbol;
     target: object;
-    targetOriginal: object;
     safe: boolean;
     primitive: boolean;
     readonly?: boolean;

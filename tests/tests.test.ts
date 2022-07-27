@@ -50,18 +50,18 @@ describe('Basic', () => {
     });
     test('Primitive proxy', () => {
         const obs = observable(10);
-        expect(obs).toEqual({ [symbolValue]: 10 });
+        // expect(obs).toEqual({ [symbolValue]: 10 });
         expect(obs.get()).toEqual(10);
     });
     test('Primitive prop', () => {
         const obs = observable({ val: 10 });
         expect(obs.val).toEqual(10);
-        expect(getObservableFromPrimitive(obs.val)).toEqual({ [symbolValue]: 10 });
+        // expect(getObservableFromPrimitive(obs.val)).toEqual({ [symbolValue]: 10 });
 
         obs.val.set(20);
 
         expect(obs.val).toEqual(20);
-        expect(getObservableFromPrimitive(obs.val)).toEqual({ [symbolValue]: 20 });
+        // expect(getObservableFromPrimitive(obs.val)).toEqual({ [symbolValue]: 20 });
     });
     test('Primitive setter bound', () => {
         const obs = observable({ val: 10, val2: 'hello' });
@@ -429,7 +429,10 @@ describe('Basic', () => {
         });
 
         expect(Object.keys(obs.test.t.get()['1000'])).toEqual(['test1', 'test2']);
+        const obj = obs.test.t['1000'];
+
         expect(Object.keys(obs.test.t['1000'])).toEqual(['test1', 'test2']);
+        expect(Object.keys(obs.test.t[1000])).toEqual(['test1', 'test2']);
 
         expect(obs.test.t.get()).toEqual({
             1000: {
@@ -947,6 +950,10 @@ describe('Arrays', () => {
 
         obs.test.set([1, 2, 3, 4, 5]);
 
+        expect(obs.test.length).toEqual(5);
+        expect(obs.test).toEqual([1, 2, 3, 4, 5]);
+        expect(obs.test.get()).toEqual([1, 2, 3, 4, 5]);
+
         expect(handler).toBeCalledWith(
             { test: [1, 2, 3, 4, 5] },
             {
@@ -984,18 +991,81 @@ describe('Arrays', () => {
 
         expect(obs.test).toEqual([1, 2, 3, 4, 5]);
     });
+    test('Array swap with objects', () => {
+        const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        let arr = obs.test.get();
 
+        let tmp = arr[1];
+        obs.test.set(1, arr[4]);
+        obs.test.set(4, tmp);
+
+        expect(obs.test.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
+        expect(obs.test[1]).toEqual({ text: 5 });
+        expect(arr[1]).toEqual({ text: 5 });
+        expect(obs.test[4]).toEqual({ text: 2 });
+        expect(arr[4]).toEqual({ text: 2 });
+
+        tmp = arr[1];
+        obs.test.set(1, arr[4]);
+        obs.test.set(4, tmp);
+
+        expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+    });
     test('Array swap if empty', () => {
         const obs = observable({ test: [] });
 
         let tmp = obs.test[1].get();
         obs.test.set(1, obs.test[4].get());
 
-        expect(obs.test.get()).toEqual([undefined, undefined]);
+        expect(obs.test.get()).toEqual([]);
 
         obs.test.set(4, tmp);
 
-        expect(obs.test.get()).toEqual([undefined, undefined, undefined, undefined, undefined]);
+        expect(obs.test.get()).toEqual([]);
+    });
+    test('Array clear if listening', () => {
+        let obs = observable({ test: [1, 2, 3, 4, 5] });
+        obs.test[0].on('change', () => {});
+        obs.test[1].on('change', () => {});
+        obs.test[2].on('change', () => {});
+        obs.test[3].on('change', () => {});
+        obs.test[4].on('change', () => {});
+
+        obs.test.set([]);
+
+        expect(obs.test).toEqual([]);
+        expect(obs.test.get()).toEqual([]);
+        expect(obs.test.get().length).toEqual(0);
+        expect(obs.test.length).toEqual(0);
+        expect(obs.test.map((a) => a)).toEqual([]);
+    });
+    test('Array splice fire events', () => {
+        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const handler = jest.fn();
+        obs.test.on('change', handler);
+        obs.test[0].on('change', () => {});
+        obs.test[1].on('change', () => {});
+        obs.test[2].on('change', () => {});
+        obs.test[3].on('change', () => {});
+        obs.test[4].on('change', () => {});
+
+        obs.test.splice(0, 1);
+
+        expect(obs.test[0]).toEqual({ text: 2 });
+        expect(obs.test.get()[0]).toEqual({ text: 2 });
+        expect(obs.test).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test.get()).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test.length).toEqual(4);
+        expect(obs.test.get().length).toEqual(4);
+        expect(obs.test.map((a) => a)).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+
+        // TODO
+        // expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }], {
+            changedValue: [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            path: [],
+            prevValue: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+        });
     });
 });
 describe('on functions', () => {
@@ -1083,7 +1153,6 @@ describe('Shallow', () => {
         obs.val.val2.val3.set('hello');
         expect(handler).not.toHaveBeenCalled();
     });
-
     test('Shallow function sets trackedProxies', () => {
         const obs = observable({ val: { val2: true } });
 

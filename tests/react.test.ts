@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-hooks';
+import { observableBatcher } from '../src/observableBatcher';
 import { observable } from '../src/observable';
 import { observableComputed } from '../src/observableComputed';
 import { shallow } from '../src/observableFns';
@@ -112,4 +113,84 @@ describe('React Hooks', () => {
         const [{ test: full }] = result.current;
         expect(full).toEqual('hello there');
     });
+    test('useObservables with shouldRender', () => {
+        let numRenders = 0;
+        const obs = observable({ text: '' });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables(
+                () => [obs.text],
+                () => obs.text === 'hi'
+            );
+        });
+        expect(numRenders).toEqual(1);
+
+        act(() => {
+            obs.text.set('hello');
+        });
+
+        expect(numRenders).toEqual(1);
+
+        act(() => {
+            obs.text.set('there');
+        });
+
+        expect(numRenders).toEqual(1);
+
+        act(() => {
+            obs.text.set('hi');
+        });
+
+        expect(numRenders).toEqual(2);
+    });
+    test('Shallow tracks array setting on index', () => {
+        let numRenders = 0;
+        const obs = observable({ test: [1, 2, 3, 4] });
+
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables(() => [shallow(obs.test)]);
+        });
+
+        act(() => {
+            obs.test.set(1, 22);
+        });
+
+        expect(numRenders).toEqual(2);
+
+        act(() => {
+            obs.test.set(1, 222);
+        });
+
+        expect(numRenders).toEqual(3);
+    });
+    // test('Array swap renders correctly', () => {
+    //     let numRenders = 0;
+    //     const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+
+    //     const { result } = renderHook(() => {
+    //         numRenders++;
+    //         return useObservables(() => [shallow(obs.test)]);
+    //     });
+
+    //     act(() => {
+    //         const arr = obs.test.get();
+    //         const tmp = arr[1];
+    //         obs.test.set(1, arr[4]);
+    //         obs.test.set(4, tmp);
+    //     });
+
+    //     expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
+    //     expect(numRenders).toEqual(2);
+
+    //     act(() => {
+    //         const arr = obs.test.get();
+    //         const tmp = arr[1];
+    //         obs.test.set(1, arr[4]);
+    //         obs.test.set(4, tmp);
+    //     });
+
+    //     expect(obs.test).toEqual([1, 2, 3, 4, 5]);
+    //     expect(numRenders).toEqual(3);
+    // });
 });

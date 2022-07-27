@@ -61,7 +61,15 @@ function collectionSetter(prop: string, proxyOwner: Observable, ...args: any[]) 
 
     (this[prop] as Function).apply(this, args);
 
-    notifyObservable(proxyOwner, this, prevValue, []);
+    if (isArray(this)) {
+        const info = infos.get(proxyOwner);
+
+        info.target = prevValue;
+
+        _set(proxyOwner, info.target, this);
+    } else {
+        notifyObservable(proxyOwner, this, prevValue, []);
+    }
 }
 
 function _get(proxyOwner: Observable) {
@@ -80,10 +88,7 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
         return proxyOwner;
     }
 
-    // Need to keep both target and targetOriginal up to date. targetOriginal may not be
-    // an === match but it needs to have the same keys.
     const target = info.target as any;
-    const targetOriginal = info.targetOriginal;
 
     // There was no prop
     if (arguments.length < 4) {
@@ -93,6 +98,10 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
         const isValuePrimitive = isPrimitive(value);
 
         const prevValue = info.primitive ? target[symbolValue] : clone(target);
+
+        if (value === prevValue) {
+            return proxyOwner;
+        }
 
         const needsNotifyUndefined = !value || isValuePrimitive !== info.primitive;
 
@@ -106,8 +115,6 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
                         info.proxies.delete(key);
                     }
                 }
-                // Delete key on original
-                delete targetOriginal[key];
             }
         });
 
@@ -121,20 +128,14 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
             info.primitive = false;
 
             if (info.proxies) {
+                // 2. Update all child proxies
                 info.proxies.forEach((child) => {
                     const childInfo = infos.get(child);
                     const prop = childInfo.prop;
-                    if (value[prop]) {
-                        child.set(value[childInfo.prop]);
+                    if (value[prop] !== childInfo.target) {
+                        _set(child, childInfo.target, value[childInfo.prop]);
                     }
                 });
-                // 2. Assign the values onto the target which will update all children proxies, but would leave this
-                // as a shallow copy of the the value
-                // _assign(proxyOwner as Observable, target, value);
-            }
-            // Make sure keys are set on original
-            if (isObject(value)) {
-                Object.assign(targetOriginal, value);
             }
             info.target = value;
         }
@@ -145,7 +146,6 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
         if (info.parent) {
             const parentInfo = infos.get(info.parent);
             parentInfo.target[info.prop] = value;
-            parentInfo.targetOriginal[info.prop] = value;
         }
 
         if (value !== prevValue) {
@@ -153,7 +153,6 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
         }
     } else if (typeof prop === 'symbol') {
         target[prop] = value;
-        targetOriginal[prop] = value;
     } else if (isString(prop) || isNumber(prop)) {
         const propStr = String(prop);
         const proxy = info?.proxies?.get(propStr);
@@ -164,17 +163,16 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
             // Ignore array length changing because that's caused by mutations which already notified.
             if (prop !== 'length' && target[prop] !== value) {
                 const prevValue = target.slice();
-                target[prop] = targetOriginal[prop] = value;
+                target[prop] = value;
                 // Notify listeners of changes.
                 notifyObservable(proxyOwner, target, prevValue, []);
             }
         } else {
             const prevValue = clone(target[prop]);
             if (value !== prevValue) {
-                target[prop] = targetOriginal[prop] = value;
+                target[prop] = value;
                 info.primitive = false;
                 delete target[symbolValue];
-                delete targetOriginal[symbolValue];
                 // Notify listeners of changes
                 notifyObservable(proxyOwner, value, prevValue, [propStr]);
             }
@@ -232,14 +230,11 @@ export function deleteFn(obs: ObservableCheckerWriteable, target: any, prop?: st
 
     if (!info.readonly) {
         if (prop !== undefined) {
-            const targetOriginal = info.targetOriginal;
-
             // First set to undefined
             _set(obs, target, prop, undefined);
 
             // Then fully delete the keys from the object
             delete target[prop];
-            delete targetOriginal[prop];
 
             // TODO Should find a way to remove from state.infos or there will be a memory leak if deleting
             // unique keys often. Re-addeding the same prop will reuse the same proxy.
@@ -357,6 +352,19 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             return false;
         }
     },
+    ownKeys() {
+        const info = infos.get(this);
+        const keys = Reflect.ownKeys(info.target);
+        return keys;
+    },
+    getOwnPropertyDescriptor(_, p) {
+        const info = infos.get(this);
+        return Reflect.getOwnPropertyDescriptor(info.target, p);
+    },
+    // has(target, p) {
+    //     debugger;
+    //     return true;
+    // },
 };
 
 // Safe observables also don't allow defining or deleting properties
@@ -390,9 +398,12 @@ function _observable<T>(
 ): Observable<T> {
     const primitive = isPrimitive(value);
     const target = primitive ? { [symbolValue]: value } : (value as unknown as object);
-    const proxy = new Proxy(target, safe ? proxyHandler : proxyHandlerUnsafe);
+    const handler = Object.assign({}, safe ? proxyHandler : proxyHandlerUnsafe);
+    const proxy = new Proxy(target, handler);
+    handler.ownKeys = handler.ownKeys.bind(proxy);
+    handler.getOwnPropertyDescriptor = handler.getOwnPropertyDescriptor.bind(proxy);
     // Save proxy to state so it can be accessed later
-    infos.set(proxy, { parent, prop, safe, target, primitive, targetOriginal: target });
+    infos.set(proxy, { parent, prop, safe, target, primitive });
 
     return proxy;
 }

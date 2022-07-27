@@ -1,6 +1,6 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { useForceRender } from '@legendapp/tools/react';
-import { useEffect, useRef } from 'react';
+import { useForceRender, useStableCallback } from '@legendapp/tools/react';
+import { useCallback, useEffect, useRef } from 'react';
 import { isObservable, isObservableEvent } from '../observableFns';
 import {
     MappedObservableValue,
@@ -15,11 +15,14 @@ import { state } from '../observableState';
 
 interface SavedRef {
     proxies: [Observable, string, ObservableListener][];
+    cmpValue: any;
 }
 
 function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): ObservableValue<T> {
     return obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs);
 }
+
+const undef = Symbol();
 
 /**
  * A React hook that listens to observables and returns their values.
@@ -30,12 +33,13 @@ function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): Obs
  */
 export function useObservables<
     T extends ObservableCheckerLoose | ObservableCheckerLoose[] | Record<string, ObservableCheckerLoose>
->(fn: () => T): MappedObservableValue<T> {
+>(fn: () => T, renderComparator?: () => any): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
         ref.current = {
             proxies: [],
+            cmpValue: undef,
         };
     }
 
@@ -48,8 +52,23 @@ export function useObservables<
 
     const arr = (isArr ? args : isObj ? Object.values(args) : [args]) as Observable[];
 
+    const onChange = useStableCallback(() => {
+        if (!renderComparator) {
+            return forceRender();
+        }
+        const val = renderComparator();
+        if (val !== ref.current.cmpValue) {
+            ref.current.cmpValue = val;
+            forceRender();
+        }
+    });
+
     // Compare to previous args and update listeners if any changed or first mount
-    updateListeners(arr as Observable[], ref.current, forceRender);
+    updateListeners(arr as Observable[], ref.current, onChange);
+
+    if (renderComparator && ref.current.cmpValue === undef) {
+        ref.current.cmpValue = renderComparator();
+    }
 
     // Reset state
     state.isTracking = false;
@@ -79,7 +98,7 @@ export function useObservables<
     }
 }
 
-const updateListeners = (ret: Observable[], saved: SavedRef, onChange: () => void) => {
+function updateListeners(ret: Observable[], saved: SavedRef, onChange: () => void) {
     const tracked = state.trackedProxies;
     const trackedRoots = state.trackedRootProxies;
     // Passing the root of an observable will not trigger any tracking from the proxies, so
@@ -137,4 +156,4 @@ const updateListeners = (ret: Observable[], saved: SavedRef, onChange: () => voi
             }
         }
     }
-};
+}
