@@ -75,7 +75,6 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | number | symbol | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = infos.get(proxyOwner);
-    if (!info) debugger;
 
     if (info.readonly) {
         return proxyOwner;

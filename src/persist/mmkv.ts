@@ -36,7 +36,6 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
                 this.storage.set(id, JSON.stringify(v));
             } catch (err) {
                 console.error(err);
-                debugger;
             }
         } else {
             this.storage.delete(id);
