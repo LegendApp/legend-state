@@ -43,7 +43,14 @@ export interface ObservableListenerInfo {
     path: string[];
 }
 
+export interface ObservableListenerInfo2 {
+    value: any;
+    prevValue: any;
+    path: string[];
+}
+
 export type ListenerFn<T> = (value: T, info: ObservableListenerInfo) => void;
+export type ListenerFn2<T> = (value: T, info: ObservableListenerInfo2) => void;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -62,6 +69,26 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     ? TRecurse
     : T[K];
 
+type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
+    | Function
+    | Map<any, any>
+    | WeakMap<any, any>
+    | Set<any>
+    | WeakSet<any>
+    | Promise<any>
+    | number
+    | boolean
+    | string
+    ? T[K]
+    : T[K] extends Array<any>
+    ? T[K] &
+          ObservableProps<T[K]> & {
+              [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]>;
+          }
+    : T extends object
+    ? TRecurse
+    : T[K];
+
 type ObservablePropsRecursiveUnsafe<T> = {
     [K in keyof T]: Recurse<T, K, ObservableUnsafe<T[K]>>;
 };
@@ -69,10 +96,15 @@ type ObservablePropsRecursiveUnsafe<T> = {
 type ObservablePropsRecursive<T> = {
     readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
 };
+type ObservablePropsRecursive2<T> = {
+    readonly [K in keyof T]: Recurse2<T, K, Observable2<T[K]>>;
+};
 
 export type ObservableUnsafe<T = any> = ObservablePropsRecursiveUnsafe<T> & ObservablePropsUnsafe<T>;
 export type Observable<T = any> = ObservablePropsRecursive<T> & ObservableProps<T>;
 export type ObservableComputed<T = any> = ObservableBaseProps<T>;
+
+export type Observable2<T = any> = ObservablePropsRecursive2<T> & ObservableProps<T>;
 
 export interface ObservableEvent {
     fire(): void;

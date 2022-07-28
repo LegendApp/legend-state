@@ -1,14 +1,21 @@
-import { isObject, isString } from '@legendapp/tools';
+import { isObject } from '@legendapp/tools';
 import { isPrimitive } from './globals';
-import { Observable, ObservableEventType } from './observableInterfaces';
+import { ListenerFn2, Observable2, ObservableEventType, ObservableListenerInfo2 } from './observableInterfaces';
 
+export interface ObservableListener2<T = any> {
+    node: TreeNode;
+    callback: ListenerFn2<T>;
+    shallow: boolean;
+    dispose: () => void;
+    isDisposed: boolean;
+}
 interface TreeNode {
     parent: TreeNode;
     key: string | number;
-    listeners?: Set<(value, prevValue) => void>;
+    listeners?: Set<ObservableListener2>;
     children?: Map<string, TreeNode>;
     value: any;
-    prop?: { [symbolProp]: any };
+    prop?: { [symbolProp]: { node: TreeNode; key: string } };
 }
 const state = {
     mapObjects: new WeakMap<object, TreeNode>(),
@@ -23,6 +30,8 @@ const mapFns = new Map<string, Function>([
     ['set', set],
     ['on', on],
     ['prop', prop],
+    ['assign', assign],
+    ['delete', deleteFn],
 ]);
 
 function extendPrototypesObject() {
@@ -34,35 +43,55 @@ function extendPrototypesObject() {
             }
         };
     const toOverride = [Object];
-    ['assign', 'get', 'on', 'set', 'delete', 'prop'].forEach((key) => {
+    ['assign', 'on', 'set', 'delete', 'prop'].forEach((key) => {
         toOverride.forEach((override) => (override.prototype[key] = fn(key)));
     });
 }
 
 extendPrototypesObject();
 
-function cleanup(node: TreeNode, newValue: any, shouldClearListeners: boolean) {
+function copyToNewTree(node: TreeNode, newValue: any, shouldClearListeners: boolean) {
     // Run listeners on old deleted children
     // And remove them from tree
 
-    if (shouldClearListeners && node.listeners) {
-        node.listeners.forEach((cb) => cb(undefined, undefined));
-        node.listeners.clear();
-    }
-
     if (node.children) {
+        // Wipe out old children that don't exist anymore
         node.children.forEach((child) => {
-            const v = newValue[child.key];
+            const v = !newValue || newValue[child.key];
             // Notify of being undefined
             if (v === undefined || v === null) {
-                cleanup(child, v, true);
+                copyToNewTree(child, v, true);
+                node.children.delete(child.key as string);
             }
         });
-        node.children.clear();
+        Object.keys(newValue).forEach((key) => {
+            const child = node.children.get(key);
+            if (child) {
+                const val = newValue[key];
+                state.mapObjects.delete(child.prop || child.value);
+                const prevValue = child.value;
+                child.value = val;
+                if (child.prop) {
+                    child.prop = prop(child, key);
+                }
+                state.mapObjects.set(child.prop || val, child);
+
+                notify(child, val, prevValue);
+
+                copyToNewTree(child, val, true);
+            }
+        });
     }
 
-    node.parent.children.delete(node.key as string);
-    state.mapObjects.delete(node.value);
+    if (!newValue) {
+        if (shouldClearListeners && node.listeners) {
+            node.listeners.forEach((listener) => listener.callback(undefined, undefined));
+            node.listeners.clear();
+        }
+
+        node.parent?.children.delete(node.key as string);
+        state.mapObjects.delete(node.value);
+    }
 }
 
 function set(node: TreeNode, newValue: any): any;
@@ -73,7 +102,6 @@ function set(node: TreeNode, key: string, newValue?: any): any {
         key = undefined;
 
         state.inSet = true;
-        // debugger;
         const parent = node.parent;
         const oldValue = node.value;
         if (!parent) {
@@ -83,9 +111,11 @@ function set(node: TreeNode, key: string, newValue?: any): any {
             Object.assign(node.value, newValue);
         } else {
             // In child, can just replace
-            parent.value[node.key] = newValue;
-            cleanup(node, newValue, false);
+            node.value = parent.value[node.key] = newValue;
+            // cleanup(node, newValue, false);
         }
+
+        copyToNewTree(node, newValue, false);
 
         recursePaths(newValue, node);
 
@@ -95,6 +125,44 @@ function set(node: TreeNode, key: string, newValue?: any): any {
     } else {
         return set(propNode(node, key as string), newValue);
     }
+}
+
+function assign(node: TreeNode, value: any) {
+    Object.keys(value).forEach((key) => {
+        set(propNode(node, key), value[key]);
+    });
+}
+
+function deleteFn(node: TreeNode, key?: string | number) {
+    if (!key) {
+        return deleteFn(node.parent, node.key);
+    }
+
+    copyToNewTree(propNode(node, key as string), {}, true);
+
+    delete node.value[key];
+}
+
+export function disposeListener(listener: ObservableListener2) {
+    if (listener && !listener.isDisposed) {
+        listener.isDisposed = true;
+        const listeners = listener.node.listeners;
+        if (listeners) {
+            listeners.delete(listener);
+        }
+    }
+}
+
+function onChange(node: TreeNode, callback: (value, prevValue) => void, shallow: boolean) {
+    const listener = { node, callback, shallow } as ObservableListener2;
+    listener.dispose = disposeListener.bind(listener, listener);
+
+    if (!node.listeners) {
+        node.listeners = new Set();
+    }
+    node.listeners.add(listener);
+
+    return listener;
 }
 
 function on(node: TreeNode, type: ObservableEventType, callback: (value, prevValue) => void);
@@ -115,12 +183,11 @@ function on(
         // @ts-ignore
         return on(propNode(node, key), type, callback);
     }
-    if (!node.listeners) {
-        node.listeners = new Set();
-    }
-    node.listeners.add(callback);
 
-    return undefined;
+    return (
+        (type === 'change' && onChange(node, callback, false)) ||
+        (type === 'changeShallow' && onChange(node, callback, true))
+    );
 }
 
 function propNode(node: TreeNode, key: string) {
@@ -146,13 +213,20 @@ function prop(node: TreeNode, key: string) {
     return propNode(node, key).prop;
 }
 
-function notify(node: TreeNode, newValue: any, prevValue: any) {
+function _notify(node: TreeNode, listenerInfo: ObservableListenerInfo2) {
     if (node.listeners) {
-        node.listeners.forEach((cb) => cb(newValue, prevValue));
+        const value = node.value;
+        node.listeners.forEach((listener) => listener.callback(value, listenerInfo));
     }
     if (node.parent) {
-        notify(node.parent, { [node.key]: newValue }, { [node.key]: prevValue });
+        const parentListenerInfo = Object.assign({}, listenerInfo);
+        parentListenerInfo.path = [node.key as string].concat(listenerInfo.path);
+        _notify(node.parent, parentListenerInfo);
     }
+}
+
+function notify(node: TreeNode, value: any, prevValue: any) {
+    _notify(node, { value, prevValue, path: [] });
 }
 
 function recursePaths(obj: Record<any, any>, node: TreeNode) {
@@ -199,8 +273,8 @@ function proxy<T extends object | Record<any, any>>(obj: T): T {
         : obj;
 }
 
-export function observable2<T>(obj: T): Observable<T> {
-    const obs = (isObject(obj) ? proxy(obj) : obj) as Observable<T>;
+export function observable2<T extends object | Array<any>>(obj: T): Observable2<T> {
+    const obs = (isObject(obj) ? proxy(obj) : obj) as Observable2<T>;
     state.inSet = true;
     recursePaths(obs, {
         parent: undefined,
@@ -209,5 +283,5 @@ export function observable2<T>(obj: T): Observable<T> {
     });
     state.inSet = false;
 
-    return obs as Observable<T>;
+    return obs as Observable2<T>;
 }
