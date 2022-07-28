@@ -1,5 +1,5 @@
 import { isObject } from '@legendapp/tools';
-import { isPrimitive, symbolShallow } from './globals';
+import { isPrimitive, symbolProp, symbolShallow } from './globals';
 import { ListenerFn2, Observable2, ObservableEventType, ObservableListenerInfo2 } from './observableInterfaces';
 
 export interface ObservableListener2<T = any> {
@@ -19,12 +19,11 @@ interface TreeNode {
 }
 const state = {
     mapObjects: new WeakMap<object, TreeNode>(),
+    fromKey: false,
     inSet: false,
     lastAccessedObject: undefined as any,
     lastAccesssedProp: undefined as any,
 };
-
-const symbolProp = Symbol('__prop');
 
 const mapFns = new Map<string, Function>([
     ['set', set],
@@ -49,6 +48,31 @@ function extendPrototypesObject() {
 }
 
 extendPrototypesObject();
+
+function extendPrototypesArray() {
+    const fn = (override: any, name: string) => {
+        const orig = override.prototype[name];
+        return function () {
+            state.inSet = true;
+            const prevValue = this.slice();
+            const ret = orig.apply(this, arguments);
+            state.inSet = false;
+
+            const node = state.mapObjects.get(this);
+            if (node) {
+                node.value = prevValue;
+                set(node, this);
+            }
+
+            return ret;
+        };
+    };
+    const toOverride = [Array];
+    ['push'].forEach((key) => {
+        toOverride.forEach((override) => (override.prototype[key] = fn(override, key)));
+    });
+}
+extendPrototypesArray();
 
 function copyToNewTree(node: TreeNode, newValue: any, shouldClearListeners: boolean) {
     // Run listeners on old deleted children
@@ -120,10 +144,13 @@ function set(node: TreeNode, key: string, newValue?: any): any {
         recursePaths(newValue, node);
 
         // Run listeners up tree
-        notify(node, newValue, oldValue);
+        notify(node, newValue, oldValue, state.fromKey ? -1 : 0);
         state.inSet = false;
     } else {
-        return set(propNode(node, key as string), newValue);
+        state.fromKey = true;
+        const ret = set(propNode(node, key as string), newValue);
+        state.fromKey = false;
+        return ret;
     }
 }
 
@@ -219,23 +246,23 @@ function prop(node: TreeNode, key: string) {
     return propNode(node, key).prop;
 }
 
-function _notify(node: TreeNode, listenerInfo: ObservableListenerInfo2, fromChild?: boolean) {
+function _notify(node: TreeNode, listenerInfo: ObservableListenerInfo2, levels: number) {
     if (node.listeners) {
         const value = node.value;
         node.listeners.forEach((listener) => {
-            if (!fromChild || !listener.shallow || (value === undefined) !== (listenerInfo.prevValue === undefined))
+            if (levels < 1 || !listener.shallow || (value === undefined) !== (listenerInfo.prevValue === undefined))
                 listener.callback(value, listenerInfo);
         });
     }
     if (node.parent) {
         const parentListenerInfo = Object.assign({}, listenerInfo);
         parentListenerInfo.path = [node.key as string].concat(listenerInfo.path);
-        _notify(node.parent, parentListenerInfo, /*fromChild*/ true);
+        _notify(node.parent, parentListenerInfo, levels + 1);
     }
 }
 
-function notify(node: TreeNode, value: any, prevValue: any) {
-    _notify(node, { value, prevValue, path: [] });
+function notify(node: TreeNode, value: any, prevValue: any, levels = 0) {
+    _notify(node, { value, prevValue, path: [] }, levels);
 }
 
 function recursePaths(obj: Record<any, any>, node: TreeNode) {

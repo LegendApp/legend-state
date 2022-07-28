@@ -137,7 +137,7 @@ describe('Listeners', () => {
         const obs = observable2({ test: { test2: 'hi' } });
         const handler = jest.fn();
         // @ts-ignore
-        obs.test._on('changeShallow', handler);
+        obs._on('changeShallow', handler);
 
         obs.test._set('test2', 'hello');
 
@@ -147,6 +147,33 @@ describe('Listeners', () => {
         obs.test._assign({ test3: 'hello' });
 
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Shallow array swap', () => {
+        const obs = observable2({
+            test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
+        });
+        const handler = jest.fn();
+        obs.test._on('changeShallow', handler);
+
+        let tmp = obs.test[1];
+        obs.test._set(1, obs.test[4]);
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }, { text: 6 }]);
+        expect(handler).toHaveBeenCalledTimes(2);
+
+        tmp = obs.test[1];
+        obs.test._set(1, obs.test[4]);
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }]);
+        expect(handler).toHaveBeenCalledTimes(4);
+
+        // @ts-ignore
+        obs.test[5]._set('text', 66);
+
+        expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 66 }]);
+        expect(handler).toHaveBeenCalledTimes(4);
     });
 });
 describe('Safety', () => {
@@ -204,6 +231,33 @@ describe('Array', () => {
         const obs = observable2({ arr: [1, 2] });
 
         expect(obs.arr.map((a) => a)).toEqual([1, 2]);
+    });
+    test('Array push', () => {
+        const obs = observable2({ test: ['hi'] });
+        const handler = jest.fn();
+        obs._on('change', handler);
+        obs.test.push('hello');
+        expect(obs.test).toEqual(['hi', 'hello']);
+        expect(handler).toHaveBeenCalledWith(
+            { test: ['hi', 'hello'] },
+            { value: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+        );
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Array swap', () => {
+        const obs = observable2({ test: [1, 2, 3, 4, 5] });
+
+        let tmp = obs.test[1];
+        obs.test._set(1, obs.test[4]);
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([1, 5, 3, 4, 2]);
+
+        tmp = obs.test[1];
+        obs.test._set(1, obs.test[4]);
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([1, 2, 3, 4, 5]);
     });
 });
 

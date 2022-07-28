@@ -4,6 +4,7 @@ import { observableConfiguration } from './configureObservable';
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
 export const symbolValue = Symbol('__value');
+export const symbolProp = Symbol('__prop');
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;

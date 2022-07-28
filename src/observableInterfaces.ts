@@ -48,11 +48,11 @@ export interface ObservableBaseProps2<T> {
     ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
 }
 export interface ObservableProps2<T> extends ObservableBaseProps2<T> {
-    _set(value: ValidObservableParam<T>): Observable<T>;
-    _set<K extends keyof T>(key: K | string | number, value: ValidObservableParam<T[K]>): Observable<T[K]>;
-    _assign(value: ValidObservableParam<T> | Partial<ValidObservableParam<T>>): Observable<T>;
-    _delete(): Observable<T>;
-    _delete<K extends keyof T>(key: K | string | number): Observable<T>;
+    _set(value: ValidObservableParam2<T>): Observable2<T>;
+    _set<K extends keyof T>(key: K | string | number, value: ValidObservableParam2<T[K]>): Observable2<T[K]>;
+    _assign(value: ValidObservableParam2<T> | Partial<ValidObservableParam2<T>>): Observable2<T>;
+    _delete(): Observable2<T>;
+    _delete<K extends keyof T>(key: K | string | number): Observable2<T>;
 }
 export type ObservablePropsUnsafe<T> = Partial<ObservableProps<T>>;
 
@@ -269,6 +269,13 @@ export type ValidObservableParam<T> = T extends Record<string, any>
         : T extends Observable
         ? never
         : { [K in keyof T]: ValidObservableParam<T[K]> } & DisallowedAttributes<ObservableFnName>
+    : T;
+export type ValidObservableParam2<T> = T extends Record<string, any>
+    ? T extends Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>
+        ? T
+        : T extends Observable2
+        ? never
+        : { [K in keyof T]: ValidObservableParam2<T[K]> }
     : T;
 export interface OnReturnValue<T> {
     promise: Promise<T>;

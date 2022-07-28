@@ -1,26 +1,22 @@
 import { isArray, isObject } from '@legendapp/tools';
 import { useForceRender, useStableCallback } from '@legendapp/tools/react';
 import { useEffect, useRef } from 'react';
-import { isObservable, isObservableEvent } from '../observableFns';
-import { symbolShallow } from '../globals';
-import {
-    MappedObservableValue,
-    Observable,
-    Observable2,
-    ObservableEvent,
-    ObservableListener,
-    ObservableValue,
-    Shallow,
-} from '../observableInterfaces';
+import { symbolProp, symbolShallow } from '../globals';
+import { Observable, Observable2, ObservableListener, Shallow } from '../observableInterfaces';
 
 interface SavedRef {
     proxies: [Observable2, ObservableListener][];
     cmpValue: any;
 }
 
-// function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): ObservableValue<T> {
-//     return obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs);
-// }
+function getRawValue(obs: Observable) {
+    const prop = obs[symbolProp as any];
+    if (prop) {
+        return prop.node.value[prop.key];
+    } else {
+        return obs[symbolShallow as any] || obs;
+    }
+}
 
 const undef = Symbol();
 
@@ -81,7 +77,8 @@ export function useObservables2<
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return args.map((obs) => obs[symbolShallow] || obs);
+    // TODO Support single obs and object
+    return args.map(getRawValue);
 }
 
 function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => void) {

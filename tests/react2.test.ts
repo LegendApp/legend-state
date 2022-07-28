@@ -3,7 +3,6 @@ import { observable2, shallow } from '../src/observable2';
 import { useObservables2 } from '../src/react/useObservables2';
 
 describe('React Hooks', () => {
-    test('', () => {});
     test('useObservables', () => {
         let numRenders = 0;
         const obs = observable2({ val: { val2: { val3: 'hello' } } });
