@@ -12,7 +12,7 @@ interface SavedRef {
 function getRawValue(obs: Observable) {
     const prop = obs[symbolProp as any];
     if (prop) {
-        return prop.node.value[prop.key];
+        return prop.value;
     } else {
         return obs[symbolShallow as any] || obs;
     }

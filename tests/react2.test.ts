@@ -19,6 +19,24 @@ describe('React Hooks', () => {
         expect(numRenders).toEqual(2);
         expect(val.val2.val3).toEqual('hi');
     });
+    test('useObservables with prop', () => {
+        let numRenders = 0;
+        const obs = observable2({ val: { val2: { val3: 'hello' } }, selected: 0 });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables2([obs.val, obs._prop('selected')]);
+        });
+        const [val] = result.current;
+        expect(numRenders).toEqual(1);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hello');
+        act(() => {
+            obs.val.val2._set('val3', 'hi');
+        });
+        expect(numRenders).toEqual(2);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hi');
+    });
     // test('useObservables with object returns object', () => {
     //     const obs = observable({ val: { val2: { val3: 'hello' } } });
     //     const { result } = renderHook(() => {

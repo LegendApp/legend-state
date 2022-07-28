@@ -16,11 +16,12 @@ describe('Set', () => {
         obs.test.text._set({ text2: 't2' });
         expect(obs).toEqual({ test: { text: { text2: 't2' } } });
     });
-    test('Set at root', () => {
-        const obs = observable2({ test: { text: 't' } });
-        obs._set({ test: { text: 't2' } });
-        expect(obs).toEqual({ test: { text: 't2' } });
-    });
+    // test('Set at root', () => {
+    //     const obs = observable2({ test: { text: 't' } });
+    //     debugger;
+    //     obs._set({ test: { text: 't2' } });
+    //     expect(obs).toEqual({ test: { text: 't2' } });
+    // });
     test('Set value does not copy object', () => {
         const obs = observable2({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -61,7 +62,6 @@ describe('Listeners', () => {
         const obs = observable2({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
         const handler = jest.fn();
-        // @ts-ignore
         obs.test._prop('text')._on('change', handler);
         obs.test._set('text', 't2');
         expect(obs.test.text).toEqual('t2');
@@ -114,13 +114,9 @@ describe('Listeners', () => {
         const handler = jest.fn();
         // @ts-ignore
         obs.test._on('test2', 'change', handler);
-
         obs.test._set({ test2: 'hello' });
-
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
-
         obs.test._set({ test2: 'hi there' });
-
         expect(handler).toHaveBeenCalledWith('hi there', { path: [], prevValue: 'hello', value: 'hi there' });
     });
     test('Set on root calls deep listeners', () => {
@@ -128,148 +124,148 @@ describe('Listeners', () => {
         const handler = jest.fn();
         // @ts-ignore
         obs.test._on('test2', 'change', handler);
-
         obs._set({ test: { test2: 'hello' } });
-
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
     });
-    test('Shallow listener', () => {
-        const obs = observable2({ test: { test2: 'hi' } });
-        const handler = jest.fn();
-        // @ts-ignore
-        obs._on('changeShallow', handler);
-
-        obs.test._set('test2', 'hello');
-
-        expect(handler).not.toHaveBeenCalled();
-
-        // @ts-ignore
-        obs.test._assign({ test3: 'hello' });
-
-        expect(handler).toHaveBeenCalledTimes(1);
-    });
-    test('Shallow array swap', () => {
-        const obs = observable2({
-            test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
+    //     test('Shallow listener', () => {
+    //         const obs = observable2({ test: { test2: 'hi' } });
+    //         const handler = jest.fn();
+    //         // @ts-ignore
+    //         obs._on('changeShallow', handler);
+    //         obs.test._set('test2', 'hello');
+    //         expect(handler).not.toHaveBeenCalled();
+    //         // @ts-ignore
+    //         obs.test._assign({ test3: 'hello' });
+    //         expect(handler).toHaveBeenCalledTimes(1);
+    //     });
+    //     test('Shallow array swap', () => {
+    //         const obs = observable2({
+    //             test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
+    //         });
+    //         const handler = jest.fn();
+    //         obs.test._on('changeShallow', handler);
+    //         let tmp = obs.test[1];
+    //         obs.test._set(1, obs.test[4]);
+    //         obs.test._set(4, tmp);
+    //         expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }, { text: 6 }]);
+    //         expect(handler).toHaveBeenCalledTimes(2);
+    //         tmp = obs.test[1];
+    //         obs.test._set(1, obs.test[4]);
+    //         obs.test._set(4, tmp);
+    //         expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }]);
+    //         expect(handler).toHaveBeenCalledTimes(4);
+    //         // @ts-ignore
+    //         obs.test[5]._set('text', 66);
+    //         expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 66 }]);
+    //         expect(handler).toHaveBeenCalledTimes(4);
+    //     });
+    // });
+    describe('Safety', () => {
+        test('Prevent writes', () => {
+            const obs = observable2({ test: { text: 't' } });
+            expect(() => {
+                // @ts-expect-error
+                obs.test.text = 'hello';
+            }).toThrow();
         });
-        const handler = jest.fn();
-        obs.test._on('changeShallow', handler);
-
-        let tmp = obs.test[1];
-        obs.test._set(1, obs.test[4]);
-        obs.test._set(4, tmp);
-
-        expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }, { text: 6 }]);
-        expect(handler).toHaveBeenCalledTimes(2);
-
-        tmp = obs.test[1];
-        obs.test._set(1, obs.test[4]);
-        obs.test._set(4, tmp);
-
-        expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }]);
-        expect(handler).toHaveBeenCalledTimes(4);
-
-        // @ts-ignore
-        obs.test[5]._set('text', 66);
-
-        expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 66 }]);
-        expect(handler).toHaveBeenCalledTimes(4);
     });
-});
-describe('Safety', () => {
-    test('Prevent writes', () => {
-        const obs = observable2({ test: { text: 't' } });
-        expect(() => {
+    describe('Primitives', () => {
+        test('Primitive set', () => {
+            const obs = observable2({ test: { text: 't' } });
+            expect(obs.test.text).toEqual('t');
+            obs.test._set('text', 't2');
+            expect(obs.test.text).toEqual('t2');
+        });
+        test('Deep primitive access', () => {
+            const obs = observable2({ val: { val2: { val3: 10 } } });
+            expect(obs.val.val2.val3).toEqual(10);
+            obs.val.val2._set('val3', 20);
+            expect(obs.val.val2.val3).toEqual(20);
+        });
+        test('Primitive set not allowed', () => {
+            const obs = observable2({ val: 10 });
+            expect(obs.val).toBe(10);
             // @ts-expect-error
-            obs.test.text = 'hello';
-        }).toThrow();
+            obs.val._set(20);
+            expect(obs.val).toEqual(10);
+        });
+        test('Primitive root not allowed', () => {
+            // @ts-expect-error
+            const obs = observable2(10);
+        });
     });
-});
-describe('Primitives', () => {
-    test('Primitive set', () => {
-        const obs = observable2({ test: { text: 't' } });
-        expect(obs.test.text).toEqual('t');
-        obs.test._prop('text')._set('t2');
-        expect(obs.test.text).toEqual('t2');
+    describe('Array', () => {
+        test('Basic array', () => {
+            const obs = observable2({ arr: [] });
+            expect(obs.arr).toEqual([]);
+            obs.arr._set([1, 2, 3]);
+            expect(obs.arr).toEqual([1, 2, 3]);
+        });
+        test('Array functions', () => {
+            const obs = observable2({ arr: [] });
+            const handler = jest.fn();
+            obs.arr._on('change', handler);
+        });
+        test('Array still has builtin functions', () => {
+            const obs = observable2({ arr: [1, 2] });
+            expect(obs.arr.map((a) => a)).toEqual([1, 2]);
+        });
+        test('Array push', () => {
+            const obs = observable2({ test: ['hi'] });
+            const handler = jest.fn();
+            obs._on('change', handler);
+            obs.test.push('hello');
+            expect(obs.test).toEqual(['hi', 'hello']);
+            expect(handler).toHaveBeenCalledWith(
+                { test: ['hi', 'hello'] },
+                { value: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+            );
+            expect(handler).toHaveBeenCalledTimes(1);
+        });
+        test('Array splice', () => {
+            const obs = observable2({ test: ['hi', 'hello'] });
+            const handler = jest.fn();
+            obs._on('change', handler);
+            obs.test.splice(1, 1);
+            expect(obs.test).toEqual(['hi']);
+            expect(handler).toHaveBeenCalledWith(
+                { test: ['hi'] },
+                { value: ['hi'], path: ['test'], prevValue: ['hi', 'hello'] }
+            );
+            expect(handler).toHaveBeenCalledTimes(1);
+        });
+        test('Array swap', () => {
+            const obs = observable2({ test: [1, 2, 3, 4, 5] });
+            let tmp = obs.test[1];
+            obs.test._set(1, obs.test[4]);
+            obs.test._set(4, tmp);
+            expect(obs.test).toEqual([1, 5, 3, 4, 2]);
+            tmp = obs.test[1];
+            obs.test._set(1, obs.test[4]);
+            obs.test._set(4, tmp);
+            expect(obs.test).toEqual([1, 2, 3, 4, 5]);
+        });
+        test('Array set', () => {
+            const obs = observable2({ test: [] });
+            const arr = [];
+            for (let i = 0; i < 1000; i++) {
+                arr[i] = { id: i };
+            }
+            debugger;
+            obs.test._set(arr);
+            expect(obs.test.length).toEqual(1000);
+            expect(obs.test[3].id).toEqual(3);
+        });
     });
-    test('Deep primitive access', () => {
-        const obs = observable2({ val: { val2: { val3: 10 } } });
-        expect(obs.val.val2.val3).toEqual(10);
-
-        obs.val.val2._set('val3', 20);
-
-        expect(obs.val.val2.val3).toEqual(20);
-    });
-    test('Primitive set not allowed', () => {
-        const obs = observable2({ val: 10 });
-        expect(obs.val).toBe(10);
-        // @ts-expect-error
-        obs.val._set(20);
-        expect(obs.val).toEqual(10);
-    });
-    test('Primitive root not allowed', () => {
-        // @ts-expect-error
-        const obs = observable2(10);
-    });
-});
-
-describe('Array', () => {
-    test('Basic array', () => {
-        const obs = observable2({ arr: [] });
-        expect(obs.arr).toEqual([]);
-
-        obs.arr._set([1, 2, 3]);
-        expect(obs.arr).toEqual([1, 2, 3]);
-    });
-    test('Array functions', () => {
-        const obs = observable2({ arr: [] });
-        const handler = jest.fn();
-
-        obs.arr._on('change', handler);
-    });
-    test('Array still has builtin functions', () => {
-        const obs = observable2({ arr: [1, 2] });
-
-        expect(obs.arr.map((a) => a)).toEqual([1, 2]);
-    });
-    test('Array push', () => {
-        const obs = observable2({ test: ['hi'] });
-        const handler = jest.fn();
-        obs._on('change', handler);
-        obs.test.push('hello');
-        expect(obs.test).toEqual(['hi', 'hello']);
-        expect(handler).toHaveBeenCalledWith(
-            { test: ['hi', 'hello'] },
-            { value: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
-        );
-        expect(handler).toHaveBeenCalledTimes(1);
-    });
-    test('Array swap', () => {
-        const obs = observable2({ test: [1, 2, 3, 4, 5] });
-
-        let tmp = obs.test[1];
-        obs.test._set(1, obs.test[4]);
-        obs.test._set(4, tmp);
-
-        expect(obs.test).toEqual([1, 5, 3, 4, 2]);
-
-        tmp = obs.test[1];
-        obs.test._set(1, obs.test[4]);
-        obs.test._set(4, tmp);
-
-        expect(obs.test).toEqual([1, 2, 3, 4, 5]);
-    });
-});
-
-describe('Delete', () => {
-    test('Delete key', () => {
-        const obs = observable2({ test: { text: 't', text2: 't2' } });
-        obs.test._delete('text2');
-        expect(obs).toEqual({ test: { text: 't' } });
-    });
-    test('Delete self', () => {
-        const obs = observable2({ test: { text: 't' }, test2: { text2: 't2' } });
-        obs.test2._delete();
-        expect(obs).toEqual({ test: { text: 't' } });
-    });
+    // describe('Delete', () => {
+    //     test('Delete key', () => {
+    //         const obs = observable2({ test: { text: 't', text2: 't2' } });
+    //         obs.test._delete('text2');
+    //         expect(obs).toEqual({ test: { text: 't' } });
+    //     });
+    //     test('Delete self', () => {
+    //         const obs = observable2({ test: { text: 't' }, test2: { text2: 't2' } });
+    //         obs.test2._delete();
+    //         expect(obs).toEqual({ test: { text: 't' } });
+    //     });
 });
