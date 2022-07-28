@@ -83,6 +83,12 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | number | symbol | unknown, value?: any) {
     state.inSetFn = Math.max(0, state.inSetFn++);
     const info = infos.get(proxyOwner);
+    if (!info) {
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Cannot set a value on a disposed observable', prop, value);
+        }
+        return proxyOwner;
+    }
 
     if (info.readonly) {
         return proxyOwner;
@@ -105,6 +111,9 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
 
         const needsNotifyUndefined = !value || isValuePrimitive !== info.primitive;
 
+        // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
+        skipNotifyFor.push(proxyOwner);
+
         // 1. Delete keys that no longer exist
         Object.keys(target).forEach((key) => {
             if (needsNotifyUndefined || (value[key] === undefined && value[+key] === undefined)) {
@@ -118,9 +127,6 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
             }
         });
 
-        // To avoid notifying multiple times as props are changed, make sure we don't notify for this proxy until the assign is done
-        skipNotifyFor.push(proxyOwner);
-
         if (isValuePrimitive) {
             info.primitive = true;
             info.target = { [symbolValue]: value };
@@ -131,9 +137,11 @@ function _set(proxyOwner: ObservableCheckerWriteable, _: any, prop: string | num
                 // 2. Update all child proxies
                 info.proxies.forEach((child) => {
                     const childInfo = infos.get(child);
-                    const prop = childInfo.prop;
-                    if (value[prop] !== childInfo.target) {
-                        _set(child, childInfo.target, value[childInfo.prop]);
+                    if (childInfo) {
+                        const prop = childInfo.prop;
+                        if (value[prop] !== childInfo.target) {
+                            _set(child, childInfo.target, value[childInfo.prop]);
+                        }
                     }
                 });
             }
@@ -228,7 +236,7 @@ export function assigner<T>(obs: ObservableCheckerWriteable<T>) {
 export function deleteFn(obs: ObservableCheckerWriteable, target: any, prop?: string | number | symbol) {
     const info = infos.get(obs);
 
-    if (!info.readonly) {
+    if (info && !info.readonly) {
         if (prop !== undefined) {
             // First notify of deletion
             if (info.proxies?.has(prop)) {
@@ -267,6 +275,7 @@ const ProxyFunctions = new Map<ObservableFnName, any>([
 const proxyHandlerUnsafe: ProxyHandler<any> = {
     get(_: any, prop: string | symbol, proxyOwner: Observable) {
         const info = infos.get(proxyOwner);
+        if (!info) return undefined;
         const target = info.target as any;
         const targetValue = target[prop];
         if (isFunction(targetValue) && isCollection(target)) {
@@ -327,6 +336,12 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
     },
     set(_: any, prop: string, value: any, proxyOwner: Observable) {
         const info = infos.get(proxyOwner);
+        if (!info) {
+            if (process.env.NODE_ENV === 'development') {
+                console.error('Cannot assign to a disposed observable', prop, value);
+            }
+            return false;
+        }
         const target = info.target as any;
 
         if (state.inAssign > 0) {
@@ -354,19 +369,14 @@ const proxyHandlerUnsafe: ProxyHandler<any> = {
             return false;
         }
     },
-    ownKeys() {
+    ownKeys(target) {
         const info = infos.get(this);
-        const keys = Reflect.ownKeys(info.target);
-        return keys;
+        return Reflect.ownKeys(info ? info.target : target);
     },
-    getOwnPropertyDescriptor(_, p) {
+    getOwnPropertyDescriptor(target, p) {
         const info = infos.get(this);
-        return Reflect.getOwnPropertyDescriptor(info.target, p);
+        return Reflect.getOwnPropertyDescriptor(info ? info.target : target, p);
     },
-    // has(target, p) {
-    //     debugger;
-    //     return true;
-    // },
 };
 
 // Safe observables also don't allow defining or deleting properties

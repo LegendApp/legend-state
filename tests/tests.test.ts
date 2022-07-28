@@ -1067,6 +1067,18 @@ describe('Arrays', () => {
             prevValue: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
         });
     });
+    test('Array with listeners clear', () => {
+        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const handler = jest.fn();
+        obs.test.on('changeShallow', handler);
+        obs.test[0].on('change', () => {});
+        obs.test[1].on('change', () => {});
+        obs.test[2].on('change', () => {});
+        obs.test[3].on('change', () => {});
+        obs.test[4].on('change', () => {});
+
+        obs.test.set([]);
+    });
 });
 describe('on functions', () => {
     test('onValue with prop', () => {
@@ -1557,7 +1569,6 @@ describe('Delete', () => {
         const handler = jest.fn();
 
         obs.obj.val.on('change', handler);
-
         obs.obj.delete('val');
 
         expect(handler).toHaveBeenCalledWith(undefined, {
@@ -1583,37 +1594,36 @@ describe('Delete', () => {
             prevValue: 1,
         });
     });
-    test('Delete does not remove proxy children', () => {
-        const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj2: { text: 'hi' } } });
-        const handler = jest.fn();
+    // test('Delete does not remove proxy children', () => {
+    //     const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj2: { text: 'hi' } } });
+    //     const handler = jest.fn();
 
-        const obsNum1 = obs.obj.prop('num1');
-        const obsObj = obs.obj;
+    //     const obsNum1 = obs.obj.prop('num1');
+    //     const obsObj = obs.obj;
 
-        obs.obj.num1.on('change', handler);
-        obs.delete('obj');
+    //     obs.obj.num1.on('change', handler);
+    //     obs.delete('obj');
 
-        const obsState = state.infos.get(obs);
-        expect(obsState.proxies.has('obj')).toEqual(true);
-        expect(state.infos.has(obsNum1)).toEqual(true);
-        expect(state.infos.has(obsObj)).toEqual(true);
-        expect(Object.keys(obs)).toEqual([]);
-        expect(obs.obj.get()).toEqual(undefined);
-    });
+    //     const obsState = state.infos.get(obs);
+    //     expect(obsState.proxies.has('obj')).toEqual(true);
+    //     expect(state.infos.has(obsNum1)).toEqual(true);
+    //     expect(state.infos.has(obsObj)).toEqual(true);
+    //     expect(Object.keys(obs)).toEqual([]);
+    //     expect(obs.obj.get()).toEqual(undefined);
+    // });
+    // test('Delete and re-add reuses proxies', () => {
+    //     const obs = observable({ obj: { num1: 1 } });
 
-    test('Delete and re-add reuses proxies', () => {
-        const obs = observable({ obj: { num1: 1 } });
+    //     const objInfo = state.infos.get(obs.obj);
 
-        const objInfo = state.infos.get(obs.obj);
+    //     obs.delete('obj');
 
-        obs.delete('obj');
+    //     obs.set({ obj: { num1: 2 } });
 
-        obs.set({ obj: { num1: 2 } });
+    //     const objInfo2 = state.infos.get(obs.obj);
 
-        const objInfo2 = state.infos.get(obs.obj);
-
-        expect(objInfo).toBe(objInfo2);
-    });
+    //     expect(objInfo).toBe(objInfo2);
+    // });
 });
 
 describe('Event', () => {
