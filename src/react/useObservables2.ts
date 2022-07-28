@@ -48,16 +48,15 @@ export function useObservables2<
     // TODO Object probably doesn't work
     const arr = (isArr ? args : isObj ? Object.values(args) : [args]) as Observable2[];
 
-    const onChange = useStableCallback(() => {
-        if (!renderComparator) {
-            return forceRender();
-        }
-        const val = renderComparator();
-        if (val !== ref.current.cmpValue) {
-            ref.current.cmpValue = val;
-            forceRender();
-        }
-    });
+    const onChange = renderComparator
+        ? useStableCallback(() => {
+              const val = renderComparator();
+              if (val !== ref.current.cmpValue) {
+                  ref.current.cmpValue = val;
+                  forceRender();
+              }
+          })
+        : useForceRender();
 
     // Compare to previous args and update listeners if any changed or first mount
     updateListeners(arr as Observable2[], ref.current, onChange);
@@ -95,7 +94,6 @@ function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => vo
         let obs = arr[i];
         // Skip arguments that are undefined
         if (obs && !saved.proxies[i]) {
-            // TODO SHALLOW
             let shallow = false;
             if (obs[symbolShallow as any]) {
                 shallow = true;
@@ -103,7 +101,7 @@ function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => vo
             }
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
             const listener = obs._on(shallow ? 'changeShallow' : 'change', onChange) as ObservableListener;
-            saved.proxies.push([obs, listener]);
+            saved.proxies[i] = [obs, listener];
         }
     }
 }

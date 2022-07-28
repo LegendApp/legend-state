@@ -85,7 +85,6 @@ function copyToNewTree(node: TreeNode, newValue: any, shouldClearListeners: bool
             // Notify of being undefined
             if (v === undefined || v === null) {
                 copyToNewTree(child, v, true);
-                node.children.delete(child.key as string);
             }
         });
         Object.keys(newValue).forEach((key) => {
@@ -262,7 +261,15 @@ function _notify(node: TreeNode, listenerInfo: ObservableListenerInfo2, levels: 
 }
 
 function notify(node: TreeNode, value: any, prevValue: any, levels = 0) {
-    _notify(node, { value, prevValue, path: [] }, levels);
+    let n = node;
+    // Don't notify if there's no listeners
+    while (n) {
+        if (n.listeners?.size > 0) break;
+        n = n.parent;
+    }
+    if (n) {
+        _notify(node, { value, prevValue, path: [] }, levels);
+    }
 }
 
 function recursePaths(obj: Record<any, any>, node: TreeNode) {
