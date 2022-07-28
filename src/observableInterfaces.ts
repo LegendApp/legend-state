@@ -27,6 +27,31 @@ export interface ObservableProps<T> extends ObservableBaseProps<T> {
     delete(): Observable<T>;
     delete<K extends keyof T>(key: K | string | number): Observable<T>;
 }
+
+export interface ObservableBaseProps2<T> {
+    _get(): T;
+    _prop<K extends keyof T>(prop: K): Observable2<T[K]>;
+    _on(eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
+    _on(eventType: 'changeShallow', cb: ListenerFn<T>): ObservableListener<T>;
+    _on(
+        eventType: 'equals',
+        value: T,
+        cb?: (value?: T) => void
+    ): { listener: ObservableListener<T>; promise: Promise<T> };
+    _on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    _on(eventType: 'true', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    _on(
+        eventType: ObservableEventType,
+        cb?: (value?: T) => void
+    ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
+}
+export interface ObservableProps2<T> extends ObservableBaseProps2<T> {
+    _set(value: ValidObservableParam<T>): Observable<T>;
+    _set<K extends keyof T>(key: K | string | number, value: ValidObservableParam<T[K]>): Observable<T[K]>;
+    _assign(value: ValidObservableParam<T> | Partial<ValidObservableParam<T>>): Observable<T>;
+    _delete(): Observable<T>;
+    _delete<K extends keyof T>(key: K | string | number): Observable<T>;
+}
 export type ObservablePropsUnsafe<T> = Partial<ObservableProps<T>>;
 
 export interface ObservableListener<T = any> {
@@ -82,7 +107,7 @@ type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
     ? T[K]
     : T[K] extends Array<any>
     ? T[K] &
-          ObservableProps<T[K]> & {
+          ObservableProps2<T[K]> & {
               [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]>;
           }
     : T extends object
@@ -104,7 +129,7 @@ export type ObservableUnsafe<T = any> = ObservablePropsRecursiveUnsafe<T> & Obse
 export type Observable<T = any> = ObservablePropsRecursive<T> & ObservableProps<T>;
 export type ObservableComputed<T = any> = ObservableBaseProps<T>;
 
-export type Observable2<T = any> = ObservablePropsRecursive2<T> & ObservableProps<T>;
+export type Observable2<T = any> = ObservablePropsRecursive2<T> & ObservableProps2<T>;
 
 export interface ObservableEvent {
     fire(): void;

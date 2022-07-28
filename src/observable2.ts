@@ -44,7 +44,7 @@ function extendPrototypesObject() {
         };
     const toOverride = [Object];
     ['assign', 'on', 'set', 'delete', 'prop'].forEach((key) => {
-        toOverride.forEach((override) => (override.prototype[key] = fn(key)));
+        toOverride.forEach((override) => (override.prototype['_' + key] = fn(key)));
     });
 }
 

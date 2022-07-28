@@ -48,7 +48,7 @@ export function useObservables2<T extends Observable2 | Observable2[] | Record<s
     const isObj = !isArr && isObject(args);
 
     // TODO Object probably doesn't work
-    const arr = (isArr ? args : isObj ? Object.values(args) : [args]) as Observable[];
+    const arr = (isArr ? args : isObj ? Object.values(args) : [args]) as Observable2[];
 
     const onChange = useStableCallback(() => {
         if (!renderComparator) {
@@ -108,7 +108,7 @@ function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => vo
             // TODO SHALLOW
             const shallow = false;
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-            const listener = obs.on(shallow ? 'changeShallow' : 'change', onChange) as ObservableListener;
+            const listener = obs._on(shallow ? 'changeShallow' : 'change', onChange) as ObservableListener;
             saved.proxies.push([obs, listener]);
         }
     }
