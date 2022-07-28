@@ -2,15 +2,15 @@ import { isArray, isObject } from '@legendapp/tools';
 import { useForceRender, useStableCallback } from '@legendapp/tools/react';
 import { useEffect, useRef } from 'react';
 import { isObservable, isObservableEvent } from '../observableFns';
+import { symbolShallow } from '../globals';
 import {
     MappedObservableValue,
     Observable,
     Observable2,
-    ObservableChecker,
-    ObservableCheckerLoose,
     ObservableEvent,
     ObservableListener,
     ObservableValue,
+    Shallow,
 } from '../observableInterfaces';
 
 interface SavedRef {
@@ -18,11 +18,14 @@ interface SavedRef {
     cmpValue: any;
 }
 
-function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): ObservableValue<T> {
-    return obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs);
-}
+// function getRawValue<T extends ObservableChecker | ObservableEvent>(obs: T): ObservableValue<T> {
+//     return obs && (isObservableEvent(obs) ? undefined : isObservable(obs) ? obs.get() : obs);
+// }
 
 const undef = Symbol();
+
+type ObservableChecker<T> = Shallow | Observable2;
+// type ObservableChecker<T> = T extends Shallow<infer t> ? Observable2<t> : Observable2<T>;
 
 /**
  * A React hook that listens to observables and returns their values.
@@ -31,10 +34,9 @@ const undef = Symbol();
  *
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
-export function useObservables2<T extends Observable2 | Observable2[] | Record<string, Observable2>>(
-    args: T,
-    renderComparator?: () => any
-): MappedObservableValue<T> {
+export function useObservables2<
+    T extends ObservableChecker<T> | ObservableChecker<T>[] | Record<string, ObservableChecker<T>>
+>(args: T, renderComparator?: () => any): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -79,16 +81,7 @@ export function useObservables2<T extends Observable2 | Observable2[] | Record<s
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Return the raw values based on the shape of the arguments
-    if (isArr) {
-        return arr.map(getRawValue) as any;
-    } else if (isObj) {
-        const ret = {};
-        Object.keys(args).forEach((key) => (ret[key] = getRawValue(args[key])));
-        return ret as any;
-    } else {
-        return getRawValue(args);
-    }
+    return args.map((obs) => obs[symbolShallow] || obs);
 }
 
 function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => void) {
@@ -102,11 +95,15 @@ function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => vo
     }
     // Listen to all tracked proxies
     for (let i = 0; i < arr.length; i++) {
-        const obs = arr[i];
+        let obs = arr[i];
         // Skip arguments that are undefined
         if (obs && !saved.proxies[i]) {
             // TODO SHALLOW
-            const shallow = false;
+            let shallow = false;
+            if (obs[symbolShallow as any]) {
+                shallow = true;
+                obs = obs[symbolShallow as any];
+            }
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
             const listener = obs._on(shallow ? 'changeShallow' : 'change', onChange) as ObservableListener;
             saved.proxies.push([obs, listener]);

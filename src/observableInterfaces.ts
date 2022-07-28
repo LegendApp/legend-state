@@ -1,3 +1,5 @@
+import { symbolShallow } from './globals';
+
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export type ObservableFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
@@ -274,3 +276,4 @@ export interface OnReturnValue<T> {
 }
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
+export type Shallow<T = any> = { [symbolShallow]: Observable2<T> };

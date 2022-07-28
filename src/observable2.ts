@@ -1,5 +1,5 @@
 import { isObject } from '@legendapp/tools';
-import { isPrimitive } from './globals';
+import { isPrimitive, symbolShallow } from './globals';
 import { ListenerFn2, Observable2, ObservableEventType, ObservableListenerInfo2 } from './observableInterfaces';
 
 export interface ObservableListener2<T = any> {
@@ -209,19 +209,28 @@ function propNode(node: TreeNode, key: string) {
     return child;
 }
 
+export function shallow(obs: Observable2) {
+    return {
+        [symbolShallow]: obs,
+    };
+}
+
 function prop(node: TreeNode, key: string) {
     return propNode(node, key).prop;
 }
 
-function _notify(node: TreeNode, listenerInfo: ObservableListenerInfo2) {
+function _notify(node: TreeNode, listenerInfo: ObservableListenerInfo2, fromChild?: boolean) {
     if (node.listeners) {
         const value = node.value;
-        node.listeners.forEach((listener) => listener.callback(value, listenerInfo));
+        node.listeners.forEach((listener) => {
+            if (!fromChild || !listener.shallow || (value === undefined) !== (listenerInfo.prevValue === undefined))
+                listener.callback(value, listenerInfo);
+        });
     }
     if (node.parent) {
         const parentListenerInfo = Object.assign({}, listenerInfo);
         parentListenerInfo.path = [node.key as string].concat(listenerInfo.path);
-        _notify(node.parent, parentListenerInfo);
+        _notify(node.parent, parentListenerInfo, /*fromChild*/ true);
     }
 }
 

@@ -133,6 +133,21 @@ describe('Listeners', () => {
 
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
     });
+    test('Shallow listener', () => {
+        const obs = observable2({ test: { test2: 'hi' } });
+        const handler = jest.fn();
+        // @ts-ignore
+        obs.test._on('changeShallow', handler);
+
+        obs.test._set('test2', 'hello');
+
+        expect(handler).not.toHaveBeenCalled();
+
+        // @ts-ignore
+        obs.test._assign({ test3: 'hello' });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
 });
 describe('Safety', () => {
     test('Prevent writes', () => {

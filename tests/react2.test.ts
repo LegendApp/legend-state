@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-hooks';
-import { observable2 } from '../src/observable2';
+import { observable2, shallow } from '../src/observable2';
 import { useObservables2 } from '../src/react/useObservables2';
 
 describe('React Hooks', () => {
@@ -36,30 +36,35 @@ describe('React Hooks', () => {
     //     const val3 = result.current;
     //     expect(val3).toEqual('hello');
     // });
-    // test('useObservables shallow does not re-render from deep set', () => {
-    //     let numRenders = 0;
-    //     const obs = observable({ val: { val2: { val3: 'hello' } } as any });
-    //     const { result } = renderHook(() => {
-    //         numRenders++;
-    //         return useObservables(() => [shallow(obs.val)]);
-    //     });
-    //     const [val] = result.current;
-    //     expect(numRenders).toEqual(1);
-    //     expect(val.val2.val3).toEqual('hello');
-    //     // Does not re-render from a deep set
-    //     act(() => {
-    //         obs.val.val2.val3.set('hi');
-    //     });
-    //     expect(numRenders).toEqual(1);
-    //     expect(val.val2.val3).toEqual('hi');
-    //     // Does re-render from assigning to val
-    //     act(() => {
-    //         obs.val.assign({ val4: 'v' });
-    //     });
-    //     expect(numRenders).toEqual(2);
-    //     expect(val.val2.val3).toEqual('hi');
-    //     expect(val.val4).toEqual('v');
-    // });
+    test('useObservables shallow does not re-render from deep set', () => {
+        let numRenders = 0;
+        const obs = observable2({ val: { val2: { val3: 'hello' } } });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables2([shallow(obs.val)]);
+        });
+        const [val] = result.current;
+        expect(numRenders).toEqual(1);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hello');
+        // Does not re-render from a deep set
+        act(() => {
+            obs.val.val2._set('val3', 'hi');
+        });
+        expect(numRenders).toEqual(1);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hi');
+        // Does re-render from assigning to val
+        act(() => {
+            // @ts-ignore
+            obs.val._assign({ val4: 'v' });
+        });
+        expect(numRenders).toEqual(2);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hi');
+        // @ts-ignore
+        expect(val.val4).toEqual('v');
+    });
     // test('useObservables shallow does not re-render from set inside array', () => {
     //     let numRenders = 0;
     //     const obs = observable({ val: [{ text: 'hello' }] });
