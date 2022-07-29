@@ -1,10 +1,8 @@
 import { isArray } from '@legendapp/tools';
 import {
-    arrayStartsWith,
     callKeyed,
     delim,
     getNodeValue,
-    getParentNode,
     getPathNode,
     getValueAtPath,
     hasPathNode,
@@ -24,11 +22,7 @@ import {
 } from './observableInterfaces';
 import { onChange, onEquals, onHasValue, onTrue } from './on';
 
-const state = {
-    mapPaths: new WeakMap<object, PathNode>(),
-    fromKey: false,
-    inSet: false,
-};
+const mapPaths = new WeakMap<object, PathNode>();
 
 const mapFns = new Map<string, Function>([
     ['set', set],
@@ -47,7 +41,7 @@ function extendPrototypesObject() {
         function (...args: any[]) {
             if (!mapFns.get(name)) debugger;
             const prop = this[symbolProp];
-            const node = prop?.node || state.mapPaths.get(this);
+            const node = prop?.node || mapPaths.get(this);
             if (prop) {
                 args.unshift(prop.key);
             }
@@ -67,15 +61,12 @@ function extendPrototypesArray() {
     const fn = (override: any, name: string) => {
         const orig = override.prototype[name];
         return function () {
-            state.inSet = true;
             const prevValue = this.slice();
             const ret = orig.apply(this, arguments);
-            state.inSet = false;
 
-            const node = state.mapPaths.get(this);
+            const node = mapPaths.get(this);
             if (node) {
                 const [path, key] = splitLastDelim(node.path);
-                // const key = node.path[node.path.length - 1];
                 let parent = getValueAtPath(node.root, path);
                 parent[key] = prevValue;
 
@@ -108,7 +99,7 @@ function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
             _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] });
         }
     }
-    state.mapPaths.set(obj, parent);
+    mapPaths.set(obj, parent);
 }
 
 function cleanup(obj: object) {
@@ -121,7 +112,7 @@ function cleanup(obj: object) {
             cleanup(obj[key]);
         }
     }
-    state.mapPaths.delete(obj);
+    mapPaths.delete(obj);
 }
 
 function set(node: PathNode, newValue: any): any;
@@ -135,7 +126,6 @@ function set(node: PathNode, key: string, newValue?: any): any {
             assign(node, key);
         }
     } else {
-        state.inSet = true;
         let parentValue = getNodeValue(node);
         const prevValue = parentValue[key];
 
@@ -148,7 +138,6 @@ function set(node: PathNode, key: string, newValue?: any): any {
         if (!isPrimitive2(newValue)) {
             createNodes(childNode, newValue, prevValue);
         }
-        state.inSet = false;
 
         notify(childNode, newValue, prevValue);
     }
@@ -223,7 +212,6 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
         _: obj as Observable2,
         pathNodes: new Map(),
     } as ObservableWrapper;
-    state.inSet = true;
     createNodes(
         {
             root: obs,
@@ -231,7 +219,6 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
         },
         obs._
     );
-    state.inSet = false;
 
     return obs._ as Observable2<T>;
 }
