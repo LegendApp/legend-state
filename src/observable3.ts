@@ -1,15 +1,22 @@
-import { isObject } from '@legendapp/tools';
-import { isPrimitive2, symbolProp, symbolShallow } from './globals';
-import { ListenerFn2, Observable2, ObservableEventType, ObservableListenerInfo2 } from './observableInterfaces';
+import { isArray, isObject } from '@legendapp/tools';
+import { arrayStartsWith, isPrimitive2, symbolEqualityFn, symbolProp, symbolShallow } from './globals';
+import {
+    EqualityFn,
+    ListenerFn3,
+    Observable2,
+    ObservableEventType,
+    ObservableListenerInfo2,
+    Shallow,
+} from './observableInterfaces';
 
 export interface ObservableListener3<T = any> {
-    pathStr: string;
+    root: ObservableWrapper;
     path: string[];
-    lastValue: any;
-    callback: ListenerFn2<T>;
-    // shallow: boolean;
-    // dispose: () => void;
-    // isDisposed: boolean;
+    pathStr: string;
+    callback: ListenerFn3<T>;
+    shallow: boolean;
+    dispose: () => void;
+    isDisposed?: boolean;
 }
 export interface ObservableWrapper<T = any> {
     _: Observable2;
@@ -19,12 +26,6 @@ export interface ObservableWrapper<T = any> {
 interface PathNode {
     root: ObservableWrapper;
     path: string[];
-    // parent: PathNode;
-    // key: string;
-    // listeners?: Set<ObservableListener2>;
-    // children?: Map<string, PathNode>;
-    // value: any;
-    // prop?: { [symbolProp]: PathNode };
 }
 const state = {
     mapPaths: new WeakMap<object, PathNode>(),
@@ -35,15 +36,20 @@ const state = {
 const mapFns = new Map<string, Function>([
     ['set', set],
     ['on', on],
-    // ['prop', prop],
-    // ['assign', assign],
-    // ['delete', deleteFn],
+    ['prop', prop],
+    ['assign', assign],
+    ['delete', deleteFn],
 ]);
 
 function extendPrototypesObject() {
     const fn = (name: string) =>
-        function (...args: any) {
-            const node = this[symbolProp] || state.mapPaths.get(this);
+        function (...args: any[]) {
+            if (!mapFns.get(name)) debugger;
+            const prop = this[symbolProp];
+            const node = prop?.node || state.mapPaths.get(this);
+            if (prop) {
+                args.unshift(prop.key);
+            }
             if (node) {
                 return mapFns.get(name).apply(this, [node, ...args]);
             }
@@ -84,130 +90,21 @@ function extendPrototypesArray() {
 }
 extendPrototypesArray();
 
-// function copyToNewTree(node: TreeNode, newValue: any, shouldClearListeners: boolean) {
-//     // Run listeners on old deleted children
-//     // And remove them from tree
-
-//     if (node.children) {
-//         // Wipe out old children that don't exist anymore
-//         node.children.forEach((child) => {
-//             const v = !newValue || newValue[child.key];
-//             // Notify of being undefined
-//             if (v === undefined || v === null) {
-//                 copyToNewTree(child, v, true);
-//             }
-//         });
-//         Object.keys(newValue).forEach((key) => {
-//             const child = node.children.get(key);
-//             if (child) {
-//                 const val = newValue[key];
-//                 state.mapObjects.delete(child.prop || child.value);
-//                 const prevValue = child.value;
-//                 child.value = val;
-//                 if (child.prop) {
-//                     child.prop = prop(child, key);
-//                 }
-//                 state.mapObjects.set(child.prop || val, child);
-
-//                 notify(child, val, prevValue);
-
-//                 copyToNewTree(child, val, true);
-//             }
-//         });
-//     }
-
-//     if (!newValue) {
-//         if (shouldClearListeners && node.listeners) {
-//             node.listeners.forEach((listener) => listener.callback(undefined, undefined));
-//             node.listeners.clear();
-//         }
-
-//         node.parent?.children.delete(node.key as string);
-//         state.mapObjects.delete(node.value);
-//     }
-// }
-function updateChildren(node: PathNode, prevValue: any) {
-    // Run listeners on old deleted children
-    // And remove them from tree
-    // const newValue = node.value;
-    // if (node.children) {
-    //     // Wipe out old children that don't exist anymore
-    //     node.children.forEach((child) => {
-    //         const v = !newValue || newValue[child.key];
-    //         // Notify of being undefined
-    //         if (v === undefined || v === null) {
-    //             updateChildren(child, prevValue[child.key]);
-    //         }
-    //     });
-    //     Object.keys(node.value).forEach((key) => {
-    //         const child = node.children.get(key);
-    //         if (child) {
-    //             child.value = node.value[key];
-    //             if (!isPrimitive2(child)) {
-    //                 updateChildren(child, prevValue[key]);
-    //             }
-    //             // const val = newValue[key];
-    //             // state.mapObjects.delete(child.prop || child.value);
-    //             // const prevValue = child.value;
-    //             // child.value = val;
-    //             // if (child.prop) {
-    //             //     child.prop = prop(child, key);
-    //             // }
-    //             // state.mapObjects.set(child.prop || val, child);
-    //             // notify(child, val, prevValue);
-    //             // copyToNewTree(child, val, true);
-    //         } else {
-    //             createNodes(node, node.value[key]);
-    //         }
-    //     });
-    // }
-    // if (node.listeners) {
-    //     notify(node, newValue, prevValue);
-    // }
-    // if (!newValue) {
-    //     if (shouldClearListeners && node.listeners) {
-    //         node.listeners.forEach((listener) => listener.callback(undefined, undefined));
-    //         node.listeners.clear();
-    //     }
-    //     node.parent?.children.delete(node.key as string);
-    //     state.mapObjects.delete(node.value);
-    // }
-}
-
-// function ensureNode(parent: PathNode, key: string) {
-//     let child = parent?.children?.get(key);
-//     if (!child) {
-//         child = {
-//             parent: parent,
-//             key: key,
-//             value: parent?.value?.[key],
-//         };
-
-//         if (!parent.children) {
-//             parent.children = new Map();
-//         }
-//         parent.children.set(key, child);
-//     }
-//     return child;
-// }
-
 function createNodes(parent: PathNode, obj: Record<any, any>) {
-    if (!isPrimitive2(obj)) {
-        Object.keys(obj).forEach((key) => {
-            if (!isPrimitive2(obj[key])) {
-                // && !parent.children?.has(key)) {
-                // let o = obj[key];
-                const child: PathNode = {
-                    path: parent.path.concat(key),
-                    root: parent.root,
-                };
-                // child.value = o;
-                // o = obj[key] = proxy(o);
-                createNodes(child, obj[key]);
-            }
-        });
-        state.mapPaths.set(obj, parent);
+    const isArr = isArray(obj);
+    const keys = isArr ? obj : Object.keys(obj);
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+        const key = isArr ? i : keys[i];
+        if (!isPrimitive2(obj[key])) {
+            const child: PathNode = {
+                path: parent.path.concat(key),
+                root: parent.root,
+            };
+            createNodes(child, obj[key]);
+        }
     }
+    state.mapPaths.set(obj, parent);
 }
 
 function getValueAtPath(root: object, path: string[]) {
@@ -221,14 +118,16 @@ function getValueAtPath(root: object, path: string[]) {
 }
 
 function cleanup(obj: object) {
-    if (!isPrimitive2(obj)) {
-        Object.keys(obj).forEach((key) => {
-            if (!isPrimitive2(obj[key])) {
-                cleanup(obj[key]);
-            }
-        });
-        state.mapPaths.delete(obj);
+    const isArr = isArray(obj);
+    const keys = isArr ? obj : Object.keys(obj);
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+        const key = isArr ? i : keys[i];
+        if (!isPrimitive2(obj[key])) {
+            cleanup(obj[key]);
+        }
     }
+    state.mapPaths.delete(obj);
 }
 
 function set(node: PathNode, newValue: any): any;
@@ -238,15 +137,18 @@ function set(node: PathNode, key: string, newValue?: any): any {
         if (node.path.length > 0) {
             const last = node.path[node.path.length - 1];
             return set({ path: node.path.slice(0, -1), root: node.root }, last, key);
-        } else debugger;
+        }
     } else {
-        // const prevValue = Object.assign({}, node.root);
         state.inSet = true;
         let child = getValueAtPath(node.root, node.path);
         const prevValue = child[key];
-        cleanup(child[key]);
+        if (!isPrimitive2(child[key])) {
+            cleanup(child[key]);
+        }
         child[key] = newValue;
-        createNodes({ root: node.root, path: node.path.concat(key) }, newValue);
+        if (!isPrimitive2(newValue)) {
+            createNodes({ root: node.root, path: node.path.concat(key) }, newValue);
+        }
         state.inSet = false;
 
         notify(node, newValue, prevValue, node.path.concat(key));
@@ -254,61 +156,60 @@ function set(node: PathNode, key: string, newValue?: any): any {
 }
 
 function notify(node: PathNode, value: any, prevValue: any, path: string[]) {
-    const pathStr = path.join('');
-    node.root.listeners.forEach((listener) => {
-        if (pathStr.startsWith(listener.pathStr)) {
-            const pathNotify = path.slice(listener.path.length);
-            let child = getValueAtPath(node.root, listener.path);
-
-            listener.callback(child, { path: pathNotify, prevValue, value });
-        } else if (listener.pathStr.startsWith(pathStr)) {
-            let child = getValueAtPath(node.root, listener.path);
-            let prev = getValueAtPath(prevValue, listener.path.slice(path.length));
-            listener.callback(child, { path: [], prevValue: prev, value: child });
+    for (let listener of node.root.listeners) {
+        if (!listener.shallow || Math.abs(path.length - listener.path.length) < 2) {
+            if (arrayStartsWith(path, listener.path)) {
+                const pathNotify = path.slice(listener.path.length);
+                const child = getValueAtPath(node.root, listener.path);
+                listener.callback(child, { path: pathNotify, prevValue, value });
+            } else if (arrayStartsWith(listener.path, path)) {
+                const child = getValueAtPath(node.root, listener.path);
+                const prev = getValueAtPath(prevValue, listener.path.slice(path.length));
+                listener.callback(child, { path: [], prevValue: prev, value: child });
+            }
         }
-    });
+    }
 }
 
 function assign(node: PathNode, value: any) {
-    Object.keys(value).forEach((key) => {
-        set(node, key, value[key]);
-    });
+    const keys = Object.keys(value);
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+        set(node, keys[i], value[keys[i]]);
+    }
 }
 
-// function deleteFn(node: PathNode, key?: string | number) {
-//     if (!key) {
-//         return deleteFn(node.parent, node.key);
-//     }
+function deleteFn(node: PathNode, key?: string) {
+    if (!key) {
+        const last = node.path[node.path.length - 1];
+        return deleteFn({ path: node.path.slice(0, -1), root: node.root }, last);
+    }
 
-//     // copyToNewTree(propNode(node, key as string), {}, true);
+    set(node, key, undefined);
 
-//     delete node.value[key];
-// }
+    let child = getValueAtPath(node.root, node.path);
 
-// export function disposeListener(listener: ObservableListener2) {
-//     if (listener && !listener.isDisposed) {
-//         listener.isDisposed = true;
-//         const listeners = listener.node.listeners;
-//         if (listeners) {
-//             listeners.delete(listener);
-//         }
-//     }
-// }
+    delete child[key];
+}
+
+export function disposeListener(listener: ObservableListener3) {
+    if (listener && !listener.isDisposed) {
+        listener.isDisposed = true;
+        listener.root.listeners.delete(listener);
+    }
+}
 
 function onChange(node: PathNode, callback: (value, prevValue) => void, shallow: boolean) {
     const listener = {
+        root: node.root,
         callback,
         path: node.path,
         pathStr: node.path.join(''),
-    } as ObservableListener3;
+        shallow,
+    } as Partial<ObservableListener3>;
+    listener.dispose = disposeListener.bind(listener, listener);
 
-    node.root.listeners.add(listener);
-    // listener.dispose = disposeListener.bind(listener, listener);
-
-    // if (!node.listeners) {
-    //     node.listeners = new Set();
-    // }
-    // node.listeners.add(listener);
+    node.root.listeners.add(listener as ObservableListener3);
 
     return listener;
 }
@@ -344,92 +245,23 @@ function on(
     }
 }
 
-// export function shallow(obs: Observable2) {
-//     return {
-//         [symbolShallow]: obs,
-//     };
-// }
+export function shallow(obs: Observable2): Shallow {
+    return {
+        [symbolShallow]: obs,
+    };
+}
+export function equalityFn(obs: Observable2, fn: (value) => any): EqualityFn {
+    return {
+        [symbolEqualityFn]: { obs, fn },
+    };
+}
 
-// function prop(node: PathNode, key: string) {
-//     const child = ensureNode(node, key);
-//     if (!child.prop) {
-//         child.prop = {
-//             [symbolProp]: child,
-//         };
-//     }
-//     return child.prop;
-// }
-
-// function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levels: number) {
-//     if (node.listeners) {
-//         const value = node.value;
-//         node.listeners.forEach((listener) => {
-//             if (levels < 1 || !listener.shallow || (value === undefined) !== (listenerInfo.prevValue === undefined))
-//                 listener.callback(value, listenerInfo);
-//         });
-//     }
-//     if (node.parent) {
-//         const parentListenerInfo = Object.assign({}, listenerInfo);
-//         parentListenerInfo.path = [node.key as string].concat(listenerInfo.path);
-//         _notify(node.parent, parentListenerInfo, levels + 1);
-//     }
-// }
-
-// function notify(node: PathNode, value: any, prevValue: any, levels = 0) {
-//     let n = node;
-//     // Don't notify if there's no listeners
-//     while (n) {
-//         if (n.listeners?.size > 0) break;
-//         n = n.parent;
-//     }
-//     if (n) {
-//         _notify(node, { value, prevValue, path: [] }, levels);
-//     }
-// }
-
-// function recursePaths(obj: Record<any, any>, node: TreeNode) {
-//     if (!isPrimitive2(obj)) {
-//         state.mapObjects.set(obj, node);
-//         Object.keys(obj).forEach((key) => {
-//             let o = obj[key];
-//             if (!isPrimitive2(o)) {
-//                 const child: TreeNode = {
-//                     parent: node,
-//                     key: key,
-//                     value: o,
-//                 };
-//                 o = obj[key] = proxy(o);
-//                 recursePaths(o, child);
-//                 if (!node.children) {
-//                     node.children = new Map();
-//                 }
-//                 node.children.set(key, child);
-//             }
-//         });
-//     }
-// }
-
-// const proxyHandler: ProxyHandler<any> = {
-//     get(target, prop, receiver) {
-//         // state.lastAccessedObject = receiver;
-//         // state.lastAccesssedProp = prop;
-//         return Reflect.get(target, prop, receiver);
-//     },
-//     set(target, prop, value, receiver) {
-//         const ok = state.inSet;
-//         if (ok) {
-//             Reflect.set(target, prop, value, receiver);
-//         }
-//         return ok;
-//     },
-// };
-
-// function proxy<T extends object | Record<any, any>>(obj: T): T {
-//     // Only want to proxy in development so we don't take the performance hit in production
-//     return (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && isObject(obj)
-//         ? new Proxy(obj, proxyHandler)
-//         : obj;
-// }
+export function prop(node: PathNode, key: string) {
+    const value = getValueAtPath(node.root, node.path.concat(key));
+    return {
+        [symbolProp]: { node, key, value },
+    };
+}
 
 export function observable3<T extends object | Array<any>>(obj: T): Observable2<T> {
     const obs = {
@@ -459,9 +291,180 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
 // console.time('obs3');
 
 // const obs = observable3({ arr });
+// obs.arr._on('change', () => console.log('change'));
+// obs.arr._set([]);
 
 // for (let i = 0; i < 100000; i++) {
 //     obs.arr[i].id;
 // }
 
 // console.timeEnd('obs3');
+
+// ((numProps, propsLength, numIter) => {
+//     const performance = require('perf_hooks').performance;
+
+//     let arr = [];
+//     for (let p = 0; p < numProps; p++) {
+//         arr[p] = String(p * propsLength); // numeric keys, sort of an "array"
+//     }
+//     let t0 = performance.now();
+//     for (let p = 0; p < numIter; p++) {
+//         let val = 0;
+//         const keys = Object.keys(arr);
+//         for (let i = 0; i < keys.length; i++) {
+//             val += arr[i].length;
+//         }
+//     }
+//     console.log('Keys loop: ' + (performance.now() - t0));
+
+//     t0 = performance.now();
+//     for (let p = 0; p < numIter; p++) {
+//         let val = 0;
+//         for (let i = 0; i < arr.length; i++) {
+//             val += arr[i].length;
+//         }
+//     }
+//     console.log('Loop: ' + (performance.now() - t0));
+
+//     // let set = new Set<string>();
+//     // for (let p = 0; p < numProps; p++) {
+//     //     set.add(String(p * propsLength)); // numeric keys, sort of an "array"
+//     // }
+
+//     // console.log("Let's get started!");
+
+//     // let t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     set.forEach((a) => (val += a.length));
+//     // }
+//     // console.log('Set forEach: ' + (performance.now() - t0));
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     for (let a of set) {
+//     //         val += a.length;
+//     //     }
+//     // }
+//     // console.log('Set for of: ' + (performance.now() - t0));
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let sum = 0;
+//     //     const values = set.values();
+//     //     for (var it = values, val = null; (val = it.next().value); ) {
+//     //         sum += val.length;
+//     //     }
+//     // }
+//     // console.log('Set values: ' + (performance.now() - t0));
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let sum = 0;
+//     //     const values = Array.from(set);
+//     //     for (let i = 0; i < values.length; i++) {
+//     //         sum += values[i].length;
+//     //     }
+//     // }
+//     // console.log('Set array loop: ' + (performance.now() - t0));
+
+//     // let obj = {};
+//     // for (let p = 0; p < numProps; p++) {
+//     //     obj[p] = String(p * propsLength); // numeric keys, sort of an "array"
+//     // }
+//     // let obj2 = {};
+//     // for (let p = 0; p < numProps; p++) {
+//     //     obj2[`key${p}`] = String(p * propsLength); // string keys
+//     // }
+//     // console.log("Let's get started!");
+
+//     // let t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = Object.keys(obj).length;
+//     // }
+//     // console.log('Object.keys took: ' + (performance.now() - t0) + ' ms for numeric keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = Object.values(obj).length;
+//     // }
+//     // console.log('Object.values took: ' + (performance.now() - t0) + ' ms for numeric keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = Object.keys(obj2).length;
+//     // }
+//     // console.log('Object.keys took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = Object.values(obj2).length;
+//     // }
+//     // console.log('Object.values took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // let t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     Object.keys(obj2).forEach((a) => (val += obj2[a].length));
+//     // }
+//     // console.log('Object.keys forEach took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     // @ts-ignore
+//     //     Object.values(obj2).forEach((a) => (val += a.length));
+//     // }
+//     // console.log('Object.values forEach took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     const keys = Object.keys(obj2);
+//     //     for (let i = 0; i < keys.length; i++) {
+//     //         val += obj2[keys[i]].length;
+//     //     }
+//     // }
+//     // console.log('Object.keys for loop took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     const values = Object.values(obj2);
+//     //     for (let i = 0; i < values.length; i++) {
+//     //         // @ts-ignore
+//     //         val += values[i].length;
+//     //     }
+//     // }
+//     // console.log('Object.values for loop took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     const keys = Object.keys(obj2);
+//     //     for (let key of keys) {
+//     //         val += obj2[key].length;
+//     //     }
+//     // }
+//     // console.log('Object.keys for of took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     for (let key in obj2) {
+//     //         val += obj2[key].length;
+//     //     }
+//     // }
+//     // console.log('for in took: ' + (performance.now() - t0) + ' ms for string keys');
+
+//     // t0 = performance.now();
+//     // for (let p = 0; p < numIter; p++) {
+//     //     let val = 0;
+//     //     const keys = Object.getOwnPropertyNames(obj2);
+//     //     for (let i = 0; i < keys.length; i++) {
+//     //         val += obj2[keys[i]].length;
+//     //     }
+//     // }
+//     // console.log('Object.getOwnPropertyNames for loop took: ' + (performance.now() - t0) + ' ms for string keys');
+// })(1000, 1, 10000);

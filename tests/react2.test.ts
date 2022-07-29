@@ -1,16 +1,15 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 // import { observable2, shallow } from '../src/observable2';
-import { observable3 } from '../src/observable3';
-import { useObservables2 } from '../src/react/useObservables2';
+import { equalityFn, observable3, shallow } from '../src/observable3';
+import { useObservables3 } from '../src/react/useObservables3';
 
 describe('React Hooks', () => {
-    test('', () => {});
     test('useObservables', () => {
         let numRenders = 0;
         const obs = observable3({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables2([obs.val]);
+            return useObservables3([obs.val]);
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -21,24 +20,24 @@ describe('React Hooks', () => {
         expect(numRenders).toEqual(2);
         expect(val.val2.val3).toEqual('hi');
     });
-    // test('useObservables with prop', () => {
-    //     let numRenders = 0;
-    //     const obs = observable2({ val: { val2: { val3: 'hello' } }, selected: 0 });
-    //     const { result } = renderHook(() => {
-    //         numRenders++;
-    //         return useObservables2([obs.val, obs._prop('selected')]);
-    //     });
-    //     const [val] = result.current;
-    //     expect(numRenders).toEqual(1);
-    //     // @ts-ignore
-    //     expect(val.val2.val3).toEqual('hello');
-    //     act(() => {
-    //         obs.val.val2._set('val3', 'hi');
-    //     });
-    //     expect(numRenders).toEqual(2);
-    //     // @ts-ignore
-    //     expect(val.val2.val3).toEqual('hi');
-    // });
+    test('useObservables with prop', () => {
+        let numRenders = 0;
+        const obs = observable3({ val: { val2: { val3: 'hello' } }, selected: 0 });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables3([obs.val, obs._prop('selected')]);
+        });
+        const [val] = result.current;
+        expect(numRenders).toEqual(1);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hello');
+        act(() => {
+            obs.val.val2._set('val3', 'hi');
+        });
+        expect(numRenders).toEqual(2);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hi');
+    });
     // // test('useObservables with object returns object', () => {
     // //     const obs = observable({ val: { val2: { val3: 'hello' } } });
     // //     const { result } = renderHook(() => {
@@ -55,59 +54,60 @@ describe('React Hooks', () => {
     // //     const val3 = result.current;
     // //     expect(val3).toEqual('hello');
     // // });
-    // test('useObservables shallow does not re-render from deep set', () => {
-    //     let numRenders = 0;
-    //     const obs = observable2({ val: { val2: { val3: 'hello' } } });
-    //     const { result } = renderHook(() => {
-    //         numRenders++;
-    //         return useObservables2([shallow(obs.val)]);
-    //     });
-    //     const [val] = result.current;
-    //     expect(numRenders).toEqual(1);
-    //     // @ts-ignore
-    //     expect(val.val2.val3).toEqual('hello');
-    //     // Does not re-render from a deep set
-    //     act(() => {
-    //         obs.val.val2._set('val3', 'hi');
-    //     });
-    //     expect(numRenders).toEqual(1);
-    //     // @ts-ignore
-    //     expect(val.val2.val3).toEqual('hi');
-    //     // Does re-render from assigning to val
-    //     act(() => {
-    //         // @ts-ignore
-    //         obs.val._assign({ val4: 'v' });
-    //     });
-    //     expect(numRenders).toEqual(2);
-    //     // @ts-ignore
-    //     expect(val.val2.val3).toEqual('hi');
-    //     // @ts-ignore
-    //     expect(val.val4).toEqual('v');
-    // });
-    // // test('useObservables shallow does not re-render from set inside array', () => {
-    // //     let numRenders = 0;
-    // //     const obs = observable({ val: [{ text: 'hello' }] });
-    // //     const { result } = renderHook(() => {
-    // //         numRenders++;
-    // //         return useObservables(() => [shallow(obs.val)]);
-    // //     });
-    // //     const [val] = result.current;
-    // //     expect(numRenders).toEqual(1);
-    // //     expect(val[0].text).toEqual('hello');
-    // //     // Does not re-render from a deep set
-    // //     act(() => {
-    // //         obs.val[0].text.set('hi');
-    // //     });
-    // //     expect(numRenders).toEqual(1);
-    // //     expect(val[0].text).toEqual('hi');
-    // //     // Does re-render from assigning to val
-    // //     act(() => {
-    // //         obs.val.push({ text: 'hi2' });
-    // //     });
-    // //     expect(numRenders).toEqual(2);
-    // //     expect(val[0].text).toEqual('hi');
-    // //     expect(val[1].text).toEqual('hi2');
-    // // });
+    test('useObservables shallow does not re-render from deep set', () => {
+        let numRenders = 0;
+        const obs = observable3({ val: { val2: { val3: 'hello' } } });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables3([shallow(obs.val)]);
+        });
+        const [val] = result.current;
+        expect(numRenders).toEqual(1);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hello');
+        // Does not re-render from a deep set
+        act(() => {
+            obs.val.val2._set('val3', 'hi');
+        });
+        expect(numRenders).toEqual(1);
+        // @ts-ignore
+        expect(val.val2.val3).toEqual('hi');
+        // Does re-render from assigning to val
+        // act(() => {
+        //     // @ts-ignore
+        //     obs.val._assign({ val4: 'v' });
+        // });
+        // expect(numRenders).toEqual(2);
+        // // @ts-ignore
+        // expect(val.val2.val3).toEqual('hi');
+        // // @ts-ignore
+        // expect(val.val4).toEqual('v');
+    });
+    test('useObservables shallow does not re-render from set inside array', () => {
+        let numRenders = 0;
+        const obs = observable3({ val: [{ text: 'hello' }] });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables3([shallow(obs.val)]);
+        });
+        const [val] = result.current;
+        expect(numRenders).toEqual(1);
+        expect(val[0].text).toEqual('hello');
+        // Does not re-render from a deep set
+        act(() => {
+            // @ts-ignore
+            obs.val[0]._set('text', 'hi');
+        });
+        expect(numRenders).toEqual(1);
+        expect(val[0].text).toEqual('hi');
+        // Does re-render from assigning to val
+        act(() => {
+            obs.val.push({ text: 'hi2' });
+        });
+        expect(numRenders).toEqual(2);
+        expect(val[0].text).toEqual('hi');
+        expect(val[1].text).toEqual('hi2');
+    });
     // // test('useObservables with computed', () => {
     // //     let numRenders = 0;
     // //     const obs = observable({ val: 'hello', val2: 'there' });
@@ -183,4 +183,38 @@ describe('React Hooks', () => {
     // // //     expect(obs.test).toEqual([1, 2, 3, 4, 5]);
     // // //     expect(numRenders).toEqual(3);
     // // // });
+    test('useObservables with equalityFn', () => {
+        let numRenders = 0;
+        const obs = observable3({ val: { val2: { val3: 'hello' } } });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables3([equalityFn(obs.val.val2, (val2) => val2.val3 === 'hi')]);
+        });
+        const [val2] = result.current;
+        expect(numRenders).toEqual(1);
+
+        // Changing to any other text has no effect
+        act(() => {
+            obs.val.val2._set('val3', 'hello there');
+        });
+        expect(numRenders).toEqual(1);
+
+        // Changing to 'hi' renders'
+        act(() => {
+            obs.val.val2._set('val3', 'hi');
+        });
+        expect(numRenders).toEqual(2);
+
+        // Changing from 'hi' renders
+        act(() => {
+            obs.val.val2._set('val3', 'hi there');
+        });
+        expect(numRenders).toEqual(3);
+
+        // Changing to any other text has no effect
+        act(() => {
+            obs.val.val2._set('val3', 'hi again');
+        });
+        expect(numRenders).toEqual(3);
+    });
 });

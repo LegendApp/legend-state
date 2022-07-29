@@ -1,4 +1,4 @@
-import { symbolShallow } from './globals';
+import { symbolEqualityFn, symbolShallow } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
@@ -78,6 +78,7 @@ export interface ObservableListenerInfo2 {
 
 export type ListenerFn<T> = (value: T, info: ObservableListenerInfo) => void;
 export type ListenerFn2<T> = (value: T, info: ObservableListenerInfo2) => void;
+export type ListenerFn3<T> = (value: T, info: ObservableListenerInfo2) => void;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -284,3 +285,4 @@ export interface OnReturnValue<T> {
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type Shallow<T = any> = { [symbolShallow]: Observable2<T> };
+export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable2<T>; fn: (value: any) => any } };

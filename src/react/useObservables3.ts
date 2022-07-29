@@ -1,12 +1,20 @@
 import { isArray, isObject } from '@legendapp/tools';
 import { useForceRender, useStableCallback } from '@legendapp/tools/react';
-import { useEffect, useRef } from 'react';
-import { symbolProp, symbolShallow } from '../globals';
-import { Observable, Observable2, ObservableListener, Shallow } from '../observableInterfaces';
+import { RefObject, useCallback, useEffect, useRef } from 'react';
+import { ObservableListener3 } from '../observable3';
+import { symbolProp, symbolShallow, symbolEqualityFn } from '../globals';
+import {
+    EqualityFn,
+    Observable,
+    Observable2,
+    ObservableListener,
+    ObservableListenerInfo2,
+    Shallow,
+} from '../observableInterfaces';
 
 interface SavedRef {
-    proxies: [Observable2, ObservableListener][];
-    cmpValue: any;
+    listeners: ObservableListener3[];
+    cmpValue?: any[];
 }
 
 function getRawValue(obs: Observable) {
@@ -14,13 +22,16 @@ function getRawValue(obs: Observable) {
     if (prop) {
         return prop.value;
     } else {
-        return obs[symbolShallow as any] || obs;
+        const eq = obs[symbolEqualityFn as any];
+        if (eq) {
+            return getRawValue(eq.obs);
+        } else {
+            return obs[symbolShallow as any] || obs;
+        }
     }
 }
 
-const undef = Symbol();
-
-type ObservableChecker<T> = Shallow | Observable2;
+type ObservableChecker<T> = Shallow | EqualityFn | Observable2;
 // type ObservableChecker<T> = T extends Shallow<infer t> ? Observable2<t> : Observable2<T>;
 
 /**
@@ -32,13 +43,12 @@ type ObservableChecker<T> = Shallow | Observable2;
  */
 export function useObservables3<
     T extends ObservableChecker<T> | ObservableChecker<T>[] | Record<string, ObservableChecker<T>>
->(args: T, renderComparator?: () => any): T {
+>(args: T): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
         ref.current = {
-            proxies: [],
-            cmpValue: undef,
+            listeners: [],
         };
     }
 
@@ -48,60 +58,67 @@ export function useObservables3<
     // TODO Object probably doesn't work
     const arr = (isArr ? args : isObj ? Object.values(args) : [args]) as Observable2[];
 
-    const onChange = renderComparator
-        ? useStableCallback(() => {
-              const val = renderComparator();
-              if (val !== ref.current.cmpValue) {
-                  ref.current.cmpValue = val;
-                  forceRender();
-              }
-          })
-        : useForceRender();
-
-    // Compare to previous args and update listeners if any changed or first mount
-    updateListeners(arr as Observable2[], ref.current, onChange);
-
-    if (renderComparator && ref.current.cmpValue === undef) {
-        ref.current.cmpValue = renderComparator();
-    }
-
     // Dispose listeners on unmount
     useEffect(
         () => () => {
-            if (ref.current.proxies) {
-                ref.current.proxies.forEach((p) => p[1].dispose());
-                ref.current.proxies = [];
+            if (ref.current.listeners) {
+                ref.current.listeners.forEach((p) => p.dispose());
+                ref.current.listeners = [];
             }
         },
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Compare to previous args and update listeners if any changed or first mount
+    updateListeners(arr as Observable2[], ref, forceRender);
+
     // TODO Support single obs and object
     return args.map(getRawValue);
 }
 
-function updateListeners(arr: Observable2[], saved: SavedRef, onChange: () => void) {
+function updateListeners(arr: Observable2[], refSaved: RefObject<SavedRef>, onChange: () => void) {
+    const saved = refSaved.current;
     // Unlisten proxies no longer tracked
-    for (let i = 0; i < saved.proxies.length; i++) {
-        const p = saved.proxies[i];
+    for (let i = 0; i < saved.listeners.length; i++) {
+        const p = saved.listeners[i];
         if (!arr[i]) {
-            p[1].dispose();
-            saved.proxies[i] = undefined;
+            p.dispose();
+            saved.listeners[i] = undefined;
         }
     }
     // Listen to all tracked proxies
     for (let i = 0; i < arr.length; i++) {
         let obs = arr[i];
         // Skip arguments that are undefined
-        if (obs && !saved.proxies[i]) {
+        if (obs && !saved.listeners[i]) {
             let shallow = false;
+            let comparator = undefined;
             if (obs[symbolShallow as any]) {
                 shallow = true;
                 obs = obs[symbolShallow as any];
             }
+            if (obs[symbolEqualityFn as any]) {
+                const o = (obs as unknown as EqualityFn)[symbolEqualityFn];
+                obs = o.obs;
+                if (saved.cmpValue === undefined) {
+                    saved.cmpValue = [];
+                }
+                saved.cmpValue[i] = o.fn(obs);
+                comparator = (value) => {
+                    const cmpValue = o.fn(value);
+                    if (cmpValue !== refSaved.current.cmpValue[i]) {
+                        refSaved.current.cmpValue[i] = cmpValue;
+                        onChange();
+                    }
+                };
+            }
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-            const listener = obs._on(shallow ? 'changeShallow' : 'change', onChange) as ObservableListener;
-            saved.proxies[i] = [obs, listener];
+            const listener = obs._on(
+                shallow ? 'changeShallow' : 'change',
+                comparator || onChange
+            ) as ObservableListener;
+            // @ts-ignore
+            saved.listeners[i] = listener;
         }
     }
 }

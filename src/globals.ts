@@ -3,6 +3,7 @@ import { observableConfiguration } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
+export const symbolEqualityFn = Symbol('__equalityFn');
 export const symbolValue = Symbol('__value');
 export const symbolProp = Symbol('__prop');
 
@@ -69,4 +70,12 @@ export function clone(obj: any) {
         : isObject(obj)
         ? Object.assign({}, obj)
         : JSON.parse(JSON.stringify(obj));
+}
+
+export function arrayStartsWith(arr1: any[], arr2: any[]) {
+    for (let i = 0; i < arr2.length; i++) {
+        if (arr1[i] !== arr2[i]) return false;
+    }
+
+    return true;
 }
