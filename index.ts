@@ -15,4 +15,5 @@
 // } from './src/observableFns';
 export * from './src/observableInterfaces';
 // export { persistObservable } from './src/persistObservable';
-export { observable2, shallow as shallow2 } from './src/observable2';
+// export { observable2, shallow as shallow2 } from './src/observable2';
+export { observable3 } from './src/observable3';

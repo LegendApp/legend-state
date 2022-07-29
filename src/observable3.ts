@@ -249,11 +249,11 @@ function set(node: PathNode, key: string, newValue?: any): any {
         createNodes({ root: node.root, path: node.path.concat(key) }, newValue);
         state.inSet = false;
 
-        notify(node, key, newValue, prevValue, node.path.concat(key));
+        notify(node, newValue, prevValue, node.path.concat(key));
     }
 }
 
-function notify(node: PathNode, key: string, value: any, prevValue: any, path: string[]) {
+function notify(node: PathNode, value: any, prevValue: any, path: string[]) {
     const pathStr = path.join('');
     node.root.listeners.forEach((listener) => {
         if (pathStr.startsWith(listener.pathStr)) {
