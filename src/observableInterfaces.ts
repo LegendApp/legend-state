@@ -1,4 +1,4 @@
-import { symbolEqualityFn, symbolShallow } from './globals';
+import { symbolEqualityFn, symbolProp, symbolShallow } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
@@ -296,6 +296,7 @@ export interface OnReturnValue3<T> {
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type Shallow<T = any> = { [symbolShallow]: Observable2<T> };
+export type Prop<T = any> = { [symbolProp]: Observable2<T> } & ObservableProps2<T>;
 export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable2<T>; fn: (value: any) => any } };
 
 export interface ObservableListener3<T = any> {
@@ -316,3 +317,5 @@ export interface PathNode {
     root: ObservableWrapper;
     path: string[];
 }
+export type ObservableChecker3<T> = Shallow | EqualityFn | Observable2 | Prop;
+export type ObservableComputed3<T = any> = { readonly value: T } & ObservableBaseProps2<{ readonly value: T }>;

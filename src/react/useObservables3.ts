@@ -1,11 +1,12 @@
 import { isArray, isObject } from '@legendapp/tools';
 import { useForceRender } from '@legendapp/tools/react';
 import { RefObject, useEffect, useRef } from 'react';
-import { symbolEqualityFn, symbolProp, symbolShallow } from '../globals';
+import { getObservableRawValue, symbolEqualityFn, symbolProp, symbolShallow } from '../globals';
 import {
     EqualityFn,
     Observable,
     Observable2,
+    ObservableChecker3,
     ObservableListener,
     ObservableListener3,
     Shallow,
@@ -16,23 +17,6 @@ interface SavedRef {
     cmpValue?: any[];
 }
 
-function getRawValue(obs: Observable) {
-    const prop = obs[symbolProp as any];
-    if (prop) {
-        return prop.value;
-    } else {
-        const eq = obs[symbolEqualityFn as any];
-        if (eq) {
-            return getRawValue(eq.obs);
-        } else {
-            return obs[symbolShallow as any] || obs;
-        }
-    }
-}
-
-type ObservableChecker<T> = Shallow | EqualityFn | Observable2;
-// type ObservableChecker<T> = T extends Shallow<infer t> ? Observable2<t> : Observable2<T>;
-
 /**
  * A React hook that listens to observables and returns their values.
  *
@@ -41,7 +25,7 @@ type ObservableChecker<T> = Shallow | EqualityFn | Observable2;
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
 export function useObservables3<
-    T extends ObservableChecker<T> | ObservableChecker<T>[] | Record<string, ObservableChecker<T>>
+    T extends ObservableChecker3<T> | ObservableChecker3<T>[] | Record<string, ObservableChecker3<T>>
 >(args: T): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
@@ -72,7 +56,7 @@ export function useObservables3<
     updateListeners(arr as Observable2[], ref, forceRender);
 
     // TODO Support single obs and object
-    return args.map(getRawValue);
+    return args.map(getObservableRawValue);
 }
 
 function updateListeners(arr: Observable2[], refSaved: RefObject<SavedRef>, onChange: () => void) {

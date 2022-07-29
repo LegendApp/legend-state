@@ -1,5 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { PathNode } from 'src/observableInterfaces';
+import { ObservableChecker3, PathNode } from './observableInterfaces';
 import { observableConfiguration } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
@@ -99,4 +99,18 @@ export function callKeyed(fn: Function, node: PathNode, ...args: any[]) {
     const last = node.path[node.path.length - 1];
     const parent = { path: node.path.slice(0, -1), root: node.root };
     return fn.call(this, parent, last, ...args);
+}
+
+export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
+    const prop = obs[symbolProp as any];
+    if (prop) {
+        return getNodeValue(prop.node)?.[prop.key] as any;
+    } else {
+        const eq = obs[symbolEqualityFn as any];
+        if (eq) {
+            return getObservableRawValue(eq.obs);
+        } else {
+            return obs[symbolShallow as any] || obs;
+        }
+    }
 }

@@ -185,9 +185,8 @@ export function equalityFn(obs: Observable2, fn: (value) => any): EqualityFn {
 }
 
 export function prop(node: PathNode, key: string) {
-    const value = getValueAtPath(node.root, node.path.concat(key));
     return {
-        [symbolProp]: { node, key, value },
+        [symbolProp]: { node, key },
     };
 }
 

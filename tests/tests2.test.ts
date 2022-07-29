@@ -1,3 +1,4 @@
+import { observableComputed3 } from '../src/observableComputed3';
 import { observable3 } from '../src/observable3';
 
 describe('Set', () => {
@@ -402,5 +403,81 @@ describe('on functions', () => {
         expect(handler).not.toHaveBeenCalled();
         obs._set('val', true);
         expect(handler).toHaveBeenCalledWith(true);
+    });
+});
+// describe('Shallow', () => {
+//     test('Shallow 1', () => {
+//         const obs = observable3({ val: false } as { val: boolean; val2?: number });
+//         const handler = jest.fn();
+//         obs._onChangeShallow(handler);
+//         debugger;
+//         obs._set('val', true);
+//         expect(handler).not.toHaveBeenCalled();
+
+//         obs._set('val2', 10);
+
+//         expect(handler).toHaveBeenCalledTimes(1);
+//     });
+//     test('Shallow set primitive', () => {
+//         const obs = observable3({ val: false } as { val: boolean; val2?: number });
+//         const handler = jest.fn();
+//         obs._onChangeShallow(handler);
+//         obs._set('val', true);
+//         expect(handler).not.toHaveBeenCalled();
+
+//         obs._set('val2', 10);
+
+//         expect(handler).toHaveBeenCalledTimes(1);
+//     });
+//     test('Shallow deep object', () => {
+//         const obs = observable3({ val: { val2: { val3: 'hi' } } });
+//         const handler = jest.fn();
+//         obs._onChangeShallow(handler);
+//         obs.val.val2._set('val3', 'hello');
+//         expect(handler).not.toHaveBeenCalled();
+//     });
+// });
+describe('Computed', () => {
+    test('Basic computed', () => {
+        const obs = observable3({ test: 10, test2: 20 });
+        const computed = observableComputed3([obs._prop('test'), obs._prop('test2')], (test, test2) => test + test2);
+        expect(computed.value).toEqual(30);
+    });
+    test('Multiple computed changes', () => {
+        const obs = observable3({ test: 10, test2: 20 });
+        const computed = observableComputed3([obs._prop('test'), obs._prop('test2')], (test, test2) => test + test2);
+        expect(computed.value).toEqual(30);
+
+        const handler = jest.fn();
+        computed._onChange('value', handler);
+
+        obs._set('test', 5);
+
+        expect(handler).toHaveBeenCalledWith(25, { value: 25, path: [], prevValue: 30 });
+        expect(computed.value).toEqual(25);
+
+        obs._set('test', 1);
+
+        expect(handler).toHaveBeenCalledWith(21, { value: 21, path: [], prevValue: 25 });
+        expect(computed.value).toEqual(21);
+    });
+    test('Cannot directly set a computed', () => {
+        const obs = observable3({ test: 10, test2: 20 });
+        const computed = observableComputed3([obs._prop('test'), obs._prop('test2')], (test, test2) => test + test2);
+
+        // @ts-expect-error
+        computed._set(40);
+
+        expect(computed.value).toEqual(30);
+
+        // @ts-expect-error
+        computed._delete();
+
+        expect(computed.value).toEqual(30);
+
+        // @ts-expect-error
+        computed._assign({ text: 'hi' });
+
+        expect(computed.value).toEqual(30);
     });
 });
