@@ -116,7 +116,7 @@ function updateListeners(arr: Observable2[], refSaved: RefObject<SavedRef>, onCh
             const listener = obs._on(
                 shallow ? 'changeShallow' : 'change',
                 comparator || onChange
-            ) as ObservableListener;
+            ) as unknown as ObservableListener;
             // @ts-ignore
             saved.listeners[i] = listener;
         }

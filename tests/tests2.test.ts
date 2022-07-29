@@ -16,12 +16,11 @@ describe('Set', () => {
         obs.test.text._set({ text2: 't2' });
         expect(obs).toEqual({ test: { text: { text2: 't2' } } });
     });
-    // test('Set at root', () => {
-    //     const obs = observable3({ test: { text: 't' } });
-    //     debugger;
-    //     obs._set({ test: { text: 't2' } });
-    //     expect(obs).toEqual({ test: { text: 't2' } });
-    // });
+    test('Set at root', () => {
+        const obs = observable3({ test: { text: 't' } });
+        obs._set({ test: { text: 't2' } });
+        expect(obs).toEqual({ test: { text: 't2' } });
+    });
     test('Set value does not copy object', () => {
         const obs = observable3({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -72,7 +71,6 @@ describe('Listeners', () => {
         const obs = observable3({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
         const handler = jest.fn();
-        // @ts-ignore
         obs.test._on('text', 'change', handler);
         obs.test._set('text', 't2');
         expect(obs.test.text).toEqual('t2');
@@ -82,7 +80,6 @@ describe('Listeners', () => {
         const obs = observable3({ test: { test2: { test3: { text: 't' } } } });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        // @ts-ignore
         obs.test.test2.test3._on('text', 'change', handler);
         obs._on('change', handler2);
         obs.test.test2.test3._set('text', 't2');
@@ -113,7 +110,6 @@ describe('Listeners', () => {
     test('Set calls and maintains deep listeners', () => {
         const obs = observable3({ test: { test2: 'hi' } });
         const handler = jest.fn();
-        // @ts-ignore
         obs.test._on('test2', 'change', handler);
         obs.test._set({ test2: 'hello' });
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
@@ -124,23 +120,20 @@ describe('Listeners', () => {
     test('Set on root calls deep listeners', () => {
         const obs = observable3({ test: { test2: 'hi' } });
         const handler = jest.fn();
-        // @ts-ignore
         obs.test._on('test2', 'change', handler);
         obs._set({ test: { test2: 'hello' } });
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
     });
     test('Shallow listener', () => {
-        const obs = observable3({ test: { test2: 'hi' } });
+        const obs = observable3({ test: { test2: 'hi' } } as any);
         const handler = jest.fn();
-        // @ts-ignore
         obs._on('changeShallow', handler);
         obs.test._set('test2', 'hello');
         expect(handler).not.toHaveBeenCalled();
         obs._set({ test: { test2: 'hello' } });
         expect(handler).toHaveBeenCalled();
-        // @ts-ignore
-        // obs.test._assign({ test3: 'hello' });
-        // expect(handler).toHaveBeenCalledTimes(1);
+        obs.test._assign({ test3: 'hello' });
+        expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Shallow array swap', () => {
         const obs = observable3({
@@ -167,10 +160,8 @@ describe('Listeners', () => {
 describe('Safety', () => {
     test('Prevent writes', () => {
         const obs = observable3({ test: { text: 't' } });
-        // expect(() => {
         // @ts-expect-error
         obs.test.text = 'hello';
-        // }).toThrow();
     });
 });
 describe('Primitives', () => {

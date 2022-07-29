@@ -46,6 +46,28 @@ export interface ObservableBaseProps2<T> {
         eventType: ObservableEventType,
         cb?: (value?: T) => void
     ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
+    _on<K extends keyof T>(key: K, eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
+    _on<K extends keyof T>(key: K, eventType: 'changeShallow', cb: ListenerFn<T>): ObservableListener<T>;
+    _on(
+        eventType: 'equals',
+        value: T,
+        cb?: (value?: T) => void
+    ): { listener: ObservableListener<T>; promise: Promise<T> };
+    _on<K extends keyof T>(
+        key: K,
+        eventType: 'hasValue',
+        cb?: (value?: T) => void
+    ): { listener: ObservableListener<T>; promise: Promise<T> };
+    _on<K extends keyof T>(
+        key: K,
+        eventType: 'true',
+        cb?: (value?: T) => void
+    ): { listener: ObservableListener<T>; promise: Promise<T> };
+    _on<K extends keyof T>(
+        key: K,
+        eventType: ObservableEventType,
+        cb?: (value?: T) => void
+    ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
 }
 export interface ObservableProps2<T> extends ObservableBaseProps2<T> {
     _set(value: ValidObservableParam2<T>): Observable2<T>;

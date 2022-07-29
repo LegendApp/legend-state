@@ -134,9 +134,12 @@ function set(node: PathNode, newValue: any): any;
 function set(node: PathNode, key: string, newValue: any): any;
 function set(node: PathNode, key: string, newValue?: any): any {
     if (arguments.length < 3) {
-        if (node.path.length > 0) {
+        if (node.path.length > 1) {
             const last = node.path[node.path.length - 1];
             return set({ path: node.path.slice(0, -1), root: node.root }, last, key);
+        } else {
+            // Set on the root has to assign
+            assign(node, key);
         }
     } else {
         state.inSet = true;
