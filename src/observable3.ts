@@ -1,32 +1,17 @@
-import { isArray, isObject } from '@legendapp/tools';
-import { arrayStartsWith, isPrimitive2, symbolEqualityFn, symbolProp, symbolShallow } from './globals';
+import { isArray } from '@legendapp/tools';
 import {
-    EqualityFn,
-    ListenerFn3,
-    Observable2,
-    ObservableEventType,
-    ObservableListenerInfo2,
-    Shallow,
-} from './observableInterfaces';
+    arrayStartsWith,
+    callKeyed,
+    getNodeValue,
+    getValueAtPath,
+    isPrimitive2,
+    symbolEqualityFn,
+    symbolProp,
+    symbolShallow,
+} from './globals';
+import { EqualityFn, Observable2, ObservableWrapper, PathNode, Shallow } from './observableInterfaces';
+import { onChange, onEquals, onHasValue, onTrue } from './on';
 
-export interface ObservableListener3<T = any> {
-    root: ObservableWrapper;
-    path: string[];
-    pathStr: string;
-    callback: ListenerFn3<T>;
-    shallow: boolean;
-    dispose: () => void;
-    isDisposed?: boolean;
-}
-export interface ObservableWrapper<T = any> {
-    _: Observable2;
-    listeners: Set<ObservableListener3>;
-}
-
-interface PathNode {
-    root: ObservableWrapper;
-    path: string[];
-}
 const state = {
     mapPaths: new WeakMap<object, PathNode>(),
     fromKey: false,
@@ -35,7 +20,11 @@ const state = {
 
 const mapFns = new Map<string, Function>([
     ['set', set],
-    ['on', on],
+    ['onChange', onChange.bind(this, false)],
+    ['onChangeShallow', onChange.bind(this, true)],
+    ['onEquals', onEquals],
+    ['onHasValue', onHasValue],
+    ['onTrue', onTrue],
     ['prop', prop],
     ['assign', assign],
     ['delete', deleteFn],
@@ -55,7 +44,7 @@ function extendPrototypesObject() {
             }
         };
     const toOverride = [Object];
-    ['assign', 'on', 'set', 'delete', 'prop'].forEach((key) => {
+    mapFns.forEach((_, key) => {
         toOverride.forEach((override) => (override.prototype['_' + key] = fn(key)));
     });
 }
@@ -107,16 +96,6 @@ function createNodes(parent: PathNode, obj: Record<any, any>) {
     state.mapPaths.set(obj, parent);
 }
 
-function getValueAtPath(root: object, path: string[]) {
-    let child = root;
-    for (let i = 0; i < path.length; i++) {
-        if (child) {
-            child = child[path[i]];
-        }
-    }
-    return child;
-}
-
 function cleanup(obj: object) {
     const isArr = isArray(obj);
     const keys = isArr ? obj : Object.keys(obj);
@@ -135,15 +114,14 @@ function set(node: PathNode, key: string, newValue: any): any;
 function set(node: PathNode, key: string, newValue?: any): any {
     if (arguments.length < 3) {
         if (node.path.length > 1) {
-            const last = node.path[node.path.length - 1];
-            return set({ path: node.path.slice(0, -1), root: node.root }, last, key);
+            return callKeyed(set, node, key);
         } else {
             // Set on the root has to assign
             assign(node, key);
         }
     } else {
         state.inSet = true;
-        let child = getValueAtPath(node.root, node.path);
+        let child = getNodeValue(node);
         const prevValue = child[key];
         if (!isPrimitive2(child[key])) {
             cleanup(child[key]);
@@ -195,59 +173,6 @@ function deleteFn(node: PathNode, key?: string) {
     delete child[key];
 }
 
-export function disposeListener(listener: ObservableListener3) {
-    if (listener && !listener.isDisposed) {
-        listener.isDisposed = true;
-        listener.root.listeners.delete(listener);
-    }
-}
-
-function onChange(node: PathNode, callback: (value, prevValue) => void, shallow: boolean) {
-    const listener = {
-        root: node.root,
-        callback,
-        path: node.path,
-        pathStr: node.path.join(''),
-        shallow,
-    } as Partial<ObservableListener3>;
-    listener.dispose = disposeListener.bind(listener, listener);
-
-    node.root.listeners.add(listener as ObservableListener3);
-
-    return listener;
-}
-
-function on(node: PathNode, type: ObservableEventType, callback: (value, prevValue) => void);
-function on(node: PathNode, key: string, type: ObservableEventType, callback: (value, prevValue) => void);
-function on(
-    node: PathNode,
-    key: string | ObservableEventType,
-    type: ((value, prevValue) => void) | ObservableEventType,
-    callback?: (value, prevValue) => void
-) {
-    if (arguments.length < 4) {
-        if (node.path.length > 0) {
-            const last = node.path[node.path.length - 1];
-            return on(
-                { path: node.path.slice(0, -1), root: node.root },
-                last,
-                key as ObservableEventType,
-                type as (value, prevValue) => void
-            );
-        } else debugger;
-        // return on({ root: node.root, path: })
-    } else {
-        const child: PathNode = {
-            path: node.path.concat(key),
-            root: node.root,
-        };
-        return (
-            (type === 'change' && onChange(child, callback, false)) ||
-            (type === 'changeShallow' && onChange(child, callback, true))
-        );
-    }
-}
-
 export function shallow(obs: Observable2): Shallow {
     return {
         [symbolShallow]: obs,
@@ -276,9 +201,6 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
         {
             root: obs,
             path: [],
-            // parent: undefined,
-            // key: undefined,
-            // value: obs,
         },
         obs
     );

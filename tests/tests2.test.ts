@@ -45,8 +45,8 @@ describe('Listeners', () => {
         const obs = observable3({ test: { text: 't' }, arr: [] });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        obs.test._on('change', handler);
-        obs._on('change', handler2);
+        obs.test._onChange(handler);
+        obs._onChange(handler2);
 
         obs.test._set({ text: 't2' });
         expect(handler).toHaveBeenCalledWith(
@@ -62,7 +62,7 @@ describe('Listeners', () => {
         const obs = observable3({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
         const handler = jest.fn();
-        obs.test._prop('text')._on('change', handler);
+        obs.test._prop('text')._onChange(handler);
         obs.test._set('text', 't2');
         expect(obs.test.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', { path: [], prevValue: 't', value: 't2' });
@@ -71,7 +71,7 @@ describe('Listeners', () => {
         const obs = observable3({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
         const handler = jest.fn();
-        obs.test._on('text', 'change', handler);
+        obs.test._onChange('text', handler);
         obs.test._set('text', 't2');
         expect(obs.test.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', { path: [], prevValue: 't', value: 't2' });
@@ -80,8 +80,8 @@ describe('Listeners', () => {
         const obs = observable3({ test: { test2: { test3: { text: 't' } } } });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        obs.test.test2.test3._on('text', 'change', handler);
-        obs._on('change', handler2);
+        obs.test.test2.test3._onChange('text', handler);
+        obs._onChange(handler2);
         obs.test.test2.test3._set('text', 't2');
         expect(obs.test.test2.test3.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', { path: [], prevValue: 't', value: 't2' });
@@ -93,7 +93,7 @@ describe('Listeners', () => {
     test('Listen calls multiple times', () => {
         const obs = observable3({ test: { test2: { test3: { text: 't' } } } });
         const handler = jest.fn();
-        obs._on('change', handler);
+        obs._onChange(handler);
         obs.test.test2.test3._set('text', 't2');
         expect(obs.test.test2.test3.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith(
@@ -110,7 +110,7 @@ describe('Listeners', () => {
     test('Set calls and maintains deep listeners', () => {
         const obs = observable3({ test: { test2: 'hi' } });
         const handler = jest.fn();
-        obs.test._on('test2', 'change', handler);
+        obs.test._onChange('test2', handler);
         obs.test._set({ test2: 'hello' });
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
         obs.test._set({ test2: 'hi there' });
@@ -120,19 +120,19 @@ describe('Listeners', () => {
     test('Set on root calls deep listeners', () => {
         const obs = observable3({ test: { test2: 'hi' } });
         const handler = jest.fn();
-        obs.test._on('test2', 'change', handler);
+        obs.test._onChange('test2', handler);
         obs._set({ test: { test2: 'hello' } });
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
     });
     test('Shallow listener', () => {
-        const obs = observable3({ test: { test2: 'hi' } } as any);
+        const obs = observable3({ test: { test2: 'hi' } });
         const handler = jest.fn();
-        obs._on('changeShallow', handler);
+        obs._onChangeShallow(handler);
         obs.test._set('test2', 'hello');
         expect(handler).not.toHaveBeenCalled();
         obs._set({ test: { test2: 'hello' } });
         expect(handler).toHaveBeenCalled();
-        obs.test._assign({ test3: 'hello' });
+        obs.test._assign({ test3: 'hello' } as any);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Shallow array swap', () => {
@@ -140,7 +140,7 @@ describe('Listeners', () => {
             test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
         });
         const handler = jest.fn();
-        obs.test._on('changeShallow', handler);
+        obs.test._onChangeShallow(handler);
         let tmp = obs.test[1];
         obs.test._set(1, obs.test[4]);
         obs.test._set(4, tmp);
@@ -199,7 +199,7 @@ describe('Array', () => {
     test('Array functions', () => {
         const obs = observable3({ arr: [] });
         const handler = jest.fn();
-        obs.arr._on('change', handler);
+        obs.arr._onChange(handler);
     });
     test('Array still has builtin functions', () => {
         const obs = observable3({ arr: [1, 2] });
@@ -208,7 +208,7 @@ describe('Array', () => {
     test('Array push', () => {
         const obs = observable3({ test: ['hi'] });
         const handler = jest.fn();
-        obs._on('change', handler);
+        obs._onChange(handler);
         obs.test.push('hello');
         expect(obs.test).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith(
@@ -220,7 +220,7 @@ describe('Array', () => {
     test('Array splice', () => {
         const obs = observable3({ test: ['hi', 'hello'] });
         const handler = jest.fn();
-        obs._on('change', handler);
+        obs._onChange(handler);
         obs.test.splice(1, 1);
         expect(obs.test).toEqual(['hi']);
         expect(handler).toHaveBeenCalledWith(
@@ -250,6 +250,93 @@ describe('Array', () => {
         expect(obs.test.length).toEqual(1000);
         expect(obs.test[3].id).toEqual(3);
     });
+    test('Array swap with objects', () => {
+        const obs = observable3({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        let arr = obs.test;
+
+        let tmp = arr[1];
+        obs.test._set(1, arr[4]);
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
+        expect(obs.test[1]).toEqual({ text: 5 });
+        expect(arr[1]).toEqual({ text: 5 });
+        expect(obs.test[4]).toEqual({ text: 2 });
+        expect(arr[4]).toEqual({ text: 2 });
+
+        tmp = arr[1];
+        obs.test._set(1, arr[4]);
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+    });
+    test('Array swap if empty', () => {
+        const obs = observable3({ test: [] });
+
+        let tmp = obs.test[1];
+        obs.test._set(1, obs.test[4]);
+
+        expect(obs.test).toEqual([undefined, undefined]);
+
+        obs.test._set(4, tmp);
+
+        expect(obs.test).toEqual([undefined, undefined, undefined, undefined, undefined]);
+    });
+    test('Array clear if listening', () => {
+        let obs = observable3({ test: [1, 2, 3, 4, 5] });
+        obs.test[0]._onChange(() => {});
+        obs.test[1]._onChange(() => {});
+        obs.test[2]._onChange(() => {});
+        obs.test[3]._onChange(() => {});
+        obs.test[4]._onChange(() => {});
+
+        obs.test._set([]);
+
+        expect(obs.test).toEqual([]);
+        expect(obs.test).toEqual([]);
+        expect(obs.test.length).toEqual(0);
+        expect(obs.test.length).toEqual(0);
+        expect(obs.test.map((a) => a)).toEqual([]);
+    });
+    test('Array splice fire events', () => {
+        let obs = observable3({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const handler = jest.fn();
+        obs.test._onChange(handler);
+        obs.test[0]._onChange(() => {});
+        obs.test[1]._onChange(() => {});
+        obs.test[2]._onChange(() => {});
+        obs.test[3]._onChange(() => {});
+        obs.test[4]._onChange(() => {});
+
+        obs.test.splice(0, 1);
+
+        expect(obs.test[0]).toEqual({ text: 2 });
+        expect(obs.test[0]).toEqual({ text: 2 });
+        expect(obs.test).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test.length).toEqual(4);
+        expect(obs.test.length).toEqual(4);
+        expect(obs.test.map((a) => a)).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }], {
+            value: [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            path: [],
+            prevValue: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+        });
+    });
+    test('Array with listeners clear', () => {
+        let obs = observable3({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const handler = jest.fn();
+        obs.test._onChangeShallow(handler);
+        obs.test[0]._onChange(() => {});
+        obs.test[1]._onChange(() => {});
+        obs.test[2]._onChange(() => {});
+        obs.test[3]._onChange(() => {});
+        obs.test[4]._onChange(() => {});
+
+        obs.test._set([]);
+    });
 });
 describe('Delete', () => {
     test('Delete key', () => {
@@ -261,5 +348,59 @@ describe('Delete', () => {
         const obs = observable3({ test: { text: 't' }, test2: { text2: 't2' } });
         obs.test2._delete();
         expect(obs).toEqual({ test: { text: 't' } });
+    });
+});
+describe('on functions', () => {
+    test('onValue with prop', () => {
+        const obs = observable3({ val: 10 });
+        const handler = jest.fn();
+        obs._prop('val')._onEquals(20, handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs._set('val', 20);
+        expect(handler).toHaveBeenCalledWith(20);
+    });
+    test('onValue deep', () => {
+        const obs = observable3({ test: { test2: '', test3: '' } });
+        const handler = jest.fn();
+        obs.test._onEquals('test2', 'hello', handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs.test._set('test2', 'hi');
+        expect(handler).not.toHaveBeenCalled();
+        obs.test._set('test2', 'hello');
+        expect(handler).toHaveBeenCalledWith('hello');
+    });
+    test('onTrue', () => {
+        const obs = observable3({ val: false });
+        const handler = jest.fn();
+        obs._onTrue('val', handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs._set('val', true);
+        expect(handler).toHaveBeenCalledWith(true);
+    });
+    test('onTrue starting true', () => {
+        const obs = observable3({ val: true });
+        const handler = jest.fn();
+        obs._onTrue('val', handler);
+        expect(handler).toHaveBeenCalled();
+        obs._set('val', false);
+        expect(handler).toHaveBeenCalledTimes(1);
+        obs._set('val', true);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('onHasValue with false', () => {
+        const obs = observable3({ val: false });
+        const handler = jest.fn();
+        obs._onHasValue('val', handler);
+        expect(handler).toHaveBeenCalled();
+        obs._set('val', true);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('onHasValue with undefined', () => {
+        const obs = observable3({ val: undefined });
+        const handler = jest.fn();
+        obs._onHasValue('val', handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs._set('val', true);
+        expect(handler).toHaveBeenCalledWith(true);
     });
 });

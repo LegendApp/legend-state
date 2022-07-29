@@ -33,41 +33,26 @@ export interface ObservableProps<T> extends ObservableBaseProps<T> {
 export interface ObservableBaseProps2<T> {
     _get(): T;
     _prop<K extends keyof T>(prop: K): Observable2<T[K]>;
-    _on(eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
-    _on(eventType: 'changeShallow', cb: ListenerFn<T>): ObservableListener<T>;
-    _on(
-        eventType: 'equals',
-        value: T,
-        cb?: (value?: T) => void
-    ): { listener: ObservableListener<T>; promise: Promise<T> };
-    _on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
-    _on(eventType: 'true', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
-    _on(
-        eventType: ObservableEventType,
-        cb?: (value?: T) => void
-    ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
-    _on<K extends keyof T>(key: K, eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
-    _on<K extends keyof T>(key: K, eventType: 'changeShallow', cb: ListenerFn<T>): ObservableListener<T>;
-    _on(
-        eventType: 'equals',
-        value: T,
-        cb?: (value?: T) => void
-    ): { listener: ObservableListener<T>; promise: Promise<T> };
-    _on<K extends keyof T>(
+    _onChange(cb: ListenerFn<T>): ObservableListener<T>;
+    _onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
+    _onChangeShallow(cb: ListenerFn<T>): ObservableListener<T>;
+    _onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
+    _onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    _onEquals<K extends keyof T>(
         key: K,
-        eventType: 'hasValue',
+        value: T[K],
         cb?: (value?: T) => void
     ): { listener: ObservableListener<T>; promise: Promise<T> };
-    _on<K extends keyof T>(
+    _onTrue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    _onTrue<K extends keyof T>(
         key: K,
-        eventType: 'true',
         cb?: (value?: T) => void
     ): { listener: ObservableListener<T>; promise: Promise<T> };
-    _on<K extends keyof T>(
+    _onHasValue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    _onHasValue<K extends keyof T>(
         key: K,
-        eventType: ObservableEventType,
         cb?: (value?: T) => void
-    ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
+    ): { listener: ObservableListener<T>; promise: Promise<T> };
 }
 export interface ObservableProps2<T> extends ObservableBaseProps2<T> {
     _set(value: ValidObservableParam2<T>): Observable2<T>;
@@ -133,7 +118,7 @@ type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
     : T[K] extends Array<any>
     ? T[K] &
           ObservableProps2<T[K]> & {
-              [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]>;
+              [n: number]: TRecurse extends Observable2 ? Observable2<T[K][number]> : ObservableUnsafe<T[K][number]>;
           }
     : T extends object
     ? TRecurse
@@ -304,7 +289,30 @@ export interface OnReturnValue<T> {
     promise: Promise<T>;
     listener: ObservableListener<T>;
 }
+export interface OnReturnValue3<T> {
+    promise: Promise<T>;
+    listener: ObservableListener3<T>;
+}
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type Shallow<T = any> = { [symbolShallow]: Observable2<T> };
 export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable2<T>; fn: (value: any) => any } };
+
+export interface ObservableListener3<T = any> {
+    root: ObservableWrapper;
+    path: string[];
+    pathStr: string;
+    callback: ListenerFn3<T>;
+    shallow: boolean;
+    dispose: () => void;
+    isDisposed?: boolean;
+}
+export interface ObservableWrapper<T = any> {
+    _: Observable2;
+    listeners: Set<ObservableListener3>;
+}
+
+export interface PathNode {
+    root: ObservableWrapper;
+    path: string[];
+}

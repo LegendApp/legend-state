@@ -1,4 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
+import { PathNode } from 'src/observableInterfaces';
 import { observableConfiguration } from './configureObservable';
 
 export const symbolDateModified = Symbol('__dateModified');
@@ -78,4 +79,24 @@ export function arrayStartsWith(arr1: any[], arr2: any[]) {
     }
 
     return true;
+}
+
+export function getValueAtPath(root: object, path: string[]) {
+    let child = root;
+    for (let i = 0; i < path.length; i++) {
+        if (child) {
+            child = child[path[i]];
+        }
+    }
+    return child;
+}
+
+export function getNodeValue(node: PathNode) {
+    return getValueAtPath(node.root, node.path);
+}
+
+export function callKeyed(fn: Function, node: PathNode, ...args: any[]) {
+    const last = node.path[node.path.length - 1];
+    const parent = { path: node.path.slice(0, -1), root: node.root };
+    return fn.call(this, parent, last, ...args);
 }

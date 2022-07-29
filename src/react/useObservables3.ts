@@ -1,14 +1,13 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { useForceRender, useStableCallback } from '@legendapp/tools/react';
-import { RefObject, useCallback, useEffect, useRef } from 'react';
-import { ObservableListener3 } from '../observable3';
-import { symbolProp, symbolShallow, symbolEqualityFn } from '../globals';
+import { useForceRender } from '@legendapp/tools/react';
+import { RefObject, useEffect, useRef } from 'react';
+import { symbolEqualityFn, symbolProp, symbolShallow } from '../globals';
 import {
     EqualityFn,
     Observable,
     Observable2,
     ObservableListener,
-    ObservableListenerInfo2,
+    ObservableListener3,
     Shallow,
 } from '../observableInterfaces';
 
@@ -113,8 +112,7 @@ function updateListeners(arr: Observable2[], refSaved: RefObject<SavedRef>, onCh
                 };
             }
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-            const listener = obs._on(
-                shallow ? 'changeShallow' : 'change',
+            const listener = obs['_onChange' + (shallow ? 'Shallow' : '')](
                 comparator || onChange
             ) as unknown as ObservableListener;
             // @ts-ignore
