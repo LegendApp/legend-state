@@ -1,5 +1,5 @@
 import { isFunction, isObjectEmpty, isString } from '@legendapp/tools';
-import { callKeyed, getNodeValue } from './globals';
+import { callKeyed, getNodeValue, getPathNode } from './globals';
 import {
     ObservableEventType,
     ObservableListener3,
@@ -13,7 +13,7 @@ const symbolHasValue = Symbol('__hasValue');
 export function disposeListener(listener: ObservableListener3) {
     if (listener && !listener.isDisposed) {
         listener.isDisposed = true;
-        listener.root.listeners.delete(listener);
+        listener.node.listeners.delete(listener);
     }
 }
 
@@ -65,22 +65,22 @@ function _onChange(node: PathNode, key: string, callback: (value, prevValue) => 
     if (arguments.length < 4) {
         return callKeyed(_onChange, node, key, callback, shallow);
     }
-    const child: PathNode = {
-        path: node.path.concat(key),
-        root: node.root,
-    };
+    const child = getPathNode(node.root, node.path, key);
     const listener = {
-        root: child.root,
+        node: child,
         callback,
         path: child.path,
-        pathStr: child.path.join(''),
+        // pathStr: child.path,
         shallow,
-    } as ObservableListener3;
+    } as Partial<ObservableListener3>;
     listener.dispose = disposeListener.bind(listener, listener);
 
-    child.root.listeners.add(listener as ObservableListener3);
+    if (!child.listeners) {
+        child.listeners = new Set();
+    }
+    child.listeners.add(listener as ObservableListener3);
 
-    return listener;
+    return listener as ObservableListener3;
 }
 
 export function onChange(shallow: boolean, ...args: any[]) {

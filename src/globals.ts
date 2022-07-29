@@ -1,6 +1,8 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { ObservableChecker3, PathNode } from './observableInterfaces';
+import { ObservableChecker3, ObservableWrapper, PathNode } from './observableInterfaces';
 import { observableConfiguration } from './configureObservable';
+
+export const delim = '\uFEFF';
 
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
@@ -81,11 +83,12 @@ export function arrayStartsWith(arr1: any[], arr2: any[]) {
     return true;
 }
 
-export function getValueAtPath(root: object, path: string[]) {
+export function getValueAtPath(root: object, path: string) {
     let child = root;
-    for (let i = 0; i < path.length; i++) {
+    const arr = path.split(delim).filter((a) => !!a);
+    for (let i = 0; i < arr.length; i++) {
         if (child) {
-            child = child[path[i]];
+            child = child[arr[i]];
         }
     }
     return child;
@@ -95,13 +98,42 @@ export function getNodeValue(node: PathNode) {
     return getValueAtPath(node.root, node.path);
 }
 
+export function hasPathNode(root: ObservableWrapper, path: string, key?: string) {
+    if (key && path) {
+        path += delim + key;
+    }
+    return root.pathNodes.has(path);
+}
+export function getPathNode(root: ObservableWrapper, path: string, key?: string) {
+    if (key && path) {
+        path += delim + key;
+    }
+    let pathNode = root.pathNodes.get(path);
+    if (!pathNode) {
+        pathNode = {
+            root,
+            path,
+        };
+        root.pathNodes.set(path, pathNode);
+    }
+    return pathNode;
+}
+
+export function getParentNode(node: PathNode) {
+    const [path] = splitLastDelim(node.path);
+    return getPathNode(node.root, path);
+}
+
 export function callKeyed(fn: Function, node: PathNode, ...args: any[]) {
-    const last = node.path[node.path.length - 1];
-    const parent = { path: node.path.slice(0, -1), root: node.root };
-    return fn.call(this, parent, last, ...args);
+    const [path, key] = splitLastDelim(node.path);
+    // if (key !== undefined) {
+    const parent = getPathNode(node.root, path);
+    return fn.call(this, parent, key, ...args);
+    // }
 }
 
 export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
+    if (!obs) return obs as T;
     const prop = obs[symbolProp as any];
     if (prop) {
         return getNodeValue(prop.node)?.[prop.key] as any;
@@ -113,4 +145,13 @@ export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
             return obs[symbolShallow as any] || obs;
         }
     }
+}
+
+export function splitLastDelim(str: string) {
+    const lastIndex = str.lastIndexOf(delim);
+    if (lastIndex <= 0) return [str];
+
+    const before = str.slice(0, lastIndex);
+    const after = str.slice(lastIndex + 1);
+    return [before, after];
 }

@@ -300,9 +300,9 @@ export type Prop<T = any> = { [symbolProp]: Observable2<T> } & ObservableProps2<
 export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable2<T>; fn: (value: any) => any } };
 
 export interface ObservableListener3<T = any> {
-    root: ObservableWrapper;
-    path: string[];
-    pathStr: string;
+    node: PathNode;
+    // path: string[];
+    path: string;
     callback: ListenerFn3<T>;
     shallow: boolean;
     dispose: () => void;
@@ -311,11 +311,13 @@ export interface ObservableListener3<T = any> {
 export interface ObservableWrapper<T = any> {
     _: Observable2;
     listeners: Set<ObservableListener3>;
+    pathNodes: Map<string, PathNode>;
 }
 
 export interface PathNode {
     root: ObservableWrapper;
-    path: string[];
+    path: string;
+    listeners?: Set<ObservableListener3>;
 }
 export type ObservableChecker3<T> = Shallow | EqualityFn | Observable2 | Prop;
 export type ObservableComputed3<T = any> = { readonly value: T } & ObservableBaseProps2<{ readonly value: T }>;
