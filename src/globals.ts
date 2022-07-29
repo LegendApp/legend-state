@@ -48,6 +48,10 @@ export function isPrimitive(val: any) {
         !(val instanceof ArrayBuffer)
     );
 }
+export function isPrimitive2(arg) {
+    var type = typeof arg;
+    return arg == null || (type != 'object' && type != 'function');
+}
 
 export function isCollection(obj: any) {
     return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
