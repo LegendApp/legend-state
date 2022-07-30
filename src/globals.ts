@@ -4,12 +4,14 @@ import { observableConfiguration } from './configureObservable';
 
 export const delim = '\uFEFF';
 export const mapPaths = new WeakMap<object, PathNode>();
+export const arrPaths = [];
 
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
 export const symbolEqualityFn = Symbol('__equalityFn');
 export const symbolValue = Symbol('__value');
 export const symbolProp = Symbol('__prop');
+export const symbolID = Symbol('__id');
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;

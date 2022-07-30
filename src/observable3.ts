@@ -1,5 +1,6 @@
 import { isArray } from '@legendapp/tools';
 import {
+    arrPaths,
     delim,
     getNodeValue,
     getParentNode,
@@ -7,8 +8,8 @@ import {
     getValueAtPath,
     hasPathNode,
     isPrimitive2,
-    mapPaths,
     symbolEqualityFn,
+    symbolID,
     symbolProp,
     symbolShallow,
 } from './globals';
@@ -34,62 +35,7 @@ const objectFns = new Map<string, Function>([
     ['delete', deleteFn],
 ]);
 
-// function extendPrototypesObject() {
-//     const fn = (name: string) =>
-//         function (a, b, c) {
-//             let node: PathNode;
-//             const prop = this[symbolProp];
-//             let num = arguments.length;
-//             if (prop) {
-//                 node = prop.node;
-//                 c = b;
-//                 b = a;
-//                 a = prop.key;
-//                 num++;
-//             } else {
-//                 node = mapPaths.get(this);
-//             }
-//             if (node) {
-//                 const fn = mapFns.get(name);
-//                 // Micro-optimize here because it's the core and this is faster than apply.
-//                 return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
-//             }
-//         };
-//     const toOverride = [Object];
-//     mapFns.forEach((_, key) => {
-//         toOverride.forEach((override) => (override.prototype['_' + key] = fn(key)));
-//     });
-// }
-
-// extendPrototypesObject();
-
-// function extendPrototypesArray() {
-//     const fn = (override: any, name: string) => {
-//         const orig = override.prototype[name];
-//         return function () {
-//             const prevValue = this.slice();
-//             const ret = orig.apply(this, arguments);
-
-//             const node = mapPaths.get(this);
-//             if (node) {
-//                 const parentNode = getParentNode(node);
-//                 if (parentNode) {
-//                     const parent = getNodeValue(parentNode);
-//                     parent[node.key] = prevValue;
-
-//                     set(node, this);
-//                 }
-//             }
-
-//             return ret;
-//         };
-//     };
-//     const toOverride = [Array];
-//     ['push', 'splice'].forEach((key) => {
-//         toOverride.forEach((override) => (override.prototype[key] = fn(override, key)));
-//     });
-// }
-// extendPrototypesArray();
+let nextID = 0;
 
 const wrapFn = (fn: Function) =>
     function (a, b, c) {
@@ -103,7 +49,10 @@ const wrapFn = (fn: Function) =>
             a = prop.key;
             num++;
         } else {
-            node = mapPaths.get(this);
+            const id = this._?.[symbolID];
+            if (id !== undefined) {
+                node = arrPaths[id];
+            }
         }
         if (node) {
             // Micro-optimize here because it's the core and this is faster than apply.
@@ -127,7 +76,11 @@ const descriptorsArray: PropertyDescriptorMap = {};
             const prevValue = this.slice();
             const ret = Array.prototype[key].apply(this, arguments);
 
-            const node = mapPaths.get(this);
+            let node;
+            const id = this._?.[symbolID];
+            if (id !== undefined) {
+                node = arrPaths[id];
+            }
             if (node) {
                 const parentNode = getParentNode(node);
                 if (parentNode) {
@@ -143,13 +96,12 @@ const descriptorsArray: PropertyDescriptorMap = {};
     };
 });
 
-// const _functions = {
-//     set: () => {},
-//     on: () => {},
-// };
-
-function boundObjDescriptors(obj: any): PropertyDescriptor {
-    const out = {};
+function boundObjDescriptors(obj: any, node: PathNode): PropertyDescriptor {
+    const id = nextID++;
+    const out = {
+        [symbolID]: id,
+    };
+    arrPaths[id] = node;
     objectFns.forEach((fn, key) => {
         out[key] = wrapFn(fn).bind(obj);
     });
@@ -176,14 +128,13 @@ function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
             _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] });
         }
     }
-    if (!mapPaths.has(obj) && !obj.hasOwnProperty('_')) {
-        // Object.defineProperties(obj, descriptors);
-        Object.defineProperty(obj, '_', boundObjDescriptors(obj));
+    const hasDefined = obj._;
+    if (!hasDefined) {
+        Object.defineProperty(obj, '_', boundObjDescriptors(obj, parent));
         if (isArray(obj)) {
             Object.defineProperties(obj, descriptorsArray);
         }
     }
-    mapPaths.set(obj, parent);
 }
 
 function cleanup(obj: object) {
@@ -196,7 +147,8 @@ function cleanup(obj: object) {
             cleanup(obj[key]);
         }
     }
-    mapPaths.delete(obj);
+    const id = (obj as { _: any })._?.[symbolID];
+    delete arrPaths[id];
 }
 
 function set(node: PathNode, newValue: any): any;
@@ -289,7 +241,7 @@ export function prop(node: PathNode, key: string) {
     const prop = {
         [symbolProp]: { node, key },
     };
-    Object.defineProperty(prop, '_', boundObjDescriptors(prop));
+    Object.defineProperty(prop, '_', boundObjDescriptors(prop, node));
     return prop;
 }
 
@@ -305,3 +257,47 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
 
     return obs._ as Observable2<T>;
 }
+
+// ((numProps, propsLength, numIter) => {
+//     const performance = require('perf_hooks').performance;
+
+//     const symbolID = Symbol('__symbolID');
+
+//     let weakMap = new WeakMap();
+//     let arrOfID = [];
+//     let arr = [];
+//     for (let p = 0; p < numProps; p++) {
+//         arr[p] = { text: String(p * propsLength) };
+//         Object.defineProperty(arr[p], symbolID, {
+//             enumerable: false,
+//             value: p,
+//         });
+//         arrOfID[p] = 'hi';
+//     }
+//     let t0 = performance.now();
+//     for (let i = 0; i < numIter; i++) {
+//         for (let p = 0; p < numProps; p++) {
+//             let val = arr[p];
+//             weakMap.set(val, 'hi');
+//         }
+//     }
+//     console.log('Weak map set loop: ' + (performance.now() - t0));
+
+//     t0 = performance.now();
+//     for (let p = 0; p < numIter; p++) {
+//         for (let p = 0; p < numProps; p++) {
+//             let val = arr[p];
+//             weakMap.has(val);
+//         }
+//     }
+//     console.log('Weak map has loop: ' + (performance.now() - t0));
+
+//     t0 = performance.now();
+//     for (let p = 0; p < numIter; p++) {
+//         for (let p = 0; p < numProps; p++) {
+//             let val = arr[p];
+//             arrOfID[val[symbolID]];
+//         }
+//     }
+//     console.log('Get by symbol loop: ' + (performance.now() - t0));
+// })(1000, 1, 10000);
