@@ -37,17 +37,23 @@ const mapFns = new Map<string, Function>([
 
 function extendPrototypesObject() {
     const fn = (name: string) =>
-        function (...args: any[]) {
+        function (a, b, c) {
             let node: PathNode;
             const prop = this[symbolProp];
+            let num = arguments.length;
             if (prop) {
                 node = prop.node;
-                args.unshift(prop.key);
+                c = b;
+                b = a;
+                a = prop.key;
+                num++;
             } else {
                 node = mapPaths.get(this);
             }
             if (node) {
-                return mapFns.get(name).apply(this, [node, ...args]);
+                const fn = mapFns.get(name);
+                // Micro-optimize here because it's the core and this is faster than apply.
+                return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
             }
         };
     const toOverride = [Object];

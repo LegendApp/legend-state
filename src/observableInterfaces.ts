@@ -31,7 +31,6 @@ export interface ObservableProps<T> extends ObservableBaseProps<T> {
 }
 
 export interface ObservableBaseProps2<T> {
-    _get(): T;
     _prop<K extends keyof T>(prop: K): Observable2<T[K]>;
     _onChange(cb: ListenerFn<T>): ObservableListener3<T>;
     _onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener3<T>;
@@ -302,7 +301,7 @@ export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable2<T>; f
 export interface ObservableListener3<T = any> {
     node: PathNode;
     // path: string[];
-    path: string;
+    // path: string;
     callback: ListenerFn3<T>;
     shallow: boolean;
     dispose: () => void;
