@@ -3,6 +3,7 @@ import { ObservableChecker3, ObservableWrapper, PathNode } from './observableInt
 import { observableConfiguration } from './configureObservable';
 
 export const delim = '\uFEFF';
+export const mapPaths = new WeakMap<object, PathNode>();
 
 export const symbolDateModified = Symbol('__dateModified');
 export const symbolShallow = Symbol('__shallow');
@@ -98,7 +99,7 @@ export function hasPathNode(root: ObservableWrapper, path: string, key?: string)
 }
 export function getPathNode(root: ObservableWrapper, path: string, key?: string) {
     const parent = path;
-    if (key && path) {
+    if (key !== undefined && path !== undefined) {
         path += delim + key;
     }
     let pathNode = root.pathNodes.get(path);
@@ -118,6 +119,10 @@ export function getParentNode(node: PathNode) {
     return getPathNode(node.root, node.parent);
 }
 
+export function getObjectNode(obj: any) {
+    return mapPaths.get(obj);
+}
+
 export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
     if (!obs) return obs as T;
     const prop = obs[symbolProp as any];
@@ -129,6 +134,9 @@ export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
             return getObservableRawValue(eq.obs);
         } else {
             return obs[symbolShallow as any] || obs;
+            // obs = obs[symbolShallow as any] || obs;
+            // const node = getObjectNode(obs);
+            // return (node ? getNodeValue(node) : obs) as unknown as T;
         }
     }
 }

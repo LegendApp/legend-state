@@ -7,6 +7,7 @@ import {
     getValueAtPath,
     hasPathNode,
     isPrimitive2,
+    mapPaths,
     symbolEqualityFn,
     symbolProp,
     symbolShallow,
@@ -20,8 +21,6 @@ import {
     Shallow,
 } from './observableInterfaces';
 import { onChange, onEquals, onHasValue, onTrue } from './on';
-
-const mapPaths = new WeakMap<object, PathNode>();
 
 const objectFns = new Map<string, Function>([
     ['set', set],
@@ -167,7 +166,8 @@ function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const isObj = !isPrimitive2(obj[key]);
-        const doNotify = prevValue && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
+        const doNotify =
+            prevValue && !isArr && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
         const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
         if (isObj) {
             createNodes(child, obj[key], prevValue?.[key]);
@@ -227,28 +227,30 @@ function set(node: PathNode, key: string, newValue?: any): any {
     }
 }
 
-function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, value?: any) {
+function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
     if (node.listeners) {
-        value = value ? value : getNodeValue(node);
+        const value = getNodeValue(node);
         for (let listener of node.listeners) {
-            listener.callback(value, listenerInfo);
+            if (!listener.shallow || levelsUp <= 1) {
+                listener.callback(value, listenerInfo);
+            }
         }
     }
 }
 
-function _notifyUp(node: PathNode, listenerInfo: ObservableListenerInfo2, value?: any) {
-    _notify(node, listenerInfo, value);
+function _notifyUp(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
+    _notify(node, listenerInfo, levelsUp);
     if (node.path !== '_') {
         const parent = getParentNode(node);
 
         const parentListenerInfo = Object.assign({}, listenerInfo);
         parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-        _notifyUp(parent, parentListenerInfo);
+        _notifyUp(parent, parentListenerInfo, levelsUp + 1);
     }
 }
 function notify(node: PathNode, value: any, prevValue: any) {
     const listenerInfo = { path: [], prevValue, value };
-    _notifyUp(node, listenerInfo);
+    _notifyUp(node, listenerInfo, prevValue === undefined ? -1 : 0);
 }
 
 function assign(node: PathNode, value: any) {

@@ -127,38 +127,41 @@ describe('Listeners', () => {
         obs._.set({ test: { test2: 'hello' } });
         expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
     });
-    // test('Shallow listener', () => {
-    //     const obs = observable3({ test: { test2: 'hi' } });
-    //     const handler = jest.fn();
-    //     obs._.onChangeShallow(handler);
-    //     obs.test._.set('test2', 'hello');
-    //     expect(handler).not.toHaveBeenCalled();
-    //     obs._.set({ test: { test2: 'hello' } });
-    //     expect(handler).toHaveBeenCalled();
-    //     obs.test._.assign({ test3: 'hello' } as any);
-    //     expect(handler).toHaveBeenCalledTimes(1);
-    // });
-    //     test('Shallow array swap', () => {
-    //         const obs = observable3({
-    //             test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
-    //         });
-    //         const handler = jest.fn();
-    //         obs.test._.onChangeShallow(handler);
-    //         let tmp = obs.test[1];
-    //         obs.test._.set(1, obs.test[4]);
-    //         obs.test._.set(4, tmp);
-    //         expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }, { text: 6 }]);
-    //         expect(handler).toHaveBeenCalledTimes(2);
-    //         tmp = obs.test[1];
-    //         obs.test._.set(1, obs.test[4]);
-    //         obs.test._.set(4, tmp);
-    //         expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }]);
-    //         expect(handler).toHaveBeenCalledTimes(4);
-    //         // @ts-ignore
-    //         obs.test[5]._.set('text', 66);
-    //         expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 66 }]);
-    //         expect(handler).toHaveBeenCalledTimes(4);
+    test('Shallow listener', () => {
+        const obs = observable3({ test: { test2: { test3: 'hi' } } });
+        const handler = jest.fn();
+        obs.test._.onChangeShallow(handler);
+        obs.test.test2._.set('test3', 'hello');
+        expect(handler).not.toHaveBeenCalled();
+        obs.test._.set({ test2: { test3: 'hello' } });
+        expect(handler).toHaveBeenCalled();
+        obs.test._.assign({ test3: 'hello' } as any);
+        // expect(handler).toHaveBeenCalledTimes(1);
+    });
+    // test('Shallow array swap', () => {
+    //     const obs = observable3({
+    //         test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
     //     });
+    //     const handler = jest.fn();
+    //     const handler2 = jest.fn();
+    //     obs.test._.onChangeShallow(handler);
+    //     obs.test[1]._.onChange(handler2);
+    //     let tmp = obs.test[1];
+    //     obs.test._.set(1, obs.test[4]);
+    //     obs.test._.set(4, tmp);
+    //     expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }, { text: 6 }]);
+    //     expect(handler).toHaveBeenCalledTimes(0);
+    //     expect(handler2).toHaveBeenCalledTimes(1);
+    //     // tmp = obs.test[1];
+    //     // obs.test._.set(1, obs.test[4]);
+    //     // obs.test._.set(4, tmp);
+    //     // expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }]);
+    //     // expect(handler).toHaveBeenCalledTimes(4);
+    //     // // @ts-ignore
+    //     // obs.test[5]._.set('text', 66);
+    //     // expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 66 }]);
+    //     // expect(handler).toHaveBeenCalledTimes(4);
+    // });
 });
 describe('Safety', () => {
     test('Prevent writes', () => {
@@ -223,14 +226,20 @@ describe('Array', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Array splice', () => {
-        const obs = observable3({ test: ['hi', 'hello'] });
+        const obs = observable3({ test: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }] });
         const handler = jest.fn();
         obs._.onChange(handler);
+        const last = obs.test[2];
         obs.test.splice(1, 1);
-        expect(obs.test).toEqual(['hi']);
+        expect(obs.test).toEqual([{ text: 'hi' }, { text: 'there' }]);
+        expect(obs.test[1]).toBe(last);
         expect(handler).toHaveBeenCalledWith(
-            { test: ['hi'] },
-            { value: ['hi'], path: ['test'], prevValue: ['hi', 'hello'] }
+            { test: [{ text: 'hi' }, { text: 'there' }] },
+            {
+                value: [{ text: 'hi' }, { text: 'there' }],
+                path: ['test'],
+                prevValue: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }],
+            }
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -343,6 +352,11 @@ describe('Array', () => {
 
         obs.test._.set([]);
     });
+    test('Array set by index', () => {
+        const obs = observable3({ test: [{ text: 'hi' }] });
+        obs.test[0]._.set({ text: 'hi2' });
+        expect(obs.test[0]).toEqual({ text: 'hi2' });
+    });
 });
 describe('Delete', () => {
     test('Delete key', () => {
@@ -415,7 +429,6 @@ describe('on functions', () => {
 //         const obs = observable3({ val: false } as { val: boolean; val2?: number });
 //         const handler = jest.fn();
 //         obs._.onChangeShallow(handler);
-//         debugger;
 //         obs._.set('val', true);
 //         expect(handler).not.toHaveBeenCalled();
 
@@ -440,6 +453,19 @@ describe('on functions', () => {
 //         obs._.onChangeShallow(handler);
 //         obs.val.val2._.set('val3', 'hello');
 //         expect(handler).not.toHaveBeenCalled();
+//     });
+//     test('Shallow array', () => {
+//         const obs = observable3({ data: [], selected: 0 });
+//         const handler = jest.fn();
+//         obs.data._.onChangeShallow(handler);
+
+//         obs.data._.set([{ text: 1 }, { text: 2 }]);
+
+//         expect(handler).toHaveBeenCalledTimes(1);
+
+//         obs.data[0]._.set({ text: 11 });
+
+//         expect(handler).toHaveBeenCalledTimes(1);
 //     });
 // });
 describe('Computed', () => {

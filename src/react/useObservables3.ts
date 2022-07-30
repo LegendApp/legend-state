@@ -117,7 +117,7 @@ function updateListeners(arr: Observable2[], refSaved: RefObject<SavedRef>, onCh
                 };
             }
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-            const listener = obs._['onChange' + (shallow ? 'Shallow' : '')](
+            const listener = (shallow ? obs._.onChangeShallow : obs._.onChange)(
                 comparator || onChange
             ) as unknown as ObservableListener;
             // @ts-ignore
