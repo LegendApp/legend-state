@@ -1,12 +1,6 @@
 import { isFunction, isObjectEmpty, isString } from '@legendapp/tools';
-import { callKeyed, getNodeValue, getPathNode } from './globals';
-import {
-    ObservableEventType,
-    ObservableListener3,
-    OnReturnValue,
-    OnReturnValue3,
-    PathNode,
-} from './observableInterfaces';
+import { getNodeValue, getParentNode, getPathNode } from './globals';
+import { ListenerFn3, ObservableListener3, OnReturnValue3, PathNode } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
 
@@ -17,8 +11,17 @@ export function disposeListener(listener: ObservableListener3) {
     }
 }
 
-export function onEquals<T>(node: PathNode, key: string, value: T, callback?: (value: T) => void): OnReturnValue3<T> {
-    if (arguments.length < 3 || isFunction(value)) return callKeyed(onHasValue, node, key);
+export function onEquals<T>(
+    node: PathNode,
+    keyOrValue: string | T,
+    valueOrCallback: T | ((value: T) => void),
+    callbackOnChild?: (value: T) => void
+): OnReturnValue3<T> {
+    if (!isFunction(valueOrCallback)) {
+        node = getPathNode(node.root, node.path, keyOrValue as string);
+        keyOrValue = valueOrCallback;
+        valueOrCallback = callbackOnChild;
+    }
 
     let listener: ObservableListener3<T>;
 
@@ -27,21 +30,21 @@ export function onEquals<T>(node: PathNode, key: string, value: T, callback?: (v
         function check(newValue) {
             if (
                 !isDone &&
-                (value === (symbolHasValue as any)
+                (keyOrValue === (symbolHasValue as any)
                     ? // If value param is symbolHasValue, then this is from onHasValue so resolve if newValue is anything but undefined or empty object
                       newValue !== undefined && newValue !== null && !isObjectEmpty(newValue)
-                    : newValue === value)
+                    : newValue === keyOrValue)
             ) {
                 isDone = true;
-                callback?.(newValue);
-                resolve(value);
+                (valueOrCallback as (value: T) => void)?.(newValue);
+                resolve(keyOrValue);
 
                 disposeListener(listener);
             }
             return isDone;
         }
-        if (!check(getNodeValue(node)[key])) {
-            listener = _onChange(node, key, check, /*shallow*/ false);
+        if (!check(getNodeValue(node))) {
+            listener = onChange(/*shallow*/ false, node, check);
         }
     });
 
@@ -51,40 +54,56 @@ export function onEquals<T>(node: PathNode, key: string, value: T, callback?: (v
     };
 }
 
-export function onHasValue<T>(node: PathNode, key: string, cb?: (value: T) => void): OnReturnValue3<T> {
-    if (isFunction(key)) return callKeyed(onHasValue, node, key);
-    return onEquals(node, key, symbolHasValue as any, cb);
-}
-
-export function onTrue<T extends boolean>(node: PathNode, key: string, cb?: () => void): OnReturnValue3<T> {
-    if (isFunction(key)) return callKeyed(onTrue, node, key);
-    return onEquals(node, key, true as T, cb);
-}
-
-function _onChange(node: PathNode, key: string, callback: (value, prevValue) => void, shallow: boolean) {
-    if (arguments.length < 4) {
-        return callKeyed(_onChange, node, key, callback, shallow);
+export function onHasValue<T>(
+    node: PathNode,
+    keyOrCallback: string | ((value: T) => void),
+    callbackOnChild?: (value: T) => void
+): OnReturnValue3<T> {
+    if (isString(keyOrCallback)) {
+        node = getPathNode(node.root, node.path, keyOrCallback);
+        keyOrCallback = callbackOnChild;
     }
-    const child = getPathNode(node.root, node.path, key);
+    return onEquals(node, symbolHasValue as any, keyOrCallback);
+}
+
+export function onTrue<T extends boolean>(
+    node: PathNode,
+    keyOrCallback: string | (() => void),
+    callbackOnChild?: () => void
+): OnReturnValue3<T> {
+    if (isString(keyOrCallback)) {
+        node = getPathNode(node.root, node.path, keyOrCallback);
+        keyOrCallback = callbackOnChild;
+    }
+    return onEquals(node, true as T, keyOrCallback);
+}
+
+export function onChange(
+    shallow: boolean,
+    node: PathNode,
+    keyOrCallback: string | ListenerFn3<any>,
+    callbackOnChild?: ListenerFn3<any>
+) {
+    if (isString(keyOrCallback)) {
+        node = getPathNode(node.root, node.path, keyOrCallback as unknown as string);
+        keyOrCallback = callbackOnChild;
+    }
+
     const listener = {
-        node: child,
-        callback,
-        path: child.path,
+        node,
+        callback: keyOrCallback,
+        path: node.path,
         // pathStr: child.path,
         shallow,
     } as Partial<ObservableListener3>;
     listener.dispose = disposeListener.bind(listener, listener);
 
-    if (!child.listeners) {
-        child.listeners = new Set();
+    if (!node.listeners) {
+        node.listeners = new Set();
     }
-    child.listeners.add(listener as ObservableListener3);
+    node.listeners.add(listener as ObservableListener3);
 
     return listener as ObservableListener3;
-}
-
-export function onChange(shallow: boolean, ...args: any[]) {
-    return _onChange.call(this, ...args, shallow);
 }
 
 // const ObservableOnFunctions: Record<ObservableEventType, Function> = {

@@ -33,26 +33,26 @@ export interface ObservableProps<T> extends ObservableBaseProps<T> {
 export interface ObservableBaseProps2<T> {
     _get(): T;
     _prop<K extends keyof T>(prop: K): Observable2<T[K]>;
-    _onChange(cb: ListenerFn<T>): ObservableListener<T>;
-    _onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
-    _onChangeShallow(cb: ListenerFn<T>): ObservableListener<T>;
-    _onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
-    _onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    _onChange(cb: ListenerFn<T>): ObservableListener3<T>;
+    _onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener3<T>;
+    _onChangeShallow(cb: ListenerFn<T>): ObservableListener3<T>;
+    _onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener3<T>;
+    _onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
     _onEquals<K extends keyof T>(
         key: K,
         value: T[K],
         cb?: (value?: T) => void
-    ): { listener: ObservableListener<T>; promise: Promise<T> };
-    _onTrue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    ): { listener: ObservableListener3<T>; promise: Promise<T> };
+    _onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
     _onTrue<K extends keyof T>(
         key: K,
         cb?: (value?: T) => void
-    ): { listener: ObservableListener<T>; promise: Promise<T> };
-    _onHasValue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    ): { listener: ObservableListener3<T>; promise: Promise<T> };
+    _onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
     _onHasValue<K extends keyof T>(
         key: K,
         cb?: (value?: T) => void
-    ): { listener: ObservableListener<T>; promise: Promise<T> };
+    ): { listener: ObservableListener3<T>; promise: Promise<T> };
 }
 export interface ObservableProps2<T> extends ObservableBaseProps2<T> {
     _set(value: ValidObservableParam2<T>): Observable2<T>;
@@ -310,13 +310,14 @@ export interface ObservableListener3<T = any> {
 }
 export interface ObservableWrapper<T = any> {
     _: Observable2;
-    listeners: Set<ObservableListener3>;
     pathNodes: Map<string, PathNode>;
 }
 
 export interface PathNode {
     root: ObservableWrapper;
     path: string;
+    parent: string;
+    key: string;
     listeners?: Set<ObservableListener3>;
 }
 export type ObservableChecker3<T> = Shallow | EqualityFn | Observable2 | Prop;

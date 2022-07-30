@@ -75,14 +75,6 @@ export function clone(obj: any) {
         : JSON.parse(JSON.stringify(obj));
 }
 
-export function arrayStartsWith(arr1: any[], arr2: any[]) {
-    for (let i = 0; i < arr2.length; i++) {
-        if (arr1[i] !== arr2[i]) return false;
-    }
-
-    return true;
-}
-
 export function getValueAtPath(root: object, path: string) {
     let child = root;
     const arr = path.split(delim).filter((a) => !!a);
@@ -105,6 +97,7 @@ export function hasPathNode(root: ObservableWrapper, path: string, key?: string)
     return root.pathNodes.has(path);
 }
 export function getPathNode(root: ObservableWrapper, path: string, key?: string) {
+    const parent = path;
     if (key && path) {
         path += delim + key;
     }
@@ -113,6 +106,8 @@ export function getPathNode(root: ObservableWrapper, path: string, key?: string)
         pathNode = {
             root,
             path,
+            parent,
+            key,
         };
         root.pathNodes.set(path, pathNode);
     }
@@ -120,16 +115,7 @@ export function getPathNode(root: ObservableWrapper, path: string, key?: string)
 }
 
 export function getParentNode(node: PathNode) {
-    const [path] = splitLastDelim(node.path);
-    return getPathNode(node.root, path);
-}
-
-export function callKeyed(fn: Function, node: PathNode, ...args: any[]) {
-    const [path, key] = splitLastDelim(node.path);
-    // if (key !== undefined) {
-    const parent = getPathNode(node.root, path);
-    return fn.call(this, parent, key, ...args);
-    // }
+    return getPathNode(node.root, node.parent);
 }
 
 export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
@@ -145,13 +131,4 @@ export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
             return obs[symbolShallow as any] || obs;
         }
     }
-}
-
-export function splitLastDelim(str: string) {
-    const lastIndex = str.lastIndexOf(delim);
-    if (lastIndex <= 0) return [str];
-
-    const before = str.slice(0, lastIndex);
-    const after = str.slice(lastIndex + 1);
-    return [before, after];
 }

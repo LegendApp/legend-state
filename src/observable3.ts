@@ -1,13 +1,12 @@
 import { isArray } from '@legendapp/tools';
 import {
-    callKeyed,
     delim,
     getNodeValue,
+    getParentNode,
     getPathNode,
     getValueAtPath,
     hasPathNode,
     isPrimitive2,
-    splitLastDelim,
     symbolEqualityFn,
     symbolProp,
     symbolShallow,
@@ -39,11 +38,13 @@ const mapFns = new Map<string, Function>([
 function extendPrototypesObject() {
     const fn = (name: string) =>
         function (...args: any[]) {
-            if (!mapFns.get(name)) debugger;
+            let node: PathNode;
             const prop = this[symbolProp];
-            const node = prop?.node || mapPaths.get(this);
             if (prop) {
+                node = prop.node;
                 args.unshift(prop.key);
+            } else {
+                node = mapPaths.get(this);
             }
             if (node) {
                 return mapFns.get(name).apply(this, [node, ...args]);
@@ -66,11 +67,13 @@ function extendPrototypesArray() {
 
             const node = mapPaths.get(this);
             if (node) {
-                const [path, key] = splitLastDelim(node.path);
-                let parent = getValueAtPath(node.root, path);
-                parent[key] = prevValue;
+                const parentNode = getParentNode(node);
+                if (parentNode) {
+                    const parent = getNodeValue(parentNode);
+                    parent[node.key] = prevValue;
 
-                set(node, this);
+                    set(node, this);
+                }
             }
 
             return ret;
@@ -120,7 +123,7 @@ function set(node: PathNode, key: string, newValue: any): any;
 function set(node: PathNode, key: string, newValue?: any): any {
     if (arguments.length < 3) {
         if (node.path.includes(delim)) {
-            return callKeyed(set, node, key);
+            return set(getParentNode(node), node.key, key);
         } else {
             // Set on the root has to assign
             assign(node, key);
@@ -155,11 +158,10 @@ function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, value?: 
 function _notifyUp(node: PathNode, listenerInfo: ObservableListenerInfo2, value?: any) {
     _notify(node, listenerInfo, value);
     if (node.path !== '_') {
-        const [path, key] = splitLastDelim(node.path);
-        const parent = getPathNode(node.root, path);
+        const parent = getParentNode(node);
 
         const parentListenerInfo = Object.assign({}, listenerInfo);
-        parentListenerInfo.path = [key].concat(listenerInfo.path);
+        parentListenerInfo.path = [node.key].concat(listenerInfo.path);
         _notifyUp(parent, parentListenerInfo);
     }
 }
@@ -177,8 +179,9 @@ function assign(node: PathNode, value: any) {
 }
 
 function deleteFn(node: PathNode, key?: string) {
+    if (!node.path) return;
     if (arguments.length < 2) {
-        return callKeyed(deleteFn, node);
+        return deleteFn(getParentNode(node), node.key);
     }
 
     set(node, key, undefined);
@@ -212,13 +215,8 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
         _: obj as Observable2,
         pathNodes: new Map(),
     } as ObservableWrapper;
-    createNodes(
-        {
-            root: obs,
-            path: '_',
-        },
-        obs._
-    );
+
+    createNodes(getPathNode(obs, '_'), obs._);
 
     return obs._ as Observable2<T>;
 }
