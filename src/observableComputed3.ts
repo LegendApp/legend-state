@@ -6,7 +6,7 @@ function _onChange(obs: ObservableComputed3, args: (Observable2 | Prop)[], compu
     const values = args.map(getObservableRawValue);
     const computed = compute(...values);
     // @ts-ignore Because it's not available to users
-    obs._set('value', computed);
+    obs._.set('value', computed);
 }
 
 export function observableComputed3<T extends (Observable2 | Prop)[], T2>(
@@ -21,7 +21,7 @@ export function observableComputed3<T extends (Observable2 | Prop)[], T2>(
     onChange();
 
     for (let i = 0; i < args.length; i++) {
-        args[i]._onChange(onChange);
+        args[i]._.onChange(onChange);
     }
 
     return obs;

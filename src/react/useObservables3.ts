@@ -32,7 +32,7 @@ export function useObservable3<T extends Observable2>(obs: T, equalityFn?: (stat
                 }
             };
         }
-        const listener = obs._onChange(cb);
+        const listener = obs._.onChange(cb);
         return () => listener.dispose();
     }, []);
     return obs;
@@ -117,7 +117,7 @@ function updateListeners(arr: Observable2[], refSaved: RefObject<SavedRef>, onCh
                 };
             }
             // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-            const listener = obs['_onChange' + (shallow ? 'Shallow' : '')](
+            const listener = obs._['onChange' + (shallow ? 'Shallow' : '')](
                 comparator || onChange
             ) as unknown as ObservableListener;
             // @ts-ignore

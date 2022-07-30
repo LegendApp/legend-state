@@ -30,35 +30,41 @@ export interface ObservableProps<T> extends ObservableBaseProps<T> {
     delete<K extends keyof T>(key: K | string | number): Observable<T>;
 }
 
-export interface ObservableBaseProps2<T> {
-    _prop<K extends keyof T>(prop: K): Observable2<T[K]>;
-    _onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
-    _onChange<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
-    _onChangeShallow(cb: ListenerFn3<T>): ObservableListener3<T>;
-    _onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
-    _onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    _onEquals<K extends keyof T>(
+export interface ObservableBaseFns<T> {
+    onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
+    onChange<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
+    onChangeShallow(cb: ListenerFn3<T>): ObservableListener3<T>;
+    onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
+    onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onEquals<K extends keyof T>(
         key: K,
         value: T[K],
         cb?: (value?: T) => void
     ): { listener: ObservableListener3<T>; promise: Promise<T> };
-    _onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    _onTrue<K extends keyof T>(
+    onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onTrue<K extends keyof T>(
         key: K,
         cb?: (value?: T) => void
     ): { listener: ObservableListener3<T>; promise: Promise<T> };
-    _onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    _onHasValue<K extends keyof T>(
+    onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onHasValue<K extends keyof T>(
         key: K,
         cb?: (value?: T) => void
     ): { listener: ObservableListener3<T>; promise: Promise<T> };
 }
-export interface ObservableProps2<T> extends ObservableBaseProps2<T> {
-    _set(value: ValidObservableParam2<T>): Observable2<T>;
-    _set<K extends keyof T>(key: K | string | number, value: ValidObservableParam2<T[K]>): Observable2<T[K]>;
-    _assign(value: ValidObservableParam2<T> | Partial<ValidObservableParam2<T>>): Observable2<T>;
-    _delete(): Observable2<T>;
-    _delete<K extends keyof T>(key: K | string | number): Observable2<T>;
+export interface ObservableFns<T> extends ObservableBaseFns<T> {
+    prop<K extends keyof T>(prop: K): Observable2<T[K]>;
+    set(value: ValidObservableParam2<T>): Observable2<T>;
+    set<K extends keyof T>(key: K | string | number, value: ValidObservableParam2<T[K]>): Observable2<T[K]>;
+    assign(value: ValidObservableParam2<T> | Partial<ValidObservableParam2<T>>): Observable2<T>;
+    delete(): Observable2<T>;
+    delete<K extends keyof T>(key: K | string | number): Observable2<T>;
+}
+export interface ObservableBaseProps2<T> {
+    _: ObservableBaseFns<T>;
+}
+export interface ObservableProps2<T> {
+    _: ObservableFns<T>;
 }
 export type ObservablePropsUnsafe<T> = Partial<ObservableProps<T>>;
 
