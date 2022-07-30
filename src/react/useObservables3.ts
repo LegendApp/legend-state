@@ -1,6 +1,6 @@
 import { isArray, isObject } from '@legendapp/tools';
 import { useForceRender } from '@legendapp/tools/react';
-import { RefObject, useEffect, useRef } from 'react';
+import { RefObject, useEffect, useRef, useState } from 'react';
 import { getObservableRawValue, symbolEqualityFn, symbolProp, symbolShallow } from '../globals';
 import {
     EqualityFn,
@@ -10,11 +10,32 @@ import {
     ObservableListener,
     ObservableListener3,
     Shallow,
+    ListenerFn3,
 } from '../observableInterfaces';
 
 interface SavedRef {
     listeners: ObservableListener3[];
     cmpValue?: any[];
+}
+
+export function useObservable3<T extends Observable2>(obs: T, equalityFn?: (state: T) => any) {
+    const fr = useForceRender();
+    useEffect(() => {
+        let cb = fr as ListenerFn3<T>;
+        if (equalityFn) {
+            let prev = equalityFn(obs);
+            cb = (value: T) => {
+                const cur = equalityFn(value);
+                if (cur !== prev) {
+                    prev = cur;
+                    fr();
+                }
+            };
+        }
+        const listener = obs._onChange(cb);
+        return () => listener.dispose();
+    }, []);
+    return obs;
 }
 
 /**

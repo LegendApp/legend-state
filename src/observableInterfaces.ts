@@ -32,10 +32,10 @@ export interface ObservableProps<T> extends ObservableBaseProps<T> {
 
 export interface ObservableBaseProps2<T> {
     _prop<K extends keyof T>(prop: K): Observable2<T[K]>;
-    _onChange(cb: ListenerFn<T>): ObservableListener3<T>;
-    _onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener3<T>;
-    _onChangeShallow(cb: ListenerFn<T>): ObservableListener3<T>;
-    _onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener3<T>;
+    _onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
+    _onChange<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
+    _onChangeShallow(cb: ListenerFn3<T>): ObservableListener3<T>;
+    _onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
     _onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
     _onEquals<K extends keyof T>(
         key: K,
