@@ -35,62 +35,128 @@ const mapFns = new Map<string, Function>([
     ['delete', deleteFn],
 ]);
 
-function extendPrototypesObject() {
-    const fn = (name: string) =>
-        function (a, b, c) {
-            let node: PathNode;
-            const prop = this[symbolProp];
-            let num = arguments.length;
-            if (prop) {
-                node = prop.node;
-                c = b;
-                b = a;
-                a = prop.key;
-                num++;
-            } else {
-                node = mapPaths.get(this);
-            }
-            if (node) {
-                const fn = mapFns.get(name);
-                // Micro-optimize here because it's the core and this is faster than apply.
-                return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
-            }
-        };
-    const toOverride = [Object];
-    mapFns.forEach((_, key) => {
-        toOverride.forEach((override) => (override.prototype['_' + key] = fn(key)));
-    });
+// function extendPrototypesObject() {
+//     const fn = (name: string) =>
+//         function (a, b, c) {
+//             let node: PathNode;
+//             const prop = this[symbolProp];
+//             let num = arguments.length;
+//             if (prop) {
+//                 node = prop.node;
+//                 c = b;
+//                 b = a;
+//                 a = prop.key;
+//                 num++;
+//             } else {
+//                 node = mapPaths.get(this);
+//             }
+//             if (node) {
+//                 const fn = mapFns.get(name);
+//                 // Micro-optimize here because it's the core and this is faster than apply.
+//                 return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
+//             }
+//         };
+//     const toOverride = [Object];
+//     mapFns.forEach((_, key) => {
+//         toOverride.forEach((override) => (override.prototype['_' + key] = fn(key)));
+//     });
+// }
+
+// extendPrototypesObject();
+
+// function extendPrototypesArray() {
+//     const fn = (override: any, name: string) => {
+//         const orig = override.prototype[name];
+//         return function () {
+//             const prevValue = this.slice();
+//             const ret = orig.apply(this, arguments);
+
+//             const node = mapPaths.get(this);
+//             if (node) {
+//                 const parentNode = getParentNode(node);
+//                 if (parentNode) {
+//                     const parent = getNodeValue(parentNode);
+//                     parent[node.key] = prevValue;
+
+//                     set(node, this);
+//                 }
+//             }
+
+//             return ret;
+//         };
+//     };
+//     const toOverride = [Array];
+//     ['push', 'splice'].forEach((key) => {
+//         toOverride.forEach((override) => (override.prototype[key] = fn(override, key)));
+//     });
+// }
+// extendPrototypesArray();
+
+export function set3(a, b, c) {
+    // console.log('setting');
+    let node: PathNode;
+    const prop = this[symbolProp];
+    let num = arguments.length;
+    if (prop) {
+        node = prop.node;
+        c = b;
+        b = a;
+        a = prop.key;
+        num++;
+    } else {
+        node = mapPaths.get(this);
+    }
+    if (node) {
+        const fn = set;
+        // Micro-optimize here because it's the core and it's faster than apply.
+        // @ts-ignore;
+        return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
+    }
+}
+export function on3(a, b, c) {
+    let node: PathNode;
+    const prop = this[symbolProp];
+    let num = arguments.length;
+    if (prop) {
+        node = prop.node;
+        c = b;
+        b = a;
+        a = prop.key;
+        num++;
+    } else {
+        node = mapPaths.get(this);
+    }
+    if (node) {
+        const fn = mapFns.get('onChange');
+        // Micro-optimize here because it's the core and it's faster than apply.
+        return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
+    }
 }
 
-extendPrototypesObject();
+const descriptors: PropertyDescriptorMap = {
+    _set: {
+        enumerable: false,
+        value: set3,
+    },
+    _onChange: {
+        enumerable: false,
+        value: on3,
+    },
+};
 
-function extendPrototypesArray() {
-    const fn = (override: any, name: string) => {
-        const orig = override.prototype[name];
-        return function () {
-            const prevValue = this.slice();
-            const ret = orig.apply(this, arguments);
-
-            const node = mapPaths.get(this);
-            if (node) {
-                const parentNode = getParentNode(node);
-                if (parentNode) {
-                    const parent = getNodeValue(parentNode);
-                    parent[node.key] = prevValue;
-
-                    set(node, this);
-                }
-            }
-
-            return ret;
-        };
-    };
-    const toOverride = [Array];
-    ['push', 'splice'].forEach((key) => {
-        toOverride.forEach((override) => (override.prototype[key] = fn(override, key)));
-    });
-}
-extendPrototypesArray();
+const descriptorsArray: PropertyDescriptorMap = {
+    push: {
+        enumerable: false,
+        value() {
+            console.log('called push', this);
+            return Array.prototype.push.apply(this, arguments);
+        },
+    },
+    // _onChange: {
+    //     enumerable: false,
+    //     value: on3,
+    // },
+};
 
 function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     const isArr = isArray(obj);
@@ -106,6 +172,12 @@ function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
         }
         if (doNotify) {
             _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] });
+        }
+    }
+    if (!mapPaths.has(obj)) {
+        Object.defineProperties(obj, descriptors);
+        if (isArray(obj)) {
+            Object.defineProperties(obj, descriptorsArray);
         }
     }
     mapPaths.set(obj, parent);
