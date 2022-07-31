@@ -176,7 +176,7 @@ function set(node: PathNode, key: string, newValue?: any): any {
         }
 
         if (newValue !== prevValue) {
-            notify(childNode, newValue, prevValue);
+            notify(childNode, newValue, prevValue, prevValue == undefined || isArray(parentValue) ? -1 : 0);
         }
     }
 
@@ -204,9 +204,9 @@ function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo2, l
         _notifyParents(parent, parentListenerInfo, levelsUp + 1);
     }
 }
-function notify(node: PathNode, value: any, prevValue: any) {
+function notify(node: PathNode, value: any, prevValue: any, level) {
     const listenerInfo = { path: [], prevValue, value };
-    _notifyParents(node, listenerInfo, prevValue === undefined ? -1 : 0);
+    _notifyParents(node, listenerInfo, level);
 }
 
 function assign(node: PathNode, value: any) {

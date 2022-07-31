@@ -1121,9 +1121,10 @@ describe('Shallow', () => {
 
         expect(handler).toHaveBeenCalledTimes(1);
 
-        obs.data[0]._.set({ text: 11 });
+        // Setting an index in an array should notify the array
+        obs.data._.set(0, { text: 11 });
 
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(2);
     });
 });
 describe('Computed', () => {
