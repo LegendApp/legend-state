@@ -108,15 +108,15 @@ export function getObjectNode(obj: any) {
 
 export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
     if (!obs) return obs as T;
-    const prop = obs[symbolProp as any];
+    const prop = obs[symbolProp];
     if (prop) {
-        return getNodeValue(prop.node)?.[prop.key] as any;
+        return getNodeValue(prop.node)?.[prop.key];
     } else {
-        const eq = obs[symbolEqualityFn as any];
+        const eq = obs[symbolEqualityFn];
         if (eq) {
             return getObservableRawValue(eq.obs);
         } else {
-            return obs[symbolShallow as any] || obs;
+            return obs[symbolShallow] || obs;
         }
     }
 }
