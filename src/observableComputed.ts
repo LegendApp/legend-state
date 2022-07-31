@@ -11,8 +11,8 @@ export function observableComputed<T extends (Observable | Prop)[], T2>(
     const obs = observable(0) as unknown as ObservableComputed<T2>;
 
     const onChange = () => {
-        const values = args.map(getObservableRawValue);
-        const computed = compute(...(values as any));
+        const values = args.map(getObservableRawValue) as T;
+        const computed = compute(...values);
 
         // @ts-ignore Using hidden param
         obs._.set(computed);
