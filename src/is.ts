@@ -14,3 +14,6 @@ export function isPrimitive(arg) {
     var type = typeof arg;
     return arg == null || (type != 'object' && type != 'function');
 }
+export function isObjectEmpty(obj: object) {
+    return obj && isObject(obj) && Object.keys(obj).length === 0;
+}

@@ -1,6 +1,17 @@
+import { symbolDateModified, symbolEqualityFn, symbolShallow } from './globals';
 import { isObject } from './is';
-import { symbolDateModified } from './globals';
-import { Observable } from './observableInterfaces';
+import type { EqualityFn, Observable, Shallow } from './observableInterfaces';
+
+export function shallow(obs: Observable): Shallow {
+    return {
+        [symbolShallow]: obs,
+    };
+}
+export function equalityFn(obs: Observable, fn: (value) => any): EqualityFn {
+    return {
+        [symbolEqualityFn]: { obs, fn },
+    };
+}
 
 export function mergeIntoObservable(target: Observable, ...sources: any[]) {
     if (!sources.length) return target;

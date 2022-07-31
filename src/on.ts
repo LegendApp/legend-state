@@ -1,5 +1,5 @@
+import { getNodeValue, getPathNode } from './globals';
 import { isFunction, isObjectEmpty, isString } from './is';
-import { getNodeValue, getParentNode, getPathNode } from './globals';
 import { ListenerFn, ObservableListener, OnReturnValue, PathNode } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');

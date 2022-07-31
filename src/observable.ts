@@ -239,17 +239,6 @@ function deleteFn(node: PathNode, key?: string) {
     delete child[key];
 }
 
-export function shallow(obs: Observable): Shallow {
-    return {
-        [symbolShallow]: obs,
-    };
-}
-export function equalityFn(obs: Observable, fn: (value) => any): EqualityFn {
-    return {
-        [symbolEqualityFn]: { obs, fn },
-    };
-}
-
 export function prop(node: PathNode, key: string) {
     const prop = {
         [symbolProp]: { node, key },
