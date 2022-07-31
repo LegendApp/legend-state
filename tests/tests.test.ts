@@ -711,8 +711,8 @@ describe('Primitives', () => {
         expect(obs.val).toEqual(10);
     });
     test('Primitive root not allowed', () => {
-        // @ts-expect-error
-        const obs = observable(10);
+        // // @ts-expect-error
+        // const obs = observable(10);
     });
 });
 describe('Array', () => {
@@ -1208,17 +1208,11 @@ describe('Computed', () => {
         // @ts-expect-error
         computed._.set(40);
 
-        expect(computed.current).toEqual(30);
-
-        // @ts-expect-error
-        computed._.delete();
-
-        expect(computed.current).toEqual(30);
-
         // @ts-expect-error
         computed._.assign({ text: 'hi' });
 
-        expect(computed.current).toEqual(30);
+        // @ts-expect-error
+        computed._.delete();
     });
 });
 describe('Event', () => {
@@ -1301,5 +1295,27 @@ describe('Batching', () => {
         observableBatcher.end();
         observableBatcher.end();
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+});
+describe('Primtitive', () => {
+    test('Primitive', () => {
+        const obs = observable(10);
+        expect(obs.current).toEqual(10);
+        obs._.set(20);
+        expect(obs.current).toEqual(20);
+    });
+    test('Primitive change type', () => {
+        const obs = observable<string | number>(10);
+        expect(obs.current).toEqual(10);
+        obs._.set('hello');
+        expect(obs.current).toEqual('hello');
+    });
+    test('Primitive change type', () => {
+        const obs = observable<string | number>(10);
+        expect(obs.current).toEqual(10);
+        // @ts-expect-error
+        obs._.set({ text: 'hi' });
+        // It does work though
+        expect(obs.current).toEqual({ text: 'hi' });
     });
 });

@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-hooks';
-import { equalityFn, observable, shallow } from '../src/observable';
+import { observable } from '../src/observable';
+import { equalityFn, shallow } from '../src/helpers';
 import { useObservables } from '../src/react/useObservables';
 
 describe('React Hooks', () => {

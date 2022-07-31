@@ -1,8 +1,8 @@
 import { observableConfiguration } from './configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
+import { mergeIntoObservable } from './helpers';
 import { observable } from './observable';
 import { observableBatcher } from './observableBatcher';
-import { mergeIntoObservable } from './observableFns';
 import type {
     Observable,
     ObservableListenerInfo,

@@ -1,5 +1,3 @@
-import { isArray, isPrimitive } from './is';
-import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     arrPaths,
     delim,
@@ -9,18 +7,17 @@ import {
     getPathNode,
     getValueAtPath,
     hasPathNode,
-    symbolEqualityFn,
     symbolID,
     symbolProp,
-    symbolShallow,
 } from './globals';
+import { isArray, isPrimitive } from './is';
+import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
-    EqualityFn,
     Observable,
     ObservableListenerInfo,
+    ObservablePrimitive,
     ObservableWrapper,
     PathNode,
-    Shallow,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 
@@ -247,8 +244,16 @@ export function prop(node: PathNode, key: string) {
     return prop;
 }
 
-export function observable<T extends object | Array<any>>(obj: T): Observable<T> {
-    if (isPrimitive(obj)) return undefined;
+export function observable<T extends boolean>(prim: T): ObservablePrimitive<boolean>;
+export function observable<T extends string>(prim: T): ObservablePrimitive<string>;
+export function observable<T extends number>(prim: T): ObservablePrimitive<number>;
+export function observable<T extends boolean | string | number>(prim: T): ObservablePrimitive<T>;
+export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
+export function observable<T>(obj: any): Observable<T> | ObservablePrimitive<T> {
+    const isPrim = isPrimitive(obj);
+    if (isPrim) {
+        obj = { current: obj };
+    }
 
     const obs = {
         _: obj as Observable,
@@ -256,6 +261,14 @@ export function observable<T extends object | Array<any>>(obj: T): Observable<T>
     } as ObservableWrapper;
 
     updateNodes(getPathNode(obs, '_'), obs._);
+
+    if (isPrim) {
+        // Bind callbacks to "current" so handlers get the primitive value
+        for (let i = 0; i < objectFns.length; i++) {
+            const fn = objectFns[i][0];
+            obs._._[fn] = obs._._[fn].bind(this, 'current');
+        }
+    }
 
     return obs._ as Observable<T>;
 }
