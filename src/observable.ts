@@ -10,7 +10,7 @@ import {
     symbolID,
     symbolProp,
 } from './globals';
-import { isArray, isPrimitive } from './is';
+import { isArray, isObject, isPrimitive } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
@@ -23,6 +23,7 @@ import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 
 let nextID = 0;
 
+// Prepare an array of all the functions
 const objectFns: [string, Function][] = [
     ['set', set],
     ['onChange', onChange],
@@ -35,8 +36,10 @@ const objectFns: [string, Function][] = [
     ['delete', deleteFn],
 ];
 
-const wrapFn = (fn: Function) =>
-    function (a, b, c) {
+// Wrap the observable functions while converting from object to PathNode
+for (let i = 0; i < objectFns.length; i++) {
+    const fn = objectFns[i][1];
+    objectFns[i][1] = function (a, b, c) {
         let node: PathNode;
         const prop = this[symbolProp];
         let num = arguments.length;
@@ -50,22 +53,22 @@ const wrapFn = (fn: Function) =>
             node = getObjectNode(this);
         }
         if (node) {
-            // Micro-optimize here because it's the core and this is faster than apply.
+            // Micro-optimize here because it's the core path and this is faster than apply
             return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
         } else {
             console.error('Node not found, unable to call function on observable');
         }
     };
-
-for (let i = 0; i < objectFns.length; i++) {
-    objectFns[i][1] = wrapFn(objectFns[i][1]);
 }
 
 const descriptorsArray: PropertyDescriptorMap = {};
-['push', 'splice'].forEach((key) => {
+
+// Override array functions to call set
+['copyWithin', 'fill', 'from', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'].forEach((key) => {
     descriptorsArray[key] = {
         value() {
             const prevValue = this.slice();
+            // Call the original function
             const ret = Array.prototype[key].apply(this, arguments);
 
             const node = getObjectNode(this);
@@ -73,27 +76,38 @@ const descriptorsArray: PropertyDescriptorMap = {};
                 const parentNode = getParentNode(node);
                 if (parentNode) {
                     const parent = getNodeValue(parentNode);
+
+                    // Set the object to the previous value first
                     parent[node.key] = prevValue;
 
+                    // Then set with the new value so it notifies with the correct prevValue
                     set(node, this);
                 }
             }
 
+            // Return the original value
             return ret;
         },
     };
 });
 
-function boundObjDescriptors(obj: any, node: PathNode): PropertyDescriptor {
+function createUnderscore(obj: any, node: PathNode): PropertyDescriptor {
     const id = nextID++;
+    // Add this to arrPaths so we can track its node later
+    arrPaths[id] = node;
+
+    // Create the _ object
     const out = {
         [symbolID]: id,
     };
-    arrPaths[id] = node;
+
+    // Bind all the _ functions to it
     for (let i = 0; i < objectFns.length; i++) {
         const [key, fn] = objectFns[i];
         out[key] = fn.bind(obj);
     }
+
+    // Don't want this property to be user modifiable
     return {
         enumerable: false,
         configurable: false,
@@ -104,24 +118,34 @@ function boundObjDescriptors(obj: any, node: PathNode): PropertyDescriptor {
 
 function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     const isArr = isArray(obj);
+    // If array it's faster to just use the array
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
+
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const isObj = !isPrimitive(obj[key]);
+        // Notify for this child if this element is different and it has a PathNode already
+        // But do not notify child if the parent is an array - the array's listener will cover it
         const doNotify =
-            prevValue && !isArr && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
+            !isArr && prevValue && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
         const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
+
+        // If object iterate through its children
         if (isObj) {
             updateNodes(child, obj[key], prevValue?.[key]);
         }
+
+        // Do the notify at this node
         if (doNotify) {
-            _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] });
+            _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] }, 0);
         }
     }
+
+    // Define the _ property on this element, and override the array properties if it's an array
     const hasDefined = obj._;
     if (!hasDefined) {
-        Object.defineProperty(obj, '_', boundObjDescriptors(obj, parent));
+        Object.defineProperty(obj, '_', createUnderscore(obj, parent));
         if (isArray(obj)) {
             Object.defineProperties(obj, descriptorsArray);
         }
@@ -130,13 +154,21 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
 
 function cleanup(node: PathNode, newValue: object, prevValue: object) {
     const isArr = isArray(prevValue);
-    const keys = isArr ? prevValue : Object.keys(prevValue);
-    const length = keys.length;
-    for (let i = 0; i < length; i++) {
-        const key = isArr ? i : keys[i];
-        const child = getPathNode(node.root, node.path, key, /*noCreate*/ true);
-        if (child) {
-            cleanup(child, newValue?.[key], prevValue[key]);
+    const isObj = isObject(prevValue);
+
+    if (isArr || isObj) {
+        // If array it's faster to just use the array
+        const keys = isArr ? prevValue : Object.keys(prevValue);
+        const length = keys.length;
+
+        for (let i = 0; i < length; i++) {
+            const key = isArr ? i : keys[i];
+
+            // If this child has a PathNode then clean it up
+            const child = getPathNode(node.root, node.path, key, /*noCreate*/ true);
+            if (child) {
+                cleanup(child, newValue?.[key], prevValue[key]);
+            }
         }
     }
 
@@ -151,6 +183,7 @@ function set(node: PathNode, key: string, newValue: any): any;
 function set(node: PathNode, key: string, newValue?: any): any {
     if (arguments.length < 3) {
         if (node.path.includes(delim)) {
+            // If this was called without a key pass it up to parent with the key
             return set(getParentNode(node), node.key, key);
         } else {
             // Set on the root has to assign
@@ -160,20 +193,26 @@ function set(node: PathNode, key: string, newValue?: any): any {
         const childNode = getPathNode(node.root, node.path, key);
 
         let parentValue = getNodeValue(node);
+
+        // Save the previous value first
         const prevValue = parentValue[key];
 
+        // Save the new value
         parentValue[key] = newValue;
 
+        // If previous was an object or array clean it up
         if (!isPrimitive(prevValue)) {
             cleanup(childNode, newValue, prevValue);
         }
 
         const isPrim = isPrimitive(newValue);
 
+        // If new value is an object or array update PathNodes and notify down the tree
         if (!isPrim) {
             updateNodes(childNode, newValue, prevValue);
         }
 
+        // Notify for this element if it's an object or it's changed
         if (!isPrim || newValue !== prevValue) {
             notify(childNode, newValue, prevValue, prevValue == undefined || isArray(parentValue) ? -1 : 0);
         }
@@ -182,35 +221,42 @@ function set(node: PathNode, key: string, newValue?: any): any {
     return newValue;
 }
 
-function _notify(node: PathNode, listenerInfo: ObservableListenerInfo, levelsUp?: number) {
+function _notify(node: PathNode, listenerInfo: ObservableListenerInfo, level: number) {
+    // Notify all listeners
     if (node.listeners) {
         const value = getNodeValue(node);
         for (let listener of node.listeners) {
-            if (!listener.shallow || levelsUp <= 0) {
+            // Notify if listener is not shallow or if this is the first level
+            if (!listener.shallow || level <= 0) {
                 observableBatcherNotify(listener.callback, value, listenerInfo);
             }
         }
     }
 }
 
-function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo, levelsUp?: number) {
-    _notify(node, listenerInfo, levelsUp);
+function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo, level: number) {
+    // Do the notify
+    _notify(node, listenerInfo, level);
+    // If not root notify up through parents
     if (node.path !== '_') {
         const parent = getParentNode(node);
 
         const parentListenerInfo = Object.assign({}, listenerInfo);
         parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-        _notifyParents(parent, parentListenerInfo, levelsUp + 1);
+        _notifyParents(parent, parentListenerInfo, level + 1);
     }
 }
-function notify(node: PathNode, value: any, prevValue: any, level) {
+function notify(node: PathNode, value: any, prevValue: any, level: number) {
+    // Create the listenerInfo
     const listenerInfo = { path: [], prevValue, value };
+    // Start notifying up through parents with the listenerInfo
     _notifyParents(node, listenerInfo, level);
 }
 
 function assign(node: PathNode, value: any) {
     observableBatcher.begin();
 
+    // Assign calls set with all assigned properties
     const keys = Object.keys(value);
     const length = keys.length;
     for (let i = 0; i < length; i++) {
@@ -224,23 +270,24 @@ function assign(node: PathNode, value: any) {
 }
 
 function deleteFn(node: PathNode, key?: string) {
-    if (!node.path) return;
     if (arguments.length < 2) {
         return deleteFn(getParentNode(node), node.key);
     }
 
+    // delete sets to undefined first to cleanup children
     set(node, key, undefined);
 
+    // Then delete the key from the object
     let child = getValueAtPath(node.root, node.path);
-
     delete child[key];
 }
 
 export function prop(node: PathNode, key: string) {
+    // prop returns an object with symbolProp
     const prop = {
         [symbolProp]: { node, key },
     };
-    Object.defineProperty(prop, '_', boundObjDescriptors(prop, node));
+    Object.defineProperty(prop, '_', createUnderscore(prop, node));
     return prop;
 }
 
@@ -251,6 +298,7 @@ export function observable<T extends boolean | string | number>(prim: T): Observ
 export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
 export function observable<T>(obj: any): Observable<T> | ObservablePrimitive<T> {
     const isPrim = isPrimitive(obj);
+    // Primitives wrap in current
     if (isPrim) {
         obj = { current: obj };
     }

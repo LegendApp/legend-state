@@ -5,12 +5,12 @@ import { observableConfiguration } from './configureObservable';
 export const delim = '\uFEFF';
 export const arrPaths = [];
 
-export const symbolDateModified = Symbol('__dateModified');
-export const symbolShallow = Symbol('__shallow');
-export const symbolEqualityFn = Symbol('__equalityFn');
-export const symbolValue = Symbol('__value');
-export const symbolProp = Symbol('__prop');
-export const symbolID = Symbol('__id');
+export const symbolDateModified = Symbol('dateModified');
+export const symbolShallow = Symbol('shallow');
+export const symbolEqualityFn = Symbol('equalityFn');
+export const symbolValue = Symbol('value');
+export const symbolProp = Symbol('prop');
+export const symbolID = Symbol('id');
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;
