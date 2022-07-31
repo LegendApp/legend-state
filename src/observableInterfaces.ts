@@ -2,69 +2,31 @@ import { symbolEqualityFn, symbolProp, symbolShallow } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
-export type ObservableFnName = 'get' | 'set' | 'assign' | 'on' | 'prop' | 'delete';
-
-export interface ObservableBaseProps<T> {
-    get(): T;
-    prop<K extends keyof T>(prop: K): Observable<T[K]>;
-    on(eventType: 'change', cb: ListenerFn<T>): ObservableListener<T>;
-    on(eventType: 'changeShallow', cb: ListenerFn<T>): ObservableListener<T>;
-    on(
-        eventType: 'equals',
-        value: T,
-        cb?: (value?: T) => void
-    ): { listener: ObservableListener<T>; promise: Promise<T> };
-    on(eventType: 'hasValue', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
-    on(eventType: 'true', cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
-    on(
-        eventType: ObservableEventType,
-        cb?: (value?: T) => void
-    ): ObservableListener<T> | { listener: ObservableListener<T>; promise: Promise<T> };
-}
-
-export interface ObservableProps<T> extends ObservableBaseProps<T> {
-    set(value: ValidObservableParam<T>): Observable<T>;
-    set<K extends keyof T>(key: K | string | number, value: ValidObservableParam<T[K]>): Observable<T[K]>;
-    assign(value: ValidObservableParam<T> | Partial<ValidObservableParam<T>>): Observable<T>;
-    delete(): Observable<T>;
-    delete<K extends keyof T>(key: K | string | number): Observable<T>;
-}
-
 export interface ObservableBaseFns<T> {
     onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
     onChange<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
     onChangeShallow(cb: ListenerFn3<T>): ObservableListener3<T>;
     onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
-    onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onEquals<K extends keyof T>(
-        key: K,
-        value: T[K],
-        cb?: (value?: T) => void
-    ): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onTrue<K extends keyof T>(
-        key: K,
-        cb?: (value?: T) => void
-    ): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onHasValue<K extends keyof T>(
-        key: K,
-        cb?: (value?: T) => void
-    ): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onEquals(value: T, cb?: (value?: T) => void): OnReturnValue3<T>;
+    onEquals<K extends keyof T>(key: K, value: T[K], cb?: (value?: T) => void): OnReturnValue3<T>;
+    onTrue(cb?: (value?: T) => void): OnReturnValue3<T>;
+    onTrue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue3<T>;
+    onHasValue(cb?: (value?: T) => void): OnReturnValue3<T>;
+    onHasValue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue3<T>;
+}
+export interface ObservableFns<T> extends ObservableBaseFns<T> {
+    prop<K extends keyof T>(prop: K): Observable2<T[K]>;
+    set(value: T): Observable2<T>;
+    set<K extends keyof T>(key: K | string | number, value: T[K]): Observable2<T[K]>;
+    assign(value: T | Partial<T>): Observable2<T>;
+    delete(): Observable2<T>;
+    delete<K extends keyof T>(key: K | string | number): Observable2<T>;
 }
 export interface ObservableComputedFns<T> {
     onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
     onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
     onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
     onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-}
-export interface ObservableFns<T> extends ObservableBaseFns<T> {
-    prop<K extends keyof T>(prop: K): Observable2<T[K]>;
-    set(value: ValidObservableParam2<T>): Observable2<T>;
-    set<K extends keyof T>(key: K | string | number, value: ValidObservableParam2<T[K]>): Observable2<T[K]>;
-    assign(value: ValidObservableParam2<T> | Partial<ValidObservableParam2<T>>): Observable2<T>;
-    delete(): Observable2<T>;
-    delete<K extends keyof T>(key: K | string | number): Observable2<T>;
 }
 export interface ObservableBaseProps2<T> {
     _: ObservableBaseFns<T>;
@@ -74,15 +36,6 @@ export interface ObservableProps2<T> {
 }
 export interface ObservableComputedProps2<T> {
     _: ObservableComputedFns<T>;
-}
-export type ObservablePropsUnsafe<T> = Partial<ObservableProps<T>>;
-
-export interface ObservableListener<T = any> {
-    target: Observable<T>;
-    callback: ListenerFn<T>;
-    shallow: boolean;
-    dispose: () => void;
-    isDisposed: boolean;
 }
 
 export interface ObservableListenerInfo {
@@ -97,26 +50,7 @@ export interface ObservableListenerInfo2 {
     path: string[];
 }
 
-export type ListenerFn<T> = (value: T, info: ObservableListenerInfo) => void;
-export type ListenerFn2<T> = (value: T, info: ObservableListenerInfo2) => void;
 export type ListenerFn3<T> = (value: T, info: ObservableListenerInfo2) => void;
-
-type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
-    | Function
-    | Map<any, any>
-    | WeakMap<any, any>
-    | Set<any>
-    | WeakSet<any>
-    | Promise<any>
-    ? T[K]
-    : T[K] extends Array<any>
-    ? T[K] &
-          ObservableProps<T[K]> & {
-              [n: number]: TRecurse extends Observable ? Observable<T[K][number]> : ObservableUnsafe<T[K][number]>;
-          }
-    : T extends object
-    ? TRecurse
-    : T[K];
 
 type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -132,51 +66,27 @@ type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
     : T[K] extends Array<any>
     ? T[K] &
           ObservableProps2<T[K]> & {
-              [n: number]: TRecurse extends Observable2 ? Observable2<T[K][number]> : ObservableUnsafe<T[K][number]>;
+              [n: number]: Observable2<T[K][number]>;
           }
     : T extends object
     ? TRecurse
     : T[K];
 
-type ObservablePropsRecursiveUnsafe<T> = {
-    [K in keyof T]: Recurse<T, K, ObservableUnsafe<T[K]>>;
-};
-
-type ObservablePropsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
-};
 type ObservablePropsRecursive2<T> = {
     readonly [K in keyof T]: Recurse2<T, K, Observable2<T[K]>>;
 };
-
-export type ObservableUnsafe<T = any> = ObservablePropsRecursiveUnsafe<T> & ObservablePropsUnsafe<T>;
-export type Observable<T = any> = ObservablePropsRecursive<T> & ObservableProps<T>;
-export type ObservableComputed<T = any> = ObservableBaseProps<T>;
 
 export type Observable2<T = any> = ObservablePropsRecursive2<T> & ObservableProps2<T>;
 
 export interface ObservableEvent {
     fire(): void;
-    on(cb?: () => void): ObservableListener<void>;
-    on(eventType: 'change', cb?: () => void): ObservableListener<void>;
+    on(cb?: () => void): ObservableListener3<void>;
+    on(eventType: 'change', cb?: () => void): ObservableListener3<void>;
 }
 export interface ObservableEvent3 {
     fire(): void;
     on(cb?: () => void): ObservableListener3<void>;
 }
-
-export type ObservableValue<T extends Observable | ObservableUnsafe | ObservableEvent | ObservableComputed> =
-    T extends ObservableEvent ? void : T extends ObservableComputed<infer t> ? t : T;
-
-export type MappedObservableValue<
-    T extends ObservableCheckerLoose | ObservableCheckerLoose[] | Record<string, ObservableCheckerLoose>
-> = T extends ObservableCheckerStrict
-    ? ObservableValue<T>
-    : T extends object | Array<any>
-    ? {
-          [K in keyof T]: ObservableValue<T[K]>;
-      }
-    : ObservableValue<T>;
 
 export type QueryByModified<T> =
     | boolean
@@ -234,15 +144,6 @@ export interface ObservablePersistState {
     isLoadedRemote: boolean;
     clearLocal: () => Promise<void>;
 }
-export type ObservableCheckerLoose<T = any> =
-    | Observable<T>
-    | ObservableComputed<T>
-    | ObservableEvent
-    | ObservableUnsafe<T>;
-export type ObservableCheckerStrict<T = any> = Observable<T> | ObservableComputed<T>;
-export type ObservableChecker<T = any> = Observable<T> | ObservableComputed<T> | ObservableUnsafe<T>;
-export type ObservableCheckerWriteable<T = any> = Observable<T> | ObservableUnsafe<T>;
-
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 
@@ -287,26 +188,6 @@ type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
     ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
     : SameShapeWithStringsRecord<T>;
 
-type DisallowedAttributes<T extends string> = Partial<Record<T, void>>;
-
-export type ValidObservableParam<T> = T extends Record<string, any>
-    ? T extends Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>
-        ? T
-        : T extends Observable
-        ? never
-        : { [K in keyof T]: ValidObservableParam<T[K]> } & DisallowedAttributes<ObservableFnName>
-    : T;
-export type ValidObservableParam2<T> = T extends Record<string, any>
-    ? T extends Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>
-        ? T
-        : T extends Observable2
-        ? never
-        : { [K in keyof T]: ValidObservableParam2<T[K]> }
-    : T;
-export interface OnReturnValue<T> {
-    promise: Promise<T>;
-    listener: ObservableListener<T>;
-}
 export interface OnReturnValue3<T> {
     promise: Promise<T>;
     listener: ObservableListener3<T>;
