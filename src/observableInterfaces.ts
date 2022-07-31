@@ -214,3 +214,4 @@ export interface PathNode {
 export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Prop;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservableProps<T>;
+export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;

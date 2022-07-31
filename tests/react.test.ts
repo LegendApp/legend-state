@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-hooks';
 import { observable } from '../src/observable';
 import { equalityFn, shallow } from '../src/helpers';
 import { useObservables } from '../src/react/useObservables';
+import { useNewObservable } from '../src/react/useNewObservable';
 
 describe('React Hooks', () => {
     test('useObservables', () => {
@@ -216,5 +217,51 @@ describe('React Hooks', () => {
             obs.val.val2._.set('val3', 'hi again');
         });
         expect(numRenders).toEqual(3);
+    });
+    test('useNewObservable primitive', () => {
+        let numRenders = 0;
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useNewObservable(10);
+        });
+        const obs = result.current;
+        expect(numRenders).toEqual(1);
+        expect(result.current).toEqual({ current: 10 });
+        act(() => {
+            obs._.set(20);
+        });
+        expect(numRenders).toEqual(2);
+        expect(result.current).toEqual({ current: 20 });
+    });
+    test('useNewObservable object', () => {
+        let numRenders = 0;
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useNewObservable({ text: 'hi' });
+        });
+        const obs = result.current;
+        expect(numRenders).toEqual(1);
+        expect(result.current).toEqual({ text: 'hi' });
+
+        act(() => {
+            obs._.set({ text: 'hello' });
+        });
+        expect(numRenders).toEqual(2);
+        expect(result.current).toEqual({ text: 'hello' });
+    });
+    test('useNewObservable not listening', () => {
+        let numRenders = 0;
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useNewObservable(10, false);
+        });
+        const obs = result.current;
+        expect(numRenders).toEqual(1);
+        expect(result.current).toEqual({ current: 10 });
+        act(() => {
+            obs._.set(20);
+        });
+        expect(numRenders).toEqual(1);
+        // expect(result.current).toEqual({ current: 20 });
     });
 });

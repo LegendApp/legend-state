@@ -1,7 +1,7 @@
-import { isFunction } from '../is';
 import { useMemo } from 'react';
+import { isFunction } from '../is';
 import { observable } from '../observable';
-import { Observable, PersistOptions } from '../observableInterfaces';
+import { ObservableOrPrimitive, PersistOptions } from '../observableInterfaces';
 import { persistObservable } from '../persistObservable';
 import { useObservables } from './useObservables';
 
@@ -14,10 +14,14 @@ import { useObservables } from './useObservables';
  *
  * @see https://www.legendapp.com/dev/state/react/#usenewobservable
  */
-function useNewObservable<T>(value: object, observe?: boolean, persist?: PersistOptions<T>): [Observable<T>, T] {
+export function useNewObservable<T>(
+    value: T | (() => T),
+    observe?: boolean,
+    persist?: PersistOptions<T>
+): ObservableOrPrimitive<T> {
     // Create the observable from the default value
     const obs = useMemo(() => {
-        const ret = observable(isFunction(value) ? value() : value);
+        const ret = observable<any>(isFunction(value) ? value() : value);
         if (persist) {
             persistObservable(ret, persist);
         }
@@ -28,7 +32,5 @@ function useNewObservable<T>(value: object, observe?: boolean, persist?: Persist
         useObservables(obs);
     }
 
-    return [obs, obs.get()];
+    return obs as any;
 }
-
-export { useNewObservable };

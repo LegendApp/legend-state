@@ -15,6 +15,7 @@ import { observableBatcher, observableBatcherNotify } from './observableBatcher'
 import {
     Observable,
     ObservableListenerInfo,
+    ObservableOrPrimitive,
     ObservablePrimitive,
     ObservableWrapper,
     PathNode,
@@ -291,12 +292,12 @@ export function prop(node: PathNode, key: string) {
     return prop;
 }
 
+export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
 export function observable<T extends boolean>(prim: T): ObservablePrimitive<boolean>;
 export function observable<T extends string>(prim: T): ObservablePrimitive<string>;
 export function observable<T extends number>(prim: T): ObservablePrimitive<number>;
 export function observable<T extends boolean | string | number>(prim: T): ObservablePrimitive<T>;
-export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
-export function observable<T>(obj: any): Observable<T> | ObservablePrimitive<T> {
+export function observable<T>(obj: any): ObservableOrPrimitive<T> {
     const isPrim = isPrimitive(obj);
     // Primitives wrap in current
     if (isPrim) {
@@ -318,5 +319,5 @@ export function observable<T>(obj: any): Observable<T> | ObservablePrimitive<T> 
         }
     }
 
-    return obs._ as Observable<T>;
+    return obs._ as ObservableOrPrimitive<T>;
 }

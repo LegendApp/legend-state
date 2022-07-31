@@ -1297,7 +1297,7 @@ describe('Batching', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });
-describe('Primtitive', () => {
+describe('Primitive', () => {
     test('Primitive', () => {
         const obs = observable(10);
         expect(obs.current).toEqual(10);
