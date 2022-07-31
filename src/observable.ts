@@ -9,7 +9,7 @@ import {
     getPathNode,
     getValueAtPath,
     hasPathNode,
-    isPrimitive2,
+    isPrimitive,
     symbolEqualityFn,
     symbolID,
     symbolProp,
@@ -56,6 +56,8 @@ const wrapFn = (fn: Function) =>
         if (node) {
             // Micro-optimize here because it's the core and this is faster than apply.
             return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
+        } else {
+            console.error('Node not found, unable to call function on observable');
         }
     };
 
@@ -110,7 +112,7 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     const length = keys.length;
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
-        const isObj = !isPrimitive2(obj[key]);
+        const isObj = !isPrimitive(obj[key]);
         const doNotify =
             prevValue && !isArr && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
         const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
@@ -130,23 +132,22 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     }
 }
 
-function cleanup(node: PathNode, obj: object) {
-    const isArr = isArray(obj);
-    const keys = isArr ? obj : Object.keys(obj);
+function cleanup(node: PathNode, newValue: object, prevValue: object) {
+    const isArr = isArray(prevValue);
+    const keys = isArr ? prevValue : Object.keys(prevValue);
     const length = keys.length;
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const child = getPathNode(node.root, node.path, key, /*noCreate*/ true);
         if (child) {
-            cleanup(child, obj[key]);
+            cleanup(child, newValue?.[key], prevValue[key]);
         }
     }
-    const value = getNodeValue(node);
-    if (value === undefined || value === null) {
-        _notify(node, { path: [], prevValue: obj, value: undefined });
+
+    if (prevValue !== undefined && prevValue !== null && (newValue === null || newValue === undefined)) {
+        const id = (prevValue as { _: any })._?.[symbolID];
+        delete arrPaths[id];
     }
-    const id = (obj as { _: any })._?.[symbolID];
-    delete arrPaths[id];
 }
 
 function set(node: PathNode, newValue: any): any;
@@ -167,15 +168,17 @@ function set(node: PathNode, key: string, newValue?: any): any {
 
         parentValue[key] = newValue;
 
-        if (!isPrimitive2(prevValue)) {
-            cleanup(childNode, prevValue);
+        if (!isPrimitive(prevValue)) {
+            cleanup(childNode, newValue, prevValue);
         }
 
-        if (!isPrimitive2(newValue)) {
+        const isPrim = isPrimitive(newValue);
+
+        if (!isPrim) {
             updateNodes(childNode, newValue, prevValue);
         }
 
-        if (newValue !== prevValue) {
+        if (!isPrim || newValue !== prevValue) {
             notify(childNode, newValue, prevValue, prevValue == undefined || isArray(parentValue) ? -1 : 0);
         }
     }
@@ -257,7 +260,7 @@ export function prop(node: PathNode, key: string) {
 }
 
 export function observable<T extends object | Array<any>>(obj: T): Observable<T> {
-    if (isPrimitive2(obj)) return undefined;
+    if (isPrimitive(obj)) return undefined;
 
     const obs = {
         _: obj as Observable,

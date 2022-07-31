@@ -42,19 +42,7 @@ export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, 
     }
 }
 
-export function isPrimitive(val: any) {
-    return (
-        !isObject(val) &&
-        !isArray(val) &&
-        !(val instanceof WeakMap) &&
-        !(val instanceof WeakSet) &&
-        !(val instanceof Error) &&
-        !(val instanceof Date) &&
-        !(val instanceof String) &&
-        !(val instanceof ArrayBuffer)
-    );
-}
-export function isPrimitive2(arg) {
+export function isPrimitive(arg) {
     var type = typeof arg;
     return arg == null || (type != 'object' && type != 'function');
 }

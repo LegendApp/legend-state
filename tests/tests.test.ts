@@ -35,6 +35,24 @@ describe('Set', () => {
         obs.test._.set(newVal);
         expect(obs.test).toBe(newVal);
     });
+    test('Multiple sets does not cleanup existing nodes', () => {
+        const obs = observable({ arr: [{ text: 'hi' }] });
+        const handler = jest.fn();
+        obs.arr._.onChange(handler);
+
+        obs.arr._.set([{ text: 'hi2' }]);
+
+        const setVal = obs.arr._.set([{ text: 'hello' }]);
+        expect(setVal).toEqual([{ text: 'hello' }]);
+
+        expect(obs.arr).toEqual([{ text: 'hello' }]);
+
+        expect(handler).toHaveBeenCalledWith([{ text: 'hello' }], {
+            path: [],
+            prevValue: [{ text: 'hi2' }],
+            value: [{ text: 'hello' }],
+        });
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
@@ -341,15 +359,6 @@ describe('Listeners', () => {
             prevValue: 'hi',
         });
     });
-    test('Clear array fires listener once', () => {
-        const obs = observable({ arr: ['hi', 'hello', 'there'] });
-        const handler = jest.fn();
-        obs.arr._.onChange(handler);
-
-        obs._.set('arr', []);
-
-        expect(handler).toHaveBeenCalledTimes(1);
-    });
     test('Modify value does not copy object', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -613,13 +622,6 @@ describe('Listeners', () => {
 
         expect(handler).toHaveBeenCalledTimes(0);
     });
-    test('Equality', () => {
-        const obs = observable({ val: { val2: 10 } });
-        const v = { val2: 20 };
-        obs.val._.set(v);
-        expect(obs.val === v).toEqual(true);
-        expect(obs.val == v).toEqual(true);
-    });
     test('Primitive has no keys', () => {
         const obs = observable({ val: 10 });
         expect(Object.keys(obs.val)).toEqual([]);
@@ -630,6 +632,49 @@ describe('Listeners', () => {
             obs.val.set('key', 10);
         }).toThrow();
         expect(obs.val).toEqual(undefined);
+    });
+});
+describe('Equality', () => {
+    test('Equality', () => {
+        const obs = observable({ val: { val2: 10 } });
+        const v = { val2: 20 };
+        obs.val._.set(v);
+        expect(obs.val === v).toEqual(true);
+        expect(obs.val == v).toEqual(true);
+    });
+    test('Set with same object still notifies', () => {
+        const obs = observable({ arr: [{ text: 'hi' }] });
+        const handler = jest.fn();
+        obs.arr._.onChange(handler);
+
+        const arr = obs.arr as any[];
+
+        obs.arr._.set(obs.arr);
+
+        expect(obs.arr).toBe(arr);
+
+        expect(handler).toHaveBeenCalledWith(arr, { path: [], prevValue: [{ text: 'hi' }], value: [{ text: 'hi' }] });
+    });
+    test('Set with array with new items still notifies', () => {
+        const obs = observable({ arr: [{ text: 'hi' }] });
+        const handler = jest.fn();
+        obs.arr._.onChange(handler);
+
+        const arr = obs.arr as any[];
+
+        arr[1] = {
+            text: 'hi2',
+        };
+
+        obs.arr._.set(obs.arr);
+
+        expect(obs.arr).toBe(arr);
+
+        expect(handler).toHaveBeenCalledWith(arr, {
+            path: [],
+            prevValue: [{ text: 'hi' }, { text: 'hi2' }],
+            value: [{ text: 'hi' }, { text: 'hi2' }],
+        });
     });
 });
 describe('Safety', () => {
@@ -768,6 +813,15 @@ describe('Array', () => {
         obs.test._.set(4, tmp);
 
         expect(obs.test).toEqual([undefined, undefined, undefined, undefined, undefined]);
+    });
+    test('Clear array fires listener once', () => {
+        let obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const handler = jest.fn();
+        obs.arr._.onChange(handler);
+
+        obs._.set('arr', []);
+
+        expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Array clear if listening', () => {
         let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
@@ -1014,18 +1068,14 @@ describe('Delete', () => {
 
         expect(Object.keys(obs.obj)).toEqual([]);
     });
-    test('Delete fires listeners of children', () => {
+    test('Delete does not fire listeners of children', () => {
         const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } } });
         const handler = jest.fn();
         obs.obj._.onChange('num1', handler);
 
         obs._.delete('obj');
 
-        expect(handler).toHaveBeenCalledWith(undefined, {
-            value: undefined,
-            path: [],
-            prevValue: 1,
-        });
+        expect(handler).not.toHaveBeenCalled();
     });
 });
 describe('on functions', () => {
