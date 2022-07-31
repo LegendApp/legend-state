@@ -225,7 +225,7 @@ export interface ObservablePersistRemote {
         obs: ObservableChecker3<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: Observabl2<T>, value: any) => void
+        onChange: (obs: Observable2<T>, value: any) => void
     );
 }
 

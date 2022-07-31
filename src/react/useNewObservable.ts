@@ -25,7 +25,7 @@ function useNewObservable<T>(value: object, observe?: boolean, persist?: Persist
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe !== false) {
-        useObservables3([obs]);
+        useObservables3(obs);
     }
 
     return [obs, obs.get()];

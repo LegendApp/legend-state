@@ -9,7 +9,7 @@ describe('React Hooks', () => {
         const obs = observable3({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3([obs.val]);
+            return useObservables3(obs.val);
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -25,7 +25,7 @@ describe('React Hooks', () => {
         const obs = observable3({ val: { val2: { val3: 'hello' } }, selected: 0 });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3([obs.val, obs._.prop('selected')]);
+            return useObservables3(obs.val, obs._.prop('selected'));
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -59,7 +59,7 @@ describe('React Hooks', () => {
         const obs = observable3({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3([shallow(obs.val)]);
+            return useObservables3(shallow(obs.val));
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -188,7 +188,7 @@ describe('React Hooks', () => {
         const obs = observable3({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3([equalityFn(obs.val.val2, (val2) => val2.val3 === 'hi')]);
+            return useObservables3(equalityFn(obs.val.val2, (val2) => val2.val3 === 'hi'));
         });
         const [val2] = result.current;
         expect(numRenders).toEqual(1);
