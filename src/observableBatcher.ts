@@ -1,7 +1,15 @@
 import { ListenerFn, ObservableListenerInfo } from './observableInterfaces';
 
+interface BatchItem {
+    cb: ListenerFn<any>;
+    value: any;
+    info: ObservableListenerInfo;
+}
+let timeout;
 let numInBatch = 0;
-let _batch: { cb: ListenerFn<any>; value: any; info: ObservableListenerInfo }[] = [];
+let _batch: BatchItem[] = [];
+// Use a WeakMap of callbacks for fast lookups to update the BatchItem
+let _batchMap = new WeakMap<ListenerFn, BatchItem>();
 
 function onActionTimeout() {
     if (_batch.length > 0) {
@@ -14,24 +22,22 @@ function onActionTimeout() {
     }
 }
 
-export function observableBatcherNotify(cb: ListenerFn<any>, value: any, info: ObservableListenerInfo) {
+export function observableBatcherNotify(cb: ListenerFn, value: any, info: ObservableListenerInfo) {
     if (numInBatch > 0) {
-        for (let i = 0; i < _batch.length; i++) {
-            const n = _batch[i];
-            // If this callback already exists, make sure it has the latest value but do not add it
-            if (n.cb === cb) {
-                n.value = value;
-                n.info = info;
-                return;
-            }
+        const existing = _batchMap.get(cb);
+        // If this callback already exists, make sure it has the latest value but do not add it
+        if (existing) {
+            existing.value = value;
+            existing.info = info;
+        } else {
+            const batchItem = { cb, value, info };
+            _batch.push(batchItem);
+            _batchMap.set(cb, batchItem);
         }
-        _batch.push({ cb, value, info });
     } else {
         cb(value, info);
     }
 }
-
-let timeout;
 
 export namespace observableBatcher {
     export function batch(fn: () => void) {
@@ -53,7 +59,11 @@ export namespace observableBatcher {
             // This can happen with observableComputed for example.
             const batch = _batch;
             _batch = [];
-            batch.forEach(({ cb, value, info }) => cb(value, info));
+            _batchMap = new WeakMap();
+            for (let i = 0; i < batch.length; i++) {
+                const { cb, value, info } = batch[i];
+                cb(value, info);
+            }
         }
     }
 }

@@ -89,10 +89,9 @@ export function onChange(
         keyOrCallback = callbackOnChild;
     }
 
-    const listener = {
+    const listener: ObservableListener = {
         node,
         callback: keyOrCallback,
-        path: node.path,
         shallow,
         // function, not () => {} to preserve this
         dispose: function () {
@@ -103,9 +102,9 @@ export function onChange(
     if (!node.listeners) {
         node.listeners = new Set();
     }
-    node.listeners.add(listener as ObservableListener);
+    node.listeners.add(listener);
 
-    return listener as ObservableListener;
+    return listener;
 }
 
 export function onChangeShallow(

@@ -44,7 +44,7 @@ export interface ObservableListenerInfo {
     path: string[];
 }
 
-export type ListenerFn<T> = (value: T, info: ObservableListenerInfo) => void;
+export type ListenerFn<T = any> = (value: T, info: ObservableListenerInfo) => void;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -194,8 +194,6 @@ export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable<T>; fn
 
 export interface ObservableListener<T = any> {
     node: PathNode;
-    // path: string[];
-    // path: string;
     callback: ListenerFn<T>;
     shallow: boolean;
     dispose: () => void;
