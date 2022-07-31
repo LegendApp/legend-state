@@ -44,7 +44,7 @@ export function onEquals<T>(
             return isDone;
         }
         if (!check(getNodeValue(node))) {
-            listener = onChange(/*shallow*/ false, node, check);
+            listener = onChange(node, check, undefined, /*shallow*/ true);
         }
     });
 
@@ -79,10 +79,10 @@ export function onTrue<T extends boolean>(
 }
 
 export function onChange(
-    shallow: boolean,
     node: PathNode,
     keyOrCallback: string | ListenerFn3<any>,
-    callbackOnChild?: ListenerFn3<any>
+    callbackOnChild?: ListenerFn3<any>,
+    shallow?: boolean
 ) {
     if (isString(keyOrCallback)) {
         node = getPathNode(node.root, node.path, keyOrCallback as unknown as string);
@@ -94,8 +94,11 @@ export function onChange(
         callback: keyOrCallback,
         path: node.path,
         shallow,
-    } as Partial<ObservableListener3>;
-    listener.dispose = disposeListener.bind(listener, listener);
+        // function, not () => {} to preserve this
+        dispose: function () {
+            disposeListener(this);
+        },
+    };
 
     if (!node.listeners) {
         node.listeners = new Set();
@@ -103,4 +106,12 @@ export function onChange(
     node.listeners.add(listener as ObservableListener3);
 
     return listener as ObservableListener3;
+}
+
+export function onChangeShallow(
+    node: PathNode,
+    keyOrCallback: string | ListenerFn3<any>,
+    callbackOnChild?: ListenerFn3<any>
+) {
+    return onChange(node, keyOrCallback, callbackOnChild, /*shallow*/ true);
 }

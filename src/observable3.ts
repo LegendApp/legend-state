@@ -23,12 +23,14 @@ import {
     PathNode,
     Shallow,
 } from './observableInterfaces';
-import { onChange, onEquals, onHasValue, onTrue } from './on';
+import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 
-const objectFns = [
+let nextID = 0;
+
+const objectFns: [string, Function][] = [
     ['set', set],
-    ['onChange', onChange.bind(this, false)],
-    ['onChangeShallow', onChange.bind(this, true)],
+    ['onChange', onChange],
+    ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
@@ -36,8 +38,6 @@ const objectFns = [
     ['assign', assign],
     ['delete', deleteFn],
 ];
-
-let nextID = 0;
 
 const wrapFn = (fn: Function) =>
     function (a, b, c) {
@@ -58,6 +58,10 @@ const wrapFn = (fn: Function) =>
             return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
         }
     };
+
+for (let i = 0; i < objectFns.length; i++) {
+    objectFns[i][1] = wrapFn(objectFns[i][1]);
+}
 
 const descriptorsArray: PropertyDescriptorMap = {};
 ['push', 'splice'].forEach((key) => {
@@ -90,7 +94,7 @@ function boundObjDescriptors(obj: any, node: PathNode): PropertyDescriptor {
     arrPaths[id] = node;
     for (let i = 0; i < objectFns.length; i++) {
         const [key, fn] = objectFns[i];
-        out[key] = wrapFn(fn).bind(obj);
+        out[key] = fn.bind(obj);
     }
     return {
         enumerable: false,
