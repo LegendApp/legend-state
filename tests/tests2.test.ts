@@ -130,38 +130,18 @@ describe('Listeners', () => {
     test('Shallow listener', () => {
         const obs = observable3({ test: { test2: { test3: 'hi' } } });
         const handler = jest.fn();
+        const handler2 = jest.fn();
         obs.test._.onChangeShallow(handler);
+        obs._.onChangeShallow(handler2);
         obs.test.test2._.set('test3', 'hello');
         expect(handler).not.toHaveBeenCalled();
         obs.test._.set({ test2: { test3: 'hello' } });
-        expect(handler).toHaveBeenCalled();
-        obs.test._.assign({ test3: 'hello' } as any);
-        // expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(1);
+        // Assign adding a new property does notify
+        obs.test._.assign({ test4: 'hello' } as any);
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler2).toHaveBeenCalledTimes(0);
     });
-    // test('Shallow array swap', () => {
-    //     const obs = observable3({
-    //         test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }],
-    //     });
-    //     const handler = jest.fn();
-    //     const handler2 = jest.fn();
-    //     obs.test._.onChangeShallow(handler);
-    //     obs.test[1]._.onChange(handler2);
-    //     let tmp = obs.test[1];
-    //     obs.test._.set(1, obs.test[4]);
-    //     obs.test._.set(4, tmp);
-    //     expect(obs.test).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }, { text: 6 }]);
-    //     expect(handler).toHaveBeenCalledTimes(0);
-    //     expect(handler2).toHaveBeenCalledTimes(1);
-    //     // tmp = obs.test[1];
-    //     // obs.test._.set(1, obs.test[4]);
-    //     // obs.test._.set(4, tmp);
-    //     // expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 6 }]);
-    //     // expect(handler).toHaveBeenCalledTimes(4);
-    //     // // @ts-ignore
-    //     // obs.test[5]._.set('text', 66);
-    //     // expect(obs.test).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }, { text: 66 }]);
-    //     // expect(handler).toHaveBeenCalledTimes(4);
-    // });
 });
 describe('Safety', () => {
     test('Prevent writes', () => {
@@ -424,50 +404,50 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledWith(true);
     });
 });
-// describe('Shallow', () => {
-//     test('Shallow 1', () => {
-//         const obs = observable3({ val: false } as { val: boolean; val2?: number });
-//         const handler = jest.fn();
-//         obs._.onChangeShallow(handler);
-//         obs._.set('val', true);
-//         expect(handler).not.toHaveBeenCalled();
+describe('Shallow', () => {
+    test('Shallow 1', () => {
+        const obs = observable3({ val: false } as { val: boolean; val2?: number });
+        const handler = jest.fn();
+        obs._.onChangeShallow(handler);
+        obs._.set('val', true);
+        expect(handler).not.toHaveBeenCalled();
 
-//         obs._.set('val2', 10);
+        obs._.set('val2', 10);
 
-//         expect(handler).toHaveBeenCalledTimes(1);
-//     });
-//     test('Shallow set primitive', () => {
-//         const obs = observable3({ val: false } as { val: boolean; val2?: number });
-//         const handler = jest.fn();
-//         obs._.onChangeShallow(handler);
-//         obs._.set('val', true);
-//         expect(handler).not.toHaveBeenCalled();
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Shallow set primitive', () => {
+        const obs = observable3({ val: false } as { val: boolean; val2?: number });
+        const handler = jest.fn();
+        obs._.onChangeShallow(handler);
+        obs._.set('val', true);
+        expect(handler).not.toHaveBeenCalled();
 
-//         obs._.set('val2', 10);
+        obs._.set('val2', 10);
 
-//         expect(handler).toHaveBeenCalledTimes(1);
-//     });
-//     test('Shallow deep object', () => {
-//         const obs = observable3({ val: { val2: { val3: 'hi' } } });
-//         const handler = jest.fn();
-//         obs._.onChangeShallow(handler);
-//         obs.val.val2._.set('val3', 'hello');
-//         expect(handler).not.toHaveBeenCalled();
-//     });
-//     test('Shallow array', () => {
-//         const obs = observable3({ data: [], selected: 0 });
-//         const handler = jest.fn();
-//         obs.data._.onChangeShallow(handler);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Shallow deep object', () => {
+        const obs = observable3({ val: { val2: { val3: 'hi' } } });
+        const handler = jest.fn();
+        obs._.onChangeShallow(handler);
+        obs.val.val2._.set('val3', 'hello');
+        expect(handler).not.toHaveBeenCalled();
+    });
+    test('Shallow array', () => {
+        const obs = observable3({ data: [], selected: 0 });
+        const handler = jest.fn();
+        obs.data._.onChangeShallow(handler);
 
-//         obs.data._.set([{ text: 1 }, { text: 2 }]);
+        obs.data._.set([{ text: 1 }, { text: 2 }]);
 
-//         expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(1);
 
-//         obs.data[0]._.set({ text: 11 });
+        obs.data[0]._.set({ text: 11 });
 
-//         expect(handler).toHaveBeenCalledTimes(1);
-//     });
-// });
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+});
 describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable3({ test: 10, test2: 20 });

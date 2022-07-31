@@ -3,6 +3,7 @@ import {
     arrPaths,
     delim,
     getNodeValue,
+    getObjectNode,
     getParentNode,
     getPathNode,
     getValueAtPath,
@@ -23,7 +24,7 @@ import {
 } from './observableInterfaces';
 import { onChange, onEquals, onHasValue, onTrue } from './on';
 
-const objectFns = new Map<string, Function>([
+const objectFns = [
     ['set', set],
     ['onChange', onChange.bind(this, false)],
     ['onChangeShallow', onChange.bind(this, true)],
@@ -33,7 +34,7 @@ const objectFns = new Map<string, Function>([
     ['prop', prop],
     ['assign', assign],
     ['delete', deleteFn],
-]);
+];
 
 let nextID = 0;
 
@@ -49,25 +50,13 @@ const wrapFn = (fn: Function) =>
             a = prop.key;
             num++;
         } else {
-            const id = this._?.[symbolID];
-            if (id !== undefined) {
-                node = arrPaths[id];
-            }
+            node = getObjectNode(this);
         }
         if (node) {
             // Micro-optimize here because it's the core and this is faster than apply.
             return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
         }
     };
-
-// const descriptors: PropertyDescriptorMap = {};
-
-// objectFns.forEach((fn, key) => {
-//     descriptors['_' + key] = {
-//         enumerable: false,
-//         value: wrapFn(fn),
-//     };
-// });
 
 const descriptorsArray: PropertyDescriptorMap = {};
 ['push', 'splice'].forEach((key) => {
@@ -76,11 +65,7 @@ const descriptorsArray: PropertyDescriptorMap = {};
             const prevValue = this.slice();
             const ret = Array.prototype[key].apply(this, arguments);
 
-            let node;
-            const id = this._?.[symbolID];
-            if (id !== undefined) {
-                node = arrPaths[id];
-            }
+            const node = getObjectNode(this);
             if (node) {
                 const parentNode = getParentNode(node);
                 if (parentNode) {
@@ -102,16 +87,19 @@ function boundObjDescriptors(obj: any, node: PathNode): PropertyDescriptor {
         [symbolID]: id,
     };
     arrPaths[id] = node;
-    objectFns.forEach((fn, key) => {
+    for (let i = 0; i < objectFns.length; i++) {
+        const [key, fn] = objectFns[i];
         out[key] = wrapFn(fn).bind(obj);
-    });
+    }
     return {
         enumerable: false,
+        configurable: false,
+        writable: false,
         value: out,
     };
 }
 
-function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
+function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     const isArr = isArray(obj);
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
@@ -122,7 +110,7 @@ function createNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
             prevValue && !isArr && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
         const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
         if (isObj) {
-            createNodes(child, obj[key], prevValue?.[key]);
+            updateNodes(child, obj[key], prevValue?.[key]);
         }
         if (doNotify) {
             _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] });
@@ -172,7 +160,7 @@ function set(node: PathNode, key: string, newValue?: any): any {
 
         const childNode = getPathNode(node.root, node.path, key);
         if (!isPrimitive2(newValue)) {
-            createNodes(childNode, newValue, prevValue);
+            updateNodes(childNode, newValue, prevValue);
         }
 
         notify(childNode, newValue, prevValue);
@@ -183,26 +171,26 @@ function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp
     if (node.listeners) {
         const value = getNodeValue(node);
         for (let listener of node.listeners) {
-            if (!listener.shallow || levelsUp <= 1) {
+            if (!listener.shallow || levelsUp <= 0) {
                 listener.callback(value, listenerInfo);
             }
         }
     }
 }
 
-function _notifyUp(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
+function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
     _notify(node, listenerInfo, levelsUp);
     if (node.path !== '_') {
         const parent = getParentNode(node);
 
         const parentListenerInfo = Object.assign({}, listenerInfo);
         parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-        _notifyUp(parent, parentListenerInfo, levelsUp + 1);
+        _notifyParents(parent, parentListenerInfo, levelsUp + 1);
     }
 }
 function notify(node: PathNode, value: any, prevValue: any) {
     const listenerInfo = { path: [], prevValue, value };
-    _notifyUp(node, listenerInfo, prevValue === undefined ? -1 : 0);
+    _notifyParents(node, listenerInfo, prevValue === undefined ? -1 : 0);
 }
 
 function assign(node: PathNode, value: any) {
@@ -253,51 +241,7 @@ export function observable3<T extends object | Array<any>>(obj: T): Observable2<
         pathNodes: new Map(),
     } as ObservableWrapper;
 
-    createNodes(getPathNode(obs, '_'), obs._);
+    updateNodes(getPathNode(obs, '_'), obs._);
 
     return obs._ as Observable2<T>;
 }
-
-// ((numProps, propsLength, numIter) => {
-//     const performance = require('perf_hooks').performance;
-
-//     const symbolID = Symbol('__symbolID');
-
-//     let weakMap = new WeakMap();
-//     let arrOfID = [];
-//     let arr = [];
-//     for (let p = 0; p < numProps; p++) {
-//         arr[p] = { text: String(p * propsLength) };
-//         Object.defineProperty(arr[p], symbolID, {
-//             enumerable: false,
-//             value: p,
-//         });
-//         arrOfID[p] = 'hi';
-//     }
-//     let t0 = performance.now();
-//     for (let i = 0; i < numIter; i++) {
-//         for (let p = 0; p < numProps; p++) {
-//             let val = arr[p];
-//             weakMap.set(val, 'hi');
-//         }
-//     }
-//     console.log('Weak map set loop: ' + (performance.now() - t0));
-
-//     t0 = performance.now();
-//     for (let p = 0; p < numIter; p++) {
-//         for (let p = 0; p < numProps; p++) {
-//             let val = arr[p];
-//             weakMap.has(val);
-//         }
-//     }
-//     console.log('Weak map has loop: ' + (performance.now() - t0));
-
-//     t0 = performance.now();
-//     for (let p = 0; p < numIter; p++) {
-//         for (let p = 0; p < numProps; p++) {
-//             let val = arr[p];
-//             arrOfID[val[symbolID]];
-//         }
-//     }
-//     console.log('Get by symbol loop: ' + (performance.now() - t0));
-// })(1000, 1, 10000);
