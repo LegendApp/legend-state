@@ -160,6 +160,10 @@ export interface ObservableEvent {
     on(cb?: () => void): ObservableListener<void>;
     on(eventType: 'change', cb?: () => void): ObservableListener<void>;
 }
+export interface ObservableEvent3 {
+    fire(): void;
+    on(cb?: () => void): ObservableListener3<void>;
+}
 
 export type ObservableValue<T extends Observable | ObservableUnsafe | ObservableEvent | ObservableComputed> =
     T extends ObservableEvent ? void : T extends ObservableComputed<infer t> ? t : T;

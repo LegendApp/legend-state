@@ -1,5 +1,6 @@
 import { observableComputed3 } from '../src/observableComputed3';
 import { observable3 } from '../src/observable3';
+import { observableEvent3 } from '../src/observableEvent3';
 
 describe('Set', () => {
     test('Set', () => {
@@ -490,5 +491,22 @@ describe('Computed', () => {
         computed._.assign({ text: 'hi' });
 
         expect(computed.current).toEqual(30);
+    });
+});
+describe('Event', () => {
+    test('Event', () => {
+        const event = observableEvent3();
+        const handler = jest.fn();
+        event.on(handler);
+
+        expect(handler).not.toHaveBeenCalled();
+
+        event.fire();
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        event.fire();
+        event.fire();
+        event.fire();
+        expect(handler).toHaveBeenCalledTimes(4);
     });
 });
