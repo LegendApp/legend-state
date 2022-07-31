@@ -1,5 +1,5 @@
 import { isArray } from '@legendapp/tools';
-import { observableBatcher, observableBatcherNotify } from './observableBatcher3';
+import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     arrPaths,
     delim,
@@ -17,8 +17,8 @@ import {
 } from './globals';
 import {
     EqualityFn,
-    Observable2,
-    ObservableListenerInfo2,
+    Observable,
+    ObservableListenerInfo,
     ObservableWrapper,
     PathNode,
     Shallow,
@@ -183,7 +183,7 @@ function set(node: PathNode, key: string, newValue?: any): any {
     return newValue;
 }
 
-function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
+function _notify(node: PathNode, listenerInfo: ObservableListenerInfo, levelsUp?: number) {
     if (node.listeners) {
         const value = getNodeValue(node);
         for (let listener of node.listeners) {
@@ -194,7 +194,7 @@ function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp
     }
 }
 
-function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
+function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo, levelsUp?: number) {
     _notify(node, listenerInfo, levelsUp);
     if (node.path !== '_') {
         const parent = getParentNode(node);
@@ -237,12 +237,12 @@ function deleteFn(node: PathNode, key?: string) {
     delete child[key];
 }
 
-export function shallow(obs: Observable2): Shallow {
+export function shallow(obs: Observable): Shallow {
     return {
         [symbolShallow]: obs,
     };
 }
-export function equalityFn(obs: Observable2, fn: (value) => any): EqualityFn {
+export function equalityFn(obs: Observable, fn: (value) => any): EqualityFn {
     return {
         [symbolEqualityFn]: { obs, fn },
     };
@@ -256,15 +256,15 @@ export function prop(node: PathNode, key: string) {
     return prop;
 }
 
-export function observable3<T extends object | Array<any>>(obj: T): Observable2<T> {
+export function observable<T extends object | Array<any>>(obj: T): Observable<T> {
     if (isPrimitive2(obj)) return undefined;
 
     const obs = {
-        _: obj as Observable2,
+        _: obj as Observable,
         pathNodes: new Map(),
     } as ObservableWrapper;
 
     updateNodes(getPathNode(obs, '_'), obs._);
 
-    return obs._ as Observable2<T>;
+    return obs._ as Observable<T>;
 }

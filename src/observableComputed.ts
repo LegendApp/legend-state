@@ -1,15 +1,15 @@
 import { getObservableRawValue } from './globals';
-import { observable3 } from './observable3';
-import { Observable2, ObservableComputed3, ObservableComputedFns, Prop } from './observableInterfaces';
+import { observable } from './observable';
+import { Observable, ObservableComputed, ObservableComputedFns, Prop } from './observableInterfaces';
 
 const eventFns: Array<keyof ObservableComputedFns<any>> = ['onChange', 'onEquals', 'onHasValue', 'onTrue'];
 
-export function observableComputed3<T extends (Observable2 | Prop)[], T2>(
+export function observableComputed<T extends (Observable | Prop)[], T2>(
     args: T,
     compute: (...values: T) => T2
-): ObservableComputed3<T2> {
+): ObservableComputed<T2> {
     // Create an observable for this computed variable
-    const obs = observable3<{ current: T2 }>({ current: undefined }) as unknown as ObservableComputed3<T2>;
+    const obs = observable<{ current: T2 }>({ current: undefined }) as unknown as ObservableComputed<T2>;
 
     const onChange = () => {
         const values = args.map(getObservableRawValue);

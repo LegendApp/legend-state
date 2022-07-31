@@ -1,7 +1,7 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
 import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
-import { observable3 } from '../src/observable3';
+import { observable } from '../src/observable';
 import { mapPersistences, persistObservable } from '../src/persistObservable';
 import { ObservablePersistLocalStorage } from '../src/persist/local-storage';
 
@@ -77,7 +77,7 @@ beforeEach(() => {
 
 describe('Persist local', () => {
     test('Saves to local', () => {
-        const obs = observable3({ test: '' });
+        const obs = observable({ test: '' });
 
         persistObservable(obs, {
             local: 'jestlocal',
@@ -91,7 +91,7 @@ describe('Persist local', () => {
         expect(localValue).toBe(`{"test":"hello"}`);
 
         // obs2 should load with the same value it was just saved as
-        const obs2 = observable3({});
+        const obs2 = observable({});
         persistObservable(obs2, {
             local: 'jestlocal',
         });

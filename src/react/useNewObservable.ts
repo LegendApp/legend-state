@@ -1,9 +1,9 @@
 import { isFunction } from '@legendapp/tools';
 import { useMemo } from 'react';
-import { observable3 } from 'src/observable3';
-import { Observable2, PersistOptions } from '../observableInterfaces';
+import { observable } from '../observable';
+import { Observable, PersistOptions } from '../observableInterfaces';
 import { persistObservable } from '../persistObservable';
-import { useObservables3 } from './useObservables3';
+import { useObservables } from './useObservables';
 
 /**
  * A React hook that creates a new observable and can optionally listen or persist its state.
@@ -14,10 +14,10 @@ import { useObservables3 } from './useObservables3';
  *
  * @see https://www.legendapp.com/dev/state/react/#usenewobservable
  */
-function useNewObservable<T>(value: object, observe?: boolean, persist?: PersistOptions<T>): [Observable2<T>, T] {
+function useNewObservable<T>(value: object, observe?: boolean, persist?: PersistOptions<T>): [Observable<T>, T] {
     // Create the observable from the default value
     const obs = useMemo(() => {
-        const ret = observable3(isFunction(value) ? value() : value);
+        const ret = observable(isFunction(value) ? value() : value);
         if (persist) {
             persistObservable(ret, persist);
         }
@@ -25,7 +25,7 @@ function useNewObservable<T>(value: object, observe?: boolean, persist?: Persist
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe !== false) {
-        useObservables3(obs);
+        useObservables(obs);
     }
 
     return [obs, obs.get()];

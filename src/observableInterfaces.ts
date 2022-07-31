@@ -3,56 +3,50 @@ import { symbolEqualityFn, symbolProp, symbolShallow } from './globals';
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export interface ObservableBaseFns<T> {
-    onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
-    onChange<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
-    onChangeShallow(cb: ListenerFn3<T>): ObservableListener3<T>;
-    onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn3<T>): ObservableListener3<T>;
-    onEquals(value: T, cb?: (value?: T) => void): OnReturnValue3<T>;
-    onEquals<K extends keyof T>(key: K, value: T[K], cb?: (value?: T) => void): OnReturnValue3<T>;
-    onTrue(cb?: (value?: T) => void): OnReturnValue3<T>;
-    onTrue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue3<T>;
-    onHasValue(cb?: (value?: T) => void): OnReturnValue3<T>;
-    onHasValue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue3<T>;
+    onChange(cb: ListenerFn<T>): ObservableListener<T>;
+    onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
+    onChangeShallow(cb: ListenerFn<T>): ObservableListener<T>;
+    onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
+    onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
+    onEquals<K extends keyof T>(key: K, value: T[K], cb?: (value?: T) => void): OnReturnValue<T>;
+    onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
+    onTrue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue<T>;
+    onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
+    onHasValue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue<T>;
 }
 export interface ObservableFns<T> extends ObservableBaseFns<T> {
-    prop<K extends keyof T>(prop: K): Observable2<T[K]>;
-    set(value: T): Observable2<T>;
-    set<K extends keyof T>(key: K | string | number, value: T[K]): Observable2<T[K]>;
-    assign(value: T | Partial<T>): Observable2<T>;
-    delete(): Observable2<T>;
-    delete<K extends keyof T>(key: K | string | number): Observable2<T>;
+    prop<K extends keyof T>(prop: K): Observable<T[K]>;
+    set(value: T): Observable<T>;
+    set<K extends keyof T>(key: K | string | number, value: T[K]): Observable<T[K]>;
+    assign(value: T | Partial<T>): Observable<T>;
+    delete(): Observable<T>;
+    delete<K extends keyof T>(key: K | string | number): Observable<T>;
 }
 export interface ObservableComputedFns<T> {
-    onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
-    onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
-    onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onChange(cb: ListenerFn<T>): ObservableListener<T>;
+    onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    onTrue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    onHasValue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
 }
-export interface ObservableBaseProps2<T> {
+export interface ObservableBaseProps<T> {
     _: ObservableBaseFns<T>;
 }
-export interface ObservableProps2<T> {
+export interface ObservableProps<T> {
     _: ObservableFns<T>;
 }
-export interface ObservableComputedProps2<T> {
+export interface ObservableComputedProps<T> {
     _: ObservableComputedFns<T>;
 }
 
 export interface ObservableListenerInfo {
-    changedValue: any;
-    prevValue: any;
-    path: string[];
-}
-
-export interface ObservableListenerInfo2 {
     value: any;
     prevValue: any;
     path: string[];
 }
 
-export type ListenerFn3<T> = (value: T, info: ObservableListenerInfo2) => void;
+export type ListenerFn<T> = (value: T, info: ObservableListenerInfo) => void;
 
-type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
+type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
     | Map<any, any>
     | WeakMap<any, any>
@@ -65,27 +59,27 @@ type Recurse2<T, K extends keyof T, TRecurse> = T[K] extends
     ? T[K]
     : T[K] extends Array<any>
     ? T[K] &
-          ObservableProps2<T[K]> & {
-              [n: number]: Observable2<T[K][number]>;
+          ObservableProps<T[K]> & {
+              [n: number]: Observable<T[K][number]>;
           }
     : T extends object
     ? TRecurse
     : T[K];
 
 type ObservablePropsRecursive2<T> = {
-    readonly [K in keyof T]: Recurse2<T, K, Observable2<T[K]>>;
+    readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
 };
 
-export type Observable2<T = any> = ObservablePropsRecursive2<T> & ObservableProps2<T>;
+export type Observable<T = any> = ObservablePropsRecursive2<T> & ObservableProps<T>;
 
 export interface ObservableEvent {
     fire(): void;
-    on(cb?: () => void): ObservableListener3<void>;
-    on(eventType: 'change', cb?: () => void): ObservableListener3<void>;
+    on(cb?: () => void): ObservableListener<void>;
+    on(eventType: 'change', cb?: () => void): ObservableListener<void>;
 }
 export interface ObservableEvent3 {
     fire(): void;
-    on(cb?: () => void): ObservableListener3<void>;
+    on(cb?: () => void): ObservableListener<void>;
 }
 
 export type QueryByModified<T> =
@@ -130,12 +124,12 @@ export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo2): Promise<T>;
+    save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo): Promise<T>;
     listen<T>(
-        obs: ObservableChecker3<T>,
+        obs: ObservableChecker<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: Observable2<T>, value: any) => void
+        onChange: (obs: Observable<T>, value: any) => void
     );
 }
 
@@ -188,27 +182,27 @@ type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
     ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
     : SameShapeWithStringsRecord<T>;
 
-export interface OnReturnValue3<T> {
+export interface OnReturnValue<T> {
     promise: Promise<T>;
-    listener: ObservableListener3<T>;
+    listener: ObservableListener<T>;
 }
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
-export type Shallow<T = any> = { [symbolShallow]: Observable2<T> };
-export type Prop<T = any> = { [symbolProp]: Observable2<T> } & ObservableProps2<T>;
-export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable2<T>; fn: (value: any) => any } };
+export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
+export type Prop<T = any> = { [symbolProp]: Observable<T> } & ObservableProps<T>;
+export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable<T>; fn: (value: any) => any } };
 
-export interface ObservableListener3<T = any> {
+export interface ObservableListener<T = any> {
     node: PathNode;
     // path: string[];
     // path: string;
-    callback: ListenerFn3<T>;
+    callback: ListenerFn<T>;
     shallow: boolean;
     dispose: () => void;
     isDisposed?: boolean;
 }
 export interface ObservableWrapper<T = any> {
-    _: Observable2;
+    _: Observable;
     pathNodes: Map<string, PathNode>;
 }
 
@@ -217,7 +211,7 @@ export interface PathNode {
     path: string;
     parent: string;
     key: string;
-    listeners?: Set<ObservableListener3>;
+    listeners?: Set<ObservableListener>;
 }
-export type ObservableChecker3<T = any> = Shallow | EqualityFn | Observable2 | Prop;
-export type ObservableComputed3<T = any> = { readonly current: T } & ObservableComputedProps2<{ readonly current: T }>;
+export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Prop;
+export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;

@@ -1,15 +1,14 @@
 import { act, renderHook } from '@testing-library/react-hooks';
-// import { observable2, shallow } from '../src/observable2';
-import { equalityFn, observable3, shallow } from '../src/observable3';
-import { useObservables3 } from '../src/react/useObservables3';
+import { equalityFn, observable, shallow } from '../src/observable';
+import { useObservables } from '../src/react/useObservables';
 
 describe('React Hooks', () => {
     test('useObservables', () => {
         let numRenders = 0;
-        const obs = observable3({ val: { val2: { val3: 'hello' } } });
+        const obs = observable({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3(obs.val);
+            return useObservables(obs.val);
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -22,10 +21,10 @@ describe('React Hooks', () => {
     });
     test('useObservables with prop', () => {
         let numRenders = 0;
-        const obs = observable3({ val: { val2: { val3: 'hello' } }, selected: 0 });
+        const obs = observable({ val: { val2: { val3: 'hello' } }, selected: 0 });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3(obs.val, obs._.prop('selected'));
+            return useObservables(obs.val, obs._.prop('selected'));
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -56,10 +55,10 @@ describe('React Hooks', () => {
     // // });
     test('useObservables shallow does not re-render from deep set', () => {
         let numRenders = 0;
-        const obs = observable3({ val: { val2: { val3: 'hello' } } });
+        const obs = observable({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3(shallow(obs.val));
+            return useObservables(shallow(obs.val));
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
@@ -85,10 +84,10 @@ describe('React Hooks', () => {
     });
     // test('useObservables shallow does not re-render from set inside array', () => {
     //     let numRenders = 0;
-    //     const obs = observable3({ val: [{ text: 'hello' }] });
+    //     const obs = observable({ val: [{ text: 'hello' }] });
     //     const { result } = renderHook(() => {
     //         numRenders++;
-    //         return useObservables3([shallow(obs.val)]);
+    //         return useObservables([shallow(obs.val)]);
     //     });
     //     const [val] = result.current;
     //     expect(numRenders).toEqual(1);
@@ -185,10 +184,10 @@ describe('React Hooks', () => {
     // // // });
     test('useObservables with equalityFn', () => {
         let numRenders = 0;
-        const obs = observable3({ val: { val2: { val3: 'hello' } } });
+        const obs = observable({ val: { val2: { val3: 'hello' } } });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables3(equalityFn(obs.val.val2, (val2) => val2.val3 === 'hi'));
+            return useObservables(equalityFn(obs.val.val2, (val2) => val2.val3 === 'hi'));
         });
         const [val2] = result.current;
         expect(numRenders).toEqual(1);

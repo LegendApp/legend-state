@@ -1,8 +1,8 @@
 import { isObject } from '@legendapp/tools';
 import { symbolDateModified } from './globals';
-import { Observable2 } from './observableInterfaces';
+import { Observable } from './observableInterfaces';
 
-export function mergeIntoObservable(target: Observable2, ...sources: any[]) {
+export function mergeIntoObservable(target: Observable, ...sources: any[]) {
     if (!sources.length) return target;
     const source = sources.shift();
 

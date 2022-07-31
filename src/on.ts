@@ -1,10 +1,10 @@
 import { isFunction, isObjectEmpty, isString } from '@legendapp/tools';
 import { getNodeValue, getParentNode, getPathNode } from './globals';
-import { ListenerFn3, ObservableListener3, OnReturnValue3, PathNode } from './observableInterfaces';
+import { ListenerFn, ObservableListener, OnReturnValue, PathNode } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
 
-export function disposeListener(listener: ObservableListener3) {
+export function disposeListener(listener: ObservableListener) {
     if (listener && !listener.isDisposed) {
         listener.isDisposed = true;
         listener.node.listeners.delete(listener);
@@ -16,14 +16,14 @@ export function onEquals<T>(
     keyOrValue: string | T,
     valueOrCallback: T | ((value: T) => void),
     callbackOnChild?: (value: T) => void
-): OnReturnValue3<T> {
+): OnReturnValue<T> {
     if (!isFunction(valueOrCallback)) {
         node = getPathNode(node.root, node.path, keyOrValue as string);
         keyOrValue = valueOrCallback;
         valueOrCallback = callbackOnChild;
     }
 
-    let listener: ObservableListener3<T>;
+    let listener: ObservableListener<T>;
 
     const promise = new Promise<any>((resolve) => {
         let isDone = false;
@@ -58,7 +58,7 @@ export function onHasValue<T>(
     node: PathNode,
     keyOrCallback: string | ((value: T) => void),
     callbackOnChild?: (value: T) => void
-): OnReturnValue3<T> {
+): OnReturnValue<T> {
     if (isString(keyOrCallback)) {
         node = getPathNode(node.root, node.path, keyOrCallback);
         keyOrCallback = callbackOnChild;
@@ -70,7 +70,7 @@ export function onTrue<T extends boolean>(
     node: PathNode,
     keyOrCallback: string | (() => void),
     callbackOnChild?: () => void
-): OnReturnValue3<T> {
+): OnReturnValue<T> {
     if (isString(keyOrCallback)) {
         node = getPathNode(node.root, node.path, keyOrCallback);
         keyOrCallback = callbackOnChild;
@@ -80,8 +80,8 @@ export function onTrue<T extends boolean>(
 
 export function onChange(
     node: PathNode,
-    keyOrCallback: string | ListenerFn3<any>,
-    callbackOnChild?: ListenerFn3<any>,
+    keyOrCallback: string | ListenerFn<any>,
+    callbackOnChild?: ListenerFn<any>,
     shallow?: boolean
 ) {
     if (isString(keyOrCallback)) {
@@ -103,15 +103,15 @@ export function onChange(
     if (!node.listeners) {
         node.listeners = new Set();
     }
-    node.listeners.add(listener as ObservableListener3);
+    node.listeners.add(listener as ObservableListener);
 
-    return listener as ObservableListener3;
+    return listener as ObservableListener;
 }
 
 export function onChangeShallow(
     node: PathNode,
-    keyOrCallback: string | ListenerFn3<any>,
-    callbackOnChild?: ListenerFn3<any>
+    keyOrCallback: string | ListenerFn<any>,
+    callbackOnChild?: ListenerFn<any>
 ) {
     return onChange(node, keyOrCallback, callbackOnChild, /*shallow*/ true);
 }

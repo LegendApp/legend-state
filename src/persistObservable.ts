@@ -1,18 +1,17 @@
 import { observableConfiguration } from './configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
-import { ObservablePersistLocalStorage } from './persist/local-storage';
-import { observableBatcher } from './observableBatcher3';
+import { observable } from './observable';
+import { observableBatcher } from './observableBatcher';
 import { mergeIntoObservable } from './observableFns';
 import type {
-    Observable2,
-    ObservableChecker3,
-    ObservableListenerInfo2,
+    Observable,
+    ObservableListenerInfo,
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
     PersistOptions,
 } from './observableInterfaces';
-import { observable3 } from './observable3';
+import { ObservablePersistLocalStorage } from './persist/local-storage';
 
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
@@ -30,11 +29,11 @@ interface LocalState {
 }
 
 async function onObsChange<T>(
-    obsState: Observable2<ObservablePersistState>,
+    obsState: Observable<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
-    info: ObservableListenerInfo2
+    info: ObservableListenerInfo
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
 
@@ -88,9 +87,9 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
 }
 
 async function loadLocal(
-    obs: Observable2,
+    obs: Observable,
     persistOptions: PersistOptions,
-    obsState: Observable2<ObservablePersistState>,
+    obsState: Observable<ObservablePersistState>,
     localState: LocalState
 ) {
     const { local, remote } = persistOptions;
@@ -139,8 +138,8 @@ async function loadLocal(
     }
 }
 
-export function persistObservable<T>(obs: Observable2<T>, persistOptions: PersistOptions<T>) {
-    const obsState = observable3<ObservablePersistState>({
+export function persistObservable<T>(obs: Observable<T>, persistOptions: PersistOptions<T>) {
+    const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,
         clearLocal: undefined,

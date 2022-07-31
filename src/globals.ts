@@ -1,5 +1,5 @@
 import { isArray, isObject } from '@legendapp/tools';
-import { ObservableChecker3, ObservableWrapper, PathNode } from './observableInterfaces';
+import { ObservableChecker, ObservableWrapper, PathNode } from './observableInterfaces';
 import { observableConfiguration } from './configureObservable';
 
 export const delim = '\uFEFF';
@@ -127,7 +127,7 @@ export function getObjectNode(obj: any) {
     }
 }
 
-export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
+export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
     if (!obs) return obs as T;
     const prop = obs[symbolProp as any];
     if (prop) {

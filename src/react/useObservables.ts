@@ -1,39 +1,12 @@
 import { useForceRender } from '@legendapp/tools/react';
 import { useEffect, useRef } from 'react';
 import { getObservableRawValue, symbolEqualityFn, symbolShallow } from '../globals';
-import { EqualityFn, Observable2, ObservableChecker3, ObservableListener3 } from '../observableInterfaces';
+import { EqualityFn, Observable, ObservableChecker, ObservableListener } from '../observableInterfaces';
 
 interface SavedRef {
-    listeners: ObservableListener3[];
+    listeners: ObservableListener[];
     cmpValue?: any[];
 }
-
-// export function useObservable3<T extends Observable2>(obs: T, equalityFn?: (state: T) => any) {
-//     const fr = useForceRender();
-//     useEffect(() => {
-//         let cb = fr as ListenerFn3<T>;
-//         if (equalityFn) {
-//             let prev = equalityFn(obs);
-//             cb = (value: T) => {
-//                 const cur = equalityFn(value);
-//                 if (cur !== prev) {
-//                     prev = cur;
-//                     fr();
-//                 }
-//             };
-//         }
-//         let shallow = false;
-//         if (obs[symbolShallow as any]) {
-//             shallow = true;
-//             obs = obs[symbolShallow as any];
-//         }
-
-//         // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-//         const listener = (shallow ? obs._.onChangeShallow : obs._.onChange)(cb);
-//         return () => listener.dispose();
-//     }, []);
-//     return obs;
-// }
 
 /**
  * A React hook that listens to observables and returns their values.
@@ -42,7 +15,7 @@ interface SavedRef {
  *
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
-export function useObservables3<T extends ObservableChecker3<T>[]>(...args: T): T {
+export function useObservables<T extends ObservableChecker<T>[]>(...args: T): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -82,7 +55,7 @@ export function useObservables3<T extends ObservableChecker3<T>[]>(...args: T): 
                     };
                 }
                 // Listen to the observable and by `changeShallow` if the argument was shallow(...)
-                const listener = (shallow ? (obs as Observable2)._.onChangeShallow : (obs as Observable2)._.onChange)(
+                const listener = (shallow ? (obs as Observable)._.onChangeShallow : (obs as Observable)._.onChange)(
                     comparator || forceRender
                 );
 
