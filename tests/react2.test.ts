@@ -83,25 +83,6 @@ describe('React Hooks', () => {
         // @ts-ignore
         expect(val.val4).toEqual('v');
     });
-    test('useObservables shallow does not re-render items from splice', () => {
-        let numRenders = 0;
-        const obs = observable3({ data: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }] });
-
-        const second = obs.data[1];
-
-        const { result } = renderHook(() => {
-            numRenders++;
-            return useObservables3([second]);
-        });
-        const [data] = result.current;
-
-        act(() => {
-            obs.data.splice(0, 1);
-        });
-
-        expect(numRenders).toEqual(1);
-        // expect(result.current[0][1]).toBe(last);
-    });
     // test('useObservables shallow does not re-render from set inside array', () => {
     //     let numRenders = 0;
     //     const obs = observable3({ val: [{ text: 'hello' }] });

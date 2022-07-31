@@ -125,15 +125,20 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     }
 }
 
-function cleanup(obj: object) {
+function cleanup(node: PathNode, obj: object) {
     const isArr = isArray(obj);
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
-        if (!isPrimitive2(obj[key])) {
-            cleanup(obj[key]);
+        const child = getPathNode(node.root, node.path, key, /*noCreate*/ true);
+        if (child) {
+            cleanup(child, obj[key]);
         }
+    }
+    const value = getNodeValue(node);
+    if (value === undefined || value === null) {
+        _notify(node, { path: [], prevValue: obj, value: undefined });
     }
     const id = (obj as { _: any })._?.[symbolID];
     delete arrPaths[id];
@@ -150,15 +155,17 @@ function set(node: PathNode, key: string, newValue?: any): any {
             assign(node, key);
         }
     } else {
+        const childNode = getPathNode(node.root, node.path, key);
+
         let parentValue = getNodeValue(node);
         const prevValue = parentValue[key];
 
-        if (!isPrimitive2(parentValue[key])) {
-            cleanup(parentValue[key]);
-        }
         parentValue[key] = newValue;
 
-        const childNode = getPathNode(node.root, node.path, key);
+        if (!isPrimitive2(prevValue)) {
+            cleanup(childNode, prevValue);
+        }
+
         if (!isPrimitive2(newValue)) {
             updateNodes(childNode, newValue, prevValue);
         }

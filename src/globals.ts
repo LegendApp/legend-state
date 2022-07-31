@@ -98,13 +98,13 @@ export function hasPathNode(root: ObservableWrapper, path: string, key?: string)
     }
     return root.pathNodes.has(path);
 }
-export function getPathNode(root: ObservableWrapper, path: string, key?: string) {
+export function getPathNode(root: ObservableWrapper, path: string, key?: string, noCreate?: boolean) {
     const parent = path;
     if (key !== undefined && path !== undefined) {
         path += delim + key;
     }
     let pathNode = root.pathNodes.get(path);
-    if (!pathNode) {
+    if (!pathNode && !noCreate) {
         pathNode = {
             root,
             path,
