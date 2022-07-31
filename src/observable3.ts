@@ -152,7 +152,7 @@ function set(node: PathNode, key: string, newValue?: any): any {
             return set(getParentNode(node), node.key, key);
         } else {
             // Set on the root has to assign
-            assign(node, key);
+            return assign(node, key);
         }
     } else {
         const childNode = getPathNode(node.root, node.path, key);
@@ -170,8 +170,12 @@ function set(node: PathNode, key: string, newValue?: any): any {
             updateNodes(childNode, newValue, prevValue);
         }
 
-        notify(childNode, newValue, prevValue);
+        if (newValue !== prevValue) {
+            notify(childNode, newValue, prevValue);
+        }
     }
+
+    return newValue;
 }
 
 function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp?: number) {
@@ -206,6 +210,8 @@ function assign(node: PathNode, value: any) {
     for (let i = 0; i < length; i++) {
         set(node, keys[i], value[keys[i]]);
     }
+
+    return getNodeValue(node);
 }
 
 function deleteFn(node: PathNode, key?: string) {
