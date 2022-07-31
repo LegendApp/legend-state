@@ -1,4 +1,4 @@
-import { isArray, isObject } from '@legendapp/tools';
+import { isArray, isObject } from './is';
 import { ObservableChecker, ObservableWrapper, PathNode } from './observableInterfaces';
 import { observableConfiguration } from './configureObservable';
 
@@ -40,15 +40,6 @@ export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, 
     } else {
         return obj;
     }
-}
-
-export function isPrimitive(arg) {
-    var type = typeof arg;
-    return arg == null || (type != 'object' && type != 'function');
-}
-
-export function isCollection(obj: any) {
-    return isArray(obj) || obj instanceof Map || obj instanceof Set || obj instanceof WeakMap || obj instanceof WeakSet;
 }
 
 export function getDateModifiedKey(dateModifiedKey: string) {

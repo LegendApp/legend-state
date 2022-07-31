@@ -1,4 +1,4 @@
-import { isFunction } from '@legendapp/tools';
+import { isFunction } from '../is';
 import { useMemo } from 'react';
 import { observable } from '../observable';
 import { Observable, PersistOptions } from '../observableInterfaces';

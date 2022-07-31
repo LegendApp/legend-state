@@ -1,4 +1,4 @@
-import { isObject } from '@legendapp/tools';
+import { isObject } from './is';
 import { symbolDateModified } from './globals';
 import { Observable } from './observableInterfaces';
 

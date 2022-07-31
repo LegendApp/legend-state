@@ -26,9 +26,6 @@
         "./mmkv": "./mmkv.js",
         "./react": "./react.js"
     },
-    "dependencies": {
-        "@legendapp/tools": "2.0.0"
-    },
     "devDependencies": {
         "@testing-library/react-hooks": "^8.0.1",
         "@types/jest": "^26.0.24",

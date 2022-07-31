@@ -1,7 +1,11 @@
-import { useForceRender } from '@legendapp/tools/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useReducer } from 'react';
 import { getObservableRawValue, symbolEqualityFn, symbolShallow } from '../globals';
 import { EqualityFn, Observable, ObservableChecker, ObservableListener } from '../observableInterfaces';
+
+export function useForceRender() {
+    const [, forceRender] = useReducer((s) => s + 1, 0);
+    return forceRender as () => void;
+}
 
 interface SavedRef {
     listeners: ObservableListener[];

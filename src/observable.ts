@@ -1,4 +1,4 @@
-import { isArray } from '@legendapp/tools';
+import { isArray, isPrimitive } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     arrPaths,
@@ -9,7 +9,6 @@ import {
     getPathNode,
     getValueAtPath,
     hasPathNode,
-    isPrimitive,
     symbolEqualityFn,
     symbolID,
     symbolProp,

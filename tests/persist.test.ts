@@ -1,4 +1,4 @@
-import { isArray, isObject, isString } from '@legendapp/tools';
+import { isArray, isObject, isString } from '../src/is';
 import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';

@@ -1,4 +1,3 @@
-import { clearTimeoutOnce, timeoutOnce } from '@legendapp/tools';
 import { ListenerFn, ObservableListenerInfo } from './observableInterfaces';
 
 let numInBatch = 0;
@@ -32,6 +31,8 @@ export function observableBatcherNotify(cb: ListenerFn<any>, value: any, info: O
     }
 }
 
+let timeout;
+
 export namespace observableBatcher {
     export function batch(fn: () => void) {
         begin();
@@ -41,12 +42,12 @@ export namespace observableBatcher {
     export function begin() {
         numInBatch++;
         // Set a timeout to call end() in case end() is never called or there's an uncaught error
-        timeoutOnce('batch_beginAction', onActionTimeout, 0);
+        timeout = setTimeout(onActionTimeout, 0);
     }
     export function end(force?: boolean) {
         numInBatch--;
         if (numInBatch <= 0 || force) {
-            clearTimeoutOnce('batch_beginAction');
+            clearTimeout(timeout);
             numInBatch = 0;
             // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
             // This can happen with observableComputed for example.

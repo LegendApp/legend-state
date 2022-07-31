@@ -1,4 +1,4 @@
-import { isFunction, isObjectEmpty, isString } from '@legendapp/tools';
+import { isFunction, isObjectEmpty, isString } from './is';
 import { getNodeValue, getParentNode, getPathNode } from './globals';
 import { ListenerFn, ObservableListener, OnReturnValue, PathNode } from './observableInterfaces';
 
