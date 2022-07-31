@@ -1,8 +1,7 @@
 import { observableConfiguration } from './configureObservable';
 import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
 import { ObservablePersistLocalStorage } from './persist/local-storage';
-import { observable } from './observable';
-import { observableBatcher } from './observableBatcher';
+import { observableBatcher } from './observableBatcher3';
 import { mergeIntoObservable } from './observableFns';
 import type {
     Observable2,
@@ -89,7 +88,7 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
 }
 
 async function loadLocal(
-    obs: ObservableChecker3,
+    obs: Observable2,
     persistOptions: PersistOptions,
     obsState: Observable2<ObservablePersistState>,
     localState: LocalState

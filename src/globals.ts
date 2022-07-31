@@ -138,9 +138,6 @@ export function getObservableRawValue<T>(obs: ObservableChecker3<T>): T {
             return getObservableRawValue(eq.obs);
         } else {
             return obs[symbolShallow as any] || obs;
-            // obs = obs[symbolShallow as any] || obs;
-            // const node = getObjectNode(obs);
-            // return (node ? getNodeValue(node) : obs) as unknown as T;
         }
     }
 }
