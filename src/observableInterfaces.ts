@@ -52,6 +52,12 @@ export interface ObservableBaseFns<T> {
         cb?: (value?: T) => void
     ): { listener: ObservableListener3<T>; promise: Promise<T> };
 }
+export interface ObservableComputedFns<T> {
+    onChange(cb: ListenerFn3<T>): ObservableListener3<T>;
+    onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onTrue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+    onHasValue(cb?: (value?: T) => void): { listener: ObservableListener3<T>; promise: Promise<T> };
+}
 export interface ObservableFns<T> extends ObservableBaseFns<T> {
     prop<K extends keyof T>(prop: K): Observable2<T[K]>;
     set(value: ValidObservableParam2<T>): Observable2<T>;
@@ -65,6 +71,9 @@ export interface ObservableBaseProps2<T> {
 }
 export interface ObservableProps2<T> {
     _: ObservableFns<T>;
+}
+export interface ObservableComputedProps2<T> {
+    _: ObservableComputedFns<T>;
 }
 export type ObservablePropsUnsafe<T> = Partial<ObservableProps<T>>;
 
@@ -326,4 +335,4 @@ export interface PathNode {
     listeners?: Set<ObservableListener3>;
 }
 export type ObservableChecker3<T> = Shallow | EqualityFn | Observable2 | Prop;
-export type ObservableComputed3<T = any> = { readonly value: T } & ObservableBaseProps2<{ readonly value: T }>;
+export type ObservableComputed3<T = any> = { readonly current: T } & ObservableComputedProps2<{ readonly current: T }>;

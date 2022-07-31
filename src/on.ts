@@ -93,7 +93,6 @@ export function onChange(
         node,
         callback: keyOrCallback,
         path: node.path,
-        // pathStr: child.path,
         shallow,
     } as Partial<ObservableListener3>;
     listener.dispose = disposeListener.bind(listener, listener);
@@ -105,39 +104,3 @@ export function onChange(
 
     return listener as ObservableListener3;
 }
-
-// const ObservableOnFunctions: Record<ObservableEventType, Function> = {
-//     change: onChange.bind(this, /*shallow*/ false),
-//     changeShallow: onChange.bind(this, /*shallow*/ true),
-//     equals: onEquals,
-//     hasValue: onHasValue,
-//     true: onTrue,
-// };
-
-// export function _on(node: PathNode, type: ObservableEventType, ...args: any[]);
-// export function _on(node: PathNode, key: string, type: ObservableEventType, ...args: any[]);
-// export function _on(
-//     node: PathNode,
-//     key: string | ObservableEventType,
-//     type: ((value, prevValue) => void) | ObservableEventType,
-//     ...args: any[]
-// ) {
-//     if (arguments.length < 4) {
-//         if (node.path.length > 0) {
-//             const last = node.path[node.path.length - 1];
-//             return _on(
-//                 { path: node.path.slice(0, -1), root: node.root },
-//                 last,
-//                 key as ObservableEventType,
-//                 type as (value, prevValue) => void
-//             );
-//         } else debugger;
-//         // return _on({ root: node.root, path: })
-//     } else {
-//         const child: PathNode = {
-//             path: node.path.concat(key),
-//             root: node.root,
-//         };
-//         return ObservableOnFunctions[type as ObservableEventType](child, ...args);
-//     }
-// }

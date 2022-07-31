@@ -452,25 +452,25 @@ describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable3({ test: 10, test2: 20 });
         const computed = observableComputed3([obs._.prop('test'), obs._.prop('test2')], (test, test2) => test + test2);
-        expect(computed.value).toEqual(30);
+        expect(computed.current).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable3({ test: 10, test2: 20 });
         const computed = observableComputed3([obs._.prop('test'), obs._.prop('test2')], (test, test2) => test + test2);
-        expect(computed.value).toEqual(30);
+        expect(computed.current).toEqual(30);
 
         const handler = jest.fn();
-        computed._.onChange('value', handler);
+        computed._.onChange(handler);
 
         obs._.set('test', 5);
 
         expect(handler).toHaveBeenCalledWith(25, { value: 25, path: [], prevValue: 30 });
-        expect(computed.value).toEqual(25);
+        expect(computed.current).toEqual(25);
 
         obs._.set('test', 1);
 
         expect(handler).toHaveBeenCalledWith(21, { value: 21, path: [], prevValue: 25 });
-        expect(computed.value).toEqual(21);
+        expect(computed.current).toEqual(21);
     });
     test('Cannot directly set a computed', () => {
         const obs = observable3({ test: 10, test2: 20 });
@@ -479,16 +479,16 @@ describe('Computed', () => {
         // @ts-expect-error
         computed._.set(40);
 
-        expect(computed.value).toEqual(30);
+        expect(computed.current).toEqual(30);
 
         // @ts-expect-error
         computed._.delete();
 
-        expect(computed.value).toEqual(30);
+        expect(computed.current).toEqual(30);
 
         // @ts-expect-error
         computed._.assign({ text: 'hi' });
 
-        expect(computed.value).toEqual(30);
+        expect(computed.current).toEqual(30);
     });
 });
