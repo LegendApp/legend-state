@@ -207,6 +207,7 @@ function notify(node: PathNode, value: any, prevValue: any) {
 
 function assign(node: PathNode, value: any) {
     observableBatcher.begin();
+
     const keys = Object.keys(value);
     const length = keys.length;
     for (let i = 0; i < length; i++) {

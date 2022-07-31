@@ -1,7 +1,7 @@
 import { isArray, isObject, isString } from '@legendapp/tools';
 import { configureObservable } from '../src/configureObservable';
 import { symbolDateModified } from '../src/globals';
-import { observable } from '../src/observable';
+import { observable3 } from '../src/observable3';
 import { mapPersistences, persistObservable } from '../src/persistObservable';
 import { ObservablePersistLocalStorage } from '../src/persist/local-storage';
 
@@ -77,13 +77,13 @@ beforeEach(() => {
 
 describe('Persist local', () => {
     test('Saves to local', () => {
-        const obs = observable({ test: '' });
+        const obs = observable3({ test: '' });
 
         persistObservable(obs, {
             local: 'jestlocal',
         });
 
-        obs.set({ test: 'hello' });
+        obs._.set({ test: 'hello' });
 
         const localValue = global.localStorage.getItem('jestlocal');
 
@@ -91,12 +91,12 @@ describe('Persist local', () => {
         expect(localValue).toBe(`{"test":"hello"}`);
 
         // obs2 should load with the same value it was just saved as
-        const obs2 = observable({});
+        const obs2 = observable3({});
         persistObservable(obs2, {
             local: 'jestlocal',
         });
 
-        expect(obs2.get()).toEqual({ test: 'hello' });
+        expect(obs2).toEqual({ test: 'hello' });
     });
     // TODO: Put this back when adding remote persistence
     // test('Loads from local with modified', () => {

@@ -220,12 +220,12 @@ export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo): Promise<T>;
+    save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo2): Promise<T>;
     listen<T>(
-        obs: ObservableChecker<T>,
+        obs: ObservableChecker3<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: Observable<T>, value: any) => void
+        onChange: (obs: Observabl2<T>, value: any) => void
     );
 }
 
@@ -338,5 +338,5 @@ export interface PathNode {
     key: string;
     listeners?: Set<ObservableListener3>;
 }
-export type ObservableChecker3<T> = Shallow | EqualityFn | Observable2 | Prop;
+export type ObservableChecker3<T = any> = Shallow | EqualityFn | Observable2 | Prop;
 export type ObservableComputed3<T = any> = { readonly current: T } & ObservableComputedProps2<{ readonly current: T }>;

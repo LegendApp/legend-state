@@ -5,14 +5,15 @@ import { observable } from './observable';
 import { observableBatcher } from './observableBatcher';
 import { mergeIntoObservable } from './observableFns';
 import type {
-    Observable,
-    ObservableChecker,
-    ObservableListenerInfo,
+    Observable2,
+    ObservableChecker3,
+    ObservableListenerInfo2,
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
     PersistOptions,
 } from './observableInterfaces';
+import { observable3 } from './observable3';
 
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
@@ -30,11 +31,11 @@ interface LocalState {
 }
 
 async function onObsChange<T>(
-    obsState: Observable<ObservablePersistState>,
+    obsState: Observable2<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
-    info: ObservableListenerInfo
+    info: ObservableListenerInfo2
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
 
@@ -88,9 +89,9 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
 }
 
 async function loadLocal(
-    obs: ObservableChecker,
+    obs: ObservableChecker3,
     persistOptions: PersistOptions,
-    obsState: Observable<ObservablePersistState>,
+    obsState: Observable2<ObservablePersistState>,
     localState: LocalState
 ) {
     const { local, remote } = persistOptions;
@@ -133,14 +134,14 @@ async function loadLocal(
             mergeIntoObservable(obs, value);
         }
 
-        obsState.set('clearLocal', () => persistenceLocal.delete(local));
+        obsState._.set('clearLocal', () => persistenceLocal.delete(local));
 
-        obsState.isLoadedLocal.set(true);
+        obsState._.set('isLoadedLocal', true);
     }
 }
 
-export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: PersistOptions<T>) {
-    const obsState = observable<ObservablePersistState>({
+export function persistObservable<T>(obs: Observable2<T>, persistOptions: PersistOptions<T>) {
+    const obsState = observable3<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,
         clearLocal: undefined,
@@ -162,19 +163,19 @@ export function persistObservable<T>(obs: ObservableChecker<T>, persistOptions: 
         }
         localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
 
-        obsState.isLoadedLocal.on('true', () => {
+        obsState._.onTrue('isLoadedLocal', () => {
             localState.persistenceRemote.listen(
                 obs,
                 persistOptions,
                 () => {
-                    obsState.isLoadedRemote.set(true);
+                    obsState._.set('isLoadedRemote', true);
                 },
                 onChangeRemote.bind(this, localState)
             );
         });
     }
 
-    obs.on('change', onObsChange.bind(this, obsState, localState, persistOptions));
+    obs._.onChange(onObsChange.bind(this, obsState, localState, persistOptions));
 
     return obsState;
 }
