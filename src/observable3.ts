@@ -1,4 +1,5 @@
 import { isArray } from '@legendapp/tools';
+import { observableBatcher, observableBatcherNotify } from './observableBatcher3';
 import {
     arrPaths,
     delim,
@@ -183,7 +184,7 @@ function _notify(node: PathNode, listenerInfo: ObservableListenerInfo2, levelsUp
         const value = getNodeValue(node);
         for (let listener of node.listeners) {
             if (!listener.shallow || levelsUp <= 0) {
-                listener.callback(value, listenerInfo);
+                observableBatcherNotify(listener.callback, value, listenerInfo);
             }
         }
     }
@@ -205,13 +206,17 @@ function notify(node: PathNode, value: any, prevValue: any) {
 }
 
 function assign(node: PathNode, value: any) {
+    observableBatcher.begin();
     const keys = Object.keys(value);
     const length = keys.length;
     for (let i = 0; i < length; i++) {
         set(node, keys[i], value[keys[i]]);
     }
 
-    return getNodeValue(node);
+    const ret = getNodeValue(node);
+    observableBatcher.end();
+
+    return ret;
 }
 
 function deleteFn(node: PathNode, key?: string) {

@@ -1,6 +1,7 @@
 import { observableComputed3 } from '../src/observableComputed3';
 import { observable3 } from '../src/observable3';
 import { observableEvent3 } from '../src/observableEvent3';
+import { observableBatcher } from '../src/observableBatcher3';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -1192,5 +1193,62 @@ describe('Promise values', () => {
         const obs = observable3({ promise });
 
         expect(obs.promise).resolves.toEqual(10);
+    });
+});
+describe('Batching', () => {
+    test('Assign is batched', async () => {
+        const obs = observable3({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+
+        const handler = jest.fn();
+        obs._.onChange('num1', handler);
+        obs._.onChange('num2', handler);
+        obs._.onChange('num3', handler);
+
+        obs._.assign({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    test('Setting only calls once', async () => {
+        const obs = observable3({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+
+        const handler = jest.fn();
+        obs._.onChange('num1', handler);
+        obs._.onChange('num2', handler);
+        obs._.onChange('num3', handler);
+
+        obs._.set({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Batching is batched', async () => {
+        const obs = observable3({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+        const handler = jest.fn();
+        obs._.onChange('num1', handler);
+        obs._.onChange('num2', handler);
+        obs._.onChange('num3', handler);
+        observableBatcher.begin();
+        observableBatcher.begin();
+        observableBatcher.begin();
+        obs._.set({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+        observableBatcher.end();
+        observableBatcher.end();
+        observableBatcher.end();
+        expect(handler).toHaveBeenCalledTimes(1);
     });
 });
