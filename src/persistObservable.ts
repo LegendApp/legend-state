@@ -1,5 +1,5 @@
 import { observableConfiguration } from './configureObservable';
-import { removeNullUndefined, replaceKeyInObject, symbolDateModified } from './globals';
+import { symbolDateModified } from './globals';
 import { mergeIntoObservable } from './helpers';
 import { observable } from './observable';
 import { observableBatcher } from './observableBatcher';
@@ -12,6 +12,7 @@ import type {
     PersistOptions,
 } from './observableInterfaces';
 import { ObservablePersistLocalStorage } from './persist/local-storage';
+import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();

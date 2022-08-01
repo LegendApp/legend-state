@@ -1,2 +1,3 @@
 export { observableConfiguration } from './src/configureObservable';
-export { symbolDateModified, symbolShallow, getDateModifiedKey } from './src/globals';
+export { symbolShallow, symbolDateModified } from './src/globals';
+export { getDateModifiedKey } from './src/persistHelpers';
