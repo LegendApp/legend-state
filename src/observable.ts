@@ -1,15 +1,12 @@
 import {
-    arrPaths,
     delim,
     getNodeValue,
-    getObjectNode,
     getParentNode,
     getPathNode,
     getProxyValue,
     hasPathNode,
     symbolGet,
     symbolID,
-    symbolProp,
 } from './globals';
 import { isArray, isFunction, isObject, isPrimitive } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
@@ -56,35 +53,31 @@ objectFnsProxy.forEach((fn, key) => {
     toOverride.forEach((override) => (override.prototype[key] = wrapFn(fn)));
 });
 
-const descriptorsArray: PropertyDescriptorMap = {};
+function collectionSetter(node: PathNode, target: any, prop: string, ...args: any[]) {
+    // this = target
+    const prevValue =
+        // (this instanceof Map && new Map(this)) ||
+        // (this instanceof Set && new Set(this)) ||
+        (isArray(target) && target.slice()) || target;
 
-// Override array functions to call set
-['copyWithin', 'fill', 'from', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'].forEach((key) => {
-    descriptorsArray[key] = {
-        value() {
-            const prevValue = this.slice();
-            // Call the original function
-            const ret = Array.prototype[key].apply(this, arguments);
+    const ret = (target[prop] as Function).apply(target, args);
 
-            const node = getObjectNode(this);
-            if (node) {
-                const parentNode = getParentNode(node);
-                if (parentNode) {
-                    const parent = getNodeValue(parentNode);
+    if (node) {
+        const parentNode = getParentNode(node);
+        if (parentNode) {
+            const parent = getNodeValue(parentNode);
 
-                    // Set the object to the previous value first
-                    parent[node.key] = prevValue;
+            // Set the object to the previous value first
+            parent[node.key] = prevValue;
 
-                    // Then set with the new value so it notifies with the correct prevValue
-                    set(node, this);
-                }
-            }
+            // Then set with the new value so it notifies with the correct prevValue
+            set(parentNode, node.key, target);
+        }
+    }
 
-            // Return the original value
-            return ret;
-        },
-    };
-});
+    // Return the original value
+    return ret;
+}
 
 function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     const isArr = isArray(obj);
@@ -136,16 +129,20 @@ const proxyHandler: ProxyHandler<any> = {
             return (a, b, c) => fn(node, a, b, c);
         } else {
             const value = getNodeValue(node);
+            const vProp = value[prop];
             if (prop === symbolGet) {
                 return value;
             } else if (prop === 'get') {
                 return () => value;
-            } else if (isFunction(value[prop])) {
-                return value[prop].bind(value);
-            } else if (isPrimitive(value[prop])) {
+            } else if (isFunction(vProp)) {
+                if (isArray(value)) {
+                    return (...args) => collectionSetter(node, value, prop, ...args);
+                }
+                return vProp.bind(value);
+            } else if (isPrimitive(vProp)) {
                 lastAccessedNode = node;
                 lastAccessedPrimitive = prop;
-                return value[prop];
+                return vProp;
             } else {
                 const path = target.path + delim + prop;
                 let proxy = node.root.proxies.get(path);
@@ -337,8 +334,8 @@ function assign(node: PathNode, value: any) {
     return ret;
 }
 
-function deleteFnProxy(node: PathNode) {
-    return deleteFn(getParentNode(node), node.key);
+function deleteFnProxy(node: PathNode, key: string) {
+    return key !== undefined ? deleteFn(node, key) : deleteFn(getParentNode(node), node.key);
 }
 function deleteFn(node: PathNode, key?: string) {
     // delete sets to undefined first to cleanup children
@@ -351,15 +348,6 @@ function deleteFn(node: PathNode, key?: string) {
 
     inSetFn = false;
 }
-
-// export function prop(node: PathNode, key: string) {
-//     // prop returns an object with symbolProp
-//     const prop = {
-//         [symbolProp]: { node, key },
-//     };
-//     Object.defineProperty(prop, '_', createUnderscore(prop, node));
-//     return prop;
-// }
 
 export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
 export function observable<T extends boolean>(prim: T): ObservablePrimitive<boolean>;

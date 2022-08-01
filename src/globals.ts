@@ -54,12 +54,12 @@ export function getParentNode(node: PathNode) {
     return getPathNode(node.root, node.parent);
 }
 
-export function getObjectNode(obj: any) {
-    const id = obj._?.id;
-    if (id !== undefined) {
-        return arrPaths[id];
-    }
-}
+// export function getObjectNode(obj: any) {
+//     const id = obj._?.id;
+//     if (id !== undefined) {
+//         return arrPaths[id];
+//     }
+// }
 
 export function get(proxy: ProxyValue) {
     const node = getPathNode(proxy.root, proxy.path);

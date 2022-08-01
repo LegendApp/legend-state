@@ -8,8 +8,8 @@ export function observableEvent(): ObservableEvent {
     return {
         fire: () => {
             // Notify increments the value so that the observable changes
-            obs._.set(obs.current + 1);
+            obs.set(obs.current + 1);
         },
-        on: obs._.onChange as any,
+        on: obs.onChange as any,
     };
 }
