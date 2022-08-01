@@ -55,19 +55,15 @@ export function clone(obj: any) {
         : JSON.parse(JSON.stringify(obj));
 }
 
-export function getValueAtPath(root: object, path: string) {
-    let child = root;
-    const arr = path.split(delim).filter((a) => !!a);
+export function getNodeValue(node: PathNode) {
+    let child = node.root;
+    const arr = node.path.split(delim);
     for (let i = 0; i < arr.length; i++) {
-        if (child) {
+        if (arr[i] && child) {
             child = child[arr[i]];
         }
     }
     return child;
-}
-
-export function getNodeValue(node: PathNode) {
-    return getValueAtPath(node.root, node.path);
 }
 
 export function hasPathNode(root: ObservableWrapper, path: string, key?: string) {

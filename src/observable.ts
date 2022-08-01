@@ -5,7 +5,6 @@ import {
     getObjectNode,
     getParentNode,
     getPathNode,
-    getValueAtPath,
     hasPathNode,
     symbolProp,
 } from './globals';
@@ -278,7 +277,7 @@ function deleteFn(node: PathNode, key?: string) {
     set(node, key, undefined);
 
     // Then delete the key from the object
-    let child = getValueAtPath(node.root, node.path);
+    let child = getNodeValue(node);
     delete child[key];
 }
 
