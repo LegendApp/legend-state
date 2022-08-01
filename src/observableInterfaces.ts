@@ -3,21 +3,19 @@ import { symbolEqualityFn, symbolProp, symbolShallow } from './globals';
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export interface ObservableBaseFns<T> {
+    get(): T;
     onChange(cb: ListenerFn<T>): ObservableListener<T>;
-    onChange<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
     onChangeShallow(cb: ListenerFn<T>): ObservableListener<T>;
-    onChangeShallow<K extends keyof T>(key: K, cb: ListenerFn<T>): ObservableListener<T>;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
-    onEquals<K extends keyof T>(key: K, value: T[K], cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
-    onTrue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue<T>;
     onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
-    onHasValue<K extends keyof T>(key: K, cb?: (value?: T) => void): OnReturnValue<T>;
 }
-export interface ObservableFns<T> extends ObservableBaseFns<T> {
-    prop<K extends keyof T>(prop: K): Observable<T[K]>;
+export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set(value: T): Observable<T>;
-    set<K extends keyof T>(key: K | string | number, value: T[K]): Observable<T[K]>;
+}
+export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
+    prop<K extends keyof T>(prop: K): Observable<T[K]>;
+    setProp<K extends keyof T>(key: K, value: T[K]): Observable<T>;
     assign(value: T | Partial<T>): Observable<T>;
     delete(): Observable<T>;
     delete<K extends keyof T>(key: K | string | number): Observable<T>;
@@ -31,9 +29,8 @@ export interface ObservableComputedFns<T> {
 export interface ObservableBaseProps<T> {
     _: ObservableBaseFns<T>;
 }
-export interface ObservableProps<T> {
-    _: ObservableFns<T>;
-}
+export type ObservableProps<T> = ObservableFns<T>;
+
 export interface ObservableComputedProps<T> {
     _: ObservableComputedFns<T>;
 }
@@ -53,10 +50,9 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Set<any>
     | WeakSet<any>
     | Promise<any>
-    | number
-    | boolean
-    | string
     ? T[K]
+    : T[K] extends number | boolean | string
+    ? T[K] & ObservableProps<T[K]>
     : T[K] extends Array<any>
     ? T[K] &
           ObservableProps<T[K]> & {
@@ -201,7 +197,9 @@ export interface ObservableListener<T = any> {
 }
 export interface ObservableWrapper<T = any> {
     _: Observable;
+    isPrimitive: boolean;
     pathNodes: Map<string, PathNode>;
+    proxies: Map<string, object>;
 }
 
 export interface PathNode {
@@ -213,7 +211,7 @@ export interface PathNode {
 }
 export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Prop;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
-export type ObservablePrimitive<T = any> = { readonly current: T } & ObservableProps<T>;
+export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
 export interface ProxyValue {
     path: string;
