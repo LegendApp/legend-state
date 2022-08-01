@@ -5,10 +5,13 @@ import {
     getObjectNode,
     getParentNode,
     getPathNode,
+    getProxyValue,
     hasPathNode,
+    symbolGet,
+    symbolID,
     symbolProp,
 } from './globals';
-import { isArray, isObject, isPrimitive } from './is';
+import { isArray, isFunction, isObject, isPrimitive } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
@@ -17,48 +20,43 @@ import {
     ObservablePrimitive,
     ObservableWrapper,
     PathNode,
+    ProxyValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 
-let nextID = 0;
+const proxies = new Map<string, object>();
 
-// Prepare an array of all the functions
-const objectFns: [string, Function][] = [
-    ['set', set],
+let didOverride = false;
+export function extendPrototypes() {
+    if (!didOverride) {
+        didOverride = true;
+        const fn = (name: string) =>
+            function (...args: any) {
+                debugger;
+                // const obs = getObservableFromPrimitive(this);
+                // if (obs) {
+                //     return obs[name](...args);
+                // }
+            };
+        const toOverride = [Number, Boolean, String];
+        ['assign', 'get', 'on', 'set', 'delete'].forEach((key) => {
+            toOverride.forEach((override) => (override.prototype[key] = fn(key)));
+        });
+    }
+}
+extendPrototypes();
+
+const objectFnsProxy = new Map<string, Function>([
+    ['set', proxySet],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['prop', prop],
+    // ['prop', prop],
     ['assign', assign],
-    ['delete', deleteFn],
-];
-
-// Wrap the observable functions while converting from object to PathNode
-for (let i = 0; i < objectFns.length; i++) {
-    const fn = objectFns[i][1];
-    objectFns[i][1] = function (a, b, c) {
-        let node: PathNode;
-        const prop = this[symbolProp];
-        let num = arguments.length;
-        if (prop) {
-            node = prop.node;
-            c = b;
-            b = a;
-            a = prop.key;
-            num++;
-        } else {
-            node = getObjectNode(this);
-        }
-        if (node) {
-            // Micro-optimize here because it's the core path and this is faster than apply
-            return num === 3 ? fn(node, a, b, c) : num === 2 ? fn(node, a, b) : num === 1 ? fn(node, a) : fn(node);
-        } else {
-            console.error('Node not found, unable to call function on observable');
-        }
-    };
-}
+    ['delete', deleteFnProxy],
+]);
 
 const descriptorsArray: PropertyDescriptorMap = {};
 
@@ -90,31 +88,6 @@ const descriptorsArray: PropertyDescriptorMap = {};
     };
 });
 
-function createUnderscore(obj: any, node: PathNode): PropertyDescriptor {
-    const id = nextID++;
-    // Add this to arrPaths so we can track its node later
-    arrPaths[id] = node;
-
-    // Create the _ object
-    const out = {
-        id,
-    };
-
-    // Bind all the _ functions to it
-    for (let i = 0; i < objectFns.length; i++) {
-        const [key, fn] = objectFns[i];
-        out[key] = fn.bind(obj);
-    }
-
-    // Don't want this property to be user modifiable
-    return {
-        enumerable: false,
-        configurable: false,
-        writable: false,
-        value: out,
-    };
-}
-
 function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
@@ -123,33 +96,81 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
 
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
-        const isObj = !isPrimitive(obj[key]);
-        // Notify for this child if this element is different and it has a PathNode already
-        // But do not notify child if the parent is an array - the array's listener will cover it
         const doNotify =
             !isArr && prevValue && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
-        const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
 
-        // If object iterate through its children
-        if (isObj) {
-            updateNodes(child, obj[key], prevValue?.[key]);
-        }
-
-        // Do the notify at this node
         if (doNotify) {
-            _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] }, 0);
-        }
-    }
+            const isObj = !isPrimitive(obj[key]);
+            // Notify for this child if this element is different and it has a PathNode already
+            // But do not notify child if the parent is an array - the array's listener will cover it
+            const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
 
-    // Define the _ property on this element, and override the array properties if it's an array
-    const hasDefined = obj._;
-    if (!hasDefined) {
-        Object.defineProperty(obj, '_', createUnderscore(obj, parent));
-        if (isArray(obj)) {
-            Object.defineProperties(obj, descriptorsArray);
+            // If object iterate through its children
+            if (isObj) {
+                updateNodes(child, obj[key], prevValue?.[key]);
+            }
+
+            // Do the notify at this node
+            if (doNotify) {
+                _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] }, 0);
+            }
         }
     }
 }
+
+function createProxy(node: PathNode) {
+    const proxy = new Proxy<ProxyValue>({ path: node.path, root: node.root }, proxyHandler);
+    proxies.set(node.path, proxy);
+    return proxy;
+}
+
+const descriptorNotEnumerable: PropertyDescriptor = {
+    enumerable: false,
+    configurable: false,
+};
+
+const proxyHandler: ProxyHandler<any> = {
+    get(target, prop: any) {
+        const node = getPathNode(target.root, target.path);
+        const fn = objectFnsProxy.get(prop);
+
+        if (fn) {
+            return (a, b, c) => fn(node, a, b, c);
+        } else {
+            const value = getNodeValue(node);
+            if (prop === symbolGet) {
+                return value;
+            } else if (prop === 'get') {
+                return () => value;
+            } else if (isFunction(value[prop])) {
+                return value[prop].bind(value);
+            } else if (isPrimitive(value[prop])) {
+                return value[prop];
+            } else {
+                const path = target.path + delim + prop;
+                let proxy = proxies.get(path);
+                if (!proxy) {
+                    const child = getPathNode(node.root, target.path, prop);
+
+                    proxy = createProxy(child);
+                }
+                return proxy;
+            }
+        }
+    },
+    ownKeys(target) {
+        const value = getProxyValue(target);
+        return Reflect.ownKeys(value);
+    },
+    getOwnPropertyDescriptor(target, p) {
+        if (p === symbolID) {
+            return descriptorNotEnumerable;
+        }
+
+        const value = getProxyValue(target);
+        return Reflect.getOwnPropertyDescriptor(value, p);
+    },
+};
 
 function cleanup(node: PathNode, newValue: object, prevValue: object) {
     const isArr = isArray(prevValue);
@@ -172,9 +193,12 @@ function cleanup(node: PathNode, newValue: object, prevValue: object) {
     }
 
     if (prevValue !== undefined && prevValue !== null && (newValue === null || newValue === undefined)) {
-        const id = (prevValue as { _: any })._?.id;
-        delete arrPaths[id];
+        proxies.delete(node.path);
     }
+}
+
+function proxySet(node: PathNode, newValue: any) {
+    return set(getParentNode(node), node.key, newValue);
 }
 
 function set(node: PathNode, newValue: any): any;
@@ -239,10 +263,11 @@ function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo, le
     // If not root notify up through parents
     if (node.path !== '_') {
         const parent = getParentNode(node);
-
-        const parentListenerInfo = Object.assign({}, listenerInfo);
-        parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-        _notifyParents(parent, parentListenerInfo, level + 1);
+        if (parent) {
+            const parentListenerInfo = Object.assign({}, listenerInfo);
+            parentListenerInfo.path = [node.key].concat(listenerInfo.path);
+            _notifyParents(parent, parentListenerInfo, level + 1);
+        }
     }
 }
 function notify(node: PathNode, value: any, prevValue: any, level: number) {
@@ -268,11 +293,10 @@ function assign(node: PathNode, value: any) {
     return ret;
 }
 
+function deleteFnProxy(node: PathNode) {
+    return deleteFn(getParentNode(node), node.key);
+}
 function deleteFn(node: PathNode, key?: string) {
-    if (arguments.length < 2) {
-        return deleteFn(getParentNode(node), node.key);
-    }
-
     // delete sets to undefined first to cleanup children
     set(node, key, undefined);
 
@@ -281,14 +305,14 @@ function deleteFn(node: PathNode, key?: string) {
     delete child[key];
 }
 
-export function prop(node: PathNode, key: string) {
-    // prop returns an object with symbolProp
-    const prop = {
-        [symbolProp]: { node, key },
-    };
-    Object.defineProperty(prop, '_', createUnderscore(prop, node));
-    return prop;
-}
+// export function prop(node: PathNode, key: string) {
+//     // prop returns an object with symbolProp
+//     const prop = {
+//         [symbolProp]: { node, key },
+//     };
+//     Object.defineProperty(prop, '_', createUnderscore(prop, node));
+//     return prop;
+// }
 
 export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
 export function observable<T extends boolean>(prim: T): ObservablePrimitive<boolean>;
@@ -307,15 +331,73 @@ export function observable<T>(obj: any): ObservableOrPrimitive<T> {
         pathNodes: new Map(),
     } as ObservableWrapper;
 
-    updateNodes(getPathNode(obs, '_'), obs._);
+    const node = getPathNode(obs, '_');
 
-    if (isPrim) {
-        // Bind callbacks to "current" so handlers get the primitive value
-        for (let i = 0; i < objectFns.length; i++) {
-            const fn = objectFns[i][0];
-            obs._._[fn] = obs._._[fn].bind(obs, 'current');
-        }
-    }
+    updateNodes(node, obs._);
 
-    return obs._ as ObservableOrPrimitive<T>;
+    // if (isPrim) {
+    //     // Bind callbacks to "current" so handlers get the primitive value
+    //     for (let i = 0; i < objectFns.length; i++) {
+    //         const fn = objectFns[i][0];
+    //         obs._._[fn] = obs._._[fn].bind(obs, 'current');
+    //     }
+    // }
+    const proxy = createProxy(node);
+
+    // @ts-ignore
+    return proxy;
 }
+
+// ((numProps, propsLength, numIter) => {
+//     const performance = require('perf_hooks').performance;
+
+//     let arr = [];
+//     for (let p = 0; p < numProps; p++) {
+//         arr[p] = { text: String(p * propsLength) }; // numeric keys, sort of an "array"
+//     }
+
+//     let t0;
+//     function test() {
+//         // doProxy = false;
+//         // let t0 = performance.now();
+//         // for (let p = 0; p < numIter; p++) {
+//         //     const obs = observable({ text: arr[p] });
+//         // }
+//         // console.log('no proxy: ' + (performance.now() - t0));
+
+//         // doProxy = true;
+//         // t0 = performance.now();
+//         // for (let p = 0; p < numIter; p++) {
+//         //     const obs = observable({ text: arr[p] });
+//         // }
+//         // console.log('proxy: ' + (performance.now() - t0));
+
+//         t0 = performance.now();
+//         for (let i = 0; i < numIter; i++) {
+//             for (let p = 0; p < numProps; p++) {
+//                 const obj = arr[p];
+//                 obj[symbolID] = obj.text;
+//             }
+//         }
+//         console.log('assign: ' + (performance.now() - t0));
+//         t0 = performance.now();
+//         for (let i = 0; i < numIter; i++) {
+//             for (let p = 0; p < numProps; p++) {
+//                 const obj = arr[p];
+//                 Object.defineProperty(obj, symbolID, {
+//                     enumerable: false,
+//                     configurable: false,
+//                     value: obj.text,
+//                 });
+//             }
+//         }
+//         console.log('defineProperty: ' + (performance.now() - t0));
+
+//         // doProxy = true;
+//     }
+//     test();
+//     test();
+//     test();
+//     test();
+//     test();
+// })(1000, 1, 10000);

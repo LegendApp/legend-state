@@ -1,5 +1,5 @@
-import { getNodeValue, getPathNode } from './globals';
-import { isFunction, isObjectEmpty, isString } from './is';
+import { getNodeValue } from './globals';
+import { isObjectEmpty } from './is';
 import { ListenerFn, ObservableListener, OnReturnValue, PathNode } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
@@ -11,18 +11,7 @@ export function disposeListener(listener: ObservableListener) {
     }
 }
 
-export function onEquals<T>(
-    node: PathNode,
-    keyOrValue: string | T,
-    valueOrCallback: T | ((value: T) => void),
-    callbackOnChild?: (value: T) => void
-): OnReturnValue<T> {
-    if (!isFunction(valueOrCallback)) {
-        node = getPathNode(node.root, node.path, keyOrValue as string);
-        keyOrValue = valueOrCallback;
-        valueOrCallback = callbackOnChild;
-    }
-
+export function onEquals<T>(node: PathNode, value: T, callback: (value: T) => void): OnReturnValue<T> {
     let listener: ObservableListener<T>;
 
     const promise = new Promise<any>((resolve) => {
@@ -30,21 +19,21 @@ export function onEquals<T>(
         function check(newValue) {
             if (
                 !isDone &&
-                (keyOrValue === (symbolHasValue as any)
+                (value === (symbolHasValue as any)
                     ? // If value param is symbolHasValue, then this is from onHasValue so resolve if newValue is anything but undefined or empty object
                       newValue !== undefined && newValue !== null && !isObjectEmpty(newValue)
-                    : newValue === keyOrValue)
+                    : newValue === value)
             ) {
                 isDone = true;
-                (valueOrCallback as (value: T) => void)?.(newValue);
-                resolve(keyOrValue);
+                (callback as (value: T) => void)?.(newValue);
+                resolve(newValue);
 
                 disposeListener(listener);
             }
             return isDone;
         }
         if (!check(getNodeValue(node))) {
-            listener = onChange(node, check, undefined, /*shallow*/ true);
+            listener = onChange(node, check, /*shallow*/ true);
         }
     });
 
@@ -54,44 +43,18 @@ export function onEquals<T>(
     };
 }
 
-export function onHasValue<T>(
-    node: PathNode,
-    keyOrCallback: string | ((value: T) => void),
-    callbackOnChild?: (value: T) => void
-): OnReturnValue<T> {
-    if (isString(keyOrCallback)) {
-        node = getPathNode(node.root, node.path, keyOrCallback);
-        keyOrCallback = callbackOnChild;
-    }
-    return onEquals(node, symbolHasValue as any, keyOrCallback);
+export function onHasValue<T>(node: PathNode, callback: (value: T) => void): OnReturnValue<T> {
+    return onEquals(node, symbolHasValue as any, callback);
 }
 
-export function onTrue<T extends boolean>(
-    node: PathNode,
-    keyOrCallback: string | (() => void),
-    callbackOnChild?: () => void
-): OnReturnValue<T> {
-    if (isString(keyOrCallback)) {
-        node = getPathNode(node.root, node.path, keyOrCallback);
-        keyOrCallback = callbackOnChild;
-    }
-    return onEquals(node, true as T, keyOrCallback);
+export function onTrue<T extends boolean>(node: PathNode, callback?: () => void): OnReturnValue<T> {
+    return onEquals(node, true as T, callback);
 }
 
-export function onChange(
-    node: PathNode,
-    keyOrCallback: string | ListenerFn<any>,
-    callbackOnChild?: ListenerFn<any>,
-    shallow?: boolean
-) {
-    if (isString(keyOrCallback)) {
-        node = getPathNode(node.root, node.path, keyOrCallback as unknown as string);
-        keyOrCallback = callbackOnChild;
-    }
-
+export function onChange(node: PathNode, callback: ListenerFn<any>, shallow?: boolean) {
     const listener: ObservableListener = {
         node,
-        callback: keyOrCallback,
+        callback,
         shallow,
         // function, not () => {} to preserve this
         dispose: function () {
@@ -107,10 +70,6 @@ export function onChange(
     return listener;
 }
 
-export function onChangeShallow(
-    node: PathNode,
-    keyOrCallback: string | ListenerFn<any>,
-    callbackOnChild?: ListenerFn<any>
-) {
-    return onChange(node, keyOrCallback, callbackOnChild, /*shallow*/ true);
+export function onChangeShallow(node: PathNode, callback: ListenerFn<any>) {
+    return onChange(node, callback, /*shallow*/ true);
 }

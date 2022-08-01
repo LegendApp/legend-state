@@ -215,3 +215,7 @@ export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Pro
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservableProps<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
+export interface ProxyValue {
+    path: string;
+    root: ObservableWrapper;
+}
