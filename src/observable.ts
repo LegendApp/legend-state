@@ -7,7 +7,6 @@ import {
     getPathNode,
     getValueAtPath,
     hasPathNode,
-    symbolID,
     symbolProp,
 } from './globals';
 import { isArray, isObject, isPrimitive } from './is';
@@ -99,7 +98,7 @@ function createUnderscore(obj: any, node: PathNode): PropertyDescriptor {
 
     // Create the _ object
     const out = {
-        [symbolID]: id,
+        id,
     };
 
     // Bind all the _ functions to it
@@ -174,7 +173,7 @@ function cleanup(node: PathNode, newValue: object, prevValue: object) {
     }
 
     if (prevValue !== undefined && prevValue !== null && (newValue === null || newValue === undefined)) {
-        const id = (prevValue as { _: any })._?.[symbolID];
+        const id = (prevValue as { _: any })._?.id;
         delete arrPaths[id];
     }
 }
@@ -315,7 +314,7 @@ export function observable<T>(obj: any): ObservableOrPrimitive<T> {
         // Bind callbacks to "current" so handlers get the primitive value
         for (let i = 0; i < objectFns.length; i++) {
             const fn = objectFns[i][0];
-            obs._._[fn] = obs._._[fn].bind(this, 'current');
+            obs._._[fn] = obs._._[fn].bind(obs, 'current');
         }
     }
 

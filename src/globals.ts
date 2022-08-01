@@ -10,7 +10,6 @@ export const symbolShallow = Symbol('shallow');
 export const symbolEqualityFn = Symbol('equalityFn');
 export const symbolValue = Symbol('value');
 export const symbolProp = Symbol('prop');
-export const symbolID = Symbol('id');
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;
@@ -100,7 +99,7 @@ export function getParentNode(node: PathNode) {
 }
 
 export function getObjectNode(obj: any) {
-    const id = obj._?.[symbolID];
+    const id = obj._?.id;
     if (id !== undefined) {
         return arrPaths[id];
     }
