@@ -1,5 +1,7 @@
-import { Observable, PathNode } from './observableInterfaces';
+import { EqualityFn, Observable, PathNode } from './observableInterfaces';
 export default {
     isTracking: false,
-    trackedNodes: new Set<PathNode>(),
+    trackingShallow: false,
+    trackingEqualityFn: undefined as (value: any) => any,
+    trackedNodes: [] as { node: PathNode; shallow?: boolean; equalityFn?: (value: any) => any; value: any }[],
 };

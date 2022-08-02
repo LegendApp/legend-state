@@ -23,14 +23,14 @@ export function observableComputed<T extends (Observable | Prop)[], T2>(
     };
 
     state.isTracking = true;
-    state.trackedNodes.clear();
+    state.trackedNodes = [];
 
     update();
 
     state.isTracking = false;
 
     // Todo shallow
-    for (let node of state.trackedNodes) {
+    for (let { node } of state.trackedNodes) {
         onChange(node, update);
     }
 

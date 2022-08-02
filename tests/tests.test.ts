@@ -1099,9 +1099,9 @@ describe('Shallow', () => {
         obs.data.onChangeShallow(handler);
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
-        // Setting an index in an array should notify the array
+        // Setting an index in an array should not notify the array
         obs.data.setProp(0, { text: 11 });
-        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler).toHaveBeenCalledTimes(1);
     });
 });
 describe('Computed', () => {

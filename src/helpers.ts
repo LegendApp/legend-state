@@ -7,7 +7,7 @@ export function shallow(obs: Observable): Shallow {
         [symbolShallow]: obs,
     };
 }
-export function equalityFn(obs: Observable, fn: (value) => any): EqualityFn {
+export function equalityFn(obs: Observable, fn: (value: any) => any): EqualityFn {
     return {
         [symbolEqualityFn]: { obs, fn },
     };

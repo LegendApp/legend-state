@@ -6,8 +6,10 @@ import {
     getPathNode,
     getProxyValue,
     hasPathNode,
+    symbolEqualityFn,
     symbolGet,
     symbolID,
+    symbolShallow,
 } from './globals';
 import { isArray, isFunction, isObject, isPrimitive } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
@@ -129,11 +131,16 @@ const proxyHandler: ProxyHandler<any> = {
         if (fn) {
             return (a, b, c) => fn(node, a, b, c);
         } else {
-            const value = getNodeValue(node);
+            let value = getNodeValue(node);
             const vProp = value[prop];
             if (prop === symbolGet) {
                 if (state.isTracking) {
-                    state.trackedNodes.add(node);
+                    state.trackedNodes.push({
+                        node,
+                        shallow: state.trackingShallow,
+                        equalityFn: state.trackingEqualityFn,
+                        value,
+                    });
                 }
                 return value;
             } else if (prop === 'get') {
@@ -276,12 +283,7 @@ function set(node: PathNode, key: string, newValue?: any) {
 
     // Notify for this element if it's an object or it's changed
     if (!isPrim || newValue !== prevValue) {
-        notify(
-            node.root.isPrimitive ? node : childNode,
-            newValue,
-            prevValue,
-            prevValue == undefined || isArray(parentValue) ? -1 : 0
-        );
+        notify(node.root.isPrimitive ? node : childNode, newValue, prevValue, prevValue === undefined ? -1 : 0);
     }
 
     inSetFn = false;

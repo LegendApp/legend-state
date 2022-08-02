@@ -1,3 +1,4 @@
+import state from './state';
 import { ObservableChecker, ObservableWrapper, PathNode, ProxyValue } from './observableInterfaces';
 
 export const delim = '\uFEFF';
@@ -69,8 +70,22 @@ export function get(proxy: ProxyValue) {
 export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
     if (!obs) return obs as T;
 
-    // @ts-ignore
-    return obs[symbolGet];
+    const eq = obs[symbolEqualityFn];
+    if (eq) {
+        state.trackingEqualityFn = eq.fn;
+        obs = eq.obs;
+    }
+    const shallow = obs[symbolShallow];
+    if (shallow) {
+        state.trackingShallow = true;
+        obs = shallow;
+    }
+    const ret = obs[symbolGet];
+
+    state.trackingEqualityFn = undefined;
+    state.trackingShallow = false;
+
+    return ret;
 
     // const prop = obs[symbolProp];
     // if (prop) {
