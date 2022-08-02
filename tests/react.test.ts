@@ -294,7 +294,7 @@ describe('React Hooks', () => {
     });
     test('useObservables with multiple primitives', () => {
         let numRenders = 0;
-        const obs = observable({ val1: 1, val2: 2, val3: 3 });
+        const obs = observable({ val1: 1, val2: 2, val3: 3, val4: 4 });
         const { result } = renderHook(() => {
             numRenders++;
             return useObservables(() => [obs.val1, obs.val2, obs.val3]);
@@ -315,6 +315,13 @@ describe('React Hooks', () => {
 
         act(() => {
             obs.val3.set(33);
+        });
+        expect(numRenders).toEqual(4);
+
+        // Changing a value not tracked doesn't update it, making sure that it tracks the
+        // prop and not the parent
+        act(() => {
+            obs.val4.set(44);
         });
         expect(numRenders).toEqual(4);
     });

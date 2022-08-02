@@ -17,3 +17,6 @@ export function isPrimitive(arg) {
 export function isObjectEmpty(obj: object) {
     return obj && isObject(obj) && Object.keys(obj).length === 0;
 }
+export function isSymbol(obj: unknown): obj is symbol {
+    return typeof obj === 'symbol';
+}

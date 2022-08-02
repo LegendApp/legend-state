@@ -1,4 +1,3 @@
-import state from './state';
 import {
     delim,
     getNodeValue,
@@ -6,12 +5,10 @@ import {
     getPathNode,
     getProxyValue,
     hasPathNode,
-    symbolEqualityFn,
     symbolGet,
     symbolID,
-    symbolShallow,
 } from './globals';
-import { isArray, isFunction, isObject, isPrimitive } from './is';
+import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
@@ -23,6 +20,7 @@ import {
     ProxyValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
+import state from './state';
 
 let lastAccessedNode: PathNode;
 let lastAccessedPrimitive: string;
@@ -138,7 +136,7 @@ const proxyHandler: ProxyHandler<any> = {
                     value = value.current;
                 }
                 if (state.isTracking) {
-                    state.updateTracking(node, undefined, value);
+                    state.updateTracking(node, value);
                 }
                 return value;
             } else if (prop === 'get') {
@@ -146,7 +144,7 @@ const proxyHandler: ProxyHandler<any> = {
                     value = value.current;
                 }
                 if (state.isTracking) {
-                    state.updateTracking(node, undefined, value);
+                    state.updateTracking(node, value);
                 }
                 return () => value;
             } else if (isFunction(vProp)) {
@@ -157,8 +155,8 @@ const proxyHandler: ProxyHandler<any> = {
             } else if (isPrimitive(vProp)) {
                 lastAccessedNode = node;
                 lastAccessedPrimitive = prop;
-                if (state.isTracking) {
-                    state.updateTracking(node, prop, value);
+                if (state.isTracking && !isSymbol(prop)) {
+                    state.updateTracking(getPathNode(node.root, node.path, prop), value);
                 }
                 return vProp;
             } else {
