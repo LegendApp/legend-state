@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef } from 'react';
-import { getObservableRawValue } from '../globals';
+import { isArray, isObject, isPrimitive } from '../is';
+import { getObservableRawValue, symbolGet } from '../globals';
 import { ObservableChecker, ObservableListener } from '../observableInterfaces';
 import { onChange, onChangeShallow } from '../on';
 import state from '../state';
@@ -22,7 +23,9 @@ const pathsSeen = new Set();
  *
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
-export function useObservables<T extends ObservableChecker[]>(fn: () => T): T {
+export function useObservables<T extends ObservableChecker | Record<string, ObservableChecker> | ObservableChecker[]>(
+    fn: () => T
+): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -32,14 +35,32 @@ export function useObservables<T extends ObservableChecker[]>(fn: () => T): T {
     }
 
     // Start tracking to fill trackedNodes with all nodes accessed
-    const ret = [];
+    let ret;
     state.isTracking = true;
     state.trackedNodes = [];
 
     const args = fn();
 
-    for (let i = 0; i < args.length; i++) {
-        ret[i] = getObservableRawValue(args[i]);
+    if (args !== undefined) {
+        const singleValue = args[symbolGet];
+        if (singleValue !== undefined) {
+            ret = singleValue;
+        } else if (isPrimitive(args)) {
+            ret = args;
+        } else if (isArray(args)) {
+            ret = [];
+            for (let i = 0; i < args.length; i++) {
+                ret[i] = getObservableRawValue(args[i]);
+            }
+        } else if (isObject(args)) {
+            ret = {};
+            const keys = Object.keys(args);
+            const length = keys.length;
+            for (let i = 0; i < length; i++) {
+                const key = keys[i];
+                ret[key] = getObservableRawValue(args[key]);
+            }
+        }
     }
 
     state.isTracking = false;

@@ -66,22 +66,22 @@ describe('React Hooks', () => {
         // @ts-ignore
         expect(val.val2.val3).toEqual('hi');
     });
-    // // // // test('useObservables with object returns object', () => {
-    // // // //     const obs = observable({ val: { val2: { val3: 'hello' } } });
-    // // // //     const { result } = renderHook(() => {
-    // // // //         return useObservables(() => ({ val3: obs.val.val2.val3 }));
-    // // // //     });
-    // // // //     const { val3 } = result.current;
-    // // // //     expect(val3).toEqual('hello');
-    // // // // });
-    // // // // test('useObservables with single obs return single obs', () => {
-    // // // //     const obs = observable({ val: { val2: { val3: 'hello' } } });
-    // // // //     const { result } = renderHook(() => {
-    // // // //         return useObservables(() => obs.val.val2.val3);
-    // // // //     });
-    // // // //     const val3 = result.current;
-    // // // //     expect(val3).toEqual('hello');
-    // // // // });
+    test('useObservables with object returns object', () => {
+        const obs = observable({ val: { val2: { val3: 'hello' } } });
+        const { result } = renderHook(() => {
+            return useObservables(() => ({ val3: obs.val.val2.val3 }));
+        });
+        const { val3 } = result.current;
+        expect(val3).toEqual('hello');
+    });
+    test('useObservables with single obs return single obs', () => {
+        const obs = observable({ val: { val2: { val3: 'hello' } } });
+        const { result } = renderHook(() => {
+            return useObservables(() => obs.val.val2.val3);
+        });
+        const val3 = result.current;
+        expect(val3).toEqual('hello');
+    });
     test('useObservables shallow does not re-render from deep set', () => {
         let numRenders = 0;
         const obs = observable({ val: { val2: { val3: 'hello' } } });
