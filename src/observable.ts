@@ -138,17 +138,15 @@ const proxyHandler: ProxyHandler<any> = {
                     value = value.current;
                 }
                 if (state.isTracking) {
-                    state.trackedNodes.push({
-                        node,
-                        shallow: state.trackingShallow,
-                        equalityFn: state.trackingEqualityFn,
-                        value,
-                    });
+                    state.updateTracking(node, undefined, value);
                 }
                 return value;
             } else if (prop === 'get') {
                 if (node.root.isPrimitive) {
                     value = value.current;
+                }
+                if (state.isTracking) {
+                    state.updateTracking(node, undefined, value);
                 }
                 return () => value;
             } else if (isFunction(vProp)) {
@@ -159,6 +157,9 @@ const proxyHandler: ProxyHandler<any> = {
             } else if (isPrimitive(vProp)) {
                 lastAccessedNode = node;
                 lastAccessedPrimitive = prop;
+                if (state.isTracking) {
+                    state.updateTracking(node, prop, value);
+                }
                 return vProp;
             } else {
                 const path = target.path + delim + prop;

@@ -1107,12 +1107,12 @@ describe('Shallow', () => {
 describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed([obs.prop('test'), obs.prop('test2')], (test, test2) => test + test2);
+        const computed = observableComputed(() => obs.test + obs.test2);
         expect(computed.current).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed([obs.prop('test'), obs.prop('test2')], (test, test2) => test + test2);
+        const computed = observableComputed(() => obs.test + obs.test2);
         expect(computed.current).toEqual(30);
         const handler = jest.fn();
         computed.onChange(handler);
@@ -1125,7 +1125,7 @@ describe('Computed', () => {
     });
     test('Cannot directly set a computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed([obs.prop('test'), obs.prop('test2')], (test, test2) => test + test2);
+        const computed = observableComputed(() => obs.test + obs.test2);
         // @ts-expect-error
         computed.set(40);
         // @ts-expect-error

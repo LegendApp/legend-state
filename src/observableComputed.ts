@@ -1,23 +1,15 @@
-import state from './state';
-import { getObservableRawValue } from './globals';
 import { observable } from './observable';
-import { Observable, ObservableComputed, Prop } from './observableInterfaces';
+import { ObservableComputed } from './observableInterfaces';
 import { onChange } from './on';
+import state from './state';
 
-export function observableComputed<T extends (Observable | Prop)[], T2>(
-    args: T,
-    compute: (...values: T) => T2
-): ObservableComputed<T2> {
+export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
     // Create an observable for this computed variable
     // Initialize it to 0 temporarily to make it a primitive, but it will change immediately
     const obs = observable(0 as any);
 
     const update = () => {
-        const values: any[] = [];
-        for (let i = 0; i < args.length; i++) {
-            values.push(getObservableRawValue(args[i] as Observable<any>));
-        }
-        const computed = compute(...(values as T));
+        const computed = compute();
 
         obs.set(computed);
     };
@@ -34,5 +26,5 @@ export function observableComputed<T extends (Observable | Prop)[], T2>(
         onChange(node, update);
     }
 
-    return obs as unknown as ObservableComputed<T2>;
+    return obs as unknown as ObservableComputed<T>;
 }

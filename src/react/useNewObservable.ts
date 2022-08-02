@@ -30,7 +30,7 @@ export function useNewObservable<T>(
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe !== false) {
-        useObservables(obs);
+        useObservables(() => [obs]);
     }
 
     return [obs as any, obs[symbolGet as any]];

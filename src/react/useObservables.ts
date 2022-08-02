@@ -22,7 +22,7 @@ const pathsSeen = new Set();
  *
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
-export function useObservables<T extends ObservableChecker[]>(...args: T): T {
+export function useObservables<T extends ObservableChecker[]>(fn: () => T): T {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -35,6 +35,8 @@ export function useObservables<T extends ObservableChecker[]>(...args: T): T {
     const ret = [];
     state.isTracking = true;
     state.trackedNodes = [];
+
+    const args = fn();
 
     for (let i = 0; i < args.length; i++) {
         ret[i] = getObservableRawValue(args[i]);

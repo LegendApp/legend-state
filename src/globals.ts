@@ -1,5 +1,6 @@
-import state from './state';
+import { isPrimitive } from './is';
 import { ObservableChecker, ObservableWrapper, PathNode, ProxyValue } from './observableInterfaces';
+import state from './state';
 
 export const delim = '\uFEFF';
 export const arrPaths = [];
@@ -68,7 +69,7 @@ export function get(proxy: ProxyValue) {
 }
 
 export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
-    if (!obs) return obs as T;
+    if (!obs || isPrimitive(obs)) return obs as T;
 
     const eq = obs[symbolEqualityFn];
     if (eq) {
@@ -80,7 +81,7 @@ export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
         state.trackingShallow = true;
         obs = shallow;
     }
-    const ret = obs[symbolGet];
+    let ret = obs[symbolGet];
 
     state.trackingEqualityFn = undefined;
     state.trackingShallow = false;
