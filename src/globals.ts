@@ -1,5 +1,5 @@
 import { isPrimitive } from './is';
-import { ObservableChecker, ObservableWrapper, PathNode, ProxyValue } from './observableInterfaces';
+import { ObservableChecker, ProxyValue } from './observableInterfaces';
 import state from './state';
 
 export const delim = '\uFEFF';
@@ -13,9 +13,9 @@ export const symbolProp = Symbol('prop');
 export const symbolID = Symbol('id');
 export const symbolGet = Symbol('get');
 
-export function getNodeValue(node: PathNode): any {
+export function getNodeValue(node: ProxyValue): any {
     let child = node.root;
-    const arr = node.path.split(delim);
+    const arr = node.arr;
     for (let i = 0; i < arr.length; i++) {
         if (arr[i] && child) {
             child = child[arr[i]];
@@ -23,37 +23,19 @@ export function getNodeValue(node: PathNode): any {
     }
     return child;
 }
-export function getProxyValue({ root, path }: ProxyValue) {
-    const node = getPathNode(root, path);
+export function getProxyValue(node: ProxyValue) {
     return getNodeValue(node);
 }
-export function hasPathNode(root: ObservableWrapper, path: string, key?: string) {
-    if (key !== undefined && path !== undefined) {
-        path += delim + key;
-    }
-    return root.pathNodes.has(path);
-}
-export function getPathNode(root: ObservableWrapper, path: string, key?: string, noCreate?: boolean) {
-    const parent = path;
-    if (key !== undefined && path !== undefined) {
-        path += delim + key;
-    }
 
-    let pathNode = root.pathNodes.get(path);
-    if (!pathNode && !noCreate) {
-        pathNode = {
-            root,
-            path,
-            parent,
-            key,
-        };
-        root.pathNodes.set(path, pathNode);
-    }
-    return pathNode;
+export function getParentNode(node: ProxyValue) {
+    if (node.arr.length <= 1) return { parent: node, key: undefined };
+    const key = node.arr[node.arr.length - 1];
+    const arrParent = node.arr.slice(0, -1);
+    return { parent: { root: node.root, arr: arrParent, path: arrParent.join(delim) }, key };
 }
 
-export function getParentNode(node: PathNode) {
-    return getPathNode(node.root, node.parent);
+export function getChildNode(node: ProxyValue, key: string): ProxyValue {
+    return { root: node.root, path: node.path + delim + key, arr: node.arr.concat(key) };
 }
 
 // export function getObjectNode(obj: any) {
@@ -63,8 +45,7 @@ export function getParentNode(node: PathNode) {
 //     }
 // }
 
-export function get(proxy: ProxyValue) {
-    const node = getPathNode(proxy.root, proxy.path);
+export function get(node: ProxyValue) {
     return getNodeValue(node);
 }
 

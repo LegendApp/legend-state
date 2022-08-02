@@ -187,7 +187,7 @@ export type ShouldRender<T = any> = {
 };
 
 export interface ObservableListener<T = any> {
-    node: PathNode;
+    node: ProxyValue;
     callback: ListenerFn<T>;
     shallow: boolean;
     dispose: () => void;
@@ -196,22 +196,16 @@ export interface ObservableListener<T = any> {
 export interface ObservableWrapper<T = any> {
     _: Observable;
     isPrimitive: boolean;
-    pathNodes: Map<string, PathNode>;
+    listenerMap: Map<string, Set<ObservableListener>>;
     proxies: Map<string, object>;
 }
 
-export interface PathNode {
-    root: ObservableWrapper;
-    path: string;
-    parent: string;
-    key: string;
-    listeners?: Set<ObservableListener>;
-}
 export type ObservableChecker<T = any> = Shallow | ShouldRender | Observable | Prop | ObservableComputed;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
 export interface ProxyValue {
     path: string;
+    arr: string[];
     root: ObservableWrapper;
 }

@@ -1,28 +1,17 @@
-import {
-    delim,
-    getNodeValue,
-    getParentNode,
-    getPathNode,
-    getProxyValue,
-    hasPathNode,
-    symbolGet,
-    symbolID,
-} from './globals';
+import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolID } from './globals';
 import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
-    ObservableListenerInfo,
     ObservableOrPrimitive,
     ObservablePrimitive,
     ObservableWrapper,
-    PathNode,
     ProxyValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 import state from './state';
 
-let lastAccessedNode: PathNode;
+let lastAccessedNode: ProxyValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
 
@@ -43,7 +32,7 @@ const objectFnsProxy = new Map<string, Function>([
 const wrapFn = (fn: Function) =>
     function (...args: any) {
         if (lastAccessedNode && lastAccessedPrimitive) {
-            const node = getPathNode(lastAccessedNode.root, lastAccessedNode.path, lastAccessedPrimitive);
+            const node: ProxyValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
             if (getNodeValue(node) === this) {
                 return fn(node, ...args);
             }
@@ -54,7 +43,7 @@ objectFnsProxy.forEach((fn, key) => {
     toOverride.forEach((override) => (override.prototype[key] = wrapFn(fn)));
 });
 
-function collectionSetter(node: PathNode, target: any, prop: string, ...args: any[]) {
+function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: any[]) {
     // this = target
     const prevValue =
         // (this instanceof Map && new Map(this)) ||
@@ -64,15 +53,15 @@ function collectionSetter(node: PathNode, target: any, prop: string, ...args: an
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {
-        const parentNode = getParentNode(node);
-        if (parentNode) {
-            const parent = getNodeValue(parentNode);
+        const { parent, key } = getParentNode(node);
+        if (parent) {
+            const parentValue = getNodeValue(parent);
 
             // Set the object to the previous value first
-            parent[node.key] = prevValue;
+            parentValue[key] = prevValue;
 
             // Then set with the new value so it notifies with the correct prevValue
-            set(parentNode, node.key, target);
+            set(parent, key, target);
         }
     }
 
@@ -80,7 +69,7 @@ function collectionSetter(node: PathNode, target: any, prop: string, ...args: an
     return ret;
 }
 
-function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
+function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
     const keys = isArr ? obj : Object.keys(obj);
@@ -90,30 +79,27 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
         const prev = prevValue?.[key];
-        const doNotify = !isArr && prevValue && value !== prev && hasPathNode(parent.root, parent.path, key);
 
+        const isObj = !isPrimitive(value);
+        const child: ProxyValue = getChildNode(parent, key);
+
+        // If object iterate through its children
+        if (isObj) {
+            updateNodes(child, value, prev);
+        }
+
+        // Notify for this child if this element is different and it has listeners
+        // But do not notify child if the parent is an array - the array's listener will cover it
+        const doNotify = !isArr && prevValue && value !== prev && child.root.listenerMap.has(child.path);
         if (doNotify) {
-            const isObj = !isPrimitive(value);
-            // Notify for this child if this element is different and it has a PathNode already
-            // But do not notify child if the parent is an array - the array's listener will cover it
-            const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
-
-            // If object iterate through its children
-            if (isObj) {
-                updateNodes(child, value, prev);
-            }
-
-            // Do the notify at this node
-            if (doNotify) {
-                _notify(child, value, prev, [], value, prev, 0);
-            }
+            _notify(child, value, prev, [], value, prev, 0);
         }
     }
 }
 
-function createProxy(node: PathNode) {
-    const proxy = new Proxy<ProxyValue>({ path: node.path, root: node.root }, proxyHandler);
-    node.root.proxies.set(node.path, proxy);
+function createProxy(value: ProxyValue) {
+    const proxy = new Proxy<ProxyValue>(value, proxyHandler);
+    // node.root.proxies.set(node.path, proxy);
     return proxy;
 }
 
@@ -123,8 +109,8 @@ const descriptorNotEnumerable: PropertyDescriptor = {
 };
 
 const proxyHandler: ProxyHandler<any> = {
-    get(target, prop: any) {
-        const node = getPathNode(target.root, target.path);
+    get(target: ProxyValue, prop: any) {
+        const node = target;
         const fn = objectFnsProxy.get(prop);
 
         if (fn) {
@@ -157,27 +143,25 @@ const proxyHandler: ProxyHandler<any> = {
                 lastAccessedNode = node;
                 lastAccessedPrimitive = prop;
                 if (state.isTracking && !isSymbol(prop)) {
-                    state.updateTracking(getPathNode(node.root, node.path, prop), value);
+                    state.updateTracking(getChildNode(node, prop), value);
                 }
                 return vProp;
             } else {
                 const path = target.path + delim + prop;
                 let proxy = node.root.proxies.get(path);
                 if (!proxy) {
-                    const child = getPathNode(node.root, target.path, prop);
-
-                    proxy = createProxy(child);
+                    proxy = createProxy(getChildNode(target, prop));
                 }
                 return proxy;
             }
         }
     },
     getPrototypeOf(target) {
-        const value = getProxyValue(target);
+        const value = getNodeValue(target);
         return Reflect.getPrototypeOf(value);
     },
     ownKeys(target) {
-        const value = getProxyValue(target);
+        const value = getNodeValue(target);
         const keys = Reflect.ownKeys(value);
         if (isArray(value)) {
             if (keys[keys.length - 1] === 'length') {
@@ -191,7 +175,7 @@ const proxyHandler: ProxyHandler<any> = {
             return descriptorNotEnumerable;
         }
 
-        const value = getProxyValue(target);
+        const value = getNodeValue(target);
         const own = Reflect.getOwnPropertyDescriptor(value, p);
         return own;
     },
@@ -216,47 +200,25 @@ const proxyHandler: ProxyHandler<any> = {
         }
     },
     has(target, prop) {
-        const value = getProxyValue(target);
+        const value = getNodeValue(target);
         return Reflect.has(value, prop);
     },
 };
 
-function cleanup(node: PathNode, newValue: object, prevValue: object) {
-    const isArr = isArray(prevValue);
-    const isObj = isObject(prevValue);
-
-    if (isArr || isObj) {
-        // If array it's faster to just use the array
-        const keys = isArr ? prevValue : Object.keys(prevValue);
-        const length = keys.length;
-
-        for (let i = 0; i < length; i++) {
-            const key = isArr ? i : keys[i];
-
-            // If this child has a PathNode then clean it up
-            const child = getPathNode(node.root, node.path, key, /*noCreate*/ true);
-            if (child) {
-                cleanup(child, newValue?.[key], prevValue[key]);
-            }
-        }
-    }
-
-    if (prevValue !== undefined && prevValue !== null && (newValue === null || newValue === undefined)) {
-        node.root.proxies.delete(node.path);
+function proxySet(node: ProxyValue, newValue: any) {
+    if (node.root.isPrimitive) {
+        return set(node, 'current', newValue);
+    } else {
+        const { parent, key } = getParentNode(node);
+        return set(parent, key, newValue);
     }
 }
 
-function proxySet(node: PathNode, newValue: any) {
-    return node.root.isPrimitive ? set(node, 'current', newValue) : set(getParentNode(node), node.key, newValue);
-}
-
-function proxySetProp(node: PathNode, key: string, newValue: any) {
+function proxySetProp(node: ProxyValue, key: string, newValue: any) {
     return set(node, key, newValue);
 }
 
-// function set(node: PathNode, newValue: any): any;
-// function set(node: PathNode, key: string, newValue: any): any;
-function set(node: PathNode, key: string, newValue?: any) {
+function set(node: ProxyValue, key: string, newValue?: any) {
     newValue = newValue?.[symbolGet] ?? newValue;
 
     const isPrim = isPrimitive(newValue);
@@ -267,7 +229,7 @@ function set(node: PathNode, key: string, newValue?: any) {
 
     inSetFn = true;
 
-    const childNode = getPathNode(node.root, node.path, key);
+    const childNode = getChildNode(node, key);
 
     let parentValue = getNodeValue(node);
 
@@ -277,12 +239,7 @@ function set(node: PathNode, key: string, newValue?: any) {
     // Save the new value
     parentValue[key] = newValue;
 
-    // If previous was an object or array clean it up
-    if (!isPrimitive(prevValue)) {
-        cleanup(childNode, newValue, prevValue);
-    }
-
-    // If new value is an object or array update PathNodes and notify down the tree
+    // If new value is an object or array update notify down the tree
     if (!isPrim) {
         updateNodes(childNode, newValue, prevValue);
     }
@@ -298,7 +255,7 @@ function set(node: PathNode, key: string, newValue?: any) {
 }
 
 function _notify(
-    node: PathNode,
+    node: ProxyValue,
     value: any,
     prev: any,
     path: string[],
@@ -306,9 +263,10 @@ function _notify(
     prevAtPath: any,
     level: number
 ) {
+    const listeners = node.root.listenerMap.get(node.path);
     // Notify all listeners
-    if (node.listeners) {
-        for (let listener of node.listeners) {
+    if (listeners) {
+        for (let listener of listeners) {
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
                 observableBatcherNotify(listener.callback, value, prev, path, valueAtPath, prevAtPath);
@@ -318,7 +276,7 @@ function _notify(
 }
 
 function _notifyParents(
-    node: PathNode,
+    node: ProxyValue,
     value: any,
     prev: any,
     path: string[],
@@ -330,26 +288,26 @@ function _notifyParents(
     _notify(node, value, prev, path, valueAtPath, prevAtPath, level);
     // If not root notify up through parents
     if (node.path !== '_') {
-        const parent = getParentNode(node);
+        const { parent, key } = getParentNode(node);
         if (parent) {
             const parentValue = getNodeValue(parent);
-            prev = Object.assign({}, parentValue, { [node.key]: prev });
+            prev = Object.assign({}, parentValue, { [key]: prev });
             // parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-            _notifyParents(parent, parentValue, prev, [node.key].concat(path), valueAtPath, prevAtPath, level + 1);
+            _notifyParents(parent, parentValue, prev, [key].concat(path), valueAtPath, prevAtPath, level + 1);
         }
     }
 }
-function notify(node: PathNode, value: any, prev: any, level: number) {
+function notify(node: ProxyValue, value: any, prev: any, level: number) {
     // Start notifying up through parents with the listenerInfo
     _notifyParents(node, value, prev, [], value, prev, level);
 }
 
-function prop(node: PathNode, key: string) {
-    const child = getPathNode(node.root, node.path, key);
+function prop(node: ProxyValue, key: string) {
+    const child = getChildNode(node, key);
     return createProxy(child);
 }
 
-function assign(node: PathNode, value: any) {
+function assign(node: ProxyValue, value: any) {
     observableBatcher.begin();
 
     // Assign calls set with all assigned properties
@@ -365,10 +323,15 @@ function assign(node: PathNode, value: any) {
     return ret;
 }
 
-function deleteFnProxy(node: PathNode, key: string) {
-    return key !== undefined ? deleteFn(node, key) : deleteFn(getParentNode(node), node.key);
+function deleteFnProxy(node: ProxyValue, key: string) {
+    if (key !== undefined) {
+        return deleteFn(node, key);
+    } else {
+        const { parent, key } = getParentNode(node);
+        return deleteFn(parent, key);
+    }
 }
-function deleteFn(node: PathNode, key?: string) {
+function deleteFn(node: ProxyValue, key?: string) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
         set(node, key, undefined);
@@ -397,11 +360,15 @@ export function observable<T>(obj: any): ObservableOrPrimitive<T> {
     const obs = {
         _: obj as Observable,
         isPrimitive: isPrim,
-        pathNodes: new Map(),
-        proxies: new Map<string, object>(),
+        listenerMap: new Map(),
+        proxies: new Map(),
     } as ObservableWrapper;
 
-    const node = getPathNode(obs, '_');
+    const node: ProxyValue = {
+        root: obs,
+        path: '_',
+        arr: ['_'],
+    };
 
     updateNodes(node, obs._);
 

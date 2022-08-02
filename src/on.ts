@@ -1,17 +1,20 @@
 import { getNodeValue } from './globals';
 import { isObjectEmpty } from './is';
-import { ListenerFn, ObservableListener, OnReturnValue, PathNode } from './observableInterfaces';
+import { ListenerFn, ObservableListener, OnReturnValue, ProxyValue } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
 
 export function disposeListener(listener: ObservableListener) {
     if (listener && !listener.isDisposed) {
         listener.isDisposed = true;
-        listener.node.listeners.delete(listener);
+        const listeners = listener.node.root.listenerMap.get(listener.node.path);
+        if (listeners) {
+            listeners.delete(listener);
+        }
     }
 }
 
-export function onEquals<T>(node: PathNode, value: T, callback: (value: T) => void): OnReturnValue<T> {
+export function onEquals<T>(node: ProxyValue, value: T, callback: (value: T) => void): OnReturnValue<T> {
     let listener: ObservableListener<T>;
 
     const promise = new Promise<any>((resolve) => {
@@ -43,15 +46,15 @@ export function onEquals<T>(node: PathNode, value: T, callback: (value: T) => vo
     };
 }
 
-export function onHasValue<T>(node: PathNode, callback: (value: T) => void): OnReturnValue<T> {
+export function onHasValue<T>(node: ProxyValue, callback: (value: T) => void): OnReturnValue<T> {
     return onEquals(node, symbolHasValue as any, callback);
 }
 
-export function onTrue<T extends boolean>(node: PathNode, callback?: () => void): OnReturnValue<T> {
+export function onTrue<T extends boolean>(node: ProxyValue, callback?: () => void): OnReturnValue<T> {
     return onEquals(node, true as T, callback);
 }
 
-export function onChange(node: PathNode, callback: ListenerFn<any>, shallow?: boolean) {
+export function onChange(node: ProxyValue, callback: ListenerFn<any>, shallow?: boolean) {
     const listener: ObservableListener = {
         node,
         callback,
@@ -62,14 +65,17 @@ export function onChange(node: PathNode, callback: ListenerFn<any>, shallow?: bo
         },
     };
 
-    if (!node.listeners) {
-        node.listeners = new Set();
+    const map = node.root.listenerMap;
+    let listeners = map.get(node.path);
+    if (!listeners) {
+        listeners = new Set();
+        map.set(node.path, listeners);
     }
-    node.listeners.add(listener);
+    listeners.add(listener);
 
     return listener;
 }
 
-export function onChangeShallow(node: PathNode, callback: ListenerFn<any>) {
+export function onChangeShallow(node: ProxyValue, callback: ListenerFn<any>) {
     return onChange(node, callback, /*shallow*/ true);
 }
