@@ -53,8 +53,10 @@ export function useObservables<T extends ObservableChecker[]>(...args: T): T {
                 ref.current.cmpValue.set(node.path, equalityFn(tracked.value));
                 cb = (v) => {
                     const cmpValue = equalityFn(v);
-                    ref.current.cmpValue.set(node.path, cmpValue);
-                    forceRender();
+                    if (cmpValue !== ref.current.cmpValue.get(node.path)) {
+                        ref.current.cmpValue.set(node.path, cmpValue);
+                        forceRender();
+                    }
                 };
             }
             listeners.set(node.path, shallow ? onChangeShallow(node, cb) : onChange(node, cb));

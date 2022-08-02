@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { symbolGet } from '../globals';
 import { isFunction } from '../is';
 import { observable } from '../observable';
 import { ObservableOrPrimitive, PersistOptions } from '../observableInterfaces';
@@ -18,7 +19,7 @@ export function useNewObservable<T>(
     value: T | (() => T),
     observe?: boolean,
     persist?: PersistOptions<T>
-): ObservableOrPrimitive<T> {
+): [ObservableOrPrimitive<T>, T] {
     // Create the observable from the default value
     const obs = useMemo(() => {
         const ret = observable<any>(isFunction(value) ? value() : value);
@@ -32,5 +33,5 @@ export function useNewObservable<T>(
         useObservables(obs);
     }
 
-    return obs as any;
+    return [obs as any, obs[symbolGet as any]];
 }

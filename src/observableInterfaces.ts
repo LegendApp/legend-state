@@ -207,7 +207,7 @@ export interface PathNode {
     key: string;
     listeners?: Set<ObservableListener>;
 }
-export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Prop;
+export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Prop | ObservableComputed;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;

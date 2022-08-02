@@ -134,6 +134,9 @@ const proxyHandler: ProxyHandler<any> = {
             let value = getNodeValue(node);
             const vProp = value[prop];
             if (prop === symbolGet) {
+                if (node.root.isPrimitive) {
+                    value = value.current;
+                }
                 if (state.isTracking) {
                     state.trackedNodes.push({
                         node,
@@ -144,6 +147,9 @@ const proxyHandler: ProxyHandler<any> = {
                 }
                 return value;
             } else if (prop === 'get') {
+                if (node.root.isPrimitive) {
+                    value = value.current;
+                }
                 return () => value;
             } else if (isFunction(vProp)) {
                 if (isArray(value)) {

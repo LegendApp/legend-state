@@ -12,7 +12,7 @@ export const symbolProp = Symbol('prop');
 export const symbolID = Symbol('id');
 export const symbolGet = Symbol('get');
 
-export function getNodeValue(node: PathNode) {
+export function getNodeValue(node: PathNode): any {
     let child = node.root;
     const arr = node.path.split(delim);
     for (let i = 0; i < arr.length; i++) {
