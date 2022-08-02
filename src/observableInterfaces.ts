@@ -31,9 +31,7 @@ export interface ObservableBaseProps<T> {
 }
 export type ObservableProps<T> = ObservableFns<T>;
 
-export interface ObservableComputedProps<T> {
-    _: ObservableComputedFns<T>;
-}
+export type ObservableComputedProps<T> = ObservableComputedFns<T>;
 
 export interface ObservableListenerInfo {
     value: any;

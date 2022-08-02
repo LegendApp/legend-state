@@ -1,6 +1,8 @@
+import state from './state';
 import { getObservableRawValue } from './globals';
 import { observable } from './observable';
 import { Observable, ObservableComputed, Prop } from './observableInterfaces';
+import { onChange } from './on';
 
 export function observableComputed<T extends (Observable | Prop)[], T2>(
     args: T,
@@ -8,24 +10,29 @@ export function observableComputed<T extends (Observable | Prop)[], T2>(
 ): ObservableComputed<T2> {
     // Create an observable for this computed variable
     // Initialize it to 0 temporarily to make it a primitive, but it will change immediately
-    const obs = observable(0) as unknown as ObservableComputed<T2>;
+    const obs = observable(0 as any);
 
-    const onChange = () => {
+    const update = () => {
         const values: any[] = [];
         for (let i = 0; i < args.length; i++) {
             values.push(getObservableRawValue(args[i] as Observable<any>));
         }
         const computed = compute(...(values as T));
 
-        // @ts-ignore Using hidden param
-        obs._.set(computed);
+        obs.set(computed);
     };
 
-    onChange();
+    state.isTracking = true;
+    state.trackedNodes.clear();
 
-    for (let i = 0; i < args.length; i++) {
-        args[i]._.onChange(onChange);
+    update();
+
+    state.isTracking = false;
+
+    // Todo shallow
+    for (let node of state.trackedNodes) {
+        onChange(node, update);
     }
 
-    return obs;
+    return obs as unknown as ObservableComputed<T2>;
 }

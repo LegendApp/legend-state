@@ -1,3 +1,4 @@
+import state from './state';
 import {
     delim,
     getNodeValue,
@@ -87,23 +88,23 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
 
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
-        const doNotify =
-            !isArr && prevValue && obj[key] !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
+        const value = obj[key];
+        const doNotify = !isArr && prevValue && value !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
 
         if (doNotify) {
-            const isObj = !isPrimitive(obj[key]);
+            const isObj = !isPrimitive(value);
             // Notify for this child if this element is different and it has a PathNode already
             // But do not notify child if the parent is an array - the array's listener will cover it
             const child = (isObj || doNotify) && getPathNode(parent.root, parent.path, key);
 
             // If object iterate through its children
             if (isObj) {
-                updateNodes(child, obj[key], prevValue?.[key]);
+                updateNodes(child, value, prevValue?.[key]);
             }
 
             // Do the notify at this node
             if (doNotify) {
-                _notify(child, { path: [], prevValue: prevValue[key], value: obj[key] }, 0);
+                _notify(child, value, { path: [], prevValue: prevValue[key], value: value }, 0);
             }
         }
     }
@@ -131,6 +132,9 @@ const proxyHandler: ProxyHandler<any> = {
             const value = getNodeValue(node);
             const vProp = value[prop];
             if (prop === symbolGet) {
+                if (state.isTracking) {
+                    state.trackedNodes.add(node);
+                }
                 return value;
             } else if (prop === 'get') {
                 return () => value;
@@ -242,6 +246,8 @@ function proxySetProp(node: PathNode, key: string, newValue: any) {
 function set(node: PathNode, key: string, newValue?: any) {
     newValue = newValue?.[symbolGet] ?? newValue;
 
+    const isPrim = isPrimitive(newValue);
+
     if (!key && !node.path.includes(delim)) {
         return assign(node, newValue);
     }
@@ -263,8 +269,6 @@ function set(node: PathNode, key: string, newValue?: any) {
         cleanup(childNode, newValue, prevValue);
     }
 
-    const isPrim = isPrimitive(newValue);
-
     // If new value is an object or array update PathNodes and notify down the tree
     if (!isPrim) {
         updateNodes(childNode, newValue, prevValue);
@@ -272,7 +276,12 @@ function set(node: PathNode, key: string, newValue?: any) {
 
     // Notify for this element if it's an object or it's changed
     if (!isPrim || newValue !== prevValue) {
-        notify(childNode, newValue, prevValue, prevValue == undefined || isArray(parentValue) ? -1 : 0);
+        notify(
+            node.root.isPrimitive ? node : childNode,
+            newValue,
+            prevValue,
+            prevValue == undefined || isArray(parentValue) ? -1 : 0
+        );
     }
 
     inSetFn = false;
@@ -280,10 +289,12 @@ function set(node: PathNode, key: string, newValue?: any) {
     return newValue;
 }
 
-function _notify(node: PathNode, listenerInfo: ObservableListenerInfo, level: number) {
+function _notify(node: PathNode, value: any, listenerInfo: ObservableListenerInfo, level: number) {
     // Notify all listeners
     if (node.listeners) {
-        const value = getNodeValue(node);
+        if (value === undefined) {
+            value = getNodeValue(node);
+        }
         for (let listener of node.listeners) {
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
@@ -293,16 +304,16 @@ function _notify(node: PathNode, listenerInfo: ObservableListenerInfo, level: nu
     }
 }
 
-function _notifyParents(node: PathNode, listenerInfo: ObservableListenerInfo, level: number) {
+function _notifyParents(node: PathNode, value: any, listenerInfo: ObservableListenerInfo, level: number) {
     // Do the notify
-    _notify(node, listenerInfo, level);
+    _notify(node, value, listenerInfo, level);
     // If not root notify up through parents
     if (node.path !== '_') {
         const parent = getParentNode(node);
         if (parent) {
             const parentListenerInfo = Object.assign({}, listenerInfo);
             parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-            _notifyParents(parent, parentListenerInfo, level + 1);
+            _notifyParents(parent, undefined, parentListenerInfo, level + 1);
         }
     }
 }
@@ -310,7 +321,7 @@ function notify(node: PathNode, value: any, prevValue: any, level: number) {
     // Create the listenerInfo
     const listenerInfo = { path: [], prevValue, value };
     // Start notifying up through parents with the listenerInfo
-    _notifyParents(node, listenerInfo, level);
+    _notifyParents(node, value, listenerInfo, level);
 }
 
 function prop(node: PathNode, key: string) {
@@ -338,8 +349,10 @@ function deleteFnProxy(node: PathNode, key: string) {
     return key !== undefined ? deleteFn(node, key) : deleteFn(getParentNode(node), node.key);
 }
 function deleteFn(node: PathNode, key?: string) {
-    // delete sets to undefined first to cleanup children
-    set(node, key, undefined);
+    if (!node.root.isPrimitive) {
+        // delete sets to undefined first to cleanup children
+        set(node, key, undefined);
+    }
 
     inSetFn = true;
     // Then delete the key from the object

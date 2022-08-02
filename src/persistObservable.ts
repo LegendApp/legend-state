@@ -133,9 +133,9 @@ async function loadLocal(
             mergeIntoObservable(obs, value);
         }
 
-        obsState._.set('clearLocal', () => persistenceLocal.delete(local));
+        obsState.setProp('clearLocal', () => persistenceLocal.delete(local));
 
-        obsState._.set('isLoadedLocal', true);
+        obsState.setProp('isLoadedLocal', true);
     }
 }
 
@@ -162,19 +162,19 @@ export function persistObservable<T>(obs: Observable<T>, persistOptions: Persist
         }
         localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
 
-        obsState._.onTrue('isLoadedLocal', () => {
+        obsState.isLoadedLocal.onTrue(() => {
             localState.persistenceRemote.listen(
                 obs,
                 persistOptions,
                 () => {
-                    obsState._.set('isLoadedRemote', true);
+                    obsState.setProp('isLoadedRemote', true);
                 },
                 onChangeRemote.bind(this, localState)
             );
         });
     }
 
-    obs._.onChange(onObsChange.bind(this, obsState, localState, persistOptions));
+    obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));
 
     return obsState;
 }
