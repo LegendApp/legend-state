@@ -26,9 +26,7 @@ export interface ObservableComputedFns<T> {
     onTrue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
     onHasValue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
 }
-export interface ObservableBaseProps<T> {
-    _: ObservableBaseFns<T>;
-}
+export type ObservableBaseProps<T> = ObservableBaseFns<T>;
 export type ObservableProps<T> = ObservableFns<T>;
 
 export type ObservableComputedProps<T> = ObservableComputedFns<T>;

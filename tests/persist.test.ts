@@ -83,7 +83,7 @@ describe('Persist local', () => {
             local: 'jestlocal',
         });
 
-        obs._.set({ test: 'hello' });
+        obs.set({ test: 'hello' });
 
         const localValue = global.localStorage.getItem('jestlocal');
 
