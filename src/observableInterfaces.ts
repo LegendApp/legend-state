@@ -1,4 +1,4 @@
-import { symbolEqualityFn, symbolProp, symbolShallow } from './globals';
+import { symbolProp, symbolShallow, symbolShouldRender } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
@@ -37,7 +37,7 @@ export interface ObservableListenerInfo {
     path: string[];
 }
 
-export type ListenerFn<T = any> = (value: T, info: ObservableListenerInfo) => void;
+export type ListenerFn<T = any> = (value: T, prev: T, path: string[], valueAtPath: any, prevAtPath: any) => void;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -182,7 +182,9 @@ export interface OnReturnValue<T> {
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
 export type Prop<T = any> = { [symbolProp]: Observable<T> } & ObservableProps<T>;
-export type EqualityFn<T = any> = { [symbolEqualityFn]: { obs: Observable<T>; fn: (value: any) => any } };
+export type ShouldRender<T = any> = {
+    [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
+};
 
 export interface ObservableListener<T = any> {
     node: PathNode;
@@ -205,7 +207,7 @@ export interface PathNode {
     key: string;
     listeners?: Set<ObservableListener>;
 }
-export type ObservableChecker<T = any> = Shallow | EqualityFn | Observable | Prop | ObservableComputed;
+export type ObservableChecker<T = any> = Shallow | ShouldRender | Observable | Prop | ObservableComputed;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;

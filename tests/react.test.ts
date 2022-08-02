@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 import { observable } from '../src/observable';
-import { equalityFn, shallow } from '../src/helpers';
+import { shouldRender, shallow } from '../src/helpers';
 import { useObservables } from '../src/react/useObservables';
 import { useNewObservable } from '../src/react/useNewObservable';
 import { observableComputed } from '../src/observableComputed';
@@ -24,30 +24,6 @@ describe('React Hooks', () => {
         expect(numRenders).toEqual(2);
         expect(val.val2.val3).toEqual('hi');
     });
-    test('useObservables2', () => {
-        let numRenders = 0;
-        const obs = observable({ val: { arr: [], val2: { val3: 'hello' } } });
-
-        // @ts-ignore
-        obs.val.arr.set([{ text: 'hi' }]);
-        const { result } = renderHook(() => {
-            numRenders++;
-            // @ts-ignore
-            return useObservables(() => [obs.val.arr]);
-        });
-        const [arr] = result.current;
-        expect(arr.map((a) => a)).toEqual([{ text: 'hi' }]);
-        // expect(numRenders).toEqual(1);
-        // expect(val.val2.val3).toEqual('hello');
-        // expect(val.arr.map((a) => a)).toEqual(['hi']);
-        // expect(val.arr.length).toEqual(1);
-        // act(() => {
-        //     // @ts-ignore
-        //     obs.val.val2.set('val3', 'hi');
-        // });
-        // expect(numRenders).toEqual(2);
-        // expect(val.val2.val3).toEqual('hi');
-    });
     test('useObservables with prop', () => {
         let numRenders = 0;
         const obs = observable({ val: { val2: { val3: 'hello' } }, selected: 0 });
@@ -57,6 +33,7 @@ describe('React Hooks', () => {
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);
+        // TODO
         // @ts-ignore
         expect(val.val2.val3).toEqual('hello');
         act(() => {
@@ -213,39 +190,57 @@ describe('React Hooks', () => {
         expect(numRendersItem).toEqual(3);
         expect(result.current).toEqual([{ text: 2 }]);
     });
-    test('useObservables with equalityFn', () => {
+    test('useObservables with shouldRender', () => {
         let numRenders = 0;
+        let numRendersPrev = 0;
         const obs = observable({ val: { val2: { val3: 'hello' } } });
-        const { result } = renderHook(() => {
+        renderHook(() => {
             numRenders++;
-            return useObservables(() => [equalityFn(obs.val.val2, (val2) => val2.val3 === 'hi')]);
+            return useObservables(() => [
+                shouldRender(obs.val.val2, (val2, prev) => {
+                    return val2.val3 === 'hi' || prev.val3 === 'hi';
+                }),
+            ]);
         });
-        const [val2] = result.current;
+        renderHook(() => {
+            numRendersPrev++;
+            return useObservables(() => [
+                shouldRender(obs.val.val2, (val2, prev) => {
+                    return val2.val3.length !== prev.val3.length;
+                }),
+            ]);
+        });
         expect(numRenders).toEqual(1);
+        expect(numRendersPrev).toEqual(1);
 
         // Changing to any other text has no effect
         act(() => {
             obs.val.val2.val3.set('hello there');
         });
         expect(numRenders).toEqual(1);
+        expect(numRendersPrev).toEqual(2);
 
         // Changing to 'hi' renders'
         act(() => {
             obs.val.val2.val3.set('hi');
         });
         expect(numRenders).toEqual(2);
+        expect(numRendersPrev).toEqual(3);
 
         // Changing from 'hi' renders
         act(() => {
             obs.val.val2.val3.set('hi there');
         });
         expect(numRenders).toEqual(3);
+        expect(numRendersPrev).toEqual(4);
 
         // Changing to any other text has no effect
         act(() => {
             obs.val.val2.val3.set('hi again');
         });
         expect(numRenders).toEqual(3);
+        // Length is the same as previous so no change
+        expect(numRendersPrev).toEqual(4);
     });
     test('useNewObservable primitive', () => {
         let numRenders = 0;

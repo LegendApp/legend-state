@@ -1,15 +1,15 @@
-import { symbolDateModified, symbolEqualityFn, symbolShallow } from './globals';
+import { symbolDateModified, symbolShouldRender, symbolShallow } from './globals';
 import { isObject } from './is';
-import type { EqualityFn, Observable, Shallow } from './observableInterfaces';
+import type { ShouldRender, Observable, Shallow } from './observableInterfaces';
 
 export function shallow(obs: Observable): Shallow {
     return {
         [symbolShallow]: obs,
     };
 }
-export function equalityFn(obs: Observable, fn: (value: any) => any): EqualityFn {
+export function shouldRender<T>(obs: Observable<T>, fn: (value: T, prev: T) => any): ShouldRender {
     return {
-        [symbolEqualityFn]: { obs, fn },
+        [symbolShouldRender]: { obs, fn },
     };
 }
 

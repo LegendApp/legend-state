@@ -7,7 +7,7 @@ export const arrPaths = [];
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolShallow = Symbol('shallow');
-export const symbolEqualityFn = Symbol('equalityFn');
+export const symbolShouldRender = Symbol('shouldRender');
 export const symbolValue = Symbol('value');
 export const symbolProp = Symbol('prop');
 export const symbolID = Symbol('id');
@@ -71,9 +71,9 @@ export function get(proxy: ProxyValue) {
 export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
     if (!obs || isPrimitive(obs)) return obs as T;
 
-    const eq = obs[symbolEqualityFn];
+    const eq = obs[symbolShouldRender];
     if (eq) {
-        state.trackingEqualityFn = eq.fn;
+        state.trackingShouldRender = eq.fn;
         obs = eq.obs;
     }
     const shallow = obs[symbolShallow];
@@ -83,21 +83,8 @@ export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
     }
     let ret = obs[symbolGet];
 
-    state.trackingEqualityFn = undefined;
+    state.trackingShouldRender = undefined;
     state.trackingShallow = false;
 
     return ret;
-
-    // const prop = obs[symbolProp];
-    // if (prop) {
-    //     return getNodeValue(prop.node)?.[prop.key];
-    // } else {
-    //     const eq = obs[symbolEqualityFn];
-    //     if (eq) {
-    //         return getObservableRawValue(eq.obs);
-    //     } else {
-    //         // @ts-ignore
-    //         return obs[symbolShallow] || obs.get();
-    //     }
-    // }
 }

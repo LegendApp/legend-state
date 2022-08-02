@@ -17,164 +17,183 @@ afterAll(() => {
 });
 
 describe('Set', () => {
-    test('Set', () => {
-        const obs = observable({ test: { text: 't' } });
-        obs.test.set({ text: 't2' });
-        expect(obs).toEqual({ test: { text: 't2' } });
-    });
-    test('Set primitive', () => {
-        const obs = observable({ test: { text: 't' } });
-        obs.test.text.set('t2');
-        expect(obs).toEqual({ test: { text: 't2' } });
-    });
-    test('Set prop', () => {
-        const obs = observable({ test: { text: 't' } });
-        obs.test.setProp('text', 't2');
-        expect(obs).toEqual({ test: { text: 't2' } });
-    });
-    test('Set child', () => {
-        const obs = observable({ test: { text: { text2: 't' } } });
-        obs.test.text.set({ text2: 't2' });
-        expect(obs).toEqual({ test: { text: { text2: 't2' } } });
-    });
-    test('Set array', () => {
-        const obs = observable({ arr: [{ text: 'hi' }] });
-        obs.arr.set([{ text: 'hi2' }]);
-        expect(obs.arr.length).toEqual(1);
+    //     test('Set', () => {
+    //         const obs = observable({ test: { text: 't' } });
+    //         obs.test.set({ text: 't2' });
+    //         expect(obs).toEqual({ test: { text: 't2' } });
+    //     });
+    //     test('Set primitive', () => {
+    //         const obs = observable({ test: { text: 't' } });
+    //         obs.test.text.set('t2');
+    //         expect(obs).toEqual({ test: { text: 't2' } });
+    //     });
+    //     test('Set prop', () => {
+    //         const obs = observable({ test: { text: 't' } });
+    //         obs.test.setProp('text', 't2');
+    //         expect(obs).toEqual({ test: { text: 't2' } });
+    //     });
+    //     test('Set child', () => {
+    //         const obs = observable({ test: { text: { text2: 't' } } });
+    //         obs.test.text.set({ text2: 't2' });
+    //         expect(obs).toEqual({ test: { text: { text2: 't2' } } });
+    //     });
+    //     test('Set array', () => {
+    //         const obs = observable({ arr: [{ text: 'hi' }] });
+    //         obs.arr.set([{ text: 'hi2' }]);
+    //         expect(obs.arr.length).toEqual(1);
 
-        const arr = obs.arr;
+    //         const arr = obs.arr;
 
-        expect(obs.arr.get()).toEqual([{ text: 'hi2' }]);
-        expect(obs.arr[0].text).toEqual('hi2');
-        obs.arr[0].text.set('hi3');
-        expect(obs.arr.map((a) => a)).toEqual([{ text: 'hi3' }]);
-    });
-    // TODO
-    // test('Set at root', () => {
-    //     const obs = observable({ test: { text: 't' } });
-    //     obs.set({ test: { text: 't2' } });
-    //     expect(obs).toEqual({ test: { text: 't2' } });
+    //         expect(obs.arr.get()).toEqual([{ text: 'hi2' }]);
+    //         expect(obs.arr[0].text).toEqual('hi2');
+    //         obs.arr[0].text.set('hi3');
+    //         expect(obs.arr.map((a) => a)).toEqual([{ text: 'hi3' }]);
+    //     });
+    //     //     // TODO
+    //     //     // test('Set at root', () => {
+    //     //     //     const obs = observable({ test: { text: 't' } });
+    //     //     //     obs.set({ test: { text: 't2' } });
+    //     //     //     expect(obs).toEqual({ test: { text: 't2' } });
+    //     //     // });
+    //     test('Set value does not copy object', () => {
+    //         const obs = observable({ test: { test2: 'hi' } });
+    //         const newVal = { test2: 'hello' };
+    //         obs.test.set(newVal);
+    //         expect(obs.test.get()).toBe(newVal);
+    //     });
+    //     test('Multiple sets does not cleanup existing nodes', () => {
+    //         const obs = observable({ arr: [{ text: 'hi' }] });
+    //         const handler = jest.fn();
+    //         obs.arr.onChange(handler);
+
+    //         obs.arr.set([{ text: 'hi2' }]);
+
+    //         expect(handler).toHaveBeenCalledWith(
+    //             [{ text: 'hi2' }],
+    //             [{ text: 'hi' }],
+    //             [],
+    //             [{ text: 'hi2' }],
+    //             [{ text: 'hi' }]
+    //         );
+
+    //         const setVal = obs.arr.set([{ text: 'hello' }]);
+    //         expect(setVal).toEqual([{ text: 'hello' }]);
+
+    //         expect(obs.arr.get()).toEqual([{ text: 'hello' }]);
+
+    //         expect(handler).toHaveBeenCalledWith(
+    //             [{ text: 'hello' }],
+    //             [{ text: 'hi2' }],
+    //             [],
+    //             [{ text: 'hello' }],
+    //             [{ text: 'hi2' }]
+    //         );
+    //     });
     // });
-    test('Set value does not copy object', () => {
-        const obs = observable({ test: { test2: 'hi' } });
-        const newVal = { test2: 'hello' };
-        obs.test.set(newVal);
-        expect(obs.test.get()).toBe(newVal);
-    });
-    test('Multiple sets does not cleanup existing nodes', () => {
-        const obs = observable({ arr: [{ text: 'hi' }] });
-        const handler = jest.fn();
-        obs.arr.onChange(handler);
-
-        obs.arr.set([{ text: 'hi2' }]);
-
-        const setVal = obs.arr.set([{ text: 'hello' }]);
-        expect(setVal).toEqual([{ text: 'hello' }]);
-
-        expect(obs.arr.get()).toEqual([{ text: 'hello' }]);
-
-        expect(handler).toHaveBeenCalledWith([{ text: 'hello' }], {
-            path: [],
-            prevValue: [{ text: 'hi2' }],
-            value: [{ text: 'hello' }],
-        });
-    });
-});
-describe('Assign', () => {
-    test('Assign', () => {
-        const obs = observable({ test: { text: 't' } });
-        obs.test.assign({ text: 't2' });
-        expect(obs).toEqual({ test: { text: 't2' } });
-    });
-    test('Assign more keys', () => {
-        const obs = observable<Record<string, any>>({ test: { text: 't' } });
-        obs.test.assign({ text: 'tt', text2: 'tt2' });
-        expect(obs).toEqual({ test: { text: 'tt', text2: 'tt2' } });
-    });
-});
-describe('Listeners', () => {
-    test('Listen', () => {
-        const obs = observable({ test: { text: 't' }, arr: [] });
-        const handler = jest.fn();
-        const handler2 = jest.fn();
-        obs.test.onChange(handler);
-        obs.onChange(handler2);
-        obs.test.set({ text: 't2' });
-        expect(handler).toHaveBeenCalledWith(
-            { text: 't2' },
-            { value: { text: 't2' }, path: [], prevValue: { text: 't' } }
-        );
-        expect(handler2).toHaveBeenCalledWith(
-            { test: { text: 't2' }, arr: [] },
-            { value: { text: 't2' }, path: ['test'], prevValue: { text: 't' } }
-        );
-    });
-    test('Listen by prop', () => {
-        const obs = observable({ test: { text: 't' } });
-        expect(obs.test.text).toEqual('t');
-        const handler = jest.fn();
-        // TODO
-        obs.test.prop('text').onChange(handler);
-        obs.test.setProp('text', 't2');
-        expect(obs.test.text).toEqual('t2');
-        expect(handler).toHaveBeenCalledWith('t2', { path: [], prevValue: 't', value: 't2' });
-    });
-    test('Listen by key', () => {
-        const obs = observable({ test: { text: 't' } });
-        expect(obs.test.text).toEqual('t');
-        const handler = jest.fn();
-        obs.test.text.onChange(handler);
-        obs.test.setProp('text', 't2');
-        expect(obs.test.text).toEqual('t2');
-        expect(handler).toHaveBeenCalledWith('t2', { path: [], prevValue: 't', value: 't2' });
-    });
-    test('Listen deep', () => {
-        const obs = observable({ test: { test2: { test3: { text: 't' } } } });
-        const handler = jest.fn();
-        const handler2 = jest.fn();
-        obs.test.test2.test3.text.onChange(handler);
-        obs.onChange(handler2);
-        obs.test.test2.test3.text.set('t2');
-        expect(obs.test.test2.test3.text).toEqual('t2');
-        expect(handler).toHaveBeenCalledWith('t2', { path: [], prevValue: 't', value: 't2' });
-        expect(handler2).toHaveBeenCalledWith(
-            { test: { test2: { test3: { text: 't2' } } } },
-            { path: ['test', 'test2', 'test3', 'text'], prevValue: 't', value: 't2' }
-        );
-    });
-    test('Listen calls multiple times', () => {
-        const obs = observable({ test: { test2: { test3: { text: 't' } } } });
-        const handler = jest.fn();
-        obs.onChange(handler);
-        obs.test.test2.test3.text.set('t2');
-        expect(obs.test.test2.test3.text).toEqual('t2');
-        expect(handler).toHaveBeenCalledWith(
-            { test: { test2: { test3: { text: 't2' } } } },
-            { path: ['test', 'test2', 'test3', 'text'], prevValue: 't', value: 't2' }
-        );
-        obs.test.test2.test3.text.set('t3');
-        expect(obs.test.test2.test3.text).toEqual('t3');
-        expect(handler).toHaveBeenCalledWith(
-            { test: { test2: { test3: { text: 't3' } } } },
-            { path: ['test', 'test2', 'test3', 'text'], prevValue: 't2', value: 't3' }
-        );
-    });
+    // describe('Assign', () => {
+    //     test('Assign', () => {
+    //         const obs = observable({ test: { text: 't' } });
+    //         obs.test.assign({ text: 't2' });
+    //         expect(obs).toEqual({ test: { text: 't2' } });
+    //     });
+    //     test('Assign more keys', () => {
+    //         const obs = observable<Record<string, any>>({ test: { text: 't' } });
+    //         obs.test.assign({ text: 'tt', text2: 'tt2' });
+    //         expect(obs).toEqual({ test: { text: 'tt', text2: 'tt2' } });
+    //     });
+    // });
+    // describe('Listeners', () => {
+    //     test('Listen', () => {
+    //         const obs = observable({ test: { text: 't' }, arr: [] });
+    //         const handler = jest.fn();
+    //         const handler2 = jest.fn();
+    //         obs.test.onChange(handler);
+    //         obs.onChange(handler2);
+    //         obs.test.set({ text: 't2' });
+    //         expect(handler).toHaveBeenCalledWith({ text: 't2' }, { text: 't' }, [], { text: 't2' }, { text: 't' });
+    //         expect(handler2).toHaveBeenCalledWith(
+    //             { test: { text: 't2' }, arr: [] },
+    //             { test: { text: 't' }, arr: [] },
+    //             ['test'],
+    //             { text: 't2' },
+    //             { text: 't' }
+    //         );
+    //     });
+    //     test('Listen by prop', () => {
+    //         const obs = observable({ test: { text: 't' } });
+    //         expect(obs.test.text).toEqual('t');
+    //         const handler = jest.fn();
+    //         // TODO
+    //         obs.test.prop('text').onChange(handler);
+    //         obs.test.setProp('text', 't2');
+    //         expect(obs.test.text).toEqual('t2');
+    //         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
+    //     });
+    //     test('Listen by key', () => {
+    //         const obs = observable({ test: { text: 't' } });
+    //         expect(obs.test.text).toEqual('t');
+    //         const handler = jest.fn();
+    //         obs.test.text.onChange(handler);
+    //         obs.test.setProp('text', 't2');
+    //         expect(obs.test.text).toEqual('t2');
+    //         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
+    //     });
+    //     test('Listen deep', () => {
+    //         const obs = observable({ test: { test2: { test3: { text: 't' } } } });
+    //         const handler = jest.fn();
+    //         const handler2 = jest.fn();
+    //         obs.test.test2.test3.text.onChange(handler);
+    //         obs.onChange(handler2);
+    //         obs.test.test2.test3.text.set('t2');
+    //         expect(obs.test.test2.test3.text).toEqual('t2');
+    //         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
+    //         expect(handler2).toHaveBeenCalledWith(
+    //             { test: { test2: { test3: { text: 't2' } } } },
+    //             { test: { test2: { test3: { text: 't' } } } },
+    //             ['test', 'test2', 'test3', 'text'],
+    //             't2',
+    //             't'
+    //         );
+    //     });
+    //     test('Listen calls multiple times', () => {
+    //         const obs = observable({ test: { test2: { test3: { text: 't' } } } });
+    //         const handler = jest.fn();
+    //         obs.onChange(handler);
+    //         obs.test.test2.test3.text.set('t2');
+    //         expect(obs.test.test2.test3.text).toEqual('t2');
+    //         expect(handler).toHaveBeenCalledWith(
+    //             { test: { test2: { test3: { text: 't2' } } } },
+    //             { test: { test2: { test3: { text: 't' } } } },
+    //             ['test', 'test2', 'test3', 'text'],
+    //             't2',
+    //             't'
+    //         );
+    //         obs.test.test2.test3.text.set('t3');
+    //         expect(obs.test.test2.test3.text).toEqual('t3');
+    //         expect(handler).toHaveBeenCalledWith(
+    //             { test: { test2: { test3: { text: 't3' } } } },
+    //             { test: { test2: { test3: { text: 't2' } } } },
+    //             ['test', 'test2', 'test3', 'text'],
+    //             't3',
+    //             't2'
+    //         );
+    //     });
     test('Set calls and maintains deep listeners', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const handler = jest.fn();
         obs.test.test2.onChange(handler);
         obs.test.set({ test2: 'hello' });
-        expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
+        expect(handler).toHaveBeenCalledWith('hello', 'hi', [], 'hello', 'hi');
         obs.test.set({ test2: 'hi there' });
         expect(obs.test.test2).toEqual('hi there');
-        expect(handler).toHaveBeenCalledWith('hi there', { path: [], prevValue: 'hello', value: 'hi there' });
+        expect(handler).toHaveBeenCalledWith('hi there', 'hello', [], 'hi there', 'hello');
     });
     test('Set on root calls deep listeners', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const handler = jest.fn();
         obs.test.test2.onChange(handler);
         obs.set({ test: { test2: 'hello' } });
-        expect(handler).toHaveBeenCalledWith('hello', { path: [], prevValue: 'hi', value: 'hello' });
+        expect(handler).toHaveBeenCalledWith('hello', 'hi', [], 'hello', 'hi');
     });
     test('Shallow listener', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
@@ -197,13 +216,13 @@ describe('Listeners', () => {
         obs.test.onChange(handler);
         expect(handler).not.toHaveBeenCalled();
         obs.test.set({ val: 20 });
-        expect(handler).toHaveBeenCalledWith({ val: 20 }, { value: { val: 20 }, path: [], prevValue: { val: 10 } });
+        expect(handler).toHaveBeenCalledWith({ val: 20 }, { val: 10 }, [], { val: 20 }, { val: 10 });
         obs.test.set({ val: 21 });
-        expect(handler).toHaveBeenCalledWith({ val: 21 }, { value: { val: 21 }, path: [], prevValue: { val: 20 } });
+        expect(handler).toHaveBeenCalledWith({ val: 21 }, { val: 20 }, [], { val: 21 }, { val: 20 });
         obs.test.set({ val: 22 });
-        expect(handler).toHaveBeenCalledWith({ val: 22 }, { value: { val: 22 }, path: [], prevValue: { val: 21 } });
+        expect(handler).toHaveBeenCalledWith({ val: 22 }, { val: 21 }, [], { val: 22 }, { val: 21 });
         obs.test.set({ val: 23 });
-        expect(handler).toHaveBeenCalledWith({ val: 23 }, { value: { val: 23 }, path: [], prevValue: { val: 22 } });
+        expect(handler).toHaveBeenCalledWith({ val: 23 }, { val: 22 }, [], { val: 23 }, { val: 22 });
         expect(handler).toHaveBeenCalledTimes(4);
     });
     test('Listener called for each change at root', () => {
@@ -212,13 +231,13 @@ describe('Listeners', () => {
         obs.onChange(handler);
         expect(handler).not.toHaveBeenCalled();
         obs.set({ val: 20 });
-        expect(handler).toHaveBeenCalledWith({ val: 20 }, { value: 20, path: ['val'], prevValue: 10 });
+        expect(handler).toHaveBeenCalledWith({ val: 20 }, { val: 10 }, ['val'], 20, 10);
         obs.set({ val: 21 });
-        expect(handler).toHaveBeenCalledWith({ val: 21 }, { value: 21, path: ['val'], prevValue: 20 });
+        expect(handler).toHaveBeenCalledWith({ val: 21 }, { val: 20 }, ['val'], 21, 20);
         obs.set({ val: 22 });
-        expect(handler).toHaveBeenCalledWith({ val: 22 }, { value: 22, path: ['val'], prevValue: 21 });
+        expect(handler).toHaveBeenCalledWith({ val: 22 }, { val: 21 }, ['val'], 22, 21);
         obs.set({ val: 23 });
-        expect(handler).toHaveBeenCalledWith({ val: 23 }, { value: 23, path: ['val'], prevValue: 22 });
+        expect(handler).toHaveBeenCalledWith({ val: 23 }, { val: 22 }, ['val'], 23, 22);
         expect(handler).toHaveBeenCalledTimes(4);
     });
     test('Listener with key fires only for key', () => {
@@ -227,7 +246,7 @@ describe('Listeners', () => {
         obs.val.onChange(handler);
         obs.val.val2.set(20);
         expect(handler).toHaveBeenCalledTimes(1);
-        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { value: 20, path: ['val2'], prevValue: 10 });
+        expect(handler).toHaveBeenCalledWith({ val2: 20 }, { val2: 10 }, ['val2'], 20, 10);
         obs.val3.set('hihi');
         obs.val3.set('hello again');
         expect(handler).toHaveBeenCalledTimes(1);
@@ -237,7 +256,7 @@ describe('Listeners', () => {
         const handler = jest.fn();
         obs.onChange(handler);
         obs.test.set('hello');
-        expect(handler).toHaveBeenCalledWith({ test: 'hello' }, { value: 'hello', path: ['test'], prevValue: 'hi' });
+        expect(handler).toHaveBeenCalledWith({ test: 'hello' }, { test: 'hi' }, ['test'], 'hello', 'hi');
     });
     test('Deep object listener', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
@@ -246,7 +265,10 @@ describe('Listeners', () => {
         obs.test.test2.test3.set('hello');
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: 'hello' } } },
-            { value: 'hello', path: ['test', 'test2', 'test3'], prevValue: 'hi' }
+            { test: { test2: { test3: 'hi' } } },
+            ['test', 'test2', 'test3'],
+            'hello',
+            'hi'
         );
     });
     test('Deep object set primitive undefined', () => {
@@ -256,7 +278,10 @@ describe('Listeners', () => {
         obs.test.test2.test3.set(undefined);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: undefined } } },
-            { value: undefined, path: ['test', 'test2', 'test3'], prevValue: 'hi' }
+            { test: { test2: { test3: 'hi' } } },
+            ['test', 'test2', 'test3'],
+            undefined,
+            'hi'
         );
     });
     test('Deep object set undefined', () => {
@@ -266,7 +291,10 @@ describe('Listeners', () => {
         obs.test.test2.set(undefined);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: undefined } },
-            { value: undefined, path: ['test', 'test2'], prevValue: { test3: 'hi' } }
+            { test: { test2: { test3: 'hi' } } },
+            ['test', 'test2'],
+            undefined,
+            { test3: 'hi' }
         );
     });
     test('Start null set to something', () => {
@@ -276,11 +304,12 @@ describe('Listeners', () => {
         obs.setProp('test', { test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
+            { test: null },
+            ['test'],
             {
-                value: { test2: 'hi' },
-                path: ['test'],
-                prevValue: null,
-            }
+                test2: 'hi',
+            },
+            null
         );
     });
     test('Start undefined set to something', () => {
@@ -290,11 +319,12 @@ describe('Listeners', () => {
         obs.setProp('test', { test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
+            { test: undefined },
+            ['test'],
             {
-                value: { test2: 'hi' },
-                path: ['test'],
-                prevValue: undefined,
-            }
+                test2: 'hi',
+            },
+            undefined
         );
     });
     test('Set with object should only fire listeners once', () => {
@@ -305,11 +335,10 @@ describe('Listeners', () => {
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi', test3: 'hi3', test4: 'hi4' } },
-            {
-                value: { test2: 'hi', test3: 'hi3', test4: 'hi4' },
-                path: ['test'],
-                prevValue: undefined,
-            }
+            { test: undefined },
+            ['test'],
+            { test2: 'hi', test3: 'hi3', test4: 'hi4' },
+            undefined
         );
     });
     test('Listener promises', async () => {
@@ -338,44 +367,41 @@ describe('Listeners', () => {
         obs.test1.test2.test3.test4.set('hi');
         expect(handlerRoot).toHaveBeenCalledWith(
             { test1: { test2: { test3: { test4: 'hi' } } } },
-            { value: 'hi', path: ['test1', 'test2', 'test3', 'test4'], prevValue: '' }
+            { test1: { test2: { test3: { test4: '' } } } },
+            ['test1', 'test2', 'test3', 'test4'],
+            'hi',
+            ''
         );
         expect(handler1).toHaveBeenCalledWith(
             { test2: { test3: { test4: 'hi' } } },
-            { value: 'hi', path: ['test2', 'test3', 'test4'], prevValue: '' }
+            { test2: { test3: { test4: '' } } },
+            ['test2', 'test3', 'test4'],
+            'hi',
+            ''
         );
         expect(handler2).toHaveBeenCalledWith(
             { test3: { test4: 'hi' } },
-            { value: 'hi', path: ['test3', 'test4'], prevValue: '' }
+            { test3: { test4: '' } },
+            ['test3', 'test4'],
+            'hi',
+            ''
         );
-        expect(handler3).toHaveBeenCalledWith({ test4: 'hi' }, { value: 'hi', path: ['test4'], prevValue: '' });
-        expect(handler4).toHaveBeenCalledWith('hi', {
-            value: 'hi',
-            path: [],
-            prevValue: '',
-        });
+        expect(handler3).toHaveBeenCalledWith({ test4: 'hi' }, { test4: '' }, ['test4'], 'hi', '');
+        expect(handler4).toHaveBeenCalledWith('hi', '', [], 'hi', '');
     });
     test('Set with deep listener', () => {
         const obs = observable({ obj: { test: 'hi' } });
         const handler = jest.fn();
         obs.obj.test.onChange(handler);
         obs.set({ obj: { test: 'hello' } });
-        expect(handler).toHaveBeenCalledWith('hello', {
-            value: 'hello',
-            path: [],
-            prevValue: 'hi',
-        });
+        expect(handler).toHaveBeenCalledWith('hello', 'hi', [], 'hello', 'hi');
     });
     test('Set undefined deep with deep listener', () => {
         const obs = observable({ obj: { test: 'hi' } });
         const handler = jest.fn();
         obs.obj.test.onChange(handler);
         obs.obj.setProp('test', undefined);
-        expect(handler).toHaveBeenCalledWith(undefined, {
-            value: undefined,
-            path: [],
-            prevValue: 'hi',
-        });
+        expect(handler).toHaveBeenCalledWith(undefined, 'hi', [], undefined, 'hi');
     });
     test('Modify value does not copy object', () => {
         const obs = observable({ test: { test2: 'hi' } });
@@ -413,11 +439,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: { test4: 'hi4', test5: 'hi5' } } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
-            {
-                value: { test4: 'hi4', test5: 'hi5' },
-                path: ['test2', 'test3'],
-                prevValue: undefined,
-            }
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            { test4: 'hi4', test5: 'hi5' },
+            undefined
         );
         obs.test.test2.setProp('test3', undefined);
         expect(obs.test.test2.test3).toEqual(undefined);
@@ -426,11 +451,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: undefined } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: undefined } },
-            {
-                value: undefined,
-                path: ['test2', 'test3'],
-                prevValue: { test4: 'hi4', test5: 'hi5' },
-            }
+            { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
+            ['test2', 'test3'],
+            undefined,
+            { test4: 'hi4', test5: 'hi5' }
         );
         obs.test.test2.setProp('test3', { test4: 'hi6', test5: 'hi7' });
         expect(obs.test.test2.test3).toEqual({ test4: 'hi6', test5: 'hi7' });
@@ -439,11 +463,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: { test4: 'hi6', test5: 'hi7' } } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: { test4: 'hi6', test5: 'hi7' } } },
-            {
-                value: { test4: 'hi6', test5: 'hi7' },
-                path: ['test2', 'test3'],
-                prevValue: undefined,
-            }
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            { test4: 'hi6', test5: 'hi7' },
+            undefined
         );
     });
     test('Set deep primitive undefined to value and back', () => {
@@ -461,11 +484,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: 'hi' } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: 'hi' } },
-            {
-                value: 'hi',
-                path: ['test2', 'test3'],
-                prevValue: undefined,
-            }
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            'hi',
+            undefined
         );
         obs.test.test2.setProp('test3', undefined);
         expect(obs.test.test2.test3).toEqual(undefined);
@@ -474,11 +496,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: undefined } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: undefined } },
-            {
-                value: undefined,
-                path: ['test2', 'test3'],
-                prevValue: 'hi',
-            }
+            { test2: { test3: 'hi' } },
+            ['test2', 'test3'],
+            undefined,
+            'hi'
         );
         obs.test.test2.setProp('test3', 'hi');
         expect(obs.test.test2.test3).toEqual('hi');
@@ -489,11 +510,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: 'hi' } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: 'hi' } },
-            {
-                value: 'hi',
-                path: ['test2', 'test3'],
-                prevValue: undefined,
-            }
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            'hi',
+            undefined
         );
         obs.test.test2.set({ test3: 'hi2' });
         expect(obs.test.test2.test3).toEqual('hi2');
@@ -504,11 +524,10 @@ describe('Listeners', () => {
         expect(obs).toEqual({ test: { test2: { test3: 'hi2' } } });
         expect(handler).toHaveBeenCalledWith(
             { test2: { test3: 'hi2' } },
-            {
-                value: { test3: 'hi2' },
-                path: ['test2'],
-                prevValue: { test3: 'hi' },
-            }
+            { test2: { test3: 'hi' } },
+            ['test2'],
+            { test3: 'hi2' },
+            { test3: 'hi' }
         );
     });
     test('Set number key', () => {
@@ -516,14 +535,7 @@ describe('Listeners', () => {
         const handler = jest.fn();
         obs.test.onChange(handler);
         obs.test.setProp(1, 'hi');
-        expect(handler).toHaveBeenCalledWith(
-            { '1': 'hi' },
-            {
-                value: 'hi',
-                path: [1],
-                prevValue: undefined,
-            }
-        );
+        expect(handler).toHaveBeenCalledWith({ '1': 'hi' }, { '1': undefined }, [1], 'hi', undefined);
     });
     test('Set number key multiple times', () => {
         const obs = observable({ test: { t: {} as Record<number, any> } });
@@ -541,11 +553,10 @@ describe('Listeners', () => {
         });
         expect(handler).toHaveBeenCalledWith(
             { t: { 1000: { test1: { text: ['hi'] } } } },
-            {
-                value: { test1: { text: ['hi'] } },
-                path: ['t', 1000],
-                prevValue: undefined,
-            }
+            { t: { 1000: undefined } },
+            ['t', 1000],
+            { test1: { text: ['hi'] } },
+            undefined
         );
         expect(Object.keys(obs.test.t[1000])).toEqual(['test1']);
         obs.test.t[1000].set({ test1: { text: ['hi'] }, test2: { text: ['hi2'] } });
@@ -570,11 +581,10 @@ describe('Listeners', () => {
         });
         expect(handler).toHaveBeenCalledWith(
             { t: { 1000: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } } } },
-            {
-                value: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
-                path: ['t', 1000],
-                prevValue: { test1: { text: ['hi'] } },
-            }
+            { t: { 1000: { test1: { text: ['hi'] } } } },
+            ['t', 1000],
+            { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
+            { test1: { text: ['hi'] } }
         );
         obs.test.t.setProp(1000, { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
         expect(obs.test.t.get()).toEqual({
@@ -585,11 +595,10 @@ describe('Listeners', () => {
         });
         expect(handler).toHaveBeenCalledWith(
             { t: { 1000: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } } } },
-            {
-                value: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } },
-                path: ['t', 1000],
-                prevValue: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
-            }
+            { t: { 1000: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } } } },
+            ['t', 1000],
+            { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } },
+            { test1: { text: ['hi'] }, test2: { text: ['hi2'] } }
         );
     });
     test('Set does not fire if unchanged', () => {
@@ -627,7 +636,13 @@ describe('Equality', () => {
         const arr = obs.arr.get();
         obs.arr.set(obs.arr);
         expect(obs.arr.get()).toBe(arr);
-        expect(handler).toHaveBeenCalledWith(arr, { path: [], prevValue: [{ text: 'hi' }], value: [{ text: 'hi' }] });
+        expect(handler).toHaveBeenCalledWith(
+            [{ text: 'hi' }],
+            [{ text: 'hi' }],
+            [],
+            [{ text: 'hi' }],
+            [{ text: 'hi' }]
+        );
     });
     test('Set with array with new items still notifies', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
@@ -639,11 +654,14 @@ describe('Equality', () => {
         };
         obs.arr.set(obs.arr);
         expect(obs.arr.get()).toBe(arr);
-        expect(handler).toHaveBeenCalledWith(arr, {
-            path: [],
-            prevValue: [{ text: 'hi' }, { text: 'hi2' }],
-            value: [{ text: 'hi' }, { text: 'hi2' }],
-        });
+        // Note that prevValue is the same because it was modified outside of state
+        expect(handler).toHaveBeenCalledWith(
+            [{ text: 'hi' }, { text: 'hi2' }],
+            [{ text: 'hi' }, { text: 'hi2' }],
+            [],
+            [{ text: 'hi' }, { text: 'hi2' }],
+            [{ text: 'hi' }, { text: 'hi2' }]
+        );
     });
 });
 describe('Safety', () => {
@@ -679,9 +697,7 @@ describe('Primitives', () => {
     test('observable root can be primitive', () => {
         const obs = observable(10);
         expect(obs.current).toEqual(10);
-
         obs.set(20);
-
         expect(obs.current).toEqual(20);
     });
     test('Primitive callback does not have current', () => {
@@ -689,11 +705,7 @@ describe('Primitives', () => {
         const handler = jest.fn();
         obs.onChange(handler);
         obs.set(20);
-        expect(handler).toHaveBeenCalledWith(20, {
-            value: 20,
-            path: [],
-            prevValue: 10,
-        });
+        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
 });
 describe('Array', () => {
@@ -720,7 +732,10 @@ describe('Array', () => {
         expect(obs.test.get()).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith(
             { test: ['hi', 'hello'] },
-            { value: ['hi', 'hello'], path: ['test'], prevValue: ['hi'] }
+            { test: ['hi'] },
+            ['test'],
+            ['hi', 'hello'],
+            ['hi']
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -735,11 +750,10 @@ describe('Array', () => {
         expect(obs.test[1].get()).toBe(last);
         expect(handler).toHaveBeenCalledWith(
             { test: [{ text: 'hi' }, { text: 'there' }] },
-            {
-                value: [{ text: 'hi' }, { text: 'there' }],
-                path: ['test'],
-                prevValue: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }],
-            }
+            { test: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }] },
+            ['test'],
+            [{ text: 'hi' }, { text: 'there' }],
+            [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }]
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -828,11 +842,13 @@ describe('Array', () => {
         expect(obs.test.map((a) => a)).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
         // TODO
         // expect(handler).toHaveBeenCalledTimes(1);
-        expect(handler).toHaveBeenCalledWith([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }], {
-            value: [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
-            path: [],
-            prevValue: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
-        });
+        expect(handler).toHaveBeenCalledWith(
+            [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            [],
+            [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]
+        );
     });
     test('Array with listeners clear', () => {
         let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
@@ -863,11 +879,7 @@ describe('Deep changes keep listeners', () => {
                 },
             },
         });
-        expect(handler).toHaveBeenCalledWith('hi there', {
-            value: 'hi there',
-            path: [],
-            prevValue: 'hello',
-        });
+        expect(handler).toHaveBeenCalledWith('hi there', 'hello', [], 'hi there', 'hello');
     });
     test('Deep assign keeps listeners', () => {
         const obs = observable({ test: { test2: { test3: 'hello' } } });
@@ -880,11 +892,7 @@ describe('Deep changes keep listeners', () => {
                 },
             },
         });
-        expect(handler).toHaveBeenCalledWith('hi there', {
-            value: 'hi there',
-            path: [],
-            prevValue: 'hello',
-        });
+        expect(handler).toHaveBeenCalledWith('hi there', 'hello', [], 'hi there', 'hello');
     });
     test('Deep set keeps keys', () => {
         const obs = observable({ test: { test2: { a1: 'ta' } as Record<string, any> } });
@@ -998,11 +1006,7 @@ describe('Delete', () => {
         const handler = jest.fn();
         obs.obj.val.onChange(handler);
         obs.obj.delete('val');
-        expect(handler).toHaveBeenCalledWith(undefined, {
-            value: undefined,
-            path: [],
-            prevValue: true,
-        });
+        expect(handler).toHaveBeenCalledWith(undefined, true, [], undefined, true);
         expect(Object.keys(obs.obj)).toEqual([]);
     });
     test('Delete does not fire listeners of children', () => {
@@ -1117,10 +1121,10 @@ describe('Computed', () => {
         const handler = jest.fn();
         computed.onChange(handler);
         obs.test.set(5);
-        expect(handler).toHaveBeenCalledWith(25, { value: 25, path: [], prevValue: 30 });
+        expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
         expect(computed.current).toEqual(25);
         obs.test.set(1);
-        expect(handler).toHaveBeenCalledWith(21, { value: 21, path: [], prevValue: 25 });
+        expect(handler).toHaveBeenCalledWith(21, 25, [], 21, 25);
         expect(computed.current).toEqual(21);
     });
     test('Cannot directly set a computed', () => {

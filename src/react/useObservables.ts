@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react';
 import { isArray, isObject, isPrimitive } from '../is';
 import { getObservableRawValue, symbolGet } from '../globals';
-import { ObservableChecker, ObservableListener } from '../observableInterfaces';
+import { ObservableChecker, ObservableListener, ObservableListenerInfo } from '../observableInterfaces';
 import { onChange, onChangeShallow } from '../on';
 import state from '../state';
 
@@ -12,7 +12,6 @@ function useForceRender() {
 
 interface SavedRef {
     listeners: Map<string, ObservableListener>;
-    cmpValue?: Map<string, any>;
 }
 
 const pathsSeen = new Set();
@@ -69,24 +68,18 @@ export function useObservables<T extends ObservableChecker | Record<string, Obse
 
     const listeners = ref.current.listeners;
     for (let tracked of state.trackedNodes) {
-        const { node, equalityFn, shallow } = tracked;
+        const { node, shouldRender, shallow } = tracked;
         const path = node.path;
         // Track the paths seen this frame to dispose of listeners no longer needed
         pathsSeen.add(path);
 
         // Listen to this path if not already listening
         if (!listeners.has(path)) {
-            let cb = forceRender as (value?: any) => void;
-            // If using an equality function, only render when the return value of equalityFn changes
-            if (equalityFn) {
-                if (!ref.current.cmpValue) {
-                    ref.current.cmpValue = new Map();
-                }
-                ref.current.cmpValue.set(path, equalityFn(tracked.value));
-                cb = (v) => {
-                    const cmpValue = equalityFn(v);
-                    if (cmpValue !== ref.current.cmpValue.get(path)) {
-                        ref.current.cmpValue.set(path, cmpValue);
+            let cb = forceRender as (value?: any, prev?: any) => void;
+            // If using shouldRender, only render when the return value of shouldRender changes
+            if (shouldRender) {
+                cb = (v, prev) => {
+                    if (shouldRender(v, prev)) {
                         forceRender();
                     }
                 };

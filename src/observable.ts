@@ -89,7 +89,8 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
-        const doNotify = !isArr && prevValue && value !== prevValue[key] && hasPathNode(parent.root, parent.path, key);
+        const prev = prevValue?.[key];
+        const doNotify = !isArr && prevValue && value !== prev && hasPathNode(parent.root, parent.path, key);
 
         if (doNotify) {
             const isObj = !isPrimitive(value);
@@ -99,12 +100,12 @@ function updateNodes(parent: PathNode, obj: Record<any, any>, prevValue?: any) {
 
             // If object iterate through its children
             if (isObj) {
-                updateNodes(child, value, prevValue?.[key]);
+                updateNodes(child, value, prev);
             }
 
             // Do the notify at this node
             if (doNotify) {
-                _notify(child, value, { path: [], prevValue: prevValue[key], value: value }, 0);
+                _notify(child, value, prev, [], value, prev, 0);
             }
         }
     }
@@ -296,39 +297,51 @@ function set(node: PathNode, key: string, newValue?: any) {
     return newValue;
 }
 
-function _notify(node: PathNode, value: any, listenerInfo: ObservableListenerInfo, level: number) {
+function _notify(
+    node: PathNode,
+    value: any,
+    prev: any,
+    path: string[],
+    valueAtPath: any,
+    prevAtPath: any,
+    level: number
+) {
     // Notify all listeners
     if (node.listeners) {
-        if (value === undefined) {
-            value = getNodeValue(node);
-        }
         for (let listener of node.listeners) {
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
-                observableBatcherNotify(listener.callback, value, listenerInfo);
+                observableBatcherNotify(listener.callback, value, prev, path, valueAtPath, prevAtPath);
             }
         }
     }
 }
 
-function _notifyParents(node: PathNode, value: any, listenerInfo: ObservableListenerInfo, level: number) {
+function _notifyParents(
+    node: PathNode,
+    value: any,
+    prev: any,
+    path: string[],
+    valueAtPath: any,
+    prevAtPath: any,
+    level: number
+) {
     // Do the notify
-    _notify(node, value, listenerInfo, level);
+    _notify(node, value, prev, path, valueAtPath, prevAtPath, level);
     // If not root notify up through parents
     if (node.path !== '_') {
         const parent = getParentNode(node);
         if (parent) {
-            const parentListenerInfo = Object.assign({}, listenerInfo);
-            parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-            _notifyParents(parent, undefined, parentListenerInfo, level + 1);
+            const parentValue = getNodeValue(parent);
+            prev = Object.assign({}, parentValue, { [node.key]: prev });
+            // parentListenerInfo.path = [node.key].concat(listenerInfo.path);
+            _notifyParents(parent, parentValue, prev, [node.key].concat(path), valueAtPath, prevAtPath, level + 1);
         }
     }
 }
-function notify(node: PathNode, value: any, prevValue: any, level: number) {
-    // Create the listenerInfo
-    const listenerInfo = { path: [], prevValue, value };
+function notify(node: PathNode, value: any, prev: any, level: number) {
     // Start notifying up through parents with the listenerInfo
-    _notifyParents(node, value, listenerInfo, level);
+    _notifyParents(node, value, prev, [], value, prev, level);
 }
 
 function prop(node: PathNode, key: string) {
