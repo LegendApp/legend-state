@@ -42,8 +42,6 @@ describe('Set', () => {
         obs.arr.set([{ text: 'hi2' }]);
         expect(obs.arr.length).toEqual(1);
 
-        const arr = obs.arr;
-
         expect(obs.arr.get()).toEqual([{ text: 'hi2' }]);
         expect(obs.arr[0].text).toEqual('hi2');
         obs.arr[0].text.set('hi3');
@@ -582,7 +580,7 @@ describe('Listeners', () => {
         expect(handler).toHaveBeenCalledWith(
             { t: { 1000: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } } } },
             { t: { 1000: { test1: { text: ['hi'] } } } },
-            ['t', '1000'],
+            ['t', 1000],
             { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
             { test1: { text: ['hi'] } }
         );

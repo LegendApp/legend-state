@@ -3,7 +3,6 @@ import { ObservableChecker, ProxyValue } from './observableInterfaces';
 import state from './state';
 
 export const delim = '\uFEFF';
-export const arrPaths = [];
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolShallow = Symbol('shallow');
@@ -15,27 +14,38 @@ export const symbolGet = Symbol('get');
 
 export function getNodeValue(node: ProxyValue): any {
     let child = node.root;
-    const arr = node.arr;
+    const arr = node.path.split(delim);
     for (let i = 0; i < arr.length; i++) {
-        if (arr[i] && child) {
+        if (arr[i] !== undefined && child) {
             child = child[arr[i]];
         }
     }
     return child;
 }
-export function getProxyValue(node: ProxyValue) {
-    return getNodeValue(node);
-}
 
-export function getParentNode(node: ProxyValue) {
-    if (node.arr.length <= 1) return { parent: node, key: undefined };
-    const key = node.arr[node.arr.length - 1];
-    const arrParent = node.arr.slice(0, -1);
-    return { parent: { root: node.root, arr: arrParent, path: arrParent.join(delim) }, key };
+export function getParentNode(node: ProxyValue): { parent: ProxyValue; key: string } {
+    if (node.path === '_') return { parent: node, key: undefined };
+    const parent = node.root.proxyValues.get(node.pathParent);
+    return { parent, key: node.key };
 }
 
 export function getChildNode(node: ProxyValue, key: string): ProxyValue {
-    return { root: node.root, path: node.path + delim + key, arr: node.arr.concat(key) };
+    const path = node.path + delim + key;
+    let child = node.root.proxyValues.get(path);
+    if (!child) {
+        // console.log('creating child', node.path, key);
+        child = {
+            root: node.root,
+            path: node.path + delim + key,
+            // arr: node.arr.concat(key),
+            // arrParent: node.arr,
+            pathParent: node.path,
+            key,
+        };
+        node.root.proxyValues.set(path, child);
+    }
+
+    return child;
 }
 
 // export function getObjectNode(obj: any) {

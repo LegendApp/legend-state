@@ -198,6 +198,7 @@ export interface ObservableWrapper<T = any> {
     isPrimitive: boolean;
     listenerMap: Map<string, Set<ObservableListener>>;
     proxies: Map<string, object>;
+    proxyValues: Map<string, ProxyValue>;
 }
 
 export type ObservableChecker<T = any> = Shallow | ShouldRender | Observable | Prop | ObservableComputed;
@@ -206,6 +207,9 @@ export type ObservablePrimitive<T = any> = { readonly current: T } & ObservableP
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
 export interface ProxyValue {
     path: string;
-    arr: string[];
+    pathParent: string;
+    // arr: string[];
+    // arrParent: string[];
+    key: string;
     root: ObservableWrapper;
 }

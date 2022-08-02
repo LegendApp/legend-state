@@ -16,8 +16,8 @@ let lastAccessedPrimitive: string;
 let inSetFn = false;
 
 const objectFnsProxy = new Map<string, Function>([
-    ['set', proxySet],
-    ['setProp', proxySetProp],
+    ['set', set],
+    ['setProp', setProp],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
@@ -61,7 +61,7 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
             parentValue[key] = prevValue;
 
             // Then set with the new value so it notifies with the correct prevValue
-            set(parent, key, target);
+            setProp(parent, key, target);
         }
     }
 
@@ -75,31 +75,36 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
 
+    // console.log('updateNodes', obj);
+
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
         const prev = prevValue?.[key];
 
         const isObj = !isPrimitive(value);
-        const child: ProxyValue = getChildNode(parent, key);
 
-        // If object iterate through its children
-        if (isObj) {
-            updateNodes(child, value, prev);
-        }
+        if (!isArr && prevValue && value !== prev) {
+            const child: ProxyValue = getChildNode(parent, key);
+            // If object iterate through its children
+            if (isObj) {
+                updateNodes(child, value, prev);
+            }
 
-        // Notify for this child if this element is different and it has listeners
-        // But do not notify child if the parent is an array - the array's listener will cover it
-        const doNotify = !isArr && prevValue && value !== prev && child.root.listenerMap.has(child.path);
-        if (doNotify) {
-            _notify(child, value, prev, [], value, prev, 0);
+            // Notify for this child if this element is different and it has listeners
+            // But do not notify child if the parent is an array - the array's listener will cover it
+            const doNotify = child.root.listenerMap.has(child.path);
+            if (doNotify) {
+                _notify(child, value, prev, [], value, prev, 0);
+            }
         }
     }
 }
 
-function createProxy(value: ProxyValue) {
-    const proxy = new Proxy<ProxyValue>(value, proxyHandler);
-    // node.root.proxies.set(node.path, proxy);
+function createProxy(node: ProxyValue) {
+    // console.log('proxying', node);
+    const proxy = new Proxy<ProxyValue>(node, proxyHandler);
+    node.root.proxies.set(node.path, proxy);
     return proxy;
 }
 
@@ -156,6 +161,7 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
     },
+    // Forward all proxy properties to the target's value
     getPrototypeOf(target) {
         const value = getNodeValue(target);
         return Reflect.getPrototypeOf(value);
@@ -180,9 +186,8 @@ const proxyHandler: ProxyHandler<any> = {
         return own;
     },
     set(target, prop, value) {
+        // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
-            // If this assignment comes from within a set function it's allowed.
-            // Notifying listeners will be handled elsewhere
             Reflect.set(target, prop, value);
             return true;
         } else {
@@ -190,9 +195,8 @@ const proxyHandler: ProxyHandler<any> = {
         }
     },
     deleteProperty(target, prop) {
+        // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
-            // If this assignment comes from within a set function it's allowed.
-            // Notifying listeners will be handled elsewhere
             Reflect.deleteProperty(target, prop);
             return true;
         } else {
@@ -205,20 +209,16 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-function proxySet(node: ProxyValue, newValue: any) {
+function set(node: ProxyValue, newValue: any) {
     if (node.root.isPrimitive) {
-        return set(node, 'current', newValue);
+        return setProp(node, 'current', newValue);
     } else {
         const { parent, key } = getParentNode(node);
-        return set(parent, key, newValue);
+        return setProp(parent, key, newValue);
     }
 }
 
-function proxySetProp(node: ProxyValue, key: string, newValue: any) {
-    return set(node, key, newValue);
-}
-
-function set(node: ProxyValue, key: string, newValue?: any) {
+function setProp(node: ProxyValue, key: string, newValue?: any) {
     newValue = newValue?.[symbolGet] ?? newValue;
 
     const isPrim = isPrimitive(newValue);
@@ -314,7 +314,7 @@ function assign(node: ProxyValue, value: any) {
     const keys = Object.keys(value);
     const length = keys.length;
     for (let i = 0; i < length; i++) {
-        set(node, keys[i], value[keys[i]]);
+        setProp(node, keys[i], value[keys[i]]);
     }
 
     const ret = getNodeValue(node);
@@ -334,7 +334,7 @@ function deleteFnProxy(node: ProxyValue, key: string) {
 function deleteFn(node: ProxyValue, key?: string) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
-        set(node, key, undefined);
+        setProp(node, key, undefined);
     }
 
     inSetFn = true;
@@ -362,23 +362,22 @@ export function observable<T>(obj: any): ObservableOrPrimitive<T> {
         isPrimitive: isPrim,
         listenerMap: new Map(),
         proxies: new Map(),
+        proxyValues: new Map(),
     } as ObservableWrapper;
 
     const node: ProxyValue = {
         root: obs,
         path: '_',
-        arr: ['_'],
+        pathParent: '',
+        // arr: ['_'],
+        // arrParent: [],
+        key: '_',
     };
+
+    obs.proxyValues.set(node.path, node);
 
     updateNodes(node, obs._);
 
-    // if (isPrim) {
-    //     // Bind callbacks to "current" so handlers get the primitive value
-    //     for (let i = 0; i < objectFns.length; i++) {
-    //         const fn = objectFns[i][0];
-    //         obs._._[fn] = obs._._[fn].bind(obs, 'current');
-    //     }
-    // }
     const proxy = createProxy(node);
 
     // @ts-ignore
