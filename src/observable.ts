@@ -83,7 +83,7 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
         const prev = prevValue?.[key];
 
         if (!isArr && prevValue && value !== prev) {
-        const isObj = !isPrimitive(value);
+            const isObj = !isPrimitive(value);
 
             const child: ProxyValue = getChildNode(parent, key);
             // If object iterate through its children
@@ -95,7 +95,7 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
             // But do not notify child if the parent is an array - the array's listener will cover it
             const doNotify = child.root.listenerMap.has(child.path);
             if (doNotify) {
-                _notify(child, value, prev, [], value, prev, 0);
+                _notify(child, value, [], value, prev, 0);
             }
         }
     }
@@ -256,52 +256,62 @@ function setProp(node: ProxyValue, key: string, newValue?: any) {
     return newValue;
 }
 
-function _notify(
-    node: ProxyValue,
-    value: any,
-    prev: any,
-    path: string[],
-    valueAtPath: any,
-    prevAtPath: any,
-    level: number
-) {
+function _notify(node: ProxyValue, value: any, path: string[], valueAtPath: any, prevAtPath: any, level: number) {
     const listeners = node.root.listenerMap.get(node.path);
     // Notify all listeners
     if (listeners) {
+        let getPrev;
         for (let listener of listeners) {
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
-                observableBatcherNotify(listener.callback, value, prev, path, valueAtPath, prevAtPath);
+                if (!getPrev) {
+                    getPrev = createPreviousHandler(value, path, prevAtPath);
+                }
+                observableBatcherNotify(listener.callback, value, getPrev, path, valueAtPath, prevAtPath);
             }
         }
     }
 }
 
+function createPreviousHandler(value: any, path: string[], prevAtPath: any) {
+    return function () {
+        let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
+        let o = clone;
+        if (path.length > 0) {
+            let i: number;
+            for (i = 0; i < path.length - 1; i++) {
+                o = o[path[i]];
+            }
+            o[path[i]] = prevAtPath;
+        } else {
+            clone = prevAtPath;
+        }
+        return clone;
+    };
+}
+
 function _notifyParents(
     node: ProxyValue,
     value: any,
-    prev: any,
     path: string[],
     valueAtPath: any,
     prevAtPath: any,
     level: number
 ) {
     // Do the notify
-    _notify(node, value, prev, path, valueAtPath, prevAtPath, level);
+    _notify(node, value, path, valueAtPath, prevAtPath, level);
     // If not root notify up through parents
     if (node.path !== '_') {
         const { parent, key } = getParentNode(node);
         if (parent) {
             const parentValue = getNodeValue(parent);
-            prev = Object.assign({}, parentValue, { [key]: prev });
-            // parentListenerInfo.path = [node.key].concat(listenerInfo.path);
-            _notifyParents(parent, parentValue, prev, [key].concat(path), valueAtPath, prevAtPath, level + 1);
+            _notifyParents(parent, parentValue, [key].concat(path), valueAtPath, prevAtPath, level + 1);
         }
     }
 }
 function notify(node: ProxyValue, value: any, prev: any, level: number) {
     // Start notifying up through parents with the listenerInfo
-    _notifyParents(node, value, prev, [], value, prev, level);
+    _notifyParents(node, value, [], value, prev, level);
 }
 
 function prop(node: ProxyValue, key: string) {

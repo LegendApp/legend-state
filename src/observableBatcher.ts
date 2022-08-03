@@ -3,7 +3,7 @@ import { ListenerFn, ObservableListenerInfo } from './observableInterfaces';
 interface BatchItem {
     cb: ListenerFn<any>;
     value: any;
-    prev: any;
+    getPrevious: () => any;
     path: string[];
     valueAtPath: any;
     prevAtPath: any;
@@ -28,7 +28,7 @@ function onActionTimeout() {
 export function observableBatcherNotify(
     cb: ListenerFn,
     value: any,
-    prev: any,
+    getPrevious: () => any,
     path: string[],
     valueAtPath: any,
     prevAtPath: any
@@ -38,17 +38,17 @@ export function observableBatcherNotify(
         // If this callback already exists, make sure it has the latest value but do not add it
         if (existing) {
             existing.value = value;
-            existing.prev = prev;
+            existing.getPrevious = getPrevious;
             existing.path = path;
             existing.valueAtPath = valueAtPath;
             existing.prevAtPath = prevAtPath;
         } else {
-            const batchItem = { cb, value, prev, path, valueAtPath, prevAtPath };
+            const batchItem = { cb, value, getPrevious, path, valueAtPath, prevAtPath };
             _batch.push(batchItem);
             _batchMap.set(cb, batchItem);
         }
     } else {
-        cb(value, prev, path, valueAtPath, prevAtPath);
+        cb(value, getPrevious, path, valueAtPath, prevAtPath);
     }
 }
 
@@ -74,7 +74,7 @@ export namespace observableBatcher {
             _batch = [];
             _batchMap = new WeakMap();
             for (let i = 0; i < batch.length; i++) {
-                const { cb, value, prev, path, valueAtPath, prevAtPath } = batch[i];
+                const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath } = batch[i];
                 cb(value, prev, path, valueAtPath, prevAtPath);
             }
         }

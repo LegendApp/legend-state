@@ -7,7 +7,7 @@ import state from '../state';
 
 function useForceRender() {
     const [, forceRender] = useReducer((s) => s + 1, 0);
-    return forceRender as () => void;
+    return () => forceRender();
 }
 
 interface SavedRef {
@@ -78,7 +78,8 @@ export function useObservables<T extends ObservableChecker | Record<string, Obse
             let cb = forceRender as (value?: any, prev?: any) => void;
             // If using shouldRender, only render when the return value of shouldRender changes
             if (shouldRender) {
-                cb = (v, prev) => {
+                cb = (v, getPrev: () => any) => {
+                    const prev = getPrev();
                     if (shouldRender(v, prev)) {
                         forceRender();
                     }
