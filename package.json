@@ -6,7 +6,7 @@
     "private": true,
     "type": "module",
     "main": "./index.js",
-    "module": "./esm/index.js",
+    "module": "./index.esm.js",
     "types": "./index.d.ts",
     "files": [
         "**"
@@ -14,9 +14,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build:cjs": "tsc",
-        "build:esm": "tsc -p ./tsconfig.esm.json",
-        "build": "npm run build:cjs && npm run build:esm && cp package.json dist/package.json && rm -rf dist/tests && rm -rf dist/esm/tests && rm dist/*.tsbuildinfo && rm dist/esm/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "preversion": "npm run build",
         "postversion": "git push --follow-tags",
@@ -29,31 +27,36 @@
     },
     "exports": {
         ".": {
-            "import": "./esm/index.js",
+            "import": "./index.esm.js",
             "require": "./index.js"
         },
         "./internal": {
-            "import": "./esm/internal.js",
+            "import": "./internal.esm.js",
             "require": "./internal.js"
         },
         "./local-storage": {
-            "import": "./local-esm/storage.js",
+            "import": "./local-storage.esm.js",
             "require": "./local-storage.js"
         },
         "./mmkv": {
-            "import": "./esm/mmkv.js",
+            "import": "./mmkv.esm.js",
             "require": "./mmkv.js"
         },
         "./persist": {
-            "import": "./esm/persist.js",
+            "import": "./persist.esm.js",
             "require": "./persist.js"
         },
         "./react": {
-            "import": "./esm/react.js",
+            "import": "./react.esm.js",
             "require": "./react.js"
         }
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^22.0.1",
+        "@rollup/plugin-node-resolve": "^13.3.0",
+        "@rollup/plugin-typescript": "^8.3.4",
+        "@swc/cli": "^0.1.57",
+        "@swc/core": "^1.2.223",
         "@testing-library/react-hooks": "^8.0.1",
         "@types/jest": "^26.0.24",
         "@types/react": "^18.0.1",
@@ -65,6 +68,7 @@
         "react-native-mmkv": "^2.4.3",
         "react-test-renderer": "^18.2.0",
         "rimraf": "^3.0.2",
+        "rollup": "^2.77.2",
         "ts-jest": "^27.0.4",
         "tslib": "^2.4.0",
         "typescript": "^4.7.4"
