@@ -48,17 +48,6 @@ export function getChildNode(node: ProxyValue, key: string): ProxyValue {
     return child;
 }
 
-// export function getObjectNode(obj: any) {
-//     const id = obj._?.id;
-//     if (id !== undefined) {
-//         return arrPaths[id];
-//     }
-// }
-
-export function get(node: ProxyValue) {
-    return getNodeValue(node);
-}
-
 export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
     if (!obs || isPrimitive(obs)) return obs as T;
 

@@ -371,8 +371,6 @@ export function observable<T>(obj: any): ObservableOrPrimitive<T> {
         root: obs,
         path: '_',
         pathParent: '',
-        // arr: ['_'],
-        // arrParent: [],
         key: '_',
     };
 

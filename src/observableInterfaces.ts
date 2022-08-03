@@ -208,8 +208,6 @@ export type ObservableOrPrimitive<T> = T extends boolean | string | number ? Obs
 export interface ProxyValue {
     path: string;
     pathParent: string;
-    // arr: string[];
-    // arrParent: string[];
     key: string;
     root: ObservableWrapper;
 }
