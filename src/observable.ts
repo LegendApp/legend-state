@@ -39,7 +39,7 @@ const objectFnsProxy = new Map<string, Function>([
     ['onTrue', onTrue],
     ['prop', prop],
     ['assign', assign],
-    ['delete', deleteFnProxy],
+    ['delete', deleteFn],
 ]);
 
 // Override primitives
@@ -52,9 +52,12 @@ const wrapFn = (fn: Function) =>
             }
         }
     };
+
 const toOverride = [Number, Boolean, String];
 objectFnsProxy.forEach((fn, key) => {
-    toOverride.forEach((override) => (override.prototype[key] = wrapFn(fn)));
+    for (let i = 0; i < toOverride.length; i++) {
+        toOverride[i].prototype[key] = wrapFn(fn);
+    }
 });
 
 function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: any[]) {
@@ -122,35 +125,44 @@ const descriptorNotEnumerable: PropertyDescriptor = {
 
 const proxyHandler: ProxyHandler<any> = {
     get(target: ProxyValue, p: any) {
+        // Return true is called by isObservable()
         if (p === symbolIsObservable) {
             return true;
         }
 
         const node = target;
         const fn = objectFnsProxy.get(p);
+        // If this is an observable function, call it
         if (fn) {
             return (a, b, c) => fn(node, a, b, c);
         }
 
         let value = getNodeValue(node);
         const vProp = value[p];
+        // The get() function as well as the internal obs[symbolGet]
         if (p === symbolGet || p === 'get') {
+            // Primitives are { current } so return the current value
             if (node.root.isPrimitive) {
                 value = value.current;
             }
+            // Update that this node was accessed for useObservables and useComputed
             if (state.isTracking) {
                 state.updateTracking(node, value);
             }
             return p === 'get' ? () => value : value;
         }
+        // Accessing symbols passes straight through
         if (isSymbol(p)) {
             return vProp;
         }
+        // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {
                 if (ArrayModifiers.has(p)) {
+                    // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
+                    // Bind this looping function to an array of proxies
                     const arr = [];
                     for (let i = 0; i < value.length; i++) {
                         arr.push(prop(node, i));
@@ -158,17 +170,23 @@ const proxyHandler: ProxyHandler<any> = {
                     return vProp.bind(arr);
                 }
             }
+            // Return the function bound to the value
             return vProp.bind(value);
         }
+        // Accessing primitives tracks and returns
         if (isPrimitive(vProp)) {
+            // Accessing a primitive saves the last accessed so that the observable functions
+            // bound to primitives can know which node was accessed
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
+            // Update that this node was accessed for useObservables and useComputed
             if (state.isTracking) {
                 state.updateTracking(getChildNode(node, p), value);
             }
             return vProp;
         }
 
+        // Create a proxy if not already cached and return it
         const path = target.path + delim + p;
         let proxy = node.root.proxies.get(path);
         if (!proxy) {
@@ -243,8 +261,10 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any) {
 
     inSetFn = true;
 
+    // Get the child node for updating and notifying
     const childNode = getChildNode(node, key);
 
+    // Get the value of the parent
     let parentValue = getNodeValue(node);
 
     // Save the previous value first
@@ -283,6 +303,8 @@ function _notify(
         for (let listener of listeners) {
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
+                // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
+                // it often, so leave it up to the user.
                 if (!getPrev) {
                     getPrev = createPreviousHandler(value, path, prevAtPath);
                 }
@@ -293,6 +315,7 @@ function _notify(
 }
 
 function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
+    // Create a function that clones the current state and injects the previous data at the changed path
     return function () {
         let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
         let o = clone;
@@ -354,15 +377,16 @@ function assign(node: ProxyValue, value: any) {
     return ret;
 }
 
-function deleteFnProxy(node: ProxyValue, key: string | number) {
+function deleteFn(node: ProxyValue, key?: string | number) {
+    // If called without a key, delete by key from the parent node
     if (key !== undefined) {
-        return deleteFn(node, key);
+        return deleteFnByKey(node, key);
     } else {
         const { parent, key } = getParentNode(node);
-        return deleteFn(parent, key);
+        return deleteFnByKey(parent, key);
     }
 }
-function deleteFn(node: ProxyValue, key?: string | number) {
+function deleteFnByKey(node: ProxyValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
         setProp(node, key, undefined);
@@ -381,11 +405,11 @@ export function observable<T extends boolean>(prim: T): ObservablePrimitive<bool
 export function observable<T extends string>(prim: T): ObservablePrimitive<string>;
 export function observable<T extends number>(prim: T): ObservablePrimitive<number>;
 export function observable<T extends boolean | string | number>(prim: T): ObservablePrimitive<T>;
-export function observable<T>(obj: any): ObservableOrPrimitive<T> {
+export function observable<T>(obj: T): ObservableOrPrimitive<T> {
     const isPrim = isPrimitive(obj);
     // Primitives wrap in current
     if (isPrim) {
-        obj = { current: obj };
+        obj = { current: obj } as any;
     }
 
     const obs = {
