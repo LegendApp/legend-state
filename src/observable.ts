@@ -15,6 +15,19 @@ let lastAccessedNode: ProxyValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
 
+const ArrayModifiers = new Set([
+    'copyWithin',
+    'fill',
+    'from',
+    'pop',
+    'push',
+    'reverse',
+    'shift',
+    'sort',
+    'splice',
+    'unshift',
+]);
+
 const objectFnsProxy = new Map<string, Function>([
     ['set', set],
     ['setProp', setProp],
@@ -136,7 +149,7 @@ const proxyHandler: ProxyHandler<any> = {
                 } else if (isSymbol(prop)) {
                     return vProp;
                 } else if (isFunction(vProp)) {
-                    if (isArray(value)) {
+                    if (isArray(value) && ArrayModifiers.has(prop)) {
                         return (...args) => collectionSetter(node, value, prop, ...args);
                     }
                     return vProp.bind(value);

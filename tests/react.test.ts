@@ -321,4 +321,16 @@ describe('React Hooks', () => {
         });
         expect(numRenders).toEqual(4);
     });
+    test('useObservables slice does not re-render', () => {
+        let numRenders = 0;
+        const obs = observable({ arr: ['hi'] });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables(() => [obs.arr]);
+        });
+        act(() => {
+            obs.arr.slice(0);
+        });
+        expect(numRenders).toEqual(1);
+    });
 });
