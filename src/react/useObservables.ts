@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react';
+import { getObservableRawValue, symbolGet, symbolShallow, symbolShouldRender } from '../globals';
 import { isArray, isObject, isPrimitive } from '../is';
-import { getObservableRawValue, symbolGet } from '../globals';
-import { ObservableChecker, ObservableListener, ObservableListenerInfo } from '../observableInterfaces';
+import { ObservableChecker, ObservableListener, Shallow } from '../observableInterfaces';
 import { onChange, onChangeShallow } from '../on';
 import state from '../state';
 
@@ -52,12 +52,16 @@ export function useObservables<T extends ObservableChecker | Record<string, Obse
                 ret[i] = getObservableRawValue(args[i]);
             }
         } else if (isObject(args)) {
-            ret = {};
-            const keys = Object.keys(args);
-            const length = keys.length;
-            for (let i = 0; i < length; i++) {
-                const key = keys[i];
-                ret[key] = getObservableRawValue(args[key]);
+            if (args[symbolShallow] || args[symbolShouldRender]) {
+                ret = getObservableRawValue(args as Shallow);
+            } else {
+                ret = {};
+                const keys = Object.keys(args);
+                const length = keys.length;
+                for (let i = 0; i < length; i++) {
+                    const key = keys[i];
+                    ret[key] = getObservableRawValue(args[key]);
+                }
             }
         }
     }

@@ -146,8 +146,9 @@ describe('React Hooks', () => {
         const obs = observable({ test: [1, 2, 3, 4] });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables(() => [shallow(obs.test)]);
+            return useObservables(() => shallow(obs.test));
         });
+        expect(result.current).toEqual(obs.get().test);
         act(() => {
             obs.test.setProp(1, 22);
         });
