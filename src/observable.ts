@@ -1,5 +1,5 @@
 import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolID } from './globals';
-import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
@@ -82,9 +82,9 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
         const value = obj[key];
         const prev = prevValue?.[key];
 
+        if (!isArr && prevValue && value !== prev) {
         const isObj = !isPrimitive(value);
 
-        if (!isArr && prevValue && value !== prev) {
             const child: ProxyValue = getChildNode(parent, key);
             // If object iterate through its children
             if (isObj) {
@@ -131,6 +131,8 @@ const proxyHandler: ProxyHandler<any> = {
                     state.updateTracking(node, value);
                 }
                 return value;
+            } else if (isSymbol(prop)) {
+                return vProp;
             } else if (prop === 'get') {
                 if (node.root.isPrimitive) {
                     value = value.current;
@@ -147,7 +149,7 @@ const proxyHandler: ProxyHandler<any> = {
             } else if (isPrimitive(vProp)) {
                 lastAccessedNode = node;
                 lastAccessedPrimitive = prop;
-                if (state.isTracking && !isSymbol(prop)) {
+                if (state.isTracking) {
                     state.updateTracking(getChildNode(node, prop), value);
                 }
                 return vProp;
