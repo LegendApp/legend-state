@@ -27,6 +27,7 @@ const ArrayModifiers = new Set([
     'splice',
     'unshift',
 ]);
+const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'reduce', 'reduceRight', 'forEach', 'map']);
 
 const objectFnsProxy = new Map<string, Function>([
     ['set', set],
@@ -127,49 +128,60 @@ const descriptorNotEnumerable: PropertyDescriptor = {
 };
 
 const proxyHandler: ProxyHandler<any> = {
-    get(target: ProxyValue, prop: any) {
-        if (prop === symbolIsObservable) {
+    get(target: ProxyValue, p: any) {
+        if (p === symbolIsObservable) {
             return true;
-        } else {
-            const node = target;
-            const fn = objectFnsProxy.get(prop);
-            if (fn) {
-                return (a, b, c) => fn(node, a, b, c);
-            } else {
-                let value = getNodeValue(node);
-                const vProp = value[prop];
-                if (prop === symbolGet || prop === 'get') {
-                    if (node.root.isPrimitive) {
-                        value = value.current;
+        }
+
+        const node = target;
+        const fn = objectFnsProxy.get(p);
+        if (fn) {
+            return (a, b, c) => fn(node, a, b, c);
+        }
+
+        let value = getNodeValue(node);
+        const vProp = value[p];
+        if (p === symbolGet || p === 'get') {
+            if (node.root.isPrimitive) {
+                value = value.current;
+            }
+            if (state.isTracking) {
+                state.updateTracking(node, value);
+            }
+            return p === 'get' ? () => value : value;
+        }
+        if (isSymbol(p)) {
+            return vProp;
+        }
+        if (isFunction(vProp)) {
+            if (isArray(value)) {
+                if (ArrayModifiers.has(p)) {
+                    return (...args) => collectionSetter(node, value, p, ...args);
+                } else if (ArrayLoopers.has(p)) {
+                    const arr = [];
+                    for (let i = 0; i < value.length; i++) {
+                        arr.push(prop(node, i));
                     }
-                    if (state.isTracking) {
-                        state.updateTracking(node, value);
-                    }
-                    return prop === 'get' ? () => value : value;
-                } else if (isSymbol(prop)) {
-                    return vProp;
-                } else if (isFunction(vProp)) {
-                    if (isArray(value) && ArrayModifiers.has(prop)) {
-                        return (...args) => collectionSetter(node, value, prop, ...args);
-                    }
-                    return vProp.bind(value);
-                } else if (isPrimitive(vProp)) {
-                    lastAccessedNode = node;
-                    lastAccessedPrimitive = prop;
-                    if (state.isTracking) {
-                        state.updateTracking(getChildNode(node, prop), value);
-                    }
-                    return vProp;
-                } else {
-                    const path = target.path + delim + prop;
-                    let proxy = node.root.proxies.get(path);
-                    if (!proxy) {
-                        proxy = createProxy(getChildNode(target, prop));
-                    }
-                    return proxy;
+                    return vProp.bind(arr);
                 }
             }
+            return vProp.bind(value);
         }
+        if (isPrimitive(vProp)) {
+            lastAccessedNode = node;
+            lastAccessedPrimitive = p;
+            if (state.isTracking) {
+                state.updateTracking(getChildNode(node, p), value);
+            }
+            return vProp;
+        }
+
+        const path = target.path + delim + p;
+        let proxy = node.root.proxies.get(path);
+        if (!proxy) {
+            proxy = createProxy(getChildNode(target, p));
+        }
+        return proxy;
     },
     // Forward all proxy properties to the target's value
     getPrototypeOf(target) {
@@ -227,7 +239,7 @@ function set(node: ProxyValue, newValue: any) {
     }
 }
 
-function setProp(node: ProxyValue, key: string, newValue?: any) {
+function setProp(node: ProxyValue, key: string | number, newValue?: any) {
     newValue = newValue?.[symbolGet] ?? newValue;
 
     const isPrim = isPrimitive(newValue);
@@ -263,7 +275,14 @@ function setProp(node: ProxyValue, key: string, newValue?: any) {
     return newValue;
 }
 
-function _notify(node: ProxyValue, value: any, path: string[], valueAtPath: any, prevAtPath: any, level: number) {
+function _notify(
+    node: ProxyValue,
+    value: any,
+    path: (string | number)[],
+    valueAtPath: any,
+    prevAtPath: any,
+    level: number
+) {
     const listeners = node.root.listenerMap.get(node.path);
     // Notify all listeners
     if (listeners) {
@@ -280,7 +299,7 @@ function _notify(node: ProxyValue, value: any, path: string[], valueAtPath: any,
     }
 }
 
-function createPreviousHandler(value: any, path: string[], prevAtPath: any) {
+function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
     return function () {
         let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
         let o = clone;
@@ -300,7 +319,7 @@ function createPreviousHandler(value: any, path: string[], prevAtPath: any) {
 function _notifyParents(
     node: ProxyValue,
     value: any,
-    path: string[],
+    path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
     level: number
@@ -321,7 +340,7 @@ function notify(node: ProxyValue, value: any, prev: any, level: number) {
     _notifyParents(node, value, [], value, prev, level);
 }
 
-function prop(node: ProxyValue, key: string) {
+function prop(node: ProxyValue, key: string | number) {
     const child = getChildNode(node, key);
     return createProxy(child);
 }
@@ -342,7 +361,7 @@ function assign(node: ProxyValue, value: any) {
     return ret;
 }
 
-function deleteFnProxy(node: ProxyValue, key: string) {
+function deleteFnProxy(node: ProxyValue, key: string | number) {
     if (key !== undefined) {
         return deleteFn(node, key);
     } else {
@@ -350,7 +369,7 @@ function deleteFnProxy(node: ProxyValue, key: string) {
         return deleteFn(parent, key);
     }
 }
-function deleteFn(node: ProxyValue, key?: string) {
+function deleteFn(node: ProxyValue, key?: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
         setProp(node, key, undefined);

@@ -3,6 +3,7 @@ import { observable } from '../src/observable';
 import { observableEvent } from '../src/observableEvent';
 import { observableBatcher } from '../src/observableBatcher';
 import { Observable, ObservableComputed, ObservablePrimitive } from '../src/observableInterfaces';
+import { isObservable } from '../src/helpers';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -617,7 +618,7 @@ describe('Equality', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
         const handler = expectChangeHandler(obs.arr);
         const arr = obs.arr.get();
-        obs.arr.set(obs.arr);
+        obs.arr.set(obs.arr.get());
         expect(obs.arr.get()).toBe(arr);
         expect(handler).toHaveBeenCalledWith(
             [{ text: 'hi' }],
@@ -634,7 +635,7 @@ describe('Equality', () => {
         arr[1] = {
             text: 'hi2',
         };
-        obs.arr.set(obs.arr);
+        obs.arr.set(obs.arr.get());
         expect(obs.arr.get()).toBe(arr);
         // Note that prevValue is the same because it was modified outside of state
         expect(handler).toHaveBeenCalledWith(
@@ -702,9 +703,10 @@ describe('Array', () => {
         const handler = jest.fn();
         obs.arr.onChange(handler);
     });
-    test('Array still has builtin functions', () => {
+    test('Array map runs on proxies', () => {
         const obs = observable({ arr: [1, 2] });
-        expect(obs.arr.map((a) => a)).toEqual([1, 2]);
+
+        expect(obs.arr.map((a) => a.get())).toEqual([1, 2]);
     });
     test('Array push', () => {
         const obs = observable({ test: ['hi'] });
@@ -844,6 +846,17 @@ describe('Array', () => {
         const obs = observable({ test: [{ text: 'hi' }] });
         obs.test[0].set({ text: 'hi2' });
         expect(obs.test[0]).toEqual({ text: 'hi2' });
+    });
+    test('Array map returns observables', () => {
+        const obs = observable({ arr: [{ text: 'hi' }] });
+        const vals = obs.arr.map((a) => isObservable(a));
+        expect(vals).toEqual([true]);
+    });
+    test('Array forEach returns observables', () => {
+        const obs = observable({ arr: [{ text: 'hi' }] });
+        const arr = [];
+        obs.arr.forEach((a) => arr.push(isObservable(a)));
+        expect(arr).toEqual([true]);
     });
 });
 describe('Deep changes keep listeners', () => {

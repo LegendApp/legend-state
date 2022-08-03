@@ -4,7 +4,7 @@ interface BatchItem {
     cb: ListenerFn<any>;
     value: any;
     getPrevious: () => any;
-    path: string[];
+    path: (string | number)[];
     valueAtPath: any;
     prevAtPath: any;
 }
@@ -29,7 +29,7 @@ export function observableBatcherNotify(
     cb: ListenerFn,
     value: any,
     getPrevious: () => any,
-    path: string[],
+    path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any
 ) {

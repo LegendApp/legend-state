@@ -13,7 +13,7 @@ export function shouldRender<T>(obs: Observable<T>, fn: (value: T, prev: T) => a
     };
 }
 
-export function isObservable(obs: Observable): boolean {
+export function isObservable(obs: any): boolean {
     return obs && !!obs[symbolIsObservable as any];
 }
 

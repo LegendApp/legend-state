@@ -24,13 +24,13 @@ export function getNodeValue(node: ProxyValue): any {
     return child;
 }
 
-export function getParentNode(node: ProxyValue): { parent: ProxyValue; key: string } {
+export function getParentNode(node: ProxyValue): { parent: ProxyValue; key: string | number } {
     if (node.path === '_') return { parent: node, key: undefined };
     const parent = node.root.proxyValues.get(node.pathParent);
     return { parent, key: node.key };
 }
 
-export function getChildNode(node: ProxyValue, key: string): ProxyValue {
+export function getChildNode(node: ProxyValue, key: string | number): ProxyValue {
     const path = node.path + delim + key;
     let child = node.root.proxyValues.get(path);
     if (!child) {

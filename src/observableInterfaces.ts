@@ -26,6 +26,95 @@ export interface ObservableComputedFns<T> {
     onTrue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
     onHasValue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
 }
+type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
+export interface ObservableArrayOverride<T> extends Omit<Array<T>, ArrayOverrideFnNames> {
+    /**
+     * Determines whether all the members of an array satisfy the specified test.
+     * @param predicate A function that accepts up to three arguments. The every method calls
+     * the predicate function for each element in the array until the predicate returns a value
+     * which is coercible to the Boolean value false, or until the end of the array.
+     * @param thisArg An object to which the this keyword can refer in the predicate function.
+     * If thisArg is omitted, undefined is used as the this value.
+     */
+    every<S extends T>(predicate: (value: T, index: number, array: T[]) => value is S, thisArg?: any): this is S[];
+    /**
+     * Determines whether all the members of an array satisfy the specified test.
+     * @param predicate A function that accepts up to three arguments. The every method calls
+     * the predicate function for each element in the array until the predicate returns a value
+     * which is coercible to the Boolean value false, or until the end of the array.
+     * @param thisArg An object to which the this keyword can refer in the predicate function.
+     * If thisArg is omitted, undefined is used as the this value.
+     */
+    every(predicate: (value: T, index: number, array: T[]) => unknown, thisArg?: any): boolean;
+    /**
+     * Determines whether the specified callback function returns true for any element of an array.
+     * @param predicate A function that accepts up to three arguments. The some method calls
+     * the predicate function for each element in the array until the predicate returns a value
+     * which is coercible to the Boolean value true, or until the end of the array.
+     * @param thisArg An object to which the this keyword can refer in the predicate function.
+     * If thisArg is omitted, undefined is used as the this value.
+     */
+    some(predicate: (value: T, index: number, array: T[]) => unknown, thisArg?: any): boolean;
+    /**
+     * Performs the specified action for each element in an array.
+     * @param callbackfn  A function that accepts up to three arguments. forEach calls the callbackfn function one time for each element in the array.
+     * @param thisArg  An object to which the this keyword can refer in the callbackfn function. If thisArg is omitted, undefined is used as the this value.
+     */
+    forEach(callbackfn: (value: T, index: number, array: T[]) => void, thisArg?: any): void;
+    /**
+     * Calls a defined callback function on each element of an array, and returns an array that contains the results.
+     * @param callbackfn A function that accepts up to three arguments. The map method calls the callbackfn function one time for each element in the array.
+     * @param thisArg An object to which the this keyword can refer in the callbackfn function. If thisArg is omitted, undefined is used as the this value.
+     */
+    map<U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): U[];
+    /**
+     * Returns the elements of an array that meet the condition specified in a callback function.
+     * @param predicate A function that accepts up to three arguments. The filter method calls the predicate function one time for each element in the array.
+     * @param thisArg An object to which the this keyword can refer in the predicate function. If thisArg is omitted, undefined is used as the this value.
+     */
+    filter<S extends T>(predicate: (value: T, index: number, array: T[]) => value is S, thisArg?: any): S[];
+    /**
+     * Returns the elements of an array that meet the condition specified in a callback function.
+     * @param predicate A function that accepts up to three arguments. The filter method calls the predicate function one time for each element in the array.
+     * @param thisArg An object to which the this keyword can refer in the predicate function. If thisArg is omitted, undefined is used as the this value.
+     */
+    filter(predicate: (value: T, index: number, array: T[]) => unknown, thisArg?: any): T[];
+    /**
+     * Calls the specified callback function for all the elements in an array. The return value of the callback function is the accumulated result, and is provided as an argument in the next call to the callback function.
+     * @param callbackfn A function that accepts up to four arguments. The reduce method calls the callbackfn function one time for each element in the array.
+     * @param initialValue If initialValue is specified, it is used as the initial value to start the accumulation. The first call to the callbackfn function provides this value as an argument instead of an array value.
+     */
+    reduce(callbackfn: (previousValue: T, currentValue: T, currentIndex: number, array: T[]) => T): T;
+    reduce(callbackfn: (previousValue: T, currentValue: T, currentIndex: number, array: T[]) => T, initialValue: T): T;
+    /**
+     * Calls the specified callback function for all the elements in an array. The return value of the callback function is the accumulated result, and is provided as an argument in the next call to the callback function.
+     * @param callbackfn A function that accepts up to four arguments. The reduce method calls the callbackfn function one time for each element in the array.
+     * @param initialValue If initialValue is specified, it is used as the initial value to start the accumulation. The first call to the callbackfn function provides this value as an argument instead of an array value.
+     */
+    reduce<U>(
+        callbackfn: (previousValue: U, currentValue: T, currentIndex: number, array: T[]) => U,
+        initialValue: U
+    ): U;
+    /**
+     * Calls the specified callback function for all the elements in an array, in descending order. The return value of the callback function is the accumulated result, and is provided as an argument in the next call to the callback function.
+     * @param callbackfn A function that accepts up to four arguments. The reduceRight method calls the callbackfn function one time for each element in the array.
+     * @param initialValue If initialValue is specified, it is used as the initial value to start the accumulation. The first call to the callbackfn function provides this value as an argument instead of an array value.
+     */
+    reduceRight(callbackfn: (previousValue: T, currentValue: T, currentIndex: number, array: T[]) => T): T;
+    reduceRight(
+        callbackfn: (previousValue: T, currentValue: T, currentIndex: number, array: T[]) => T,
+        initialValue: T
+    ): T;
+    /**
+     * Calls the specified callback function for all the elements in an array, in descending order. The return value of the callback function is the accumulated result, and is provided as an argument in the next call to the callback function.
+     * @param callbackfn A function that accepts up to four arguments. The reduceRight method calls the callbackfn function one time for each element in the array.
+     * @param initialValue If initialValue is specified, it is used as the initial value to start the accumulation. The first call to the callbackfn function provides this value as an argument instead of an array value.
+     */
+    reduceRight<U>(
+        callbackfn: (previousValue: U, currentValue: T, currentIndex: number, array: T[]) => U,
+        initialValue: U
+    ): U;
+}
 export type ObservableBaseProps<T> = ObservableBaseFns<T>;
 export type ObservableProps<T> = ObservableFns<T>;
 
@@ -37,7 +126,13 @@ export interface ObservableListenerInfo {
     path: string[];
 }
 
-export type ListenerFn<T = any> = (value: T, prev: T, path: string[], valueAtPath: any, prevAtPath: any) => void;
+export type ListenerFn<T = any> = (
+    value: T,
+    prev: T,
+    path: (string | number)[],
+    valueAtPath: any,
+    prevAtPath: any
+) => void;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -50,8 +145,9 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     : T[K] extends number | boolean | string
     ? T[K] & ObservableProps<T[K]>
     : T[K] extends Array<any>
-    ? T[K] & ObservableProps<T[K]> & Array<Observable<T[K][number]>>
-    : T extends object
+    ? Omit<T[K], ArrayOverrideFnNames> & ObservableProps<T[K]> & ObservableArrayOverride<Observable<T[K][number]>>
+    : // ? ObservableProps<T[K]> & ObservableArrayOverride<T[K]>
+    T extends object
     ? TRecurse
     : T[K];
 
@@ -209,7 +305,7 @@ export type ObservableChecker<T = any> =
 export interface ProxyValue {
     path: string;
     pathParent: string;
-    key: string;
+    key: string | number;
     root: ObservableWrapper;
 }
 
