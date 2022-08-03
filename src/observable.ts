@@ -58,11 +58,7 @@ objectFnsProxy.forEach((fn, key) => {
 });
 
 function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: any[]) {
-    // this = target
-    const prevValue =
-        // (this instanceof Map && new Map(this)) ||
-        // (this instanceof Set && new Set(this)) ||
-        (isArray(target) && target.slice()) || target;
+    const prevValue = (isArray(target) && target.slice()) || target;
 
     const ret = (target[prop] as Function).apply(target, args);
 
@@ -89,8 +85,6 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
 
-    // console.log('updateNodes', obj);
-
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
@@ -116,7 +110,6 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
 }
 
 function createProxy(node: ProxyValue) {
-    // console.log('proxying', node);
     const proxy = new Proxy<ProxyValue>(node, proxyHandler);
     node.root.proxies.set(node.path, proxy);
     return proxy;

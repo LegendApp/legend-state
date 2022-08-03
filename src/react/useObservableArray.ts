@@ -19,19 +19,3 @@ export function useObservableArray<T>(array: Observable<T[]>, key: keyof T): [T[
 
     return [arr as any, useItem as any];
 }
-
-// interface A {
-//     id: number;
-//     text: string;
-// }
-
-// const obs = observable({
-//     arr: [
-//         { id: 1, text: 'hi' },
-//         { id: 2, text: 'hello' },
-//     ] as A[],
-// });
-
-// const [arr, map] = useShallowArray(obs.arr, 'id');
-
-// arr.map(item => <Row key={item.id} id={item.id} map={map} />)
