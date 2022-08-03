@@ -115,52 +115,46 @@ const descriptorNotEnumerable: PropertyDescriptor = {
 
 const proxyHandler: ProxyHandler<any> = {
     get(target: ProxyValue, prop: any) {
-        const node = target;
-        const fn = objectFnsProxy.get(prop);
-
-        if (prop === symbolIsObservable) return true;
-        if (fn) {
-            return (a, b, c) => fn(node, a, b, c);
+        if (prop === symbolIsObservable) {
+            return true;
         } else {
-            let value = getNodeValue(node);
-            const vProp = value[prop];
-            if (prop === symbolGet) {
-                if (node.root.isPrimitive) {
-                    value = value.current;
-                }
-                if (state.isTracking) {
-                    state.updateTracking(node, value);
-                }
-                return value;
-            } else if (isSymbol(prop)) {
-                return vProp;
-            } else if (prop === 'get') {
-                if (node.root.isPrimitive) {
-                    value = value.current;
-                }
-                if (state.isTracking) {
-                    state.updateTracking(node, value);
-                }
-                return () => value;
-            } else if (isFunction(vProp)) {
-                if (isArray(value)) {
-                    return (...args) => collectionSetter(node, value, prop, ...args);
-                }
-                return vProp.bind(value);
-            } else if (isPrimitive(vProp)) {
-                lastAccessedNode = node;
-                lastAccessedPrimitive = prop;
-                if (state.isTracking) {
-                    state.updateTracking(getChildNode(node, prop), value);
-                }
-                return vProp;
+            const node = target;
+            const fn = objectFnsProxy.get(prop);
+            if (fn) {
+                return (a, b, c) => fn(node, a, b, c);
             } else {
-                const path = target.path + delim + prop;
-                let proxy = node.root.proxies.get(path);
-                if (!proxy) {
-                    proxy = createProxy(getChildNode(target, prop));
+                let value = getNodeValue(node);
+                const vProp = value[prop];
+                if (prop === symbolGet || prop === 'get') {
+                    if (node.root.isPrimitive) {
+                        value = value.current;
+                    }
+                    if (state.isTracking) {
+                        state.updateTracking(node, value);
+                    }
+                    return prop === 'get' ? () => value : value;
+                } else if (isSymbol(prop)) {
+                    return vProp;
+                } else if (isFunction(vProp)) {
+                    if (isArray(value)) {
+                        return (...args) => collectionSetter(node, value, prop, ...args);
+                    }
+                    return vProp.bind(value);
+                } else if (isPrimitive(vProp)) {
+                    lastAccessedNode = node;
+                    lastAccessedPrimitive = prop;
+                    if (state.isTracking) {
+                        state.updateTracking(getChildNode(node, prop), value);
+                    }
+                    return vProp;
+                } else {
+                    const path = target.path + delim + prop;
+                    let proxy = node.root.proxies.get(path);
+                    if (!proxy) {
+                        proxy = createProxy(getChildNode(target, prop));
+                    }
+                    return proxy;
                 }
-                return proxy;
             }
         }
     },
@@ -185,8 +179,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         const value = getNodeValue(target);
-        const own = Reflect.getOwnPropertyDescriptor(value, p);
-        return own;
+        return Reflect.getOwnPropertyDescriptor(value, p);
     },
     set(target, prop, value) {
         // If this assignment comes from within an observable function it's allowed
@@ -198,7 +191,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
     },
     deleteProperty(target, prop) {
-        // If this assignment comes from within an observable function it's allowed
+        // If this delete comes from within an observable function it's allowed
         if (inSetFn) {
             Reflect.deleteProperty(target, prop);
             return true;
