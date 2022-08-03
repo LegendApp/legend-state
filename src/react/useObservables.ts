@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react';
 import { getObservableRawValue, symbolGet, symbolShallow, symbolShouldRender } from '../globals';
 import { isArray, isObject, isPrimitive } from '../is';
-import { ObservableChecker, ObservableListener, Shallow } from '../observableInterfaces';
+import { MappedObservableValue, ObservableChecker, ObservableListener, Shallow } from '../observableInterfaces';
 import { onChange, onChangeShallow } from '../on';
 import state from '../state';
 
@@ -24,7 +24,7 @@ const pathsSeen = new Set();
  */
 export function useObservables<T extends ObservableChecker | Record<string, ObservableChecker> | ObservableChecker[]>(
     fn: () => T
-): T {
+): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {
@@ -113,5 +113,5 @@ export function useObservables<T extends ObservableChecker | Record<string, Obse
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return ret as T;
+    return ret as MappedObservableValue<T>;
 }

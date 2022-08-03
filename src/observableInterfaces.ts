@@ -50,19 +50,16 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     : T[K] extends number | boolean | string
     ? T[K] & ObservableProps<T[K]>
     : T[K] extends Array<any>
-    ? T[K] &
-          ObservableProps<T[K]> & {
-              [n: number]: Observable<T[K][number]>;
-          }
+    ? T[K] & ObservableProps<T[K]> & Array<Observable<T[K][number]>>
     : T extends object
     ? TRecurse
     : T[K];
 
-type ObservablePropsRecursive2<T> = {
+type ObservablePropsRecursive<T> = {
     readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
 };
 
-export type Observable<T = any> = ObservablePropsRecursive2<T> & ObservableProps<T>;
+export type Observable<T = any> = ObservablePropsRecursive<T> & ObservableProps<T>;
 
 export interface ObservableEvent {
     fire(): void;
@@ -181,7 +178,6 @@ export interface OnReturnValue<T> {
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
-export type Prop<T = any> = { [symbolProp]: Observable<T> } & ObservableProps<T>;
 export type ShouldRender<T = any> = {
     [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
 };
@@ -193,7 +189,7 @@ export interface ObservableListener<T = any> {
     dispose: () => void;
     isDisposed?: boolean;
 }
-export interface ObservableWrapper<T = any> {
+export interface ObservableWrapper {
     _: Observable;
     isPrimitive: boolean;
     listenerMap: Map<string, Set<ObservableListener>>;
@@ -201,13 +197,37 @@ export interface ObservableWrapper<T = any> {
     proxyValues: Map<string, ProxyValue>;
 }
 
-export type ObservableChecker<T = any> = Shallow | ShouldRender | Observable | Prop | ObservableComputed;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedProps<{ readonly current: T }>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
+export type ObservableChecker<T = any> =
+    | Shallow<T>
+    | ShouldRender<T>
+    | Observable<T>
+    | ObservableComputed<T>
+    | ObservablePrimitive<T>;
 export interface ProxyValue {
     path: string;
     pathParent: string;
     key: string;
     root: ObservableWrapper;
 }
+
+export type ObservableValue<T> = T extends
+    | Shallow<infer t>
+    | ShouldRender<infer t>
+    | Observable<infer t>
+    | ObservableComputed<infer t>
+    | ObservablePrimitive<infer t>
+    ? t
+    : T;
+
+export type MappedObservableValue<
+    T extends ObservableChecker | ObservableChecker[] | Record<string, ObservableChecker>
+> = T extends ObservableChecker
+    ? ObservableValue<T>
+    : T extends object | Array<any>
+    ? {
+          [K in keyof T]: ObservableValue<T[K]>;
+      }
+    : ObservableValue<T>;
