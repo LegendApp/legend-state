@@ -11,6 +11,7 @@ export const symbolValue = Symbol('value');
 export const symbolProp = Symbol('prop');
 export const symbolID = Symbol('id');
 export const symbolGet = Symbol('get');
+export const symbolIsObservable = Symbol('isObservable');
 
 export function getNodeValue(node: ProxyValue): any {
     let child = node.root;

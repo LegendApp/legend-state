@@ -1,4 +1,4 @@
-import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolID } from './globals';
+import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolID, symbolIsObservable } from './globals';
 import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -118,6 +118,7 @@ const proxyHandler: ProxyHandler<any> = {
         const node = target;
         const fn = objectFnsProxy.get(prop);
 
+        if (prop === symbolIsObservable) return true;
         if (fn) {
             return (a, b, c) => fn(node, a, b, c);
         } else {

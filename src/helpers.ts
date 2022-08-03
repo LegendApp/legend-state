@@ -1,4 +1,4 @@
-import { symbolDateModified, symbolShouldRender, symbolShallow } from './globals';
+import { symbolDateModified, symbolShouldRender, symbolShallow, symbolIsObservable } from './globals';
 import { isObject } from './is';
 import type { ShouldRender, Observable, Shallow } from './observableInterfaces';
 
@@ -11,6 +11,10 @@ export function shouldRender<T>(obs: Observable<T>, fn: (value: T, prev: T) => a
     return {
         [symbolShouldRender]: { obs, fn },
     };
+}
+
+export function isObservable(obs: Observable): boolean {
+    return obs && !!obs[symbolIsObservable as any];
 }
 
 export function mergeIntoObservable(target: Observable, ...sources: any[]) {
