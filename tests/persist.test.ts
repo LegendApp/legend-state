@@ -1,8 +1,8 @@
 import { isArray, isObject, isString } from '../src/is';
-import { configureObservable } from '../src/configureObservable';
+import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';
-import { mapPersistences, persistObservable } from '../src/persistObservable';
+import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 import { ObservablePersistLocalStorage } from '../src/persist/local-storage';
 
 class LocalStorageMock {
@@ -60,7 +60,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
 // @ts-ignore
 global.localStorage = new LocalStorageMock();
 
-configureObservable({
+configureObservablePersistence({
     persistLocal: ObservablePersistLocalStorage,
     saveTimeout: 16,
 });

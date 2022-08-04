@@ -1,5 +1,5 @@
-import { observableConfiguration } from './configureObservable';
-import { isObject } from './is';
+import { observableConfiguration } from './configureObservablePersistence';
+import { isObject } from '../is';
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;
