@@ -1,4 +1,4 @@
-import { symbolProp, symbolShallow, symbolShouldRender } from './globals';
+import { symbolShallow, symbolShouldRender } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
