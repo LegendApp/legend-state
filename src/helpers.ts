@@ -23,16 +23,16 @@ export function mergeIntoObservable(target: Observable, ...sources: any[]) {
 
     if (isObject(target) && isObject(source)) {
         if (source[symbolDateModified as any]) {
-            target.setProp(symbolDateModified, source[symbolDateModified as any]);
+            target.set(symbolDateModified, source[symbolDateModified as any]);
         }
         for (const key in source) {
             if (isObject(source[key])) {
                 if (!target[key] || !isObject(target[key])) {
-                    target.setProp(key, {});
+                    target.set(key, {});
                 }
                 mergeIntoObservable(target[key], source[key]);
             } else {
-                target.setProp(key, source[key]);
+                target.set(key, source[key]);
             }
         }
     }

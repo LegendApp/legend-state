@@ -45,7 +45,7 @@ describe('Set', () => {
     });
     test('Set prop', () => {
         const obs = observable({ test: { text: 't' } });
-        obs.test.setProp('text', 't2');
+        obs.test.set('text', 't2');
         expect(obs).toEqual({ test: { text: 't2' } });
     });
     test('Set child', () => {
@@ -136,7 +136,7 @@ describe('Listeners', () => {
         const obs = observable({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
         const handler = expectChangeHandler(obs.test.prop('text'));
-        obs.test.setProp('text', 't2');
+        obs.test.set('text', 't2');
         expect(obs.test.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
     });
@@ -144,7 +144,7 @@ describe('Listeners', () => {
         const obs = observable({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
         const handler = expectChangeHandler(obs.test.text);
-        obs.test.setProp('text', 't2');
+        obs.test.set('text', 't2');
         expect(obs.test.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
     });
@@ -299,7 +299,7 @@ describe('Listeners', () => {
     test('Start null set to something', () => {
         const obs = observable({ test: null });
         const handler = expectChangeHandler(obs);
-        obs.setProp('test', { test2: 'hi' });
+        obs.set('test', { test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
             { test: null },
@@ -313,7 +313,7 @@ describe('Listeners', () => {
     test('Start undefined set to something', () => {
         const obs = observable({ test: undefined });
         const handler = expectChangeHandler(obs);
-        obs.setProp('test', { test2: 'hi' });
+        obs.set('test', { test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
             { test: undefined },
@@ -327,7 +327,7 @@ describe('Listeners', () => {
     test('Set with object should only fire listeners once', () => {
         const obs = observable({ test: undefined });
         const handler = expectChangeHandler(obs);
-        obs.setProp('test', { test2: 'hi', test3: 'hi3', test4: 'hi4' });
+        obs.set('test', { test2: 'hi', test3: 'hi3', test4: 'hi4' });
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi', test3: 'hi3', test4: 'hi4' } },
@@ -389,7 +389,7 @@ describe('Listeners', () => {
     test('Set undefined deep with deep listener', () => {
         const obs = observable({ obj: { test: 'hi' } });
         const handler = expectChangeHandler(obs.obj.test);
-        obs.obj.setProp('test', undefined);
+        obs.obj.set('test', undefined);
         expect(handler).toHaveBeenCalledWith(undefined, 'hi', [], undefined, 'hi');
     });
     test('Modify value does not copy object', () => {
@@ -420,7 +420,7 @@ describe('Listeners', () => {
         expect(obs.test).toEqual({ test2: { test3: undefined } });
         expect(obs.test.test2).toEqual({ test3: undefined });
         expect(obs.test.test2.test3).toEqual(undefined);
-        obs.test.test2.setProp('test3', { test4: 'hi4', test5: 'hi5' });
+        obs.test.test2.set('test3', { test4: 'hi4', test5: 'hi5' });
         expect(obs.test.test2.test3).toEqual({ test4: 'hi4', test5: 'hi5' });
         expect(obs.test.test2).toEqual({ test3: { test4: 'hi4', test5: 'hi5' } });
         expect(obs.test).toEqual({ test2: { test3: { test4: 'hi4', test5: 'hi5' } } });
@@ -432,7 +432,7 @@ describe('Listeners', () => {
             { test4: 'hi4', test5: 'hi5' },
             undefined
         );
-        obs.test.test2.setProp('test3', undefined);
+        obs.test.test2.set('test3', undefined);
         expect(obs.test.test2.test3).toEqual(undefined);
         expect(obs.test.test2).toEqual({ test3: undefined });
         expect(obs.test).toEqual({ test2: { test3: undefined } });
@@ -444,7 +444,7 @@ describe('Listeners', () => {
             undefined,
             { test4: 'hi4', test5: 'hi5' }
         );
-        obs.test.test2.setProp('test3', { test4: 'hi6', test5: 'hi7' });
+        obs.test.test2.set('test3', { test4: 'hi6', test5: 'hi7' });
         expect(obs.test.test2.test3).toEqual({ test4: 'hi6', test5: 'hi7' });
         expect(obs.test.test2).toEqual({ test3: { test4: 'hi6', test5: 'hi7' } });
         expect(obs.test).toEqual({ test2: { test3: { test4: 'hi6', test5: 'hi7' } } });
@@ -463,7 +463,7 @@ describe('Listeners', () => {
         expect(obs.test).toEqual({ test2: { test3: undefined } });
         expect(obs.test.test2).toEqual({ test3: undefined });
         expect(obs.test.test2.test3).toEqual(undefined);
-        obs.test.test2.setProp('test3', 'hi');
+        obs.test.test2.set('test3', 'hi');
         expect(obs.test.test2.test3).toEqual('hi');
         expect(obs.test.test2.test3).toEqual('hi');
         expect(obs.test.test2).toEqual({ test3: 'hi' });
@@ -476,7 +476,7 @@ describe('Listeners', () => {
             'hi',
             undefined
         );
-        obs.test.test2.setProp('test3', undefined);
+        obs.test.test2.set('test3', undefined);
         expect(obs.test.test2.test3).toEqual(undefined);
         expect(obs.test.test2).toEqual({ test3: undefined });
         expect(obs.test).toEqual({ test2: { test3: undefined } });
@@ -488,7 +488,7 @@ describe('Listeners', () => {
             undefined,
             'hi'
         );
-        obs.test.test2.setProp('test3', 'hi');
+        obs.test.test2.set('test3', 'hi');
         expect(obs.test.test2.test3).toEqual('hi');
         expect(obs.test.test2.test3).toEqual('hi');
         expect(obs.test.test2).toEqual({ test3: 'hi' });
@@ -520,13 +520,13 @@ describe('Listeners', () => {
     test('Set number key', () => {
         const obs = observable({ test: {} as Record<number, string> });
         const handler = expectChangeHandler(obs.test);
-        obs.test.setProp(1, 'hi');
+        obs.test.set(1, 'hi');
         expect(handler).toHaveBeenCalledWith({ '1': 'hi' }, { '1': undefined }, [1], 'hi', undefined);
     });
     test('Set number key multiple times', () => {
         const obs = observable({ test: { t: {} as Record<number, any> } });
         const handler = expectChangeHandler(obs.test);
-        obs.test.t.setProp(1000, { test1: { text: ['hi'] } });
+        obs.test.t.set(1000, { test1: { text: ['hi'] } });
         expect(obs.get()).toEqual({
             test: {
                 t: {
@@ -571,7 +571,7 @@ describe('Listeners', () => {
             { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
             { test1: { text: ['hi'] } }
         );
-        obs.test.t.setProp(1000, { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
+        obs.test.t.set(1000, { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
         expect(obs.test.t.get()).toEqual({
             1000: {
                 test1: { text: ['hiz'], text2: 'hiz2' },
@@ -590,7 +590,7 @@ describe('Listeners', () => {
         const obs = observable({ test: { test1: 'hi' } });
         const handler = jest.fn();
         obs.test.onChange(handler);
-        obs.test.setProp('test1', 'hi');
+        obs.test.set('test1', 'hi');
         obs.test.test1.set('hi');
         expect(handler).toHaveBeenCalledTimes(0);
     });
@@ -742,12 +742,12 @@ describe('Array', () => {
     test('Array swap', () => {
         const obs = observable({ test: [1, 2, 3, 4, 5] });
         let tmp = obs.test[1];
-        obs.test.setProp(1, obs.test[4]);
-        obs.test.setProp(4, tmp);
+        obs.test.set(1, obs.test[4]);
+        obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([1, 5, 3, 4, 2]);
         tmp = obs.test[1];
-        obs.test.setProp(1, obs.test[4]);
-        obs.test.setProp(4, tmp);
+        obs.test.set(1, obs.test[4]);
+        obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([1, 2, 3, 4, 5]);
     });
     test('Array set', () => {
@@ -764,24 +764,24 @@ describe('Array', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         let arr = obs.test;
         let tmp = arr[1].get();
-        obs.test.setProp(1, arr[4]);
-        obs.test.setProp(4, tmp);
+        obs.test.set(1, arr[4]);
+        obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
         expect(obs.test[1]).toEqual({ text: 5 });
         expect(arr[1]).toEqual({ text: 5 });
         expect(obs.test[4]).toEqual({ text: 2 });
         expect(arr[4]).toEqual({ text: 2 });
         tmp = arr[1].get();
-        obs.test.setProp(1, arr[4]);
-        obs.test.setProp(4, tmp);
+        obs.test.set(1, arr[4]);
+        obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
     });
     test('Array swap if empty', () => {
         const obs = observable({ test: [] });
         let tmp = obs.test[1];
-        obs.test.setProp(1, obs.test[4]);
+        obs.test.set(1, obs.test[4]);
         expect(obs.test.get()).toEqual([undefined, undefined]);
-        obs.test.setProp(4, tmp);
+        obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([undefined, undefined, undefined, undefined, undefined]);
     });
     test('Clear array fires listener once', () => {
@@ -892,13 +892,13 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1']);
-        obs.test.test2.setProp('a2', { text: 'ta2' });
+        obs.test.test2.set('a2', { text: 'ta2' });
         expect(obs).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
         expect(obs.test.test2).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
         expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
-        obs.test.test2.setProp('a3', { text: 'ta3' });
+        obs.test.test2.set('a3', { text: 'ta3' });
         expect(obs).toEqual({
             test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } } },
         });
@@ -921,7 +921,7 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
-        obs.test.test2.setProp('a3', { text: 'ta3' });
+        obs.test.test2.set('a3', { text: 'ta3' });
         expect(obs).toEqual({
             test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } } },
         });
@@ -929,7 +929,7 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
-        obs.test.test2.setProp('a4', { text: 'ta4' });
+        obs.test.test2.set('a4', { text: 'ta4' });
         expect(obs).toEqual({
             test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' }, a4: { text: 'ta4' } } },
         });
@@ -1009,7 +1009,7 @@ describe('Delete', () => {
         const obj = obs.obj;
         obs.delete('obj');
         expect(() => {
-            obj.setProp('text', 'hello');
+            obj.set('text', 'hello');
         }).toThrow();
         expect(obs).toEqual({});
     });
@@ -1092,7 +1092,7 @@ describe('Shallow', () => {
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
         // Setting an index in an array should not notify the array
-        obs.data.setProp(0, { text: 11 });
+        obs.data.set(0, { text: 11 });
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });

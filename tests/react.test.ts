@@ -19,7 +19,7 @@ describe('React Hooks', () => {
         expect(val.arr.map((a) => a)).toEqual(['hi']);
         expect(val.arr.length).toEqual(1);
         act(() => {
-            obs.val.val2.setProp('val3', 'hi');
+            obs.val.val2.set('val3', 'hi');
         });
         expect(numRenders).toEqual(2);
         expect(val.val2.val3).toEqual('hi');
@@ -72,7 +72,7 @@ describe('React Hooks', () => {
         expect(val.val2.val3).toEqual('hello');
         // Does not re-render from a deep set
         act(() => {
-            obs.val.val2.setProp('val3', 'hi');
+            obs.val.val2.set('val3', 'hi');
         });
         expect(numRenders).toEqual(1);
         // TODO
@@ -150,11 +150,11 @@ describe('React Hooks', () => {
         });
         expect(result.current).toEqual(obs.get().test);
         act(() => {
-            obs.test.setProp(1, 22);
+            obs.test.set(1, 22);
         });
         expect(numRenders).toEqual(1);
         act(() => {
-            obs.test.setProp(1, 222);
+            obs.test.set(1, 222);
         });
         expect(numRenders).toEqual(1);
     });
@@ -173,8 +173,8 @@ describe('React Hooks', () => {
         act(() => {
             const arr = obs.arr.get();
             const tmp = arr[1];
-            obs.arr.setProp(1, arr[4]);
-            obs.arr.setProp(4, tmp);
+            obs.arr.set(1, arr[4]);
+            obs.arr.set(4, tmp);
         });
         expect(obs.arr.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
         expect(numRendersShallow).toEqual(1);
@@ -183,8 +183,8 @@ describe('React Hooks', () => {
         act(() => {
             const arr = obs.arr.get();
             const tmp = arr[1];
-            obs.arr.setProp(1, arr[4]);
-            obs.arr.setProp(4, tmp);
+            obs.arr.set(1, arr[4]);
+            obs.arr.set(4, tmp);
         });
         expect(obs.arr.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
         expect(numRendersShallow).toEqual(1);

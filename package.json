@@ -21,7 +21,8 @@
         "preversion": "npm run build",
         "postversion": "git push --follow-tags",
         "jestclear": "jest --clearCache",
-        "publish": "npm run build && cd dist && npm publish",
+        "publish:preminor": "npm version preminor && npm publish",
+        "publish:prerelease": "npm version prerelease && npm publish",
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react"

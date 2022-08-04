@@ -1,4 +1,13 @@
-import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolID, symbolIsObservable } from './globals';
+import {
+    delim,
+    getChildNode,
+    getNodeValue,
+    getParentNode,
+    symbolGet,
+    symbolID,
+    symbolIsObservable,
+    symbolUndefined,
+} from './globals';
 import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -31,7 +40,6 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'redu
 
 const objectFnsProxy = new Map<string, Function>([
     ['set', set],
-    ['setProp', setProp],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
@@ -134,7 +142,10 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = objectFnsProxy.get(p);
         // If this is an observable function, call it
         if (fn) {
-            return (a, b, c) => fn(node, a, b, c);
+            return function (a, b, c) {
+                const l = arguments.length;
+                return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
+            };
         }
 
         let value = getNodeValue(node);
@@ -241,12 +252,14 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-function set(node: ProxyValue, newValue: any) {
-    if (node.root.isPrimitive) {
-        return setProp(node, 'current', newValue);
+function set(node: ProxyValue, keyOrNewValue: any, newValue?: any) {
+    if (arguments.length > 2) {
+        return setProp(node, keyOrNewValue, newValue);
+    } else if (node.root.isPrimitive) {
+        return setProp(node, 'current', keyOrNewValue);
     } else {
         const { parent, key } = getParentNode(node);
-        return setProp(parent, key, newValue);
+        return setProp(parent, key, keyOrNewValue);
     }
 }
 
