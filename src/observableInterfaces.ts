@@ -144,7 +144,7 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Promise<any>
     ? T[K]
     : T[K] extends number | boolean | string
-    ? T[K] & ObservableProps<T[K]>
+    ? Observable<T[K]>
     : T[K] extends Array<any>
     ? Omit<T[K], ArrayOverrideFnNames> & ObservableProps<T[K]> & ObservableArrayOverride<Observable<T[K][number]>>
     : // ? ObservableProps<T[K]> & ObservableArrayOverride<T[K]>
@@ -310,12 +310,15 @@ export interface ProxyValue {
     root: ObservableWrapper;
 }
 
-export type ObservableValue<T> = T extends
-    | Shallow<infer t>
-    | ShouldRender<infer t>
-    | Observable<infer t>
-    | ObservableComputed<infer t>
-    | ObservablePrimitive<infer t>
+export type ObservableValue<T> = T extends Shallow<infer t>
+    ? t
+    : T extends ShouldRender<infer t>
+    ? t
+    : T extends Observable<infer t>
+    ? t
+    : T extends ObservableComputed<infer t>
+    ? t
+    : T extends ObservablePrimitive<infer t>
     ? t
     : T;
 
