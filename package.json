@@ -4,7 +4,9 @@
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
+    "type": "module",
     "main": "./index.js",
+    "module": "./esm/index.js",
     "types": "./index.d.ts",
     "files": [
         "**"
@@ -12,7 +14,9 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "tsc && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build:cjs": "tsc",
+        "build:esm": "tsc -p ./tsconfig.esm.json",
+        "build": "npm run build:cjs && npm run build:esm && cp package.json dist/package.json && rm -rf dist/tests && rm -rf dist/esm/tests && rm dist/*.tsbuildinfo && rm dist/esm/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "preversion": "npm run build",
         "postversion": "git push --follow-tags",
@@ -20,11 +24,31 @@
         "publish": "npm run build && cd dist && npm publish"
     },
     "exports": {
-        ".": "./index.js",
-        "./internal": "./internal.js",
-        "./local-storage": "./local-storage.js",
-        "./mmkv": "./mmkv.js",
-        "./react": "./react.js"
+        ".": {
+            "import": "./esm/index.js",
+            "require": "./index.js"
+        },
+        "./internal": {
+            "import": "./esm/internal.js",
+            "require": "./internal.js"
+        },
+        "./local-storage": {
+            "import": "./local-esm/storage.js",
+            "require": "./local-storage.js"
+        },
+        "./mmkv": {
+            "import": "./esm/mmkv.js",
+            "require": "./mmkv.js"
+        },
+        "./persist": {
+            "import": "./esm/persist.js",
+            "require": "./persist.js"
+        },
+        "./react": {
+            "import": "./esm/react.js",
+            "require": "./react.js"
+        }
+
     },
     "devDependencies": {
         "@testing-library/react-hooks": "^8.0.1",
