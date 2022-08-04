@@ -25,30 +25,18 @@ function onActionTimeout() {
     }
 }
 
-export function observableBatcherNotify(
-    cb: ListenerFn,
-    value: any,
-    getPrevious: () => any,
-    path: (string | number)[],
-    valueAtPath: any,
-    prevAtPath: any
-) {
+export function observableBatcherNotify(b: BatchItem) {
     if (numInBatch > 0) {
-        const existing = _batchMap.get(cb);
+        const existing = _batchMap.get(b.cb);
         // If this callback already exists, make sure it has the latest value but do not add it
         if (existing) {
-            existing.value = value;
-            existing.getPrevious = getPrevious;
-            existing.path = path;
-            existing.valueAtPath = valueAtPath;
-            existing.prevAtPath = prevAtPath;
+            _batchMap.set(b.cb, b);
         } else {
-            const batchItem = { cb, value, getPrevious, path, valueAtPath, prevAtPath };
-            _batch.push(batchItem);
-            _batchMap.set(cb, batchItem);
+            _batch.push(b);
+            _batchMap.set(b.cb, b);
         }
     } else {
-        cb(value, getPrevious, path, valueAtPath, prevAtPath);
+        b.cb(b.value, b.getPrevious, b.path, b.valueAtPath, b.prevAtPath);
     }
 }
 
