@@ -26,7 +26,13 @@
         "paths": {
             "react": [
                 "node_modules/react"
-            ]
+            ],
+            "@legendapp/state": [
+                "packages/index"
+            ],
+            "@legendapp/state/*": [
+                "packages/*"
+            ],
         },
         "resolveJsonModule": true,
         "noEmit": true

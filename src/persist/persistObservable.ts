@@ -1,8 +1,5 @@
 import { observableConfiguration } from './configureObservablePersistence';
-import { symbolDateModified } from '../globals';
-import { mergeIntoObservable } from '../helpers';
-import { observable } from '../observable';
-import { observableBatcher } from '../observableBatcher';
+import { observable, observableBatcher, symbolDateModified, mergeIntoObservable } from '@legendapp/state';
 import type {
     Observable,
     ObservableListenerInfo,

@@ -1,5 +1,5 @@
 import { observableConfiguration } from './configureObservablePersistence';
-import { isObject } from '../is';
+import { isObject } from '@legendapp/state';
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
     if (a === undefined) return null;

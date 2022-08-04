@@ -14,7 +14,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "preversion": "npm run build",
         "postversion": "git push --follow-tags",

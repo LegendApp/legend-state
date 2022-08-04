@@ -1,4 +1,4 @@
-import { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } from '../observableInterfaces';
+import type { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } from '../observableInterfaces';
 
 interface Config {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;

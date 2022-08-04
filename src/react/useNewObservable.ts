@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
-import { symbolGet } from '../globals';
-import { isFunction } from '../is';
-import { observable } from '../observable';
-import { ObservableOrPrimitive } from '../observableInterfaces';
+import type { ObservableOrPrimitive } from '../observableInterfaces';
 import { useObservables } from './useObservables';
+import { isFunction, observable, symbolGet } from '@legendapp/state';
 
 /**
  * A React hook that creates a new observable and can optionally listen or persist its state.

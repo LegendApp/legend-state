@@ -1,9 +1,22 @@
 import { useEffect, useReducer, useRef } from 'react';
-import { getObservableRawValue, symbolGet, symbolShallow, symbolShouldRender } from '../globals';
-import { isArray, isObject, isPrimitive } from '../is';
-import { MappedObservableValue, ObservableCheckerRender, ObservableListener, Shallow } from '../observableInterfaces';
-import { onChange, onChangeShallow } from '../on';
-import { state } from '../state';
+import {
+    getObservableRawValue,
+    symbolGet,
+    symbolShallow,
+    symbolShouldRender,
+    isArray,
+    isObject,
+    isPrimitive,
+    onChange,
+    onChangeShallow,
+    state,
+} from '@legendapp/state';
+import type {
+    MappedObservableValue,
+    ObservableCheckerRender,
+    ObservableListener,
+    Shallow,
+} from '../observableInterfaces';
 
 function useForceRender() {
     const [, forceRender] = useReducer((s) => s + 1, 0);

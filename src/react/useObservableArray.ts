@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
-import { shallow } from '../helpers';
-import { Observable } from '../observableInterfaces';
+import { shallow } from '@legendapp/state';
+import type { Observable } from '../observableInterfaces';
 import { useObservables } from './useObservables';
 
 export function useObservableArray<T>(array: Observable<T[]>, key: keyof T): [T[], Map<string, (id: string) => T>] {

@@ -20,15 +20,37 @@ const outputs = Object.keys(pkg.exports).flatMap((exp) => {
     ];
 });
 
-export default {
-    input: './index.ts',
-    output: outputs,
-    external: ['react'],
-    plugins: [
-        resolve(),
-        commonjs(),
-        typescript({
-            // useTsconfigDeclarationDir: true,
-        }),
-    ],
-};
+export default Object.keys(pkg.exports).map((exp) => {
+    // export default ['./react'].map((exp) => {
+    let f = exp.slice(2);
+
+    const external = ['react', 'react-native-mmkv', '@legendapp/state', '@legendapp/state/persist'];
+
+    if (!f) f = 'index';
+
+    return {
+        input: './packages/' + f + '.ts',
+        output: [
+            {
+                file: './dist/' + f + '.js',
+                format: 'cjs',
+            },
+            {
+                file: './dist/' + f + '.esm.js',
+                format: 'es',
+            },
+        ],
+        external: external,
+        plugins: [
+            resolve(),
+            commonjs(),
+            typescript({
+                paths: {
+                    react: ['node_modules/react'],
+                    '@legendapp/state': ['./packages/index'],
+                    '@legendapp/state/persist': ['./packages/persist'],
+                },
+            }),
+        ],
+    };
+});
