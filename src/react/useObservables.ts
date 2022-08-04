@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react';
 import { getObservableRawValue, symbolGet, symbolShallow, symbolShouldRender } from '../globals';
 import { isArray, isObject, isPrimitive } from '../is';
-import { MappedObservableValue, ObservableChecker, ObservableListener, Shallow } from '../observableInterfaces';
+import { MappedObservableValue, ObservableCheckerRender, ObservableListener, Shallow } from '../observableInterfaces';
 import { onChange, onChangeShallow } from '../on';
 import { state } from '../state';
 
@@ -22,9 +22,9 @@ const pathsSeen = new Set();
  *
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
-export function useObservables<T extends ObservableChecker | Record<string, ObservableChecker> | ObservableChecker[]>(
-    fn: () => T
-): MappedObservableValue<T> {
+export function useObservables<
+    T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
+>(fn: () => T): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef>();
     if (!ref.current) {

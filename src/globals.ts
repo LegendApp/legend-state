@@ -1,5 +1,5 @@
 import { isPrimitive } from './is';
-import { ObservableChecker, ProxyValue } from './observableInterfaces';
+import { ObservableChecker, ObservableCheckerRender, ProxyValue } from './observableInterfaces';
 import { state } from './state';
 
 export const delim = '\uFEFF';
@@ -46,7 +46,7 @@ export function getChildNode(node: ProxyValue, key: string | number): ProxyValue
     return child;
 }
 
-export function getObservableRawValue<T>(obs: ObservableChecker<T>): T {
+export function getObservableRawValue<T>(obs: ObservableCheckerRender<T>): T {
     if (!obs || isPrimitive(obs)) return obs as T;
 
     const eq = obs[symbolShouldRender];
