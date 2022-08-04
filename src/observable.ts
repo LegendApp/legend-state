@@ -1,13 +1,4 @@
-import {
-    delim,
-    getChildNode,
-    getNodeValue,
-    getParentNode,
-    symbolGet,
-    symbolID,
-    symbolIsObservable,
-    symbolUndefined,
-} from './globals';
+import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolIsObservable } from './globals';
 import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -221,10 +212,6 @@ const proxyHandler: ProxyHandler<any> = {
         return keys;
     },
     getOwnPropertyDescriptor(target, p) {
-        if (p === symbolID) {
-            return descriptorNotEnumerable;
-        }
-
         const value = getNodeValue(target);
         return Reflect.getOwnPropertyDescriptor(value, p);
     },
