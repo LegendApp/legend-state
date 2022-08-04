@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { symbolGet } from '../globals';
 import { isFunction } from '../is';
 import { observable } from '../observable';
-import { ObservableOrPrimitive, PersistOptions } from '../observableInterfaces';
-import { persistObservable } from '../persistObservable';
+import { ObservableOrPrimitive } from '../observableInterfaces';
 import { useObservables } from './useObservables';
 
 /**
@@ -15,19 +14,9 @@ import { useObservables } from './useObservables';
  *
  * @see https://www.legendapp.com/dev/state/react/#usenewobservable
  */
-export function useNewObservable<T>(
-    value: T | (() => T),
-    observe?: boolean,
-    persist?: PersistOptions<T>
-): [ObservableOrPrimitive<T>, T] {
+export function useNewObservable<T>(value: T | (() => T), observe?: boolean): [ObservableOrPrimitive<T>, T] {
     // Create the observable from the default value
-    const obs = useMemo(() => {
-        const ret = observable<any>(isFunction(value) ? value() : value);
-        if (persist) {
-            persistObservable(ret, persist);
-        }
-        return ret;
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const obs = useMemo(() => observable<any>(isFunction(value) ? value() : value), []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (observe !== false) {
         useObservables(() => [obs]);
