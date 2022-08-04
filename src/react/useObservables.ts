@@ -3,7 +3,7 @@ import { getObservableRawValue, symbolGet, symbolShallow, symbolShouldRender } f
 import { isArray, isObject, isPrimitive } from '../is';
 import { MappedObservableValue, ObservableChecker, ObservableListener, Shallow } from '../observableInterfaces';
 import { onChange, onChangeShallow } from '../on';
-import state from '../state';
+import { state } from '../state';
 
 function useForceRender() {
     const [, forceRender] = useReducer((s) => s + 1, 0);

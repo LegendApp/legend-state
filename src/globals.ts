@@ -1,6 +1,6 @@
 import { isPrimitive } from './is';
 import { ObservableChecker, ProxyValue } from './observableInterfaces';
-import state from './state';
+import { state } from './state';
 
 export const delim = '\uFEFF';
 

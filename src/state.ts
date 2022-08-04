@@ -1,5 +1,5 @@
 import { ProxyValue } from './observableInterfaces';
-export default {
+export const state = {
     isTracking: false,
     trackingShallow: false,
     trackingShouldRender: undefined as (value: any, prev?: any) => any,

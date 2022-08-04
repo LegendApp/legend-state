@@ -1,7 +1,7 @@
 import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
 import { onChange } from './on';
-import state from './state';
+import { state } from './state';
 
 export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
     // Create an observable for this computed variable

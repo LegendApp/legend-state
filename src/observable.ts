@@ -9,7 +9,7 @@ import {
     ProxyValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
-import state from './state';
+import { state } from './state';
 
 let lastAccessedNode: ProxyValue;
 let lastAccessedPrimitive: string;
