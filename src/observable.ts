@@ -30,6 +30,7 @@ const ArrayModifiers = new Set([
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'reduce', 'reduceRight', 'forEach', 'map']);
 
 const objectFnsProxy = new Map<string, Function>([
+    ['get', getNodeValue],
     ['set', set],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
@@ -132,7 +133,7 @@ const proxyHandler: ProxyHandler<any> = {
         const node = target;
         const fn = objectFnsProxy.get(p);
         // If this is an observable function, call it
-        if (fn) {
+        if (p !== 'get' && fn) {
             return function (a, b, c) {
                 const l = arguments.length;
                 return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
@@ -140,7 +141,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         let value = getNodeValue(node);
-        const vProp = value[p];
+        const vProp = value?.[p];
         // The get() function as well as the internal obs[symbolGet]
         if (p === symbolGet || p === 'get') {
             // Primitives are { current } so return the current value
