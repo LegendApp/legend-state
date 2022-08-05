@@ -5,10 +5,11 @@ import {
     isPrimitive,
     onChange,
     onChangeShallow,
-    state,
     symbolIsObservable,
     symbolShallow,
     symbolShouldRender,
+    trackedNodes,
+    tracking,
 } from '@legendapp/state';
 import { useEffect, useReducer, useRef } from 'react';
 import type {
@@ -48,8 +49,8 @@ export function useObservables<
 
     // Start tracking to fill trackedNodes with all nodes accessed
     let ret;
-    state.isTracking = true;
-    state.trackedNodes = [];
+    tracking.is = true;
+    trackedNodes.length = 0;
 
     const args = fn();
 
@@ -80,12 +81,12 @@ export function useObservables<
         }
     }
 
-    state.isTracking = false;
+    tracking.is = false;
 
     pathsSeen.clear();
 
     const listeners = ref.current.listeners;
-    for (let tracked of state.trackedNodes) {
+    for (let tracked of trackedNodes) {
         const { node, shouldRender, shallow } = tracked;
         const path = node.path;
         // Track the paths seen this frame to dispose of listeners no longer needed

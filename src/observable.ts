@@ -1,5 +1,5 @@
 import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolIsObservable } from './globals';
-import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
@@ -9,7 +9,7 @@ import {
     ProxyValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
-import { state } from './state';
+import { tracking, updateTracking } from './state';
 
 let lastAccessedNode: ProxyValue;
 let lastAccessedPrimitive: string;
@@ -154,8 +154,8 @@ const proxyHandler: ProxyHandler<any> = {
                 value = value.current;
             }
             // Update that this node was accessed for useObservables and useComputed
-            if (state.isTracking) {
-                state.updateTracking(node, value);
+            if (tracking.is) {
+                updateTracking(node, value);
             }
             return p === 'get' ? () => value : value;
         }
@@ -189,8 +189,8 @@ const proxyHandler: ProxyHandler<any> = {
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
             // Update that this node was accessed for useObservables and useComputed
-            if (state.isTracking) {
-                state.updateTracking(getChildNode(node, p), value);
+            if (tracking.is) {
+                updateTracking(getChildNode(node, p), value);
             }
             return vProp;
         }

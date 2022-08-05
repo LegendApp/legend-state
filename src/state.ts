@@ -1,22 +1,21 @@
 import type { ProxyValue } from './observableInterfaces';
 
-/** @internal */
-export const state = {
-    isTracking: false,
-    trackingShallow: false,
-    trackingShouldRender: undefined as (value: any, prev?: any) => any,
-    trackedNodes: [] as {
-        node: ProxyValue;
-        shallow?: boolean;
-        shouldRender?: (value: any, prev?: any) => any;
-        value: any;
-    }[],
-    updateTracking(node: ProxyValue, value: any) {
-        this.trackedNodes.push({
-            node,
-            shallow: this.trackingShallow,
-            shouldRender: this.trackingShouldRender,
-            value,
-        });
-    },
+export const tracking = {
+    is: false,
+    shallow: false,
+    should: undefined as (value: any, prev?: any) => any,
 };
+export const trackedNodes = [] as {
+    node: ProxyValue;
+    shallow?: boolean;
+    shouldRender?: (value: any, prev?: any) => any;
+    value: any;
+}[];
+export function updateTracking(node: ProxyValue, value: any) {
+    trackedNodes.push({
+        node,
+        shallow: tracking.shallow,
+        shouldRender: tracking.should,
+        value,
+    });
+}

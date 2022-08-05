@@ -17,4 +17,4 @@ export { isArray, isObject, isPrimitive, isFunction } from './src/is';
 /** @internal */
 export { onChange, onChangeShallow } from './src/on';
 /** @internal */
-export { state } from './src/state';
+export { trackedNodes, tracking } from './src/state';
