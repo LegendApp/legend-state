@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react';
 import { shallow } from '@legendapp/state';
+import { useCallback, useRef } from 'react';
 import type { Observable } from '../observableInterfaces';
 import { useObservables } from './useObservables';
 

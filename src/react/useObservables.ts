@@ -1,16 +1,16 @@
-import { useEffect, useReducer, useRef } from 'react';
 import {
     getObservableRawValue,
-    symbolGet,
-    symbolShallow,
-    symbolShouldRender,
     isArray,
     isObject,
     isPrimitive,
     onChange,
     onChangeShallow,
     state,
+    symbolGet,
+    symbolShallow,
+    symbolShouldRender,
 } from '@legendapp/state';
+import { useEffect, useReducer, useRef } from 'react';
 import type {
     MappedObservableValue,
     ObservableCheckerRender,

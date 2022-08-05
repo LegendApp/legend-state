@@ -32,11 +32,11 @@ export default Object.keys(pkg.exports).map((exp) => {
         input: './packages/' + f + '.ts',
         output: [
             {
-                file: './dist/' + f + '.js',
+                file: './dist/' + f + '.cjs',
                 format: 'cjs',
             },
             {
-                file: './dist/' + f + '.esm.js',
+                file: './dist/' + f + '.esm.mjs',
                 format: 'es',
             },
         ],
