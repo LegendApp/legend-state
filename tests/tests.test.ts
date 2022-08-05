@@ -91,7 +91,7 @@ describe('Set', () => {
         );
 
         const setVal = obs.arr.set([{ text: 'hello' }]);
-        expect(setVal).toEqual([{ text: 'hello' }]);
+        expect(setVal.get()).toEqual([{ text: 'hello' }]);
 
         expect(obs.arr.get()).toEqual([{ text: 'hello' }]);
 
@@ -403,7 +403,7 @@ describe('Listeners', () => {
         const ret = obs.set({ test: 'hello' });
         expect(ret).toEqual({ test: 'hello' });
         const ret2 = obs.test.set('hello');
-        expect(ret2).toEqual('hello');
+        expect(ret2.get()).toEqual('hello');
         expect(obs.test).toEqual('hello');
         const ret3 = obs.assign({ test: 'hello2' });
         expect(obs.test).toEqual('hello2');

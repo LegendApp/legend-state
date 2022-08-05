@@ -36,7 +36,7 @@ const objectFnsProxy = new Map<string, Function>([
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['prop', prop],
+    ['prop', getProxy],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
@@ -111,16 +111,16 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
     }
 }
 
-function createProxy(node: ProxyValue) {
-    const proxy = new Proxy<ProxyValue>(node, proxyHandler);
-    node.root.proxies.set(node.path, proxy);
+function getProxy(node: ProxyValue, p?: string | number) {
+    // Create a proxy if not already cached and return it
+    if (p !== undefined) node = getChildNode(node, p);
+    let proxy = node.root.proxies.get(node.path);
+    if (!proxy) {
+        proxy = new Proxy<ProxyValue>(node, proxyHandler);
+        node.root.proxies.set(node.path, proxy);
+    }
     return proxy;
 }
-
-const descriptorNotEnumerable: PropertyDescriptor = {
-    enumerable: false,
-    configurable: false,
-};
 
 const proxyHandler: ProxyHandler<any> = {
     get(target: ProxyValue, p: any) {
@@ -167,7 +167,7 @@ const proxyHandler: ProxyHandler<any> = {
                     // Bind this looping function to an array of proxies
                     const arr = [];
                     for (let i = 0; i < value.length; i++) {
-                        arr.push(prop(node, i));
+                        arr.push(getProxy(node, i));
                     }
                     return vProp.bind(arr);
                 }
@@ -176,7 +176,7 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp.bind(value);
         }
         // Accessing primitives tracks and returns
-        if (isPrimitive(vProp)) {
+        if (vProp !== undefined && isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
@@ -188,13 +188,7 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
-        // Create a proxy if not already cached and return it
-        const path = target.path + delim + p;
-        let proxy = node.root.proxies.get(path);
-        if (!proxy) {
-            proxy = createProxy(getChildNode(target, p));
-        }
-        return proxy;
+        return getProxy(target, p);
     },
     // Forward all proxy properties to the target's value
     getPrototypeOf(target) {
@@ -285,7 +279,7 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any) {
 
     inSetFn = false;
 
-    return newValue;
+    return getProxy(node, key);
 }
 
 function _notify(
@@ -354,11 +348,6 @@ function _notifyParents(
 function notify(node: ProxyValue, value: any, prev: any, level: number) {
     // Start notifying up through parents with the listenerInfo
     _notifyParents(node, value, [], value, prev, level);
-}
-
-function prop(node: ProxyValue, key: string | number) {
-    const child = getChildNode(node, key);
-    return createProxy(child);
 }
 
 function assign(node: ProxyValue, value: any) {
@@ -431,7 +420,7 @@ export function observable<T>(obj: T): ObservableOrPrimitive<T> {
 
     updateNodes(node, obs._);
 
-    const proxy = createProxy(node);
+    const proxy = getProxy(node);
 
     // @ts-ignore
     return proxy;
