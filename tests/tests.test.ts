@@ -2,7 +2,12 @@ import { observableComputed } from '../src/observableComputed';
 import { observable } from '../src/observable';
 import { observableEvent } from '../src/observableEvent';
 import { observableBatcher } from '../src/observableBatcher';
-import { Observable, ObservableComputed, ObservablePrimitive } from '../src/observableInterfaces';
+import {
+    Observable,
+    ObservableComputed,
+    ObservablePrimitive,
+    ObservablePrimitiveChild,
+} from '../src/observableInterfaces';
 import { isObservable } from '../src/helpers';
 
 function promiseTimeout(time?: number) {
@@ -18,7 +23,10 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: Observable | ObservablePrimitive | ObservableComputed, shallow?: boolean) {
+function expectChangeHandler(
+    obs: Observable | ObservablePrimitive | ObservableComputed | ObservablePrimitiveChild,
+    shallow?: boolean
+) {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {
@@ -699,6 +707,17 @@ describe('Primitives', () => {
 
         expect(obs.num1).toEqual(30);
     });
+    test('Assign on a primitive errors', async () => {
+        const obs = observable({ num1: 10, num2: 20 });
+
+        expect(() => {
+            // @ts-expect-error
+            obs.num1.assign({ value: 'hi' });
+        }).toThrow();
+
+        // This error will leave observableBatch in progress, so force end it
+        observableBatcher.end(true);
+    });
 });
 describe('Array', () => {
     test('Basic array', () => {
@@ -720,6 +739,7 @@ describe('Array', () => {
     test('Array push', () => {
         const obs = observable({ test: ['hi'] });
         const handler = expectChangeHandler(obs);
+
         obs.test.push('hello');
         expect(obs.test.get()).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith(
@@ -1104,24 +1124,25 @@ describe('Shallow', () => {
         obs.data.set(0, { text: 11 });
         expect(handler).toHaveBeenCalledTimes(1);
     });
-    test('Shallow ignores key removal', () => {
+    test('Key delete notifies shallow', () => {
         const obs = observable({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
         const handler = jest.fn();
         obs.test.onChangeShallow(handler);
 
         obs.test.delete('key2');
 
-        expect(handler).toHaveBeenCalledTimes(0);
+        expect(handler).toHaveBeenCalledTimes(1);
 
-        obs.test.set('key2', undefined);
+        // But setting to undefined does not
+        obs.test.set('key1', undefined);
 
-        expect(handler).toHaveBeenCalledTimes(0);
+        expect(handler).toHaveBeenCalledTimes(1);
 
         obs.test.set('key3', { text: 'hello3' });
 
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(2);
     });
-    test('Shallow ignores array splice', () => {
+    test('Array splice notifies shallow', () => {
         const obs = observable({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
         const handler = jest.fn();
         const handler2 = jest.fn();
@@ -1130,12 +1151,12 @@ describe('Shallow', () => {
 
         obs.arr.splice(1, 1);
 
-        expect(handler).toHaveBeenCalledTimes(0);
+        expect(handler).toHaveBeenCalledTimes(1);
         expect(handler2).toHaveBeenCalledTimes(1);
 
         obs.arr.push({ text: 'hello3' });
 
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(2);
         expect(handler2).toHaveBeenCalledTimes(2);
     });
 });

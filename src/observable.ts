@@ -1,5 +1,5 @@
 import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolIsObservable } from './globals';
-import { isArray, isFunction, isPrimitive, isSymbol } from './is';
+import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
@@ -82,7 +82,7 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
     return ret;
 }
 
-function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any) {
+function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
     const keys = isArr ? obj : Object.keys(obj);
@@ -251,7 +251,7 @@ function set(node: ProxyValue, keyOrNewValue: any, newValue?: any) {
     }
 }
 
-function setProp(node: ProxyValue, key: string | number, newValue?: any) {
+function setProp(node: ProxyValue, key: string | number, newValue?: any, level?: number) {
     newValue = newValue?.[symbolIsObservable] ? newValue[symbolGet] : newValue;
 
     const isPrim = isPrimitive(newValue);
@@ -286,18 +286,31 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any) {
             node.root.isPrimitive ? node : childNode,
             newValue,
             prevValue,
-            prevValue === undefined
-                ? -1
-                : // Special case elements being removed from an array but nothing added, don't need to notify shallow
-                !hasADiff && isArray(newValue) && isArray(prevValue) && newValue.length < prevValue.length
-                ? 1
-                : 0
+            level ?? prevValue === undefined ? -1 : 0
         );
     }
 
     inSetFn = false;
 
     return getProxy(node, key);
+}
+
+function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
+    // Create a function that clones the current state and injects the previous data at the changed path
+    return function () {
+        let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
+        let o = clone;
+        if (path.length > 0) {
+            let i: number;
+            for (i = 0; i < path.length - 1; i++) {
+                o = o[path[i]];
+            }
+            o[path[i]] = prevAtPath;
+        } else {
+            clone = prevAtPath;
+        }
+        return clone;
+    };
 }
 
 function _notify(
@@ -324,24 +337,6 @@ function _notify(
             }
         }
     }
-}
-
-function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
-    // Create a function that clones the current state and injects the previous data at the changed path
-    return function () {
-        let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
-        let o = clone;
-        if (path.length > 0) {
-            let i: number;
-            for (i = 0; i < path.length - 1; i++) {
-                o = o[path[i]];
-            }
-            o[path[i]] = prevAtPath;
-        } else {
-            clone = prevAtPath;
-        }
-        return clone;
-    };
 }
 
 function _notifyParents(
@@ -396,7 +391,7 @@ function deleteFn(node: ProxyValue, key?: string | number) {
 function deleteFnByKey(node: ProxyValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
-        setProp(node, key, undefined);
+        setProp(node, key, undefined, /*level*/ -1);
     }
 
     inSetFn = true;
