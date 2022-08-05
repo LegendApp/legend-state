@@ -1,3 +1,3 @@
-import { observable } from '../dist/esm';
+import { observable } from '../dist/index.esm.mjs';
 
 observable(0);

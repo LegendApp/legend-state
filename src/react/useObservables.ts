@@ -6,10 +6,9 @@ import {
     onChange,
     onChangeShallow,
     state,
-    symbolGet,
+    symbolIsObservable,
     symbolShallow,
     symbolShouldRender,
-    symbolIsObservable,
 } from '@legendapp/state';
 import { useEffect, useReducer, useRef } from 'react';
 import type {

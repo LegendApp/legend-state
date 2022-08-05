@@ -1,4 +1,6 @@
-import { ProxyValue } from './observableInterfaces';
+import type { ProxyValue } from './observableInterfaces';
+
+/** @internal */
 export const state = {
     isTracking: false,
     trackingShallow: false,

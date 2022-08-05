@@ -26,6 +26,7 @@ export default Object.keys(pkg.exports).map((exp) => {
             {
                 file: './dist/' + f + '.esm.mjs',
                 format: 'es',
+                sourcemap: true,
             },
         ],
         external: external,
