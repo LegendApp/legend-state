@@ -690,6 +690,15 @@ describe('Primitives', () => {
         obs.set(20);
         expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
+    test('Set function with prop is stable', () => {
+        const obs = observable({ num1: 10, num2: 20 });
+        const set = obs.prop('num1').set;
+        expect(obs.num2).toEqual(20);
+
+        set(30);
+
+        expect(obs.num1).toEqual(30);
+    });
 });
 describe('Array', () => {
     test('Basic array', () => {
