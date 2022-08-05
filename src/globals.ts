@@ -1,14 +1,14 @@
-import { tracking } from 'src/state';
+import { tracking } from './state';
 import { isPrimitive } from './is';
 import { ObservableCheckerRender, ProxyValue } from './observableInterfaces';
 
 export const delim = '\uFEFF';
 
-export const symbolDateModified = Symbol(process.env.NODE_ENV === 'development' && 'dateModified');
-export const symbolShallow = Symbol(process.env.NODE_ENV === 'development' && 'shallow');
-export const symbolShouldRender = Symbol(process.env.NODE_ENV === 'development' && 'shouldRender');
-export const symbolGet = Symbol(process.env.NODE_ENV === 'development' && 'get');
-export const symbolIsObservable = Symbol(process.env.NODE_ENV === 'development' && 'isObservable');
+export const symbolDateModified = Symbol('dateModified');
+export const symbolShallow = Symbol('shallow');
+export const symbolShouldRender = Symbol('shouldRender');
+export const symbolGet = Symbol('get');
+export const symbolIsObservable = Symbol('isObservable');
 
 export function getNodeValue(node: ProxyValue): any {
     let child = node.root;
@@ -54,12 +54,12 @@ export function getObservableRawValue<T>(obs: ObservableCheckerRender<T>): T {
         tracking.should = should.fn;
         obs = should.obs;
     }
-    const shallow = obs[symbolShallow];
+    const shallow = obs?.[symbolShallow];
     if (shallow) {
         tracking.shallow = true;
         obs = shallow;
     }
-    let ret = obs[symbolGet];
+    let ret = obs?.[symbolGet];
 
     tracking.should = undefined;
     tracking.shallow = false;

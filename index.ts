@@ -1,6 +1,7 @@
 export { shouldRender, mergeIntoObservable, shallow } from './src/helpers';
 export { observable } from './src/observable';
 export { observableBatcher } from './src/observableBatcher';
+export { observableComputed } from './src/observableComputed';
 export * from './src/observableInterfaces';
 
 /** @internal */
@@ -17,4 +18,4 @@ export { isArray, isObject, isPrimitive, isFunction } from './src/is';
 /** @internal */
 export { onChange, onChangeShallow } from './src/on';
 /** @internal */
-export { trackedNodes, tracking } from './src/state';
+export { tracking } from './src/state';

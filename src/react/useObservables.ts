@@ -8,7 +8,6 @@ import {
     symbolIsObservable,
     symbolShallow,
     symbolShouldRender,
-    trackedNodes,
     tracking,
 } from '@legendapp/state';
 import { useEffect, useReducer, useRef } from 'react';
@@ -50,7 +49,7 @@ export function useObservables<
     // Start tracking to fill trackedNodes with all nodes accessed
     let ret;
     tracking.is = true;
-    trackedNodes.length = 0;
+    tracking.nodes = [];
 
     const args = fn();
 
@@ -86,7 +85,7 @@ export function useObservables<
     pathsSeen.clear();
 
     const listeners = ref.current.listeners;
-    for (let tracked of trackedNodes) {
+    for (let tracked of tracking.nodes) {
         const { node, shouldRender, shallow } = tracked;
         const path = node.path;
         // Track the paths seen this frame to dispose of listeners no longer needed
@@ -120,10 +119,7 @@ export function useObservables<
     // Dispose listeners on unmount
     useEffect(
         () => () => {
-            const listeners = ref.current.listeners;
-            if (listeners) {
-                listeners.forEach((listener) => listener.dispose());
-            }
+            ref.current.listeners.forEach((listener) => listener.dispose());
         },
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps
