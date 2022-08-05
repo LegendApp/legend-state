@@ -4,22 +4,6 @@ import typescript from '@rollup/plugin-typescript';
 // @ts-ignore
 import pkg from './package.json';
 
-const outputs = Object.keys(pkg.exports).flatMap((exp) => {
-    let f = exp.slice(1);
-    if (!f) f = '/index';
-
-    return [
-        {
-            file: './dist' + f + '.js',
-            format: 'cjs',
-        },
-        {
-            file: './dist' + f + '.esm.js',
-            format: 'es',
-        },
-    ];
-});
-
 export default Object.keys(pkg.exports).map((exp) => {
     // export default ['./react'].map((exp) => {
     let f = exp.slice(2);
@@ -33,6 +17,10 @@ export default Object.keys(pkg.exports).map((exp) => {
         output: [
             {
                 file: './dist/' + f + '.cjs',
+                format: 'cjs',
+            },
+            {
+                file: './dist/' + f + '.js',
                 format: 'cjs',
             },
             {
