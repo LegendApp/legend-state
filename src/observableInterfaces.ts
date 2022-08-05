@@ -17,6 +17,7 @@ export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
     prop<K extends keyof T>(prop: K): Observable<T[K]>;
     set(value: T): Observable<T>;
     set<K extends keyof T>(key: K, value: T[K]): Observable<T[K]>;
+    set<V>(key: string | number, value: V): Observable<V>;
     assign(value: T | Partial<T>): Observable<T>;
     delete(): Observable<T>;
     delete<K extends keyof T>(key: K | string | number): Observable<T>;

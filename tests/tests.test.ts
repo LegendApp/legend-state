@@ -984,7 +984,7 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2).toEqual({
             a6: { text: 'ta6' },
         });
-        expect(obs.test.test2.a1).toEqual(undefined);
+        expect(obs.test.test2.a1.get()).toEqual(undefined);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
     });
