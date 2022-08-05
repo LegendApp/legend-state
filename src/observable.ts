@@ -154,8 +154,9 @@ const proxyHandler: ProxyHandler<any> = {
             }
             return p === 'get' ? () => value : value;
         }
-        // Accessing symbols passes straight through
-        if (isSymbol(p)) {
+        // Accessing undefined/null/symbols passes straight through if this value has a property for it
+        // If it's never been defined assume it's a proxy to a future object
+        if (isSymbol(p) || vProp === null || (vProp === undefined && value && Object.hasOwn(value, p))) {
             return vProp;
         }
         // Handle function calls
