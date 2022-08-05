@@ -1104,6 +1104,40 @@ describe('Shallow', () => {
         obs.data.set(0, { text: 11 });
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Shallow ignores key removal', () => {
+        const obs = observable({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
+        const handler = jest.fn();
+        obs.test.onChangeShallow(handler);
+
+        obs.test.delete('key2');
+
+        expect(handler).toHaveBeenCalledTimes(0);
+
+        obs.test.set('key2', undefined);
+
+        expect(handler).toHaveBeenCalledTimes(0);
+
+        obs.test.set('key3', { text: 'hello3' });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Shallow ignores array splice', () => {
+        const obs = observable({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
+        const handler = jest.fn();
+        const handler2 = jest.fn();
+        obs.arr.onChangeShallow(handler);
+        obs.arr.onChange(handler2);
+
+        obs.arr.splice(1, 1);
+
+        expect(handler).toHaveBeenCalledTimes(0);
+        expect(handler2).toHaveBeenCalledTimes(1);
+
+        obs.arr.push({ text: 'hello3' });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler2).toHaveBeenCalledTimes(2);
+    });
 });
 describe('Computed', () => {
     test('Basic computed', () => {

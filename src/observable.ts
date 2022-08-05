@@ -88,6 +88,8 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
 
+    let hasADiff = false;
+
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
@@ -106,10 +108,13 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
             // But do not notify child if the parent is an array - the array's listener will cover it
             const doNotify = child.root.listenerMap.has(child.path);
             if (doNotify) {
+                hasADiff = true;
                 _notify(child, value, [], value, prev, 0);
             }
         }
     }
+
+    return hasADiff;
 }
 
 function getProxy(node: ProxyValue, p?: string | number) {
@@ -269,14 +274,25 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any) {
     // Save the new value
     parentValue[key] = newValue;
 
+    let hasADiff: boolean;
     // If new value is an object or array update notify down the tree
     if (!isPrim) {
-        updateNodes(childNode, newValue, prevValue);
+        hasADiff = updateNodes(childNode, newValue, prevValue);
     }
 
     // Notify for this element if it's an object or it's changed
     if (!isPrim || newValue !== prevValue) {
-        notify(node.root.isPrimitive ? node : childNode, newValue, prevValue, prevValue === undefined ? -1 : 0);
+        notify(
+            node.root.isPrimitive ? node : childNode,
+            newValue,
+            prevValue,
+            prevValue === undefined
+                ? -1
+                : // Special case elements being removed from an array but nothing added, don't need to notify shallow
+                !hasADiff && isArray(newValue) && isArray(prevValue) && newValue.length < prevValue.length
+                ? 1
+                : 0
+        );
     }
 
     inSetFn = false;
