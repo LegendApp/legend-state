@@ -292,15 +292,21 @@ export interface ObservableWrapper {
     proxyValues: Map<string, ProxyValue>;
 }
 
+export type ObservablePrimitiveChild<T = any> = ObservablePrimitiveFns<T>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
-export type ObservableChecker<T = any> = Observable<T> | ObservableComputed<T> | ObservablePrimitive<T>;
+export type ObservableChecker<T = any> =
+    | Observable<T>
+    | ObservableComputed<T>
+    | ObservablePrimitive<T>
+    | ObservablePrimitiveChild<T>;
 export type ObservableCheckerRender<T = any> =
     | Shallow<T>
     | ShouldRender<T>
     | Observable<T>
     | ObservableComputed<T>
+    | ObservablePrimitiveChild<T>
     | ObservablePrimitive<T>;
 export interface ProxyValue {
     path: string;

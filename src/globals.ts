@@ -1,5 +1,5 @@
 import { isPrimitive } from './is';
-import { ObservableChecker, ObservableCheckerRender, ProxyValue } from './observableInterfaces';
+import { ObservableCheckerRender, ProxyValue } from './observableInterfaces';
 import { state } from './state';
 
 export const delim = '\uFEFF';
