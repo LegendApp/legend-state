@@ -18,10 +18,12 @@ export default Object.keys(pkg.exports).map((exp) => {
             {
                 file: './dist/' + f + '.cjs',
                 format: 'cjs',
+                sourcemap: true,
             },
             {
                 file: './dist/' + f + '.js',
                 format: 'cjs',
+                sourcemap: true,
             },
             {
                 file: './dist/' + f + '.esm.mjs',
@@ -34,6 +36,7 @@ export default Object.keys(pkg.exports).map((exp) => {
             resolve(),
             commonjs(),
             typescript({
+                outputToFilesystem: true,
                 paths: {
                     react: ['node_modules/react'],
                     '@legendapp/state': ['./index'],
