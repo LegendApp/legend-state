@@ -246,7 +246,7 @@ function set(node: ProxyValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: ProxyValue, key: string | number, newValue?: any) {
-    newValue = newValue?.[symbolGet] ?? newValue;
+    newValue = newValue?.[symbolIsObservable] ? newValue[symbolGet] : newValue;
 
     const isPrim = isPrimitive(newValue);
 
