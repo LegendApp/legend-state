@@ -4,8 +4,8 @@ import typescript from '@rollup/plugin-typescript';
 // @ts-ignore
 import pkg from './package.json';
 
+// export default ['./react'].map((exp) => {
 export default Object.keys(pkg.exports).map((exp) => {
-    // export default ['./react'].map((exp) => {
     let f = exp.slice(2);
 
     const external = ['react', 'react-native-mmkv', '@legendapp/state', '@legendapp/state/persist'];
@@ -13,7 +13,7 @@ export default Object.keys(pkg.exports).map((exp) => {
     if (!f) f = 'index';
 
     return {
-        input: './packages/' + f + '.ts',
+        input: './' + f + '.ts',
         output: [
             {
                 file: './dist/' + f + '.cjs',
@@ -35,8 +35,8 @@ export default Object.keys(pkg.exports).map((exp) => {
             typescript({
                 paths: {
                     react: ['node_modules/react'],
-                    '@legendapp/state': ['./packages/index'],
-                    '@legendapp/state/persist': ['./packages/persist'],
+                    '@legendapp/state': ['./index'],
+                    '@legendapp/state/persist': ['./persist'],
                 },
             }),
         ],

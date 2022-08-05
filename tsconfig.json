@@ -28,10 +28,10 @@
                 "node_modules/react"
             ],
             "@legendapp/state": [
-                "packages/index"
+                "index"
             ],
-            "@legendapp/state/*": [
-                "packages/*"
+            "@legendapp/state/persist": [
+                "persist"
             ],
         },
         "resolveJsonModule": true,

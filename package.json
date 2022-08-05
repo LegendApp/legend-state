@@ -29,32 +29,32 @@
         ".": {
             "import": "./index.esm.mjs",
             "require": "./index.cjs",
-            "types": "./packages/index.d.ts"
+            "types": "./index.d.ts"
         },
         "./internal": {
             "import": "./internal.esm.mjs",
             "require": "./internal.cjs",
-            "types": "./packages/internal.d.ts"
+            "types": "./internal.d.ts"
         },
         "./local-storage": {
             "import": "./local-storage.esm.mjs",
             "require": "./local-storage.cjs",
-            "types": "./packages/local-storage.d.ts"
+            "types": "./local-storage.d.ts"
         },
         "./mmkv": {
             "import": "./mmkv.esm.mjs",
             "require": "./mmkv.cjs",
-            "types": "./packages/mmkv.d.ts"
+            "types": "./mmkv.d.ts"
         },
         "./persist": {
             "import": "./persist.esm.mjs",
             "require": "./persist.cjs",
-            "types": "./packages/persist.d.ts"
+            "types": "./persist.d.ts"
         },
         "./react": {
             "import": "./react.esm.mjs",
             "require": "./react.cjs",
-            "types": "./packages/react.d.ts"
+            "types": "./react.d.ts"
         }
     },
     "devDependencies": {
