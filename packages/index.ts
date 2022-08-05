@@ -10,6 +10,7 @@ export {
     symbolShallow,
     symbolShouldRender,
     symbolDateModified,
+    symbolIsObservable,
 } from '../src/globals';
 /** @internal */
 export { isArray, isObject, isPrimitive, isFunction } from '../src/is';

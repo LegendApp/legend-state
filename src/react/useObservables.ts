@@ -9,6 +9,7 @@ import {
     symbolGet,
     symbolShallow,
     symbolShouldRender,
+    symbolIsObservable,
 } from '@legendapp/state';
 import { useEffect, useReducer, useRef } from 'react';
 import type {
@@ -54,26 +55,27 @@ export function useObservables<
     const args = fn();
 
     if (args !== undefined) {
-        const singleValue = args[symbolGet];
-        if (singleValue !== undefined) {
-            ret = singleValue;
-        } else if (isPrimitive(args)) {
-            ret = args;
-        } else if (isArray(args)) {
-            ret = [];
-            for (let i = 0; i < args.length; i++) {
-                ret[i] = getObservableRawValue(args[i]);
-            }
-        } else if (isObject(args)) {
-            if (args[symbolShallow] || args[symbolShouldRender]) {
-                ret = getObservableRawValue(args as Shallow);
-            } else {
-                ret = {};
-                const keys = Object.keys(args);
-                const length = keys.length;
-                for (let i = 0; i < length; i++) {
-                    const key = keys[i];
-                    ret[key] = getObservableRawValue(args[key]);
+        if (args[symbolIsObservable]) {
+            ret = getObservableRawValue(args as ObservableCheckerRender);
+        } else if (args) {
+            if (isPrimitive(args)) {
+                ret = args;
+            } else if (isArray(args)) {
+                ret = [];
+                for (let i = 0; i < args.length; i++) {
+                    ret[i] = getObservableRawValue(args[i]);
+                }
+            } else if (isObject(args)) {
+                if (args[symbolShallow] || args[symbolShouldRender]) {
+                    ret = getObservableRawValue(args as Shallow);
+                } else {
+                    ret = {};
+                    const keys = Object.keys(args);
+                    const length = keys.length;
+                    for (let i = 0; i < length; i++) {
+                        const key = keys[i];
+                        ret[key] = getObservableRawValue(args[key]);
+                    }
                 }
             }
         }
