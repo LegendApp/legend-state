@@ -41,7 +41,8 @@ export function getNodeValue(node: ProxyValue): any {
 // }
 
 export function getChildNode(node: ProxyValue, key: string | number): ProxyValue {
-    let child = node.children?.get(key) || node.children?.get(+key);
+    if (!isNaN(+key)) key = +key;
+    let child = node.children?.get(key);
     if (!child) {
         child = {
             root: node.root,

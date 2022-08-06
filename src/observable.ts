@@ -82,6 +82,12 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
     return ret;
 }
 
+function moveChild(parent: ProxyValue, prevIndex: number, index: number) {
+    const child: ProxyValue = getChildNode(parent, prevIndex);
+    child.key = index;
+    parent.children.set(index, child);
+}
+
 function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
@@ -89,11 +95,26 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
     const length = keys.length;
 
     let hasADiff = false;
+    let keyMap: Map<string | number, number>;
+    if (isArr && prevValue?.length && isArray(prevValue)) {
+        keyMap = new Map();
+        for (let i = 0; i < prevValue.length; i++) {
+            keyMap.set(prevValue[i].id, i);
+        }
+    }
 
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
         const prev = prevValue?.[key];
+
+        if (isArr && keyMap) {
+            const id = value.id;
+            const prevIndex = keyMap.get(id);
+            if (prevIndex !== i) {
+                moveChild(parent, prevIndex, i);
+            }
+        }
 
         if (!isArr && prevValue && value !== prev) {
             const isObj = !isPrimitive(value);
@@ -275,6 +296,11 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any, level?:
 
     // Save the previous value first
     const prevValue = parentValue[key];
+
+    if (isArray(parentValue) && newValue !== undefined) {
+        const prevIndex = parentValue.indexOf(newValue);
+        moveChild(node, prevIndex, +key);
+    }
 
     // Save the new value
     parentValue[key] = newValue;

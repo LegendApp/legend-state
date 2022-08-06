@@ -807,6 +807,24 @@ describe('Array', () => {
         obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
     });
+    test('Array swap with objects and then remove', () => {
+        const obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
+        let arr = obs.test;
+        let tmp = arr[1].get();
+        obs.test.set(1, arr[4]);
+        obs.test.set(4, tmp);
+        obs.test.splice(0, 1);
+        expect(obs.test[0].get()).toEqual({ id: 5, text: 5 });
+        expect(obs.test[0]).toEqual({ id: 5, text: 5 });
+    });
     test('Array swap if empty', () => {
         const obs = observable({ test: [] });
         let tmp = obs.test[1];
@@ -837,7 +855,15 @@ describe('Array', () => {
         expect(obs.test.map((a) => a)).toEqual([]);
     });
     test('Array splice fire events', () => {
-        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        let obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
         const handler = expectChangeHandler(obs.test);
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
@@ -845,25 +871,70 @@ describe('Array', () => {
         obs.test[3].onChange(() => {});
         obs.test[4].onChange(() => {});
         obs.test.splice(0, 1);
-        expect(obs.test[0]).toEqual({ text: 2 });
-        expect(obs.test[0]).toEqual({ text: 2 });
-        expect(obs.test.get()).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
-        expect(obs.test.get()).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test[0]).toEqual({ id: 2, text: 2 });
+        expect(obs.test[0]).toEqual({ id: 2, text: 2 });
+        expect(obs.test.get()).toEqual([
+            { id: 2, text: 2 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 5, text: 5 },
+        ]);
+        expect(obs.test.get()).toEqual([
+            { id: 2, text: 2 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 5, text: 5 },
+        ]);
         expect(obs.test.length).toEqual(4);
         expect(obs.test.length).toEqual(4);
-        expect(obs.test.map((a) => a)).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test.map((a) => a)).toEqual([
+            { id: 2, text: 2 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 5, text: 5 },
+        ]);
         // TODO
         // expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
-            [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
-            [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            [
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+            [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
             [],
-            [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
-            [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]
+            [
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+            [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ]
         );
     });
     test('Array with listeners clear', () => {
-        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        let obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
         const handler = jest.fn();
         obs.test.onChangeShallow(handler);
         obs.test[0].onChange(() => {});
@@ -888,6 +959,62 @@ describe('Array', () => {
         const arr = [];
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
+    });
+    test('Array has stable reference', () => {
+        const obs = observable({ arr: [] });
+        obs.arr.set([
+            { id: 'h1', text: 'hi' },
+            { id: 'h2', text: 'hello' },
+        ]);
+        const second = obs.arr[1];
+        const handler = expectChangeHandler(second);
+        obs.arr.splice(0, 1);
+        obs.arr[0].text.set('hello there');
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello there' },
+            { id: 'h2', text: 'hello' },
+            ['text'],
+            'hello there',
+            'hello'
+        );
+    });
+    test('Array has stable reference 2', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'hi' },
+                { id: 'h2', text: 'hello' },
+                { id: 'h3', text: 'h3' },
+            ],
+        });
+        const second = obs.arr[1];
+        const handler = expectChangeHandler(second);
+
+        const arr = obs.arr;
+        let tmp = arr[1].get();
+        obs.arr.set(1, arr[2]);
+        obs.arr.set(2, tmp);
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' }
+        );
+
+        obs.arr.splice(0, 1);
+
+        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
+        obs.arr[0].text.set('hello there');
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'hello there' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'hello there' },
+            { id: 'h2', text: 'hello' }
+        );
     });
 });
 describe('Deep changes keep listeners', () => {
