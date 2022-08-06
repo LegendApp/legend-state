@@ -990,10 +990,11 @@ describe('Array', () => {
         const second = obs.arr[1];
         const handler = expectChangeHandler(second);
 
-        const arr = obs.arr;
-        let tmp = arr[1].get();
+        const arr = obs.arr.get();
+        let tmp = arr[1];
         obs.arr.set(1, arr[2]);
         obs.arr.set(2, tmp);
+        // This makes second become h3
 
         expect(handler).toHaveBeenCalledWith(
             { id: 'h3', text: 'h3' },
@@ -1005,7 +1006,7 @@ describe('Array', () => {
 
         obs.arr.splice(0, 1);
 
-        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
+        expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
         obs.arr[0].text.set('hello there');
 
         expect(handler).toHaveBeenCalledWith(
@@ -1014,6 +1015,95 @@ describe('Array', () => {
             [],
             { id: 'h3', text: 'hello there' },
             { id: 'h2', text: 'hello' }
+        );
+    });
+    test('Array has stable swaps 2', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'hi' },
+                { id: 'h2', text: 'hello' },
+                { id: 'h3', text: 'h3' },
+            ],
+        });
+        const second = obs.arr[1];
+        const third = obs.arr[2];
+        const handler = expectChangeHandler(second);
+        const handler3 = expectChangeHandler(third);
+
+        // debugger;
+        let arr = obs.arr.get();
+        let tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'hi' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h3', text: 'h3' },
+        ]);
+        expect(tmp).toEqual({ id: 'h2', text: 'hello' });
+        obs.arr.set(2, tmp);
+
+        expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'hi' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+        ]);
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' }
+        );
+        expect(handler3).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' },
+            [],
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' }
+        );
+
+        arr = obs.arr.get();
+        tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        obs.arr.set(2, tmp);
+
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'hi' },
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' },
+        ]);
+
+        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' }
+        );
+        expect(handler3).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' },
+            [],
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' }
+        );
+
+        obs.arr.splice(0, 1);
+
+        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
+        expect(obs.arr[0].get()).toEqual({ id: 'h2', text: 'hello' });
+
+        obs.arr[0].text.set('hello there');
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello there' },
+            { id: 'h2', text: 'hello' },
+            ['text'],
+            'hello there',
+            'hello'
         );
     });
 });

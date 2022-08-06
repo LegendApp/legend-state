@@ -111,7 +111,7 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
         if (isArr && keyMap) {
             const id = value.id;
             const prevIndex = keyMap.get(id);
-            if (prevIndex !== i) {
+            if (prevIndex !== undefined && prevIndex !== i) {
                 moveChild(parent, prevIndex, i);
             }
         }
@@ -297,10 +297,10 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any, level?:
     // Save the previous value first
     const prevValue = parentValue[key];
 
-    if (isArray(parentValue) && newValue !== undefined) {
-        const prevIndex = parentValue.indexOf(newValue);
-        moveChild(node, prevIndex, +key);
-    }
+    // if (isArray(parentValue) && newValue !== undefined) {
+    //     const prevIndex = parentValue.indexOf(newValue);
+    //     moveChild(node, prevIndex, +key);
+    // }
 
     // Save the new value
     parentValue[key] = newValue;
