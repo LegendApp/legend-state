@@ -282,7 +282,6 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableWrapper {
     _: Observable;
     isPrimitive: boolean;
-    listenerMap: Map<string, ListenerFnSaved[]>;
     proxies: Map<string, object>;
     proxyValues: Map<string, ProxyValue>;
 }
@@ -308,6 +307,7 @@ export interface ProxyValue {
     pathParent: string;
     key: string | number;
     root: ObservableWrapper;
+    listeners?: ListenerFnSaved[];
 }
 
 export type ObservableValue<T> = T extends Shallow<infer t>

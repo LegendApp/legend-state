@@ -55,11 +55,10 @@ export function onChange(node: ProxyValue, callback: ListenerFn<any>, shallow?: 
     if (shallow) {
         c.shallow = true;
     }
-    const map = node.root.listenerMap;
-    let listeners = map.get(node.path);
+    let listeners = node.listeners;
     if (!listeners) {
         listeners = [];
-        map.set(node.path, listeners);
+        node.listeners = listeners;
     }
     listeners.push(c);
 

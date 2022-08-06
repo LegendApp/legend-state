@@ -106,7 +106,7 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
 
             // Notify for this child if this element is different and it has listeners
             // But do not notify child if the parent is an array - the array's listener will cover it
-            const doNotify = child.root.listenerMap.has(child.path);
+            const doNotify = !!child.listeners;
             if (doNotify) {
                 hasADiff = true;
                 _notify(child, value, [], value, prev, 0);
@@ -321,7 +321,7 @@ function _notify(
     prevAtPath: any,
     level: number
 ) {
-    const listeners = node.root.listenerMap.get(node.path);
+    const listeners = node.listeners;
     // Notify all listeners
     if (listeners) {
         let getPrevious;
