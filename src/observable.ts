@@ -96,8 +96,10 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
 
     let hasADiff = false;
     let keyMap: Map<string | number, number>;
+    let moved: Map<string | number, ProxyValue>;
     if (isArr && prevValue?.length && isArray(prevValue)) {
         keyMap = new Map();
+        moved = new Map();
         for (let i = 0; i < prevValue.length; i++) {
             keyMap.set(prevValue[i].id, i);
         }
@@ -112,7 +114,15 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
             const id = value.id;
             const prevIndex = keyMap.get(id);
             if (prevIndex !== undefined && prevIndex !== i) {
-                moveChild(parent, prevIndex, i);
+                let child: ProxyValue = moved.get(prevIndex);
+                if (child) {
+                    moved.delete(prevIndex);
+                } else {
+                    child = getChildNode(parent, prevIndex);
+                }
+                moved.set(i, getChildNode(parent, i));
+                child.key = i;
+                parent.children.set(i, child);
             }
         }
 

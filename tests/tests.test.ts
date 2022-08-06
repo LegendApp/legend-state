@@ -1017,6 +1017,60 @@ describe('Array', () => {
             { id: 'h2', text: 'hello' }
         );
     });
+    test('Array has stable swaps', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'h1' },
+                { id: 'h2', text: 'h2' },
+                { id: 'h3', text: 'h3' },
+            ],
+        });
+        const second = obs.arr[1];
+        const handler = expectChangeHandler(second);
+
+        let arr = obs.arr.get();
+        let tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'h1' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h3', text: 'h3' },
+        ]);
+        expect(tmp).toEqual({ id: 'h2', text: 'h2' });
+        obs.arr.set(2, tmp);
+
+        // Second becomes h3 still at index 1
+
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'h1' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'h2' },
+        ]);
+        expect(handler).toBeCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'h2' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'h2' }
+        );
+
+        obs.arr[1].text.set('newtext');
+
+        // debugger;
+        expect(handler).toBeCalledWith(
+            { id: 'h3', text: 'newtext' },
+            { id: 'h3', text: 'h3' },
+            ['text'],
+            'newtext',
+            'h3'
+        );
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'h1' },
+            { id: 'h3', text: 'newtext' },
+            { id: 'h2', text: 'h2' },
+        ]);
+        expect(second.get()).toEqual({ id: 'h3', text: 'newtext' });
+    });
     test('Array has stable swaps 2', () => {
         const obs = observable({
             arr: [
@@ -1030,7 +1084,6 @@ describe('Array', () => {
         const handler = expectChangeHandler(second);
         const handler3 = expectChangeHandler(third);
 
-        // debugger;
         let arr = obs.arr.get();
         let tmp = arr[1];
         obs.arr.set(1, arr[2]);
