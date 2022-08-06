@@ -1,32 +1,29 @@
 import { onChange, tracking } from '@legendapp/state';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-function useForceRender() {
-    const [, forceRender] = useReducer((s) => s + 1, 0);
-    return () => forceRender();
-}
+export function useComputed<T>(selector: () => T): T {
+    const [intialValue, tracked] = useMemo(() => {
+        tracking.is = true;
+        tracking.nodes = [];
 
-export function useSelector<T>(selector: () => T): T {
-    const forceRender = useForceRender();
+        const val = selector();
 
-    tracking.is = true;
-    tracking.nodes = [];
+        tracking.is = false;
 
-    const val = selector();
+        return [val, tracking.nodes];
+    }, []);
 
-    tracking.is = false;
-
-    const tracked = tracking.nodes;
+    const [value, setValue] = useState(intialValue);
 
     // Dispose listeners on unmount
     useEffect(() => {
         let listeners = [];
-        let prev = val;
+        let prev = value;
         const onUpdate = () => {
             const v = selector();
             if (v !== prev) {
                 prev = v;
-                forceRender();
+                setValue(v);
             }
         };
         for (let { node } of tracked) {
@@ -40,5 +37,5 @@ export function useSelector<T>(selector: () => T): T {
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return val;
+    return value;
 }
