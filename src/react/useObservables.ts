@@ -72,11 +72,11 @@ export function useObservables<
         const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
             for (let i = 0; i < nodes.length; i++) {
                 const { node, shallow } = nodes[i];
-                const path = node.path;
+                // const path = node.path;
 
                 // Listen to this path if not already listening
-                if (!listeners.has(path)) {
-                    listeners.set(path, shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
+                if (!node.listeners?.has(updateFn)) {
+                    shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn);
                 }
             }
         };

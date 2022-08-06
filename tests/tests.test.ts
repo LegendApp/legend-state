@@ -44,6 +44,7 @@ describe('Set', () => {
     test('Set', () => {
         const obs = observable({ test: { text: 't' } });
         obs.test.set({ text: 't2' });
+        expect(obs.test.get()).toEqual({ text: 't2' });
         expect(obs).toEqual({ test: { text: 't2' } });
     });
     test('Set primitive', () => {
@@ -69,14 +70,15 @@ describe('Set', () => {
         expect(obs.arr.get()).toEqual([{ text: 'hi2' }]);
         expect(obs.arr[0].text).toEqual('hi2');
         obs.arr[0].text.set('hi3');
+        expect(obs.arr[0].text).toEqual('hi3');
         expect(obs.arr.map((a) => a)).toEqual([{ text: 'hi3' }]);
     });
-    //     // TODO
-    //     // test('Set at root', () => {
-    //     //     const obs = observable({ test: { text: 't' } });
-    //     //     obs.set({ test: { text: 't2' } });
-    //     //     expect(obs).toEqual({ test: { text: 't2' } });
-    //     // });
+    //     //     // TODO
+    //     //     // test('Set at root', () => {
+    //     //     //     const obs = observable({ test: { text: 't' } });
+    //     //     //     obs.set({ test: { text: 't2' } });
+    //     //     //     expect(obs).toEqual({ test: { text: 't2' } });
+    //     //     // });
     test('Set value does not copy object', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };

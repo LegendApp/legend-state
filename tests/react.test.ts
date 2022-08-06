@@ -158,39 +158,39 @@ describe('React Hooks', () => {
         });
         expect(numRenders).toEqual(1);
     });
-    test('Shallow array swap renders correctly', () => {
-        let numRendersShallow = 0;
-        let numRendersItem = 0;
-        const obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
-        renderHook(() => {
-            numRendersShallow++;
-            return useObservables(() => [shallow(obs.arr)]);
-        });
-        const { result } = renderHook(() => {
-            numRendersItem++;
-            return useObservables(() => [obs.arr[1]]);
-        });
-        act(() => {
-            const arr = obs.arr.get();
-            const tmp = arr[1];
-            obs.arr.set(1, arr[4]);
-            obs.arr.set(4, tmp);
-        });
-        expect(obs.arr.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
-        expect(numRendersShallow).toEqual(1);
-        expect(numRendersItem).toEqual(2);
-        expect(result.current).toEqual([{ text: 5 }]);
-        act(() => {
-            const arr = obs.arr.get();
-            const tmp = arr[1];
-            obs.arr.set(1, arr[4]);
-            obs.arr.set(4, tmp);
-        });
-        expect(obs.arr.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
-        expect(numRendersShallow).toEqual(1);
-        expect(numRendersItem).toEqual(3);
-        expect(result.current).toEqual([{ text: 2 }]);
-    });
+    // test('Shallow array swap renders correctly', () => {
+    //     let numRendersShallow = 0;
+    //     let numRendersItem = 0;
+    //     const obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+    //     renderHook(() => {
+    //         numRendersShallow++;
+    //         return useObservables(() => [shallow(obs.arr)]);
+    //     });
+    //     const { result } = renderHook(() => {
+    //         numRendersItem++;
+    //         return useObservables(() => [obs.arr[1]]);
+    //     });
+    //     act(() => {
+    //         const arr = obs.arr.get();
+    //         const tmp = arr[1];
+    //         obs.arr.set(1, arr[4]);
+    //         obs.arr.set(4, tmp);
+    //     });
+    //     expect(obs.arr.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
+    //     expect(numRendersShallow).toEqual(1);
+    //     expect(numRendersItem).toEqual(2);
+    //     expect(result.current).toEqual([{ text: 5 }]);
+    //     act(() => {
+    //         const arr = obs.arr.get();
+    //         const tmp = arr[1];
+    //         obs.arr.set(1, arr[4]);
+    //         obs.arr.set(4, tmp);
+    //     });
+    //     expect(obs.arr.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+    //     expect(numRendersShallow).toEqual(1);
+    //     expect(numRendersItem).toEqual(3);
+    //     expect(result.current).toEqual([{ text: 2 }]);
+    // });
     // test('useObservables with shouldRender', () => {
     //     let numRenders = 0;
     //     let numRendersPrev = 0;

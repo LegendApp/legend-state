@@ -11,37 +11,67 @@ export const symbolGet = Symbol('get');
 export const symbolIsObservable = Symbol('isObservable');
 
 export function getNodeValue(node: ProxyValue): any {
-    let child = node.root;
-    const arr = node.path.split(delim);
-    for (let i = 0; i < arr.length; i++) {
+    const arr: (string | number)[] = [];
+    let n = node;
+    while (n?.key !== undefined) {
+        arr.push(n.key);
+        n = n.parent;
+    }
+    let child = node.root._;
+    for (let i = arr.length - 1; i >= 0; i--) {
         if (arr[i] !== undefined && child) {
             child = child[arr[i]];
         }
     }
     return child;
+    // let child = node.root;
+    // const arr = node.path.split(delim);
+    // for (let i = 0; i < arr.length; i++) {
+    //     if (arr[i] !== undefined && child) {
+    //         child = child[arr[i]];
+    //     }
+    // }
+    // return child;
 }
 
-export function getParentNode(node: ProxyValue): { parent: ProxyValue; key: string | number } {
-    if (node.path === '_') return { parent: node, key: undefined };
-    const parent = node.root.proxyValues.get(node.pathParent);
-    return { parent, key: node.key };
-}
+// export function getParentNode(node: ProxyValue): { parent: ProxyValue; key: string | number } {
+//     if (node.path === '_') return { parent: node, key: undefined };
+//     const parent = node.root.proxyValues.get(node.pathParent);
+//     return { parent, key: node.key };
+// }
 
 export function getChildNode(node: ProxyValue, key: string | number): ProxyValue {
-    const path = node.path + delim + key;
-    let child = node.root.proxyValues.get(path);
+    let child = node.children?.get(key) || node.children?.get(+key);
     if (!child) {
-        // console.log('creating child', node.path, key);
         child = {
             root: node.root,
-            path: node.path + delim + key,
+            parent: node,
+            // path: node.path + delim + key,
             // arr: node.arr.concat(key),
             // arrParent: node.arr,
-            pathParent: node.path,
+            // pathParent: node.path,
             key,
         };
-        node.root.proxyValues.set(path, child);
+        if (!node.children) {
+            node.children = new Map();
+        }
+        node.children.set(key, child);
+        //     node.root.proxyValues.set(path, child);
     }
+    // const path = node.path + delim + key;
+    // let child = node.root.proxyValues.get(path);
+    // if (!child) {
+    //     // console.log('creating child', node.path, key);
+    //     child = {
+    //         root: node.root,
+    //         path: node.path + delim + key,
+    //         // arr: node.arr.concat(key),
+    //         // arrParent: node.arr,
+    //         pathParent: node.path,
+    //         key,
+    //     };
+    //     node.root.proxyValues.set(path, child);
+    // }
 
     return child;
 }

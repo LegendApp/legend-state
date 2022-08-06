@@ -57,12 +57,12 @@ export function onChange(node: ProxyValue, callback: ListenerFn<any>, shallow?: 
     }
     let listeners = node.listeners;
     if (!listeners) {
-        listeners = [];
+        listeners = new Set();
         node.listeners = listeners;
     }
-    listeners.push(c);
+    listeners.add(c);
 
-    return () => listeners.splice(listeners.indexOf(c), 1);
+    return () => listeners.delete(c);
 }
 
 export function onChangeShallow(node: ProxyValue, callback: ListenerFn<any>) {

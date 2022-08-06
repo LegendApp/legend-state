@@ -132,7 +132,7 @@ export type ListenerFn<T = any> = (
     valueAtPath: any,
     prevAtPath: any
 ) => void;
-export type ListenerFnSaved<T = any> = { shallow: boolean } & ListenerFn<T>;
+export type ListenerFnSaved<T = any> = { shallow?: boolean } & ListenerFn<T>;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -307,11 +307,14 @@ export type ObservableCheckerRender<T = any> =
     | ObservablePrimitiveChild<T>
     | ObservablePrimitive<T>;
 export interface ProxyValue {
-    path: string;
-    pathParent: string;
+    parent: ProxyValue;
+    children?: Map<string | number, ProxyValue>;
+    proxy?: object;
+    // path: string;
+    // pathParent: string;
     key: string | number;
     root: ObservableWrapper;
-    listeners?: ListenerFnSaved[];
+    listeners?: Set<ListenerFnSaved>;
 }
 
 export type ObservableValue<T> = T extends Shallow<infer t>
