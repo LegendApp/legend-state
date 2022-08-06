@@ -14,7 +14,7 @@ import { useEffect, useReducer, useRef } from 'react';
 import type {
     MappedObservableValue,
     ObservableCheckerRender,
-    ObservableListener,
+    ObservableListenerDispose,
     Shallow,
 } from '../observableInterfaces';
 
@@ -24,10 +24,9 @@ function useForceRender() {
 }
 
 interface SavedRef {
-    listeners: Map<string, ObservableListener>;
+    listeners: Map<string, ObservableListenerDispose>;
 }
 
-const pathsSeen = new Set();
 /**
  * A React hook that listens to observables and returns their values.
  *
@@ -82,14 +81,11 @@ export function useObservables<
 
     tracking.is = false;
 
-    pathsSeen.clear();
-
     const listeners = ref.current.listeners;
     for (let tracked of tracking.nodes) {
         const { node, shouldRender, shallow } = tracked;
         const path = node.path;
         // Track the paths seen this frame to dispose of listeners no longer needed
-        pathsSeen.add(path);
 
         // Listen to this path if not already listening
         if (!listeners.has(path)) {
@@ -107,19 +103,10 @@ export function useObservables<
         }
     }
 
-    // Dispose any listeners not seen in this frame
-    // TODO Faster way to do this than forEach?
-    listeners.forEach((listener, listenerPath) => {
-        if (!pathsSeen.has(listenerPath)) {
-            listener.dispose();
-            listeners.delete(listenerPath);
-        }
-    });
-
     // Dispose listeners on unmount
     useEffect(
         () => () => {
-            ref.current.listeners.forEach((listener) => listener.dispose());
+            ref.current.listeners.forEach((listener) => listener());
         },
         []
     ); // eslint-disable-line react-hooks/exhaustive-deps

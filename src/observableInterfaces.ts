@@ -4,8 +4,8 @@ export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasVa
 
 export interface ObservableBaseFns<T> {
     get(): T;
-    onChange(cb: ListenerFn<T>): ObservableListener<T>;
-    onChangeShallow(cb: ListenerFn<T>): ObservableListener<T>;
+    onChange(cb: ListenerFn<T>): ObservableListenerDispose;
+    onChangeShallow(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
     onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
@@ -24,10 +24,10 @@ export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
 }
 export interface ObservableComputedFns<T> {
     get(): T;
-    onChange(cb: ListenerFn<T>): ObservableListener<T>;
-    onEquals(value: T, cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
-    onTrue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
-    onHasValue(cb?: (value?: T) => void): { listener: ObservableListener<T>; promise: Promise<T> };
+    onChange(cb: ListenerFn<T>): ObservableListenerDispose;
+    onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
+    onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
+    onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
 }
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, ArrayOverrideFnNames> {
@@ -132,6 +132,7 @@ export type ListenerFn<T = any> = (
     valueAtPath: any,
     prevAtPath: any
 ) => void;
+export type ListenerFnSaved<T = any> = { shallow: boolean } & ListenerFn<T>;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -158,12 +159,12 @@ export type Observable<T = any> = ObservableFnsRecursive<T> & ObservableFns<T>;
 
 export interface ObservableEvent {
     fire(): void;
-    on(cb?: () => void): ObservableListener<void>;
-    on(eventType: 'change', cb?: () => void): ObservableListener<void>;
+    on(cb?: () => void): ObservableListenerDispose;
+    on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
 }
 export interface ObservableEvent3 {
     fire(): void;
-    on(cb?: () => void): ObservableListener<void>;
+    on(cb?: () => void): ObservableListenerDispose;
 }
 
 export type QueryByModified<T> =
@@ -268,7 +269,7 @@ type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
 
 export interface OnReturnValue<T> {
     promise: Promise<T>;
-    listener: ObservableListener<T>;
+    dispose: ObservableListenerDispose;
 }
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
@@ -276,18 +277,12 @@ export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
 export type ShouldRender<T = any> = {
     [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
 };
+export type ObservableListenerDispose = () => void;
 
-export interface ObservableListener<T = any> {
-    node: ProxyValue;
-    callback: ListenerFn<T>;
-    shallow: boolean;
-    dispose: () => void;
-    isDisposed?: boolean;
-}
 export interface ObservableWrapper {
     _: Observable;
     isPrimitive: boolean;
-    listenerMap: Map<string, Set<ObservableListener>>;
+    listenerMap: Map<string, ListenerFnSaved[]>;
     proxies: Map<string, object>;
     proxyValues: Map<string, ProxyValue>;
 }

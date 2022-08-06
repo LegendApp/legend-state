@@ -1,21 +1,17 @@
 import { getNodeValue } from './globals';
 import { isObjectEmpty } from './is';
-import { ListenerFn, ObservableListener, OnReturnValue, ProxyValue } from './observableInterfaces';
+import {
+    ListenerFn,
+    ListenerFnSaved,
+    ObservableListenerDispose,
+    OnReturnValue,
+    ProxyValue,
+} from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
 
-export function disposeListener(listener: ObservableListener) {
-    if (listener && !listener.isDisposed) {
-        listener.isDisposed = true;
-        const listeners = listener.node.root.listenerMap.get(listener.node.path);
-        if (listeners) {
-            listeners.delete(listener);
-        }
-    }
-}
-
 export function onEquals<T>(node: ProxyValue, value: T, callback: (value: T) => void): OnReturnValue<T> {
-    let listener: ObservableListener<T>;
+    let dispose: ObservableListenerDispose;
 
     const promise = new Promise<any>((resolve) => {
         let isDone = false;
@@ -31,18 +27,18 @@ export function onEquals<T>(node: ProxyValue, value: T, callback: (value: T) => 
                 (callback as (value: T) => void)?.(newValue);
                 resolve(newValue);
 
-                disposeListener(listener);
+                dispose();
             }
             return isDone;
         }
         if (!check(getNodeValue(node))) {
-            listener = onChange(node, check, /*shallow*/ true);
+            dispose = onChange(node, check, /*shallow*/ true);
         }
     });
 
     return {
         promise,
-        listener,
+        dispose,
     };
 }
 
@@ -55,25 +51,19 @@ export function onTrue<T extends boolean>(node: ProxyValue, callback?: () => voi
 }
 
 export function onChange(node: ProxyValue, callback: ListenerFn<any>, shallow?: boolean) {
-    const listener: ObservableListener = {
-        node,
-        callback,
-        shallow,
-        // function, not () => {} to preserve this
-        dispose: function () {
-            disposeListener(this);
-        },
-    };
-
+    const c = callback as ListenerFnSaved;
+    if (shallow) {
+        c.shallow = true;
+    }
     const map = node.root.listenerMap;
     let listeners = map.get(node.path);
     if (!listeners) {
-        listeners = new Set();
+        listeners = [];
         map.set(node.path, listeners);
     }
-    listeners.add(listener);
+    listeners.push(c);
 
-    return listener;
+    return () => listeners.splice(listeners.indexOf(c), 1);
 }
 
 export function onChangeShallow(node: ProxyValue, callback: ListenerFn<any>) {

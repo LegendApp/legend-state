@@ -325,7 +325,8 @@ function _notify(
     // Notify all listeners
     if (listeners) {
         let getPrevious;
-        for (let listener of listeners) {
+        for (let i = 0; i < listeners.length; i++) {
+            const listener = listeners[i];
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
@@ -333,7 +334,7 @@ function _notify(
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
-                observableBatcherNotify({ cb: listener.callback, value, getPrevious, path, valueAtPath, prevAtPath });
+                observableBatcherNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath });
             }
         }
     }
