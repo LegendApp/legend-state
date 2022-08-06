@@ -277,6 +277,10 @@ export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
 export type ShouldRender<T = any> = {
     [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
 };
+// export type ShouldRender<T = any> = {
+//     [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
+// };
+export type ObservableComputeFunction<T> = () => T;
 export type ObservableListenerDispose = () => void;
 
 export interface ObservableWrapper {
@@ -297,7 +301,7 @@ export type ObservableChecker<T = any> =
     | ObservablePrimitiveChild<T>;
 export type ObservableCheckerRender<T = any> =
     | Shallow<T>
-    | ShouldRender<T>
+    | ObservableComputeFunction<T>
     | Observable<T>
     | ObservableComputed<T>
     | ObservablePrimitiveChild<T>
@@ -312,7 +316,7 @@ export interface ProxyValue {
 
 export type ObservableValue<T> = T extends Shallow<infer t>
     ? t
-    : T extends ShouldRender<infer t>
+    : T extends ObservableComputeFunction<infer t>
     ? t
     : T extends Observable<infer t>
     ? t
@@ -331,3 +335,11 @@ export type MappedObservableValue<
           [K in keyof T]: ObservableValue<T[K]>;
       }
     : ObservableValue<T>;
+
+/** @internal */
+export interface TrackingNode {
+    node: ProxyValue;
+    shallow?: boolean;
+    shouldRender?: (value: any, prev?: any) => any;
+    value: any;
+}

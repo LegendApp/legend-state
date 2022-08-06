@@ -10,12 +10,15 @@ import {
     symbolShouldRender,
     tracking,
 } from '@legendapp/state';
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import type {
+    ListenerFn,
+    ListenerFnSaved,
     MappedObservableValue,
     ObservableCheckerRender,
     ObservableListenerDispose,
     Shallow,
+    TrackingNode,
 } from '../observableInterfaces';
 
 function useForceRender() {
@@ -23,9 +26,22 @@ function useForceRender() {
     return () => forceRender();
 }
 
-interface SavedRef {
-    listeners: Map<string, ObservableListenerDispose>;
+interface SavedRef<
+    T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
+> {
+    fn: () => T;
+    isFirst: boolean;
 }
+
+// function arrayEqual(arr1: any[], arr2: any[]) {
+//     if (!arr1 || !arr2 || arr1.length !== arr2.length) return false;
+
+//     for (let i = 0; i < arr1.length; i++) {
+//         if (arr1[i] !== arr2[i]) return false;
+//     }
+
+//     return true;
+// }
 
 /**
  * A React hook that listens to observables and returns their values.
@@ -36,80 +52,95 @@ interface SavedRef {
  */
 export function useObservables<
     T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
->(fn: () => T): MappedObservableValue<T> {
-    const forceRender = useForceRender();
-    const ref = useRef<SavedRef>();
-    if (!ref.current) {
-        ref.current = {
-            listeners: new Map(),
+>(fn: () => T, deps?: any[]): MappedObservableValue<T> {
+    const ref = useRef<SavedRef<T>>({ fn, isFirst: true });
+    ref.current.fn = fn;
+
+    const [value, setValue] = useState(() => compute(fn()).value);
+
+    useEffect(() => {
+        let listeners: Map<string, ObservableListenerDispose> = new Map();
+        let previousPrimitives: string;
+        const updateFromSelector = () => {
+            const args = ref.current.fn();
+            const { primitives, value } = compute(args);
+            if (previousPrimitives !== primitives) {
+                setValue(value);
+                previousPrimitives = primitives;
+            }
         };
-    }
+        const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
+            for (let i = 0; i < nodes.length; i++) {
+                const { node, shallow } = nodes[i];
+                const path = node.path;
 
-    // Start tracking to fill trackedNodes with all nodes accessed
+                // Listen to this path if not already listening
+                if (!listeners.has(path)) {
+                    listeners.set(path, shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
+                }
+            }
+        };
+        const update = () => {
+            tracking.is = true;
+            tracking.nodes = [];
+
+            const args = ref.current.fn();
+            const selectorNodes = tracking.nodes;
+
+            tracking.nodes = [];
+
+            const { primitives, value } = compute(args);
+
+            tracking.is = false;
+            updateListeners(selectorNodes, updateFromSelector);
+            updateListeners(tracking.nodes, update);
+
+            if (!ref.current.isFirst) {
+                setValue(value);
+            }
+            previousPrimitives = primitives;
+            ref.current.isFirst = false;
+        };
+        update();
+
+        return () => listeners.forEach((dispose) => dispose());
+    }, deps || []);
+
+    return value as MappedObservableValue<T>;
+}
+
+function compute(args) {
     let ret;
-    tracking.is = true;
-    tracking.nodes = [];
+    let primitives: string = '';
 
-    const args = fn();
+    if (args !== undefined && args !== null) {
+        let isPrim;
+        if (isArray(args)) {
+            ret = [];
+            for (let i = 0; i < args.length; i++) {
+                isPrim = isPrimitive(args[i]);
+                if (isPrim) primitives += args[i];
+                ret[i] = isPrim ? args[i] : getObservableRawValue(args[i]);
+            }
+        } else {
+            isPrim = isPrimitive(args);
+            if (isPrim || args[symbolIsObservable] || args[symbolShallow]) {
+                if (isPrim) primitives += args;
 
-    if (args !== undefined) {
-        if (args[symbolIsObservable]) {
-            ret = getObservableRawValue(args as ObservableCheckerRender);
-        } else if (args) {
-            if (isPrimitive(args)) {
-                ret = args;
-            } else if (isArray(args)) {
-                ret = [];
-                for (let i = 0; i < args.length; i++) {
-                    ret[i] = getObservableRawValue(args[i]);
-                }
+                ret = isPrim ? args : getObservableRawValue(args as ObservableCheckerRender);
             } else if (isObject(args)) {
-                if (args[symbolShallow] || args[symbolShouldRender]) {
-                    ret = getObservableRawValue(args as Shallow);
-                } else {
-                    ret = {};
-                    const keys = Object.keys(args);
-                    const length = keys.length;
-                    for (let i = 0; i < length; i++) {
-                        const key = keys[i];
-                        ret[key] = getObservableRawValue(args[key]);
-                    }
+                ret = {};
+                const keys = Object.keys(args);
+                const length = keys.length;
+                for (let i = 0; i < length; i++) {
+                    const key = keys[i];
+                    isPrim = isPrimitive(args[key]);
+                    if (isPrim) primitives += args[key];
+                    ret[key] = isPrim ? args[key] : getObservableRawValue(args[key]);
                 }
             }
         }
     }
 
-    tracking.is = false;
-
-    const listeners = ref.current.listeners;
-    for (let tracked of tracking.nodes) {
-        const { node, shouldRender, shallow } = tracked;
-        const path = node.path;
-        // Track the paths seen this frame to dispose of listeners no longer needed
-
-        // Listen to this path if not already listening
-        if (!listeners.has(path)) {
-            let cb = forceRender as (value?: any, prev?: any) => void;
-            // If using shouldRender, only render when the return value of shouldRender changes
-            if (shouldRender) {
-                cb = (v, getPrev: () => any) => {
-                    const prev = getPrev();
-                    if (shouldRender(v, prev)) {
-                        forceRender();
-                    }
-                };
-            }
-            listeners.set(path, shallow ? onChangeShallow(node, cb) : onChange(node, cb));
-        }
-    }
-
-    // Dispose listeners on unmount
-    useEffect(
-        () => () => {
-            ref.current.listeners.forEach((listener) => listener());
-        },
-        []
-    ); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return ret as MappedObservableValue<T>;
+    return { value: ret, primitives };
 }

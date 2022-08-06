@@ -1,5 +1,5 @@
 import { tracking } from './state';
-import { isPrimitive } from './is';
+import { isFunction, isPrimitive } from './is';
 import { ObservableCheckerRender, ProxyValue } from './observableInterfaces';
 
 export const delim = '\uFEFF';
@@ -48,12 +48,8 @@ export function getChildNode(node: ProxyValue, key: string | number): ProxyValue
 
 export function getObservableRawValue<T>(obs: ObservableCheckerRender<T>): T {
     if (!obs || isPrimitive(obs)) return obs as T;
+    if (isFunction(obs)) return obs();
 
-    const should = obs[symbolShouldRender];
-    if (should) {
-        tracking.should = should.fn;
-        obs = should.obs;
-    }
     const shallow = obs?.[symbolShallow];
     if (shallow) {
         tracking.shallow = true;
