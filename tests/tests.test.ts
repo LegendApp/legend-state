@@ -2,12 +2,7 @@ import { observableComputed } from '../src/observableComputed';
 import { observable } from '../src/observable';
 import { observableEvent } from '../src/observableEvent';
 import { observableBatcher } from '../src/observableBatcher';
-import {
-    Observable,
-    ObservableComputed,
-    ObservablePrimitive,
-    ObservablePrimitiveChild,
-} from '../src/observableInterfaces';
+import { Observable, ObservableComputed, ObservablePrimitive, ObservableType } from '../src/observableInterfaces';
 import { isObservable } from '../src/helpers';
 
 function promiseTimeout(time?: number) {
@@ -23,10 +18,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(
-    obs: Observable | ObservablePrimitive | ObservableComputed | ObservablePrimitiveChild,
-    shallow?: boolean
-) {
+function expectChangeHandler(obs: ObservableType, shallow?: boolean) {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {

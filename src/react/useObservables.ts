@@ -9,14 +9,12 @@ import {
     symbolShallow,
     tracking,
 } from '@legendapp/state';
-import { useMemo, useEffect, useReducer, useRef, useState, RefObject } from 'react';
+import { RefObject, useEffect, useMemo, useReducer, useRef } from 'react';
 import type {
     ListenerFn,
-    ListenerFnSaved,
     MappedObservableValue,
-    ObservableCheckerRender,
     ObservableListenerDispose,
-    Shallow,
+    ObservableTypeRender,
     TrackingNode,
 } from '../observableInterfaces';
 
@@ -25,9 +23,7 @@ function useForceRender() {
     return () => forceRender();
 }
 
-interface SavedRef<
-    T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
-> {
+interface SavedRef<T extends ObservableTypeRender | Record<string, ObservableTypeRender> | ObservableTypeRender[]> {
     fn: () => T;
     value: T;
     listeners: Map<string, ObservableListenerDispose>;
@@ -52,7 +48,7 @@ interface SavedRef<
  * @see https://www.legendapp.com/dev/state/react/#useobservables
  */
 export function useObservables<
-    T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
+    T extends ObservableTypeRender | Record<string, ObservableTypeRender> | ObservableTypeRender[]
 >(fn: () => T, deps?: any[]): MappedObservableValue<T> {
     const forceRender = useForceRender();
     const ref = useRef<SavedRef<T>>({ fn, isFirst: true, value: undefined, listeners: new Map() });
@@ -131,7 +127,7 @@ function compute(args) {
             if (isPrim || args[symbolIsObservable] || args[symbolShallow]) {
                 if (isPrim) primitives += args;
 
-                ret = isPrim ? args : getObservableRawValue(args as ObservableCheckerRender);
+                ret = isPrim ? args : getObservableRawValue(args as ObservableTypeRender);
             } else if (isObject(args)) {
                 ret = {};
                 const keys = Object.keys(args);

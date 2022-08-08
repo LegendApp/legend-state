@@ -3,7 +3,8 @@ import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     Observable,
-    ObservableOrPrimitive,
+    ObservableObject,
+    ObservableObjectOrPrimitive,
     ObservablePrimitive,
     ObservableWrapper,
     ProxyValue,
@@ -429,12 +430,12 @@ function deleteFnByKey(node: ProxyValue, key: string | number) {
     inSetFn = false;
 }
 
-export function observable<T extends object | Array<any>>(obj: T): Observable<T>;
+export function observable<T extends object>(obj: T): ObservableObjectOrPrimitive<T>;
 export function observable<T extends boolean>(prim: T): ObservablePrimitive<boolean>;
 export function observable<T extends string>(prim: T): ObservablePrimitive<string>;
 export function observable<T extends number>(prim: T): ObservablePrimitive<number>;
 export function observable<T extends boolean | string | number>(prim: T): ObservablePrimitive<T>;
-export function observable<T>(obj: T): ObservableOrPrimitive<T> {
+export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
     const isPrim = isPrimitive(obj);
     // Primitives wrap in current
     if (isPrim) {
@@ -442,7 +443,7 @@ export function observable<T>(obj: T): ObservableOrPrimitive<T> {
     }
 
     const obs = {
-        _: obj as Observable,
+        _: obj as Observable<T>,
         isPrimitive: isPrim,
         listenerMap: new Map(),
         proxies: new Map(),
@@ -455,5 +456,5 @@ export function observable<T>(obj: T): ObservableOrPrimitive<T> {
         key: undefined,
     };
 
-    return getProxy(node) as ObservableOrPrimitive<T>;
+    return getProxy(node) as ObservableObjectOrPrimitive<T>;
 }

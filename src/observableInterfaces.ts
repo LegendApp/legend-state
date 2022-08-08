@@ -1,3 +1,4 @@
+import { observable } from 'src/observable';
 import { symbolShallow } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
@@ -11,16 +12,16 @@ export interface ObservableBaseFns<T> {
     onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
-    set(value: T): Observable<T>;
+    set(value: T): ObservableChild<T>;
 }
 export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
-    prop<K extends keyof T>(prop: K): Observable<T[K]>;
-    set(value: T): Observable<T>;
-    set<K extends keyof T>(key: K, value: T[K]): Observable<T[K]>;
-    set<V>(key: string | number, value: V): Observable<V>;
-    assign(value: T | Partial<T>): Observable<T>;
-    delete(): Observable<T>;
-    delete<K extends keyof T>(key: K | string | number): Observable<T>;
+    prop<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    set(value: T): ObservableChild<T>;
+    set<K extends keyof T>(key: K, value: T[K]): ObservableChild<T[K]>;
+    set<V>(key: string | number, value: V): ObservableChild<V>;
+    assign(value: T | Partial<T>): ObservableChild<T>;
+    delete(): ObservableChild<T>;
+    delete<K extends keyof T>(key: K | string | number): ObservableChild<T>;
 }
 export interface ObservableComputedFns<T> {
     get(): T;
@@ -142,20 +143,17 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | WeakSet<any>
     | Promise<any>
     ? T[K]
-    : T[K] extends number | boolean | string
+    : T[K] extends Primitive
     ? T[K] & ObservablePrimitiveFns<T[K]>
     : T[K] extends Array<any>
-    ? Omit<T[K], ArrayOverrideFnNames> & ObservableFns<T[K]> & ObservableArrayOverride<Observable<T[K][number]>>
-    : // ? ObservableFns<T[K]> & ObservableArrayOverride<T[K]>
-    T extends object
+    ? Omit<T[K], ArrayOverrideFnNames> & ObservableFns<T[K]> & ObservableArrayOverride<ObservableObject<T[K][number]>>
+    : T extends object
     ? TRecurse
     : T[K];
 
 type ObservableFnsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, Observable<T[K]>>;
+    readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 };
-
-export type Observable<T = any> = ObservableFnsRecursive<T> & ObservableFns<T>;
 
 export interface ObservableEvent {
     dispatch(): void;
@@ -207,7 +205,7 @@ export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
 export interface ObservablePersistRemote {
     save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo): Promise<T>;
     listen<T>(
-        obs: ObservableChecker<T>,
+        obs: Observable<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
         onChange: (obs: Observable<T>, value: any) => void
@@ -280,23 +278,24 @@ export interface ObservableWrapper {
     proxyValues: Map<string, ProxyValue>;
 }
 
-export type ObservablePrimitiveChild<T = any> = ObservablePrimitiveFns<T>;
+type Primitive = boolean | string | number;
+
+export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableFns<T>;
+export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
-export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
-export type ObservableComputed<T = any> = (T extends boolean | string | number ? { readonly current: T } : T) &
-    ObservableComputedFns<T>;
-export type ObservableChecker<T = any> =
+export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+export type ObservableComputed<T = any> = ObservableComputedFns<T> &
+    ([T] extends [Primitive] ? { readonly current: T } : T);
+export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+
+export type ObservableType<T = any> =
     | Observable<T>
     | ObservableComputed<T>
     | ObservablePrimitive<T>
-    | ObservablePrimitiveChild<T>;
-export type ObservableCheckerRender<T = any> =
-    | Shallow<T>
-    | ObservableComputeFunction<T>
-    | Observable<T>
-    | ObservableComputed<T>
-    | ObservablePrimitiveChild<T>
-    | ObservablePrimitive<T>;
+    | ObservableChild<T>;
+
+export type ObservableTypeRender<T = any> = ObservableType<T> | Shallow<T> | ObservableComputeFunction<T>;
+
 export interface ProxyValue {
     parent: ProxyValue;
     children?: Map<string | number, ProxyValue>;
@@ -310,7 +309,7 @@ export type ObservableValue<T> = T extends Shallow<infer t>
     ? t
     : T extends ObservableComputeFunction<infer t>
     ? t
-    : T extends Observable<infer t>
+    : T extends ObservableObject<infer t>
     ? t
     : T extends ObservableComputed<infer t>
     ? t
@@ -319,10 +318,10 @@ export type ObservableValue<T> = T extends Shallow<infer t>
     : T;
 
 export type MappedObservableValue<
-    T extends ObservableCheckerRender | ObservableCheckerRender[] | Record<string, ObservableCheckerRender>
-> = T extends ObservableCheckerRender
-    ? ObservableValue<T>
-    : T extends object | Array<any>
+    T extends ObservableTypeRender | ObservableTypeRender[] | Record<string, ObservableTypeRender>
+> = T extends ObservableChild<infer t>
+    ? t
+    : T extends Record<string, ObservableTypeRender> | Array<any>
     ? {
           [K in keyof T]: ObservableValue<T[K]>;
       }

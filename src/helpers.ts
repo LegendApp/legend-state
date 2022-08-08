@@ -1,17 +1,17 @@
 import { symbolDateModified, symbolIsObservable, symbolShallow } from './globals';
 import { isObject } from './is';
-import type { Observable, Shallow } from './observableInterfaces';
+import type { Observable, ObservableType, Shallow } from './observableInterfaces';
 
-export function shallow(obs: Observable): Shallow {
+export function shallow(obs: ObservableType): Shallow {
     return {
         [symbolShallow]: obs,
     };
 }
-export function isObservable(obs: any): boolean {
+export function isObservable(obs: any): obs is ObservableType {
     return obs && !!obs[symbolIsObservable as any];
 }
 
-export function mergeIntoObservable(target: Observable, ...sources: any[]) {
+export function mergeIntoObservable(target: ObservableType, ...sources: any[]) {
     if (!sources.length) return target;
     const source = sources.shift();
 

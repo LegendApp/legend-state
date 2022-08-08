@@ -1,6 +1,6 @@
 import { isFunction, observable, symbolGet } from '@legendapp/state';
 import { useMemo } from 'react';
-import type { ObservableOrPrimitive } from '../observableInterfaces';
+import type { ObservableObjectOrPrimitive } from '../observableInterfaces';
 import { useObservables } from './useObservables';
 
 /**
@@ -12,7 +12,7 @@ import { useObservables } from './useObservables';
  *
  * @see https://www.legendapp.com/dev/state/react/#usenewobservable
  */
-export function useNewObservable<T>(value: T | (() => T), observe?: boolean): [ObservableOrPrimitive<T>, T] {
+export function useNewObservable<T>(value: T | (() => T), observe?: boolean): [ObservableObjectOrPrimitive<T>, T] {
     // Create the observable from the default value
     const obs = useMemo(() => observable<any>(isFunction(value) ? value() : value), []); // eslint-disable-line react-hooks/exhaustive-deps
 

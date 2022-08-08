@@ -3,9 +3,11 @@ import { observable, observableBatcher, symbolDateModified, mergeIntoObservable 
 import type {
     Observable,
     ObservableListenerInfo,
+    ObservableObject,
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
+    ObservableType,
     PersistOptions,
 } from '../observableInterfaces';
 import { ObservablePersistLocalStorage } from './local-storage';
@@ -27,7 +29,7 @@ interface LocalState {
 }
 
 async function onObsChange<T>(
-    obsState: Observable<ObservablePersistState>,
+    obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
@@ -85,9 +87,9 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
 }
 
 async function loadLocal(
-    obs: Observable,
+    obs: ObservableType,
     persistOptions: PersistOptions,
-    obsState: Observable<ObservablePersistState>,
+    obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState
 ) {
     const { local, remote } = persistOptions;
