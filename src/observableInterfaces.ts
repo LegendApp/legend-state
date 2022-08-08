@@ -282,8 +282,9 @@ export interface ObservableWrapper {
 
 export type ObservablePrimitiveChild<T = any> = ObservablePrimitiveFns<T>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
-export type ObservableComputed<T = any> = { readonly current: T } & ObservableComputedFns<T>;
 export type ObservableOrPrimitive<T> = T extends boolean | string | number ? ObservablePrimitive<T> : Observable<T>;
+export type ObservableComputed<T = any> = (T extends boolean | string | number ? { readonly current: T } : T) &
+    ObservableComputedFns<T>;
 export type ObservableChecker<T = any> =
     | Observable<T>
     | ObservableComputed<T>
