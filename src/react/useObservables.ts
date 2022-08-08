@@ -10,7 +10,7 @@ import {
     symbolShouldRender,
     tracking,
 } from '@legendapp/state';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useMemo, useEffect, useReducer, useRef, useState, RefObject } from 'react';
 import type {
     ListenerFn,
     ListenerFnSaved,
@@ -30,6 +30,8 @@ interface SavedRef<
     T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
 > {
     fn: () => T;
+    value: T;
+    listeners: Map<string, ObservableListenerDispose>;
     isFirst: boolean;
 }
 
@@ -53,60 +55,63 @@ interface SavedRef<
 export function useObservables<
     T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
 >(fn: () => T, deps?: any[]): MappedObservableValue<T> {
-    const ref = useRef<SavedRef<T>>({ fn, isFirst: true });
+    const forceRender = useForceRender();
+    const ref = useRef<SavedRef<T>>({ fn, isFirst: true, value: undefined, listeners: new Map() });
     ref.current.fn = fn;
 
-    const [value, setValue] = useState(() => compute(fn()).value);
+    useMemo(() => setup(ref, forceRender), deps || []);
 
-    useEffect(() => {
-        let listeners: Map<string, ObservableListenerDispose> = new Map();
-        let previousPrimitives: string;
-        const updateFromSelector = () => {
-            const args = ref.current.fn();
-            const { primitives, value } = compute(args);
-            if (previousPrimitives !== primitives) {
-                setValue(value);
-                previousPrimitives = primitives;
-            }
-        };
-        const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
-            for (let i = 0; i < nodes.length; i++) {
-                const { node, shallow } = nodes[i];
-                // const path = node.path;
+    useEffect(() => () => ref.current.listeners.forEach((dispose) => dispose()), []);
 
-                // Listen to this path if not already listening
-                if (!node.listeners?.has(updateFn)) {
-                    shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn);
-                }
-            }
-        };
-        const update = () => {
-            tracking.is = true;
-            tracking.nodes = [];
+    return ref.current.value as MappedObservableValue<T>;
+}
 
-            const args = ref.current.fn();
-            const selectorNodes = tracking.nodes;
-
-            tracking.nodes = [];
-
-            const { primitives, value } = compute(args);
-
-            tracking.is = false;
-            updateListeners(selectorNodes, updateFromSelector);
-            updateListeners(tracking.nodes, update);
-
-            if (!ref.current.isFirst) {
-                setValue(value);
-            }
+function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
+    let previousPrimitives: string;
+    const updateFromSelector = () => {
+        const args = ref.current.fn();
+        const { primitives, value } = compute(args);
+        if (previousPrimitives !== primitives) {
             previousPrimitives = primitives;
-            ref.current.isFirst = false;
-        };
-        update();
+            ref.current.value = value;
+            forceRender();
+        }
+    };
+    const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
+        for (let i = 0; i < nodes.length; i++) {
+            const { node, shallow } = nodes[i];
+            // const path = node.path;
 
-        return () => listeners.forEach((dispose) => dispose());
-    }, deps || []);
+            // Listen to this path if not already listening
+            if (!node.listeners?.has(updateFn)) {
+                shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn);
+            }
+        }
+    };
+    const update = () => {
+        tracking.is = true;
+        tracking.nodes = [];
 
-    return value as MappedObservableValue<T>;
+        const args = ref.current.fn();
+        const selectorNodes = tracking.nodes;
+
+        tracking.nodes = [];
+
+        const { primitives, value } = compute(args);
+
+        tracking.is = false;
+        updateListeners(selectorNodes, updateFromSelector);
+        updateListeners(tracking.nodes, update);
+
+        ref.current.value = value;
+
+        if (!ref.current.isFirst) {
+            previousPrimitives = primitives;
+            forceRender();
+        }
+        ref.current.isFirst = false;
+    };
+    update();
 }
 
 function compute(args) {
