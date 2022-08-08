@@ -158,13 +158,9 @@ type ObservableFnsRecursive<T> = {
 export type Observable<T = any> = ObservableFnsRecursive<T> & ObservableFns<T>;
 
 export interface ObservableEvent {
-    fire(): void;
+    dispatch(): void;
     on(cb?: () => void): ObservableListenerDispose;
     on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
-}
-export interface ObservableEvent3 {
-    fire(): void;
-    on(cb?: () => void): ObservableListenerDispose;
 }
 
 export type QueryByModified<T> =

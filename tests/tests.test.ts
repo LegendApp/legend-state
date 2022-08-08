@@ -1472,11 +1472,11 @@ describe('Event', () => {
         const handler = jest.fn();
         event.on(handler);
         expect(handler).not.toHaveBeenCalled();
-        event.fire();
+        event.dispatch();
         expect(handler).toHaveBeenCalledTimes(1);
-        event.fire();
-        event.fire();
-        event.fire();
+        event.dispatch();
+        event.dispatch();
+        event.dispatch();
         expect(handler).toHaveBeenCalledTimes(4);
     });
 });
