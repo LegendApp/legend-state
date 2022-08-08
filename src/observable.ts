@@ -1,4 +1,4 @@
-import { delim, getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './globals';
+import { getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './globals';
 import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -82,12 +82,6 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
     return ret;
 }
 
-function moveChild(parent: ProxyValue, prevIndex: number, index: number) {
-    const child: ProxyValue = getChildNode(parent, prevIndex);
-    child.key = index;
-    parent.children.set(index, child);
-}
-
 function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
@@ -157,14 +151,6 @@ function getProxy(node: ProxyValue, p?: string | number) {
         proxy = node.proxy = new Proxy<ProxyValue>(node, proxyHandler);
     }
     return proxy;
-
-    // if (p !== undefined) node = getChildNode(node, p);
-    // let proxy = node.root.proxies.get(node.path);
-    // if (!proxy) {
-    //     proxy = new Proxy<ProxyValue>(node, proxyHandler);
-    //     node.root.proxies.set(node.path, proxy);
-    // }
-    // return proxy;
 }
 
 const proxyHandler: ProxyHandler<any> = {
@@ -306,11 +292,6 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any, level?:
 
     // Save the previous value first
     const prevValue = parentValue[key];
-
-    // if (isArray(parentValue) && newValue !== undefined) {
-    //     const prevIndex = parentValue.indexOf(newValue);
-    //     moveChild(node, prevIndex, +key);
-    // }
 
     // Save the new value
     parentValue[key] = newValue;
@@ -466,17 +447,7 @@ export function observable<T>(obj: T): ObservableOrPrimitive<T> {
         root: obs,
         parent: undefined,
         key: undefined,
-        // path: '_',
-        // pathParent: '',
-        // key: '_',
     };
 
-    // obs.proxyValues.set(node.path, node);
-
-    updateNodes(node, obs._);
-
-    const proxy = getProxy(node);
-
-    // @ts-ignore
-    return proxy;
+    return getProxy(node) as ObservableOrPrimitive<T>;
 }

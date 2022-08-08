@@ -310,8 +310,6 @@ export interface ProxyValue {
     parent: ProxyValue;
     children?: Map<string | number, ProxyValue>;
     proxy?: object;
-    // path: string;
-    // pathParent: string;
     key: string | number;
     root: ObservableWrapper;
     listeners?: Set<ListenerFnSaved>;
