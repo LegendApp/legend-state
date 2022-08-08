@@ -7,7 +7,6 @@ import {
     onChangeShallow,
     symbolIsObservable,
     symbolShallow,
-    symbolShouldRender,
     tracking,
 } from '@legendapp/state';
 import { useMemo, useEffect, useReducer, useRef, useState, RefObject } from 'react';

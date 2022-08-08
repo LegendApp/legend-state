@@ -4,7 +4,6 @@ import { ObservableCheckerRender, ProxyValue } from './observableInterfaces';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolShallow = Symbol('shallow');
-export const symbolShouldRender = Symbol('shouldRender');
 export const symbolGet = Symbol('get');
 export const symbolIsObservable = Symbol('isObservable');
 

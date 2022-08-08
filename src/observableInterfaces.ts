@@ -1,4 +1,4 @@
-import { symbolShallow, symbolShouldRender } from './globals';
+import { symbolShallow } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
@@ -143,7 +143,7 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Promise<any>
     ? T[K]
     : T[K] extends number | boolean | string
-    ? Observable<T[K]>
+    ? T[K] & ObservablePrimitiveFns<T[K]>
     : T[K] extends Array<any>
     ? Omit<T[K], ArrayOverrideFnNames> & ObservableFns<T[K]> & ObservableArrayOverride<Observable<T[K][number]>>
     : // ? ObservableFns<T[K]> & ObservableArrayOverride<T[K]>
@@ -274,12 +274,6 @@ export interface OnReturnValue<T> {
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
-export type ShouldRender<T = any> = {
-    [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
-};
-// export type ShouldRender<T = any> = {
-//     [symbolShouldRender]: { obs: Observable<T>; fn: (value: any, prev: any) => any };
-// };
 export type ObservableComputeFunction<T> = () => T;
 export type ObservableListenerDispose = () => void;
 
@@ -341,6 +335,5 @@ export type MappedObservableValue<
 export interface TrackingNode {
     node: ProxyValue;
     shallow?: boolean;
-    shouldRender?: (value: any, prev?: any) => any;
     value: any;
 }

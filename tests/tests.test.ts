@@ -715,6 +715,8 @@ describe('Primitives', () => {
         expect(() => {
             // @ts-expect-error
             obs.num1.assign({ value: 'hi' });
+            // @ts-expect-error
+            obs.num1.assign;
         }).toThrow();
 
         // This error will leave observableBatch in progress, so force end it

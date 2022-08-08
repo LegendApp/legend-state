@@ -10,7 +10,6 @@ export function updateTracking(node: ProxyValue, value: any) {
     tracking.nodes.push({
         node,
         shallow: tracking.shallow,
-        shouldRender: tracking.should,
         value,
     });
 }

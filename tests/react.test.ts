@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 import { observable } from '../src/observable';
-import { shouldRender, shallow } from '../src/helpers';
+import { shallow } from '../src/helpers';
 import { useObservables } from '../src/react/useObservables';
 import { useNewObservable } from '../src/react/useNewObservable';
 import { observableComputed } from '../src/observableComputed';
@@ -203,58 +203,6 @@ describe('React Hooks', () => {
         expect(numRendersItem).toEqual(3);
         expect(result.current).toEqual([{ text: 2 }]);
     });
-    // test('useObservables with shouldRender', () => {
-    //     let numRenders = 0;
-    //     let numRendersPrev = 0;
-    //     const obs = observable({ val: { val2: { val3: 'hello' } } });
-    //     renderHook(() => {
-    //         numRenders++;
-    //         return useObservables(() => [
-    //             shouldRender(obs.val.val2, (val2, prev) => {
-    //                 return val2.val3 === 'hi' || prev.val3 === 'hi';
-    //             }),
-    //         ]);
-    //     });
-    //     renderHook(() => {
-    //         numRendersPrev++;
-    //         return useObservables(() => [
-    //             shouldRender(obs.val.val2, (val2, prev) => {
-    //                 return val2.val3.length !== prev.val3.length;
-    //             }),
-    //         ]);
-    //     });
-    //     expect(numRenders).toEqual(1);
-    //     expect(numRendersPrev).toEqual(1);
-
-    //     // Changing to any other text has no effect
-    //     act(() => {
-    //         obs.val.val2.val3.set('hello there');
-    //     });
-    //     expect(numRenders).toEqual(1);
-    //     expect(numRendersPrev).toEqual(2);
-
-    //     // Changing to 'hi' renders'
-    //     act(() => {
-    //         obs.val.val2.val3.set('hi');
-    //     });
-    //     expect(numRenders).toEqual(2);
-    //     expect(numRendersPrev).toEqual(3);
-
-    //     // Changing from 'hi' renders
-    //     act(() => {
-    //         obs.val.val2.val3.set('hi there');
-    //     });
-    //     expect(numRenders).toEqual(3);
-    //     expect(numRendersPrev).toEqual(4);
-
-    //     // Changing to any other text has no effect
-    //     act(() => {
-    //         obs.val.val2.val3.set('hi again');
-    //     });
-    //     expect(numRenders).toEqual(3);
-    //     // Length is the same as previous so no change
-    //     expect(numRendersPrev).toEqual(4);
-    // });
     test('useObservables with computations', () => {
         let numRenders = 0;
         const obs = observable({ val: { arr: ['hi'], val2: { val3: 'hello' } }, otherval: 'sup' });
