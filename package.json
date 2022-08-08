@@ -4,9 +4,8 @@
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
-    "type": "module",
-    "main": "./index.cjs",
-    "module": "./index.esm.mjs",
+    "main": "./index.js",
+    "module": "./index.mjs",
     "types": "./index.d.ts",
     "files": [
         "**"
@@ -27,33 +26,33 @@
     "exports": {
         "./package.json": "./package.json",
         ".": {
-            "import": "./index.esm.mjs",
-            "require": "./index.cjs",
+            "import": "./index.mjs",
+            "require": "./index.js",
             "types": "./index.d.ts"
         },
         "./internal": {
-            "import": "./internal.esm.mjs",
-            "require": "./internal.cjs",
+            "import": "./internal.mjs",
+            "require": "./internal.js",
             "types": "./internal.d.ts"
         },
         "./local-storage": {
-            "import": "./local-storage.esm.mjs",
-            "require": "./local-storage.cjs",
+            "import": "./local-storage.mjs",
+            "require": "./local-storage.js",
             "types": "./local-storage.d.ts"
         },
         "./mmkv": {
-            "import": "./mmkv.esm.mjs",
-            "require": "./mmkv.cjs",
+            "import": "./mmkv.mjs",
+            "require": "./mmkv.js",
             "types": "./mmkv.d.ts"
         },
         "./persist": {
-            "import": "./persist.esm.mjs",
-            "require": "./persist.cjs",
+            "import": "./persist.mjs",
+            "require": "./persist.js",
             "types": "./persist.d.ts"
         },
         "./react": {
-            "import": "./react.esm.mjs",
-            "require": "./react.cjs",
+            "import": "./react.mjs",
+            "require": "./react.js",
             "types": "./react.d.ts"
         }
     },

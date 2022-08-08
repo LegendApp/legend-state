@@ -19,17 +19,12 @@ export default Object.keys(pkg.exports)
             input: './' + f + '.ts',
             output: [
                 {
-                    file: './dist/' + f + '.cjs',
+                    file: './dist/' + f + '.js',
                     format: 'cjs',
                     sourcemap: true,
                 },
                 {
-                    file: './dist/' + f + '.js',
-                    format: 'es',
-                    sourcemap: true,
-                },
-                {
-                    file: './dist/' + f + '.esm.mjs',
+                    file: './dist/' + f + '.mjs',
                     format: 'es',
                     sourcemap: true,
                 },
