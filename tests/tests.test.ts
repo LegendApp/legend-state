@@ -62,7 +62,7 @@ describe('Set', () => {
         obs.test.text.set({ text2: 't2' });
         expect(obs).toEqual({ test: { text: { text2: 't2' } } });
     });
-    test('Set array', () => {
+    test('Set in array', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
         obs.arr.set([{ text: 'hi2' }]);
         expect(obs.arr.length).toEqual(1);
@@ -770,6 +770,9 @@ describe('Array', () => {
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    // test('Array of objects requires ids', () => {
+    //     const obs = observable({ test: [{ text: 'hi' }] });
+    // });
     test('Array swap', () => {
         const obs = observable({ test: [1, 2, 3, 4, 5] });
         let tmp = obs.test[1];

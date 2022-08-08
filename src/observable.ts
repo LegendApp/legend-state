@@ -14,6 +14,7 @@ import { tracking, updateTracking } from './state';
 let lastAccessedNode: ProxyValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
+let didErrorOnMissingID = false;
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -91,6 +92,7 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
     let hasADiff = false;
     let keyMap: Map<string | number, number>;
     let moved: Map<string | number, ProxyValue>;
+
     if (isArr && prevValue?.length && isArray(prevValue)) {
         keyMap = new Map();
         moved = new Map();
@@ -104,26 +106,30 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
         const value = obj[key];
         const prev = prevValue?.[key];
 
-        if (isArr && keyMap) {
-            const id = value.id;
-            const prevIndex = keyMap.get(id);
-            if (prevIndex !== undefined && prevIndex !== i) {
-                let child: ProxyValue = moved.get(prevIndex);
-                if (child) {
-                    moved.delete(prevIndex);
-                } else {
-                    child = getChildNode(parent, prevIndex);
-                }
-                moved.set(i, getChildNode(parent, i));
-                child.key = i;
-                parent.children.set(i, child);
-            }
-        }
-
-        if (!isArr && prevValue && value !== prev) {
+        if (prevValue && value !== prev) {
             const isObj = !isPrimitive(value);
 
             const child: ProxyValue = getChildNode(parent, key);
+            if (isArr && isObj && keyMap) {
+                const id = value.id;
+                if (id !== undefined) {
+                    const prevIndex = keyMap.get(id);
+                    if (prevIndex !== undefined && prevIndex !== i) {
+                        let child: ProxyValue = moved.get(prevIndex);
+                        if (child) {
+                            moved.delete(prevIndex);
+                        } else {
+                            child = getChildNode(parent, prevIndex);
+                        }
+                        moved.set(i, getChildNode(parent, i));
+                        child.key = i;
+                        parent.children.set(i, child);
+                    }
+                } else if (process.env.NODE_ENV === 'development' && !didErrorOnMissingID) {
+                    console.error('Arrays in state containing objects must have a unique `id` field;');
+                    didErrorOnMissingID = true;
+                }
+            }
             // If object iterate through its children
             if (isObj) {
                 updateNodes(child, value, prev);
