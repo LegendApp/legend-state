@@ -1,4 +1,4 @@
-import { observableConfiguration } from './configureObservablePersistence';
+import { observablePersistConfiguration } from './configureObservablePersistence';
 import { isObject } from '@legendapp/state';
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T) {
@@ -32,5 +32,5 @@ export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, 
 }
 
 export function getDateModifiedKey(dateModifiedKey: string) {
-    return dateModifiedKey || observableConfiguration.dateModifiedKey || '@';
+    return dateModifiedKey || observablePersistConfiguration.dateModifiedKey || '@';
 }

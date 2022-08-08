@@ -1,4 +1,4 @@
-import { observableConfiguration } from './configureObservablePersistence';
+import { observablePersistConfiguration } from './configureObservablePersistence';
 import { observable, observableBatcher, symbolDateModified, mergeIntoObservable } from '@legendapp/state';
 import type {
     Observable,
@@ -92,7 +92,7 @@ async function loadLocal(
 ) {
     const { local, remote } = persistOptions;
     const localPersistence =
-        persistOptions.persistLocal || observableConfiguration.persistLocal || platformDefaultPersistence;
+        persistOptions.persistLocal || observablePersistConfiguration.persistLocal || platformDefaultPersistence;
 
     if (local) {
         if (!localPersistence) {
@@ -144,7 +144,7 @@ export function persistObservable<T>(obs: Observable<T>, persistOptions: Persist
     });
 
     const { remote } = persistOptions;
-    const remotePersistence = persistOptions.persistRemote || observableConfiguration?.persistRemote;
+    const remotePersistence = persistOptions.persistRemote || observablePersistConfiguration?.persistRemote;
     const localState: LocalState = { tempDisableSaveRemote: false };
 
     loadLocal(obs, persistOptions, obsState, localState);

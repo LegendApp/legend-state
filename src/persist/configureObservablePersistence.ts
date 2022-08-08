@@ -7,8 +7,8 @@ interface Config {
     dateModifiedKey?: string;
 }
 
-export const observableConfiguration: Config = {};
+export const observablePersistConfiguration: Config = {};
 
 export function configureObservablePersistence(options?: Config) {
-    Object.assign(observableConfiguration, options);
+    Object.assign(observablePersistConfiguration, options);
 }
