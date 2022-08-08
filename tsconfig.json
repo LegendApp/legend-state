@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "dist",
         "target": "es2018",
-        "module": "commonjs",
+        "module": "ES2015",
         "lib": [
             "dom",
             "dom.iterable",
@@ -26,8 +26,16 @@
         "paths": {
             "react": [
                 "node_modules/react"
-            ]
-        }
+            ],
+            "@legendapp/state": [
+                "index"
+            ],
+            "@legendapp/state/persist": [
+                "persist"
+            ],
+        },
+        "resolveJsonModule": true,
+        "noEmit": true
     },
     "include": [
         "**/*.ts",

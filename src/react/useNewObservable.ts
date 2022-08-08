@@ -1,8 +1,6 @@
+import { isFunction, observable, symbolGet } from '@legendapp/state';
 import { useMemo } from 'react';
-import { symbolGet } from '../globals';
-import { isFunction } from '../is';
-import { observable } from '../observable';
-import { ObservableOrPrimitive } from '../observableInterfaces';
+import type { ObservableOrPrimitive } from '../observableInterfaces';
 import { useObservables } from './useObservables';
 
 /**

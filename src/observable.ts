@@ -1,4 +1,4 @@
-import { delim, getChildNode, getNodeValue, getParentNode, symbolGet, symbolIsObservable } from './globals';
+import { getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './globals';
 import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -9,11 +9,12 @@ import {
     ProxyValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
-import { state } from './state';
+import { tracking, updateTracking } from './state';
 
 let lastAccessedNode: ProxyValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
+let didErrorOnMissingID = false;
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -30,13 +31,14 @@ const ArrayModifiers = new Set([
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'reduce', 'reduceRight', 'forEach', 'map']);
 
 const objectFnsProxy = new Map<string, Function>([
+    ['get', getNodeValue],
     ['set', set],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['prop', prop],
+    ['prop', getProxy],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
@@ -65,15 +67,15 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {
-        const { parent, key } = getParentNode(node);
+        const parent = node.parent;
         if (parent) {
             const parentValue = getNodeValue(parent);
 
             // Set the object to the previous value first
-            parentValue[key] = prevValue;
+            parentValue[node.key] = prevValue;
 
             // Then set with the new value so it notifies with the correct prevValue
-            setProp(parent, key, target);
+            setProp(parent, node.key, target);
         }
     }
 
@@ -81,21 +83,53 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
     return ret;
 }
 
-function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any) {
+function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
+
+    let hasADiff = false;
+    let keyMap: Map<string | number, number>;
+    let moved: Map<string | number, ProxyValue>;
+
+    if (isArr && prevValue?.length && isArray(prevValue)) {
+        keyMap = new Map();
+        moved = new Map();
+        for (let i = 0; i < prevValue.length; i++) {
+            keyMap.set(prevValue[i].id, i);
+        }
+    }
 
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
         const prev = prevValue?.[key];
 
-        if (!isArr && prevValue && value !== prev) {
+        if (prevValue && value !== prev) {
             const isObj = !isPrimitive(value);
 
             const child: ProxyValue = getChildNode(parent, key);
+            if (isArr && isObj && keyMap) {
+                const id = value.id;
+                if (id !== undefined) {
+                    const prevIndex = keyMap.get(id);
+                    if (prevIndex !== undefined && prevIndex !== i) {
+                        let child: ProxyValue = moved.get(prevIndex);
+                        if (child) {
+                            moved.delete(prevIndex);
+                        } else {
+                            child = getChildNode(parent, prevIndex);
+                        }
+                        moved.set(i, getChildNode(parent, i));
+                        child.key = i;
+                        parent.children.set(i, child);
+                    }
+                } else if (process.env.NODE_ENV === 'development' && !didErrorOnMissingID) {
+                    console.error('Arrays in state containing objects must have a unique `id` field;');
+                    didErrorOnMissingID = true;
+                }
+            }
             // If object iterate through its children
             if (isObj) {
                 updateNodes(child, value, prev);
@@ -103,24 +137,27 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any>, prevValue?: any)
 
             // Notify for this child if this element is different and it has listeners
             // But do not notify child if the parent is an array - the array's listener will cover it
-            const doNotify = child.root.listenerMap.has(child.path);
+            const doNotify = !!child.listeners;
             if (doNotify) {
+                hasADiff = true;
                 _notify(child, value, [], value, prev, 0);
             }
         }
     }
+
+    return hasADiff;
 }
 
-function createProxy(node: ProxyValue) {
-    const proxy = new Proxy<ProxyValue>(node, proxyHandler);
-    node.root.proxies.set(node.path, proxy);
+function getProxy(node: ProxyValue, p?: string | number) {
+    // Create a proxy if not already cached and return it
+
+    if (p !== undefined) node = getChildNode(node, p);
+    let proxy = node.proxy;
+    if (!proxy) {
+        proxy = node.proxy = new Proxy<ProxyValue>(node, proxyHandler);
+    }
     return proxy;
 }
-
-const descriptorNotEnumerable: PropertyDescriptor = {
-    enumerable: false,
-    configurable: false,
-};
 
 const proxyHandler: ProxyHandler<any> = {
     get(target: ProxyValue, p: any) {
@@ -132,7 +169,7 @@ const proxyHandler: ProxyHandler<any> = {
         const node = target;
         const fn = objectFnsProxy.get(p);
         // If this is an observable function, call it
-        if (fn) {
+        if (p !== 'get' && fn) {
             return function (a, b, c) {
                 const l = arguments.length;
                 return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
@@ -140,7 +177,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         let value = getNodeValue(node);
-        const vProp = value[p];
+        const vProp = value?.[p];
         // The get() function as well as the internal obs[symbolGet]
         if (p === symbolGet || p === 'get') {
             // Primitives are { current } so return the current value
@@ -148,13 +185,14 @@ const proxyHandler: ProxyHandler<any> = {
                 value = value.current;
             }
             // Update that this node was accessed for useObservables and useComputed
-            if (state.isTracking) {
-                state.updateTracking(node, value);
+            if (tracking.is) {
+                updateTracking(node, value);
             }
             return p === 'get' ? () => value : value;
         }
-        // Accessing symbols passes straight through
-        if (isSymbol(p)) {
+        // Accessing undefined/null/symbols passes straight through if this value has a property for it
+        // If it's never been defined assume it's a proxy to a future object
+        if (isSymbol(p) || vProp === null || (vProp === undefined && value && Object.hasOwn(value, p))) {
             return vProp;
         }
         // Handle function calls
@@ -167,7 +205,7 @@ const proxyHandler: ProxyHandler<any> = {
                     // Bind this looping function to an array of proxies
                     const arr = [];
                     for (let i = 0; i < value.length; i++) {
-                        arr.push(prop(node, i));
+                        arr.push(getProxy(node, i));
                     }
                     return vProp.bind(arr);
                 }
@@ -176,25 +214,19 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp.bind(value);
         }
         // Accessing primitives tracks and returns
-        if (isPrimitive(vProp)) {
+        if (vProp !== undefined && isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
             // Update that this node was accessed for useObservables and useComputed
-            if (state.isTracking) {
-                state.updateTracking(getChildNode(node, p), value);
+            if (tracking.is) {
+                updateTracking(getChildNode(node, p), value);
             }
             return vProp;
         }
 
-        // Create a proxy if not already cached and return it
-        const path = target.path + delim + p;
-        let proxy = node.root.proxies.get(path);
-        if (!proxy) {
-            proxy = createProxy(getChildNode(target, p));
-        }
-        return proxy;
+        return getProxy(target, p);
     },
     // Forward all proxy properties to the target's value
     getPrototypeOf(target) {
@@ -244,20 +276,17 @@ function set(node: ProxyValue, keyOrNewValue: any, newValue?: any) {
         return setProp(node, keyOrNewValue, newValue);
     } else if (node.root.isPrimitive) {
         return setProp(node, 'current', keyOrNewValue);
+    } else if (!node.parent) {
+        return assign(node, keyOrNewValue);
     } else {
-        const { parent, key } = getParentNode(node);
-        return setProp(parent, key, keyOrNewValue);
+        return setProp(node.parent, node.key, keyOrNewValue);
     }
 }
 
-function setProp(node: ProxyValue, key: string | number, newValue?: any) {
-    newValue = newValue?.[symbolGet] ?? newValue;
+function setProp(node: ProxyValue, key: string | number, newValue?: any, level?: number) {
+    newValue = newValue?.[symbolIsObservable] ? newValue[symbolGet] : newValue;
 
     const isPrim = isPrimitive(newValue);
-
-    if (!key && !node.path.includes(delim)) {
-        return assign(node, newValue);
-    }
 
     inSetFn = true;
 
@@ -273,45 +302,25 @@ function setProp(node: ProxyValue, key: string | number, newValue?: any) {
     // Save the new value
     parentValue[key] = newValue;
 
+    let hasADiff: boolean;
     // If new value is an object or array update notify down the tree
     if (!isPrim) {
-        updateNodes(childNode, newValue, prevValue);
+        hasADiff = updateNodes(childNode, newValue, prevValue);
     }
 
     // Notify for this element if it's an object or it's changed
     if (!isPrim || newValue !== prevValue) {
-        notify(node.root.isPrimitive ? node : childNode, newValue, prevValue, prevValue === undefined ? -1 : 0);
+        notify(
+            node.root.isPrimitive ? node : childNode,
+            newValue,
+            prevValue,
+            level ?? prevValue === undefined ? -1 : 0
+        );
     }
 
     inSetFn = false;
 
-    return newValue;
-}
-
-function _notify(
-    node: ProxyValue,
-    value: any,
-    path: (string | number)[],
-    valueAtPath: any,
-    prevAtPath: any,
-    level: number
-) {
-    const listeners = node.root.listenerMap.get(node.path);
-    // Notify all listeners
-    if (listeners) {
-        let getPrevious;
-        for (let listener of listeners) {
-            // Notify if listener is not shallow or if this is the first level
-            if (!listener.shallow || level <= 0) {
-                // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
-                // it often, so leave it up to the user.
-                if (!getPrevious) {
-                    getPrevious = createPreviousHandler(value, path, prevAtPath);
-                }
-                observableBatcherNotify({ cb: listener.callback, value, getPrevious, path, valueAtPath, prevAtPath });
-            }
-        }
-    }
+    return getProxy(node, key);
 }
 
 function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
@@ -332,6 +341,32 @@ function createPreviousHandler(value: any, path: (string | number)[], prevAtPath
     };
 }
 
+function _notify(
+    node: ProxyValue,
+    value: any,
+    path: (string | number)[],
+    valueAtPath: any,
+    prevAtPath: any,
+    level: number
+) {
+    const listeners = node.listeners;
+    // Notify all listeners
+    if (listeners) {
+        let getPrevious;
+        for (let listener of listeners) {
+            // Notify if listener is not shallow or if this is the first level
+            if (!listener.shallow || level <= 0) {
+                // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
+                // it often, so leave it up to the user.
+                if (!getPrevious) {
+                    getPrevious = createPreviousHandler(value, path, prevAtPath);
+                }
+                observableBatcherNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath });
+            }
+        }
+    }
+}
+
 function _notifyParents(
     node: ProxyValue,
     value: any,
@@ -343,22 +378,17 @@ function _notifyParents(
     // Do the notify
     _notify(node, value, path, valueAtPath, prevAtPath, level);
     // If not root notify up through parents
-    if (node.path !== '_') {
-        const { parent, key } = getParentNode(node);
+    if (node.parent) {
+        const parent = node.parent;
         if (parent) {
             const parentValue = getNodeValue(parent);
-            _notifyParents(parent, parentValue, [key].concat(path), valueAtPath, prevAtPath, level + 1);
+            _notifyParents(parent, parentValue, [node.key].concat(path), valueAtPath, prevAtPath, level + 1);
         }
     }
 }
 function notify(node: ProxyValue, value: any, prev: any, level: number) {
     // Start notifying up through parents with the listenerInfo
     _notifyParents(node, value, [], value, prev, level);
-}
-
-function prop(node: ProxyValue, key: string | number) {
-    const child = getChildNode(node, key);
-    return createProxy(child);
 }
 
 function assign(node: ProxyValue, value: any) {
@@ -381,15 +411,14 @@ function deleteFn(node: ProxyValue, key?: string | number) {
     // If called without a key, delete by key from the parent node
     if (key !== undefined) {
         return deleteFnByKey(node, key);
-    } else {
-        const { parent, key } = getParentNode(node);
-        return deleteFnByKey(parent, key);
+    } else if (node.parent) {
+        return deleteFnByKey(node.parent, node.key);
     }
 }
 function deleteFnByKey(node: ProxyValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
-        setProp(node, key, undefined);
+        setProp(node, key, undefined, /*level*/ -1);
     }
 
     inSetFn = true;
@@ -422,17 +451,9 @@ export function observable<T>(obj: T): ObservableOrPrimitive<T> {
 
     const node: ProxyValue = {
         root: obs,
-        path: '_',
-        pathParent: '',
-        key: '_',
+        parent: undefined,
+        key: undefined,
     };
 
-    obs.proxyValues.set(node.path, node);
-
-    updateNodes(node, obs._);
-
-    const proxy = createProxy(node);
-
-    // @ts-ignore
-    return proxy;
+    return getProxy(node) as ObservableOrPrimitive<T>;
 }

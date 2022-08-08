@@ -1,4 +1,4 @@
-import { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } from '../observableInterfaces';
+import type { ClassConstructor, ObservablePersistLocal, ObservablePersistRemote } from '../observableInterfaces';
 
 interface Config {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
@@ -7,8 +7,8 @@ interface Config {
     dateModifiedKey?: string;
 }
 
-export const observableConfiguration: Config = {};
+export const observablePersistConfiguration: Config = {};
 
 export function configureObservablePersistence(options?: Config) {
-    Object.assign(observableConfiguration, options);
+    Object.assign(observablePersistConfiguration, options);
 }

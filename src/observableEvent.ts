@@ -3,10 +3,10 @@ import type { ObservableEvent } from './observableInterfaces';
 
 export function observableEvent(): ObservableEvent {
     // observableEvent simply wraps around a number observable
-    // which increments its value to fire change events
+    // which increments its value to dispatch change events
     const obs = observable(0);
     return {
-        fire: () => {
+        dispatch: () => {
             // Notify increments the value so that the observable changes
             obs.set(obs.current + 1);
         },

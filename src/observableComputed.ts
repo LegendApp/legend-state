@@ -1,7 +1,7 @@
 import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
 import { onChange } from './on';
-import { state } from './state';
+import { tracking } from './state';
 
 export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
     // Create an observable for this computed variable
@@ -14,15 +14,15 @@ export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
         obs.set(computed);
     };
 
-    state.isTracking = true;
-    state.trackedNodes = [];
+    tracking.is = true;
+    tracking.nodes = [];
 
     update();
 
-    state.isTracking = false;
+    tracking.is = false;
 
     // Todo shallow
-    for (let { node } of state.trackedNodes) {
+    for (let { node } of tracking.nodes) {
         onChange(node, update);
     }
 

@@ -1,12 +1,12 @@
 {
     "name": "@legendapp/state",
-    "version": "0.10.0-next.1",
+    "version": "0.10.0-next.2",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
     "type": "module",
-    "main": "./index.js",
-    "module": "./esm/index.js",
+    "main": "./index.cjs",
+    "module": "./index.esm.mjs",
     "types": "./index.d.ts",
     "files": [
         "**"
@@ -14,46 +14,55 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build:cjs": "tsc",
-        "build:esm": "tsc -p ./tsconfig.esm.json",
-        "build": "npm run build:cjs && npm run build:esm && cp package.json dist/package.json && rm -rf dist/tests && rm -rf dist/esm/tests && rm dist/*.tsbuildinfo && rm dist/esm/*.tsbuildinfo && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
-        "preversion": "npm run build",
-        "postversion": "git push --follow-tags",
+        "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
-        "publish:preminor": "npm version preminor && npm publish",
-        "publish:prerelease": "npm version prerelease && npm publish",
+        "publish:preminor": "npm version preminor && cd dist && npm publish",
+        "publish:prerelease": "npm version prerelease && cd dist && npm publish",
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
-        "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
+        "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react"
     },
     "exports": {
+        "./package.json": "./package.json",
         ".": {
-            "import": "./esm/index.js",
-            "require": "./index.js"
+            "import": "./index.esm.mjs",
+            "require": "./index.cjs",
+            "types": "./index.d.ts"
         },
         "./internal": {
-            "import": "./esm/internal.js",
-            "require": "./internal.js"
+            "import": "./internal.esm.mjs",
+            "require": "./internal.cjs",
+            "types": "./internal.d.ts"
         },
         "./local-storage": {
-            "import": "./local-esm/storage.js",
-            "require": "./local-storage.js"
+            "import": "./local-storage.esm.mjs",
+            "require": "./local-storage.cjs",
+            "types": "./local-storage.d.ts"
         },
         "./mmkv": {
-            "import": "./esm/mmkv.js",
-            "require": "./mmkv.js"
+            "import": "./mmkv.esm.mjs",
+            "require": "./mmkv.cjs",
+            "types": "./mmkv.d.ts"
         },
         "./persist": {
-            "import": "./esm/persist.js",
-            "require": "./persist.js"
+            "import": "./persist.esm.mjs",
+            "require": "./persist.cjs",
+            "types": "./persist.d.ts"
         },
         "./react": {
-            "import": "./esm/react.js",
-            "require": "./react.js"
+            "import": "./react.esm.mjs",
+            "require": "./react.cjs",
+            "types": "./react.d.ts"
         }
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^22.0.1",
+        "@rollup/plugin-node-resolve": "^13.3.0",
+        "@rollup/plugin-typescript": "^8.3.4",
+        "@swc/cli": "^0.1.57",
+        "@swc/core": "^1.2.223",
         "@testing-library/react-hooks": "^8.0.1",
         "@types/jest": "^26.0.24",
         "@types/react": "^18.0.1",
@@ -65,6 +74,7 @@
         "react-native-mmkv": "^2.4.3",
         "react-test-renderer": "^18.2.0",
         "rimraf": "^3.0.2",
+        "rollup": "^2.77.2",
         "ts-jest": "^27.0.4",
         "tslib": "^2.4.0",
         "typescript": "^4.7.4"

@@ -1,20 +1,49 @@
-import { useEffect, useReducer, useRef } from 'react';
-import { getObservableRawValue, symbolGet, symbolShallow, symbolShouldRender } from '../globals';
-import { isArray, isObject, isPrimitive } from '../is';
-import { MappedObservableValue, ObservableCheckerRender, ObservableListener, Shallow } from '../observableInterfaces';
-import { onChange, onChangeShallow } from '../on';
-import { state } from '../state';
+import {
+    getObservableRawValue,
+    isArray,
+    isObject,
+    isPrimitive,
+    onChange,
+    onChangeShallow,
+    symbolIsObservable,
+    symbolShallow,
+    tracking,
+} from '@legendapp/state';
+import { useMemo, useEffect, useReducer, useRef, useState, RefObject } from 'react';
+import type {
+    ListenerFn,
+    ListenerFnSaved,
+    MappedObservableValue,
+    ObservableCheckerRender,
+    ObservableListenerDispose,
+    Shallow,
+    TrackingNode,
+} from '../observableInterfaces';
 
 function useForceRender() {
     const [, forceRender] = useReducer((s) => s + 1, 0);
     return () => forceRender();
 }
 
-interface SavedRef {
-    listeners: Map<string, ObservableListener>;
+interface SavedRef<
+    T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
+> {
+    fn: () => T;
+    value: T;
+    listeners: Map<string, ObservableListenerDispose>;
+    isFirst: boolean;
 }
 
-const pathsSeen = new Set();
+// function arrayEqual(arr1: any[], arr2: any[]) {
+//     if (!arr1 || !arr2 || arr1.length !== arr2.length) return false;
+
+//     for (let i = 0; i < arr1.length; i++) {
+//         if (arr1[i] !== arr2[i]) return false;
+//     }
+
+//     return true;
+// }
+
 /**
  * A React hook that listens to observables and returns their values.
  *
@@ -24,94 +53,98 @@ const pathsSeen = new Set();
  */
 export function useObservables<
     T extends ObservableCheckerRender | Record<string, ObservableCheckerRender> | ObservableCheckerRender[]
->(fn: () => T): MappedObservableValue<T> {
+>(fn: () => T, deps?: any[]): MappedObservableValue<T> {
     const forceRender = useForceRender();
-    const ref = useRef<SavedRef>();
-    if (!ref.current) {
-        ref.current = {
-            listeners: new Map(),
-        };
-    }
+    const ref = useRef<SavedRef<T>>({ fn, isFirst: true, value: undefined, listeners: new Map() });
+    ref.current.fn = fn;
 
-    // Start tracking to fill trackedNodes with all nodes accessed
+    useMemo(() => setup(ref, forceRender), deps || []);
+
+    useEffect(() => () => ref.current.listeners.forEach((dispose) => dispose()), []);
+
+    return ref.current.value as MappedObservableValue<T>;
+}
+
+function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
+    let previousPrimitives: string;
+    const updateFromSelector = () => {
+        const args = ref.current.fn();
+        const { primitives, value } = compute(args);
+        if (previousPrimitives !== primitives) {
+            previousPrimitives = primitives;
+            ref.current.value = value;
+            forceRender();
+        }
+    };
+    const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
+        for (let i = 0; i < nodes.length; i++) {
+            const { node, shallow } = nodes[i];
+            // const path = node.path;
+
+            // Listen to this path if not already listening
+            if (!node.listeners?.has(updateFn)) {
+                shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn);
+            }
+        }
+    };
+    const update = () => {
+        tracking.is = true;
+        tracking.nodes = [];
+
+        const args = ref.current.fn();
+        const selectorNodes = tracking.nodes;
+
+        tracking.nodes = [];
+
+        const { primitives, value } = compute(args);
+
+        tracking.is = false;
+        updateListeners(selectorNodes, updateFromSelector);
+        updateListeners(tracking.nodes, update);
+
+        ref.current.value = value;
+
+        if (!ref.current.isFirst) {
+            previousPrimitives = primitives;
+            forceRender();
+        }
+        ref.current.isFirst = false;
+    };
+    update();
+}
+
+function compute(args) {
     let ret;
-    state.isTracking = true;
-    state.trackedNodes = [];
+    let primitives: string = '';
 
-    const args = fn();
-
-    if (args !== undefined) {
-        const singleValue = args[symbolGet];
-        if (singleValue !== undefined) {
-            ret = singleValue;
-        } else if (isPrimitive(args)) {
-            ret = args;
-        } else if (isArray(args)) {
+    if (args !== undefined && args !== null) {
+        let isPrim;
+        if (isArray(args)) {
             ret = [];
             for (let i = 0; i < args.length; i++) {
-                ret[i] = getObservableRawValue(args[i]);
+                isPrim = isPrimitive(args[i]);
+                if (isPrim) primitives += args[i];
+                ret[i] = isPrim ? args[i] : getObservableRawValue(args[i]);
             }
-        } else if (isObject(args)) {
-            if (args[symbolShallow] || args[symbolShouldRender]) {
-                ret = getObservableRawValue(args as Shallow);
-            } else {
+        } else {
+            isPrim = isPrimitive(args);
+            if (isPrim || args[symbolIsObservable] || args[symbolShallow]) {
+                if (isPrim) primitives += args;
+
+                ret = isPrim ? args : getObservableRawValue(args as ObservableCheckerRender);
+            } else if (isObject(args)) {
                 ret = {};
                 const keys = Object.keys(args);
                 const length = keys.length;
                 for (let i = 0; i < length; i++) {
                     const key = keys[i];
-                    ret[key] = getObservableRawValue(args[key]);
+                    isPrim = isPrimitive(args[key]);
+                    if (isPrim) primitives += args[key];
+                    ret[key] = isPrim ? args[key] : getObservableRawValue(args[key]);
                 }
             }
         }
     }
 
-    state.isTracking = false;
-
-    pathsSeen.clear();
-
-    const listeners = ref.current.listeners;
-    for (let tracked of state.trackedNodes) {
-        const { node, shouldRender, shallow } = tracked;
-        const path = node.path;
-        // Track the paths seen this frame to dispose of listeners no longer needed
-        pathsSeen.add(path);
-
-        // Listen to this path if not already listening
-        if (!listeners.has(path)) {
-            let cb = forceRender as (value?: any, prev?: any) => void;
-            // If using shouldRender, only render when the return value of shouldRender changes
-            if (shouldRender) {
-                cb = (v, getPrev: () => any) => {
-                    const prev = getPrev();
-                    if (shouldRender(v, prev)) {
-                        forceRender();
-                    }
-                };
-            }
-            listeners.set(path, shallow ? onChangeShallow(node, cb) : onChange(node, cb));
-        }
-    }
-
-    // Dispose any listeners not seen in this frame
-    // TODO Faster way to do this than forEach?
-    listeners.forEach((listener, listenerPath) => {
-        if (!pathsSeen.has(listenerPath)) {
-            listener.dispose();
-            listeners.delete(listenerPath);
-        }
-    });
-
-    // Dispose listeners on unmount
-    useEffect(
-        () => () => {
-            const listeners = ref.current.listeners;
-            if (listeners) {
-                listeners.forEach((listener) => listener.dispose());
-            }
-        },
-        []
-    ); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return ret as MappedObservableValue<T>;
+    return { value: ret, primitives };
 }

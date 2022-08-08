@@ -1,3 +1,2 @@
-export { observableConfiguration } from './src/persist/configureObservablePersistence';
-export { symbolShallow, symbolDateModified } from './src/globals';
-export { getDateModifiedKey } from './src/persist/persistHelpers';
+export { observablePersistConfiguration, getDateModifiedKey } from '@legendapp/state/persist';
+export { symbolShallow, symbolDateModified } from '@legendapp/state';

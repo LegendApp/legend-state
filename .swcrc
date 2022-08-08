@@ -1,0 +1,22 @@
+{
+    // Enable minification
+    "minify": true,
+    // Optional, configure minifcation options
+    "jsc": {
+        "minify": {
+            "compress": {
+                "unused": true
+            },
+            "mangle": true
+        },
+        "transform": {
+            "optimizer": {
+                "globals": {
+                    "vars": {
+                        "process.env.NODE_ENV": "\"production\""
+                    }
+                }
+            }
+        }
+    }
+}

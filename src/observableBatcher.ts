@@ -1,4 +1,4 @@
-import { ListenerFn, ObservableListenerInfo } from './observableInterfaces';
+import { ListenerFn } from './observableInterfaces';
 
 interface BatchItem {
     cb: ListenerFn<any>;

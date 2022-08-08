@@ -2,7 +2,12 @@ import { observableComputed } from '../src/observableComputed';
 import { observable } from '../src/observable';
 import { observableEvent } from '../src/observableEvent';
 import { observableBatcher } from '../src/observableBatcher';
-import { Observable, ObservableComputed, ObservablePrimitive } from '../src/observableInterfaces';
+import {
+    Observable,
+    ObservableComputed,
+    ObservablePrimitive,
+    ObservablePrimitiveChild,
+} from '../src/observableInterfaces';
 import { isObservable } from '../src/helpers';
 
 function promiseTimeout(time?: number) {
@@ -18,7 +23,10 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: Observable | ObservablePrimitive | ObservableComputed, shallow?: boolean) {
+function expectChangeHandler(
+    obs: Observable | ObservablePrimitive | ObservableComputed | ObservablePrimitiveChild,
+    shallow?: boolean
+) {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {
@@ -36,6 +44,7 @@ describe('Set', () => {
     test('Set', () => {
         const obs = observable({ test: { text: 't' } });
         obs.test.set({ text: 't2' });
+        expect(obs.test.get()).toEqual({ text: 't2' });
         expect(obs).toEqual({ test: { text: 't2' } });
     });
     test('Set primitive', () => {
@@ -53,7 +62,7 @@ describe('Set', () => {
         obs.test.text.set({ text2: 't2' });
         expect(obs).toEqual({ test: { text: { text2: 't2' } } });
     });
-    test('Set array', () => {
+    test('Set in array', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
         obs.arr.set([{ text: 'hi2' }]);
         expect(obs.arr.length).toEqual(1);
@@ -61,14 +70,15 @@ describe('Set', () => {
         expect(obs.arr.get()).toEqual([{ text: 'hi2' }]);
         expect(obs.arr[0].text).toEqual('hi2');
         obs.arr[0].text.set('hi3');
+        expect(obs.arr[0].text).toEqual('hi3');
         expect(obs.arr.map((a) => a)).toEqual([{ text: 'hi3' }]);
     });
-    //     // TODO
-    //     // test('Set at root', () => {
-    //     //     const obs = observable({ test: { text: 't' } });
-    //     //     obs.set({ test: { text: 't2' } });
-    //     //     expect(obs).toEqual({ test: { text: 't2' } });
-    //     // });
+    //     //     // TODO
+    //     //     // test('Set at root', () => {
+    //     //     //     const obs = observable({ test: { text: 't' } });
+    //     //     //     obs.set({ test: { text: 't2' } });
+    //     //     //     expect(obs).toEqual({ test: { text: 't2' } });
+    //     //     // });
     test('Set value does not copy object', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -91,7 +101,7 @@ describe('Set', () => {
         );
 
         const setVal = obs.arr.set([{ text: 'hello' }]);
-        expect(setVal).toEqual([{ text: 'hello' }]);
+        expect(setVal.get()).toEqual([{ text: 'hello' }]);
 
         expect(obs.arr.get()).toEqual([{ text: 'hello' }]);
 
@@ -403,7 +413,7 @@ describe('Listeners', () => {
         const ret = obs.set({ test: 'hello' });
         expect(ret).toEqual({ test: 'hello' });
         const ret2 = obs.test.set('hello');
-        expect(ret2).toEqual('hello');
+        expect(ret2.get()).toEqual('hello');
         expect(obs.test).toEqual('hello');
         const ret3 = obs.assign({ test: 'hello2' });
         expect(obs.test).toEqual('hello2');
@@ -690,6 +700,28 @@ describe('Primitives', () => {
         obs.set(20);
         expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
+    test('Set function with prop is stable', () => {
+        const obs = observable({ num1: 10, num2: 20 });
+        const set = obs.prop('num1').set;
+        expect(obs.num2).toEqual(20);
+
+        set(30);
+
+        expect(obs.num1).toEqual(30);
+    });
+    test('Assign on a primitive errors', async () => {
+        const obs = observable({ num1: 10, num2: 20 });
+
+        expect(() => {
+            // @ts-expect-error
+            obs.num1.assign({ value: 'hi' });
+            // @ts-expect-error
+            obs.num1.assign;
+        }).toThrow();
+
+        // This error will leave observableBatch in progress, so force end it
+        observableBatcher.end(true);
+    });
 });
 describe('Array', () => {
     test('Basic array', () => {
@@ -711,6 +743,7 @@ describe('Array', () => {
     test('Array push', () => {
         const obs = observable({ test: ['hi'] });
         const handler = expectChangeHandler(obs);
+
         obs.test.push('hello');
         expect(obs.test.get()).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith(
@@ -739,6 +772,9 @@ describe('Array', () => {
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    // test('Array of objects requires ids', () => {
+    //     const obs = observable({ test: [{ text: 'hi' }] });
+    // });
     test('Array swap', () => {
         const obs = observable({ test: [1, 2, 3, 4, 5] });
         let tmp = obs.test[1];
@@ -776,6 +812,24 @@ describe('Array', () => {
         obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
     });
+    test('Array swap with objects and then remove', () => {
+        const obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
+        let arr = obs.test;
+        let tmp = arr[1].get();
+        obs.test.set(1, arr[4]);
+        obs.test.set(4, tmp);
+        obs.test.splice(0, 1);
+        expect(obs.test[0].get()).toEqual({ id: 5, text: 5 });
+        expect(obs.test[0]).toEqual({ id: 5, text: 5 });
+    });
     test('Array swap if empty', () => {
         const obs = observable({ test: [] });
         let tmp = obs.test[1];
@@ -806,7 +860,15 @@ describe('Array', () => {
         expect(obs.test.map((a) => a)).toEqual([]);
     });
     test('Array splice fire events', () => {
-        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        let obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
         const handler = expectChangeHandler(obs.test);
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
@@ -814,25 +876,70 @@ describe('Array', () => {
         obs.test[3].onChange(() => {});
         obs.test[4].onChange(() => {});
         obs.test.splice(0, 1);
-        expect(obs.test[0]).toEqual({ text: 2 });
-        expect(obs.test[0]).toEqual({ text: 2 });
-        expect(obs.test.get()).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
-        expect(obs.test.get()).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test[0]).toEqual({ id: 2, text: 2 });
+        expect(obs.test[0]).toEqual({ id: 2, text: 2 });
+        expect(obs.test.get()).toEqual([
+            { id: 2, text: 2 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 5, text: 5 },
+        ]);
+        expect(obs.test.get()).toEqual([
+            { id: 2, text: 2 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 5, text: 5 },
+        ]);
         expect(obs.test.length).toEqual(4);
         expect(obs.test.length).toEqual(4);
-        expect(obs.test.map((a) => a)).toEqual([{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
+        expect(obs.test.map((a) => a)).toEqual([
+            { id: 2, text: 2 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 5, text: 5 },
+        ]);
         // TODO
         // expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
-            [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
-            [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
+            [
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+            [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
             [],
-            [{ text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }],
-            [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]
+            [
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+            [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ]
         );
     });
     test('Array with listeners clear', () => {
-        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        let obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
         const handler = jest.fn();
         obs.test.onChangeShallow(handler);
         obs.test[0].onChange(() => {});
@@ -857,6 +964,205 @@ describe('Array', () => {
         const arr = [];
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
+    });
+    test('Array has stable reference', () => {
+        const obs = observable({ arr: [] });
+        obs.arr.set([
+            { id: 'h1', text: 'hi' },
+            { id: 'h2', text: 'hello' },
+        ]);
+        const second = obs.arr[1];
+        const handler = expectChangeHandler(second);
+        obs.arr.splice(0, 1);
+        obs.arr[0].text.set('hello there');
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello there' },
+            { id: 'h2', text: 'hello' },
+            ['text'],
+            'hello there',
+            'hello'
+        );
+    });
+    test('Array has stable reference 2', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'hi' },
+                { id: 'h2', text: 'hello' },
+                { id: 'h3', text: 'h3' },
+            ],
+        });
+        const second = obs.arr[1];
+        const handler = expectChangeHandler(second);
+
+        const arr = obs.arr.get();
+        let tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        obs.arr.set(2, tmp);
+        // This makes second become h3
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' }
+        );
+
+        obs.arr.splice(0, 1);
+
+        expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
+        obs.arr[0].text.set('hello there');
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'hello there' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'hello there' },
+            { id: 'h2', text: 'hello' }
+        );
+    });
+    test('Array has stable swaps', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'h1' },
+                { id: 'h2', text: 'h2' },
+                { id: 'h3', text: 'h3' },
+            ],
+        });
+        const second = obs.arr[1];
+        const handler = expectChangeHandler(second);
+
+        let arr = obs.arr.get();
+        let tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'h1' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h3', text: 'h3' },
+        ]);
+        expect(tmp).toEqual({ id: 'h2', text: 'h2' });
+        obs.arr.set(2, tmp);
+
+        // Second becomes h3 still at index 1
+
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'h1' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'h2' },
+        ]);
+        expect(handler).toBeCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'h2' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'h2' }
+        );
+
+        obs.arr[1].text.set('newtext');
+
+        // debugger;
+        expect(handler).toBeCalledWith(
+            { id: 'h3', text: 'newtext' },
+            { id: 'h3', text: 'h3' },
+            ['text'],
+            'newtext',
+            'h3'
+        );
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'h1' },
+            { id: 'h3', text: 'newtext' },
+            { id: 'h2', text: 'h2' },
+        ]);
+        expect(second.get()).toEqual({ id: 'h3', text: 'newtext' });
+    });
+    test('Array has stable swaps 2', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'hi' },
+                { id: 'h2', text: 'hello' },
+                { id: 'h3', text: 'h3' },
+            ],
+        });
+        const second = obs.arr[1];
+        const third = obs.arr[2];
+        const handler = expectChangeHandler(second);
+        const handler3 = expectChangeHandler(third);
+
+        let arr = obs.arr.get();
+        let tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'hi' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h3', text: 'h3' },
+        ]);
+        expect(tmp).toEqual({ id: 'h2', text: 'hello' });
+        obs.arr.set(2, tmp);
+
+        expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'hi' },
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+        ]);
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' }
+        );
+        expect(handler3).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' },
+            [],
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' }
+        );
+
+        arr = obs.arr.get();
+        tmp = arr[1];
+        obs.arr.set(1, arr[2]);
+        obs.arr.set(2, tmp);
+
+        expect(obs.arr.get()).toEqual([
+            { id: 'h1', text: 'hi' },
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' },
+        ]);
+
+        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' },
+            [],
+            { id: 'h3', text: 'h3' },
+            { id: 'h2', text: 'hello' }
+        );
+        expect(handler3).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' },
+            [],
+            { id: 'h2', text: 'hello' },
+            { id: 'h3', text: 'h3' }
+        );
+
+        obs.arr.splice(0, 1);
+
+        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
+        expect(obs.arr[0].get()).toEqual({ id: 'h2', text: 'hello' });
+
+        obs.arr[0].text.set('hello there');
+
+        expect(handler).toHaveBeenCalledWith(
+            { id: 'h2', text: 'hello there' },
+            { id: 'h2', text: 'hello' },
+            ['text'],
+            'hello there',
+            'hello'
+        );
     });
 });
 describe('Deep changes keep listeners', () => {
@@ -975,7 +1281,7 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2).toEqual({
             a6: { text: 'ta6' },
         });
-        expect(obs.test.test2.a1).toEqual(undefined);
+        expect(obs.test.test2.a1.get()).toEqual(undefined);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
     });
@@ -1095,6 +1401,41 @@ describe('Shallow', () => {
         obs.data.set(0, { text: 11 });
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Key delete notifies shallow', () => {
+        const obs = observable({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
+        const handler = jest.fn();
+        obs.test.onChangeShallow(handler);
+
+        obs.test.delete('key2');
+
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        // But setting to undefined does not
+        obs.test.set('key1', undefined);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        obs.test.set('key3', { text: 'hello3' });
+
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
+    test('Array splice notifies shallow', () => {
+        const obs = observable({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
+        const handler = jest.fn();
+        const handler2 = jest.fn();
+        obs.arr.onChangeShallow(handler);
+        obs.arr.onChange(handler2);
+
+        obs.arr.splice(1, 1);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler2).toHaveBeenCalledTimes(1);
+
+        obs.arr.push({ text: 'hello3' });
+
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler2).toHaveBeenCalledTimes(2);
+    });
 });
 describe('Computed', () => {
     test('Basic computed', () => {
@@ -1131,11 +1472,11 @@ describe('Event', () => {
         const handler = jest.fn();
         event.on(handler);
         expect(handler).not.toHaveBeenCalled();
-        event.fire();
+        event.dispatch();
         expect(handler).toHaveBeenCalledTimes(1);
-        event.fire();
-        event.fire();
-        event.fire();
+        event.dispatch();
+        event.dispatch();
+        event.dispatch();
         expect(handler).toHaveBeenCalledTimes(4);
     });
 });

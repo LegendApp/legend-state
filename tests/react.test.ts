@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 import { observable } from '../src/observable';
-import { shouldRender, shallow } from '../src/helpers';
+import { shallow } from '../src/helpers';
 import { useObservables } from '../src/react/useObservables';
 import { useNewObservable } from '../src/react/useNewObservable';
 import { observableComputed } from '../src/observableComputed';
@@ -58,6 +58,18 @@ describe('React Hooks', () => {
         });
         const val3 = result.current;
         expect(val3).toEqual('hello');
+    });
+    test('useObservables with single object re-renders when changed', () => {
+        let numRenders = 0;
+        const obs = observable({ val: { val2: { val3: 'hello' } } });
+        const { result } = renderHook(() => {
+            numRenders++;
+            return useObservables(() => obs.val.val2);
+        });
+        act(() => {
+            obs.val.val2.val3.set('hi');
+        });
+        expect(numRenders).toEqual(2);
     });
     test('useObservables shallow does not re-render from deep set', () => {
         let numRenders = 0;
@@ -191,146 +203,115 @@ describe('React Hooks', () => {
         expect(numRendersItem).toEqual(3);
         expect(result.current).toEqual([{ text: 2 }]);
     });
-    test('useObservables with shouldRender', () => {
+    test('useObservables with computations', () => {
         let numRenders = 0;
-        let numRendersPrev = 0;
-        const obs = observable({ val: { val2: { val3: 'hello' } } });
-        renderHook(() => {
+        const obs = observable({ val: { arr: ['hi'], val2: { val3: 'hello' } }, otherval: 'sup' });
+        const { result } = renderHook(() => {
             numRenders++;
-            return useObservables(() => [
-                shouldRender(obs.val.val2, (val2, prev) => {
-                    return val2.val3 === 'hi' || prev.val3 === 'hi';
-                }),
-            ]);
+            // @ts-ignore
+            return useObservables(() => [obs.otherval, obs.val.arr[0] + obs.val.val2.val3]);
         });
-        renderHook(() => {
-            numRendersPrev++;
-            return useObservables(() => [
-                shouldRender(obs.val.val2, (val2, prev) => {
-                    return val2.val3.length !== prev.val3.length;
-                }),
-            ]);
-        });
+        let [other, text] = result.current;
         expect(numRenders).toEqual(1);
-        expect(numRendersPrev).toEqual(1);
-
-        // Changing to any other text has no effect
+        expect(text).toEqual('hihello');
+        // expect(val.arr.map((a) => a)).toEqual(['hi']);
+        // expect(val.arr.length).toEqual(1);
         act(() => {
-            obs.val.val2.val3.set('hello there');
-        });
-        expect(numRenders).toEqual(1);
-        expect(numRendersPrev).toEqual(2);
-
-        // Changing to 'hi' renders'
-        act(() => {
-            obs.val.val2.val3.set('hi');
+            obs.val.val2.set('val3', 'hi');
         });
         expect(numRenders).toEqual(2);
-        expect(numRendersPrev).toEqual(3);
-
-        // Changing from 'hi' renders
-        act(() => {
-            obs.val.val2.val3.set('hi there');
-        });
-        expect(numRenders).toEqual(3);
-        expect(numRendersPrev).toEqual(4);
-
-        // Changing to any other text has no effect
-        act(() => {
-            obs.val.val2.val3.set('hi again');
-        });
-        expect(numRenders).toEqual(3);
-        // Length is the same as previous so no change
-        expect(numRendersPrev).toEqual(4);
+        [other, text] = result.current;
+        expect(text).toEqual('hihi');
+        // expect(val.val2.val3).toEqual('hi');
     });
-    test('useNewObservable primitive', () => {
-        let numRenders = 0;
-        const { result } = renderHook(() => {
-            numRenders++;
-            return useNewObservable(10);
-        });
-        const [obs, val] = result.current;
-        expect(numRenders).toEqual(1);
-        expect(val).toEqual(10);
-        act(() => {
-            obs.set(20);
-        });
-        expect(numRenders).toEqual(2);
-        expect(result.current[1]).toEqual(20);
-    });
-    test('useNewObservable object', () => {
-        let numRenders = 0;
-        const { result } = renderHook(() => {
-            numRenders++;
-            return useNewObservable({ text: 'hi' });
-        });
-        const [obs, val] = result.current;
-        expect(numRenders).toEqual(1);
-        expect(result.current[1]).toEqual({ text: 'hi' });
+    // test('useNewObservable primitive', () => {
+    //     let numRenders = 0;
+    //     const { result } = renderHook(() => {
+    //         numRenders++;
+    //         return useNewObservable(10);
+    //     });
+    //     const [obs, val] = result.current;
+    //     expect(numRenders).toEqual(1);
+    //     expect(val).toEqual(10);
+    //     act(() => {
+    //         obs.set(20);
+    //     });
+    //     expect(numRenders).toEqual(2);
+    //     expect(result.current[1]).toEqual(20);
+    // });
+    // test('useNewObservable object', () => {
+    //     let numRenders = 0;
+    //     const { result } = renderHook(() => {
+    //         numRenders++;
+    //         return useNewObservable({ text: 'hi' });
+    //     });
+    //     const [obs, val] = result.current;
+    //     expect(numRenders).toEqual(1);
+    //     expect(result.current[1]).toEqual({ text: 'hi' });
 
-        act(() => {
-            obs.set({ text: 'hello' });
-        });
-        expect(numRenders).toEqual(2);
-        expect(result.current[1]).toEqual({ text: 'hello' });
-    });
-    test('useNewObservable not listening', () => {
-        let numRenders = 0;
-        const { result } = renderHook(() => {
-            numRenders++;
-            return useNewObservable(10, false);
-        });
-        const [obs] = result.current;
-        expect(numRenders).toEqual(1);
-        expect(obs).toEqual({ current: 10 });
-        act(() => {
-            obs.set(20);
-        });
-        expect(numRenders).toEqual(1);
-    });
-    test('useObservables with multiple primitives', () => {
-        let numRenders = 0;
-        const obs = observable({ val1: 1, val2: 2, val3: 3, val4: 4 });
-        const { result } = renderHook(() => {
-            numRenders++;
-            return useObservables(() => [obs.val1, obs.val2, obs.val3]);
-        });
-        const val = result.current;
-        expect(numRenders).toEqual(1);
-        expect(val).toEqual([1, 2, 3]);
+    //     act(() => {
+    //         obs.set({ text: 'hello' });
+    //     });
+    //     expect(numRenders).toEqual(2);
+    //     expect(result.current[1]).toEqual({ text: 'hello' });
+    // });
+    // test('useNewObservable not listening', () => {
+    //     let numRenders = 0;
+    //     const { result } = renderHook(() => {
+    //         numRenders++;
+    //         return useNewObservable(10, false);
+    //     });
+    //     const [obs] = result.current;
+    //     expect(numRenders).toEqual(1);
+    //     expect(obs).toEqual({ current: 10 });
+    //     act(() => {
+    //         obs.set(20);
+    //     });
+    //     expect(numRenders).toEqual(1);
+    // });
+    // test('useObservables with multiple primitives', () => {
+    //     let numRenders = 0;
+    //     const obs = observable({ val1: 1, val2: 2, val3: 3, val4: 4 });
+    //     const { result } = renderHook(() => {
+    //         numRenders++;
+    //         return useObservables(() => [obs.val1, obs.val2, obs.val3]);
+    //     });
+    //     const val = result.current;
+    //     expect(numRenders).toEqual(1);
+    //     expect(val).toEqual([1, 2, 3]);
 
-        act(() => {
-            obs.val1.set(11);
-        });
-        expect(numRenders).toEqual(2);
+    //     act(() => {
+    //         obs.val1.set(11);
+    //     });
+    //     expect(numRenders).toEqual(2);
 
-        act(() => {
-            obs.val2.set(22);
-        });
-        expect(numRenders).toEqual(3);
+    //     act(() => {
+    //         obs.val2.set(22);
+    //     });
+    //     expect(numRenders).toEqual(3);
 
-        act(() => {
-            obs.val3.set(33);
-        });
-        expect(numRenders).toEqual(4);
+    //     act(() => {
+    //         obs.val3.set(33);
+    //     });
+    //     expect(numRenders).toEqual(4);
 
-        // Changing a value not tracked doesn't update it, making sure that it tracks the
-        // prop and not the parent
-        act(() => {
-            obs.val4.set(44);
-        });
-        expect(numRenders).toEqual(4);
-    });
-    test('useObservables slice does not re-render', () => {
-        let numRenders = 0;
-        const obs = observable({ arr: ['hi'] });
-        const { result } = renderHook(() => {
-            numRenders++;
-            return useObservables(() => [obs.arr]);
-        });
-        act(() => {
-            obs.arr.slice(0);
-        });
-        expect(numRenders).toEqual(1);
-    });
+    //     // Changing a value not tracked doesn't update it, making sure that it tracks the
+    //     // prop and not the parent
+    //     act(() => {
+    //         obs.val4.set(44);
+    //     });
+    //     expect(numRenders).toEqual(4);
+    // });
+    // test('useObservables slice does not re-render', () => {
+    //     let numRenders = 0;
+    //     const obs = observable({ arr: ['hi'] });
+    //     const { result } = renderHook(() => {
+    //         numRenders++;
+    //         return useObservables(() => [obs.arr]);
+    //     });
+    //     act(() => {
+    //         obs.arr.slice(0);
+    //     });
+    //     expect(numRenders).toEqual(1);
+    // });
 });
