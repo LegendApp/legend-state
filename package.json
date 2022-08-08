@@ -25,6 +25,7 @@
         "checksize": "npm run checksize:core && npm run checksize:react"
     },
     "exports": {
+        "./package.json": "./package.json",
         ".": {
             "import": "./index.esm.mjs",
             "require": "./index.cjs",
