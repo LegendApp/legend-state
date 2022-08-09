@@ -1,4 +1,3 @@
-import { observable } from 'src/observable';
 import { symbolShallow } from './globals';
 
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
