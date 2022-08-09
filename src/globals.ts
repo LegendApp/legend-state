@@ -1,5 +1,5 @@
 import { tracking } from './state';
-import { isFunction, isPrimitive } from './is';
+import { isFunction, isPrimitive, isString } from './is';
 import { ObservableTypeRender, NodeValue } from './observableInterfaces';
 
 export const symbolDateModified = Symbol('dateModified');
@@ -24,7 +24,7 @@ export function getNodeValue(node: NodeValue): any {
 }
 
 export function getChildNode(node: NodeValue, key: string | number): NodeValue {
-    if (!isNaN(+key)) key = +key;
+    if (isString(key) && !isNaN(+key)) key = +key;
     let child = node.children?.get(key);
     if (!child) {
         child = {

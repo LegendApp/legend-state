@@ -2,12 +2,11 @@ import { getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './glo
 import { isArray, isFunction, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
+    NodeValue,
     Observable,
-    ObservableObject,
     ObservableObjectOrPrimitive,
     ObservablePrimitive,
     ObservableWrapper,
-    NodeValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 import { tracking, updateTracking } from './state';
@@ -29,7 +28,7 @@ const ArrayModifiers = new Set([
     'splice',
     'unshift',
 ]);
-const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'reduce', 'reduceRight', 'forEach', 'map']);
+const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map']);
 
 const objectFns = new Map<string, Function>([
     ['get', getNodeValue],
@@ -203,12 +202,12 @@ const proxyHandler: ProxyHandler<any> = {
                     // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
-                    // Bind this looping function to an array of proxies
-                    const arr = [];
-                    for (let i = 0; i < value.length; i++) {
-                        arr.push(getProxy(node, i));
-                    }
-                    return vProp.bind(arr);
+                    return function (cbOrig, thisArg) {
+                        function cb(value, index: number, array: any[]) {
+                            return cbOrig(getProxy(node, index), index, array);
+                        }
+                        return value[p](cb, thisArg);
+                    };
                 }
             }
             // Return the function bound to the value
@@ -351,14 +350,13 @@ function _notify(
     level: number
 ) {
     const listeners = node.listeners;
-    // Notify all listeners
     if (listeners) {
         let getPrevious;
         for (let listener of listeners) {
             // Notify if listener is not shallow or if this is the first level
             if (!listener.shallow || level <= 0) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
-                // it often, so leave it up to the user.
+                // it often, so leave it up to the caller.
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
@@ -418,7 +416,7 @@ function deleteFn(node: NodeValue, key?: string | number) {
 }
 function deleteFnByKey(node: NodeValue, key: string | number) {
     if (!node.root.isPrimitive) {
-        // delete sets to undefined first to cleanup children
+        // delete sets to undefined first to notify
         setProp(node, key, undefined, /*level*/ -1);
     }
 
