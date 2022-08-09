@@ -126,7 +126,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                         parent.children.set(i, child);
                     }
                 } else if (process.env.NODE_ENV === 'development' && !didErrorOnMissingID) {
-                    console.error('Arrays in state containing objects must have a unique `id` field;');
+                    console.error(
+                        'Arrays in state containing objects must have a unique `id` field. See https://www.legendapp.com/dev/state/arrays'
+                    );
                     didErrorOnMissingID = true;
                 }
             }
