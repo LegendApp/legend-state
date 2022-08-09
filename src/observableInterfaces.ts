@@ -45,15 +45,9 @@ export interface ObservableArrayOverride<T> extends Omit<Array<T>, ArrayOverride
     map<U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): U[];
 }
 
-export interface ObservableListenerInfo {
-    value: any;
-    prevValue: any;
-    path: string[];
-}
-
 export type ListenerFn<T = any> = (
     value: T,
-    prev: T,
+    getPrevious: () => T,
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any
@@ -128,7 +122,14 @@ export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T>(options: PersistOptions<T>, value: T, info: ObservableListenerInfo): Promise<T>;
+    save<T>(
+        options: PersistOptions<T>,
+        value: T,
+        getPrevious: () => T,
+        path: (string | number)[],
+        valueAtPath: any,
+        prevAtPath: any
+    ): Promise<T>;
     listen<T>(
         obs: Observable<T>,
         options: PersistOptions<T>,

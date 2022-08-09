@@ -2,7 +2,6 @@ import { observablePersistConfiguration } from './configureObservablePersistence
 import { observable, observableBatcher, symbolDateModified, mergeIntoObservable } from '@legendapp/state';
 import type {
     Observable,
-    ObservableListenerInfo,
     ObservableObject,
     ObservablePersistLocal,
     ObservablePersistRemote,
@@ -33,7 +32,10 @@ async function onObsChange<T>(
     localState: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
-    info: ObservableListenerInfo
+    getPrevious: () => T,
+    path: (string | number)[],
+    valueAtPath: any,
+    prevAtPath: any
 ) {
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
 
@@ -58,7 +60,7 @@ async function onObsChange<T>(
     if (saveRemote) {
         // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
         // server value different than the saved value (like Firebase has server timestamps for dateModified)
-        const saved = await persistenceRemote.save(persistOptions, value, info);
+        const saved = await persistenceRemote.save(persistOptions, value, getPrevious, path, valueAtPath, prevAtPath);
         if (saved) {
             if (local) {
                 const cur = persistenceLocal.get(local);
