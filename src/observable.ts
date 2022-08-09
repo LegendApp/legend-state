@@ -1,5 +1,5 @@
 import { getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './globals';
-import { isArray, isFunction, isPrimitive, isSymbol } from './is';
+import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     NodeValue,
@@ -194,7 +194,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
         // Accessing undefined/null/symbols passes straight through if this value has a property for it
         // If it's never been defined assume it's a proxy to a future object
-        if (isSymbol(p) || vProp === null || (vProp === undefined && value && Object.hasOwn(value, p))) {
+        if (isSymbol(p) || vProp === null || (vProp === undefined && value && value.hasOwnProperty?.(p))) {
             return vProp;
         }
         // Handle function calls
@@ -237,7 +237,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
     ownKeys(target) {
         const value = getNodeValue(target);
-        const keys = Reflect.ownKeys(value);
+        const keys = value ? Reflect.ownKeys(value) : [];
         if (isArray(value)) {
             if (keys[keys.length - 1] === 'length') {
                 keys.splice(keys.length - 1, 1);
@@ -286,7 +286,8 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
-    newValue = newValue?.[symbolIsObservable] ? newValue[symbolGet] : newValue;
+    newValue =
+        newValue && isObject(newValue) && newValue?.[symbolIsObservable as any] ? newValue[symbolGet as any] : newValue;
 
     const isPrim = isPrimitive(newValue);
 
