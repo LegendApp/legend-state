@@ -19,9 +19,10 @@ export function mergeIntoObservable(target: ObservableType, ...sources: any[]) {
         if (source[symbolDateModified as any]) {
             target.set(symbolDateModified, source[symbolDateModified as any]);
         }
+        const value = target.get?.() || target;
         for (const key in source) {
             if (isObject(source[key])) {
-                if (!target[key] || !isObject(target[key])) {
+                if (!value[key] || !isObject(value[key])) {
                     target.set(key, {});
                 }
                 mergeIntoObservable(target[key], source[key]);
