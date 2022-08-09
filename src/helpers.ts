@@ -7,27 +7,34 @@ export function shallow(obs: ObservableType): Shallow {
         [symbolShallow]: obs,
     };
 }
-export function isObservable(obs: any): obs is ObservableType {
+export function isObservable(obs: any): boolean {
     return obs && !!obs[symbolIsObservable as any];
 }
 
-export function mergeIntoObservable(target: ObservableType, ...sources: any[]) {
+export function mergeIntoObservable(target: ObservableType | object, ...sources: any[]) {
     if (!sources.length) return target;
+
     const source = sources.shift();
+
+    const needsSet = isObservable(target);
 
     if (isObject(target) && isObject(source)) {
         if (source[symbolDateModified as any]) {
-            target.set(symbolDateModified, source[symbolDateModified as any]);
+            if (needsSet) {
+                target.set(symbolDateModified, source[symbolDateModified as any]);
+            } else {
+                target[symbolDateModified as any] = source[symbolDateModified as any];
+            }
         }
         const value = target.get?.() || target;
         for (const key in source) {
             if (isObject(source[key])) {
                 if (!value[key] || !isObject(value[key])) {
-                    target.set(key, {});
+                    needsSet ? target.set(key, {}) : (target[key] = {});
                 }
                 mergeIntoObservable(target[key], source[key]);
             } else {
-                target.set(key, source[key]);
+                needsSet ? target.set(key, source[key]) : (target[key] = source[key]);
             }
         }
     }
