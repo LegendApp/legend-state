@@ -1,13 +1,13 @@
 import { tracking } from './state';
 import { isFunction, isPrimitive } from './is';
-import { ObservableTypeRender, ProxyValue } from './observableInterfaces';
+import { ObservableTypeRender, NodeValue } from './observableInterfaces';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolShallow = Symbol('shallow');
 export const symbolGet = Symbol('get');
 export const symbolIsObservable = Symbol('isObservable');
 
-export function getNodeValue(node: ProxyValue): any {
+export function getNodeValue(node: NodeValue): any {
     const arr: (string | number)[] = [];
     let n = node;
     while (n?.key !== undefined) {
@@ -23,7 +23,7 @@ export function getNodeValue(node: ProxyValue): any {
     return child;
 }
 
-export function getChildNode(node: ProxyValue, key: string | number): ProxyValue {
+export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     if (!isNaN(+key)) key = +key;
     let child = node.children?.get(key);
     if (!child) {

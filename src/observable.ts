@@ -7,12 +7,12 @@ import {
     ObservableObjectOrPrimitive,
     ObservablePrimitive,
     ObservableWrapper,
-    ProxyValue,
+    NodeValue,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 import { tracking, updateTracking } from './state';
 
-let lastAccessedNode: ProxyValue;
+let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
 let didErrorOnMissingID = false;
@@ -31,7 +31,7 @@ const ArrayModifiers = new Set([
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'reduce', 'reduceRight', 'forEach', 'map']);
 
-const objectFnsProxy = new Map<string, Function>([
+const objectFns = new Map<string, Function>([
     ['get', getNodeValue],
     ['set', set],
     ['onChange', onChange],
@@ -48,7 +48,7 @@ const objectFnsProxy = new Map<string, Function>([
 const wrapFn = (fn: Function) =>
     function (...args: any) {
         if (lastAccessedNode && lastAccessedPrimitive) {
-            const node: ProxyValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
+            const node: NodeValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
             if (getNodeValue(node) === this) {
                 return fn(node, ...args);
             }
@@ -56,13 +56,13 @@ const wrapFn = (fn: Function) =>
     };
 
 const toOverride = [Number, Boolean, String];
-objectFnsProxy.forEach((fn, key) => {
+objectFns.forEach((fn, key) => {
     for (let i = 0; i < toOverride.length; i++) {
         toOverride[i].prototype[key] = wrapFn(fn);
     }
 });
 
-function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: any[]) {
+function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
 
     const ret = (target[prop] as Function).apply(target, args);
@@ -84,7 +84,7 @@ function collectionSetter(node: ProxyValue, target: any, prop: string, ...args: 
     return ret;
 }
 
-function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
+function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
     const isArr = isArray(obj);
     // If array it's faster to just use the array
     const keys = isArr ? obj : Object.keys(obj);
@@ -92,7 +92,7 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
 
     let hasADiff = false;
     let keyMap: Map<string | number, number>;
-    let moved: Map<string | number, ProxyValue>;
+    let moved: Map<string | number, NodeValue>;
 
     if (isArr && prevValue?.length && isArray(prevValue)) {
         keyMap = new Map();
@@ -110,13 +110,13 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
         if (prevValue && value !== prev) {
             const isObj = !isPrimitive(value);
 
-            const child: ProxyValue = getChildNode(parent, key);
+            const child: NodeValue = getChildNode(parent, key);
             if (isArr && isObj && keyMap) {
                 const id = value.id;
                 if (id !== undefined) {
                     const prevIndex = keyMap.get(id);
                     if (prevIndex !== undefined && prevIndex !== i) {
-                        let child: ProxyValue = moved.get(prevIndex);
+                        let child: NodeValue = moved.get(prevIndex);
                         if (child) {
                             moved.delete(prevIndex);
                         } else {
@@ -149,26 +149,26 @@ function updateNodes(parent: ProxyValue, obj: Record<any, any> | Array<any>, pre
     return hasADiff;
 }
 
-function getProxy(node: ProxyValue, p?: string | number) {
+function getProxy(node: NodeValue, p?: string | number) {
     // Create a proxy if not already cached and return it
 
     if (p !== undefined) node = getChildNode(node, p);
     let proxy = node.proxy;
     if (!proxy) {
-        proxy = node.proxy = new Proxy<ProxyValue>(node, proxyHandler);
+        proxy = node.proxy = new Proxy<NodeValue>(node, proxyHandler);
     }
     return proxy;
 }
 
 const proxyHandler: ProxyHandler<any> = {
-    get(target: ProxyValue, p: any) {
+    get(target: NodeValue, p: any) {
         // Return true is called by isObservable()
         if (p === symbolIsObservable) {
             return true;
         }
 
         const node = target;
-        const fn = objectFnsProxy.get(p);
+        const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (p !== 'get' && fn) {
             return function (a, b, c) {
@@ -272,7 +272,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-function set(node: ProxyValue, keyOrNewValue: any, newValue?: any) {
+function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
     if (arguments.length > 2) {
         return setProp(node, keyOrNewValue, newValue);
     } else if (node.root.isPrimitive) {
@@ -284,7 +284,7 @@ function set(node: ProxyValue, keyOrNewValue: any, newValue?: any) {
     }
 }
 
-function setProp(node: ProxyValue, key: string | number, newValue?: any, level?: number) {
+function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
     newValue = newValue?.[symbolIsObservable] ? newValue[symbolGet] : newValue;
 
     const isPrim = isPrimitive(newValue);
@@ -343,7 +343,7 @@ function createPreviousHandler(value: any, path: (string | number)[], prevAtPath
 }
 
 function _notify(
-    node: ProxyValue,
+    node: NodeValue,
     value: any,
     path: (string | number)[],
     valueAtPath: any,
@@ -369,7 +369,7 @@ function _notify(
 }
 
 function _notifyParents(
-    node: ProxyValue,
+    node: NodeValue,
     value: any,
     path: (string | number)[],
     valueAtPath: any,
@@ -387,12 +387,12 @@ function _notifyParents(
         }
     }
 }
-function notify(node: ProxyValue, value: any, prev: any, level: number) {
+function notify(node: NodeValue, value: any, prev: any, level: number) {
     // Start notifying up through parents with the listenerInfo
     _notifyParents(node, value, [], value, prev, level);
 }
 
-function assign(node: ProxyValue, value: any) {
+function assign(node: NodeValue, value: any) {
     observableBatcher.begin();
 
     // Assign calls set with all assigned properties
@@ -408,7 +408,7 @@ function assign(node: ProxyValue, value: any) {
     return ret;
 }
 
-function deleteFn(node: ProxyValue, key?: string | number) {
+function deleteFn(node: NodeValue, key?: string | number) {
     // If called without a key, delete by key from the parent node
     if (key !== undefined) {
         return deleteFnByKey(node, key);
@@ -416,7 +416,7 @@ function deleteFn(node: ProxyValue, key?: string | number) {
         return deleteFnByKey(node.parent, node.key);
     }
 }
-function deleteFnByKey(node: ProxyValue, key: string | number) {
+function deleteFnByKey(node: NodeValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to cleanup children
         setProp(node, key, undefined, /*level*/ -1);
@@ -447,10 +447,10 @@ export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
         isPrimitive: isPrim,
         listenerMap: new Map(),
         proxies: new Map(),
-        proxyValues: new Map(),
+        NodeValues: new Map(),
     } as ObservableWrapper;
 
-    const node: ProxyValue = {
+    const node: NodeValue = {
         root: obs,
         parent: undefined,
         key: undefined,

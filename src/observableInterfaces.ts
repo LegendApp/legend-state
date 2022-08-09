@@ -274,7 +274,7 @@ export interface ObservableWrapper {
     _: Observable;
     isPrimitive: boolean;
     proxies: Map<string, object>;
-    proxyValues: Map<string, ProxyValue>;
+    NodeValues: Map<string, NodeValue>;
 }
 
 type Primitive = boolean | string | number;
@@ -295,9 +295,9 @@ export type ObservableType<T = any> =
 
 export type ObservableTypeRender<T = any> = ObservableType<T> | Shallow<T> | ObservableComputeFunction<T>;
 
-export interface ProxyValue {
-    parent: ProxyValue;
-    children?: Map<string | number, ProxyValue>;
+export interface NodeValue {
+    parent: NodeValue;
+    children?: Map<string | number, NodeValue>;
     proxy?: object;
     key: string | number;
     root: ObservableWrapper;
@@ -328,7 +328,7 @@ export type MappedObservableValue<
 
 /** @internal */
 export interface TrackingNode {
-    node: ProxyValue;
+    node: NodeValue;
     shallow?: boolean;
     value: any;
 }

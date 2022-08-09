@@ -1,4 +1,4 @@
-import type { ProxyValue, TrackingNode } from './observableInterfaces';
+import type { NodeValue, TrackingNode } from './observableInterfaces';
 
 export const tracking = {
     is: false,
@@ -6,7 +6,7 @@ export const tracking = {
     should: undefined as (value: any, prev?: any) => any,
     nodes: [] as TrackingNode[],
 };
-export function updateTracking(node: ProxyValue, value: any) {
+export function updateTracking(node: NodeValue, value: any) {
     tracking.nodes.push({
         node,
         shallow: tracking.shallow,

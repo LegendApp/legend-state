@@ -5,12 +5,12 @@ import {
     ListenerFnSaved,
     ObservableListenerDispose,
     OnReturnValue,
-    ProxyValue,
+    NodeValue,
 } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
 
-export function onEquals<T>(node: ProxyValue, value: T, callback: (value: T) => void): OnReturnValue<T> {
+export function onEquals<T>(node: NodeValue, value: T, callback: (value: T) => void): OnReturnValue<T> {
     let dispose: ObservableListenerDispose;
 
     const promise = new Promise<any>((resolve) => {
@@ -42,15 +42,15 @@ export function onEquals<T>(node: ProxyValue, value: T, callback: (value: T) => 
     };
 }
 
-export function onHasValue<T>(node: ProxyValue, callback: (value: T) => void): OnReturnValue<T> {
+export function onHasValue<T>(node: NodeValue, callback: (value: T) => void): OnReturnValue<T> {
     return onEquals(node, symbolHasValue as any, callback);
 }
 
-export function onTrue<T extends boolean>(node: ProxyValue, callback?: () => void): OnReturnValue<T> {
+export function onTrue<T extends boolean>(node: NodeValue, callback?: () => void): OnReturnValue<T> {
     return onEquals(node, true as T, callback);
 }
 
-export function onChange(node: ProxyValue, callback: ListenerFn<any>, shallow?: boolean) {
+export function onChange(node: NodeValue, callback: ListenerFn<any>, shallow?: boolean) {
     const c = callback as ListenerFnSaved;
     if (shallow) {
         c.shallow = true;
@@ -65,6 +65,6 @@ export function onChange(node: ProxyValue, callback: ListenerFn<any>, shallow?: 
     return () => listeners.delete(c);
 }
 
-export function onChangeShallow(node: ProxyValue, callback: ListenerFn<any>) {
+export function onChangeShallow(node: NodeValue, callback: ListenerFn<any>) {
     return onChange(node, callback, /*shallow*/ true);
 }
