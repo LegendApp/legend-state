@@ -90,59 +90,43 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     const length = keys.length;
 
     let hasADiff = false;
-    let keyMap: Map<string | number, number>;
-    let moved: Map<string | number, NodeValue>;
-
-    if (isArr && prevValue?.length && isArray(prevValue)) {
-        keyMap = new Map();
-        moved = new Map();
-        for (let i = 0; i < prevValue.length; i++) {
-            keyMap.set(prevValue[i].id, i);
-        }
-    }
 
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
         const value = obj[key];
         const prev = prevValue?.[key];
 
-        if (prevValue && value !== prev) {
+        let isDiff = prevValue && value !== prev;
+        if (isDiff) {
             const isObj = !isPrimitive(value);
 
-            const child: NodeValue = getChildNode(parent, key);
-            if (isArr && isObj && keyMap) {
-                const id = value.id;
-                if (id !== undefined) {
-                    const prevIndex = keyMap.get(id);
-                    if (prevIndex !== undefined && prevIndex !== i) {
-                        let child: NodeValue = moved.get(prevIndex);
-                        if (child) {
-                            moved.delete(prevIndex);
-                        } else {
-                            child = getChildNode(parent, prevIndex);
-                        }
-                        moved.set(i, getChildNode(parent, i));
-                        child.key = i;
-                        parent.children.set(i, child);
-                    }
-                } else if (process.env.NODE_ENV === 'development' && !didErrorOnMissingID) {
-                    console.error(
-                        'Arrays in state containing objects must have a unique `id` field. See https://www.legendapp.com/dev/state/arrays'
-                    );
-                    didErrorOnMissingID = true;
-                }
-            }
-            // If object iterate through its children
-            if (isObj) {
-                updateNodes(child, value, prev);
+            const id = value?.id;
+
+            // Array optimization step 1: Get the previous key for this id
+            const prevKey = isArr && id !== undefined ? parent.childrenID?.get(id)?.key : undefined;
+
+            const child: NodeValue = getChildNode(parent, key, id);
+
+            // Array optimization step 2: If this id moved from a different place, only notify
+            // if it's changed from its previous value. If not, notify will be covered by the parent.
+            if (prevKey !== undefined && child.key !== prevKey) {
+                const prevOfNode = prevValue[prevKey];
+                isDiff = prevOfNode !== value;
             }
 
-            // Notify for this child if this element is different and it has listeners
-            // But do not notify child if the parent is an array - the array's listener will cover it
-            const doNotify = !!child.listeners;
-            if (doNotify) {
-                hasADiff = true;
-                _notify(child, value, [], value, prev, 0);
+            if (isDiff) {
+                // If object iterate through its children
+                if (isObj) {
+                    updateNodes(child, value, prev);
+                }
+
+                // Notify for this child if this element is different and it has listeners
+                // But do not notify child if the parent is an array - the array's listener will cover it
+                const doNotify = !!child.listeners;
+                if (doNotify) {
+                    hasADiff = true;
+                    _notify(child, value, [], value, prev, 0);
+                }
             }
         }
     }
@@ -150,10 +134,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     return hasADiff;
 }
 
-function getProxy(node: NodeValue, p?: string | number) {
-    // Create a proxy if not already cached and return it
+function getProxy(node: NodeValue, p?: string | number, id?: string | number) {
+    // Get the child node if p prop
+    if (p !== undefined) node = getChildNode(node, p, id);
 
-    if (p !== undefined) node = getChildNode(node, p);
+    // Create a proxy if not already cached and return it
     let proxy = node.proxy;
     if (!proxy) {
         proxy = node.proxy = new Proxy<NodeValue>(node, proxyHandler);
@@ -228,7 +213,13 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
-        return getProxy(target, p);
+        // If accessing an element in an array, use the element id if available
+        let id;
+        if (isArray(value) && vProp?.id) {
+            id = vProp.id;
+        }
+
+        return getProxy(target, p, id);
     },
     // Forward all proxy properties to the target's value
     getPrototypeOf(target) {
@@ -294,7 +285,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     inSetFn = true;
 
     // Get the child node for updating and notifying
-    const childNode = getChildNode(node, key);
+    let childNode = getChildNode(node, key);
 
     // Get the value of the parent
     let parentValue = getNodeValue(node);
@@ -308,6 +299,11 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     let hasADiff: boolean;
     // If new value is an object or array update notify down the tree
     if (!isPrim) {
+        if (isArray(parentValue) && newValue?.id && childNode.id !== newValue.id) {
+            childNode.id = newValue.id;
+
+            node.childrenID.set(childNode.id, childNode);
+        }
         hasADiff = updateNodes(childNode, newValue, prevValue);
     }
 

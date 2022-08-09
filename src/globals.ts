@@ -23,19 +23,40 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export function getChildNode(node: NodeValue, key: string | number): NodeValue {
+export function getChildNode(node: NodeValue, key: string | number, id?: string | number): NodeValue {
+    // Coerce numbers to number so we don't duplicate keys in arrays.
+    // isNaN is slow so make sure it's a string before coercing.
     if (isString(key) && !isNaN(+key)) key = +key;
-    let child = node.children?.get(key);
+
+    // Get the child by id if included, or by key
+    let child = id !== undefined ? node.childrenID?.get(id) : undefined;
+    if (!child) {
+        child = node.children?.get(key);
+    }
+
+    // Create the child node if it doesn't already exist
     if (!child) {
         child = {
             root: node.root,
             parent: node,
             key,
+            id,
         };
         if (!node.children) {
             node.children = new Map();
         }
         node.children.set(key, child);
+    }
+
+    // To maintain node stability when moved in arrays, if this is an element in an array,
+    // add it to the id map, update the childrenID map and update its key
+    if (id !== undefined) {
+        if (!node.childrenID) {
+            node.childrenID = new Map();
+        }
+        node.children.set(key, child);
+        node.childrenID.set(id, child);
+        child.key = key;
     }
 
     return child;

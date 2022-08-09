@@ -65,12 +65,11 @@ describe('Set', () => {
         expect(obs.arr[0].text).toEqual('hi3');
         expect(obs.arr.map((a) => a)).toEqual([{ text: 'hi3' }]);
     });
-    //     //     // TODO
-    //     //     // test('Set at root', () => {
-    //     //     //     const obs = observable({ test: { text: 't' } });
-    //     //     //     obs.set({ test: { text: 't2' } });
-    //     //     //     expect(obs).toEqual({ test: { text: 't2' } });
-    //     //     // });
+    test('Set at root', () => {
+        const obs = observable({ test: { text: 't' } });
+        obs.set({ test: { text: 't2' } });
+        expect(obs).toEqual({ test: { text: 't2' } });
+    });
     test('Set value does not copy object', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -963,6 +962,21 @@ describe('Array', () => {
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
     });
+    test('Array splice does not call child listeners', () => {
+        const obs = observable({
+            arr: [
+                { id: 'h1', text: 'h1' },
+                { id: 'h2', text: 'h2' },
+            ],
+        });
+        for (let i = 0; i < obs.arr.length; i++) {
+            obs.arr[i].text;
+        }
+        // obs.arr.push({ id: 'h3', text: 'h3' });
+        const handler = expectChangeHandler(obs.arr[0]);
+        obs.arr.splice(0, 1);
+        expect(handler).not.toBeCalled();
+    });
     test('Array has stable reference', () => {
         const obs = observable({ arr: [] });
         obs.arr.set([
@@ -993,6 +1007,11 @@ describe('Array', () => {
         const second = obs.arr[1];
         const handler = expectChangeHandler(second);
 
+        // Prep it with proxies
+        for (let i = 0; i < obs.arr.length; i++) {
+            obs.arr[i].text;
+        }
+
         const arr = obs.arr.get();
         let tmp = arr[1];
         obs.arr.set(1, arr[2]);
@@ -1019,6 +1038,25 @@ describe('Array', () => {
             { id: 'h3', text: 'hello there' },
             { id: 'h2', text: 'hello' }
         );
+    });
+    test('Array has stable references 3', () => {
+        const obs = observable({ arr: [] });
+        obs.arr.set([
+            { id: 'h1', text: 'hi' },
+            { id: 'h2', text: 'h2' },
+            { id: 'h3', text: 'h3' },
+        ]);
+        const [first, second, third] = obs.arr.map((a) => a);
+        const [firstID, secondID, thirdID] = obs.arr.map((a) => a.id);
+        const handler = expectChangeHandler(second);
+        obs.arr.splice(0, 1);
+        const [second2, third2] = obs.arr.map((a) => a);
+        const [secondID2, thirdID2] = obs.arr.map((a) => a.id);
+
+        expect(second).toBe(second2);
+        expect(secondID).toBe(secondID2);
+        expect(third).toBe(third2);
+        expect(thirdID).toBe(thirdID2);
     });
     test('Array has stable swaps', () => {
         const obs = observable({
@@ -1149,8 +1187,8 @@ describe('Array', () => {
 
         obs.arr.splice(0, 1);
 
-        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
         expect(obs.arr[0].get()).toEqual({ id: 'h2', text: 'hello' });
+        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
 
         obs.arr[0].text.set('hello there');
 
