@@ -62,6 +62,11 @@ export function useObservables<
 }
 
 function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
+    if (ref.current.listeners.size > 0) {
+        ref.current.listeners.forEach((dispose) => dispose());
+        ref.current.listeners.clear();
+    }
+
     let previousPrimitives: string;
     const updateFromSelector = () => {
         const args = ref.current.fn();

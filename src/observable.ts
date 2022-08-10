@@ -112,8 +112,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
         let isDiff = prevValue && value !== prev;
         if (isDiff) {
-            const isObj = !isPrimitive(value);
-
             const id = value?.id;
 
             let keyChild = key;
@@ -141,7 +139,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             if (isDiff) {
                 hasADiff = true;
                 // If object iterate through its children
-                if (isObj) {
+                if (!isPrimitive(value)) {
                     updateNodes(child, value, prev);
                 }
             }
