@@ -616,36 +616,20 @@ describe('Equality', () => {
         expect(obs.val.get() == v).toEqual(true);
     });
     test('Set with same object still notifies', () => {
-        const obs = observable({ arr: [{ text: 'hi' }] });
-        const handler = expectChangeHandler(obs.arr);
-        const arr = obs.arr.get();
-        obs.arr.set(obs.arr.get());
-        expect(obs.arr.get()).toBe(arr);
-        expect(handler).toHaveBeenCalledWith(
-            [{ text: 'hi' }],
-            [{ text: 'hi' }],
-            [],
-            [{ text: 'hi' }],
-            [{ text: 'hi' }]
-        );
+        const obs = observable({ test: { text: 'hi' } });
+        const handler = expectChangeHandler(obs.test);
+        const test = obs.test.get();
+        obs.test.set(obs.test.get());
+        expect(obs.test.get()).toBe(test);
+        expect(handler).toHaveBeenCalledWith({ text: 'hi' }, { text: 'hi' }, [], { text: 'hi' }, { text: 'hi' });
     });
-    test('Set with array with new items still notifies', () => {
+    test('Set with same array notifies', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
         const handler = expectChangeHandler(obs.arr);
         const arr = obs.arr.get();
-        arr[1] = {
-            text: 'hi2',
-        };
         obs.arr.set(obs.arr.get());
         expect(obs.arr.get()).toBe(arr);
-        // Note that prevValue is the same because it was modified outside of state
-        expect(handler).toHaveBeenCalledWith(
-            [{ text: 'hi' }, { text: 'hi2' }],
-            [{ text: 'hi' }, { text: 'hi2' }],
-            [],
-            [{ text: 'hi' }, { text: 'hi2' }],
-            [{ text: 'hi' }, { text: 'hi2' }]
-        );
+        expect(handler).toHaveBeenCalled();
     });
 });
 describe('Safety', () => {
@@ -969,9 +953,9 @@ describe('Array', () => {
                 { id: 'h2', text: 'h2' },
             ],
         });
-        for (let i = 0; i < obs.arr.length; i++) {
-            obs.arr[i].text;
-        }
+        // for (let i = 0; i < obs.arr.length; i++) {
+        //     obs.arr[i].text;
+        // }
         // obs.arr.push({ id: 'h3', text: 'h3' });
         const handler = expectChangeHandler(obs.arr[0]);
         obs.arr.splice(0, 1);
@@ -1199,6 +1183,46 @@ describe('Array', () => {
             'hello there',
             'hello'
         );
+    });
+    test('Array set with just a swap', () => {
+        const obs = observable({
+            test: [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+        });
+        const handler = jest.fn();
+        const handlerShallow = jest.fn();
+        obs.test.onChange(handler);
+        obs.test.onChangeShallow(handlerShallow);
+        const handlerItem = expectChangeHandler(obs.test[1]);
+
+        const arr = obs.test.get().slice();
+        const tmp = arr[1];
+        arr[1] = arr[4];
+        arr[4] = tmp;
+        obs.test.set(arr);
+
+        expect(obs.test.get()).toEqual([
+            { id: 1, text: 1 },
+            { id: 5, text: 5 },
+            { id: 3, text: 3 },
+            { id: 4, text: 4 },
+            { id: 2, text: 2 },
+        ]);
+
+        expect(handler).toHaveBeenCalled();
+        expect(handlerItem).toHaveBeenCalledWith(
+            { id: 5, text: 5 },
+            { id: 2, text: 2 },
+            [],
+            { id: 5, text: 5 },
+            { id: 2, text: 2 }
+        );
+        expect(handlerShallow).not.toHaveBeenCalled();
     });
 });
 describe('Deep changes keep listeners', () => {

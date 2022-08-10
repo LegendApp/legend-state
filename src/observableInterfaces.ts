@@ -200,8 +200,6 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableWrapper {
     _: Observable;
     isPrimitive: boolean;
-    proxies: Map<string, object>;
-    NodeValues: Map<string, NodeValue>;
 }
 
 type Primitive = boolean | string | number;
@@ -225,10 +223,10 @@ export type ObservableTypeRender<T = any> = ObservableType<T> | Shallow<T> | Obs
 export interface NodeValue {
     parent: NodeValue;
     children?: Map<string | number, NodeValue>;
-    childrenID?: Map<string | number, NodeValue>;
+    // childrenID?: Map<string | number, NodeValue>;
     proxy?: object;
     key: string | number;
-    id?: string | number;
+    // id?: string | number;
     root: ObservableWrapper;
     listeners?: Set<ListenerFnSaved>;
 }

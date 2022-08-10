@@ -89,7 +89,21 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     const keys = isArr ? obj : Object.keys(obj);
     const length = keys.length;
 
-    let hasADiff = false;
+    let hasADiff = !isArr || obj?.length !== prevValue?.length;
+    const isArrDiff = hasADiff;
+
+    let keyMap: Map<string | number, number>;
+    // let moved: Map<string | number, NodeValue>;
+    let moved: [string, NodeValue][];
+
+    if (isArr && prevValue?.length && isArray(prevValue)) {
+        keyMap = new Map();
+        moved = [];
+        // moved = new Map();
+        for (let i = 0; i < prevValue.length; i++) {
+            keyMap.set(prevValue[i].id, i);
+        }
+    }
 
     for (let i = 0; i < length; i++) {
         const key = isArr ? i : keys[i];
@@ -102,32 +116,50 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
             const id = value?.id;
 
-            // Array optimization step 1: Get the previous key for this id
-            const prevKey = isArr && id !== undefined ? parent.childrenID?.get(id)?.key : undefined;
+            let keyChild = key;
+            const child = getChildNode(parent, key);
 
-            const child: NodeValue = getChildNode(parent, key, id);
+            if (isArr) {
+                const prevPositionOfThisId = id !== undefined ? keyMap?.get(id) : undefined;
+                if (prevPositionOfThisId !== undefined) {
+                    keyChild = prevPositionOfThisId;
+                }
 
-            // Array optimization step 2: If this id moved from a different place, only notify
-            // if it's changed from its previous value. If not, notify will be covered by the parent.
-            if (prevKey !== undefined && child.key !== prevKey) {
-                const prevOfNode = prevValue[prevKey];
-                isDiff = prevOfNode !== value;
+                if (prevPositionOfThisId !== undefined && keyChild !== key) {
+                    if (isArrDiff) {
+                        const childMoved = getChildNode(parent, keyChild);
+                        childMoved.key = key;
+                        moved.push([key, childMoved]);
+                    }
+
+                    // parent.children.set(key, child);
+                    const prevOfNode = prevValue[keyChild];
+                    isDiff = prevOfNode !== value;
+                }
             }
 
             if (isDiff) {
+                hasADiff = true;
                 // If object iterate through its children
                 if (isObj) {
                     updateNodes(child, value, prev);
                 }
-
+            }
+            if (isDiff || !isArrDiff) {
                 // Notify for this child if this element is different and it has listeners
                 // But do not notify child if the parent is an array - the array's listener will cover it
                 const doNotify = !!child.listeners;
                 if (doNotify) {
-                    hasADiff = true;
                     _notify(child, value, [], value, prev, 0);
                 }
             }
+        }
+    }
+
+    if (moved) {
+        for (let i = 0; i < moved.length; i++) {
+            const [key, child] = moved[i];
+            parent.children.set(key, child);
         }
     }
 
@@ -296,14 +328,15 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     // Save the new value
     parentValue[key] = newValue;
 
-    let hasADiff: boolean;
+    let hasADiff = isPrim;
     // If new value is an object or array update notify down the tree
     if (!isPrim) {
-        if (isArray(parentValue) && newValue?.id && childNode.id !== newValue.id) {
-            childNode.id = newValue.id;
+        // If this was swapped in an array then update the childNode
+        // if (isArray(parentValue) && newValue?.id && childNode.id !== newValue.id) {
+        // childNode.id = newValue.id;
 
-            node.childrenID.set(childNode.id, childNode);
-        }
+        // node.childrenID.set(childNode.id, childNode);
+        // }
         hasADiff = updateNodes(childNode, newValue, prevValue);
     }
 
@@ -313,7 +346,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
             node.root.isPrimitive ? node : childNode,
             newValue,
             prevValue,
-            level ?? prevValue === undefined ? -1 : 0
+            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1
         );
     }
 
@@ -442,9 +475,6 @@ export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
     const obs = {
         _: obj as Observable<T>,
         isPrimitive: isPrim,
-        listenerMap: new Map(),
-        proxies: new Map(),
-        NodeValues: new Map(),
     } as ObservableWrapper;
 
     const node: NodeValue = {
