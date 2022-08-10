@@ -26,7 +26,7 @@ function useForceRender() {
 interface SavedRef<T extends ObservableTypeRender | Record<string, ObservableTypeRender> | ObservableTypeRender[]> {
     fn: () => T;
     value: T;
-    listeners: Map<string, ObservableListenerDispose>;
+    listeners: Set<ObservableListenerDispose>;
     isFirst: boolean;
 }
 
@@ -51,7 +51,7 @@ export function useObservables<
     T extends ObservableTypeRender | Record<string, ObservableTypeRender> | ObservableTypeRender[]
 >(fn: () => T, deps?: any[]): MappedObservableValue<T> {
     const forceRender = useForceRender();
-    const ref = useRef<SavedRef<T>>({ fn, isFirst: true, value: undefined, listeners: new Map() });
+    const ref = useRef<SavedRef<T>>({ fn, isFirst: true, value: undefined, listeners: new Set() });
     ref.current.fn = fn;
 
     useMemo(() => setup(ref, forceRender), deps || []);
@@ -79,7 +79,7 @@ function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
 
             // Listen to this path if not already listening
             if (!node.listeners?.has(updateFn)) {
-                shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn);
+                ref.current.listeners.add(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
             }
         }
     };
