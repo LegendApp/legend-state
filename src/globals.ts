@@ -45,17 +45,6 @@ export function getChildNode(node: NodeValue, key: string | number, id?: string 
         node.children.set(key, child);
     }
 
-    // To maintain node stability when moved in arrays, if this is an element in an array,
-    // add it to the id map, update the childrenID map and update its key
-    // if (id !== undefined) {
-    //     if (!node.childrenID) {
-    //         node.childrenID = new Map();
-    //     }
-    //     node.children.set(key, child);
-    //     node.childrenID.set(id, child);
-    //     child.key = key;
-    // }
-
     return child;
 }
 

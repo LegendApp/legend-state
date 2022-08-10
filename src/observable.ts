@@ -93,13 +93,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     const isArrDiff = hasADiff;
 
     let keyMap: Map<string | number, number>;
-    // let moved: Map<string | number, NodeValue>;
     let moved: [string, NodeValue][];
 
-    if (isArr && prevValue?.length && isArray(prevValue)) {
+    if (isArr && prevValue?.length && isArray(prevValue) && prevValue[0].id !== undefined) {
         keyMap = new Map();
         moved = [];
-        // moved = new Map();
         for (let i = 0; i < prevValue.length; i++) {
             keyMap.set(prevValue[i].id, i);
         }
@@ -114,29 +112,31 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
         if (isDiff) {
             const id = value?.id;
 
-            let keyChild = key;
-            const child = getChildNode(parent, key);
+            let child = getChildNode(parent, key);
 
-            if (isArr) {
-                const prevPositionOfThisId = id !== undefined ? keyMap?.get(id) : undefined;
-                if (prevPositionOfThisId !== undefined) {
-                    keyChild = prevPositionOfThisId;
-                }
+            // Detect moves within an array. Need to move the original proxy to the new position to keep
+            // the proxy stable, so that listeners to this node will be unaffected by the array shift.
+            if (isArr && id !== undefined) {
+                // Find the previous position of this element in the array
+                const keyChild = id !== undefined ? keyMap?.get(id) : undefined;
+                if (keyChild !== undefined) {
+                    if (keyChild !== key) {
+                        // If array length changed then move the original node to the current position
+                        if (isArrDiff) {
+                            child = getChildNode(parent, keyChild);
+                            child.key = key;
+                            moved.push([key, child]);
+                        }
 
-                if (prevPositionOfThisId !== undefined && keyChild !== key) {
-                    if (isArrDiff) {
-                        const childMoved = getChildNode(parent, keyChild);
-                        childMoved.key = key;
-                        moved.push([key, childMoved]);
+                        // And check for diff against the previous value in the previous position
+                        const prevOfNode = prevValue[keyChild];
+                        isDiff = prevOfNode !== value;
                     }
-
-                    // parent.children.set(key, child);
-                    const prevOfNode = prevValue[keyChild];
-                    isDiff = prevOfNode !== value;
                 }
             }
 
             if (isDiff) {
+                // Array has a new / modified element
                 hasADiff = true;
                 // If object iterate through its children
                 if (!isPrimitive(value)) {
@@ -145,7 +145,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             }
             if (isDiff || !isArrDiff) {
                 // Notify for this child if this element is different and it has listeners
-                // But do not notify child if the parent is an array - the array's listener will cover it
+                // Or if the position changed in an array whose length did not change
+                // But do not notify child if the parent is an array with changing length -
+                // the array's listener will cover it
                 const doNotify = !!child.listeners;
                 if (doNotify) {
                     _notify(child, value, [], value, prev, 0);
@@ -259,6 +261,10 @@ const proxyHandler: ProxyHandler<any> = {
     ownKeys(target) {
         const value = getNodeValue(target);
         const keys = value ? Reflect.ownKeys(value) : [];
+
+        // This is required to fix this error:
+        // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for
+        // property 'length' which is either non-existent or configurable in the proxy target
         if (isArray(value)) {
             if (keys[keys.length - 1] === 'length') {
                 keys.splice(keys.length - 1, 1);
