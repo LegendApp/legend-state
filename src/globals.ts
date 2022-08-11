@@ -23,10 +23,12 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export function getChildNode(node: NodeValue, key: string | number, id?: string | number): NodeValue {
-    // Coerce numbers to number so we don't duplicate keys in arrays.
-    // isNaN is slow so make sure it's a string before coercing.
-    if (isString(key) && !isNaN(+key)) key = +key;
+export function getChildNode(node: NodeValue, key: string | number): NodeValue {
+    if (isString(key)) {
+        const n = +key;
+        // Convert to number if it's a string representing a valid number
+        if (n - n < 1) key = n;
+    }
 
     // Get the child by id if included, or by key
     let child = node.children?.get(key);
