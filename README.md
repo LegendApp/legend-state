@@ -86,7 +86,7 @@ function Component() {
 
 ## Documentation
 
-See [the documentation site](https://www.legendapp.com/dev/state/) .
+See [the documentation site](https://www.legendapp.com/dev/state/).
 
 ## Todo
 
