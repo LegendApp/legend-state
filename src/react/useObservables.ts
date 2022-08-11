@@ -30,16 +30,6 @@ interface SavedRef<T extends ObservableTypeRender | Record<string, ObservableTyp
     isFirst: boolean;
 }
 
-// function arrayEqual(arr1: any[], arr2: any[]) {
-//     if (!arr1 || !arr2 || arr1.length !== arr2.length) return false;
-
-//     for (let i = 0; i < arr1.length; i++) {
-//         if (arr1[i] !== arr2[i]) return false;
-//     }
-
-//     return true;
-// }
-
 /**
  * A React hook that listens to observables and returns their values.
  *
@@ -80,7 +70,6 @@ function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
     const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
         for (let i = 0; i < nodes.length; i++) {
             const { node, shallow } = nodes[i];
-            // const path = node.path;
 
             // Listen to this path if not already listening
             if (!node.listeners?.has(updateFn)) {

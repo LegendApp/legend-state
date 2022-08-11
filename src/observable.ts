@@ -14,7 +14,6 @@ import { tracking, updateTracking } from './state';
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
-let didErrorOnMissingID = false;
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -166,9 +165,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     return hasADiff;
 }
 
-function getProxy(node: NodeValue, p?: string | number, id?: string | number) {
+function getProxy(node: NodeValue, p?: string | number) {
     // Get the child node if p prop
-    if (p !== undefined) node = getChildNode(node, p, id);
+    if (p !== undefined) node = getChildNode(node, p);
 
     // Create a proxy if not already cached and return it
     let proxy = node.proxy;
@@ -222,7 +221,7 @@ const proxyHandler: ProxyHandler<any> = {
                     return (...args) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
                     return function (cbOrig, thisArg) {
-                        function cb(value, index: number, array: any[]) {
+                        function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
                         }
                         return value[p](cb, thisArg);
@@ -245,13 +244,7 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
-        // If accessing an element in an array, use the element id if available
-        let id;
-        if (isArray(value) && vProp?.id) {
-            id = vProp.id;
-        }
-
-        return getProxy(target, p, id);
+        return getProxy(target, p);
     },
     // Forward all proxy properties to the target's value
     getPrototypeOf(target) {
@@ -335,12 +328,6 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     let hasADiff = isPrim;
     // If new value is an object or array update notify down the tree
     if (!isPrim) {
-        // If this was swapped in an array then update the childNode
-        // if (isArray(parentValue) && newValue?.id && childNode.id !== newValue.id) {
-        // childNode.id = newValue.id;
-
-        // node.childrenID.set(childNode.id, childNode);
-        // }
         hasADiff = updateNodes(childNode, newValue, prevValue);
     }
 
