@@ -165,6 +165,14 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     return hasADiff;
 }
 
+function hasProxy(node: NodeValue, p?: string | number) {
+    // Get the child node if p prop
+    if (p !== undefined) node = getChildNode(node, p);
+
+    // Create a proxy if not already cached and return it
+    return !!node.proxy;
+}
+
 function getProxy(node: NodeValue, p?: string | number) {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
@@ -232,7 +240,7 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp.bind(value);
         }
         // Accessing primitives tracks and returns
-        if (vProp !== undefined && isPrimitive(vProp)) {
+        if (vProp === undefined || vProp === null ? !hasProxy(target, p) : isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
