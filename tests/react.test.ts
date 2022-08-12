@@ -6,7 +6,6 @@ import { useNewObservable } from '../src/react/useNewObservable';
 import { observableComputed } from '../src/observableComputed';
 
 describe('React Hooks', () => {
-    test('', () => {});
     test('useObservables', () => {
         let numRenders = 0;
         const obs = observable({ val: { arr: ['hi'], val2: { val3: 'hello' } } });
