@@ -1,18 +1,20 @@
+import { isString } from './is';
+import { NodeValue } from './observableInterfaces';
 import { tracking, updateTracking } from './state';
-import { isFunction, isPrimitive, isString } from './is';
-import { ObservableTypeRender, NodeValue } from './observableInterfaces';
 
 export const symbolDateModified = Symbol('dateModified');
-export const symbolShallow = Symbol('shallow');
-export const symbolGet = Symbol('get');
 export const symbolIsObservable = Symbol('isObservable');
 
 export function get(node: NodeValue) {
-    return getNodeValue(node);
+    let value = getNodeValue(node);
+    if (node.root.isPrimitive) {
+        value = value.current;
+    }
+    return value;
 }
 
 export function observe(node: NodeValue, shallow?: boolean) {
-    const value = getNodeValue(node);
+    const value = get(node);
     if (tracking.nodes) updateTracking(node, value, shallow);
     return value;
 }
@@ -58,20 +60,4 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     }
 
     return child;
-}
-
-export function getObservableRawValue<T>(obs: ObservableTypeRender<T>): T {
-    if (!obs || isPrimitive(obs)) return obs as T;
-    if (isFunction(obs)) return obs();
-
-    const shallow = obs?.[symbolShallow];
-    if (shallow) {
-        tracking.shallow = true;
-        obs = shallow;
-    }
-    let ret = obs?.[symbolGet];
-
-    tracking.shallow = false;
-
-    return ret;
 }

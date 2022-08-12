@@ -1,9 +1,9 @@
-import { observableComputed } from '../src/observableComputed';
-import { observable } from '../src/observable';
-import { observableEvent } from '../src/observableEvent';
-import { observableBatcher } from '../src/observableBatcher';
-import { Observable, ObservableComputed, ObservablePrimitive, ObservableType } from '../src/observableInterfaces';
 import { isObservable } from '../src/helpers';
+import { observable } from '../src/observable';
+import { observableBatcher } from '../src/observableBatcher';
+import { observableComputed } from '../src/observableComputed';
+import { observableEvent } from '../src/observableEvent';
+import { ObservableType } from '../src/observableInterfaces';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -661,6 +661,7 @@ describe('Primitives', () => {
         expect(obs.val.val2.val3).toEqual(10);
         obs.val.val2.val3.set(20);
         expect(obs.val.val2.val3).toEqual(20);
+        expect(obs.val.val2.val3.get()).toEqual(20);
     });
     test('observable root can be primitive', () => {
         const obs = observable(10);

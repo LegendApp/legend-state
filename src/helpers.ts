@@ -1,12 +1,7 @@
-import { symbolDateModified, symbolIsObservable, symbolShallow } from './globals';
+import { symbolDateModified, symbolIsObservable } from './globals';
 import { isObject } from './is';
-import type { ObservableType, Shallow } from './observableInterfaces';
+import type { ObservableType } from './observableInterfaces';
 
-export function shallow(obs: ObservableType): Shallow {
-    return {
-        [symbolShallow]: obs,
-    };
-}
 export function isObservable(obs: any): boolean {
     return obs && !!obs[symbolIsObservable as any];
 }

@@ -1,6 +1,5 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 import { observable } from '../src/observable';
-import { shallow } from '../src/helpers';
 // import { useObservables } from '../src/react/useObservables';
 import { useObservable } from '../src/react/useObservable';
 import { observableComputed } from '../src/observableComputed';

@@ -1,4 +1,4 @@
-import { get, getChildNode, getNodeValue, observe, symbolGet, symbolIsObservable } from './globals';
+import { get, getChildNode, getNodeValue, observe, symbolIsObservable } from './globals';
 import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -205,19 +205,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
         const vProp = value?.[p];
-        // The get() function as well as the internal obs[symbolGet]
-        // TODO Remove this if we remove useObservables
-        if (p === symbolGet) {
-            // Primitives are { current } so return the current value
-            if (node.root.isPrimitive) {
-                value = value.current;
-            }
-            // Update that this node was accessed for useObservables and useComputed
-            if (tracking.nodes) {
-                updateTracking(node, value);
-            }
-            return value;
-        }
+
         // Accessing undefined/null/symbols passes straight through if this value has a property for it
         // If it's never been defined assume it's a proxy to a future object
         if (isSymbol(p) || vProp === null || (vProp === undefined && value && value.hasOwnProperty?.(p))) {
@@ -316,8 +304,7 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
-    newValue =
-        newValue && isObject(newValue) && newValue?.[symbolIsObservable as any] ? newValue[symbolGet as any] : newValue;
+    newValue = newValue && isObject(newValue) && newValue?.[symbolIsObservable as any] ? newValue.get() : newValue;
 
     const isPrim = isPrimitive(newValue);
 
