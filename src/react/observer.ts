@@ -11,6 +11,7 @@ const ReactForwardRefSymbol = hasSymbol
     : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
 export function observer(component: FC) {
+    // Unwrap forwardRef on the component
     let useForwardRef: boolean;
     if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
         useForwardRef = true;
@@ -20,14 +21,21 @@ export function observer(component: FC) {
         }
     }
 
+    // Create a wrapper observer component
     let out = function (props) {
-        const ref = useRef<Set<ObservableListenerDispose>>(new Set());
+        const ref = useRef<Set<ObservableListenerDispose>>();
+        if (!ref.current) ref.current = new Set();
+
         const forceRender = useForceRender();
 
+        // Clean up listeners on the way out
         useEffect(() => () => ref.current.forEach((dispose) => dispose()), []);
+
+        // Set up all the listeners while rendering the component
         return listenWhileCalling(() => component(props), ref.current, forceRender);
     };
 
+    // Wrap back in forwardRef if necessary
     if (useForwardRef) {
         out = forwardRef(out);
     }
