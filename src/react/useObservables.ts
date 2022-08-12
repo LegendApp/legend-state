@@ -83,7 +83,6 @@ function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
         }
     };
     const update = () => {
-        tracking.is = true;
         tracking.nodes = [];
 
         // tracking.nodes is updated any time a primitive is accessed or get() is called
@@ -97,14 +96,14 @@ function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
         // tracking.nodes will be filled with all of the observables in the arguments
         const { primitives, value } = compute(args);
 
-        tracking.is = false;
-
         // Set up listeners on all nodes
         // Selectors only need to check for changes in the primitives while
         // observables need to check observable arguments to add listeners to any
         // that weren't there before
         updateListeners(selectorNodes, updateFromSelector);
         updateListeners(tracking.nodes, update);
+
+        tracking.nodes = undefined;
 
         ref.current.value = value;
 

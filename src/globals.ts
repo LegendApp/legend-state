@@ -61,7 +61,6 @@ export function getObservableRawValue<T>(obs: ObservableTypeRender<T>): T {
     }
     let ret = obs?.[symbolGet];
 
-    tracking.should = undefined;
     tracking.shallow = false;
 
     return ret;

@@ -11,18 +11,17 @@ export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
         obs.set(compute());
     };
 
-    tracking.is = true;
     tracking.nodes = [];
 
     const computed = compute();
     const obs = observable(computed as any);
 
-    tracking.is = false;
-
     // Todo shallow
     for (let { node } of tracking.nodes) {
         onChange(node, update);
     }
+
+    tracking.nodes = undefined;
 
     return obs as unknown as ObservableComputed<T>;
 }

@@ -1,6 +1,19 @@
+import { tracking } from './state';
 import { symbolDateModified, symbolIsObservable, symbolShallow } from './globals';
 import { isObject } from './is';
-import type { Observable, ObservableType, Shallow } from './observableInterfaces';
+import type { ObservableType, Shallow } from './observableInterfaces';
+
+export function getShallow<T>(obs: T): T {
+    if (isObservable(obs)) {
+        obs = (obs as ObservableType).get();
+    }
+    const nodes = tracking.nodes;
+    if (nodes.length > 0) {
+        const node = nodes[nodes.length - 1];
+        node.shallow = true;
+    }
+    return obs;
+}
 
 export function shallow(obs: ObservableType): Shallow {
     return {

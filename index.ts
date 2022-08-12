@@ -1,4 +1,4 @@
-export { mergeIntoObservable, shallow, isObservable } from './src/helpers';
+export { mergeIntoObservable, shallow, isObservable, getShallow } from './src/helpers';
 export { observable } from './src/observable';
 export { observableBatcher } from './src/observableBatcher';
 export { observableComputed } from './src/observableComputed';
