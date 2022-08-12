@@ -1,4 +1,4 @@
-import { tracking } from './state';
+import { tracking, updateTracking } from './state';
 import { isFunction, isPrimitive, isString } from './is';
 import { ObservableTypeRender, NodeValue } from './observableInterfaces';
 
@@ -6,6 +6,16 @@ export const symbolDateModified = Symbol('dateModified');
 export const symbolShallow = Symbol('shallow');
 export const symbolGet = Symbol('get');
 export const symbolIsObservable = Symbol('isObservable');
+
+export function get(node: NodeValue) {
+    return getNodeValue(node);
+}
+
+export function observe(node: NodeValue, shallow?: boolean) {
+    const value = getNodeValue(node);
+    if (tracking.nodes) updateTracking(node, value, shallow);
+    return value;
+}
 
 export function getNodeValue(node: NodeValue): any {
     const arr: (string | number)[] = [];

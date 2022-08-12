@@ -1,4 +1,4 @@
-import { getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './globals';
+import { get, getChildNode, getNodeValue, observe, symbolGet, symbolIsObservable } from './globals';
 import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -30,14 +30,15 @@ const ArrayModifiers = new Set([
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map']);
 
 const objectFns = new Map<string, Function>([
-    ['get', getNodeValue],
+    ['get', get],
     ['set', set],
+    ['observe', observe],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['prop', getProxy],
+    ['ref', getProxy],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
@@ -195,7 +196,7 @@ const proxyHandler: ProxyHandler<any> = {
         const node = target;
         const fn = objectFns.get(p);
         // If this is an observable function, call it
-        if (p !== 'get' && fn) {
+        if (fn) {
             return function (a, b, c) {
                 const l = arguments.length;
                 return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
@@ -205,7 +206,8 @@ const proxyHandler: ProxyHandler<any> = {
         let value = getNodeValue(node);
         const vProp = value?.[p];
         // The get() function as well as the internal obs[symbolGet]
-        if (p === symbolGet || p === 'get') {
+        // TODO Remove this if we remove useObservables
+        if (p === symbolGet) {
             // Primitives are { current } so return the current value
             if (node.root.isPrimitive) {
                 value = value.current;
@@ -214,7 +216,7 @@ const proxyHandler: ProxyHandler<any> = {
             if (tracking.nodes) {
                 updateTracking(node, value);
             }
-            return p === 'get' ? () => value : value;
+            return value;
         }
         // Accessing undefined/null/symbols passes straight through if this value has a property for it
         // If it's never been defined assume it's a proxy to a future object

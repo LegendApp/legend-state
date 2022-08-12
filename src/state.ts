@@ -4,10 +4,10 @@ export const tracking = {
     shallow: false,
     nodes: [] as TrackingNode[],
 };
-export function updateTracking(node: NodeValue, value: any) {
+export function updateTracking(node: NodeValue, value: any, shallow?: boolean) {
     tracking.nodes.push({
         node,
-        shallow: tracking.shallow,
+        shallow: shallow || tracking.shallow,
         value,
     });
 }

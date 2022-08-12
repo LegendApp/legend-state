@@ -29,7 +29,7 @@ describe('React Hooks', () => {
         const obs = observable({ val: { val2: { val3: 'hello' } }, selected: 0 });
         const { result } = renderHook(() => {
             numRenders++;
-            return useObservables(() => [obs.val, obs.prop('selected')]);
+            return useObservables(() => [obs.val, obs.ref('selected')]);
         });
         const [val] = result.current;
         expect(numRenders).toEqual(1);

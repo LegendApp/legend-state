@@ -25,9 +25,7 @@ export function observer(component: FC) {
         const forceRender = useForceRender();
 
         useEffect(() => () => ref.current.forEach((dispose) => dispose()), []);
-        const value = listenWhileCalling(() => component(props), ref.current, forceRender);
-
-        return value;
+        return listenWhileCalling(() => component(props), ref.current, forceRender);
     };
 
     if (useForwardRef) {
