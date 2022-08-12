@@ -1,11 +1,34 @@
 # Legend-State
 
-Legend-State is a proxy-based observable library designed to be both:
+Legend-State is a super fast and powerful state manager for JavaScript apps with two primary goals:
 
-1. 🦄 As easy as possible to use
-2. ⚡️ Super performant and scalable
+### 1. <span className="text-xl">🦄</span> As easy as possible to use
 
-The core is platform agnostic so you can use it in vanilla JS or any framework to create and listen to observables. It includes hooks for React and React Native, and has plugins for automatically persisting to storage.
+There is no boilerplate and there are no actions, reducers, selectors, dispatchers, sagas, thunks, or epics. Observables are just normal objects that you can listen to for changes.
+
+```jsx
+// Create an observable object
+const state = observable({ settings: { theme: 'dark' } })
+
+// Observables work like any other object
+state.settings.theme === 'dark' // true
+
+// Listen anywhere for changes
+state.settings.theme.onChange((theme) => { ... })
+
+// A simple React hook that re-renders when state changes
+const theme = useObservables(() => state.settings.theme)
+```
+
+### 2. <span className="text-xl">⚡️</span> The fastest React state library
+
+Legend-State beats every other state library on just about every metric and is so optimized for arrays that it even beats vanilla JS on the swap benchmark. At only `3kb` and with the massive reduction in boilerplate code, you'll have big savings in file size too.
+
+<p>
+    <img src="https://www.legendapp.com/img/dev/state/times.png" />
+</p>
+
+See [the documentation](https://www.legendapp.com/dev/state) for more details.
 
 ## Install
 
@@ -63,13 +86,13 @@ function Component() {
 
 ## Documentation
 
-Full documentation is still in progress, but will be at [the website](https://www.legendapp.com/dev/state/) shortly.
+See [the documentation site](https://www.legendapp.com/dev/state/).
 
 ## Todo
 
--   [] Remote persistence to Firebase
--   [] Conflict resolution for remote persistence
--   [] useSyncExternalStore for React 18
+- [ ] Remote persistence to Firebase
+- [ ] Conflict resolution for remote persistence
+- [ ] useSyncExternalStore for React 18
 
 ## 👩‍⚖️ License
 
