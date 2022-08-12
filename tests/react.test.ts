@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react-hooks';
 import { observable } from '../src/observable';
 import { shallow } from '../src/helpers';
 import { useObservables } from '../src/react/useObservables';
-import { useNewObservable } from '../src/react/useNewObservable';
+import { useObservable } from '../src/react/useObservable';
 import { observableComputed } from '../src/observableComputed';
 
 describe('React Hooks', () => {
@@ -224,28 +224,28 @@ describe('React Hooks', () => {
         expect(text).toEqual('hihi');
         // expect(val.val2.val3).toEqual('hi');
     });
-    test('useNewObservable primitive', () => {
+    test('useObservable primitive', () => {
         let numRenders = 0;
         const { result } = renderHook(() => {
             numRenders++;
-            return useNewObservable(10);
+            return useObservable(10);
         });
-        const [obs, val] = result.current;
+        const obs = result.current;
         expect(numRenders).toEqual(1);
-        expect(val).toEqual(10);
+        expect(obs.current).toEqual(10);
         act(() => {
             obs.set(20);
         });
         expect(numRenders).toEqual(2);
         expect(result.current[1]).toEqual(20);
     });
-    test('useNewObservable object', () => {
+    test('useObservable object', () => {
         let numRenders = 0;
         const { result } = renderHook(() => {
             numRenders++;
-            return useNewObservable({ text: 'hi' });
+            return useObservable({ text: 'hi' });
         });
-        const [obs, val] = result.current;
+        const obs = result.current;
         expect(numRenders).toEqual(1);
         expect(result.current[1]).toEqual({ text: 'hi' });
 
@@ -255,13 +255,13 @@ describe('React Hooks', () => {
         expect(numRenders).toEqual(2);
         expect(result.current[1]).toEqual({ text: 'hello' });
     });
-    test('useNewObservable not listening', () => {
+    test('useObservable not listening', () => {
         let numRenders = 0;
         const { result } = renderHook(() => {
             numRenders++;
-            return useNewObservable(10, false);
+            return useObservable(10);
         });
-        const [obs] = result.current;
+        const obs = result.current;
         expect(numRenders).toEqual(1);
         expect(obs).toEqual({ current: 10 });
         act(() => {
