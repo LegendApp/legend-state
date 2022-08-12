@@ -3,20 +3,12 @@ import {
     isArray,
     isObject,
     isPrimitive,
-    onChange,
-    onChangeShallow,
     symbolIsObservable,
     symbolShallow,
-    tracking,
 } from '@legendapp/state';
 import { RefObject, useEffect, useMemo, useReducer, useRef } from 'react';
-import type {
-    ListenerFn,
-    MappedObservableValue,
-    ObservableListenerDispose,
-    ObservableTypeRender,
-    TrackingNode,
-} from '../observableInterfaces';
+import type { MappedObservableValue, ObservableListenerDispose, ObservableTypeRender } from '../observableInterfaces';
+import { listenWhileCalling } from './listenWhileCalling';
 
 function useForceRender() {
     const [, forceRender] = useReducer((s) => s + 1, 0);
@@ -72,38 +64,14 @@ function setup(ref: RefObject<SavedRef<any>>, forceRender: () => void) {
             forceRender();
         }
     };
-    const updateListeners = (nodes: TrackingNode[], updateFn: ListenerFn) => {
-        for (let i = 0; i < nodes.length; i++) {
-            const { node, shallow } = nodes[i];
-
-            // Listen to this path if not already listening
-            if (!node.listeners?.has(updateFn)) {
-                ref.current.listeners.add(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
-            }
-        }
-    };
     const update = () => {
-        tracking.nodes = [];
-
         // tracking.nodes is updated any time a primitive is accessed or get() is called
-        // so after calling fn(), tracking.nodes will be filled with those selectors
-        const args = ref.current.fn();
-        const selectorNodes = tracking.nodes;
-
-        tracking.nodes = [];
+        // so after calling fn(), it will be filled with those selectors
+        const args = listenWhileCalling(ref.current.fn, ref.current.listeners, updateFromSelector);
 
         // compute calls symbolGet on all of the observable arguments so afterwards
         // tracking.nodes will be filled with all of the observables in the arguments
-        const { primitives, value } = compute(args);
-
-        // Set up listeners on all nodes
-        // Selectors only need to check for changes in the primitives while
-        // observables need to check observable arguments to add listeners to any
-        // that weren't there before
-        updateListeners(selectorNodes, updateFromSelector);
-        updateListeners(tracking.nodes, update);
-
-        tracking.nodes = undefined;
+        const { primitives, value } = listenWhileCalling(() => compute(args), ref.current.listeners, update);
 
         ref.current.value = value;
 

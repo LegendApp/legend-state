@@ -2,14 +2,11 @@ import { tracking, ObservableListenerDispose, TrackingNode, onChangeShallow, onC
 
 export function listenWhileCalling<T>(fn: () => T, listeners: Set<ObservableListenerDispose>, updateFn: () => void) {
     const trackingPrev = tracking.nodes;
-    // tracking.is = true;
     tracking.nodes = [];
 
     let ret = fn();
 
     const nodes = tracking.nodes;
-
-    // tracking.is = false;
 
     tracking.nodes = trackingPrev;
 
