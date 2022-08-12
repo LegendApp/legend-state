@@ -1,18 +1,30 @@
 import { ObservableListenerDispose } from '@legendapp/state';
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { listenWhileCalling } from './listenWhileCalling';
 
-function useForceRender() {
-    const [, forceRender] = useReducer((s) => s + 1, 0);
-    return () => forceRender();
+interface SavedRef {
+    listeners: Set<ObservableListenerDispose>;
+    value: any;
 }
 
-export function useComputed<T>(selector: () => T): T {
-    const ref = useRef<Set<ObservableListenerDispose>>(new Set());
-    const forceRender = useForceRender();
+export function useComputed<T>(selector: () => T, deps: any[]): T {
+    const ref = useRef<SavedRef>({ listeners: new Set(), value: undefined });
 
-    useEffect(() => () => ref.current.forEach((dispose) => dispose()), []);
-    const value = listenWhileCalling(selector, ref.current, forceRender);
+    const initial = useMemo(() => {
+        const onChange = () => {
+            const v = selector();
+            if (v !== ref.current.value) {
+                ref.current.value = v;
+                setValue(v);
+            }
+        };
+        return listenWhileCalling(selector, ref.current.listeners, onChange);
+    }, deps || []);
+
+    const [value, setValue] = useState(initial);
+    ref.current.value = value;
+
+    useEffect(() => () => ref.current.listeners.forEach((dispose) => dispose()), []);
 
     return value;
 }

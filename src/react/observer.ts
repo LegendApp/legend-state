@@ -1,11 +1,7 @@
 import { ObservableListenerDispose } from '@legendapp/state';
-import { FC, forwardRef, memo } from 'react';
-import { useComputed } from 'src/react/useComputed';
-
-interface SavedRef {
-    listeners: Set<ObservableListenerDispose>;
-    isFirst: boolean;
-}
+import { FC, forwardRef, memo, useEffect, useRef } from 'react';
+import { listenWhileCalling } from './listenWhileCalling';
+import { useForceRender } from './useForceRender';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
 
@@ -25,7 +21,13 @@ export function observer(component: FC) {
     }
 
     let out = function (props) {
-        return useComputed(() => component(props));
+        const ref = useRef<Set<ObservableListenerDispose>>(new Set());
+        const forceRender = useForceRender();
+
+        useEffect(() => () => ref.current.forEach((dispose) => dispose()), []);
+        const value = listenWhileCalling(() => component(props), ref.current, forceRender);
+
+        return value;
     };
 
     if (useForwardRef) {
