@@ -15,7 +15,7 @@ export function get(node: NodeValue) {
 
 export function observe(node: NodeValue, shallow?: boolean) {
     const value = get(node);
-    if (tracking.nodes) updateTracking(node, value, shallow);
+    if (tracking.nodes) updateTracking(node, shallow);
     return value;
 }
 

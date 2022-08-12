@@ -237,7 +237,7 @@ const proxyHandler: ProxyHandler<any> = {
             lastAccessedPrimitive = p;
             // Update that this node was accessed for useObservables and useComputed
             if (tracking.nodes) {
-                updateTracking(getChildNode(node, p), value);
+                updateTracking(getChildNode(node, p));
             }
             return vProp;
         }
