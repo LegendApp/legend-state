@@ -21,8 +21,10 @@ export function observer(component: FC) {
         }
     }
 
+    const componentName = component.displayName || component.name;
+
     // Create a wrapper observer component
-    let out = function (props, ref) {
+    let observer = function (props, ref) {
         const refListeners = useRef<Set<ObservableListenerDispose>>();
         if (!refListeners.current) refListeners.current = new Set();
 
@@ -35,10 +37,16 @@ export function observer(component: FC) {
         return listenWhileCalling(() => component(props, ref), refListeners.current, forceRender);
     };
 
-    // Wrap back in forwardRef if necessary
-    if (useForwardRef) {
-        out = forwardRef(out);
+    console.log(componentName);
+
+    if (componentName !== '') {
+        (observer as FC).displayName = componentName;
     }
 
-    return memo(out);
+    // Wrap back in forwardRef if necessary
+    if (useForwardRef) {
+        observer = forwardRef(observer);
+    }
+
+    return memo(observer);
 }
