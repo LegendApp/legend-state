@@ -43,7 +43,7 @@ async function onObsChange<T>(
     const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
     if (local) {
         if (!obsState.isLoadedLocal) {
-            console.error('WARNING: An observable was changed before being loaded from persistence');
+            console.error('[legend-state]: WARNING: An observable was changed before being loaded from persistence');
             return;
         }
 
@@ -121,7 +121,7 @@ async function loadLocal(
         // Warn on duplicate usage of local names
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(local)) {
-                console.error(`Called persist with the same local name multiple times: ${local}`);
+                console.error(`[legend-state]: Called persist with the same local name multiple times: ${local}`);
             }
             usedNames.set(local, true);
         }

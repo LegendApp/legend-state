@@ -15,7 +15,13 @@ export function get(node: NodeValue) {
 
 export function observe(node: NodeValue, shallow?: boolean) {
     const value = get(node);
-    if (tracking.nodes) updateTracking(node, shallow);
+
+    if (tracking.nodes) {
+        updateTracking(node, shallow);
+    } else if (process.env.NODE_ENV === 'development') {
+        console.error('[legend-state]: observe() has no effect outside of an observer component.');
+    }
+
     return value;
 }
 

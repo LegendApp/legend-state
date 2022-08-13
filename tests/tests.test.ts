@@ -1598,8 +1598,8 @@ describe('Batching', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });
-describe('obs function', () => {
-    test('With and without prop', () => {
+describe('ref function', () => {
+    test('With and without ref', () => {
         const obs = observable({ text: 'hi' });
         const prox = obs.ref('text');
         const prox2 = obs.text.ref();
