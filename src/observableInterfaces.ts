@@ -220,6 +220,7 @@ export type ObservableType<T = any> =
 export type ObservableTypeRender<T = any> = ObservableType<T> | ObservableComputeFunction<T>;
 
 export interface NodeValue {
+    id: number;
     parent: NodeValue;
     children?: Map<string | number, NodeValue>;
     proxy?: object;

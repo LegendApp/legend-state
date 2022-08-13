@@ -5,6 +5,8 @@ import { tracking, updateTracking } from './state';
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 
+export const nextNodeID = { current: 0 };
+
 export function get(node: NodeValue) {
     let value = getNodeValue(node);
     if (node.root.isPrimitive) {
@@ -54,6 +56,7 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     // Create the child node if it doesn't already exist
     if (!child) {
         child = {
+            id: nextNodeID.current++,
             root: node.root,
             parent: node,
             key,

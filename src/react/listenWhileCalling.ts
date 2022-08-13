@@ -5,7 +5,7 @@ export function listenWhileCalling<T>(fn: () => T, listeners: Set<ObservableList
     const trackingPrev = tracking.nodes;
 
     // Reset tracking nodes
-    tracking.nodes = [];
+    tracking.nodes = new Map();
 
     // Calling the function fills up the tracking nodes
     const ret = fn();
@@ -16,8 +16,8 @@ export function listenWhileCalling<T>(fn: () => T, listeners: Set<ObservableList
     tracking.nodes = trackingPrev;
 
     // Listen to any nodes not already listened
-    for (let i = 0; i < nodes.length; i++) {
-        const { node, shallow } = nodes[i];
+    for (let tracked of nodes) {
+        const { node, shallow } = tracked[1];
 
         // Listen to this path if not already listening
         if (!node.listeners?.has(updateFn)) {

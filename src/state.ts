@@ -1,11 +1,13 @@
 import type { NodeValue, TrackingNode } from './observableInterfaces';
 
 export const tracking = {
-    nodes: [] as TrackingNode[],
+    nodes: undefined as Map<number, TrackingNode>,
 };
 export function updateTracking(node: NodeValue, shallow?: boolean) {
-    tracking.nodes.push({
-        node,
-        shallow: shallow,
-    });
+    const existing = tracking.nodes.get(node.id);
+    if (existing) {
+        existing.shallow = existing.shallow === undefined || (existing.shallow === true && !shallow);
+    } else {
+        tracking.nodes.set(node.id, { node, shallow });
+    }
 }

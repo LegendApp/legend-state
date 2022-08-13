@@ -1,4 +1,4 @@
-import { get, getChildNode, getNodeValue, observe, symbolIsObservable } from './globals';
+import { get, getChildNode, getNodeValue, nextNodeID, observe, symbolIsObservable } from './globals';
 import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -217,17 +217,20 @@ const proxyHandler: ProxyHandler<any> = {
                 if (ArrayModifiers.has(p)) {
                     // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
-                } else if (ArrayLoopers.has(p)) {
+                } else {
                     // Update that this node was accessed for observers
                     if (tracking.nodes) {
-                        updateTracking(getChildNode(node, p));
+                        updateTracking(getChildNode(node, p), /*shallow*/ true);
                     }
-                    return function (cbOrig, thisArg) {
-                        function cb(_, index: number, array: any[]) {
-                            return cbOrig(getProxy(node, index), index, array);
-                        }
-                        return value[p](cb, thisArg);
-                    };
+
+                    if (ArrayLoopers.has(p)) {
+                        return function (cbOrig, thisArg) {
+                            function cb(_, index: number, array: any[]) {
+                                return cbOrig(getProxy(node, index), index, array);
+                            }
+                            return value[p](cb, thisArg);
+                        };
+                    }
                 }
             }
             // Return the function bound to the value
@@ -253,7 +256,12 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(target);
         return Reflect.getPrototypeOf(value);
     },
-    ownKeys(target) {
+    ownKeys(target: NodeValue) {
+        // Update that this node was accessed for observers
+        if (tracking.nodes) {
+            updateTracking(target, /*shallow*/ true);
+        }
+
         const value = getNodeValue(target);
         const keys = value ? Reflect.ownKeys(value) : [];
 
@@ -470,6 +478,7 @@ export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
     } as ObservableWrapper;
 
     const node: NodeValue = {
+        id: nextNodeID.current++,
         root: obs,
         parent: undefined,
         key: undefined,
