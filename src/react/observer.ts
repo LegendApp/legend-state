@@ -22,17 +22,17 @@ export function observer(component: FC) {
     }
 
     // Create a wrapper observer component
-    let out = function (props) {
-        const ref = useRef<Set<ObservableListenerDispose>>();
-        if (!ref.current) ref.current = new Set();
+    let out = function (props, ref) {
+        const refListeners = useRef<Set<ObservableListenerDispose>>();
+        if (!refListeners.current) refListeners.current = new Set();
 
         const forceRender = useForceRender();
 
         // Clean up listeners on the way out
-        useEffect(() => () => ref.current.forEach((dispose) => dispose()), []);
+        useEffect(() => () => refListeners.current.forEach((dispose) => dispose()), []);
 
         // Set up all the listeners while rendering the component
-        return listenWhileCalling(() => component(props), ref.current, forceRender);
+        return listenWhileCalling(() => component(props, ref), refListeners.current, forceRender);
     };
 
     // Wrap back in forwardRef if necessary
