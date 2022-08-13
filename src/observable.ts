@@ -38,7 +38,7 @@ const objectFns = new Map<string, Function>([
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['ref', getProxy],
+    ['obs', getProxy],
     ['assign', assign],
     ['delete', deleteFn],
 ]);

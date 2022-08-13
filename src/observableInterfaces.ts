@@ -10,11 +10,11 @@ export interface ObservableBaseFns<T> {
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set(value: T): ObservableChild<T>;
-    ref(): ObservablePrimitiveFns<T>;
+    obs(): ObservablePrimitiveFns<T>;
 }
-export interface ObservableFns<T> extends Omit<ObservablePrimitiveFns<T>, 'ref'> {
+export interface ObservableFns<T> extends Omit<ObservablePrimitiveFns<T>, 'obs'> {
     observe(shallow?: boolean): T;
-    ref<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    obs<K extends keyof T>(prop: K): ObservableChild<T[K]>;
     set(value: T): ObservableChild<T>;
     set<K extends keyof T>(key: K, value: T[K]): ObservableChild<T[K]>;
     set<V>(key: string | number, value: V): ObservableChild<V>;
