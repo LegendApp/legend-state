@@ -218,6 +218,10 @@ const proxyHandler: ProxyHandler<any> = {
                     // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
+                    // Update that this node was accessed for observers
+                    if (tracking.nodes) {
+                        updateTracking(getChildNode(node, p));
+                    }
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
@@ -235,7 +239,7 @@ const proxyHandler: ProxyHandler<any> = {
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
-            // Update that this node was accessed for useObservables and useComputed
+            // Update that this node was accessed for observers
             if (tracking.nodes) {
                 updateTracking(getChildNode(node, p));
             }
