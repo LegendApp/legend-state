@@ -37,8 +37,6 @@ export function observer(component: FC) {
         return listenWhileCalling(() => component(props, ref), refListeners.current, forceRender);
     };
 
-    console.log(componentName);
-
     if (componentName !== '') {
         (observer as FC).displayName = componentName;
     }

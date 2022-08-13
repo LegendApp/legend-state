@@ -17,8 +17,10 @@
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
-        "publish:preminor": "npm version preminor && cd dist && npm publish",
-        "publish:prerelease": "npm version prerelease && cd dist && npm publish",
+        "publish:minor": "npm version minor && cd dist && npm publish",
+        "publish:patch": "npm version patch && cd dist && npm publish",
+        "publish:preminor": "npm version preminor --preid=next && cd dist && npm publish --tag next",
+        "publish:prerelease": "npm version prerelease --preid=next && cd dist && npm publish --tag next",
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react"
