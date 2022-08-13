@@ -648,6 +648,14 @@ describe('Safety', () => {
             delete obs.test;
         }).toThrow();
     });
+    test('Observable functions always work', () => {
+        const obs = observable({ get: 'hi', assign: 'hi' });
+        expect(typeof obs.get === 'function').toBe(true);
+        expect(typeof obs.assign === 'function').toBe(true);
+        obs.set({ get: 'hello', assign: 'hi' });
+        expect(typeof obs.get === 'function').toBe(true);
+        expect(typeof obs.assign === 'function').toBe(true);
+    });
 });
 describe('Primitives', () => {
     test('Primitive set', () => {

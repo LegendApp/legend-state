@@ -10,7 +10,7 @@ const ReactForwardRefSymbol = hasSymbol
     ? Symbol.for('react.forward_ref')
     : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
-export function observer(component: FC) {
+export function observer<T extends FC<any>>(component: T): T {
     // Unwrap forwardRef on the component
     let useForwardRef: boolean;
     if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
@@ -46,5 +46,5 @@ export function observer(component: FC) {
         observer = forwardRef(observer);
     }
 
-    return memo(observer);
+    return memo(observer) as unknown as T;
 }
