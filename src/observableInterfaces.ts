@@ -3,6 +3,7 @@ export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasVa
 export interface ObservableBaseFns<T> {
     get(): T;
     ref(): ObservableChild<T>;
+    observe(): T;
     onChange(cb: ListenerFn<T>): ObservableListenerDispose;
     onChangeShallow(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
@@ -78,6 +79,7 @@ export interface ObservableEvent {
     dispatch(): void;
     on(cb?: () => void): ObservableListenerDispose;
     on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
+    observe(): void;
 }
 
 export type QueryByModified<T> =
