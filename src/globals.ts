@@ -1,13 +1,13 @@
 import { isString } from './is';
 import { NodeValue } from './observableInterfaces';
-import { tracking, updateTracking } from './state';
+import { tracking, untrack, updateTracking } from './state';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 
 export const nextNodeID = { current: 0 };
 
-export function get(node: NodeValue) {
+export function getOutputValue(node: NodeValue) {
     let value = getNodeValue(node);
     if (node.root.isPrimitive) {
         value = value.current;
@@ -15,11 +15,16 @@ export function get(node: NodeValue) {
     return value;
 }
 
+export function get(node: NodeValue) {
+    if (tracking.nodes) untrack(node);
+    return getOutputValue(node);
+}
+
 export function observe(node: NodeValue, shallow?: boolean) {
-    const value = get(node);
+    const value = getOutputValue(node);
 
     if (tracking.nodes) {
-        updateTracking(node, shallow);
+        updateTracking(node, undefined, shallow, /*manual*/ true);
     } else if (process.env.NODE_ENV === 'development') {
         console.error('[legend-state]: observe() has no effect outside of an observer component.');
     }

@@ -9,7 +9,7 @@ import {
     ObservableWrapper,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
-import { tracking, updateTracking } from './state';
+import { tracking, untrack, updateTracking } from './state';
 
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
@@ -229,35 +229,31 @@ const proxyHandler: ProxyHandler<any> = {
                 if (ArrayModifiers.has(p)) {
                     // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
-                } else {
-                    // Update that this node was accessed for observers
-                    if (tracking.nodes) {
-                        updateTracking(getChildNode(node, p), /*shallow*/ true);
-                    }
-
-                    if (ArrayLoopers.has(p)) {
-                        return function (cbOrig, thisArg) {
-                            function cb(_, index: number, array: any[]) {
-                                return cbOrig(getProxy(node, index), index, array);
-                            }
-                            return value[p](cb, thisArg);
-                        };
-                    }
+                } else if (ArrayLoopers.has(p)) {
+                    return function (cbOrig, thisArg) {
+                        function cb(_, index: number, array: any[]) {
+                            return cbOrig(getProxy(node, index), index, array);
+                        }
+                        return value[p](cb, thisArg);
+                    };
                 }
             }
             // Return the function bound to the value
             return vProp.bind(value);
         }
-        // Accessing primitives tracks and returns
+
+        // Update that this node was accessed for observers
+        if (tracking.nodes) {
+            updateTracking(getChildNode(node, p), node);
+        }
+
+        // Accessing primitive returns the raw value
         if (vProp === undefined || vProp === null ? !hasProxy(target, p) : isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
-            // Update that this node was accessed for observers
-            if (tracking.nodes) {
-                updateTracking(getChildNode(node, p));
-            }
+
             return vProp;
         }
 
@@ -269,13 +265,13 @@ const proxyHandler: ProxyHandler<any> = {
         return Reflect.getPrototypeOf(value);
     },
     ownKeys(target: NodeValue) {
-        // Update that this node was accessed for observers
-        if (tracking.nodes) {
-            updateTracking(target, /*shallow*/ true);
-        }
-
         const value = getNodeValue(target);
         const keys = value ? Reflect.ownKeys(value) : [];
+
+        // Update that this node was accessed for observers
+        if (tracking.nodes) {
+            updateTracking(value);
+        }
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for

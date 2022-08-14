@@ -233,4 +233,5 @@ export interface NodeValue {
 export interface TrackingNode {
     node: NodeValue;
     shallow?: boolean;
+    manual?: boolean;
 }
