@@ -2,6 +2,7 @@ export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasVa
 
 export interface ObservableBaseFns<T> {
     get(): T;
+    ref(): ObservableChild<T>;
     onChange(cb: ListenerFn<T>): ObservableListenerDispose;
     onChangeShallow(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
@@ -10,11 +11,10 @@ export interface ObservableBaseFns<T> {
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set(value: T): ObservableChild<T>;
-    obs(): ObservablePrimitiveFns<T>;
 }
-export interface ObservableFns<T> extends Omit<ObservablePrimitiveFns<T>, 'obs'> {
+export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
     observe(shallow?: boolean): T;
-    obs<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    prop<K extends keyof T>(prop: K): ObservableObject<T[K]>;
     set(value: T): ObservableChild<T>;
     set<K extends keyof T>(key: K, value: T[K]): ObservableChild<T[K]>;
     set<V>(key: string | number, value: V): ObservableChild<V>;

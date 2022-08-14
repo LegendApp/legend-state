@@ -38,7 +38,8 @@ const objectFns = new Map<string, Function>([
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['obs', getProxy],
+    ['ref', ref],
+    ['prop', prop],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
@@ -184,6 +185,17 @@ function getProxy(node: NodeValue, p?: string | number) {
         proxy = node.proxy = new Proxy<NodeValue>(node, proxyHandler);
     }
     return proxy;
+}
+function ref(node: NodeValue) {
+    if (tracking.nodes) untrack(node);
+    return getProxy(node);
+}
+function prop(node: NodeValue, p: string | number) {
+    // Update that this node was accessed for observers
+    if (tracking.nodes) {
+        updateTracking(getChildNode(node, p), node);
+    }
+    return getProxy(node, p);
 }
 
 const proxyHandler: ProxyHandler<any> = {
