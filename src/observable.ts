@@ -209,6 +209,10 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
+            if (p === 'set' || p === 'assign') {
+                // Set operations do not create listeners
+                if (tracking.nodes) untrack(node);
+            }
             return function (a, b, c) {
                 const l = arguments.length;
                 return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
@@ -230,6 +234,11 @@ const proxyHandler: ProxyHandler<any> = {
                     // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
+                    // Update that this node was accessed for observers
+                    // Listen to the array shallowly
+                    if (tracking.nodes) {
+                        updateTracking(node, undefined, true);
+                    }
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
@@ -244,7 +253,11 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Update that this node was accessed for observers
         if (tracking.nodes) {
-            updateTracking(getChildNode(node, p), node);
+            if (isArray(value) && p === 'length') {
+                updateTracking(node, undefined, /*shallow*/ true);
+            } else {
+                updateTracking(getChildNode(node, p), node);
+            }
         }
 
         // Accessing primitive returns the raw value
@@ -270,7 +283,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Update that this node was accessed for observers
         if (tracking.nodes) {
-            updateTracking(value);
+            updateTracking(target, undefined, true);
         }
 
         // This is required to fix this error:
@@ -332,6 +345,9 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
 
     // Get the child node for updating and notifying
     let childNode = getChildNode(node, key);
+
+    // Set operations do not create listeners
+    if (tracking.nodes) untrack(childNode);
 
     // Get the value of the parent
     let parentValue = getNodeValue(node);
@@ -431,6 +447,9 @@ function notify(node: NodeValue, value: any, prev: any, level: number) {
 }
 
 function assign(node: NodeValue, value: any) {
+    // Set operations do not create listeners
+    if (tracking.nodes) untrack(node);
+
     observableBatcher.begin();
 
     // Assign calls set with all assigned properties
