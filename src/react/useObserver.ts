@@ -17,18 +17,20 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     tracking.nodes = trackingPrev;
 
     useEffect(() => {
-        const listeners = new Set<ObservableListenerDispose>();
+        const listeners: ObservableListenerDispose[] = [];
 
         // Listen to tracked nodes
         for (let tracked of nodes) {
             const { node, shallow } = tracked[1];
 
-            listeners.add(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
+            listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
         }
 
         // Cleanup listeners
         return () => {
-            listeners.forEach((dispose) => dispose());
+            for (let i = 0; i < listeners.length; i++) {
+                listeners[i]();
+            }
         };
     });
 
