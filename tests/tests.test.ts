@@ -104,6 +104,16 @@ describe('Set', () => {
             [{ text: 'hi2' }]
         );
     });
+    test('Set with function', () => {
+        const obs = observable({ test: { num: 1 } });
+        obs.test.num.set((n) => n + 1);
+        expect(obs.test.get()).toEqual({ num: 2 });
+    });
+    test('Set prop with function', () => {
+        const obs = observable({ test: { num: 1 } });
+        obs.test.set('num', (n) => n + 1);
+        expect(obs.test.get()).toEqual({ num: 2 });
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {

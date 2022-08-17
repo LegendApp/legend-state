@@ -337,10 +337,6 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
-    newValue = newValue && isObject(newValue) && newValue?.[symbolIsObservable as any] ? newValue.get() : newValue;
-
-    const isPrim = isPrimitive(newValue);
-
     inSetFn = true;
 
     // Get the child node for updating and notifying
@@ -354,6 +350,15 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
 
     // Save the previous value first
     const prevValue = parentValue[key];
+
+    // Compute newValue if newValue is a function or an observable
+    newValue = isFunction(newValue)
+        ? newValue(prevValue)
+        : isObject(newValue) && newValue?.[symbolIsObservable as any]
+        ? newValue.get()
+        : newValue;
+
+    const isPrim = isPrimitive(newValue);
 
     // Save the new value
     parentValue[key] = newValue;

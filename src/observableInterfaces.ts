@@ -11,13 +11,13 @@ export interface ObservableBaseFns<T> {
     onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
-    set(value: T): ObservableChild<T>;
+    set(value: T | ((prev: T) => T)): ObservableChild<T>;
 }
 export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
     observe(shallow?: boolean): T;
     prop<K extends keyof T>(prop: K): ObservableObject<T[K]>;
-    set(value: T): ObservableChild<T>;
-    set<K extends keyof T>(key: K, value: T[K]): ObservableChild<T[K]>;
+    set(value: T | ((prev: T) => T)): ObservableChild<T>;
+    set<K extends keyof T>(key: K, prev: T[K] | ((prev: T[K]) => T[K])): ObservableChild<T[K]>;
     set<V>(key: string | number, value: V): ObservableChild<V>;
     assign(value: T | Partial<T>): ObservableChild<T>;
     delete(): ObservableChild<T>;
