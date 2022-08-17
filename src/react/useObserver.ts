@@ -1,5 +1,5 @@
 import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '@legendapp/state';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Cache previous tracking nodes since this might be nested from another observing component
@@ -12,6 +12,13 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     const ret = fn();
 
     const nodes = tracking.nodes;
+
+    if (process.env.NODE_ENV === 'development') {
+        tracking.traceListeners?.(nodes);
+        if (tracking.traceUpdates) {
+            updateFn = tracking.traceUpdates(updateFn);
+        }
+    }
 
     // Restore previous tracking nodes
     tracking.nodes = trackingPrev;

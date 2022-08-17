@@ -52,7 +52,8 @@ export type ListenerFn<T = any> = (
     getPrevious: () => T,
     path: (string | number)[],
     valueAtPath: any,
-    prevAtPath: any
+    prevAtPath: any,
+    node: NodeValue
 ) => void;
 export type ListenerFnSaved<T = any> = { shallow?: boolean } & ListenerFn<T>;
 

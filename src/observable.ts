@@ -416,7 +416,7 @@ function _notify(
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
-                observableBatcherNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath });
+                observableBatcherNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath, node });
             }
         }
     }

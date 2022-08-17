@@ -27,11 +27,6 @@
     },
     "exports": {
         "./package.json": "./package.json",
-        "./babel": {
-            "import": "./babel.mjs",
-            "require": "./babel.js",
-            "types": "./babel.d.ts"
-        },
         ".": {
             "import": "./index.mjs",
             "require": "./index.js",
@@ -61,6 +56,16 @@
             "import": "./react.mjs",
             "require": "./react.js",
             "types": "./react.d.ts"
+        },
+        "./trace": {
+            "import": "./trace.mjs",
+            "require": "./trace.js",
+            "types": "./trace.d.ts"
+        },
+        "./babel": {
+            "import": "./babel.mjs",
+            "require": "./babel.js",
+            "types": "./babel.d.ts"
         }
     },
     "devDependencies": {
