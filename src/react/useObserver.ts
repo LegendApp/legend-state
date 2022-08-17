@@ -1,6 +1,7 @@
 import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '@legendapp/state';
+import { useEffect, useRef } from 'react';
 
-export function listenWhileCalling<T>(fn: () => T, listeners: Set<ObservableListenerDispose>, updateFn: () => void) {
+export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Cache previous tracking nodes since this might be nested from another observing component
     const trackingPrev = tracking.nodes;
 
@@ -15,15 +16,21 @@ export function listenWhileCalling<T>(fn: () => T, listeners: Set<ObservableList
     // Restore previous tracking nodes
     tracking.nodes = trackingPrev;
 
-    // Listen to any nodes not already listened
-    for (let tracked of nodes) {
-        const { node, shallow } = tracked[1];
+    useEffect(() => {
+        const listeners = new Set<ObservableListenerDispose>();
 
-        // Listen to this path if not already listening
-        if (!node.listeners?.has(updateFn)) {
+        // Listen to tracked nodes
+        for (let tracked of nodes) {
+            const { node, shallow } = tracked[1];
+
             listeners.add(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
         }
-    }
+
+        // Cleanup listeners
+        return () => {
+            listeners.forEach((dispose) => dispose());
+        };
+    });
 
     return ret;
 }

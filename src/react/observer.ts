@@ -1,7 +1,6 @@
-import { ObservableListenerDispose } from '@legendapp/state';
-import { ComponentProps, FC, forwardRef, memo, useEffect, useRef } from 'react';
-import { listenWhileCalling } from './listenWhileCalling';
+import { ComponentProps, FC, forwardRef, memo } from 'react';
 import { useForceRender } from './useForceRender';
+import { useObserver } from './useObserver';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
 
@@ -28,16 +27,10 @@ export function observer<T extends FC<any>>(
 
     // Create a wrapper observer component
     let observer = function (props, ref) {
-        const refListeners = useRef<Set<ObservableListenerDispose>>();
-        if (!refListeners.current) refListeners.current = new Set();
-
         const forceRender = useForceRender();
 
-        // Clean up listeners on the way out
-        useEffect(() => () => refListeners.current.forEach((dispose) => dispose()), []);
-
         // Set up all the listeners while rendering the component
-        return listenWhileCalling(() => component(props, ref), refListeners.current, forceRender);
+        return useObserver(() => component(props, ref), forceRender);
     };
 
     if (componentName !== '') {
