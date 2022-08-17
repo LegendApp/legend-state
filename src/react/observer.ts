@@ -1,5 +1,5 @@
 import { ObservableListenerDispose } from '@legendapp/state';
-import { FC, forwardRef, memo, useEffect, useRef } from 'react';
+import { ComponentProps, FC, forwardRef, memo, useEffect, useRef } from 'react';
 import { listenWhileCalling } from './listenWhileCalling';
 import { useForceRender } from './useForceRender';
 
@@ -10,7 +10,10 @@ const ReactForwardRefSymbol = hasSymbol
     ? Symbol.for('react.forward_ref')
     : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
-export function observer<T extends FC<any>>(component: T): T {
+export function observer<T extends FC<any>>(
+    component: T,
+    propsAreEqual?: (prevProps: Readonly<ComponentProps<T>>, nextProps: Readonly<ComponentProps<T>>) => boolean
+): T {
     // Unwrap forwardRef on the component
     let useForwardRef: boolean;
     if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
@@ -46,5 +49,5 @@ export function observer<T extends FC<any>>(component: T): T {
         observer = forwardRef(observer);
     }
 
-    return memo(observer) as unknown as T;
+    return memo(observer, propsAreEqual) as unknown as T;
 }

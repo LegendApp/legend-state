@@ -25,6 +25,7 @@ export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
 }
 export interface ObservableComputedFns<T> {
     get(): T;
+    observe(shallow?: boolean): T;
     onChange(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
