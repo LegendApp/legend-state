@@ -66,6 +66,7 @@
     "devDependencies": {
         "@babel/helper-module-imports": "^7.18.6",
         "@babel/template": "^7.18.10",
+        "@babel/types": "^7.18.10",
         "@rollup/plugin-commonjs": "^22.0.1",
         "@rollup/plugin-node-resolve": "^13.3.0",
         "@rollup/plugin-typescript": "^8.3.4",
@@ -118,8 +119,5 @@
     "homepage": "https://github.com/LegendApp/legend-state#readme",
     "publishConfig": {
         "registry": "https://registry.npmjs.org/"
-    },
-    "dependencies": {
-        "@babel/types": "^7.18.10"
     }
 }
