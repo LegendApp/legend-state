@@ -1,4 +1,4 @@
-import { getChildNode, getNodeValue, symbolGet, symbolIsObservable } from './globals';
+import { get, getChildNode, getNodeValue, nextNodeID, observe, symbolIsObservable } from './globals';
 import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -9,7 +9,7 @@ import {
     ObservableWrapper,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
-import { tracking, updateTracking } from './state';
+import { tracking, untrack, updateTracking } from './state';
 
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
@@ -30,14 +30,16 @@ const ArrayModifiers = new Set([
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map']);
 
 const objectFns = new Map<string, Function>([
-    ['get', getNodeValue],
+    ['get', get],
     ['set', set],
+    ['observe', observe],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['prop', getProxy],
+    ['ref', ref],
+    ['prop', prop],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
@@ -184,6 +186,17 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
+function ref(node: NodeValue) {
+    if (tracking.nodes) untrack(node);
+    return getProxy(node);
+}
+function prop(node: NodeValue, p: string | number) {
+    // Update that this node was accessed for observers
+    if (tracking.nodes) {
+        updateTracking(getChildNode(node, p), node);
+    }
+    return getProxy(node, p);
+}
 
 const proxyHandler: ProxyHandler<any> = {
     get(target: NodeValue, p: any) {
@@ -195,7 +208,11 @@ const proxyHandler: ProxyHandler<any> = {
         const node = target;
         const fn = objectFns.get(p);
         // If this is an observable function, call it
-        if (p !== 'get' && fn) {
+        if (fn) {
+            if (p === 'set' || p === 'assign') {
+                // Set operations do not create listeners
+                if (tracking.nodes) untrack(node);
+            }
             return function (a, b, c) {
                 const l = arguments.length;
                 return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
@@ -204,18 +221,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
         const vProp = value?.[p];
-        // The get() function as well as the internal obs[symbolGet]
-        if (p === symbolGet || p === 'get') {
-            // Primitives are { current } so return the current value
-            if (node.root.isPrimitive) {
-                value = value.current;
-            }
-            // Update that this node was accessed for useObservables and useComputed
-            if (tracking.nodes) {
-                updateTracking(node, value);
-            }
-            return p === 'get' ? () => value : value;
-        }
+
         // Accessing undefined/null/symbols passes straight through if this value has a property for it
         // If it's never been defined assume it's a proxy to a future object
         if (isSymbol(p) || vProp === null || (vProp === undefined && value && value.hasOwnProperty?.(p))) {
@@ -228,6 +234,11 @@ const proxyHandler: ProxyHandler<any> = {
                     // Call the wrapped modifier function
                     return (...args) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
+                    // Update that this node was accessed for observers
+                    // Listen to the array shallowly
+                    if (tracking.nodes) {
+                        updateTracking(node, undefined, true);
+                    }
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
@@ -239,16 +250,23 @@ const proxyHandler: ProxyHandler<any> = {
             // Return the function bound to the value
             return vProp.bind(value);
         }
-        // Accessing primitives tracks and returns
+
+        // Update that this node was accessed for observers
+        if (tracking.nodes) {
+            if (isArray(value) && p === 'length') {
+                updateTracking(node, undefined, /*shallow*/ true);
+            } else {
+                updateTracking(getChildNode(node, p), node);
+            }
+        }
+
+        // Accessing primitive returns the raw value
         if (vProp === undefined || vProp === null ? !hasProxy(target, p) : isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
-            // Update that this node was accessed for useObservables and useComputed
-            if (tracking.nodes) {
-                updateTracking(getChildNode(node, p), value);
-            }
+
             return vProp;
         }
 
@@ -259,9 +277,14 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(target);
         return Reflect.getPrototypeOf(value);
     },
-    ownKeys(target) {
+    ownKeys(target: NodeValue) {
         const value = getNodeValue(target);
         const keys = value ? Reflect.ownKeys(value) : [];
+
+        // Update that this node was accessed for observers
+        if (tracking.nodes) {
+            updateTracking(target, undefined, true);
+        }
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for
@@ -314,8 +337,7 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
-    newValue =
-        newValue && isObject(newValue) && newValue?.[symbolIsObservable as any] ? newValue[symbolGet as any] : newValue;
+    newValue = newValue && isObject(newValue) && newValue?.[symbolIsObservable as any] ? newValue.get() : newValue;
 
     const isPrim = isPrimitive(newValue);
 
@@ -323,6 +345,9 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
 
     // Get the child node for updating and notifying
     let childNode = getChildNode(node, key);
+
+    // Set operations do not create listeners
+    if (tracking.nodes) untrack(childNode);
 
     // Get the value of the parent
     let parentValue = getNodeValue(node);
@@ -422,6 +447,9 @@ function notify(node: NodeValue, value: any, prev: any, level: number) {
 }
 
 function assign(node: NodeValue, value: any) {
+    // Set operations do not create listeners
+    if (tracking.nodes) untrack(node);
+
     observableBatcher.begin();
 
     // Assign calls set with all assigned properties
@@ -477,6 +505,7 @@ export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
     } as ObservableWrapper;
 
     const node: NodeValue = {
+        id: nextNodeID.current++,
         root: obs,
         parent: undefined,
         key: undefined,

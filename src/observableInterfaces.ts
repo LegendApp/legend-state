@@ -1,9 +1,9 @@
-import { symbolShallow } from './globals';
-
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export interface ObservableBaseFns<T> {
     get(): T;
+    ref(): ObservableChild<T>;
+    observe(): T;
     onChange(cb: ListenerFn<T>): ObservableListenerDispose;
     onChangeShallow(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
@@ -14,7 +14,8 @@ export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set(value: T): ObservableChild<T>;
 }
 export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
-    prop<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    observe(shallow?: boolean): T;
+    prop<K extends keyof T>(prop: K): ObservableObject<T[K]>;
     set(value: T): ObservableChild<T>;
     set<K extends keyof T>(key: K, value: T[K]): ObservableChild<T[K]>;
     set<V>(key: string | number, value: V): ObservableChild<V>;
@@ -24,6 +25,7 @@ export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
 }
 export interface ObservableComputedFns<T> {
     get(): T;
+    observe(shallow?: boolean): T;
     onChange(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
@@ -78,6 +80,7 @@ export interface ObservableEvent {
     dispatch(): void;
     on(cb?: () => void): ObservableListenerDispose;
     on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
+    observe(): void;
 }
 
 export type QueryByModified<T> =
@@ -193,7 +196,6 @@ export interface OnReturnValue<T> {
 }
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
-export type Shallow<T = any> = { [symbolShallow]: Observable<T> };
 export type ObservableComputeFunction<T> = () => T;
 export type ObservableListenerDispose = () => void;
 
@@ -218,44 +220,21 @@ export type ObservableType<T = any> =
     | ObservablePrimitive<T>
     | ObservableChild<T>;
 
-export type ObservableTypeRender<T = any> = ObservableType<T> | Shallow<T> | ObservableComputeFunction<T>;
+export type ObservableTypeRender<T = any> = ObservableType<T> | ObservableComputeFunction<T>;
 
 export interface NodeValue {
+    id: number;
     parent: NodeValue;
     children?: Map<string | number, NodeValue>;
-    // childrenID?: Map<string | number, NodeValue>;
     proxy?: object;
     key: string | number;
-    // id?: string | number;
     root: ObservableWrapper;
     listeners?: Set<ListenerFnSaved>;
 }
-
-export type ObservableValue<T> = T extends Shallow<infer t>
-    ? t
-    : T extends ObservableComputeFunction<infer t>
-    ? t
-    : T extends ObservableObject<infer t>
-    ? t
-    : T extends ObservableComputed<infer t>
-    ? t
-    : T extends ObservablePrimitive<infer t>
-    ? t
-    : T;
-
-export type MappedObservableValue<
-    T extends ObservableTypeRender | ObservableTypeRender[] | Record<string, ObservableTypeRender>
-> = T extends ObservableChild<infer t>
-    ? t
-    : T extends Record<string, ObservableTypeRender> | Array<any>
-    ? {
-          [K in keyof T]: ObservableValue<T[K]>;
-      }
-    : ObservableValue<T>;
 
 /** @internal */
 export interface TrackingNode {
     node: NodeValue;
     shallow?: boolean;
-    value: any;
+    manual?: boolean;
 }

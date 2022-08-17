@@ -13,7 +13,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
                 const value = this.storage.getString(id);
                 return value ? JSON.parse(value) : undefined;
             } catch {
-                console.log('failed to parse', id);
+                console.error('[legend-state]: MMKV failed to parse', id);
             }
         }
         return this.data[id];

@@ -1,9 +1,9 @@
-import { observableComputed } from '../src/observableComputed';
-import { observable } from '../src/observable';
-import { observableEvent } from '../src/observableEvent';
-import { observableBatcher } from '../src/observableBatcher';
-import { Observable, ObservableComputed, ObservablePrimitive, ObservableType } from '../src/observableInterfaces';
 import { isObservable } from '../src/helpers';
+import { observable } from '../src/observable';
+import { observableBatcher } from '../src/observableBatcher';
+import { observableComputed } from '../src/observableComputed';
+import { observableEvent } from '../src/observableEvent';
+import { ObservableType } from '../src/observableInterfaces';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -648,6 +648,14 @@ describe('Safety', () => {
             delete obs.test;
         }).toThrow();
     });
+    test('Observable functions always work', () => {
+        const obs = observable({ get: 'hi', assign: 'hi' });
+        expect(typeof obs.get === 'function').toBe(true);
+        expect(typeof obs.assign === 'function').toBe(true);
+        obs.set({ get: 'hello', assign: 'hi' });
+        expect(typeof obs.get === 'function').toBe(true);
+        expect(typeof obs.assign === 'function').toBe(true);
+    });
 });
 describe('Primitives', () => {
     test('Primitive set', () => {
@@ -661,6 +669,7 @@ describe('Primitives', () => {
         expect(obs.val.val2.val3).toEqual(10);
         obs.val.val2.val3.set(20);
         expect(obs.val.val2.val3).toEqual(20);
+        expect(obs.val.val2.val3.get()).toEqual(20);
     });
     test('observable root can be primitive', () => {
         const obs = observable(10);
@@ -1595,5 +1604,14 @@ describe('Batching', () => {
         observableBatcher.end();
         observableBatcher.end();
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+});
+describe('ref function', () => {
+    test('With and without ref', () => {
+        const obs = observable({ text: 'hi' });
+        const prox = obs.prop('text');
+        const prox2 = obs.text.ref();
+        expect(prox === prox2).toEqual(true);
+        expect(prox2.get()).toEqual('hi');
     });
 });

@@ -1,7 +1,6 @@
-import { ObservableListenerDispose } from '@legendapp/state';
-import { FC, forwardRef, memo, useEffect, useRef } from 'react';
-import { listenWhileCalling } from './listenWhileCalling';
+import { ComponentProps, FC, forwardRef, memo } from 'react';
 import { useForceRender } from './useForceRender';
+import { useObserver } from './useObserver';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
 
@@ -10,7 +9,11 @@ const ReactForwardRefSymbol = hasSymbol
     ? Symbol.for('react.forward_ref')
     : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
-export function observer(component: FC) {
+export function observer<T extends FC<any>>(
+    component: T,
+    propsAreEqual?: (prevProps: Readonly<ComponentProps<T>>, nextProps: Readonly<ComponentProps<T>>) => boolean
+): T {
+    // Unwrap forwardRef on the component
     let useForwardRef: boolean;
     if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
         useForwardRef = true;
@@ -20,19 +23,24 @@ export function observer(component: FC) {
         }
     }
 
-    let out = function (props) {
-        const ref = useRef<Set<ObservableListenerDispose>>(new Set());
+    const componentName = component.displayName || component.name;
+
+    // Create a wrapper observer component
+    let observer = function (props, ref) {
         const forceRender = useForceRender();
 
-        useEffect(() => () => ref.current.forEach((dispose) => dispose()), []);
-        const value = listenWhileCalling(() => component(props), ref.current, forceRender);
-
-        return value;
+        // Set up all the listeners while rendering the component
+        return useObserver(() => component(props, ref), forceRender);
     };
 
-    if (useForwardRef) {
-        out = forwardRef(out);
+    if (componentName !== '') {
+        (observer as FC).displayName = componentName;
     }
 
-    return memo(out);
+    // Wrap back in forwardRef if necessary
+    if (useForwardRef) {
+        observer = forwardRef(observer);
+    }
+
+    return memo(observer, propsAreEqual) as unknown as T;
 }

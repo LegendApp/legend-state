@@ -1,11 +1,36 @@
-import { tracking } from './state';
-import { isFunction, isPrimitive, isString } from './is';
-import { ObservableTypeRender, NodeValue } from './observableInterfaces';
+import { isString } from './is';
+import { NodeValue } from './observableInterfaces';
+import { tracking, untrack, updateTracking } from './state';
 
 export const symbolDateModified = Symbol('dateModified');
-export const symbolShallow = Symbol('shallow');
-export const symbolGet = Symbol('get');
 export const symbolIsObservable = Symbol('isObservable');
+
+export const nextNodeID = { current: 0 };
+
+export function getOutputValue(node: NodeValue) {
+    let value = getNodeValue(node);
+    if (node.root.isPrimitive) {
+        value = value.current;
+    }
+    return value;
+}
+
+export function get(node: NodeValue) {
+    if (tracking.nodes) untrack(node);
+    return getOutputValue(node);
+}
+
+export function observe(node: NodeValue, shallow?: boolean) {
+    const value = getOutputValue(node);
+
+    if (tracking.nodes) {
+        updateTracking(node, undefined, shallow, /*manual*/ true);
+    } else if (process.env.NODE_ENV === 'development') {
+        console.error('[legend-state]: observe() has no effect outside of an observer component.');
+    }
+
+    return value;
+}
 
 export function getNodeValue(node: NodeValue): any {
     const arr: (string | number)[] = [];
@@ -36,6 +61,7 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     // Create the child node if it doesn't already exist
     if (!child) {
         child = {
+            id: nextNodeID.current++,
             root: node.root,
             parent: node,
             key,
@@ -48,20 +74,4 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     }
 
     return child;
-}
-
-export function getObservableRawValue<T>(obs: ObservableTypeRender<T>): T {
-    if (!obs || isPrimitive(obs)) return obs as T;
-    if (isFunction(obs)) return obs();
-
-    const shallow = obs?.[symbolShallow];
-    if (shallow) {
-        tracking.shallow = true;
-        obs = shallow;
-    }
-    let ret = obs?.[symbolGet];
-
-    tracking.shallow = false;
-
-    return ret;
 }
