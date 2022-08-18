@@ -1,33 +1,39 @@
 import { addNamed } from '@babel/helper-module-imports';
-import template from '@babel/template';
 
 import {
+    arrowFunctionExpression,
+    jsxAttribute,
     jsxClosingElement,
+    jsxClosingFragment,
     jsxElement,
+    jsxExpressionContainer,
+    jsxFragment,
     jsxIdentifier,
     jsxOpeningElement,
-    arrowFunctionExpression,
-    jsxExpressionContainer,
-    conditionalExpression,
-    identifier,
-    jsxFragment,
-    jsxAttribute,
     jsxOpeningFragment,
-    jsxClosingFragment,
 } from '@babel/types';
 
-const buildImport = template(`import { Isolate } from "@legendapp/state/react";`, { sourceType: 'module' });
-
 export default function () {
-    const importDeclaration = buildImport();
-
-    let imported = false;
     let root;
+    let imported: Record<string, string>;
     return {
         visitor: {
             Program(path) {
                 root = path;
-                // path.node.body.unshift(importDeclaration);
+                imported = {};
+            },
+            ImportDeclaration: {
+                enter(path) {
+                    if (path.node.source.value === '@legendapp/state/react') {
+                        const specifiers = path.node.specifiers;
+                        for (let i = 0; i < specifiers.length; i++) {
+                            const s = specifiers[i].imported.name;
+                            if (!imported[s] && (s === 'Isolate' || s === 'Memo')) {
+                                imported[s] = specifiers[i].local.name;
+                            }
+                        }
+                    }
+                },
             },
             JSXElement: {
                 enter(path) {
@@ -35,7 +41,7 @@ export default function () {
 
                     const children_ = path.node.children;
                     const name = openingElement.name.name;
-                    // console.log(trimmed);
+
                     if (name === 'Isolate' || name === 'Memo') {
                         const children = removEmptyText(children_);
                         if (
@@ -64,7 +70,7 @@ export default function () {
                     } else if (name === 'Show') {
                         const children = removEmptyText(children_);
                         const if_ = openingElement.attributes.find((node) => node.name?.name === 'if');
-                        // console.log(when.value);
+
                         if (
                             if_ !== undefined &&
                             if_.value.expression.type !== 'ArrowFunctionExpression' &&
@@ -116,7 +122,6 @@ export default function () {
                             (node) => node.name && node.name.name === 'key' && node.value !== false
                         );
                         if (hasIsolateProp >= 0 || hasMemoProp >= 0) {
-                            // console.log('isolate', hasIsolateProp);
                             if (hasIsolateProp >= 0) {
                                 openingElement.attributes.splice(hasIsolateProp, 1);
                             }
@@ -126,15 +131,20 @@ export default function () {
 
                             const name = hasMemoProp >= 0 ? 'Memo' : 'Isolate';
 
+                            const importName = imported[name] || '_' + name;
+
                             path.replaceWith(
                                 jsxElement(
-                                    jsxOpeningElement(jsxIdentifier('_' + name), keyProp ? [keyProp] : []),
-                                    jsxClosingElement(jsxIdentifier('_' + name)),
+                                    jsxOpeningElement(jsxIdentifier(importName), keyProp ? [keyProp] : []),
+                                    jsxClosingElement(jsxIdentifier(importName)),
                                     [jsxExpressionContainer(arrowFunctionExpression([], path.node))]
                                 )
                             );
 
-                            addNamed(root, name, '@legendapp/state/react');
+                            if (!imported[name]) {
+                                imported[name] = '_' + name;
+                                addNamed(root, name, '@legendapp/state/react');
+                            }
                         }
                     }
                 },
