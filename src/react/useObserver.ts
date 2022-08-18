@@ -8,21 +8,10 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Reset tracking nodes
     tracking.nodes = new Map();
 
-    // Calling the function fills up the tracking nodes
-    const ret = fn();
+    let nodes;
 
-    const nodes = tracking.nodes;
-
-    if (process.env.NODE_ENV === 'development') {
-        tracking.traceListeners?.(nodes);
-        if (tracking.traceUpdates) {
-            updateFn = tracking.traceUpdates(updateFn);
-        }
-    }
-
-    // Restore previous tracking nodes
-    tracking.nodes = trackingPrev;
-
+    // Create the listener effect before calling fn so that it gets called before
+    // effects in the component
     useEffect(() => {
         const listeners: ObservableListenerDispose[] = [];
 
@@ -40,6 +29,22 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
             }
         };
     });
+
+    // Calling the function fills up the tracking nodes
+    const ret = fn();
+
+    nodes = tracking.nodes;
+
+    // Do tracing if it was requested
+    if (process.env.NODE_ENV === 'development') {
+        tracking.traceListeners?.(nodes);
+        if (tracking.traceUpdates) {
+            updateFn = tracking.traceUpdates(updateFn);
+        }
+    }
+
+    // Restore previous tracking nodes
+    tracking.nodes = trackingPrev;
 
     return ret;
 }
