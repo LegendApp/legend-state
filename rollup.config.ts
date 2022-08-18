@@ -4,8 +4,8 @@ import typescript from '@rollup/plugin-typescript';
 // @ts-ignore
 import pkg from './package.json';
 
-// export default ['./react'].map((exp) => {
 export default Object.keys(pkg.exports)
+    .filter((exp) => exp !== './types')
     .map((exp) => {
         if (exp.endsWith('json')) return;
 
@@ -15,20 +15,25 @@ export default Object.keys(pkg.exports)
 
         if (!f) f = 'index';
 
+        const output = [
+            {
+                file: './dist/' + f + '.js',
+                format: 'cjs',
+                sourcemap: true,
+            },
+        ];
+
+        if (exp !== './babel') {
+            output.push({
+                file: './dist/' + f + '.mjs',
+                format: 'es',
+                sourcemap: true,
+            });
+        }
+
         return {
             input: './' + f + '.ts',
-            output: [
-                {
-                    file: './dist/' + f + '.js',
-                    format: 'cjs',
-                    sourcemap: true,
-                },
-                {
-                    file: './dist/' + f + '.mjs',
-                    format: 'es',
-                    sourcemap: true,
-                },
-            ],
+            output,
             external: external,
             plugins: [
                 resolve(),

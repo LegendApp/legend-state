@@ -13,7 +13,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && cp types.d.ts dist/types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
@@ -63,11 +63,10 @@
             "require": "./trace.js",
             "types": "./trace.d.ts"
         },
-        "./babel": {
-            "import": "./babel.mjs",
-            "require": "./babel.js",
-            "types": "./babel.d.ts"
-        }
+        "./types": {
+            "types": "./types.d.ts"
+        },
+        "./babel": "./babel.js"
     },
     "devDependencies": {
         "@babel/helper-module-imports": "^7.18.6",
