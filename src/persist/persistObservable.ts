@@ -134,7 +134,7 @@ async function loadLocal(
             mergeIntoObservable(obs, value);
         }
 
-        obsState.set('clearLocal', () => persistenceLocal.delete(local));
+        obsState.get().clearLocal = () => persistenceLocal.delete(local);
 
         obsState.set('isLoadedLocal', true);
     }
