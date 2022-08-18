@@ -1,3 +1,7 @@
+## 0.11.0-beta.7
+- Fix: New set option with function parameter was breaking persistence
+- Fix: Component useEffect was getting called before observer could listen for changes
+
 ## 0.11.0-beta.6
 - Fix: Babel plugin adds imports only once, only if not already imported
 
