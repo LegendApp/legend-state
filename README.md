@@ -16,8 +16,10 @@ state.settings.theme === 'dark' // true
 // Listen anywhere for changes
 state.settings.theme.onChange((theme) => { ... })
 
-// A simple React hook that re-renders when state changes
-const theme = useObservables(() => state.settings.theme)
+// observer HOC automatically re-renders when state changes
+const Component = observer(() => {
+    return <div>Theme: {state.settings.theme}</div>
+})
 ```
 
 ### 2. <span className="text-xl">⚡️</span> The fastest React state library
@@ -41,34 +43,31 @@ See [the documentation](https://www.legendapp.com/dev/state) for more details.
 const state = observable({ settings: { theme: 'dark' } })
 
 // Observables work like any other object
-state.settings.theme === 'dark'  // true
-Object.keys(state.settings)      // ['theme']
+state.settings.theme === 'dark'   // true
 
 // Listen anywhere for changes
-state.settings.theme.on('change', (theme) => { ... })
+state.settings.theme.onChange((theme) => { ... })
 
-// You can only modify the state safely
-state.settings = 'Bug'            // ❌ Error to prevent 🔫 footguns
-state.settings.theme.set('light') // ✅ Set safely
+// Modify with simple set functions
+state.settings.theme.set('light')
 
 // Automatically persist state
 persistObservable(state, { local: 'exampleState' })
 
-// Components re-render only when specified observables change
-function Component() {
-    const [ theme ] = useObservables(() => [ state.settings.theme ])
+// Components re-render only when accessed observables change
+const Component = observer(function Component() {
     const toggle = () => {
-        state.settings.theme.set(theme === 'dark' ? 'light' : 'dark')
+        state.settings.theme.set(theme => theme === 'dark' ? 'light' : 'dark')
     }
     return (
         <div>
-            <div>Theme: {theme}</div>
+            <div>Theme: {state.settings.theme}</div>
             <Button onClick={toggle}>
                 Toggle theme
             </Button>
         </div>
     )
-}
+})
 ```
 
 ## Highlights
@@ -92,7 +91,6 @@ See [the documentation site](https://www.legendapp.com/dev/state/).
 
 - [ ] Remote persistence to Firebase
 - [ ] Conflict resolution for remote persistence
-- [ ] useSyncExternalStore for React 18
 
 ## 👩‍⚖️ License
 
