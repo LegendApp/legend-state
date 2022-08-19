@@ -70,6 +70,17 @@ describe('Set', () => {
         obs.set({ test: { text: 't2' } });
         expect(obs).toEqual({ test: { text: 't2' } });
     });
+    test('Set at root deletes other properties', () => {
+        const obs = observable({ test: { text: 't' }, test2: 'hello' });
+        // @ts-expect-error
+        obs.set({ test: { text: 't2' } });
+        expect(obs).toEqual({ test: { text: 't2' } });
+    });
+    test('Set array at root', () => {
+        const obs = observable([1, 2, 3]);
+        obs.set([1, 2]);
+        expect(obs.get()).toEqual([1, 2]);
+    });
     test('Set value does not copy object', () => {
         const obs = observable({ test: { test2: 'hi' } });
         const newVal = { test2: 'hello' };
@@ -113,6 +124,17 @@ describe('Set', () => {
         const obs = observable({ test: { num: 1 } });
         obs.test.set('num', (n) => n + 1);
         expect(obs.test.get()).toEqual({ num: 2 });
+    });
+    test("Set with child that's an observable", () => {
+        const obsOther = observable({ a: { b: 'hi' } });
+        const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
+        obs.test.set({ t: obsOther });
+        expect(obs.get()).toEqual({ test: { t: { a: { b: 'hi' } } } });
+        expect(obs).toEqual({ test: { t: { a: { b: 'hi' } } } });
+        obs.test.set({ t: { tt: obsOther.a } });
+        expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
+        expect(obs).toEqual({ test: { t: { tt: { b: 'hi' } } } });
+        expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
     });
 });
 describe('Assign', () => {
@@ -246,13 +268,13 @@ describe('Listeners', () => {
         const handler = expectChangeHandler(obs);
         expect(handler).not.toHaveBeenCalled();
         obs.set({ val: 20 });
-        expect(handler).toHaveBeenCalledWith({ val: 20 }, { val: 10 }, ['val'], 20, 10);
+        expect(handler).toHaveBeenCalledWith({ val: 20 }, { val: 10 }, [], { val: 20 }, { val: 10 });
         obs.set({ val: 21 });
-        expect(handler).toHaveBeenCalledWith({ val: 21 }, { val: 20 }, ['val'], 21, 20);
+        expect(handler).toHaveBeenCalledWith({ val: 21 }, { val: 20 }, [], { val: 21 }, { val: 20 });
         obs.set({ val: 22 });
-        expect(handler).toHaveBeenCalledWith({ val: 22 }, { val: 21 }, ['val'], 22, 21);
+        expect(handler).toHaveBeenCalledWith({ val: 22 }, { val: 21 }, [], { val: 22 }, { val: 21 });
         obs.set({ val: 23 });
-        expect(handler).toHaveBeenCalledWith({ val: 23 }, { val: 22 }, ['val'], 23, 22);
+        expect(handler).toHaveBeenCalledWith({ val: 23 }, { val: 22 }, [], { val: 23 }, { val: 22 });
         expect(handler).toHaveBeenCalledTimes(4);
     });
     test('Listener with key fires only for key', () => {

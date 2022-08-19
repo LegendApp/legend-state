@@ -14,6 +14,7 @@ import { tracking, untrack, updateTracking } from './state';
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
+const undef = Symbol('undef');
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -330,7 +331,7 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
     } else if (node.root.isPrimitive) {
         return setProp(node, 'current', keyOrNewValue);
     } else if (!node.parent) {
-        return assign(node, keyOrNewValue);
+        return set(node, undef, keyOrNewValue);
     } else {
         return setProp(node.parent, node.key, keyOrNewValue);
     }
@@ -338,15 +339,20 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
     inSetFn = true;
+    const isRoot = (key as any) === undef;
 
     // Get the child node for updating and notifying
-    let childNode = getChildNode(node, key);
+    let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
     // Set operations do not create listeners
     if (tracking.nodes) untrack(childNode);
 
     // Get the value of the parent
-    let parentValue = getNodeValue(node);
+    let parentValue = isRoot ? node.root : getNodeValue(node);
+
+    if (isRoot) {
+        key = '_';
+    }
 
     // Save the previous value first
     const prevValue = parentValue[key];
@@ -362,6 +368,9 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
 
     // Save the new value
     parentValue[key] = newValue;
+
+    // Make sure we don't call too many listeners for ever property set
+    observableBatcher.begin();
 
     let hasADiff = isPrim;
     // If new value is an object or array update notify down the tree
@@ -379,9 +388,11 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
         );
     }
 
+    observableBatcher.end();
+
     inSetFn = false;
 
-    return getProxy(node, key);
+    return isRoot ? getProxy(node) : getProxy(node, key);
 }
 
 function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
