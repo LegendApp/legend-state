@@ -23,7 +23,10 @@ export default Object.keys(pkg.exports)
             },
         ];
 
-        if (exp !== './babel') {
+        if (exp === './babel') {
+            // @ts-ignore
+            output[0].exports = 'default';
+        } else {
             output.push({
                 file: './dist/' + f + '.mjs',
                 format: 'es',
