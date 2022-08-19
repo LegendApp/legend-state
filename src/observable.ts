@@ -475,10 +475,9 @@ function assign(node: NodeValue, value: any) {
         setProp(node, keys[i], value[keys[i]]);
     }
 
-    const ret = getNodeValue(node);
     observableBatcher.end();
 
-    return ret;
+    return getProxy(node);
 }
 
 function deleteFn(node: NodeValue, key?: string | number) {
