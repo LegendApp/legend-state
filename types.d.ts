@@ -4,10 +4,3 @@ declare namespace React {
         memo?: boolean;
     }
 }
-
-declare module 'react-native' {
-    interface ViewProps {
-        isolate?: boolean;
-        memo?: boolean;
-    }
-}
