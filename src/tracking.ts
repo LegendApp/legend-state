@@ -2,8 +2,8 @@ import type { NodeValue, TrackingNode } from './observableInterfaces';
 
 export const tracking = {
     nodes: undefined as Map<number, TrackingNode>,
-    traceListeners: undefined as (nodes: Map<number, TrackingNode>) => void,
-    traceUpdates: undefined as (fn: () => void) => () => void,
+    listeners: undefined as (nodes: Map<number, TrackingNode>) => void,
+    updates: undefined as (fn: () => void) => () => void,
 };
 
 export function updateTracking(node: NodeValue, parent?: NodeValue, shallow?: boolean, manual?: boolean) {

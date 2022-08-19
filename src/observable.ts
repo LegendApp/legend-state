@@ -9,7 +9,7 @@ import {
     ObservableWrapper,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
-import { tracking, untrack, updateTracking } from './state';
+import { tracking, untrack, updateTracking } from './tracking';
 
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;

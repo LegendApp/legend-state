@@ -12,4 +12,4 @@ export { isArray, isObject, isPrimitive, isFunction } from './src/is';
 /** @internal */
 export { onChange, onChangeShallow } from './src/on';
 /** @internal */
-export { tracking } from './src/state';
+export { tracking } from './src/tracking';

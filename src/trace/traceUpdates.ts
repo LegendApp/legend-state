@@ -2,7 +2,7 @@ import { NodeValue, tracking } from '@legendapp/state';
 import { getNodePath } from 'src/trace/traceHelpers';
 
 export function traceUpdates(name?: string) {
-    tracking.traceUpdates = replaceUpdateFn.bind(this, name);
+    tracking.updates = replaceUpdateFn.bind(this, name);
 }
 
 function replaceUpdateFn(name: string, updateFn: () => void) {

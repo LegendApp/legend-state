@@ -1,7 +1,7 @@
 import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
 import { onChange } from './on';
-import { tracking } from './state';
+import { tracking } from './tracking';
 
 export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
     const update = () => {

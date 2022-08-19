@@ -1,10 +1,6 @@
-import { tracking } from '../src/state';
-import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
-import { observableBatcher } from '../src/observableBatcher';
-import { observableComputed } from '../src/observableComputed';
 import { observableEvent } from '../src/observableEvent';
-import { ObservableType } from '../src/observableInterfaces';
+import { tracking } from '../src/tracking';
 
 beforeEach(() => {
     tracking.nodes = new Map();

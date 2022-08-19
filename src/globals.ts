@@ -1,6 +1,6 @@
 import { isString } from './is';
 import { NodeValue } from './observableInterfaces';
-import { tracking, untrack, updateTracking } from './state';
+import { tracking, untrack, updateTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');

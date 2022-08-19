@@ -2,11 +2,11 @@ import { tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
 export function traceListeners(name?: string) {
-    tracking.traceListeners = traceNodes.bind(this, name);
+    tracking.listeners = traceNodes.bind(this, name);
 }
 
 function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
-    tracking.traceListeners = undefined;
+    tracking.listeners = undefined;
     const arr: string[] = [];
     for (let tracked of nodes) {
         const { node, shallow } = tracked[1];

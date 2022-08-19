@@ -37,9 +37,9 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
 
     // Do tracing if it was requested
     if (process.env.NODE_ENV === 'development') {
-        tracking.traceListeners?.(nodes);
-        if (tracking.traceUpdates) {
-            updateFn = tracking.traceUpdates(updateFn);
+        tracking.listeners?.(nodes);
+        if (tracking.updates) {
+            updateFn = tracking.updates(updateFn);
         }
     }
 
