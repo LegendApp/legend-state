@@ -187,7 +187,10 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
-function ref(node: NodeValue) {
+function ref(node: NodeValue, p?: string | number) {
+    if (p !== undefined) {
+        node = getChildNode(node, p);
+    }
     if (tracking.nodes) untrack(node);
     return getProxy(node);
 }
