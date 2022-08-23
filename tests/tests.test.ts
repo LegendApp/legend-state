@@ -1646,4 +1646,11 @@ describe('ref function', () => {
         expect(prox === prox2).toEqual(true);
         expect(prox2.get()).toEqual('hi');
     });
+    test('keyed ref', () => {
+        const obs = observable({ text: 'hi' });
+        const prox = obs.prop('text');
+        const prox2 = obs.ref('text');
+        expect(prox === prox2).toEqual(true);
+        expect(prox2.get()).toEqual('hi');
+    });
 });
