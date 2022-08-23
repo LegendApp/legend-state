@@ -207,7 +207,7 @@ export interface ObservableWrapper {
     isPrimitive: boolean;
 }
 
-type Primitive = boolean | string | number;
+export type Primitive = boolean | string | number | Date;
 
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;

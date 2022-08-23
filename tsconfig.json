@@ -27,6 +27,9 @@
             "react": [
                 "node_modules/react"
             ],
+            "react-native": [
+                "node_modules/react-native"
+            ],
             "@legendapp/state": [
                 "index"
             ],

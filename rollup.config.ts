@@ -11,7 +11,7 @@ export default Object.keys(pkg.exports)
 
         let f = exp.slice(2);
 
-        const external = ['react', 'react-native-mmkv', '@legendapp/state', '@legendapp/state/persist'];
+        const external = ['react', 'react-native', 'react-native-mmkv', '@legendapp/state', '@legendapp/state/persist'];
 
         if (!f) f = 'index';
 
@@ -45,6 +45,7 @@ export default Object.keys(pkg.exports)
                     outputToFilesystem: true,
                     paths: {
                         react: ['node_modules/react'],
+                        'react-native': ['node_modules/react-native'],
                         '@legendapp/state': ['./index'],
                         '@legendapp/state/persist': ['./persist'],
                     },
