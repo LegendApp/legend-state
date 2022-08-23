@@ -8,7 +8,7 @@ interface Props<T> {
 
 export const Binder = function <TBind extends Primitive, TProps extends { onChange?: any }>(Component) {
     return observer(
-        forwardRef(function Binder({ bind, onChange, ...props }: Props<TBind> & TProps, ref) {
+        forwardRef(function Bound({ bind, onChange, ...props }: Props<TBind> & TProps, ref) {
             const _onChange = useCallback(
                 (e: ChangeEvent<HTMLInputElement>) => {
                     bind.set(e.target.value as any);

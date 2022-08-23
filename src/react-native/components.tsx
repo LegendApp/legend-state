@@ -20,7 +20,7 @@ export const Binder = function <TBind extends Primitive, TProps extends { onChan
     getValue: (p: any) => TBind
 ) {
     return observer(
-        forwardRef(function Binder({ bind, onChange, ...props }: Props<TBind> & TProps, ref) {
+        forwardRef(function Bound({ bind, onChange, ...props }: Props<TBind> & TProps, ref) {
             if (bind) {
                 const _onChange = useCallback((e) => {
                     bind.set(getValue(e));
