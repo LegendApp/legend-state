@@ -97,11 +97,14 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     let keyMap: Map<string | number, number>;
     let moved: [string, NodeValue][];
 
-    if (isArr && prevValue?.length && isArray(prevValue) && prevValue[0].id !== undefined) {
+    if (isArr && isArray(prevValue) && prevValue?.length > 0 && prevValue[0]?.id !== undefined) {
         keyMap = new Map();
         moved = [];
         for (let i = 0; i < prevValue.length; i++) {
-            keyMap.set(prevValue[i].id, i);
+            const p = prevValue[i];
+            if (p) {
+                keyMap.set(p.id, i);
+            }
         }
     }
 
