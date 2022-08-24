@@ -1,29 +1,29 @@
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export interface ObservableBaseFns<T> {
-    get(): T;
-    ref(): ObservableChild<T>;
-    observe(): T;
-    onChange(cb: ListenerFn<T>): ObservableListenerDispose;
-    onChangeShallow(cb: ListenerFn<T>): ObservableListenerDispose;
-    onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
-    onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
-    onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
+    get?(): T;
+    ref?(): ObservableChild<T>;
+    observe?(): T;
+    onChange?(cb: ListenerFn<T>): ObservableListenerDispose;
+    onChangeShallow?(cb: ListenerFn<T>): ObservableListenerDispose;
+    onEquals?(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
+    onTrue?(cb?: (value?: T) => void): OnReturnValue<T>;
+    onHasValue?(cb?: (value?: T) => void): OnReturnValue<T>;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
-    set(value: T | ((prev: T) => T)): ObservableChild<T>;
+    set?(value: T | ((prev: T) => T)): ObservableChild<T>;
 }
 export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
-    observe(shallow?: boolean): T;
-    ref(): ObservableChild<T>;
-    ref<K extends keyof T>(prop: K): ObservableChild<T[K]>;
-    prop<K extends keyof T>(prop: K): ObservableChild<T[K]>;
-    set(value: T | ((prev: T) => T)): ObservableChild<T>;
-    set<K extends keyof T>(key: K, prev: T[K] | ((prev: T[K]) => T[K])): ObservableChild<T[K]>;
-    set<V>(key: string | number, value: V): ObservableChild<V>;
-    assign(value: T | Partial<T>): ObservableChild<T>;
-    delete(): ObservableChild<T>;
-    delete<K extends keyof T>(key: K | string | number): ObservableChild<T>;
+    observe?(shallow?: boolean): T;
+    ref?(): ObservableChild<T>;
+    ref?<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    prop?<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    set?(value: T | ((prev: T) => T)): ObservableChild<T>;
+    set?<K extends keyof T>(key: K, prev: T[K] | ((prev: T[K]) => T[K])): ObservableChild<T[K]>;
+    set?<V>(key: string | number, value: V): ObservableChild<V>;
+    assign?(value: T | Partial<T>): ObservableChild<T>;
+    delete?(): ObservableChild<T>;
+    delete?<K extends keyof T>(key: K | string | number): ObservableChild<T>;
 }
 export interface ObservableComputedFns<T> {
     get(): T;
@@ -76,7 +76,10 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     : T[K];
 
 type ObservableFnsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+    [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+};
+type ObservableFnsRecursiveSafe<T> = {
+    readonly [K in keyof T]: Recurse<T, K, ObservableObjectSafe<T[K]>>;
 };
 
 export interface ObservableEvent {
@@ -137,7 +140,7 @@ export interface ObservablePersistRemote {
         prevAtPath: any
     ): Promise<T>;
     listen<T>(
-        obs: Observable<T>,
+        obs: ObservableType<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
         onChange: (obs: Observable<T>, value: any) => void
@@ -205,14 +208,19 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableWrapper {
     _: Observable;
     isPrimitive: boolean;
+    isSafe: boolean;
 }
 
 export type Primitive = boolean | string | number | Date;
 
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableFns<T>;
+export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & ObservableFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
 export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
+    ? ObservablePrimitive<T>
+    : ObservableObjectSafe<T>;
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
     ([T] extends [Primitive] ? { readonly current: T } : T);
 export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;

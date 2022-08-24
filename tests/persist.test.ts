@@ -98,6 +98,50 @@ describe('Persist local', () => {
 
         expect(obs2).toEqual({ test: 'hello' });
     });
+    test('Saves empty root object to local', () => {
+        const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
+
+        persistObservable(obs, {
+            local: 'jestlocal',
+        });
+
+        obs.test.set({});
+
+        const localValue = global.localStorage.getItem('jestlocal');
+
+        // Should have saved to local storage
+        expect(localValue).toBe('{"test":{}}');
+
+        // obs2 should load with the same value it was just saved as
+        const obs2 = observable({});
+        persistObservable(obs2, {
+            local: 'jestlocal',
+        });
+
+        expect(obs2).toEqual({ test: {} });
+    });
+    test('Saves empty root object to local', () => {
+        const obs = observable({ test: 'hello' } as Record<string, any>);
+
+        persistObservable(obs, {
+            local: 'jestlocal',
+        });
+
+        obs.set({});
+
+        const localValue = global.localStorage.getItem('jestlocal');
+
+        // Should have saved to local storage
+        expect(localValue).toBe('{}');
+
+        // obs2 should load with the same value it was just saved as
+        const obs2 = observable({});
+        persistObservable(obs2, {
+            local: 'jestlocal',
+        });
+
+        expect(obs2).toEqual({});
+    });
     // TODO: Put this back when adding remote persistence
     // test('Loads from local with modified', () => {
     //     global.localStorage.setItem(

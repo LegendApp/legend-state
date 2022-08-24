@@ -140,7 +140,7 @@ async function loadLocal(
     }
 }
 
-export function persistObservable<T>(obs: Observable<T>, persistOptions: PersistOptions<T>) {
+export function persistObservable<T>(obs: ObservableType<T>, persistOptions: PersistOptions<T>) {
     const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,

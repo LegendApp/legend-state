@@ -70,6 +70,12 @@ describe('Set', () => {
         obs.set({ test: { text: 't2' } });
         expect(obs).toEqual({ test: { text: 't2' } });
     });
+    test('Set empty object at root', () => {
+        const obs = observable({ test: { text: 't' } } as Record<string, any>);
+        obs.set({});
+        expect(obs).toEqual({});
+        expect(obs.get()).toEqual({});
+    });
     test('Set at root deletes other properties', () => {
         const obs = observable({ test: { text: 't' }, test2: 'hello' });
         // @ts-expect-error
@@ -665,8 +671,14 @@ describe('Equality', () => {
     });
 });
 describe('Safety', () => {
-    test('Prevent writes', () => {
+    test('Writes are ok in unsafe', () => {
         const obs = observable({ test: { text: 't' } });
+        obs.test.text = 'hello';
+        obs.test = { text: 'hello' };
+        delete obs.test;
+    });
+    test('Prevent writes in safe', () => {
+        const obs = observable({ test: { text: 't' } }, true);
         expect(() => {
             // @ts-expect-error
             obs.test.text = 'hello';

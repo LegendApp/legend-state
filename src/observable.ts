@@ -5,6 +5,7 @@ import {
     NodeValue,
     Observable,
     ObservableObjectOrPrimitive,
+    ObservableObjectOrPrimitiveSafe,
     ObservablePrimitive,
     ObservableWrapper,
 } from './observableInterfaces';
@@ -307,23 +308,37 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(target);
         return Reflect.getOwnPropertyDescriptor(value, p);
     },
-    set(target, prop, value) {
+    set(target: NodeValue, prop, value) {
         // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
             Reflect.set(target, prop, value);
-            return true;
-        } else {
+        } else if (target.root.isSafe) {
             return false;
+        } else {
+            if (process.env.NODE_ENV === 'development' && tracking.nodes) {
+                console.error(
+                    `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
+                );
+            }
+            set(target, prop, value);
         }
+        return true;
     },
-    deleteProperty(target, prop) {
+    deleteProperty(target: NodeValue, prop) {
         // If this delete comes from within an observable function it's allowed
         if (inSetFn) {
             Reflect.deleteProperty(target, prop);
-            return true;
-        } else {
+        } else if (target.root.isSafe) {
             return false;
+        } else {
+            if (process.env.NODE_ENV === 'development' && tracking.nodes) {
+                console.error(
+                    `[legend-state] Should not delete an observable property within an observer. You may have done this by accident. Please use delete() if you really want to do this.`
+                );
+            }
+            deleteFn(target, prop as any);
         }
+        return true;
     },
     has(target, prop) {
         const value = getNodeValue(target);
@@ -344,6 +359,12 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
+    if (process.env.NODE_ENV === 'development') {
+        if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
+            console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
+        }
+    }
+
     const isDelete = newValue === undef;
     if (isDelete) newValue = undefined;
 
@@ -379,7 +400,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     if (isDelete) {
         delete parentValue[key];
     } else {
-    parentValue[key] = newValue;
+        parentValue[key] = newValue;
     }
 
     // Make sure we don't call too many listeners for ever property set
@@ -508,12 +529,13 @@ function deleteFnByKey(node: NodeValue, key: string | number) {
     }
 }
 
-export function observable<T extends object>(obj: T): ObservableObjectOrPrimitive<T>;
-export function observable<T extends boolean>(prim: T): ObservablePrimitive<boolean>;
-export function observable<T extends string>(prim: T): ObservablePrimitive<string>;
-export function observable<T extends number>(prim: T): ObservablePrimitive<number>;
-export function observable<T extends boolean | string | number>(prim: T): ObservablePrimitive<T>;
-export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
+export function observable<T extends object>(obj: T, safe: true): ObservableObjectOrPrimitiveSafe<T>;
+export function observable<T extends object>(obj: T, safe?: boolean): ObservableObjectOrPrimitive<T>;
+export function observable<T extends boolean>(prim: T, safe?: boolean): ObservablePrimitive<boolean>;
+export function observable<T extends string>(prim: T, safe?: boolean): ObservablePrimitive<string>;
+export function observable<T extends number>(prim: T, safe?: boolean): ObservablePrimitive<number>;
+export function observable<T extends boolean | string | number>(prim: T, safe?: boolean): ObservablePrimitive<T>;
+export function observable<T>(obj: T, safe?: boolean): ObservableObjectOrPrimitive<T> {
     const isPrim = isPrimitive(obj);
     // Primitives wrap in current
     if (isPrim) {
@@ -523,6 +545,7 @@ export function observable<T>(obj: T): ObservableObjectOrPrimitive<T> {
     const obs = {
         _: obj as Observable<T>,
         isPrimitive: isPrim,
+        isSafe: safe,
     } as ObservableWrapper;
 
     const node: NodeValue = {
