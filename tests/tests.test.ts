@@ -18,7 +18,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: ObservableType, shallow?: boolean) {
+function expectChangeHandler(obs: ObservableType, shallow?: boolean, runImmediately?: boolean) {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {
@@ -27,7 +27,7 @@ function expectChangeHandler(obs: ObservableType, shallow?: boolean) {
         ret(value, prev, path, valueAtPath, prevAtPath);
     }
 
-    shallow ? (obs as any).onChangeShallow(handler) : obs.onChange(handler);
+    shallow ? obs.onChangeShallow(handler, runImmediately) : obs.onChange(handler, runImmediately);
 
     return ret;
 }
@@ -1439,7 +1439,12 @@ describe('Delete', () => {
     });
 });
 describe('on functions', () => {
-    test('onValue with prop', () => {
+    test('onChange immediate', () => {
+        const obs = observable({ val: 10 });
+        const handler = expectChangeHandler(obs.val, undefined, true);
+        expect(handler).toHaveBeenCalledWith(10, 10, [], 10, 10);
+    });
+    test('onEquals with prop', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
         obs.prop('val').onEquals(20, handler);
@@ -1447,7 +1452,13 @@ describe('on functions', () => {
         obs.val.set(20);
         expect(handler).toHaveBeenCalledWith(20);
     });
-    test('onValue deep', () => {
+    test('onEquals immediate', () => {
+        const obs = observable({ val: 10 });
+        const handler = jest.fn();
+        obs.val.onEquals(10, handler);
+        expect(handler).toHaveBeenCalledWith(10);
+    });
+    test('onEquals deep', () => {
         const obs = observable({ test: { test2: '', test3: '' } });
         const handler = jest.fn();
         obs.test.test2.onEquals('hello', handler);

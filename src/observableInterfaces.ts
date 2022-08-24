@@ -4,8 +4,8 @@ export interface ObservableBaseFns<T> {
     get?(): T;
     ref?(): ObservableChild<T>;
     observe?(): T;
-    onChange?(cb: ListenerFn<T>): ObservableListenerDispose;
-    onChangeShallow?(cb: ListenerFn<T>): ObservableListenerDispose;
+    onChange?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
+    onChangeShallow?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
     onEquals?(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue?(cb?: (value?: T) => void): OnReturnValue<T>;
     onHasValue?(cb?: (value?: T) => void): OnReturnValue<T>;

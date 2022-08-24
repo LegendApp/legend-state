@@ -27,13 +27,11 @@ export function onEquals<T>(node: NodeValue, value: T, callback: (value: T) => v
                 (callback as (value: T) => void)?.(newValue);
                 resolve(newValue);
 
-                dispose();
+                dispose?.();
             }
             return isDone;
         }
-        if (!check(getNodeValue(node))) {
-            dispose = onChange(node, check, /*shallow*/ true);
-        }
+        dispose = onChange(node, check, true, /*shallow*/ true);
     });
 
     return {
@@ -50,7 +48,7 @@ export function onTrue<T extends boolean>(node: NodeValue, callback?: () => void
     return onEquals(node, true as T, callback);
 }
 
-export function onChange(node: NodeValue, callback: ListenerFn<any>, shallow?: boolean) {
+export function onChange(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean, shallow?: boolean) {
     const c = callback as ListenerFnSaved;
     if (shallow) {
         c.shallow = true;
@@ -62,9 +60,14 @@ export function onChange(node: NodeValue, callback: ListenerFn<any>, shallow?: b
     }
     listeners.add(c);
 
+    if (runImmediately) {
+        const value = getNodeValue(node);
+        c(value, () => value, [], value, value, node);
+    }
+
     return () => listeners.delete(c);
 }
 
-export function onChangeShallow(node: NodeValue, callback: ListenerFn<any>) {
-    return onChange(node, callback, /*shallow*/ true);
+export function onChangeShallow(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean) {
+    return onChange(node, callback, runImmediately, /*shallow*/ true);
 }
