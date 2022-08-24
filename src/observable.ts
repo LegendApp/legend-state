@@ -515,13 +515,10 @@ function assign(node: NodeValue, value: any) {
 
 function deleteFn(node: NodeValue, key?: string | number) {
     // If called without a key, delete by key from the parent node
-    if (key !== undefined) {
-        return deleteFnByKey(node, key);
-    } else if (node.parent) {
-        return deleteFnByKey(node.parent, node.key);
+    if (key === undefined && node.parent) {
+        key = node.key;
+        node = node.parent;
     }
-    }
-function deleteFnByKey(node: NodeValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to notify
         setProp(node, key, undef, /*level*/ -1);
