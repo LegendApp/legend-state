@@ -1,5 +1,5 @@
 import { observable } from '../dist/index.mjs';
-import { useObservables } from '../dist/react.mjs';
+import { observer } from '../dist/react.mjs';
 
 observable(0);
-useObservables(0);
+observer();
