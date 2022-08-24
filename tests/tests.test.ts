@@ -1420,6 +1420,11 @@ describe('Delete', () => {
         }).toThrow();
         expect(obs).toEqual({});
     });
+    test('Delete key', () => {
+        const obs = observable({ test: { text: 't', text2: 't2' } });
+        obs.test.delete('text2');
+        expect(Object.keys(obs.test)).toEqual(['text']);
+    });
 });
 describe('on functions', () => {
     test('onValue with prop', () => {

@@ -344,6 +344,9 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
 }
 
 function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
+    const isDelete = newValue === undef;
+    if (isDelete) newValue = undefined;
+
     inSetFn = true;
     const isRoot = (key as any) === undef;
 
@@ -373,7 +376,11 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     const isPrim = isPrimitive(newValue);
 
     // Save the new value
+    if (isDelete) {
+        delete parentValue[key];
+    } else {
     parentValue[key] = newValue;
+    }
 
     // Make sure we don't call too many listeners for ever property set
     observableBatcher.begin();
@@ -497,15 +504,8 @@ function deleteFn(node: NodeValue, key?: string | number) {
 function deleteFnByKey(node: NodeValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to notify
-        setProp(node, key, undefined, /*level*/ -1);
+        setProp(node, key, undef, /*level*/ -1);
     }
-
-    inSetFn = true;
-    // Then delete the key from the object
-    let child = getNodeValue(node);
-    delete child[key];
-
-    inSetFn = false;
 }
 
 export function observable<T extends object>(obj: T): ObservableObjectOrPrimitive<T>;
