@@ -15,6 +15,7 @@ import { tracking, untrack, updateTracking } from './tracking';
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
+let inAssign = false;
 const undef = Symbol('undef');
 
 const ArrayModifiers = new Set([
@@ -297,10 +298,8 @@ const proxyHandler: ProxyHandler<any> = {
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for
         // property 'length' which is either non-existent or configurable in the proxy target
-        if (isArray(value)) {
-            if (keys[keys.length - 1] === 'length') {
-                keys.splice(keys.length - 1, 1);
-            }
+        if (isArray(value) && keys[keys.length - 1] === 'length') {
+            keys.splice(keys.length - 1, 1);
         }
         return keys;
     },
@@ -312,7 +311,7 @@ const proxyHandler: ProxyHandler<any> = {
         // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
             Reflect.set(target, prop, value);
-        } else if (target.root.isSafe) {
+        } else if (!inAssign && target.root.isSafe) {
             return false;
         } else {
             if (process.env.NODE_ENV === 'development' && tracking.nodes) {
@@ -352,7 +351,7 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
     } else if (node.root.isPrimitive) {
         return setProp(node, 'current', keyOrNewValue);
     } else if (!node.parent) {
-        return set(node, undef, keyOrNewValue);
+        return setProp(node, undef as any, keyOrNewValue);
     } else {
         return setProp(node.parent, node.key, keyOrNewValue);
     }
@@ -500,18 +499,18 @@ function assign(node: NodeValue, value: any) {
     // Set operations do not create listeners
     if (tracking.nodes) untrack(node);
 
+    const proxy = getProxy(node);
+
     observableBatcher.begin();
 
-    // Assign calls set with all assigned properties
-    const keys = Object.keys(value);
-    const length = keys.length;
-    for (let i = 0; i < length; i++) {
-        setProp(node, keys[i], value[keys[i]]);
-    }
+    // Set inAssign to allow setting on safe observables
+    inAssign = true;
+    Object.assign(proxy, value);
+    inAssign = false;
 
     observableBatcher.end();
 
-    return getProxy(node);
+    return proxy;
 }
 
 function deleteFn(node: NodeValue, key?: string | number) {
@@ -521,7 +520,7 @@ function deleteFn(node: NodeValue, key?: string | number) {
     } else if (node.parent) {
         return deleteFnByKey(node.parent, node.key);
     }
-}
+    }
 function deleteFnByKey(node: NodeValue, key: string | number) {
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to notify
