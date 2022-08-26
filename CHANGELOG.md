@@ -1,3 +1,12 @@
+## 0.12.0
+- Feat: Allow direct assignment, with warnings to catch accidental errors, and an optional "safe" mode
+- Feat: input components with `bind` prop that automatically binds an observable to value and onChange
+- Feat: Support keyed ref: `obs.ref('key')`
+- Feat: `onChange` has a `runImmediately` option
+- Fix: `.ref()` and `.get()` inside an `observer` do reference counting so they don't untrack too aggressively
+- Fix: `delete()` was notifying listeners with the value undefined, but the key not yet deleted
+- Fix: `observer` was sometimes missing updates occurring between render and mount
+
 ## 0.11.0-beta.7
 - Fix: New set option with function parameter was breaking persistence
 - Fix: Component useEffect was getting called before observer could listen for changes
@@ -6,10 +15,10 @@
 - Fix: Babel plugin adds imports only once, only if not already imported
 
 ## 0.11.0-beta.5
-- Feature: `set()` can take a function to easily compute it relative to the previous value
+- Feat: `set()` can take a function to easily compute it relative to the previous value
 
 ## 0.11.0-beta.4
-- Feature: Added `traceListeners` and `traceUpdates` functions (exported from @legendapp/state/trace). Call them within an observer. `traceListeners` logs the path of all tracked observables, while `traceUpdates` logs details of each observable change that causes a render.
+- Feat: Added `traceListeners` and `traceUpdates` functions (exported from @legendapp/state/trace). Call them within an observer. `traceListeners` logs the path of all tracked observables, while `traceUpdates` logs details of each observable change that causes a render.
 
 ## 0.11.0-beta.3
 - Fix: observer was not working the first time in StrictMode
