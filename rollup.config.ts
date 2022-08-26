@@ -5,7 +5,7 @@ import typescript from '@rollup/plugin-typescript';
 import pkg from './package.json';
 
 export default Object.keys(pkg.exports)
-    .filter((exp) => exp !== './types')
+    .filter((exp) => !exp.includes('-types'))
     .map((exp) => {
         if (exp.endsWith('json')) return;
 
