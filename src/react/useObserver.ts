@@ -2,29 +2,50 @@ import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '
 import { useEffect, useRef } from 'react';
 
 export function useObserver<T>(fn: () => T, updateFn: () => void) {
-    const listeners = useRef<ObservableListenerDispose[]>([]).current;
-
-    // Cleanup old listeners before tracking
-    if (listeners.length > 0) {
-        cleanup(listeners);
-    }
-
+    const refFirstListeners = useRef(undefined);
     // Cache previous tracking nodes since this might be nested from another observing component
     const trackingPrev = tracking.nodes;
 
     // Reset tracking nodes
     tracking.nodes = new Map();
 
+    let nodes;
+
+    // Create the listener effect before calling fn so that it gets called before
+    // effects in the component
+    const effect = () => {
+        // If we have pre-mount listeners, clear them off
+        if (refFirstListeners.current) {
+            refFirstListeners.current();
+            refFirstListeners.current = undefined;
+        }
+
+        const listeners: ObservableListenerDispose[] = [];
+
+        // Listen to tracked nodes
+        for (let tracked of nodes) {
+            const { node, shallow } = tracked[1];
+
+            listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
+        }
+
+        // Cleanup listeners
+        return () => {
+            for (let i = 0; i < listeners.length; i++) {
+                listeners[i]();
+            }
+        };
+    };
+    useEffect(effect);
+
     // Calling the function fills up the tracking nodes
     const ret = fn();
 
-    const nodes = tracking.nodes;
+    nodes = tracking.nodes;
 
-    // Listen to tracked nodes
-    for (let tracked of nodes) {
-        const { node, shallow } = tracked[1];
-
-        listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
+    // Call the effect immediately to set up listeners without waiting for mount
+    if (!refFirstListeners.current) {
+        refFirstListeners.current = effect();
     }
 
     // Do tracing if it was requested
@@ -38,16 +59,5 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Restore previous tracking nodes
     tracking.nodes = trackingPrev;
 
-    // Cleanup listeners on unmounts
-    useEffect(() => () => cleanup(listeners), []);
-
     return ret;
-}
-
-function cleanup(listeners: ObservableListenerDispose[]) {
-    // Cleanup listeners
-    for (let i = 0; i < listeners.length; i++) {
-        listeners[i]();
-    }
-    listeners.length = 0;
 }
