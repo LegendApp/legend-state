@@ -1417,11 +1417,18 @@ describe('Delete', () => {
         expect(handler).toHaveBeenCalledWith(undefined, true, [], undefined, true);
         expect(Object.keys(obs.obj)).toEqual([]);
     });
-    test('Delete does not fire listeners of children', () => {
+    test('Delete property fires listeners 2', () => {
+        const obs = observable({ obj: { val: true } });
+        const handler = expectChangeHandler(obs.obj.val);
+        obs.obj.delete();
+        expect(handler).toHaveBeenCalledWith(undefined, true, [], undefined, true);
+        expect(Object.keys(obs.obj)).toEqual([]);
+    });
+    test('Delete fires listeners of children', () => {
         const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } } });
         const handler = expectChangeHandler(obs.obj.num1);
         obs.delete('obj');
-        expect(handler).not.toHaveBeenCalled();
+        expect(handler).toHaveBeenCalledWith(undefined, 1, [], undefined, 1);
     });
     test('Accessing a deleted node', () => {
         const obs = observable({ obj: { text: 'hi' } });
@@ -1593,6 +1600,16 @@ describe('Computed', () => {
         computed.assign({ text: 'hi' });
         // @ts-expect-error
         computed.delete();
+    });
+    test('Computed object is observable', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const computed = observableComputed(() => ({ value: obs.test + obs.test2 }));
+        expect(computed.value).toEqual(30);
+
+        const handler = expectChangeHandler(computed.value);
+        obs.test = 5;
+
+        expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
     });
 });
 describe('Event', () => {
