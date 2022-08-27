@@ -1,4 +1,4 @@
-import { createElement, forwardRef, ForwardRefExoticComponent, LegacyRef, useCallback } from 'react';
+import { createElement, forwardRef, ForwardRefExoticComponent, LegacyRef, ReactElement, useCallback } from 'react';
 import { isFunction } from '@legendapp/state';
 import {
     NativeSyntheticEvent,
@@ -12,23 +12,23 @@ import {
     TextStyle,
     ViewStyle,
 } from 'react-native';
-import { ObservableChild, Primitive } from '../observableInterfaces';
+import { NotPrimitive, ObservableChild, ObservableFns, Primitive } from '../observableInterfaces';
 import { observer } from '../react/observer';
 
-type Props<T, TStyle, TProps> = Omit<TProps, 'style'> & {
-    bind?: ObservableChild<T>;
-    style?: StyleProp<TStyle> | ((value: T) => StyleProp<TStyle>);
+type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
+    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
+    style?: StyleProp<TStyle> | ((value: TValue) => StyleProp<TStyle>);
 };
 
 export const Binder = function <
-    TBind extends Primitive,
+    TValue extends Primitive,
     TElement,
     TStyle,
     TProps extends { onChange?: any; style?: StyleProp<any> }
->(Component: TElement, getValue: (p: any) => TBind) {
+>(Component: TElement, getValue: (p: any) => TValue) {
     return observer(
-        forwardRef(function Bound(
-            { bind, onChange, style, ...props }: Props<TBind, TStyle, TProps>,
+        forwardRef(function Bound<TBind extends ObservableFns<any>>(
+            { bind, onChange, style, ...props }: Props<TValue, TStyle, TProps, TBind>,
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
@@ -51,7 +51,7 @@ export const Binder = function <
                 return createElement(Component as any, ref ? { ...props, ref } : props);
             }
         })
-    ) as any as ForwardRefExoticComponent<Props<TBind, TStyle, TProps>>;
+    ) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TStyle, TProps, TBind>) => ReactElement | null;
 };
 
 export namespace LS {

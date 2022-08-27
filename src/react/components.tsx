@@ -1,30 +1,22 @@
-import {
-    ChangeEvent,
-    createElement,
-    CSSProperties,
-    forwardRef,
-    ForwardRefExoticComponent,
-    LegacyRef,
-    useCallback,
-} from 'react';
 import { isFunction } from '@legendapp/state';
-import { ObservableChild, Primitive } from '../observableInterfaces';
+import { ChangeEvent, createElement, CSSProperties, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
+import { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
 import { observer } from './observer';
 
-type Props<T, TProps> = Omit<TProps, 'className' | 'style'> & {
-    bind?: ObservableChild<T>;
-    className?: string | ((value: T) => string);
-    style?: CSSProperties | ((value: T) => CSSProperties);
+type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
+    className?: string | ((value: TValue) => string);
+    style?: CSSProperties | ((value: TValue) => CSSProperties);
+    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
 };
 
 export const Binder = function <
-    TBind extends Primitive,
+    TValue extends Primitive,
     TElement,
     TProps extends { onChange?: any; className?: string; style?: CSSProperties }
 >(Component) {
     return observer(
-        forwardRef(function Bound(
-            { bind, onChange, className, style, ...props }: Props<TBind, TProps>,
+        forwardRef(function Bound<TBind extends ObservableFns<any>>(
+            { bind, onChange, className, style, ...props }: Props<TValue, TProps, TBind>,
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
@@ -52,8 +44,8 @@ export const Binder = function <
             } else {
                 return createElement(Component, ref ? { ...props, ref } : props);
             }
-        })
-    ) as any as ForwardRefExoticComponent<Props<TBind, TProps>>;
+        }) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TProps, TBind>) => ReactElement | null
+    );
 };
 
 export namespace LS {
