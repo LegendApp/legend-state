@@ -3,6 +3,7 @@ export { observable } from './src/observable';
 export { observableBatcher } from './src/observableBatcher';
 export { observableComputed } from './src/observableComputed';
 export { observableEvent } from './src/observableEvent';
+export { shallow } from './src/globals';
 export * from './src/observableInterfaces';
 
 /** @internal */

@@ -1,9 +1,8 @@
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export interface ObservableBaseFns<T> {
-    get?(): T;
-    ref?(): ObservableChild<T>;
-    observe?(): T;
+    get?(track?: boolean | Symbol): T;
+    ref?(track?: boolean | Symbol): ObservableChild<T>;
     onChange?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
     onChangeShallow?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
     onEquals?(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
@@ -14,10 +13,10 @@ export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
 }
 export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
-    observe?(shallow?: boolean): T;
-    ref?(): ObservableChild<T>;
-    ref?<K extends keyof T>(prop: K): ObservableChild<T[K]>;
-    prop?<K extends keyof T>(prop: K): ObservableChild<T[K]>;
+    get?(track?: boolean | Symbol): T;
+    get?<K extends keyof T>(key: K, track?: boolean | Symbol): T[K];
+    ref?(track?: boolean | Symbol): ObservableChild<T>;
+    ref?<K extends keyof T>(prop: K, track?: boolean | Symbol): ObservableChild<T[K]>;
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
     set?<K extends keyof T>(key: K, prev: T[K] | ((prev: T[K]) => T[K])): ObservableChild<T[K]>;
     set?<V>(key: string | number, value: V): ObservableChild<V>;
@@ -26,8 +25,7 @@ export interface ObservableFns<T> extends ObservablePrimitiveFns<T> {
     delete?<K extends keyof T>(key: K | string | number): ObservableChild<T>;
 }
 export interface ObservableComputedFns<T> {
-    get(): T;
-    observe(shallow?: boolean): T;
+    get(track?: boolean | Symbol): T;
     onChange(cb: ListenerFn<T>): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
@@ -86,7 +84,7 @@ export interface ObservableEvent {
     dispatch(): void;
     on(cb?: () => void): ObservableListenerDispose;
     on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
-    observe(): void;
+    get(): void;
 }
 
 export type QueryByModified<T> =

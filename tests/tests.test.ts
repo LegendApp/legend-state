@@ -171,10 +171,10 @@ describe('Listeners', () => {
             { text: 't' }
         );
     });
-    test('Listen by prop', () => {
+    test('Listen by ref', () => {
         const obs = observable({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
-        const handler = expectChangeHandler(obs.test.prop('text'));
+        const handler = expectChangeHandler(obs.test.ref('text'));
         obs.test.set('text', 't2');
         expect(obs.test.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
@@ -728,9 +728,9 @@ describe('Primitives', () => {
         obs.set(20);
         expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
-    test('Set function with prop is stable', () => {
+    test('Set function with ref is stable', () => {
         const obs = observable({ num1: 10, num2: 20 });
-        const set = obs.prop('num1').set;
+        const set = obs.ref('num1').set;
         expect(obs.num2).toEqual(20);
 
         set(30);
@@ -1451,10 +1451,10 @@ describe('on functions', () => {
         const handler = expectChangeHandler(obs.val, undefined, true);
         expect(handler).toHaveBeenCalledWith(10, 10, [], 10, 10);
     });
-    test('onEquals with prop', () => {
+    test('onEquals with ref', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        obs.prop('val').onEquals(20, handler);
+        obs.ref('val').onEquals(20, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.val.set(20);
         expect(handler).toHaveBeenCalledWith(20);
@@ -1504,9 +1504,9 @@ describe('on functions', () => {
     test('onHasValue with undefined', () => {
         const obs = observable({ val: undefined });
         const handler = jest.fn();
-        obs.prop('val').onHasValue(handler);
+        obs.ref('val').onHasValue(handler);
         expect(handler).not.toHaveBeenCalled();
-        obs.prop('val').set(true);
+        obs.ref('val').set(true);
         expect(handler).toHaveBeenCalledWith(true);
     });
 });
@@ -1517,7 +1517,7 @@ describe('Shallow', () => {
         obs.onChangeShallow(handler);
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
-        obs.prop('val2').set(10);
+        obs.ref('val2').set(10);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Shallow deep object', () => {
@@ -1686,14 +1686,14 @@ describe('Batching', () => {
 describe('ref function', () => {
     test('With and without ref', () => {
         const obs = observable({ text: 'hi' });
-        const prox = obs.prop('text');
+        const prox = obs.ref('text');
         const prox2 = obs.text.ref();
         expect(prox === prox2).toEqual(true);
         expect(prox2.get()).toEqual('hi');
     });
     test('keyed ref', () => {
         const obs = observable({ text: 'hi' });
-        const prox = obs.prop('text');
+        const prox = obs.ref('text');
         const prox2 = obs.ref('text');
         expect(prox === prox2).toEqual(true);
         expect(prox2.get()).toEqual('hi');

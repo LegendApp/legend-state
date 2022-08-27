@@ -1,5 +1,5 @@
-import { get, getChildNode, getNodeValue, nextNodeID, observe, symbolIsObservable } from './globals';
-import { isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable } from './globals';
+import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     NodeValue,
@@ -35,14 +35,12 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forE
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
-    ['observe', observe],
+    ['ref', ref],
     ['onChange', onChange],
     ['onChangeShallow', onChangeShallow],
     ['onEquals', onEquals],
     ['onHasValue', onHasValue],
     ['onTrue', onTrue],
-    ['ref', ref],
-    ['prop', prop],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
@@ -218,19 +216,20 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
-function ref(node: NodeValue, p?: string | number) {
-    if (p !== undefined) {
-        node = getChildNode(node, p);
+function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
+    if (isBoolean(keyOrTrack)) {
+        track = keyOrTrack;
+        keyOrTrack = undefined;
     }
-    if (tracking.nodes) untrack(node);
+
+    if (keyOrTrack !== undefined) {
+        node = getChildNode(node, keyOrTrack as string | number);
+    }
+
+    // Untrack by default
+    checkTracking(node, track);
+
     return getProxy(node);
-}
-function prop(node: NodeValue, p: string | number) {
-    // Update that this node was accessed for observers
-    if (tracking.nodes) {
-        updateTracking(getChildNode(node, p), node);
-    }
-    return getProxy(node, p);
 }
 
 const proxyHandler: ProxyHandler<any> = {
@@ -244,8 +243,8 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
-            if (p === 'set' || p === 'assign') {
-                // Set operations do not create listeners
+            if (p !== 'get' && p !== 'ref') {
+                // Observable operations do not create listeners
                 if (tracking.nodes) untrack(node);
             }
             return function (a, b, c) {
@@ -286,21 +285,21 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp.bind(value);
         }
 
-        // Update that this node was accessed for observers
-        if (tracking.nodes) {
-            if (isArray(value) && p === 'length') {
-                updateTracking(node, undefined, /*shallow*/ true);
-            } else {
-                updateTracking(getChildNode(node, p), node);
-            }
-        }
-
         // Accessing primitive returns the raw value
         if (vProp === undefined || vProp === null ? !hasProxy(target, p) : isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
             lastAccessedPrimitive = p;
+
+            // Update that this primitive node was accessed for observers
+            if (tracking.nodes) {
+                if (isArray(value) && p === 'length') {
+                    updateTracking(node, undefined, /*shallow*/ true);
+                } else {
+                    updateTracking(getChildNode(node, p), node);
+                }
+            }
 
             return vProp;
         }

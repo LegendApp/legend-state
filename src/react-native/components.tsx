@@ -37,24 +37,30 @@ export const Binder = function <
                     onChange?.(e);
                 }, []);
 
-                const value = bind.observe();
+                const value = bind.get();
 
                 if (isFunction(style)) {
                     style = style(value);
                 }
 
-                return createElement(Component, Object.assign({}, props, { onChange: _onChange, value, style, ref }));
+                return createElement(
+                    Component as any,
+                    Object.assign({}, props, { onChange: _onChange, value, style, ref })
+                );
             } else {
-                return createElement(Component, ref ? { ...props, ref } : props);
+                return createElement(Component as any, ref ? { ...props, ref } : props);
             }
         })
-    );
+    ) as any as ForwardRefExoticComponent<Props<TBind, TStyle, TProps>>;
 };
 
 export namespace LS {
-    export const TextInput = Binder<Primitive, TextStyle, TextInputProps>(
+    export const TextInput = Binder<Primitive, typeof RNTextInput, TextStyle, TextInputProps>(
         RNTextInput,
         (e: NativeSyntheticEvent<TextInputChangeEventData>) => e.nativeEvent.text
     );
-    export const Switch = Binder<Primitive, ViewStyle, SwitchProps>(RNSwitch, (e: SwitchChangeEvent) => e.value);
+    export const Switch = Binder<Primitive, typeof RNSwitch, ViewStyle, SwitchProps>(
+        RNSwitch,
+        (e: SwitchChangeEvent) => e.value
+    );
 }

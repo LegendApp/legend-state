@@ -36,7 +36,7 @@ export const Binder = function <
                     [onChange]
                 );
 
-                const value = bind.observe();
+                const value = bind.get();
 
                 if (isFunction(className)) {
                     className = className(value);

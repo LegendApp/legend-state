@@ -11,6 +11,6 @@ export function observableEvent(): ObservableEvent {
             obs.set(obs.current + 1);
         },
         on: obs.onChange as any,
-        observe: obs.observe,
+        get: obs.get,
     };
 }

@@ -1,3 +1,4 @@
+import { shallow } from '../src/globals';
 import { observable } from '../src/observable';
 import { observableEvent } from '../src/observableEvent';
 import { tracking } from '../src/tracking';
@@ -7,9 +8,15 @@ beforeEach(() => {
 });
 
 describe('Tracking', () => {
-    test('get() does not observe', () => {
+    test('get() observes', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.get();
+
+        expect(tracking.nodes.size).toEqual(1);
+    });
+    test('get(false) does not observe', () => {
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
+        obs.test.test2.test3.get(false);
 
         expect(tracking.nodes.size).toEqual(0);
     });
@@ -17,21 +24,29 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const ref = obs.test.test2.ref();
 
-        expect(ref.get()).toEqual({ test3: 'hi' });
-
         expect(tracking.nodes.size).toEqual(0);
+
+        expect(ref.get(false)).toEqual({ test3: 'hi' });
+    });
+    test('ref(true) observes', () => {
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
+        const ref = obs.test.test2.ref(true);
+
+        expect(tracking.nodes.size).toEqual(1);
+
+        expect(ref.get()).toEqual({ test3: 'hi' });
     });
     test('child of ref() observes', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const ref = obs.test.test2.ref();
-
-        expect(ref.get()).toEqual({ test3: 'hi' });
 
         expect(tracking.nodes.size).toEqual(0);
 
         ref.test3;
 
         expect(tracking.nodes.size).toEqual(1);
+
+        expect(ref.get()).toEqual({ test3: 'hi' });
     });
     test('set() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
@@ -45,27 +60,27 @@ describe('Tracking', () => {
 
         expect(tracking.nodes.size).toEqual(1);
     });
-    test('object access observes', () => {
+    test('object access does not observe', () => {
         const obs = observable({ test: { text: 'hi' } });
         obs.test;
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.nodes.size).toEqual(0);
     });
-    test('observe() observes', () => {
+    test('get() observes', () => {
         const obs = observable({ test: { text: 'hi' } });
 
-        obs.test.observe();
+        obs.test.get();
 
         expect(tracking.nodes.size).toEqual(1);
 
         const nodes = [...tracking.nodes.values()];
         expect(nodes[0].manual).toEqual(true);
-        expect(nodes[0].shallow).toEqual(undefined);
+        expect(nodes[0].shallow).toEqual(false);
     });
-    test('observe() shallow', () => {
+    test('get() shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
 
-        obs.test.observe(true);
+        obs.test.get(shallow);
 
         expect(tracking.nodes.size).toEqual(1);
 
@@ -73,9 +88,9 @@ describe('Tracking', () => {
         expect(nodes[0].manual).toEqual(true);
         expect(nodes[0].shallow).toEqual(true);
     });
-    test('primitive observe access observes', () => {
+    test('primitive get access observes', () => {
         const obs = observable({ test: 'hi' });
-        obs.test.observe();
+        obs.test.get();
 
         expect(tracking.nodes.size).toEqual(1);
     });
@@ -102,10 +117,10 @@ describe('Tracking', () => {
 
         expect(nodes[0].node.key).toEqual('a');
     });
-    test('Observing an event observes', () => {
+    test('get() an event observes', () => {
         const evt = observableEvent();
 
-        evt.observe();
+        evt.get();
 
         expect(tracking.nodes.size).toEqual(1);
     });

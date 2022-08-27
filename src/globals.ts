@@ -1,35 +1,33 @@
-import { isString } from './is';
+import { isBoolean, isString } from './is';
 import { NodeValue } from './observableInterfaces';
 import { tracking, untrack, updateTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
-
+export const shallow = Symbol('shallow');
 export const nextNodeID = { current: 0 };
 
-export function getOutputValue(node: NodeValue) {
-    let value = getNodeValue(node);
-    if (node.root.isPrimitive) {
-        value = value.current;
-    }
-    return value;
-}
-
-export function get(node: NodeValue) {
-    if (tracking.nodes) untrack(node);
-    return getOutputValue(node);
-}
-
-export function observe(node: NodeValue, shallow?: boolean) {
-    const value = getOutputValue(node);
-
+export function checkTracking(node: NodeValue, track: boolean | Symbol) {
     if (tracking.nodes) {
-        updateTracking(node, undefined, shallow, /*manual*/ true);
-    } else if (process.env.NODE_ENV === 'development') {
-        console.error('[legend-state]: observe() has no effect outside of an observer component.');
+        if (track) {
+            updateTracking(node, undefined, track === shallow, /*manual*/ true);
+        } else {
+            untrack(node);
+        }
+    }
+}
+
+export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
+    if (isBoolean(keyOrTrack) || keyOrTrack === shallow) {
+        track = keyOrTrack;
+        keyOrTrack = undefined;
     }
 
-    return value;
+    // Track by default
+    checkTracking(node, track || track === undefined);
+
+    const value = getOutputValue(node);
+    return keyOrTrack ? value?.[keyOrTrack as string | number] : value;
 }
 
 export function getNodeValue(node: NodeValue): any {
@@ -46,6 +44,14 @@ export function getNodeValue(node: NodeValue): any {
         }
     }
     return child;
+}
+
+export function getOutputValue(node: NodeValue) {
+    let value = getNodeValue(node);
+    if (node.root.isPrimitive) {
+        value = value.current;
+    }
+    return value;
 }
 
 export function getChildNode(node: NodeValue, key: string | number): NodeValue {

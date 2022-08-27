@@ -27,3 +27,7 @@ export function isObjectEmpty(obj: object) {
 export function isSymbol(obj: unknown): obj is symbol {
     return typeof obj === 'symbol';
 }
+/** @internal */
+export function isBoolean(obj: unknown): obj is boolean {
+    return obj === true || obj === false;
+}
