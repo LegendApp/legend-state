@@ -138,7 +138,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             const value = obj[key];
             const prev = prevValue?.[key];
 
-            let isDiff = prevValue && value !== prev;
+            let isDiff = value !== prev;
             if (isDiff) {
                 const id = value?.id;
 

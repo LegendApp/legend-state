@@ -1698,4 +1698,11 @@ describe('ref function', () => {
         expect(prox === prox2).toEqual(true);
         expect(prox2.get()).toEqual('hi');
     });
+    test('ref through undefined works', () => {
+        const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
+        const refTest4 = obs.ref('test').ref('test2').ref('test3').ref('test4');
+        const handler = expectChangeHandler(refTest4);
+        obs.set({ test: { test2: { test3: { test4: 'hi' } } } });
+        expect(handler).toHaveBeenCalledWith('hi', undefined, [], 'hi', undefined);
+    });
 });
