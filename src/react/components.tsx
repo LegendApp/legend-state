@@ -1,13 +1,21 @@
-import { ChangeEvent, createElement, CSSProperties, forwardRef, LegacyRef, useCallback } from 'react';
+import {
+    ChangeEvent,
+    createElement,
+    CSSProperties,
+    forwardRef,
+    ForwardRefExoticComponent,
+    LegacyRef,
+    useCallback,
+} from 'react';
 import { isFunction } from '@legendapp/state';
 import { ObservableChild, Primitive } from '../observableInterfaces';
 import { observer } from './observer';
 
-interface Props<T> {
+type Props<T, TProps> = Omit<TProps, 'className' | 'style'> & {
     bind?: ObservableChild<T>;
     className?: string | ((value: T) => string);
     style?: CSSProperties | ((value: T) => CSSProperties);
-}
+};
 
 export const Binder = function <
     TBind extends Primitive,
@@ -16,7 +24,7 @@ export const Binder = function <
 >(Component) {
     return observer(
         forwardRef(function Bound(
-            { bind, onChange, className, style, ...props }: Props<TBind> & Omit<TProps, 'className' | 'style'>,
+            { bind, onChange, className, style, ...props }: Props<TBind, TProps>,
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
@@ -45,7 +53,7 @@ export const Binder = function <
                 return createElement(Component, ref ? { ...props, ref } : props);
             }
         })
-    );
+    ) as any as ForwardRefExoticComponent<Props<TBind, TProps>>;
 };
 
 export namespace LS {

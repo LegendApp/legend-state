@@ -1,4 +1,4 @@
-import { createElement, forwardRef, useCallback } from 'react';
+import { createElement, forwardRef, ForwardRefExoticComponent, LegacyRef, useCallback } from 'react';
 import { isFunction } from '@legendapp/state';
 import {
     NativeSyntheticEvent,
@@ -15,20 +15,21 @@ import {
 import { ObservableChild, Primitive } from '../observableInterfaces';
 import { observer } from '../react/observer';
 
-interface Props<T, TStyle> {
+type Props<T, TStyle, TProps> = Omit<TProps, 'style'> & {
     bind?: ObservableChild<T>;
     style?: StyleProp<TStyle> | ((value: T) => StyleProp<TStyle>);
-}
+};
 
 export const Binder = function <
     TBind extends Primitive,
+    TElement,
     TStyle,
     TProps extends { onChange?: any; style?: StyleProp<any> }
->(Component, getValue: (p: any) => TBind) {
+>(Component: TElement, getValue: (p: any) => TBind) {
     return observer(
         forwardRef(function Bound(
-            { bind, onChange, style, ...props }: Props<TBind, TStyle> & Omit<TProps, 'style'>,
-            ref
+            { bind, onChange, style, ...props }: Props<TBind, TStyle, TProps>,
+            ref: LegacyRef<TElement>
         ) {
             if (bind) {
                 const _onChange = useCallback((e) => {
