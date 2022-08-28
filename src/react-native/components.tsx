@@ -1,5 +1,5 @@
-import { createElement, forwardRef, ForwardRefExoticComponent, LegacyRef, ReactElement, useCallback } from 'react';
 import { isFunction } from '@legendapp/state';
+import { createElement, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
 import {
     NativeSyntheticEvent,
     StyleProp,
@@ -12,7 +12,7 @@ import {
     TextStyle,
     ViewStyle,
 } from 'react-native';
-import { NotPrimitive, ObservableChild, ObservableFns, Primitive } from '../observableInterfaces';
+import { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
 import { observer } from '../react/observer';
 
 type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
@@ -32,13 +32,16 @@ export const Binder = function <
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
+                // Set the bound value and forward onChange
                 const _onChange = useCallback((e) => {
                     bind.set(getValue(e));
                     onChange?.(e);
                 }, []);
 
+                // Get the bound value
                 const value = bind.get();
 
+                // Call style if it's a function
                 if (isFunction(style)) {
                     style = style(value);
                 }
@@ -51,6 +54,7 @@ export const Binder = function <
                 return createElement(Component as any, ref ? { ...props, ref } : props);
             }
         })
+        // TS hack because forwardRef messes with the templating
     ) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TStyle, TProps, TBind>) => ReactElement | null;
 };
 

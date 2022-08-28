@@ -20,6 +20,7 @@ export const Binder = function <
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
+                // Set the bound value and forward onChange
                 const _onChange = useCallback(
                     (e: ChangeEvent<HTMLInputElement>) => {
                         bind.set(e.target.value as any);
@@ -28,11 +29,14 @@ export const Binder = function <
                     [onChange]
                 );
 
+                // Get the bound value
                 const value = bind.get();
 
+                // Call className if it's a function
                 if (isFunction(className)) {
                     className = className(value);
                 }
+                // Call style if it's a function
                 if (isFunction(style)) {
                     style = style(value);
                 }
@@ -44,6 +48,7 @@ export const Binder = function <
             } else {
                 return createElement(Component, ref ? { ...props, ref } : props);
             }
+            // TS hack because forwardRef messes with the templating
         }) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TProps, TBind>) => ReactElement | null
     );
 };
