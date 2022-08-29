@@ -25,7 +25,7 @@ export const Show = observer(function Show({
     memo,
 }: {
     if: any;
-    else?: any;
+    else?: ReactNode | (() => ReactNode);
     memo?: boolean;
     children: ReactNode | (() => ReactNode);
 }): ReactElement {
