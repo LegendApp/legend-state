@@ -1,3 +1,18 @@
+## 0.13.2
+- Types: Renamed exported types for improved clarity
+
+## 0.13.1
+- Fix: Exported components were losing className/style when not using bind prop
+
+## 0.13.0
+- Breaking Change: Removed observe() and prop(), favoring get() and ref(). get() tracks by default and ref() does not.
+- Feat: Support ref to a path on an undefined value
+- Fix: A crash when calling get() on an observable with undefined parents
+- Types: Enforce bind prop to not be a primitive
+
+## 0.12.1
+- Types: Improved types of exported components
+
 ## 0.12.0
 - Feat: Allow direct assignment, with warnings to catch accidental errors, and an optional "safe" mode
 - Feat: input components with `bind` prop that automatically binds an observable to value and onChange
