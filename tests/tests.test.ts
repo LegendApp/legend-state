@@ -1705,4 +1705,9 @@ describe('ref function', () => {
         obs.set({ test: { test2: { test3: { test4: 'hi' } } } });
         expect(handler).toHaveBeenCalledWith('hi', undefined, [], 'hi', undefined);
     });
+    test('ref through undefined with get()', () => {
+        const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
+        const refTest4 = obs.ref('test').ref('test2').ref('test3').ref('test4');
+        expect(refTest4.get()).toEqual(undefined);
+    });
 });
