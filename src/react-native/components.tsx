@@ -28,31 +28,31 @@ export const Binder = function <
 >(Component: TElement, getValue: (p: any) => TValue) {
     return observer(
         forwardRef(function Bound<TBind extends ObservableFns<any>>(
-            { bind, onChange, style, ...props }: Props<TValue, TStyle, TProps, TBind>,
+            { bind, ...props }: Props<TValue, TStyle, TProps, TBind>,
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
+                const { onChange, style } = props;
+
                 // Set the bound value and forward onChange
-                const _onChange = useCallback((e) => {
-                    bind.set(getValue(e));
-                    onChange?.(e);
-                }, []);
+                props.onChange = useCallback(
+                    (e) => {
+                        bind.set(getValue(e));
+                        onChange?.(e);
+                    },
+                    [onChange]
+                );
 
                 // Get the bound value
                 const value = bind.get();
 
                 // Call style if it's a function
                 if (isFunction(style)) {
-                    style = style(value);
+                    props.style = style(value);
                 }
-
-                return createElement(
-                    Component as any,
-                    Object.assign({}, props, { onChange: _onChange, value, style, ref })
-                );
-            } else {
-                return createElement(Component as any, ref ? { ...props, ref } : props);
             }
+
+            return createElement(Component as any, ref ? { ...props, ref } : props);
         })
         // TS hack because forwardRef messes with the templating
     ) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TStyle, TProps, TBind>) => ReactElement | null;

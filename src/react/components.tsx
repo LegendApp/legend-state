@@ -12,16 +12,18 @@ type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
 export const Binder = function <
     TValue extends Primitive,
     TElement,
-    TProps extends { onChange?: any; className?: string; style?: CSSProperties }
+    TProps extends { onChange?: any; value?: any; className?: string; style?: CSSProperties }
 >(Component) {
     return observer(
         forwardRef(function Bound<TBind extends ObservableFns<any>>(
-            { bind, onChange, className, style, ...props }: Props<TValue, TProps, TBind>,
+            { bind, ...props }: Props<TValue, TProps, TBind>,
             ref: LegacyRef<TElement>
         ) {
             if (bind) {
+                const { onChange, className, style } = props;
+
                 // Set the bound value and forward onChange
-                const _onChange = useCallback(
+                props.onChange = useCallback(
                     (e: ChangeEvent<HTMLInputElement>) => {
                         bind.set(e.target.value as any);
                         onChange?.(e);
@@ -30,24 +32,19 @@ export const Binder = function <
                 );
 
                 // Get the bound value
-                const value = bind.get();
+                const value = (props.value = bind.get());
 
                 // Call className if it's a function
                 if (isFunction(className)) {
-                    className = className(value);
+                    props.className = className(value);
                 }
                 // Call style if it's a function
                 if (isFunction(style)) {
-                    style = style(value);
+                    props.style = style(value);
                 }
-
-                return createElement(
-                    Component,
-                    Object.assign({}, props, { onChange: _onChange, value, className, style, ref })
-                );
-            } else {
-                return createElement(Component, ref ? { ...props, ref } : props);
             }
+
+            return createElement(Component as any, ref ? { ...props, ref } : props);
             // TS hack because forwardRef messes with the templating
         }) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TProps, TBind>) => ReactElement | null
     );
