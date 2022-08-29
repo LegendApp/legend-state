@@ -1,12 +1,12 @@
 import { symbolDateModified, symbolIsObservable } from './globals';
 import { isObject } from './is';
-import type { ObservableType } from './observableInterfaces';
+import type { ObservableObject } from './observableInterfaces';
 
-export function isObservable(obs: any): boolean {
+export function isObservable(obs: any): obs is ObservableObject {
     return obs && !!obs[symbolIsObservable as any];
 }
 
-export function mergeIntoObservable(target: ObservableType | object, ...sources: any[]) {
+export function mergeIntoObservable(target: ObservableObject | object, ...sources: any[]) {
     if (!sources.length) return target;
 
     const source = sources.shift();
@@ -21,7 +21,7 @@ export function mergeIntoObservable(target: ObservableType | object, ...sources:
                 target[symbolDateModified as any] = source[symbolDateModified as any];
             }
         }
-        const value = target.get?.() || target;
+        const value = (target as any).get?.() || target;
         for (const key in source) {
             if (isObject(source[key])) {
                 if (!value[key] || !isObject(value[key])) {

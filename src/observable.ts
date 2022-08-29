@@ -3,7 +3,7 @@ import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from 
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
     NodeValue,
-    Observable,
+    ObservableConstruct,
     ObservableObjectOrPrimitive,
     ObservableObjectOrPrimitiveSafe,
     ObservablePrimitive,
@@ -564,7 +564,7 @@ export function observable<T>(obj: T, safe?: boolean): ObservableObjectOrPrimiti
     }
 
     const obs = {
-        _: obj as Observable<T>,
+        _: obj as ObservableConstruct<T>,
         isPrimitive: isPrim,
         isSafe: safe,
     } as ObservableWrapper;

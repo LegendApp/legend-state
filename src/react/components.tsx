@@ -1,12 +1,12 @@
 import { isFunction } from '@legendapp/state';
 import { ChangeEvent, createElement, CSSProperties, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
-import { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
+import type { NotPrimitive, ObservableWriteable, Primitive } from '../observableInterfaces';
 import { observer } from './observer';
 
 type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     className?: string | ((value: TValue) => string);
     style?: CSSProperties | ((value: TValue) => CSSProperties);
-    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
+    bind?: ObservableWriteable<TValue> & NotPrimitive<TBind>;
 };
 
 export const Binder = function <
@@ -15,7 +15,7 @@ export const Binder = function <
     TProps extends { onChange?: any; value?: any; className?: string; style?: CSSProperties }
 >(Component) {
     return observer(
-        forwardRef(function Bound<TBind extends ObservableFns<any>>(
+        forwardRef(function Bound<TBind extends ObservableWriteable<any>>(
             { bind, ...props }: Props<TValue, TProps, TBind>,
             ref: LegacyRef<TElement>
         ) {
@@ -46,7 +46,9 @@ export const Binder = function <
 
             return createElement(Component as any, ref ? { ...props, ref } : props);
             // TS hack because forwardRef messes with the templating
-        }) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TProps, TBind>) => ReactElement | null
+        }) as any as <TBind extends ObservableWriteable<any>>(
+            props: Props<TValue, TProps, TBind>
+        ) => ReactElement | null
     );
 };
 

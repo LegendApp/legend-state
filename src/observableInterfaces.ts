@@ -79,6 +79,9 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
 type ObservableFnsRecursive<T> = {
     [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 };
+type ObservableComputedFnsRecursive<T> = {
+    [K in keyof T]: Recurse<T, K, ObservableComputedFns<T[K]>>;
+};
 type ObservableFnsRecursiveSafe<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObservableObjectSafe<T[K]>>;
 };
@@ -141,10 +144,10 @@ export interface ObservablePersistRemote {
         prevAtPath: any
     ): Promise<T>;
     listen<T>(
-        obs: ObservableType<T>,
+        obs: Observable<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: Observable<T>, value: any) => void
+        onChange: (obs: ObservableConstruct<T>, value: any) => void
     );
 }
 
@@ -203,11 +206,10 @@ export interface OnReturnValue<T> {
 }
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
-export type ObservableComputeFunction<T> = () => T;
 export type ObservableListenerDispose = () => void;
 
 export interface ObservableWrapper {
-    _: Observable;
+    _: ObservableConstruct;
     isPrimitive: boolean;
     isSafe: boolean;
 }
@@ -225,16 +227,16 @@ export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
     ? ObservablePrimitive<T>
     : ObservableObjectSafe<T>;
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
+    ObservableComputedFnsRecursive<T> &
     ([T] extends [Primitive] ? { readonly current: T } : T);
-export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+export type ObservableConstruct<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
 
-export type ObservableType<T = any> =
-    | Observable<T>
+export type Observable<T = any> =
+    | ObservableObject<T>
     | ObservableComputed<T>
     | ObservablePrimitive<T>
-    | ObservableChild<T>;
-
-export type ObservableTypeRender<T = any> = ObservableType<T> | ObservableComputeFunction<T>;
+    | ObservableRef<T>;
+export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitive<T> | ObservableRef<T>;
 
 export interface NodeValue {
     id: number;
