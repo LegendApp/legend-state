@@ -194,7 +194,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             }
         }
 
-        return hasADiff;
+        return isArr ? obj?.length !== prevValue?.length : hasADiff;
     }
 }
 
