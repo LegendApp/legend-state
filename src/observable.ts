@@ -91,6 +91,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     let keyMap: Map<string | number, number>;
     let moved: [string, NodeValue][];
 
+    // If array it's faster to just use the array
+    const keys = isArr ? obj : obj ? Object.keys(obj) : [];
+
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
         if (prevValue?.length > 0 && prevValue[0]?.id !== undefined) {
@@ -109,7 +112,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
         const lengthPrev = keysPrev.length;
         for (let i = 0; i < lengthPrev; i++) {
             const key = keysPrev[i];
-            if (!obj || !obj.hasOwnProperty(key)) {
+            if (!keys.includes(key)) {
                 let child = getChildNode(parent, key);
 
                 const prev = prevValue[key];
@@ -126,8 +129,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     }
 
     if (obj) {
-        // If array it's faster to just use the array
-        const keys = isArr ? obj : Object.keys(obj);
         const length = keys.length;
 
         let hasADiff = !isArr || obj?.length !== prevValue?.length;
