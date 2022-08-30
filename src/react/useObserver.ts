@@ -1,4 +1,4 @@
-import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '@legendapp/state';
+import { ObservableListenerDispose, onChange, onChangeShallow, tracking, TrackingNode } from '@legendapp/state';
 import { useEffect, useRef } from 'react';
 
 export function useObserver<T>(fn: () => T, updateFn: () => void) {
@@ -9,32 +9,33 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Reset tracking nodes
     tracking.nodes = new Map();
 
-    let nodes;
+    let nodes: Map<number, TrackingNode>;
 
     // Create the listener effect before calling fn so that it gets called before
     // effects in the component
     const effect = () => {
-        // If we have pre-mount listeners, clear them off
+        // If we have pre-mount listeners, don't need to update again
         if (refFirstListeners.current) {
-            refFirstListeners.current();
-            refFirstListeners.current = undefined;
-        }
+            const fn = refFirstListeners.current;
+            refFirstListeners.current = null;
+            return fn;
+        } else {
+            const listeners: ObservableListenerDispose[] = [];
 
-        const listeners: ObservableListenerDispose[] = [];
+            // Listen to tracked nodes
+            for (let tracked of nodes) {
+                const { node, shallow } = tracked[1];
 
-        // Listen to tracked nodes
-        for (let tracked of nodes) {
-            const { node, shallow } = tracked[1];
-
-            listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
-        }
-
-        // Cleanup listeners
-        return () => {
-            for (let i = 0; i < listeners.length; i++) {
-                listeners[i]();
+                listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
             }
-        };
+
+            // Cleanup listeners
+            return () => {
+                for (let i = 0; i < listeners.length; i++) {
+                    listeners[i]();
+                }
+            };
+        }
     };
     useEffect(effect);
 
@@ -44,7 +45,7 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     nodes = tracking.nodes;
 
     // Call the effect immediately to set up listeners without waiting for mount
-    if (!refFirstListeners.current) {
+    if (refFirstListeners.current === undefined) {
         refFirstListeners.current = effect();
     }
 
