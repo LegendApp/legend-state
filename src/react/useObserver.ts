@@ -1,52 +1,31 @@
-import { ObservableListenerDispose, onChange, onChangeShallow, tracking, TrackingNode } from '@legendapp/state';
+import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '@legendapp/state';
 import { useEffect, useRef } from 'react';
 
 export function useObserver<T>(fn: () => T, updateFn: () => void) {
-    const refFirstListeners = useRef(undefined);
+    const refListeners = useRef<ObservableListenerDispose[]>([]);
+    const listeners = refListeners.current;
+
+    // Cleanup old listeners before tracking
+    if (listeners.length > 0) {
+        cleanup(listeners);
+    }
+
     // Cache previous tracking nodes since this might be nested from another observing component
     const trackingPrev = tracking.nodes;
 
     // Reset tracking nodes
     tracking.nodes = new Map();
 
-    let nodes: Map<number, TrackingNode>;
-
-    // Create the listener effect before calling fn so that it gets called before
-    // effects in the component
-    const effect = () => {
-        // If we have pre-mount listeners, don't need to update again
-        if (refFirstListeners.current) {
-            const fn = refFirstListeners.current;
-            refFirstListeners.current = null;
-            return fn;
-        } else {
-            const listeners: ObservableListenerDispose[] = [];
-
-            // Listen to tracked nodes
-            for (let tracked of nodes) {
-                const { node, shallow } = tracked[1];
-
-                listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
-            }
-
-            // Cleanup listeners
-            return () => {
-                for (let i = 0; i < listeners.length; i++) {
-                    listeners[i]();
-                }
-            };
-        }
-    };
-    useEffect(effect);
-
     // Calling the function fills up the tracking nodes
     const ret = fn();
 
-    nodes = tracking.nodes;
+    const nodes = tracking.nodes;
 
-    // Call the effect immediately to set up listeners without waiting for mount
-    if (refFirstListeners.current === undefined) {
-        refFirstListeners.current = effect();
+    // Listen to tracked nodes
+    for (let tracked of nodes) {
+        const { node, shallow } = tracked[1];
+
+        listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
     }
 
     // Do tracing if it was requested
@@ -60,5 +39,34 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Restore previous tracking nodes
     tracking.nodes = trackingPrev;
 
+    // Cleanup listeners on unmounts
+    useEffect(() => {
+        let listeners = refListeners.current;
+        // Workaround for React 18's double calling useEffect. If this is the
+        // second useEffect, set up listeners again.
+        if (process.env.NODE_ENV === 'development' && refListeners.current === undefined) {
+            listeners = refListeners.current = [];
+            // Re-listen to tracked nodes
+            for (let tracked of nodes) {
+                const { node, shallow } = tracked[1];
+
+                listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
+            }
+        }
+        return () => {
+            cleanup(listeners);
+            // Set it to undefined so it would trigger the above React 18 workaround
+            refListeners.current = undefined;
+        };
+    }, []);
+
     return ret;
+}
+
+function cleanup(listeners: ObservableListenerDispose[]) {
+    // Cleanup listeners
+    for (let i = 0; i < listeners.length; i++) {
+        listeners[i]();
+    }
+    listeners.length = 0;
 }
