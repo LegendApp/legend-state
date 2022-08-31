@@ -94,15 +94,25 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     // If array it's faster to just use the array
     const keys = isArr ? obj : obj ? Object.keys(obj) : [];
 
+    let idField: string;
+
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
-        if (prevValue?.length > 0 && prevValue[0]?.id !== undefined) {
-            keyMap = new Map();
-            moved = [];
-            for (let i = 0; i < prevValue.length; i++) {
-                const p = prevValue[i];
-                if (p) {
-                    keyMap.set(p.id, i);
+        if (prevValue?.length > 0) {
+            const p = prevValue[0];
+            if (p) {
+                idField =
+                    p.id !== undefined ? 'id' : p._id !== undefined ? '_id' : p.__id !== undefined ? '__id' : undefined;
+
+                if (idField) {
+                    keyMap = new Map();
+                    moved = [];
+                    for (let i = 0; i < prevValue.length; i++) {
+                        const p = prevValue[i];
+                        if (p) {
+                            keyMap.set(p[idField], i);
+                        }
+                    }
                 }
             }
         }
@@ -141,7 +151,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
             let isDiff = value !== prev;
             if (isDiff) {
-                const id = value?.id;
+                const id = value?.[idField];
 
                 let child = getChildNode(parent, key);
 

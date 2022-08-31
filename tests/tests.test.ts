@@ -1006,10 +1006,6 @@ describe('Array', () => {
                 { id: 'h2', text: 'h2' },
             ],
         });
-        // for (let i = 0; i < obs.arr.length; i++) {
-        //     obs.arr[i].text;
-        // }
-        // obs.arr.push({ id: 'h3', text: 'h3' });
         const handler = expectChangeHandler(obs.arr[0]);
         obs.arr.splice(0, 1);
         expect(handler).not.toBeCalled();
