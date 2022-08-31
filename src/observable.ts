@@ -152,7 +152,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                     const keyChild = id !== undefined ? keyMap?.get(id) : undefined;
                     if (keyChild !== undefined) {
                         if (keyChild !== key) {
-                            // If array length changed then move the original node to the current position
+                            // If array length changed then move the original node to the current position.
+                            // That should be faster than notifying every single element that
+                            // it's in a new position.
                             if (isArrDiff) {
                                 child = getChildNode(parent, keyChild);
                                 child.key = key;
@@ -194,6 +196,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             }
         }
 
+        // The full array does not need to re-render if the length is the same
+        // So don't notify shallow listeners
         return isArr ? obj?.length !== prevValue?.length : hasADiff;
     }
 }
@@ -250,6 +254,9 @@ const proxyHandler: ProxyHandler<any> = {
             }
             return function (a, b, c) {
                 const l = arguments.length;
+                // Array call and apply are slow so micro-optimize this hot path.
+                // The observable functions depends on the number of arguments so we have to
+                // call it with the correct arguments, not just undefined
                 return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
             };
         }
@@ -305,6 +312,7 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
+        // Return an observable proxy to the property
         return getProxy(target, p);
     },
     // Forward all proxy properties to the target's value

@@ -50,7 +50,6 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
             const keys = Object.keys(nodes);
             for (let i = 0; i < keys.length; i++) {
                 const { node, shallow } = tracking.nodes[keys[i] as unknown as number];
-                // for (let tracked of nodes) {
                 listeners.push(shallow ? onChangeShallow(node, updateFn) : onChange(node, updateFn));
             }
         }
