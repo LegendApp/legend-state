@@ -257,11 +257,11 @@ const proxyHandler: ProxyHandler<any> = {
         let value = getNodeValue(node);
         const vProp = value?.[p];
 
-        // Accessing undefined/null/symbols passes straight through if this value has a property for it
-        // If it's never been defined assume it's a proxy to a future object
-        if (isSymbol(p) || vProp === null || (vProp === undefined && value && value.hasOwnProperty?.(p))) {
+        // Accessing symbols passes straight through
+        if (isSymbol(p)) {
             return vProp;
         }
+
         // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {
@@ -287,7 +287,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         // Accessing primitive returns the raw value
-        if (vProp === undefined || vProp === null ? !hasProxy(target, p) : isPrimitive(vProp)) {
+        if (vProp === undefined || vProp === null || isPrimitive(vProp)) {
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;

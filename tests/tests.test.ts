@@ -1394,7 +1394,7 @@ describe('Deep changes keep listeners', () => {
         expect(obs.test.test2).toEqual({
             a6: { text: 'ta6' },
         });
-        expect(obs.test.test2.a1.get()).toEqual(undefined);
+        expect(obs.test.test2.a1).toEqual(undefined);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
     });
@@ -1422,7 +1422,7 @@ describe('Delete', () => {
         const handler = expectChangeHandler(obs.obj.val);
         obs.obj.delete();
         expect(handler).toHaveBeenCalledWith(undefined, true, [], undefined, true);
-        expect(Object.keys(obs.obj)).toEqual([]);
+        expect(Object.keys(obs)).toEqual([]);
     });
     test('Delete fires listeners of children', () => {
         const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } } });
