@@ -1,14 +1,9 @@
 import { getNodeValue } from './globals';
 import { isObjectEmpty } from './is';
-import {
-    ListenerFn,
-    ListenerFnSaved,
-    ObservableListenerDispose,
-    OnReturnValue,
-    NodeValue,
-} from './observableInterfaces';
+import { ListenerFn, ObservableListenerDispose, OnReturnValue, NodeValue } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
+let listenerIndex = 0;
 
 export function onEquals<T>(node: NodeValue, value: T, callback: (value: T) => void): OnReturnValue<T> {
     let dispose: ObservableListenerDispose;
@@ -49,23 +44,23 @@ export function onTrue<T extends boolean>(node: NodeValue, callback?: () => void
 }
 
 export function onChange(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean, shallow?: boolean) {
-    const c = callback as ListenerFnSaved;
-    if (shallow) {
-        c.shallow = true;
-    }
+    let id = listenerIndex++ as unknown as string;
     let listeners = node.listeners;
     if (!listeners) {
-        listeners = new Set();
-        node.listeners = listeners;
+        node.listeners = listeners = new Map();
     }
-    listeners.add(c);
+
+    // A memory efficient way to save shallowness is to put it on the id itself
+    if (shallow) id = 's' + id;
+
+    listeners.set(id, callback);
 
     if (runImmediately) {
         const value = getNodeValue(node);
-        c(value, () => value, [], value, value, node);
+        callback(value, () => value, [], value, value, node);
     }
 
-    return () => listeners.delete(c);
+    return () => listeners.delete(id);
 }
 
 export function onChangeShallow(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean) {

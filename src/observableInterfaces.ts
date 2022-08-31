@@ -56,7 +56,6 @@ export type ListenerFn<T = any> = (
     prevAtPath: any,
     node: NodeValue
 ) => void;
-export type ListenerFnSaved<T = any> = { shallow?: boolean } & ListenerFn<T>;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Function
@@ -245,7 +244,7 @@ export interface NodeValue {
     proxy?: object;
     key: string | number;
     root: ObservableWrapper;
-    listeners?: Set<ListenerFnSaved>;
+    listeners?: Map<string, ListenerFn>;
 }
 
 /** @internal */

@@ -2,6 +2,7 @@ import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObs
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
+    ListenerFn,
     NodeValue,
     ObservableConstruct,
     ObservableObjectOrPrimitive,
@@ -493,9 +494,12 @@ function _notify(
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
-        for (let listener of listeners) {
+        for (let listenerFn of listeners) {
+            const shallow = listenerFn[0][0] === 's';
+            const listener = listenerFn[1];
+
             // Notify if listener is not shallow or if this is the first level
-            if (!listener.shallow || level <= 0) {
+            if (!shallow || level <= 0) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
                 // it often, so leave it up to the caller.
                 if (!getPrevious) {
