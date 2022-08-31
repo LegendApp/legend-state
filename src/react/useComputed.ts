@@ -1,5 +1,4 @@
-import { ObservableListenerDispose } from '@legendapp/state';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useObserver } from './useObserver';
 
 export function useComputed<T>(selector: () => T, deps: any[]): T {
