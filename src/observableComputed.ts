@@ -8,17 +8,15 @@ export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
         obs.set(compute());
     };
 
-    tracking.nodes = {};
+    tracking.nodes = new Map();
 
     const computed = compute();
 
     // Create an observable for this computed variable set to the initial value
     const obs = observable(computed as any);
 
-    const keys = Object.keys(tracking.nodes);
-    for (let i = 0; i < keys.length; i++) {
-        const node = tracking.nodes[keys[i] as unknown as number].node;
-        onChange(node, update);
+    for (let tracked of tracking.nodes) {
+        onChange(tracked[1].node, update);
     }
 
     tracking.nodes = undefined;

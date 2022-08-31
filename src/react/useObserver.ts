@@ -1,4 +1,4 @@
-import { ObservableListenerDispose, onChange, onChangeShallow, tracking, TrackingNode } from '@legendapp/state';
+import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '@legendapp/state';
 import { useEffect, useRef } from 'react';
 
 export function useObserver<T>(fn: () => T, updateFn: () => void) {
@@ -14,17 +14,17 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     const trackingPrev = tracking.nodes;
 
     // Reset tracking nodes
-    tracking.nodes = {};
+    tracking.nodes = new Map();
 
     // Calling the function fills up the tracking nodes
     const ret = fn();
 
-    const nodes = tracking.nodes as Record<number, TrackingNode>;
+    const nodes = tracking.nodes;
 
     // Listen to tracked nodes
-    const keys = Object.keys(nodes);
-    for (let i = 0; i < keys.length; i++) {
-        const { node, shallow } = tracking.nodes[keys[i] as unknown as number];
+    for (let tracked of nodes) {
+        const { node, shallow } = tracked[1];
+
         listeners.push(onChange(node, updateFn, false, shallow));
     }
 
@@ -47,9 +47,9 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
         if (process.env.NODE_ENV === 'development' && refListeners.current === undefined) {
             listeners = refListeners.current = [];
             // Re-listen to tracked nodes
-            const keys = Object.keys(nodes);
-            for (let i = 0; i < keys.length; i++) {
-                const { node, shallow } = nodes[keys[i] as unknown as number];
+            for (let tracked of nodes) {
+                const { node, shallow } = tracked[1];
+
                 listeners.push(onChange(node, updateFn, false, shallow));
             }
         }
