@@ -212,14 +212,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     }
 }
 
-function hasProxy(node: NodeValue, p?: string | number) {
-    // Get the child node if p prop
-    if (p !== undefined) node = getChildNode(node, p);
-
-    // Create a proxy if not already cached and return it
-    return !!node.proxy;
-}
-
 function getProxy(node: NodeValue, p?: string | number) {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
