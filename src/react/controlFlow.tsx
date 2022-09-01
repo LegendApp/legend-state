@@ -1,5 +1,5 @@
 import { isObservable, shallow } from '@legendapp/state';
-import { createElement, ReactElement, ReactNode, useCallback, useMemo } from 'react';
+import { createElement, ReactElement, ReactNode, useCallback, useMemo, useRef } from 'react';
 import type { ObservableReadable, ObservableObject } from '../observableInterfaces';
 import { observer } from './observer';
 
@@ -50,6 +50,15 @@ export const For = observer(function For<T extends { id: string } | { _id: strin
     item?: ({ item: T }) => ReactElement;
     children?: (value: T) => ReactElement;
 }): ReactElement {
+    // The child function gets wrapped in a memoized observer component
+    if (!item && children) {
+        // Update the ref so the generated component uses the latest function
+        const refChildren = useRef<(value: T) => ReactElement>();
+        refChildren.current = children;
+
+        item = useMemo(() => observer(({ item }) => refChildren.current(item)), []);
+    }
+
     if (!each) return null;
 
     // Get the raw value with a shallow listener so this list only re-renders
@@ -60,11 +69,6 @@ export const For = observer(function For<T extends { id: string } | { _id: strin
 
     // Get the appropriate id field
     const id = v.length > 0 ? (v[0].id ? 'id' : v[0]._id ? '_id' : v[0].__id ? '__id' : undefined) : undefined;
-
-    // The child function gets wrapped in a memoized observer component
-    if (!item && children) {
-        item = useMemo(() => observer(({ item }) => children(item)), []);
-    }
 
     // Create the child elements
     let out: ReactElement[] = [];
