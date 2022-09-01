@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "0.14.0-next.1",
+    "version": "0.14.0",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
@@ -17,7 +17,7 @@
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
-        "publish:manual": "npm run postversion && cd dist && npm publish",
+        "publish:manual": "npm run build && cd dist && npm publish",
         "publish:minor": "npm version minor && cd dist && npm publish",
         "publish:patch": "npm version patch && cd dist && npm publish",
         "publish:preminor": "npm version preminor --preid=next && cd dist && npm publish --tag next",
