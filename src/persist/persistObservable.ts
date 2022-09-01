@@ -42,7 +42,10 @@ async function onObsChange<T>(
     const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
     if (local) {
         if (!obsState.isLoadedLocal) {
-            console.error('[legend-state]: WARNING: An observable was changed before being loaded from persistence');
+            console.error(
+                '[legend-state]: WARNING: An observable was changed before being loaded from persistence',
+                local
+            );
             return;
         }
 
