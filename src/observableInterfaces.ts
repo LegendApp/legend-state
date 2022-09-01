@@ -33,7 +33,7 @@ export interface ObservableComputedFns<T> {
     onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
 }
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
-export interface ObservableArrayOverride<T> extends Omit<Array<T>, ArrayOverrideFnNames> {
+export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {
     /**
      * Performs the specified action for each element in an array.
      * @param callbackfn  A function that accepts up to three arguments. forEach calls the callbackfn function one time for each element in the array.
@@ -143,10 +143,10 @@ export interface ObservablePersistRemote {
         prevAtPath: any
     ): Promise<T>;
     listen<T>(
-        obs: Observable<T>,
+        obs: ObservableReadable<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: ObservableConstruct<T>, value: any) => void
+        onChange: (obs: ObservableReadable<T>, value: any) => void
     );
 }
 
@@ -208,7 +208,7 @@ export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args
 export type ObservableListenerDispose = () => void;
 
 export interface ObservableWrapper {
-    _: ObservableConstruct;
+    _: Observable;
     isPrimitive: boolean;
     isSafe: boolean;
 }
@@ -228,9 +228,9 @@ export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
     ObservableComputedFnsRecursive<T> &
     ([T] extends [Primitive] ? { readonly current: T } : T);
-export type ObservableConstruct<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
 
-export type Observable<T = any> =
+export type ObservableReadable<T = any> =
     | ObservableObject<T>
     | ObservableComputed<T>
     | ObservablePrimitive<T>

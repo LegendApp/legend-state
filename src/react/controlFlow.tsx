@@ -1,6 +1,6 @@
 import { isObservable, shallow } from '@legendapp/state';
 import { createElement, ReactElement, ReactNode, useCallback, useMemo } from 'react';
-import type { Observable, ObservableObject } from '../observableInterfaces';
+import type { ObservableReadable, ObservableObject } from '../observableInterfaces';
 import { observer } from './observer';
 
 export const Isolate = observer(function Isolate({
@@ -46,7 +46,7 @@ export const For = observer(function For<T extends { id: string } | { _id: strin
     item,
     children,
 }: {
-    each?: Observable<T[]>;
+    each?: ObservableReadable<T[]>;
     item?: ({ item: T }) => ReactElement;
     children?: (value: T) => ReactElement;
 }): ReactElement {

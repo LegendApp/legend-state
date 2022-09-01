@@ -5,7 +5,7 @@ import type {
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
-    Observable,
+    ObservableReadable,
     PersistOptions,
 } from '../observableInterfaces';
 import { ObservablePersistLocalStorage } from './local-storage';
@@ -88,7 +88,7 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
 }
 
 async function loadLocal(
-    obs: Observable,
+    obs: ObservableReadable,
     persistOptions: PersistOptions,
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState
@@ -139,7 +139,7 @@ async function loadLocal(
     }
 }
 
-export function persistObservable<T>(obs: Observable<T>, persistOptions: PersistOptions<T>) {
+export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions: PersistOptions<T>) {
     const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,

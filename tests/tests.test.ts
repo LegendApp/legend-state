@@ -3,7 +3,7 @@ import { observable } from '../src/observable';
 import { observableBatcher } from '../src/observableBatcher';
 import { observableComputed } from '../src/observableComputed';
 import { observableEvent } from '../src/observableEvent';
-import { Observable, ObservableRef } from '../src/observableInterfaces';
+import { ObservableReadable, ObservableRef } from '../src/observableInterfaces';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
