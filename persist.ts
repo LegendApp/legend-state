@@ -1,4 +1,4 @@
-export { persistObservable } from './src/persist/persistObservable';
+export { persistObservable, mapPersistences } from './src/persist/persistObservable';
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 
 /** @internal */
