@@ -1,3 +1,21 @@
+## 0.14.4
+- Fix: Some issues in remote persistence plugins (not yet released)
+
+## 0.14.3
+- Fix: Some issues in remote persistence plugins (not yet released)
+
+## 0.14.2
+- Fix: Old versions of React Native were crashing because of using `React.` without importing it
+
+## 0.14.1
+- Fix: `For` component with children re-renders with the latest children correctly
+
+## 0.14.0
+- Feature: A `For` component for easy rendering with array optimizations
+- Fix: Improve performance of observer
+- Fix: Support `_id` or `__id` field names for array optimizations
+- Fix: Mixing shallow and non-shallow listeners in a component could have not mixed correctly
+
 ## 0.13.2
 - Types: Renamed exported types for improved clarity
 
