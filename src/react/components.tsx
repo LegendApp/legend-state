@@ -1,5 +1,17 @@
 import { isFunction } from '@legendapp/state';
-import { ChangeEvent, createElement, CSSProperties, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
+import {
+    ChangeEvent,
+    createElement,
+    CSSProperties,
+    DetailedHTMLProps,
+    forwardRef,
+    InputHTMLAttributes,
+    LegacyRef,
+    ReactElement,
+    SelectHTMLAttributes,
+    TextareaHTMLAttributes,
+    useCallback,
+} from 'react';
 import type { NotPrimitive, ObservableWriteable, Primitive } from '../observableInterfaces';
 import { observer } from './observer';
 
@@ -56,16 +68,16 @@ export namespace LS {
     export const input = Binder<
         Primitive,
         HTMLInputElement,
-        React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>
+        DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>
     >('input');
     export const textarea = Binder<
         string,
         HTMLTextAreaElement,
-        React.DetailedHTMLProps<React.TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>
+        DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>
     >('textarea');
     export const select = Binder<
         string,
         HTMLSelectElement,
-        React.DetailedHTMLProps<React.SelectHTMLAttributes<HTMLSelectElement>, HTMLSelectElement>
+        DetailedHTMLProps<SelectHTMLAttributes<HTMLSelectElement>, HTMLSelectElement>
     >('select');
 }
