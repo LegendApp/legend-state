@@ -51,7 +51,7 @@ async function onObsChange<T>(
 
         // If saving remotely convert symbolDateModified to dateModifiedKey before saving locally
         // as peristing may not include symbols correctly
-        const localValue = saveRemote
+        const localValue = persistOptions.remote
             ? replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
             : value;
 
