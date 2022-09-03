@@ -1,16 +1,17 @@
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { isObject } from '@legendapp/state';
 
-export function removeNullUndefined<T extends Record<string, any>>(a: T) {
-    if (a === undefined) return null;
-    Object.keys(a).forEach((key) => {
-        const v = a[key];
+export function removeNullUndefined<T extends Record<string, any>>(val: T) {
+    if (val === undefined) return null;
+    Object.keys(val).forEach((key) => {
+        const v = val[key];
         if (v === null || v === undefined) {
-            delete a[key];
+            delete val[key];
         } else if (isObject(v)) {
             removeNullUndefined(v);
         }
     });
+    return val;
 }
 
 export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, clone: boolean) {
