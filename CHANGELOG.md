@@ -1,3 +1,7 @@
+## 0.14.5
+- Feat: Allow passing observables directly to Show
+- Fix: Usage of old observe() when if prop is an observable
+
 ## 0.14.4
 - Fix: Some issues in remote persistence plugins (not yet released)
 
