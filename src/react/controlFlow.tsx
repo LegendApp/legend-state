@@ -1,4 +1,4 @@
-import { isObservable, shallow } from '@legendapp/state';
+import { isObservable, shallow, isFunction } from '@legendapp/state';
 import { createElement, ReactElement, ReactNode, useCallback, useMemo, useRef } from 'react';
 import type { ObservableReadable, ObservableObject } from '../observableInterfaces';
 import { observer } from './observer';
@@ -29,9 +29,12 @@ export const Show = observer(function Show({
     memo?: boolean;
     children: ReactNode | (() => ReactNode);
 }): ReactElement {
-    if_ = if_();
+    if (isFunction(if_)) {
+        if_ = if_();
+    }
+
     if (isObservable(if_)) {
-        if_ = (if_ as ObservableObject).observe(true);
+        if_ = (if_ as ObservableObject).get();
     }
 
     return if_
