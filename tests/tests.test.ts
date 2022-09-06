@@ -673,10 +673,22 @@ describe('Equality', () => {
 });
 describe('Safety', () => {
     test('Writes are ok in unsafe', () => {
-        const obs = observable({ test: { text: 't' } });
+        const obs = observable({ test: { text: 't' } }, false);
         obs.test.text = 'hello';
         obs.test = { text: 'hello' };
         delete obs.test;
+    });
+    test('Prevent object writes in default safety', () => {
+        const obs = observable({ test: { text: 't' } });
+        obs.test.text = 'hello';
+        expect(() => {
+            // @ts-expect-error
+            obs.test = { text: 'hello' };
+        }).toThrow();
+        expect(() => {
+            // @ts-expect-error
+            delete obs.test;
+        }).toThrow();
     });
     test('Prevent writes in safe', () => {
         const obs = observable({ test: { text: 't' } }, true);

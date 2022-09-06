@@ -5,6 +5,7 @@ import {
     NodeValue,
     Observable,
     ObservableObjectOrPrimitive,
+    ObservableObjectOrPrimitiveDefault,
     ObservableObjectOrPrimitiveSafe,
     ObservablePrimitive,
     ObservableWrapper,
@@ -361,27 +362,36 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(target);
         return Reflect.getOwnPropertyDescriptor(value, p);
     },
-    set(target: NodeValue, prop, value) {
+    set(target: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
-            Reflect.set(target, prop, value);
-        } else if (!inAssign && target.root.isSafe) {
-            return false;
-        } else {
-            if (process.env.NODE_ENV === 'development' && tracking.nodes) {
-                console.error(
-                    `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
-                );
-            }
-            set(target, prop, value);
+            return Reflect.set(target, prop, value);
         }
+
+        if (!inAssign && target.root.safeMode) {
+            // Don't allow in safe mode
+            if (target.root.safeMode === 2) return false;
+
+            // Don't allow set on objects in default mode
+            const existing = getNodeValue(getChildNode(target, prop));
+            if (isObject(existing) || isArray(existing) || isObject(value) || isArray(value)) {
+                return false;
+            }
+        }
+
+        if (process.env.NODE_ENV === 'development' && tracking.nodes) {
+            console.error(
+                `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
+            );
+        }
+        set(target, prop, value);
         return true;
     },
     deleteProperty(target: NodeValue, prop) {
         // If this delete comes from within an observable function it's allowed
         if (inSetFn) {
             Reflect.deleteProperty(target, prop);
-        } else if (target.root.isSafe) {
+        } else if (target.root.safeMode) {
             return false;
         } else {
             if (process.env.NODE_ENV === 'development' && tracking.nodes) {
@@ -603,7 +613,8 @@ function deleteFn(node: NodeValue, key?: string | number) {
 }
 
 export function observable<T extends object>(obj: T, safe: true): ObservableObjectOrPrimitiveSafe<T>;
-export function observable<T extends object>(obj: T, safe?: boolean): ObservableObjectOrPrimitive<T>;
+export function observable<T extends object>(obj: T, safe: false): ObservableObjectOrPrimitive<T>;
+export function observable<T extends object>(obj: T, safe?: undefined): ObservableObjectOrPrimitiveDefault<T>;
 export function observable<T extends boolean>(prim: T, safe?: boolean): ObservablePrimitive<boolean>;
 export function observable<T extends string>(prim: T, safe?: boolean): ObservablePrimitive<string>;
 export function observable<T extends number>(prim: T, safe?: boolean): ObservablePrimitive<number>;
@@ -618,7 +629,7 @@ export function observable<T>(obj: T, safe?: boolean): ObservableObjectOrPrimiti
     const obs = {
         _: obj as Observable<T>,
         isPrimitive: isPrim,
-        isSafe: safe,
+        safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
 
     const node: NodeValue = {
