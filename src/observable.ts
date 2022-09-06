@@ -2,13 +2,13 @@ import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObs
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
-    ListenerFn,
     NodeValue,
     Observable,
     ObservableObjectOrPrimitive,
     ObservableObjectOrPrimitiveSafe,
     ObservablePrimitive,
     ObservableWrapper,
+    Tracking,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 import { tracking, untrack, updateTracking } from './tracking';
@@ -94,12 +94,25 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
     // If array it's faster to just use the array
     const keys = isArr ? obj : obj ? Object.keys(obj) : [];
+    // let isArrayOptimized = false;
+    let arrayHasOptimized = false;
 
     let idField: string;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
         if (prevValue?.length > 0) {
+            if (parent.listeners) {
+                // isArrayOptimized = true;
+                arrayHasOptimized = false;
+                for (let listenerFn of parent.listeners) {
+                    // if listener is not optimized
+                    if (listenerFn[0][0] === 'o') {
+                        arrayHasOptimized = true;
+                        break;
+                    }
+                }
+            }
             const p = prevValue[0];
             if (p) {
                 idField =
@@ -144,6 +157,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
         let hasADiff = !isArr || obj?.length !== prevValue?.length;
         const isArrDiff = hasADiff;
+        let didMove = false;
 
         for (let i = 0; i < length; i++) {
             const key = isArr ? i : keys[i];
@@ -172,6 +186,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                                 moved.push([key, child]);
                             }
 
+                            didMove = true;
+
                             // And check for diff against the previous value in the previous position
                             const prevOfNode = prevValue[keyChild];
                             isDiff = prevOfNode !== value;
@@ -187,14 +203,17 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                         updateNodes(child, value, prev);
                     }
                 }
-                if (isDiff || !isArrDiff) {
+                if (isDiff || (arrayHasOptimized && !isArrDiff)) {
+                    // TODO: !isArrDiff should only be for optimized listeners
+                    // console.log('notify', child);
+
                     // Notify for this child if this element is different and it has listeners
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
                     // the array's listener will cover it
                     const doNotify = !!child.listeners;
                     if (doNotify) {
-                        _notify(child, value, [], value, prev, 0);
+                        _notify(child, value, [], value, prev, 0, !isArrDiff);
                     }
                 }
             }
@@ -207,9 +226,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             }
         }
 
+        // TODO: !isArrDiff should only be for optimized listeners
+
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
-        return isArr ? obj?.length !== prevValue?.length : hasADiff;
+        return hasADiff || didMove;
     }
 }
 
@@ -224,9 +245,9 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
-function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack)) {
-        track = keyOrTrack;
+function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Tracking, track?: boolean | Tracking) {
+    if (arguments.length === 2) {
+        track = keyOrTrack as boolean | Tracking;
         keyOrTrack = undefined;
     }
 
@@ -282,7 +303,7 @@ const proxyHandler: ProxyHandler<any> = {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
                     if (tracking.nodes) {
-                        updateTracking(node, undefined, true);
+                        updateTracking(node, undefined, Tracking.Shallow);
                     }
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
@@ -306,7 +327,7 @@ const proxyHandler: ProxyHandler<any> = {
             // Update that this primitive node was accessed for observers
             if (tracking.nodes) {
                 if (isArray(value) && p === 'length') {
-                    updateTracking(node, undefined, /*shallow*/ true);
+                    updateTracking(node, undefined, Tracking.Shallow);
                 } else {
                     updateTracking(getChildNode(node, p), node);
                 }
@@ -329,7 +350,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Update that this node was accessed for observers
         if (tracking.nodes) {
-            updateTracking(target, undefined, true);
+            updateTracking(target, undefined, Tracking.Shallow);
         }
 
         // This is required to fix this error:
@@ -443,9 +464,13 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     observableBatcher.begin();
 
     let hasADiff = isPrim;
+    let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree
     if (!isPrim || !isPrimitive(prevValue)) {
         hasADiff = updateNodes(childNode, newValue, prevValue);
+        if (isArray(newValue)) {
+            whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
+        }
     }
 
     // Notify for this element if it's an object or it's changed
@@ -454,7 +479,8 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
             node.root.isPrimitive ? node : childNode,
             newValue,
             prevValue,
-            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1
+            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
+            whenOptimizedOnlyIf
         );
     }
 
@@ -489,17 +515,23 @@ function _notify(
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
-    level: number
+    level: number,
+    whenOptimizedOnlyIf?: boolean
 ) {
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
         for (let listenerFn of listeners) {
             const shallow = listenerFn[0][0] === 's';
+            const optimized = listenerFn[0][0] === 'o';
             const listener = listenerFn[1];
 
+            const ok = shallow ? level <= 0 : optimized ? whenOptimizedOnlyIf && level <= 0 : true;
+
+            // console.log('notify', shallow, optimized, ok, node);
+
             // Notify if listener is not shallow or if this is the first level
-            if (!shallow || level <= 0) {
+            if (ok) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
                 // it often, so leave it up to the caller.
                 if (!getPrevious) {
@@ -517,22 +549,31 @@ function _notifyParents(
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
-    level: number
+    level: number,
+    whenOptimizedOnlyIf?: boolean
 ) {
     // Do the notify
-    _notify(node, value, path, valueAtPath, prevAtPath, level);
+    _notify(node, value, path, valueAtPath, prevAtPath, level, whenOptimizedOnlyIf);
     // If not root notify up through parents
     if (node.parent) {
         const parent = node.parent;
         if (parent) {
             const parentValue = getNodeValue(parent);
-            _notifyParents(parent, parentValue, [node.key].concat(path), valueAtPath, prevAtPath, level + 1);
+            _notifyParents(
+                parent,
+                parentValue,
+                [node.key].concat(path),
+                valueAtPath,
+                prevAtPath,
+                level + 1,
+                whenOptimizedOnlyIf
+            );
         }
     }
 }
-function notify(node: NodeValue, value: any, prev: any, level: number) {
+function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
     // Start notifying up through parents with the listenerInfo
-    _notifyParents(node, value, [], value, prev, level);
+    _notifyParents(node, value, [], value, prev, level, whenOptimizedOnlyIf);
 }
 
 function assign(node: NodeValue, value: any) {

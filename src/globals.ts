@@ -1,25 +1,30 @@
 import { isBoolean, isString } from './is';
-import { NodeValue } from './observableInterfaces';
+import { NodeValue, Tracking } from './observableInterfaces';
 import { tracking, untrack, updateTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
-export const shallow = Symbol('shallow');
+
 export const nextNodeID = { current: 0 };
 
-export function checkTracking(node: NodeValue, track: boolean | Symbol) {
+export function checkTracking(node: NodeValue, track: boolean | Tracking) {
     if (tracking.nodes) {
         if (track) {
-            updateTracking(node, undefined, track === shallow, /*manual*/ true);
+            updateTracking(
+                node,
+                undefined,
+                isBoolean(track) ? (track ? Tracking.Shallow : Tracking.Normal) : track,
+                /*manual*/ true
+            );
         } else {
             untrack(node);
         }
     }
 }
 
-export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack) || keyOrTrack === shallow) {
-        track = keyOrTrack;
+export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Tracking, track?: boolean | Tracking) {
+    if (arguments.length === 2) {
+        track = keyOrTrack as boolean | Tracking;
         keyOrTrack = undefined;
     }
 

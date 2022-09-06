@@ -1,4 +1,4 @@
-import { shallow } from '../src/globals';
+import { Tracking } from 'src/observableInterfaces';
 import { observable } from '../src/observable';
 import { observableEvent } from '../src/observableEvent';
 import { tracking } from '../src/tracking';
@@ -80,7 +80,7 @@ describe('Tracking', () => {
     test('get() shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
 
-        obs.test.get(shallow);
+        obs.test.get(Tracking.Shallow);
 
         expect(tracking.nodes.size).toEqual(1);
 

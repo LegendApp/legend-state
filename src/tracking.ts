@@ -1,4 +1,4 @@
-import type { NodeValue, TrackingNode } from './observableInterfaces';
+import type { NodeValue, Tracking, TrackingNode } from './observableInterfaces';
 
 let lastNode: NodeValue;
 
@@ -8,7 +8,7 @@ export const tracking = {
     updates: undefined as (fn: () => void) => () => void,
 };
 
-export function updateTracking(node: NodeValue, parent?: NodeValue, shallow?: boolean, manual?: boolean) {
+export function updateTracking(node: NodeValue, parent?: NodeValue, shallow?: Tracking, manual?: boolean) {
     if (parent) {
         untrack(parent);
     }

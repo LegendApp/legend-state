@@ -1,6 +1,6 @@
-import { isObservable, shallow, isFunction } from '@legendapp/state';
-import { createElement, ReactElement, ReactNode, useCallback, useMemo, useRef } from 'react';
-import type { ObservableReadable, ObservableObject } from '../observableInterfaces';
+import { isFunction, isObservable, Tracking } from '@legendapp/state';
+import { createElement, ReactElement, ReactNode, useMemo, useRef } from 'react';
+import type { ObservableObject, ObservableReadable } from '../observableInterfaces';
 import { observer } from './observer';
 
 export const Isolate = observer(function Isolate({
@@ -46,10 +46,12 @@ export const Show = observer(function Show({
 
 export const For = observer(function For<T extends { id: string } | { _id: string } | { __id: string }>({
     each,
+    optimized,
     item,
     children,
 }: {
     each?: ObservableReadable<T[]>;
+    optimized?: boolean;
     item?: ({ item: T }) => ReactElement;
     children?: (value: T) => ReactElement;
 }): ReactElement {
@@ -66,9 +68,15 @@ export const For = observer(function For<T extends { id: string } | { _id: strin
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = each.get(shallow) as { id?: string; _id?: string; __id?: string }[];
+    const v = each.get(optimized ? Tracking.Optimized : Tracking.Shallow) as {
+        id?: string;
+        _id?: string;
+        __id?: string;
+    }[];
 
     if (!v) return null;
+
+    // console.log('For');
 
     // Get the appropriate id field
     const id = v.length > 0 ? (v[0].id ? 'id' : v[0]._id ? '_id' : v[0].__id ? '__id' : undefined) : undefined;
