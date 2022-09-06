@@ -1,6 +1,6 @@
-import { getNodeValue } from './globals';
+import { getNodeValue, Tracking } from './globals';
 import { isObjectEmpty } from './is';
-import { ListenerFn, ObservableListenerDispose, OnReturnValue, NodeValue, Tracking } from './observableInterfaces';
+import { ListenerFn, ObservableListenerDispose, OnReturnValue, NodeValue } from './observableInterfaces';
 
 const symbolHasValue = Symbol('__hasValue');
 let listenerIndex = 0;
@@ -43,7 +43,12 @@ export function onTrue<T extends boolean>(node: NodeValue, callback?: () => void
     return onEquals(node, true as T, callback);
 }
 
-export function onChange(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean, shallow?: Tracking) {
+export function onChange(
+    node: NodeValue,
+    callback: ListenerFn<any>,
+    runImmediately?: boolean,
+    shallow?: boolean | Symbol
+) {
     let id = listenerIndex++ as unknown as string;
     let listeners = node.listeners;
     if (!listeners) {

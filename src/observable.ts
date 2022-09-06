@@ -1,4 +1,4 @@
-import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable } from './globals';
+import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable, Tracking } from './globals';
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
@@ -8,7 +8,6 @@ import {
     ObservableObjectOrPrimitiveSafe,
     ObservablePrimitive,
     ObservableWrapper,
-    Tracking,
 } from './observableInterfaces';
 import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
 import { tracking, untrack, updateTracking } from './tracking';
@@ -203,10 +202,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                         updateNodes(child, value, prev);
                     }
                 }
-                if (isDiff || (arrayHasOptimized && !isArrDiff)) {
-                    // TODO: !isArrDiff should only be for optimized listeners
-                    // console.log('notify', child);
-
+                if (isDiff || !isArrDiff) {
                     // Notify for this child if this element is different and it has listeners
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
@@ -245,9 +241,9 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
-function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Tracking, track?: boolean | Tracking) {
-    if (arguments.length === 2) {
-        track = keyOrTrack as boolean | Tracking;
+function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
+    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
+        track = keyOrTrack;
         keyOrTrack = undefined;
     }
 
@@ -256,7 +252,7 @@ function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Tracking,
     }
 
     // Untrack by default
-    checkTracking(node, track);
+    checkTracking(node, track === true ? Tracking.Normal : track === false ? undefined : track);
 
     return getProxy(node);
 }

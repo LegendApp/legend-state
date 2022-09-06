@@ -76,8 +76,6 @@ export const For = observer(function For<T extends { id: string } | { _id: strin
 
     if (!v) return null;
 
-    // console.log('For');
-
     // Get the appropriate id field
     const id = v.length > 0 ? (v[0].id ? 'id' : v[0]._id ? '_id' : v[0].__id ? '__id' : undefined) : undefined;
 

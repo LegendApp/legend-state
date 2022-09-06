@@ -1,35 +1,34 @@
-import { isBoolean, isString } from './is';
-import { NodeValue, Tracking } from './observableInterfaces';
+import { isBoolean, isString, isSymbol } from './is';
+import { NodeValue } from './observableInterfaces';
 import { tracking, untrack, updateTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
-
+export namespace Tracking {
+    export const Normal = true;
+    export const Shallow = Symbol('shallow');
+    export const Optimized = Symbol('optimized');
+}
 export const nextNodeID = { current: 0 };
 
-export function checkTracking(node: NodeValue, track: boolean | Tracking) {
+export function checkTracking(node: NodeValue, track: boolean | Symbol) {
     if (tracking.nodes) {
         if (track) {
-            updateTracking(
-                node,
-                undefined,
-                isBoolean(track) ? (track ? Tracking.Shallow : Tracking.Normal) : track,
-                /*manual*/ true
-            );
+            updateTracking(node, undefined, track, /*manual*/ true);
         } else {
             untrack(node);
         }
     }
 }
 
-export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Tracking, track?: boolean | Tracking) {
-    if (arguments.length === 2) {
-        track = keyOrTrack as boolean | Tracking;
+export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
+    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
+        track = keyOrTrack;
         keyOrTrack = undefined;
     }
 
     // Track by default
-    checkTracking(node, track || track === undefined);
+    checkTracking(node, track === true || track === undefined ? Tracking.Normal : track === false ? undefined : track);
 
     const value = getOutputValue(node);
     return keyOrTrack ? value?.[keyOrTrack as string | number] : value;

@@ -1,14 +1,9 @@
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
-export enum Tracking {
-    Normal = 0,
-    Shallow = 1,
-    Optimized = 2,
-}
 
 export interface ObservableBaseFns<T> {
-    get?(track?: boolean | Tracking): T;
-    ref?(track?: boolean | Tracking): ObservableRef<T>;
-    onChange?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
+    get?(track?: boolean | Symbol): T;
+    ref?(track?: boolean | Symbol): ObservableRef<T>;
+    onChange?(cb: ListenerFn<T>, runImmediately?: boolean, track?: boolean | Symbol): ObservableListenerDispose;
     onChangeShallow?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
     onEquals?(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue?(cb?: (value?: T) => void): OnReturnValue<T>;
@@ -18,10 +13,10 @@ export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
 }
 export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
-    get?(track?: boolean | Tracking): T;
-    get?<K extends keyof T>(key: K, track?: boolean | Tracking): T[K];
-    ref?(track?: boolean | Tracking): ObservableRef<T>;
-    ref?<K extends keyof T>(prop: K, track?: boolean | Tracking): ObservableRef<T[K]>;
+    get?(track?: boolean | Symbol): T;
+    get?<K extends keyof T>(key: K, track?: boolean | Symbol): T[K];
+    ref?(track?: boolean | Symbol): ObservableRef<T>;
+    ref?<K extends keyof T>(prop: K, track?: boolean | Symbol): ObservableRef<T[K]>;
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
     set?<K extends keyof T>(key: K, prev: T[K] | ((prev: T[K]) => T[K])): ObservableChild<T[K]>;
     set?<V>(key: string | number, value: V): ObservableChild<V>;
@@ -31,8 +26,8 @@ export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
 }
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 export interface ObservableComputedFns<T> {
-    get(track?: boolean | Tracking): T;
-    onChange(cb: ListenerFn<T>): ObservableListenerDispose;
+    get(track?: boolean | Symbol): T;
+    onChange(cb: ListenerFn<T>, runImmediately?: boolean, track?: boolean | Symbol): ObservableListenerDispose;
     onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
     onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
     onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
@@ -255,7 +250,7 @@ export interface NodeValue {
 /** @internal */
 export interface TrackingNode {
     node: NodeValue;
-    shallow?: Tracking;
+    track?: boolean | Symbol;
     manual?: boolean;
     num?: number;
 }
