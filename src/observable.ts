@@ -1,6 +1,6 @@
 import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable, Tracking } from './globals';
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
-import { observableBatcher, observableBatcherNotify } from './observableBatcher';
+import { beginBatch, endBatch, observableBatcherNotify } from './observableBatcher';
 import {
     NodeValue,
     Observable,
@@ -469,7 +469,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     }
 
     // Make sure we don't call too many listeners for ever property set
-    observableBatcher.begin();
+    beginBatch();
 
     let hasADiff = isPrim;
     let whenOptimizedOnlyIf = false;
@@ -492,7 +492,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
         );
     }
 
-    observableBatcher.end();
+    endBatch();
 
     inSetFn = false;
 
@@ -590,14 +590,14 @@ function assign(node: NodeValue, value: any) {
 
     const proxy = getProxy(node);
 
-    observableBatcher.begin();
+    beginBatch();
 
     // Set inAssign to allow setting on safe observables
     inAssign = true;
     Object.assign(proxy, value);
     inAssign = false;
 
-    observableBatcher.end();
+    endBatch();
 
     return proxy;
 }

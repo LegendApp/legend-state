@@ -1,7 +1,7 @@
 import { Tracking } from '../src/globals';
 import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
-import { observableBatcher } from '../src/observableBatcher';
+import { beginBatch, endBatch } from '../src/observableBatcher';
 import { observableComputed } from '../src/observableComputed';
 import { observableEvent } from '../src/observableEvent';
 import { ObservableRef } from '../src/observableInterfaces';
@@ -761,7 +761,7 @@ describe('Primitives', () => {
         }).toThrow();
 
         // This error will leave observableBatch in progress, so force end it
-        observableBatcher.end(true);
+        endBatch(true);
     });
 });
 describe('Array', () => {
@@ -1677,18 +1677,18 @@ describe('Batching', () => {
         obs.num1.onChange(handler);
         obs.num2.onChange(handler);
         obs.num3.onChange(handler);
-        observableBatcher.begin();
-        observableBatcher.begin();
-        observableBatcher.begin();
+        beginBatch();
+        beginBatch();
+        beginBatch();
         obs.set({
             num1: 11,
             num2: 22,
             num3: 33,
             obj: { text: 'hello' },
         });
-        observableBatcher.end();
-        observableBatcher.end();
-        observableBatcher.end();
+        endBatch();
+        endBatch();
+        endBatch();
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });

@@ -1,5 +1,4 @@
-import { observablePersistConfiguration } from './configureObservablePersistence';
-import { observable, observableBatcher, symbolDateModified, mergeIntoObservable } from '@legendapp/state';
+import { mergeIntoObservable, observable, symbolDateModified, batch } from '@legendapp/state';
 import type {
     ObservableObject,
     ObservablePersistLocal,
@@ -8,6 +7,7 @@ import type {
     ObservableReadable,
     PersistOptions,
 } from '../observableInterfaces';
+import { observablePersistConfiguration } from './configureObservablePersistence';
 import { ObservablePersistLocalStorage } from './local-storage';
 import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
@@ -85,7 +85,7 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
     // Remote changes should only update local state
     localState.tempDisableSaveRemote = true;
 
-    observableBatcher.batch(cb);
+    batch(cb);
 
     localState.tempDisableSaveRemote = false;
 }

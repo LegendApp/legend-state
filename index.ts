@@ -1,7 +1,7 @@
 export { Tracking } from './src/globals';
 export { isObservable, mergeIntoObservable } from './src/helpers';
 export { observable } from './src/observable';
-export { observableBatcher } from './src/observableBatcher';
+export { batch, beginBatch, endBatch } from './src/observableBatcher';
 export { observableComputed } from './src/observableComputed';
 export { observableEvent } from './src/observableEvent';
 export * from './src/observableInterfaces';

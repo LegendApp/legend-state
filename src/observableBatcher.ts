@@ -22,7 +22,7 @@ function onActionTimeout() {
                 'Forcibly completing observableBatcher because end() was never called. This may be due to an uncaught error between begin() and end().'
             );
         }
-        observableBatcher.end(/*force*/ true);
+        endBatch(/*force*/ true);
     }
 }
 
@@ -41,31 +41,29 @@ export function observableBatcherNotify(b: BatchItem) {
     }
 }
 
-export namespace observableBatcher {
-    export function batch(fn: () => void) {
-        begin();
-        fn();
-        end();
-    }
-    export function begin() {
-        numInBatch++;
-        // Set a timeout to call end() in case end() is never called or there's an uncaught error
-        timeout = setTimeout(onActionTimeout, 0);
-    }
-    export function end(force?: boolean) {
-        numInBatch--;
-        if (numInBatch <= 0 || force) {
-            clearTimeout(timeout);
-            numInBatch = 0;
-            // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
-            // This can happen with observableComputed for example.
-            const batch = _batch;
-            _batch = [];
-            _batchMap = new WeakMap();
-            for (let i = 0; i < batch.length; i++) {
-                const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, node } = batch[i];
-                cb(value, prev, path, valueAtPath, prevAtPath, node);
-            }
+export function batch(fn: () => void) {
+    beginBatch();
+    fn();
+    endBatch();
+}
+export function beginBatch() {
+    numInBatch++;
+    // Set a timeout to call end() in case end() is never called or there's an uncaught error
+    timeout = setTimeout(onActionTimeout, 0);
+}
+export function endBatch(force?: boolean) {
+    numInBatch--;
+    if (numInBatch <= 0 || force) {
+        clearTimeout(timeout);
+        numInBatch = 0;
+        // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
+        // This can happen with observableComputed for example.
+        const batch = _batch;
+        _batch = [];
+        _batchMap = new WeakMap();
+        for (let i = 0; i < batch.length; i++) {
+            const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, node } = batch[i];
+            cb(value, prev, path, valueAtPath, prevAtPath, node);
         }
     }
 }
