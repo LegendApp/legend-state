@@ -1,4 +1,4 @@
-import { mergeIntoObservable, observable, symbolDateModified, batch } from '@legendapp/state';
+import { when, mergeIntoObservable, observable, symbolDateModified, batch } from '@legendapp/state';
 import type {
     ObservableObject,
     ObservablePersistLocal,
@@ -164,16 +164,19 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         }
         localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
 
-        obsState.isLoadedLocal.onTrue(() => {
-            localState.persistenceRemote.listen(
-                obs,
-                persistOptions,
-                () => {
-                    obsState.set('isLoadedRemote', true);
-                },
-                onChangeRemote.bind(this, localState)
-            );
-        });
+        when(
+            () => obsState.isLoadedLocal,
+            () => {
+                localState.persistenceRemote.listen(
+                    obs,
+                    persistOptions,
+                    () => {
+                        obsState.set('isLoadedRemote', true);
+                    },
+                    onChangeRemote.bind(this, localState)
+                );
+            }
+        );
     }
 
     obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));

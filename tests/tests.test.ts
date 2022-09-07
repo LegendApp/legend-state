@@ -1,10 +1,11 @@
-import { Tracking } from '../src/globals';
 import { computed } from '../src/computed';
 import { effect } from '../src/effect';
 import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { beginBatch, endBatch } from '../src/observableBatcher';
+import { event } from '../src/event';
 import { ObservableRef } from '../src/observableInterfaces';
+import { when } from '../src/when';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -19,7 +20,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: ObservableRef, shallow?: boolean, runImmediately?: boolean) {
+function expectChangeHandler(obs: ObservableRef, options?: { shallow?: boolean; runImmediately?: boolean }) {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {
@@ -28,7 +29,7 @@ function expectChangeHandler(obs: ObservableRef, shallow?: boolean, runImmediate
         ret(value, prev, path, valueAtPath, prevAtPath);
     }
 
-    shallow ? obs.onChangeShallow(handler, runImmediately) : obs.onChange(handler, runImmediately);
+    obs.onChange(handler, options);
 
     return ret;
 }
@@ -244,8 +245,8 @@ describe('Listeners', () => {
     test('Shallow listener', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
 
-        const handler = expectChangeHandler(obs.test, true);
-        const handler2 = expectChangeHandler(obs, true);
+        const handler = expectChangeHandler(obs.test, { shallow: true });
+        const handler2 = expectChangeHandler(obs, { shallow: true });
 
         obs.test.test2.test3.set('hello');
         expect(handler).not.toHaveBeenCalled();
@@ -379,7 +380,7 @@ describe('Listeners', () => {
     });
     test('Listener promises', async () => {
         const obs = observable({ test: 'hi' });
-        const promise = obs.test.onEquals('hi2').promise;
+        const promise = when(() => obs.test === 'hi2');
         let didResolve = false;
         promise.then(() => (didResolve = true));
         expect(didResolve).toEqual(false);
@@ -988,7 +989,7 @@ describe('Array', () => {
             ],
         });
         const handler = jest.fn();
-        obs.test.onChangeShallow(handler);
+        obs.test.onChange(handler, { shallow: true });
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
         obs.test[2].onChange(() => {});
@@ -1259,7 +1260,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, false, Tracking.optimized);
+        obs.test.onChange(handlerShallow, { optimized: true });
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();
@@ -1457,73 +1458,57 @@ describe('Delete', () => {
 describe('on functions', () => {
     test('onChange immediate', () => {
         const obs = observable({ val: 10 });
-        const handler = expectChangeHandler(obs.val, undefined, true);
+        const handler = expectChangeHandler(obs.val, { runImmediately: true });
         expect(handler).toHaveBeenCalledWith(10, 10, [], 10, 10);
     });
-    test('onEquals with ref', () => {
+    test('when equals', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        obs.ref('val').onEquals(20, handler);
+        when(() => obs.val === 20, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.val.set(20);
-        expect(handler).toHaveBeenCalledWith(20);
+        expect(handler).toHaveBeenCalled();
     });
-    test('onEquals immediate', () => {
+    test('when equals immediate', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        obs.val.onEquals(10, handler);
-        expect(handler).toHaveBeenCalledWith(10);
+        when(() => obs.val === 10, handler);
+        expect(handler).toHaveBeenCalled();
     });
-    test('onEquals deep', () => {
+    test('when equals deep', () => {
         const obs = observable({ test: { test2: '', test3: '' } });
         const handler = jest.fn();
-        obs.test.test2.onEquals('hello', handler);
+        when(() => obs.test.test2 === 'hello', handler);
         expect(handler).not.toHaveBeenCalled();
         obs.test.test2.set('hi');
         expect(handler).not.toHaveBeenCalled();
         obs.test.test2.set('hello');
-        expect(handler).toHaveBeenCalledWith('hello');
+        expect(handler).toHaveBeenCalled();
     });
-    test('onTrue', () => {
+    test('when true', () => {
         const obs = observable({ val: false });
         const handler = jest.fn();
-        obs.val.onTrue(handler);
+        when(() => obs.val, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.val.set(true);
-        expect(handler).toHaveBeenCalledWith(true);
+        expect(handler).toHaveBeenCalled();
     });
-    test('onTrue starting true', () => {
+    test('when true starting true', () => {
         const obs = observable({ val: true });
         const handler = jest.fn();
-        obs.val.onTrue(handler);
+        when(() => obs.val, handler);
         expect(handler).toHaveBeenCalled();
         obs.val.set(false);
         expect(handler).toHaveBeenCalledTimes(1);
         obs.val.set(true);
         expect(handler).toHaveBeenCalledTimes(1);
     });
-    test('onHasValue with false', () => {
-        const obs = observable({ val: false });
-        const handler = jest.fn();
-        obs.val.onHasValue(handler);
-        expect(handler).toHaveBeenCalled();
-        obs.val.set(true);
-        expect(handler).toHaveBeenCalledTimes(1);
-    });
-    test('onHasValue with undefined', () => {
-        const obs = observable({ val: undefined });
-        const handler = jest.fn();
-        obs.ref('val').onHasValue(handler);
-        expect(handler).not.toHaveBeenCalled();
-        obs.ref('val').set(true);
-        expect(handler).toHaveBeenCalledWith(true);
-    });
 });
 describe('Shallow', () => {
     test('Shallow set primitive', () => {
         const obs = observable({ val: false } as { val: boolean; val2?: number });
         const handler = jest.fn();
-        obs.onChangeShallow(handler);
+        obs.onChange(handler, { shallow: true });
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
         obs.ref('val2').set(10);
@@ -1532,14 +1517,14 @@ describe('Shallow', () => {
     test('Shallow deep object', () => {
         const obs = observable({ val: { val2: { val3: 'hi' } } });
         const handler = jest.fn();
-        obs.onChangeShallow(handler);
+        obs.onChange(handler, { shallow: true });
         obs.val.val2.val3.set('hello');
         expect(handler).not.toHaveBeenCalled();
     });
     test('Shallow array', () => {
         const obs = observable({ data: [], selected: 0 });
         const handler = jest.fn();
-        obs.data.onChangeShallow(handler);
+        obs.data.onChange(handler, { shallow: true });
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
         // Setting an index in an array should not notify the array
@@ -1549,7 +1534,7 @@ describe('Shallow', () => {
     test('Key delete notifies shallow', () => {
         const obs = observable({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
         const handler = jest.fn();
-        obs.test.onChangeShallow(handler);
+        obs.test.onChange(handler, { shallow: true });
 
         obs.test.delete('key2');
 
@@ -1568,7 +1553,7 @@ describe('Shallow', () => {
         const obs = observable({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        obs.arr.onChangeShallow(handler);
+        obs.arr.onChange(handler, { shallow: true });
         obs.arr.onChange(handler2);
 
         obs.arr.splice(1, 1);
@@ -1718,5 +1703,18 @@ describe('ref function', () => {
         const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
         const refTest4 = obs.ref('test').ref('test2').ref('test3').ref('test4');
         expect(refTest4.get()).toEqual(undefined);
+    });
+});
+describe('effect', () => {
+    test('Basic effect', () => {
+        const obs = observable({ text: 'hi' });
+        const fn = jest.fn();
+        effect(() => {
+            fn(obs.text);
+        });
+        obs.text.set('hello');
+        expect(fn).toHaveBeenCalledWith('hello');
+        obs.text.set('a');
+        expect(fn).toHaveBeenCalledWith('a');
     });
 });

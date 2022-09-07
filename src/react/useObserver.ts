@@ -1,4 +1,4 @@
-import { ObservableListenerDispose, onChange, onChangeShallow, tracking } from '@legendapp/state';
+import { ObservableListenerDispose, onChange, tracking, ListenerOptions, Tracking } from '@legendapp/state';
 import { useEffect, useRef } from 'react';
 
 export function useObserver<T>(fn: () => T, updateFn: () => void) {
@@ -24,8 +24,14 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     // Listen to tracked nodes
     for (let tracked of nodes.values()) {
         const { node, track } = tracked;
-
-        listeners.push(onChange(node, updateFn, false, track));
+        let options: ListenerOptions;
+        if (track) {
+            options = {
+                shallow: track === Tracking.shallow,
+                optimized: track === Tracking.optimized,
+            };
+        }
+        listeners.push(onChange(node, updateFn, options));
     }
 
     // Do tracing if it was requested
@@ -46,11 +52,19 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
         // second useEffect, set up listeners again.
         if (process.env.NODE_ENV === 'development' && refListeners.current === undefined) {
             listeners = refListeners.current = [];
-            // Re-listen to tracked nodes
+            // Re-listen to tracked nodes. This should be copied from above.
             for (let tracked of nodes.values()) {
-                const { node, track: shallow } = tracked;
+                const { node, track } = tracked;
 
-                listeners.push(onChange(node, updateFn, false, shallow));
+                let options: ListenerOptions;
+                if (track) {
+                    options = {
+                        shallow: track === Tracking.shallow,
+                        optimized: track === Tracking.optimized,
+                    };
+                }
+
+                listeners.push(onChange(node, updateFn, options));
             }
         }
         return () => {

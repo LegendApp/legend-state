@@ -1,13 +1,14 @@
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
+export interface ListenerOptions {
+    runImmediately?: boolean;
+    shallow?: boolean;
+    optimized?: boolean;
+}
 
 export interface ObservableBaseFns<T> {
     get?(track?: boolean | Symbol): T;
     ref?(track?: boolean | Symbol): ObservableRef<T>;
-    onChange?(cb: ListenerFn<T>, runImmediately?: boolean, track?: boolean | Symbol): ObservableListenerDispose;
-    onChangeShallow?(cb: ListenerFn<T>, runImmediately?: boolean): ObservableListenerDispose;
-    onEquals?(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
-    onTrue?(cb?: (value?: T) => void): OnReturnValue<T>;
-    onHasValue?(cb?: (value?: T) => void): OnReturnValue<T>;
+    onChange?(cb: ListenerFn<T>, options?: ListenerOptions): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
@@ -27,10 +28,7 @@ export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 export interface ObservableComputedFns<T> {
     get(track?: boolean | Symbol): T;
-    onChange(cb: ListenerFn<T>, runImmediately?: boolean, track?: boolean | Symbol): ObservableListenerDispose;
-    onEquals(value: T, cb?: (value?: T) => void): OnReturnValue<T>;
-    onTrue(cb?: (value?: T) => void): OnReturnValue<T>;
-    onHasValue(cb?: (value?: T) => void): OnReturnValue<T>;
+    onChange(cb: ListenerFn<T>, options?: ListenerOptions): ObservableListenerDispose;
 }
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {

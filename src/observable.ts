@@ -10,7 +10,7 @@ import {
     ObservablePrimitive,
     ObservableWrapper,
 } from './observableInterfaces';
-import { onChange, onChangeShallow, onEquals, onHasValue, onTrue } from './on';
+import { onChange } from './onChange';
 import { tracking, untrack, updateTracking } from './tracking';
 
 let lastAccessedNode: NodeValue;
@@ -38,10 +38,6 @@ const objectFns = new Map<string, Function>([
     ['set', set],
     ['ref', ref],
     ['onChange', onChange],
-    ['onChangeShallow', onChangeShallow],
-    ['onEquals', onEquals],
-    ['onHasValue', onHasValue],
-    ['onTrue', onTrue],
     ['assign', assign],
     ['delete', deleteFn],
 ]);

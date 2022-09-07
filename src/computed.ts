@@ -1,25 +1,23 @@
+import { effect } from './effect';
 import { observable } from './observable';
-import { ObservableComputed } from './observableInterfaces';
-import { onChange } from './on';
-import { tracking } from './tracking';
+import { Observable, ObservableComputed } from './observableInterfaces';
 
 export function computed<T>(compute: () => T): ObservableComputed<T> {
-    const update = () => {
-        obs.set(compute());
+    // Create an observable for this computed variable set to the initial value
+    let obs: Observable;
+
+    const fn = function () {
+        const val = compute();
+        if (obs) {
+            // Update the computed value
+            obs.set(val);
+        } else {
+            // Create the observable on the first run
+            obs = observable(val as any);
+        }
     };
 
-    tracking.nodes = new Map();
-
-    const computed = compute();
-
-    // Create an observable for this computed variable set to the initial value
-    const obs = observable(computed as any);
-
-    for (let tracked of tracking.nodes.values()) {
-        onChange(tracked.node, update);
-    }
-
-    tracking.nodes = undefined;
+    effect(fn);
 
     return obs as unknown as ObservableComputed<T>;
 }
