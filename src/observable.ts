@@ -1,11 +1,11 @@
-import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable } from './globals';
+import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable, Tracking } from './globals';
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { observableBatcher, observableBatcherNotify } from './observableBatcher';
 import {
-    ListenerFn,
     NodeValue,
     Observable,
     ObservableObjectOrPrimitive,
+    ObservableObjectOrPrimitiveDefault,
     ObservableObjectOrPrimitiveSafe,
     ObservablePrimitive,
     ObservableWrapper,
@@ -94,12 +94,25 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
     // If array it's faster to just use the array
     const keys = isArr ? obj : obj ? Object.keys(obj) : [];
+    // let isArrayOptimized = false;
+    let arrayHasOptimized = false;
 
     let idField: string;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
         if (prevValue?.length > 0) {
+            if (parent.listeners) {
+                // isArrayOptimized = true;
+                arrayHasOptimized = false;
+                for (let listenerFn of parent.listeners) {
+                    // if listener is not optimized
+                    if (listenerFn[0][0] === 'o') {
+                        arrayHasOptimized = true;
+                        break;
+                    }
+                }
+            }
             const p = prevValue[0];
             if (p) {
                 idField =
@@ -144,6 +157,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
         let hasADiff = !isArr || obj?.length !== prevValue?.length;
         const isArrDiff = hasADiff;
+        let didMove = false;
 
         for (let i = 0; i < length; i++) {
             const key = isArr ? i : keys[i];
@@ -172,6 +186,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                                 moved.push([key, child]);
                             }
 
+                            didMove = true;
+
                             // And check for diff against the previous value in the previous position
                             const prevOfNode = prevValue[keyChild];
                             isDiff = prevOfNode !== value;
@@ -194,7 +210,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                     // the array's listener will cover it
                     const doNotify = !!child.listeners;
                     if (doNotify) {
-                        _notify(child, value, [], value, prev, 0);
+                        _notify(child, value, [], value, prev, 0, !isArrDiff);
                     }
                 }
             }
@@ -207,9 +223,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
             }
         }
 
+        // TODO: !isArrDiff should only be for optimized listeners
+
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
-        return isArr ? obj?.length !== prevValue?.length : hasADiff;
+        return hasADiff || didMove;
     }
 }
 
@@ -225,7 +243,7 @@ function getProxy(node: NodeValue, p?: string | number) {
     return proxy;
 }
 function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack)) {
+    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
         track = keyOrTrack;
         keyOrTrack = undefined;
     }
@@ -235,7 +253,7 @@ function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, t
     }
 
     // Untrack by default
-    checkTracking(node, track);
+    checkTracking(node, track === true ? Tracking.Normal : track === false ? undefined : track);
 
     return getProxy(node);
 }
@@ -282,7 +300,7 @@ const proxyHandler: ProxyHandler<any> = {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
                     if (tracking.nodes) {
-                        updateTracking(node, undefined, true);
+                        updateTracking(node, undefined, Tracking.Shallow);
                     }
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
@@ -306,7 +324,9 @@ const proxyHandler: ProxyHandler<any> = {
             // Update that this primitive node was accessed for observers
             if (tracking.nodes) {
                 if (isArray(value) && p === 'length') {
-                    updateTracking(node, undefined, /*shallow*/ true);
+                    updateTracking(node, undefined, Tracking.Shallow);
+                } else if (node.root.isPrimitive) {
+                    updateTracking(node);
                 } else {
                     updateTracking(getChildNode(node, p), node);
                 }
@@ -329,7 +349,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Update that this node was accessed for observers
         if (tracking.nodes) {
-            updateTracking(target, undefined, true);
+            updateTracking(target, undefined, Tracking.Shallow);
         }
 
         // This is required to fix this error:
@@ -344,27 +364,36 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(target);
         return Reflect.getOwnPropertyDescriptor(value, p);
     },
-    set(target: NodeValue, prop, value) {
+    set(target: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
-            Reflect.set(target, prop, value);
-        } else if (!inAssign && target.root.isSafe) {
-            return false;
-        } else {
-            if (process.env.NODE_ENV === 'development' && tracking.nodes) {
-                console.error(
-                    `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
-                );
-            }
-            set(target, prop, value);
+            return Reflect.set(target, prop, value);
         }
+
+        if (!inAssign && target.root.safeMode) {
+            // Don't allow in safe mode
+            if (target.root.safeMode === 2) return false;
+
+            // Don't allow set on objects in default mode
+            const existing = getNodeValue(getChildNode(target, prop));
+            if (isObject(existing) || isArray(existing) || isObject(value) || isArray(value)) {
+                return false;
+            }
+        }
+
+        if (process.env.NODE_ENV === 'development' && tracking.nodes) {
+            console.error(
+                `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
+            );
+        }
+        set(target, prop, value);
         return true;
     },
     deleteProperty(target: NodeValue, prop) {
         // If this delete comes from within an observable function it's allowed
         if (inSetFn) {
             Reflect.deleteProperty(target, prop);
-        } else if (target.root.isSafe) {
+        } else if (target.root.safeMode) {
             return false;
         } else {
             if (process.env.NODE_ENV === 'development' && tracking.nodes) {
@@ -443,9 +472,13 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     observableBatcher.begin();
 
     let hasADiff = isPrim;
+    let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree
     if (!isPrim || !isPrimitive(prevValue)) {
         hasADiff = updateNodes(childNode, newValue, prevValue);
+        if (isArray(newValue)) {
+            whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
+        }
     }
 
     // Notify for this element if it's an object or it's changed
@@ -454,7 +487,8 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
             node.root.isPrimitive ? node : childNode,
             newValue,
             prevValue,
-            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1
+            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
+            whenOptimizedOnlyIf
         );
     }
 
@@ -489,17 +523,23 @@ function _notify(
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
-    level: number
+    level: number,
+    whenOptimizedOnlyIf?: boolean
 ) {
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
         for (let listenerFn of listeners) {
             const shallow = listenerFn[0][0] === 's';
+            const optimized = listenerFn[0][0] === 'o';
             const listener = listenerFn[1];
 
+            const ok = shallow ? level <= 0 : optimized ? whenOptimizedOnlyIf && level <= 0 : true;
+
+            // console.log('notify', shallow, optimized, ok, node);
+
             // Notify if listener is not shallow or if this is the first level
-            if (!shallow || level <= 0) {
+            if (ok) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
                 // it often, so leave it up to the caller.
                 if (!getPrevious) {
@@ -517,22 +557,31 @@ function _notifyParents(
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
-    level: number
+    level: number,
+    whenOptimizedOnlyIf?: boolean
 ) {
     // Do the notify
-    _notify(node, value, path, valueAtPath, prevAtPath, level);
+    _notify(node, value, path, valueAtPath, prevAtPath, level, whenOptimizedOnlyIf);
     // If not root notify up through parents
     if (node.parent) {
         const parent = node.parent;
         if (parent) {
             const parentValue = getNodeValue(parent);
-            _notifyParents(parent, parentValue, [node.key].concat(path), valueAtPath, prevAtPath, level + 1);
+            _notifyParents(
+                parent,
+                parentValue,
+                [node.key].concat(path),
+                valueAtPath,
+                prevAtPath,
+                level + 1,
+                whenOptimizedOnlyIf
+            );
         }
     }
 }
-function notify(node: NodeValue, value: any, prev: any, level: number) {
+function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
     // Start notifying up through parents with the listenerInfo
-    _notifyParents(node, value, [], value, prev, level);
+    _notifyParents(node, value, [], value, prev, level, whenOptimizedOnlyIf);
 }
 
 function assign(node: NodeValue, value: any) {
@@ -566,7 +615,8 @@ function deleteFn(node: NodeValue, key?: string | number) {
 }
 
 export function observable<T extends object>(obj: T, safe: true): ObservableObjectOrPrimitiveSafe<T>;
-export function observable<T extends object>(obj: T, safe?: boolean): ObservableObjectOrPrimitive<T>;
+export function observable<T extends object>(obj: T, safe: false): ObservableObjectOrPrimitive<T>;
+export function observable<T extends object>(obj: T, safe?: undefined): ObservableObjectOrPrimitiveDefault<T>;
 export function observable<T extends boolean>(prim: T, safe?: boolean): ObservablePrimitive<boolean>;
 export function observable<T extends string>(prim: T, safe?: boolean): ObservablePrimitive<string>;
 export function observable<T extends number>(prim: T, safe?: boolean): ObservablePrimitive<number>;
@@ -581,7 +631,7 @@ export function observable<T>(obj: T, safe?: boolean): ObservableObjectOrPrimiti
     const obs = {
         _: obj as Observable<T>,
         isPrimitive: isPrim,
-        isSafe: safe,
+        safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
 
     const node: NodeValue = {

@@ -1,3 +1,4 @@
+/// <reference types="@legendapp/state/state-types" />
 import 'react-native';
 
 declare module 'react-native' {

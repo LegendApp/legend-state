@@ -138,7 +138,7 @@ async function loadLocal(
 
         obsState.get().clearLocal = () => persistenceLocal.delete(local);
     }
-    obsState.isLoadedLocal = true;
+    obsState.set('isLoadedLocal', true);
 }
 
 export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions: PersistOptions<T>) {
@@ -169,7 +169,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                 obs,
                 persistOptions,
                 () => {
-                    obsState.isLoadedRemote = true;
+                    obsState.set('isLoadedRemote', true);
                 },
                 onChangeRemote.bind(this, localState)
             );

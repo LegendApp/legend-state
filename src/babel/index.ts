@@ -65,51 +65,76 @@ export default function () {
                                     ]
                                 )
                             );
-                            // children[0].replaceWith(arrowFunctionExpression([], children[0].expression));
                         }
                     } else if (name === 'Show') {
-                        const children = removEmptyText(children_);
+                        let children = removEmptyText(children_);
                         const if_ = openingElement.attributes.find((node) => node.name?.name === 'if');
 
-                        if (
-                            if_ !== undefined &&
-                            if_.value.expression.type !== 'ArrowFunctionExpression' &&
-                            if_.value.expression.type !== 'FunctionExpression'
-                        ) {
-                            const attrs = [
-                                jsxAttribute(
-                                    jsxIdentifier('if'),
-                                    jsxExpressionContainer(arrowFunctionExpression([], if_.value.expression))
-                                ),
-                            ];
+                        if (if_ !== undefined) {
+                            const attrs = [];
+                            let needsChange = false;
 
-                            const else_ = openingElement.attributes.find((node) => node.name?.name === 'else');
-
-                            if (else_) {
+                            if (
+                                if_.value.expression.type === 'ArrowFunctionExpression' ||
+                                if_.value.expression.type === 'FunctionExpression'
+                            ) {
+                                attrs.push(if_);
+                            } else {
+                                needsChange = true;
                                 attrs.push(
                                     jsxAttribute(
-                                        jsxIdentifier('else'),
-                                        jsxExpressionContainer(arrowFunctionExpression([], else_.value.expression))
+                                        jsxIdentifier('if'),
+                                        jsxExpressionContainer(arrowFunctionExpression([], if_.value.expression))
                                     )
                                 );
                             }
 
-                            path.replaceWith(
-                                jsxElement(
-                                    jsxOpeningElement(jsxIdentifier('Show'), attrs),
-                                    jsxClosingElement(jsxIdentifier('Show')),
-                                    [
-                                        jsxExpressionContainer(
-                                            arrowFunctionExpression(
-                                                [],
-                                                children.length > 0
-                                                    ? jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children)
-                                                    : children[0]
-                                            )
-                                        ),
-                                    ]
-                                )
-                            );
+                            const else_ = openingElement.attributes.find((node) => node.name?.name === 'else');
+
+                            if (else_) {
+                                if (
+                                    else_.value.expression.type === 'ArrowFunctionExpression' ||
+                                    else_.value.expression.type === 'FunctionExpression'
+                                ) {
+                                    attrs.push(else_);
+                                } else {
+                                    needsChange = true;
+                                    attrs.push(
+                                        jsxAttribute(
+                                            jsxIdentifier('else'),
+                                            jsxExpressionContainer(arrowFunctionExpression([], else_.value.expression))
+                                        )
+                                    );
+                                }
+                            }
+
+                            if (
+                                children[0].expression?.type !== 'ArrowFunctionExpression' &&
+                                children[0].expression?.type !== 'FunctionExpression'
+                            ) {
+                                needsChange = true;
+                                const oldChildren = children;
+                                children = [
+                                    jsxExpressionContainer(
+                                        arrowFunctionExpression(
+                                            [],
+                                            oldChildren.length > 0
+                                                ? jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), oldChildren)
+                                                : oldChildren[0]
+                                        )
+                                    ),
+                                ];
+                            }
+
+                            if (needsChange) {
+                                path.replaceWith(
+                                    jsxElement(
+                                        jsxOpeningElement(jsxIdentifier('Show'), attrs),
+                                        jsxClosingElement(jsxIdentifier('Show')),
+                                        children
+                                    )
+                                );
+                            }
                         }
                     } else {
                         const hasIsolateProp = openingElement.attributes.findIndex(

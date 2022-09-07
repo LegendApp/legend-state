@@ -1,9 +1,10 @@
+import { Tracking } from '../src/globals';
 import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { observableBatcher } from '../src/observableBatcher';
 import { observableComputed } from '../src/observableComputed';
 import { observableEvent } from '../src/observableEvent';
-import { ObservableReadable, ObservableRef } from '../src/observableInterfaces';
+import { ObservableRef } from '../src/observableInterfaces';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -672,10 +673,22 @@ describe('Equality', () => {
 });
 describe('Safety', () => {
     test('Writes are ok in unsafe', () => {
-        const obs = observable({ test: { text: 't' } });
+        const obs = observable({ test: { text: 't' } }, false);
         obs.test.text = 'hello';
         obs.test = { text: 'hello' };
         delete obs.test;
+    });
+    test('Prevent object writes in default safety', () => {
+        const obs = observable({ test: { text: 't' } });
+        obs.test.text = 'hello';
+        expect(() => {
+            // @ts-expect-error
+            obs.test = { text: 'hello' };
+        }).toThrow();
+        expect(() => {
+            // @ts-expect-error
+            delete obs.test;
+        }).toThrow();
     });
     test('Prevent writes in safe', () => {
         const obs = observable({ test: { text: 't' } }, true);
@@ -1233,7 +1246,7 @@ describe('Array', () => {
             'hello'
         );
     });
-    test('Array set with just a swap', () => {
+    test('Array set with just a swap optimized', () => {
         const obs = observable({
             test: [
                 { id: 1, text: 1 },
@@ -1246,7 +1259,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChangeShallow(handlerShallow);
+        obs.test.onChange(handlerShallow, false, Tracking.Optimized);
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();

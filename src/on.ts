@@ -1,4 +1,4 @@
-import { getNodeValue } from './globals';
+import { getNodeValue, Tracking } from './globals';
 import { isObjectEmpty } from './is';
 import { ListenerFn, ObservableListenerDispose, OnReturnValue, NodeValue } from './observableInterfaces';
 
@@ -26,7 +26,7 @@ export function onEquals<T>(node: NodeValue, value: T, callback: (value: T) => v
             }
             return isDone;
         }
-        dispose = onChange(node, check, true, /*shallow*/ true);
+        dispose = onChange(node, check, true, Tracking.Shallow);
     });
 
     return {
@@ -43,7 +43,12 @@ export function onTrue<T extends boolean>(node: NodeValue, callback?: () => void
     return onEquals(node, true as T, callback);
 }
 
-export function onChange(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean, shallow?: boolean) {
+export function onChange(
+    node: NodeValue,
+    callback: ListenerFn<any>,
+    runImmediately?: boolean,
+    shallow?: boolean | Symbol
+) {
     let id = listenerIndex++ as unknown as string;
     let listeners = node.listeners;
     if (!listeners) {
@@ -51,7 +56,8 @@ export function onChange(node: NodeValue, callback: ListenerFn<any>, runImmediat
     }
 
     // A memory efficient way to save shallowness is to put it on the id itself
-    if (shallow) id = 's' + id;
+    if (shallow === Tracking.Shallow) id = 's' + id;
+    else if (shallow === Tracking.Optimized) id = 'o' + id;
 
     listeners.set(id, callback);
 
@@ -64,5 +70,5 @@ export function onChange(node: NodeValue, callback: ListenerFn<any>, runImmediat
 }
 
 export function onChangeShallow(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean) {
-    return onChange(node, callback, runImmediately, /*shallow*/ true);
+    return onChange(node, callback, runImmediately, Tracking.Shallow);
 }

@@ -8,18 +8,18 @@ export const tracking = {
     updates: undefined as (fn: () => void) => () => void,
 };
 
-export function updateTracking(node: NodeValue, parent?: NodeValue, shallow?: boolean, manual?: boolean) {
+export function updateTracking(node: NodeValue, parent?: NodeValue, track?: boolean | Symbol, manual?: boolean) {
     if (parent) {
         untrack(parent);
     }
     lastNode = node;
     const existing = tracking.nodes.get(node.id);
     if (existing) {
-        existing.shallow = existing.shallow || shallow;
+        existing.track = existing.track || track;
         existing.manual = existing.manual || manual;
         existing.num++;
     } else {
-        tracking.nodes.set(node.id, { node, shallow, manual, num: 1 });
+        tracking.nodes.set(node.id, { node, track, manual, num: 1 });
     }
 }
 
