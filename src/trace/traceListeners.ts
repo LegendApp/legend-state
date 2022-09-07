@@ -8,8 +8,8 @@ export function traceListeners(name?: string) {
 function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
     tracking.listeners = undefined;
     const arr: string[] = [];
-    for (let tracked of nodes) {
-        const { node, track: shallow } = tracked[1];
+    for (let tracked of nodes.values()) {
+        const { node, track: shallow } = tracked;
         arr.push(`${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}`);
     }
 

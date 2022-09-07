@@ -15,8 +15,8 @@ export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
     // Create an observable for this computed variable set to the initial value
     const obs = observable(computed as any);
 
-    for (let tracked of tracking.nodes) {
-        onChange(tracked[1].node, update);
+    for (let tracked of tracking.nodes.values()) {
+        onChange(tracked.node, update);
     }
 
     tracking.nodes = undefined;

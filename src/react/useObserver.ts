@@ -22,8 +22,8 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
     const nodes = tracking.nodes;
 
     // Listen to tracked nodes
-    for (let tracked of nodes) {
-        const { node, track } = tracked[1];
+    for (let tracked of nodes.values()) {
+        const { node, track } = tracked;
 
         listeners.push(onChange(node, updateFn, false, track));
     }
@@ -47,8 +47,8 @@ export function useObserver<T>(fn: () => T, updateFn: () => void) {
         if (process.env.NODE_ENV === 'development' && refListeners.current === undefined) {
             listeners = refListeners.current = [];
             // Re-listen to tracked nodes
-            for (let tracked of nodes) {
-                const { node, track: shallow } = tracked[1];
+            for (let tracked of nodes.values()) {
+                const { node, track: shallow } = tracked;
 
                 listeners.push(onChange(node, updateFn, false, shallow));
             }
