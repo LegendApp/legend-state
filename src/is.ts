@@ -8,7 +8,7 @@ export function isString(obj: unknown): obj is string {
 }
 /** @internal */
 export function isObject(obj: unknown): obj is Record<any, any> {
-    return typeof obj === 'object' && obj !== null && !isArray(obj);
+    return obj && typeof obj === 'object' && !isArray(obj);
 }
 /** @internal */
 export function isFunction(obj: unknown): obj is Function {
@@ -21,7 +21,7 @@ export function isPrimitive(arg) {
 }
 /** @internal */
 export function isObjectEmpty(obj: object) {
-    return obj && isObject(obj) && Object.keys(obj).length === 0;
+    return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
 }
 /** @internal */
 export function isSymbol(obj: unknown): obj is symbol {
@@ -30,4 +30,8 @@ export function isSymbol(obj: unknown): obj is symbol {
 /** @internal */
 export function isBoolean(obj: unknown): obj is boolean {
     return obj === true || obj === false;
+}
+
+export function isEmpty(obj: object) {
+    return obj && Object.keys(obj).length === 0;
 }
