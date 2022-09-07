@@ -13,7 +13,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && cp README.md dist/README.md && cp state-types.d.ts dist/state-types.d.ts && cp react-types.d.ts dist/react-types.d.ts && cp react-native-types.d.ts dist/react-native-types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && cp README.md dist/README.md && cp LICENSE dist/LICENSE && cp state-types.d.ts dist/state-types.d.ts && cp react-types.d.ts dist/react-types.d.ts && cp react-native-types.d.ts dist/react-native-types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
@@ -63,6 +63,11 @@
             "import": "./react-native.mjs",
             "require": "./react-native.js",
             "types": "./react-native.d.ts"
+        },
+        "./reactivity": {
+            "import": "./reactivity.mjs",
+            "require": "./reactivity.js",
+            "types": "./reactivity.d.ts"
         },
         "./trace": {
             "import": "./trace.mjs",
