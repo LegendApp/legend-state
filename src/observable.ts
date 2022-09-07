@@ -325,6 +325,8 @@ const proxyHandler: ProxyHandler<any> = {
             if (tracking.nodes) {
                 if (isArray(value) && p === 'length') {
                     updateTracking(node, undefined, Tracking.Shallow);
+                } else if (node.root.isPrimitive) {
+                    updateTracking(node);
                 } else {
                     updateTracking(getChildNode(node, p), node);
                 }
