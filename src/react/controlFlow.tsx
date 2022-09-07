@@ -3,16 +3,12 @@ import { createElement, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { ObservableObject, ObservableReadable } from '../observableInterfaces';
 import { observer } from './observer';
 
-export const Isolate = observer(function Isolate({
-    children,
-}: {
-    children: ReactNode | (() => ReactNode);
-}): ReactElement {
+export const Isolate = observer(function Isolate({ children }: { children: () => ReactNode }): ReactElement {
     return (children as () => ReactElement)();
 });
 
 export const Memo = observer(
-    function Memo({ children }: { children: ReactNode | (() => ReactNode) }): ReactElement {
+    function Memo({ children }: { children: () => ReactNode }): ReactElement {
         return (children as () => ReactElement)();
     },
     () => true
@@ -25,9 +21,9 @@ export const Show = observer(function Show({
     memo,
 }: {
     if: any;
-    else?: ReactNode | (() => ReactNode);
+    else?: () => ReactNode;
     memo?: boolean;
-    children: ReactNode | (() => ReactNode);
+    children: () => ReactNode;
 }): ReactElement {
     if (isFunction(if_)) {
         if_ = if_();

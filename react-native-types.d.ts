@@ -1,3 +1,4 @@
+import type { ReactElement, ReactNode } from 'react';
 import 'react-native';
 
 declare module 'react-native' {
@@ -35,4 +36,20 @@ declare module 'react-native' {
         isolate?: boolean;
         memo?: boolean;
     }
+}
+
+declare module '@legendapp/state/react' {
+    export declare const Isolate: ({ children }: { children: ReactNode | (() => ReactNode) }) => ReactElement;
+    export declare const Memo: ({ children }: { children: ReactNode | (() => ReactNode) }) => ReactElement;
+    export declare const Show: ({
+        if: if_,
+        else: else_,
+        children,
+        memo,
+    }: {
+        if: any;
+        else?: ReactNode | (() => ReactNode);
+        memo?: boolean;
+        children: ReactNode | (() => ReactNode);
+    }) => ReactElement;
 }
