@@ -26,7 +26,7 @@ export function onEquals<T>(node: NodeValue, value: T, callback: (value: T) => v
             }
             return isDone;
         }
-        dispose = onChange(node, check, true, Tracking.Shallow);
+        dispose = onChange(node, check, true, Tracking.shallow);
     });
 
     return {
@@ -56,8 +56,8 @@ export function onChange(
     }
 
     // A memory efficient way to save shallowness is to put it on the id itself
-    if (shallow === Tracking.Shallow) id = 's' + id;
-    else if (shallow === Tracking.Optimized) id = 'o' + id;
+    if (shallow === Tracking.shallow) id = 's' + id;
+    else if (shallow === Tracking.optimized) id = 'o' + id;
 
     listeners.set(id, callback);
 
@@ -70,5 +70,5 @@ export function onChange(
 }
 
 export function onChangeShallow(node: NodeValue, callback: ListenerFn<any>, runImmediately?: boolean) {
-    return onChange(node, callback, runImmediately, Tracking.Shallow);
+    return onChange(node, callback, runImmediately, Tracking.shallow);
 }

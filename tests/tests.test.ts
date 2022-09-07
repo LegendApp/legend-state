@@ -1259,7 +1259,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, false, Tracking.Optimized);
+        obs.test.onChange(handlerShallow, false, Tracking.optimized);
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();

@@ -64,7 +64,7 @@ export const For = observer(function For<T extends { id: string } | { _id: strin
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = each.get(optimized ? Tracking.Optimized : Tracking.Shallow) as {
+    const v = each.get(optimized ? Tracking.optimized : Tracking.shallow) as {
         id?: string;
         _id?: string;
         __id?: string;

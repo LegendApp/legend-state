@@ -5,9 +5,9 @@ import { tracking, untrack, updateTracking } from './tracking';
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export namespace Tracking {
-    export const Normal = true;
-    export const Shallow = Symbol('shallow');
-    export const Optimized = Symbol('optimized');
+    export const normal = true;
+    export const shallow = Symbol('shallow');
+    export const optimized = Symbol('optimized');
 }
 export const nextNodeID = { current: 0 };
 
@@ -28,7 +28,7 @@ export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Sy
     }
 
     // Track by default
-    checkTracking(node, track === true || track === undefined ? Tracking.Normal : track === false ? undefined : track);
+    checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
 
     const value = getOutputValue(node);
     return keyOrTrack ? value?.[keyOrTrack as string | number] : value;

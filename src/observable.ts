@@ -253,7 +253,7 @@ function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, t
     }
 
     // Untrack by default
-    checkTracking(node, track === true ? Tracking.Normal : track === false ? undefined : track);
+    checkTracking(node, track === true ? Tracking.normal : track === false ? undefined : track);
 
     return getProxy(node);
 }
@@ -300,7 +300,7 @@ const proxyHandler: ProxyHandler<any> = {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
                     if (tracking.nodes) {
-                        updateTracking(node, undefined, Tracking.Shallow);
+                        updateTracking(node, undefined, Tracking.shallow);
                     }
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
@@ -324,7 +324,7 @@ const proxyHandler: ProxyHandler<any> = {
             // Update that this primitive node was accessed for observers
             if (tracking.nodes) {
                 if (isArray(value) && p === 'length') {
-                    updateTracking(node, undefined, Tracking.Shallow);
+                    updateTracking(node, undefined, Tracking.shallow);
                 } else if (node.root.isPrimitive) {
                     updateTracking(node);
                 } else {
@@ -349,7 +349,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Update that this node was accessed for observers
         if (tracking.nodes) {
-            updateTracking(target, undefined, Tracking.Shallow);
+            updateTracking(target, undefined, Tracking.shallow);
         }
 
         // This is required to fix this error:

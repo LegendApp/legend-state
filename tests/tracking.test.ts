@@ -80,13 +80,13 @@ describe('Tracking', () => {
     test('get() shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
 
-        obs.test.get(Tracking.Shallow);
+        obs.test.get(Tracking.shallow);
 
         expect(tracking.nodes.size).toEqual(1);
 
         const nodes = [...tracking.nodes.values()];
         expect(nodes[0].manual).toEqual(true);
-        expect(nodes[0].track).toEqual(Tracking.Shallow);
+        expect(nodes[0].track).toEqual(Tracking.shallow);
     });
     test('primitive get access observes', () => {
         const obs = observable({ test: 'hi' });
@@ -104,7 +104,7 @@ describe('Tracking', () => {
         const nodes = [...tracking.nodes.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
-        expect(nodes[0].track).toEqual(Tracking.Shallow);
+        expect(nodes[0].track).toEqual(Tracking.shallow);
     });
     test('Object.entries(obs) observes shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
@@ -116,7 +116,7 @@ describe('Tracking', () => {
         const nodes = [...tracking.nodes.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
-        expect(nodes[0].track).toEqual(Tracking.Shallow);
+        expect(nodes[0].track).toEqual(Tracking.shallow);
     });
     test('Accessing undefined observes', () => {
         const obs = observable({ test: {} as Record<string, { text: 'hi' }> });
@@ -172,6 +172,6 @@ describe('Tracking', () => {
         const nodes = [...tracking.nodes.values()];
 
         expect(nodes[0].node.key).toEqual('arr');
-        expect(nodes[0].track).toEqual(Tracking.Shallow);
+        expect(nodes[0].track).toEqual(Tracking.shallow);
     });
 });
