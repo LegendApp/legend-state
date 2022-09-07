@@ -1,6 +1,6 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
 import { createElement, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import type { ObservableObject, ObservableReadable } from '../observableInterfaces';
+import type { NotPrimitive, ObservableObject, ObservableReadable } from '../observableInterfaces';
 import { observer } from './observer';
 
 export const Isolate = observer(function Isolate({ children }: { children: () => ReactNode }): ReactElement {
@@ -14,13 +14,13 @@ export const Memo = observer(
     () => true
 );
 
-export const Show = observer(function Show({
+export const Show = observer(function Show<T>({
     if: if_,
     else: else_,
     children,
     memo,
 }: {
-    if: any;
+    if: NotPrimitive<T>;
     else?: () => ReactNode;
     memo?: boolean;
     children: () => ReactNode;
