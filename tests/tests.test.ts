@@ -1,9 +1,9 @@
 import { Tracking } from '../src/globals';
+import { computed } from '../src/computed';
+import { effect } from '../src/effect';
 import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { beginBatch, endBatch } from '../src/observableBatcher';
-import { observableComputed } from '../src/observableComputed';
-import { observableEvent } from '../src/observableEvent';
 import { ObservableRef } from '../src/observableInterfaces';
 
 function promiseTimeout(time?: number) {
@@ -1585,37 +1585,37 @@ describe('Shallow', () => {
 describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed(() => obs.test + obs.test2);
-        expect(computed.current).toEqual(30);
+        const comp = computed(() => obs.test + obs.test2);
+        expect(comp.current).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed(() => obs.test + obs.test2);
-        expect(computed.current).toEqual(30);
-        const handler = expectChangeHandler(computed);
+        const comp = computed(() => obs.test + obs.test2);
+        expect(comp.current).toEqual(30);
+        const handler = expectChangeHandler(comp);
         obs.test.set(5);
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
-        expect(computed.current).toEqual(25);
+        expect(comp.current).toEqual(25);
         obs.test.set(1);
         expect(handler).toHaveBeenCalledWith(21, 25, [], 21, 25);
-        expect(computed.current).toEqual(21);
+        expect(comp.current).toEqual(21);
     });
     test('Cannot directly set a computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed(() => obs.test + obs.test2);
+        const comp = computed(() => obs.test + obs.test2);
         // @ts-expect-error
-        computed.set(40);
+        comp.set(40);
         // @ts-expect-error
-        computed.assign({ text: 'hi' });
+        comp.assign({ text: 'hi' });
         // @ts-expect-error
-        computed.delete();
+        comp.delete();
     });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const computed = observableComputed(() => ({ value: obs.test + obs.test2 }));
-        expect(computed.value).toEqual(30);
+        const comp = computed(() => ({ value: obs.test + obs.test2 }));
+        expect(comp.value).toEqual(30);
 
-        const handler = expectChangeHandler(computed.value);
+        const handler = expectChangeHandler(comp.value);
         obs.test = 5;
 
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
@@ -1623,15 +1623,15 @@ describe('Computed', () => {
 });
 describe('Event', () => {
     test('Event', () => {
-        const event = observableEvent();
+        const evt = event();
         const handler = jest.fn();
-        event.on(handler);
+        evt.on(handler);
         expect(handler).not.toHaveBeenCalled();
-        event.dispatch();
+        evt.dispatch();
         expect(handler).toHaveBeenCalledTimes(1);
-        event.dispatch();
-        event.dispatch();
-        event.dispatch();
+        evt.dispatch();
+        evt.dispatch();
+        evt.dispatch();
         expect(handler).toHaveBeenCalledTimes(4);
     });
 });

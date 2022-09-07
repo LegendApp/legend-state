@@ -3,7 +3,7 @@ import { ObservableComputed } from './observableInterfaces';
 import { onChange } from './on';
 import { tracking } from './tracking';
 
-export function observableComputed<T>(compute: () => T): ObservableComputed<T> {
+export function computed<T>(compute: () => T): ObservableComputed<T> {
     const update = () => {
         obs.set(compute());
     };

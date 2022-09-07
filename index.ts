@@ -2,8 +2,8 @@ export { Tracking } from './src/globals';
 export { isObservable, mergeIntoObservable } from './src/helpers';
 export { observable } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/observableBatcher';
-export { observableComputed } from './src/observableComputed';
-export { observableEvent } from './src/observableEvent';
+export { computed } from './src/computed';
+export { event } from './src/event';
 export * from './src/observableInterfaces';
 export { isEmpty } from './src/is';
 

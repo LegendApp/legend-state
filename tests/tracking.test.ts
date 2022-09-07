@@ -1,6 +1,6 @@
 import { Tracking } from '../src/globals';
 import { observable } from '../src/observable';
-import { observableEvent } from '../src/observableEvent';
+import { event } from '../src/event';
 import { tracking } from '../src/tracking';
 
 beforeEach(() => {
@@ -130,7 +130,7 @@ describe('Tracking', () => {
         expect(nodes[0].node.key).toEqual('a');
     });
     test('get() an event observes', () => {
-        const evt = observableEvent();
+        const evt = event();
 
         evt.get();
 
