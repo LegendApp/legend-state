@@ -652,8 +652,8 @@ export function observable<T>(value: T | Promise<T>, safe?: boolean): Observable
     const proxy = getProxy(node) as ObservableObjectOrPrimitive<T>;
 
     if (promise) {
-        promise.catch((rejected) => {
-            proxy.set({ rejected } as any);
+        promise.catch((error) => {
+            proxy.set({ error } as any);
         });
         promise.then((value) => {
             obs.isPrimitive = isPrimitive(value);
