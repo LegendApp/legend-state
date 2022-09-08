@@ -49,6 +49,10 @@ const wrapFn = (fn: Function) =>
             const node: NodeValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
             if (getNodeValue(node) === this) {
                 return fn(node, ...args);
+            } else if (process.env.NODE_ENV === 'development') {
+                console.error(
+                    `[legend-state] Error calling ${fn} on a primitive with value ${this}. Please ensure that if you are saving references to observable functions on primitive values that you use ref() first, like obs.primitive.ref().set.`
+                );
             }
         }
     };
