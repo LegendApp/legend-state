@@ -9,6 +9,7 @@ export function effect(run: () => void) {
         run();
     };
 
+    const trackingPrev = tracking.nodes;
     tracking.nodes = new Map();
 
     run();
@@ -27,7 +28,7 @@ export function effect(run: () => void) {
         listeners.push(onChange(node, update, options));
     }
 
-    tracking.nodes = undefined;
+    tracking.nodes = trackingPrev;
 
     return () => {
         if (listeners) {
