@@ -10,6 +10,7 @@ export function when(predicate: () => any, effect?: () => void | (() => void), o
     let cleanup: () => void;
     let isDone = false;
 
+    // Create a wrapping fn that calls the effect if predicate returns true
     const fn = function () {
         const ret = predicate();
         if (ret) {
@@ -24,21 +25,20 @@ export function when(predicate: () => any, effect?: () => void | (() => void), o
         }
     };
 
-    if (effect) {
-        cleanup = observableEffect(fn);
-        // If it's already cleanup
-        if (isDone) {
-            cleanup();
-        }
-        return cleanup;
-    } else {
-        return new Promise<void>((resolve) => {
+    // If no effect parameter return a promise
+    const promise =
+        !effect &&
+        new Promise<void>((resolve) => {
             effect = resolve;
-            cleanup = observableEffect(fn);
-            // If it's already cleanup
-            if (isDone) {
-                cleanup();
-            }
         });
+
+    // Create an effect for the fn
+    cleanup = observableEffect(fn);
+
+    // If it's already cleanup
+    if (isDone) {
+        cleanup();
     }
+
+    return promise || cleanup;
 }
