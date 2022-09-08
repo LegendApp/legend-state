@@ -2,7 +2,7 @@ import { computed } from '../src/computed';
 import { effect } from '../src/effect';
 import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
-import { beginBatch, endBatch } from '../src/observableBatcher';
+import { beginBatch, endBatch } from '../src/batching';
 import { event } from '../src/event';
 import { ObservableRef } from '../src/observableInterfaces';
 import { when } from '../src/when';

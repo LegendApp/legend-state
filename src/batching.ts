@@ -26,7 +26,7 @@ function onActionTimeout() {
     }
 }
 
-export function observableBatcherNotify(b: BatchItem) {
+export function batchNotify(b: BatchItem) {
     if (numInBatch > 0) {
         const existing = _batchMap.get(b.cb);
         // If this callback already exists, make sure it has the latest value but do not add it

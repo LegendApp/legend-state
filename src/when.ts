@@ -1,13 +1,13 @@
 import { effect as observableEffect } from './effect';
 
-export function when(run: () => any): Promise<void>;
-export function when(run: () => any, effect: () => void): () => void;
-export function when(run: () => any, effect?: () => void) {
+export function when(predicate: () => any): Promise<void>;
+export function when(predicate: () => any, effect: () => void): () => void;
+export function when(predicate: () => any, effect?: () => void) {
     let cleanup: () => void;
     let isDone = false;
 
     const fn = function () {
-        const ret = run();
+        const ret = predicate();
         if (ret) {
             // If value is truthy then run the effect and cleanup
             isDone = true;

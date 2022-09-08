@@ -1,6 +1,6 @@
 import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable, Tracking } from './globals';
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
-import { beginBatch, endBatch, observableBatcherNotify } from './observableBatcher';
+import { beginBatch, endBatch, batchNotify } from './batching';
 import {
     NodeValue,
     Observable,
@@ -532,8 +532,6 @@ function _notify(
 
             const ok = shallow ? level <= 0 : optimized ? whenOptimizedOnlyIf && level <= 0 : true;
 
-            // console.log('notify', shallow, optimized, ok, node);
-
             // Notify if listener is not shallow or if this is the first level
             if (ok) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
@@ -541,7 +539,7 @@ function _notify(
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
-                observableBatcherNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath, node });
+                batchNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath, node });
             }
         }
     }

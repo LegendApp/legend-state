@@ -6,7 +6,7 @@ export function event(): ObservableEvent {
     // which increments its value to dispatch change events
     const obs = observable(0);
     return {
-        dispatch: () => {
+        dispatch: function () {
             // Notify increments the value so that the observable changes
             obs.set(obs.current + 1);
         },
