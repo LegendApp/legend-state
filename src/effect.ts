@@ -3,16 +3,21 @@ import { ListenerOptions } from './observableInterfaces';
 import { onChange } from './onChange';
 import { tracking } from './tracking';
 
-export function effect(run: () => void) {
+export function effect(run: () => void | (() => void)) {
+    let cleanup: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     const update = function () {
-        run();
+        if (cleanup) {
+            cleanup();
+            cleanup = undefined;
+        }
+        cleanup = run() as () => void;
     };
 
     const trackingPrev = tracking.nodes;
     tracking.nodes = new Map();
 
-    run();
+    cleanup = run() as () => void;
 
     let listeners = [];
     // Listen to tracked nodes

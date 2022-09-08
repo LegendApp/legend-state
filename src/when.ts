@@ -7,7 +7,6 @@ interface Options {
 export function when(predicate: () => any): Promise<void>;
 export function when(predicate: () => any, effect: () => void | (() => void), options?: Options): () => void;
 export function when(predicate: () => any, effect?: () => void | (() => void), options?: Options) {
-    let cleanupListeners: () => void;
     let cleanup: () => void;
     let isDone = false;
 
@@ -18,30 +17,27 @@ export function when(predicate: () => any, effect?: () => void | (() => void), o
             if (!options?.repeat) {
                 isDone = true;
             }
-            cleanup = effect() as () => void;
+            effect();
             if (isDone) {
-                cleanupListeners?.();
+                cleanup?.();
             }
-        } else if (cleanup) {
-            cleanup();
-            cleanup = undefined;
         }
     };
 
     if (effect) {
-        cleanupListeners = observableEffect(fn);
+        cleanup = observableEffect(fn);
         // If it's already cleanup
         if (isDone) {
-            cleanupListeners();
+            cleanup();
         }
-        return cleanupListeners;
+        return cleanup;
     } else {
         return new Promise<void>((resolve) => {
             effect = resolve;
-            cleanupListeners = observableEffect(fn);
+            cleanup = observableEffect(fn);
             // If it's already cleanup
             if (isDone) {
-                cleanupListeners();
+                cleanup();
             }
         });
     }
