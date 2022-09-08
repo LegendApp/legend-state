@@ -1,5 +1,5 @@
-import '@legendapp/state/react';
-declare module '@legendapp/state/react' {
+import '@legendapp/state/reactivity';
+declare module '@legendapp/state/reactivity' {
     export declare const Isolate: ({
         children,
     }: {
