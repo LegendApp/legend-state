@@ -214,7 +214,7 @@ export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args
 export type ObservableListenerDispose = () => void;
 
 export interface ObservableWrapper {
-    _: Observable;
+    _: any;
     isPrimitive: boolean;
     safeMode: 0 | 1 | 2;
 }

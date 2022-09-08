@@ -1718,3 +1718,38 @@ describe('effect', () => {
         expect(fn).toHaveBeenCalledWith('a');
     });
 });
+describe('Observable with promise', () => {
+    test('Promise', async () => {
+        let resolver;
+        const promise = new Promise<number>((resolve) => {
+            resolver = resolve;
+        });
+        const obs = observable(promise);
+
+        expect(obs.current).toEqual(undefined);
+
+        resolver(10);
+
+        await promiseTimeout(0);
+
+        expect(obs.current).toEqual(10);
+    });
+    test('when with promise observable', async () => {
+        let resolver;
+        const promise = new Promise<number>((resolve) => {
+            resolver = resolve;
+        });
+        const obs = observable(promise);
+
+        expect(obs.current).toEqual(undefined);
+
+        const fn = jest.fn();
+        when(() => obs.get() === 10, fn);
+
+        resolver(10);
+
+        await promiseTimeout(0);
+
+        expect(fn).toHaveBeenCalled();
+    });
+});

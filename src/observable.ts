@@ -608,22 +608,32 @@ function deleteFn(node: NodeValue, key?: string | number) {
     }
 }
 
-export function observable<T extends object>(obj: T, safe: true): ObservableObjectOrPrimitiveSafe<T>;
-export function observable<T extends object>(obj: T, safe: false): ObservableObjectOrPrimitive<T>;
-export function observable<T extends object>(obj: T, safe?: undefined): ObservableObjectOrPrimitiveDefault<T>;
-export function observable<T extends boolean>(prim: T, safe?: boolean): ObservablePrimitive<boolean>;
-export function observable<T extends string>(prim: T, safe?: boolean): ObservablePrimitive<string>;
-export function observable<T extends number>(prim: T, safe?: boolean): ObservablePrimitive<number>;
-export function observable<T extends boolean | string | number>(prim: T, safe?: boolean): ObservablePrimitive<T>;
-export function observable<T>(obj: T, safe?: boolean): ObservableObjectOrPrimitive<T> {
-    const isPrim = isPrimitive(obj);
+export function observable<T extends boolean>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<boolean>;
+export function observable<T extends string>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<string>;
+export function observable<T extends number>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<number>;
+export function observable<T extends object>(value: T | Promise<T>, safe: true): ObservableObjectOrPrimitiveSafe<T>;
+export function observable<T extends object>(value: T | Promise<T>, safe: false): ObservableObjectOrPrimitive<T>;
+export function observable<T extends object>(
+    value: T | Promise<T>,
+    safe?: undefined
+): ObservableObjectOrPrimitiveDefault<T>;
+export function observable<T extends boolean | string | number>(
+    value: T | Promise<T>,
+    safe?: boolean
+): ObservablePrimitive<T>;
+export function observable<T>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrPrimitive<T> {
+    const promise = (value as any).then && (value as unknown as Promise<T>);
+    if (promise) {
+        value = undefined;
+    }
+    const isPrim = !promise && isPrimitive(value);
     // Primitives wrap in current
     if (isPrim) {
-        obj = { current: obj } as any;
+        value = { current: value } as any;
     }
 
     const obs = {
-        _: obj as Observable<T>,
+        _: value as Observable<T>,
         isPrimitive: isPrim,
         safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
@@ -635,5 +645,20 @@ export function observable<T>(obj: T, safe?: boolean): ObservableObjectOrPrimiti
         key: undefined,
     };
 
-    return getProxy(node) as ObservableObjectOrPrimitive<T>;
+    const proxy = getProxy(node) as ObservableObjectOrPrimitive<T>;
+
+    if (promise) {
+        promise.catch((rejected) => {
+            proxy.set({ rejected } as any);
+        });
+        promise.then((value) => {
+            obs.isPrimitive = isPrimitive(value);
+            if (obs.isPrimitive) {
+                obs._ = { value: undefined };
+            }
+            proxy.set(value);
+        });
+    }
+
+    return proxy;
 }
