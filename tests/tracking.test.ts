@@ -139,7 +139,7 @@ describe('Tracking', () => {
     test('current on a primitive observes', () => {
         const prim = observable(0);
 
-        const a = prim.current;
+        const a = prim.value;
 
         const nodes = [...tracking.nodes.values()];
         expect(nodes[0].node.key).toEqual(undefined);

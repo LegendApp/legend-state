@@ -53,7 +53,7 @@ export function getNodeValue(node: NodeValue): any {
 export function getOutputValue(node: NodeValue) {
     let value = getNodeValue(node);
     if (node.root.isPrimitive) {
-        value = value.current;
+        value = value.value;
     }
     return value;
 }

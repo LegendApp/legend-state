@@ -731,11 +731,19 @@ describe('Primitives', () => {
     });
     test('observable root can be primitive', () => {
         const obs = observable(10);
-        expect(obs.current).toEqual(10);
+        expect(obs.value).toEqual(10);
         obs.set(20);
-        expect(obs.current).toEqual(20);
+        expect(obs.value).toEqual(20);
     });
-    test('Primitive callback does not have current', () => {
+    test('set value on observable notifies', () => {
+        const obs = observable(10);
+        expect(obs.value).toEqual(10);
+        const handler = expectChangeHandler(obs);
+        obs.value = 20;
+        expect(obs.value).toEqual(20);
+        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
+    });
+    test('Primitive callback does not have value', () => {
         const obs = observable(10);
         const handler = expectChangeHandler(obs);
         obs.onChange(handler);
@@ -1571,19 +1579,19 @@ describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => obs.test + obs.test2);
-        expect(comp.current).toEqual(30);
+        expect(comp.value).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => obs.test + obs.test2);
-        expect(comp.current).toEqual(30);
+        expect(comp.value).toEqual(30);
         const handler = expectChangeHandler(comp);
         obs.test.set(5);
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
-        expect(comp.current).toEqual(25);
+        expect(comp.value).toEqual(25);
         obs.test.set(1);
         expect(handler).toHaveBeenCalledWith(21, 25, [], 21, 25);
-        expect(comp.current).toEqual(21);
+        expect(comp.value).toEqual(21);
     });
     test('Cannot directly set a computed', () => {
         const obs = observable({ test: 10, test2: 20 });
@@ -1726,13 +1734,13 @@ describe('Observable with promise', () => {
         });
         const obs = observable(promise);
 
-        expect(obs.current).toEqual(undefined);
+        expect(obs.value).toEqual(undefined);
 
         resolver(10);
 
         await promiseTimeout(0);
 
-        expect(obs.current).toEqual(10);
+        expect(obs.value).toEqual(10);
     });
     test('when with promise observable', async () => {
         let resolver;
@@ -1741,14 +1749,14 @@ describe('Observable with promise', () => {
         });
         const obs = observable(promise);
 
-        expect(obs.current).toEqual(undefined);
+        expect(obs.value).toEqual(undefined);
 
         const fn = jest.fn();
         when(() => obs.get() === 10, fn);
 
         resolver(10);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1000);
 
         expect(fn).toHaveBeenCalled();
     });

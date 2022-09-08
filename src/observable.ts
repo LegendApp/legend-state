@@ -411,7 +411,7 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
     if (arguments.length > 2) {
         return setProp(node, keyOrNewValue, newValue);
     } else if (node.root.isPrimitive) {
-        return setProp(node, 'current', keyOrNewValue);
+        return setProp(node, 'value', keyOrNewValue);
     } else if (!node.parent) {
         return setProp(node, undef as any, keyOrNewValue);
     } else {
@@ -627,9 +627,9 @@ export function observable<T>(value: T | Promise<T>, safe?: boolean): Observable
         value = undefined;
     }
     const isPrim = !promise && isPrimitive(value);
-    // Primitives wrap in current
+    // Primitives wrap in value
     if (isPrim) {
-        value = { current: value } as any;
+        value = { value } as any;
     }
 
     const obs = {

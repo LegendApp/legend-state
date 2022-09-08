@@ -227,7 +227,7 @@ export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & Obse
 export type ObservableObjectDefault<T = any> = ObservableFnsRecursiveDefault<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
-export type ObservablePrimitive<T = any> = { readonly current: T } & ObservablePrimitiveFns<T>;
+export type ObservablePrimitive<T = any> = { value: T } & ObservablePrimitiveFns<T>;
 export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
 export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
     ? ObservablePrimitive<T>
@@ -237,7 +237,7 @@ export type ObservableObjectOrPrimitiveDefault<T> = [T] extends [Primitive]
     : ObservableObjectDefault<T>;
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
     ObservableComputedFnsRecursive<T> &
-    ([T] extends [Primitive] ? { readonly current: T } : T);
+    ([T] extends [Primitive] ? { readonly value: T } : T);
 export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
 
 export type ObservableReadable<T = any> =
