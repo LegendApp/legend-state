@@ -94,25 +94,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
     // If array it's faster to just use the array
     const keys = isArr ? obj : obj ? Object.keys(obj) : [];
-    // let isArrayOptimized = false;
-    let arrayHasOptimized = false;
 
     let idField: string;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
         if (prevValue?.length > 0) {
-            if (parent.listeners) {
-                // isArrayOptimized = true;
-                arrayHasOptimized = false;
-                for (let listenerFn of parent.listeners) {
-                    // if listener is not optimized
-                    if (listenerFn[0][0] === 'o') {
-                        arrayHasOptimized = true;
-                        break;
-                    }
-                }
-            }
             const p = prevValue[0];
             if (p) {
                 idField =
@@ -222,8 +209,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                 parent.children.set(key, child);
             }
         }
-
-        // TODO: !isArrDiff should only be for optimized listeners
 
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
