@@ -530,8 +530,9 @@ function _notify(
     if (listeners) {
         let getPrevious;
         for (let listenerFn of listeners) {
-            const shallow = listenerFn[0][0] === 's';
-            const optimized = listenerFn[0][0] === 'o';
+            const track = listenerFn[0][0];
+            const shallow = track === 's';
+            const optimized = track === 'o';
             const listener = listenerFn[1];
 
             const ok = shallow ? level <= 0 : optimized ? whenOptimizedOnlyIf && level <= 0 : true;
@@ -578,7 +579,7 @@ function _notifyParents(
     }
 }
 function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
-    // Start notifying up through parents with the listenerInfo
+    // Notify self and up through parents
     _notifyParents(node, value, [], value, prev, level, whenOptimizedOnlyIf);
 }
 

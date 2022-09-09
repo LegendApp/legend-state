@@ -3,16 +3,17 @@ import { createElement, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject, ObservableReadable } from '../observableInterfaces';
 import { observer } from './observer';
 
+const returnTrue = function () {
+    return true;
+};
+
 export const Isolate = observer(function Isolate({ children }: { children: () => ReactNode }): ReactElement {
     return (children as () => ReactElement)();
 });
 
-export const Memo = observer(
-    function Memo({ children }: { children: () => ReactNode }): ReactElement {
-        return (children as () => ReactElement)();
-    },
-    () => true
-);
+export const Memo = observer(function Memo({ children }: { children: () => ReactNode }): ReactElement {
+    return (children as () => ReactElement)();
+}, returnTrue);
 
 export const Show = observer(function Show<T>({
     if: if_,
