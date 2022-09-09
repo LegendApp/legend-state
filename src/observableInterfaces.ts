@@ -52,7 +52,7 @@ export type ListenerFn<T = any> = (
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
-    node: NodeValue
+    obs: ObservableRef
 ) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;

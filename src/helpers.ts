@@ -1,11 +1,14 @@
-import { symbolDateModified, symbolIsObservable } from './globals';
+import { symbolDateModified, symbolGetNode, symbolIsObservable } from './globals';
 import { isObject } from './is';
-import type { ObservableObject } from './observableInterfaces';
+import type { NodeValue, ObservableObject, ObservableRef } from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
     return obs && !!obs[symbolIsObservable as any];
 }
 
+export function getNode(obs: ObservableRef): NodeValue {
+    return obs[symbolGetNode];
+}
 export function mergeIntoObservable(target: ObservableObject | object, ...sources: any[]) {
     if (!sources.length) return target;
 

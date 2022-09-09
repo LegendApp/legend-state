@@ -1,4 +1,4 @@
-import { getNodeValue, Tracking } from './globals';
+import { getNodeValue } from './globals';
 import { ListenerFn, NodeValue } from './observableInterfaces';
 
 let listenerIndex = 0;
@@ -21,7 +21,7 @@ export function onChange(
 
         if (options.runImmediately) {
             const value = getNodeValue(node);
-            callback(value, () => value, [], value, value, node);
+            callback(value, () => value, [], value, value, node.proxy);
         }
     }
 

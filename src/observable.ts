@@ -1,4 +1,13 @@
-import { checkTracking, get, getChildNode, getNodeValue, nextNodeID, symbolIsObservable, Tracking } from './globals';
+import {
+    checkTracking,
+    get,
+    getChildNode,
+    getNodeValue,
+    nextNodeID,
+    symbolGetNode,
+    symbolIsObservable,
+    Tracking,
+} from './globals';
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { beginBatch, endBatch, batchNotify } from './batching';
 import {
@@ -248,6 +257,9 @@ const proxyHandler: ProxyHandler<any> = {
         // Return true is called by isObservable()
         if (p === symbolIsObservable) {
             return true;
+        }
+        if (p === symbolGetNode) {
+            return target;
         }
 
         const node = target;
@@ -529,7 +541,7 @@ function _notify(
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
-                batchNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath, node });
+                batchNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath, obs: getProxy(node) });
             }
         }
     }

@@ -4,6 +4,8 @@ import { tracking, untrack, updateTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
+export const symbolGetNode = Symbol('getNode');
+
 export namespace Tracking {
     export const normal = true;
     export const shallow = Symbol('shallow');
