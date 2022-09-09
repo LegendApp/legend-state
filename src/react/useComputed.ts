@@ -1,20 +1,20 @@
 import { useMemo, useState } from 'react';
-import { useObserver } from './useObserver';
+import { effect } from 'src/effect';
 
 export function useComputed<T>(selector: () => T, deps: any[]): T {
-    // Do all the computed magic inside a useMemo so we can get an initial value
+    // Do computed computation inside a useMemo so we can get an initial value
     const initial = useMemo(() => {
         let prevValue;
-        const onChange = () => {
+        // Do this in an effect to track automatically
+        effect(() => {
             const v = selector();
             // If the selector value is different than previously
             if (v !== prevValue) {
                 prevValue = v;
-                setValue(v);
+                // setValue may be undefined if this is the first run
+                setValue?.(v);
             }
-        };
-        // Set up all the listeners while computing the value
-        prevValue = useObserver(selector, onChange);
+        });
 
         return prevValue;
     }, deps || []);

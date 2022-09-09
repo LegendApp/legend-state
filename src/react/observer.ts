@@ -1,6 +1,7 @@
-import { ComponentProps, FC, forwardRef, memo } from 'react';
+import { effect, tracking } from '@legendapp/state';
+import { ComponentProps, FC, forwardRef, memo, useEffect } from 'react';
+import { setupTracking } from 'src/effect';
 import { useForceRender } from './useForceRender';
-import { useObserver } from './useObserver';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
 
@@ -28,9 +29,42 @@ export function observer<T extends FC<any>>(
     // Create a wrapper observer component
     let observer = function (props, ref) {
         const forceRender = useForceRender();
+        let inRender = true;
+        let rendered;
+        let cachedNodes;
 
-        // Set up all the listeners while rendering the component
-        return useObserver(() => component(props, ref), forceRender);
+        const update = function () {
+            if (inRender) {
+                rendered = component(props, ref);
+            } else {
+                forceRender();
+            }
+            inRender = false;
+
+            if (process.env.NODE_ENV === 'development') {
+                cachedNodes = tracking.nodes;
+            }
+        };
+
+        let dispose = effect(update);
+
+        if (process.env.NODE_ENV === 'development') {
+            useEffect(() => {
+                // Workaround for React 18's double calling useEffect. If this is the
+                // second useEffect, set up tracking again.
+                if (dispose === undefined) {
+                    dispose = setupTracking(cachedNodes, update);
+                }
+                return () => {
+                    dispose();
+                    dispose = undefined;
+                };
+            });
+        } else {
+            useEffect(() => dispose);
+        }
+
+        return rendered;
     };
 
     if (componentName !== '') {

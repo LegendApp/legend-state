@@ -1,7 +1,32 @@
 import { Tracking } from './globals';
-import { ListenerOptions } from './observableInterfaces';
+import { ListenerOptions, TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { tracking } from './tracking';
+
+export function setupTracking(nodes: Map<number, TrackingNode>, update: () => void) {
+    let listeners = [];
+    // Listen to tracked nodes
+    for (let tracked of nodes.values()) {
+        const { node, track } = tracked;
+        let options: ListenerOptions;
+        if (track) {
+            options = {
+                shallow: track === Tracking.shallow,
+                optimized: track === Tracking.optimized,
+            };
+        }
+        listeners.push(onChange(node, update, options));
+    }
+
+    return () => {
+        if (listeners) {
+            for (let i = 0; i < listeners.length; i++) {
+                listeners[i]();
+            }
+            listeners = undefined;
+        }
+    };
+}
 
 export function effect(run: () => void | (() => void)) {
     let cleanup: () => void;
@@ -19,28 +44,9 @@ export function effect(run: () => void | (() => void)) {
 
     cleanup = run() as () => void;
 
-    let listeners = [];
-    // Listen to tracked nodes
-    for (let tracked of tracking.nodes.values()) {
-        const { node, track } = tracked;
-        let options: ListenerOptions;
-        if (track) {
-            options = {
-                shallow: track === Tracking.shallow,
-                optimized: track === Tracking.optimized,
-            };
-        }
-        listeners.push(onChange(node, update, options));
-    }
+    const ret = setupTracking(tracking.nodes, update);
 
     tracking.nodes = trackingPrev;
 
-    return () => {
-        if (listeners) {
-            for (let i = 0; i < listeners.length; i++) {
-                listeners[i]();
-            }
-            listeners = undefined;
-        }
-    };
+    return ret;
 }
