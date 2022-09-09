@@ -31,7 +31,7 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
 export function effect(run: () => void | (() => void)) {
     let cleanup: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
-    const update = function () {
+    let update = function () {
         if (cleanup) {
             cleanup();
             cleanup = undefined;
@@ -43,6 +43,14 @@ export function effect(run: () => void | (() => void)) {
     tracking.nodes = new Map();
 
     cleanup = run() as () => void;
+
+    // Do tracing if it was requested
+    if (process.env.NODE_ENV === 'development') {
+        tracking.listeners?.(tracking.nodes);
+        if (tracking.updates) {
+            update = tracking.updates(update);
+        }
+    }
 
     const ret = setupTracking(tracking.nodes, update);
 
