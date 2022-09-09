@@ -9,6 +9,13 @@ export function isObservable(obs: any): obs is ObservableObject {
 export function getNode(obs: ObservableRef): NodeValue {
     return obs[symbolGetNode];
 }
+
+export function lockEdits(obs: ObservableRef, value: boolean) {
+    const root = getNode(obs)?.root;
+    if (root) {
+        root.locked = value;
+    }
+}
 export function mergeIntoObservable(target: ObservableObject | object, ...sources: any[]) {
     if (!sources.length) return target;
 

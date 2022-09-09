@@ -217,6 +217,7 @@ export interface ObservableWrapper {
     _: any;
     isPrimitive: boolean;
     safeMode: 0 | 1 | 2;
+    locked?: boolean;
 }
 
 export type Primitive = boolean | string | number | Date;

@@ -427,6 +427,14 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
         }
     }
 
+    if (node.root.locked) {
+        throw new Error(
+            process.env.NODE_ENV === 'development'
+                ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
+                : '[legend-state] Modified locked observable'
+        );
+    }
+
     const isDelete = newValue === undef;
     if (isDelete) newValue = undefined;
 
