@@ -327,7 +327,7 @@ const proxyHandler: ProxyHandler<any> = {
                     updateTracking(node, undefined, Tracking.shallow);
                 } else if (node.root.isPrimitive) {
                     updateTracking(node);
-                } else {
+                } else if (!isPrimitive(value)) {
                     updateTracking(getChildNode(node, p), node);
                 }
             }

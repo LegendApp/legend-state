@@ -31,11 +31,15 @@ export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Sy
         keyOrTrack = undefined;
     }
 
+    if (keyOrTrack) {
+        node = getChildNode(node, keyOrTrack as string);
+    }
+
     // Track by default
     checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
 
     const value = getNodeValue(node);
-    return node.root.isPrimitive ? value.value : keyOrTrack ? value?.[keyOrTrack as string | number] : value;
+    return node.root.isPrimitive ? value.value : value;
 }
 
 export function getNodeValue(node: NodeValue): any {
