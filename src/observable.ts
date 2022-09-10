@@ -81,15 +81,14 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 
     if (node) {
         const parent = node.parent;
-        if (parent) {
-            const parentValue = getNodeValue(parent);
+        const key = parent ? node.key : '_';
+        const parentValue = parent ? getNodeValue(parent) : node.root;
 
-            // Set the object to the previous value first
-            parentValue[node.key] = prevValue;
+        // Set the object to the previous value first
+        parentValue[key] = prevValue;
 
-            // Then set with the new value so it notifies with the correct prevValue
-            setProp(parent, node.key, target);
-        }
+        // Then set with the new value so it notifies with the correct prevValue
+        setProp(parent || node, parent ? key : (undef as any), target);
     }
 
     // Return the original value

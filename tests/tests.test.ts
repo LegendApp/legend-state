@@ -786,6 +786,14 @@ describe('Array', () => {
         obs.set([1, 2, 3]);
         expect(obs.get()).toEqual([1, 2, 3]);
     });
+    test('Array at root listens', () => {
+        const obs = observable([]);
+        expect(obs.get()).toEqual([]);
+        const handler = expectChangeHandler(obs);
+
+        obs.push(1);
+        expect(handler).toHaveBeenCalledWith([1], [], [], [1], []);
+    });
     test('Array functions', () => {
         const obs = observable({ arr: [] });
         const handler = jest.fn();

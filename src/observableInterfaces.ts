@@ -223,19 +223,38 @@ export interface ObservableWrapper {
 export type Primitive = boolean | string | number | Date;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
+export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
+    ObservableObjectFns<T> &
+    ObservableArrayOverride<ObservableObject<T[number]>>;
+export type ObservableArraySafe<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
+    ObservableObjectFns<T> &
+    ObservableArrayOverride<ObservableObjectSafe<T[number]>>;
+export type ObservableArrayDefault<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
+    ObservableObjectFns<T> &
+    ObservableArrayOverride<ObservableObjectDefault<T[number]>>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & ObservableObjectFns<T>;
 export type ObservableObjectDefault<T = any> = ObservableFnsRecursiveDefault<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitive<T = any> = { value: T } & ObservablePrimitiveFns<T>;
-export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+
+export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive]
+    ? ObservablePrimitive<T>
+    : T extends any[]
+    ? ObservableArray<T>
+    : ObservableObject<T>;
 export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
     ? ObservablePrimitive<T>
+    : T extends any[]
+    ? ObservableArraySafe<T>
     : ObservableObjectSafe<T>;
 export type ObservableObjectOrPrimitiveDefault<T> = [T] extends [Primitive]
     ? ObservablePrimitive<T>
+    : T extends any[]
+    ? ObservableArrayDefault<T>
     : ObservableObjectDefault<T>;
+
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
     ObservableComputedFnsRecursive<T> &
     ([T] extends [Primitive] ? { readonly value: T } : T);
