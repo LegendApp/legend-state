@@ -267,10 +267,6 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
-            if (p !== 'get' && p !== 'ref') {
-                // Observable operations do not create listeners
-                if (tracking.nodes) untrack(node);
-            }
             return function (a, b, c) {
                 const l = arguments.length;
                 // Array call and apply are slow so micro-optimize this hot path.
@@ -596,9 +592,6 @@ function notify(node: NodeValue, value: any, prev: any, level: number, whenOptim
 }
 
 function assign(node: NodeValue, value: any) {
-    // Set operations do not create listeners
-    if (tracking.nodes) untrack(node);
-
     const proxy = getProxy(node);
 
     beginBatch();
