@@ -1,5 +1,5 @@
-import { extraPrimitiveProps, Observable } from '@legendapp/state';
-import { ComponentProps, createElement, FC, forwardRef, memo } from 'react';
+import { extraPrimitiveProps, Observable, tracking } from '@legendapp/state';
+import { ComponentProps, createElement, FC, forwardRef, memo, useEffect, useState } from 'react';
 import { useComputed } from './useComputed';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
@@ -47,8 +47,28 @@ export function observer<T extends FC<any>>(
 
 // Memoized component to wrap the observable value
 const Text = memo(function Text({ data }: { data: Observable }) {
-    const get = data?.get;
-    return get ? useComputed(get) : null;
+    // Exit the tracking context first
+    const trackingPrev = tracking.nodes;
+    tracking.nodes = undefined;
+
+    let [value, setValue] = useState(data.get(false));
+
+    useEffect(() => {
+        const cur = data.get(false);
+        // Set to current if it changed since mount
+        if (value !== cur) {
+            setValue(cur);
+        }
+        // Set up change listener
+        const dispose = data.onChange((v) => setValue(v));
+        // Cleanup on unmount
+        return dispose;
+    }, []);
+
+    // Restore the tracking context
+    tracking.nodes = trackingPrev;
+
+    return value;
 }, returnTrue);
 
 const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
