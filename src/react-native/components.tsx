@@ -1,4 +1,5 @@
 import { isFunction } from '@legendapp/state';
+import { observer } from '@legendapp/state/react';
 import { createElement, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
 import {
     NativeSyntheticEvent,
@@ -12,8 +13,7 @@ import {
     TextStyle,
     ViewStyle,
 } from 'react-native';
-import { NotPrimitive, ObservableFns, ObservableWriteable, Primitive } from '../observableInterfaces';
-import { observer } from '../react/observer';
+import type { NotPrimitive, ObservableFns, ObservableWriteable, Primitive } from '../observableInterfaces';
 
 type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
     bind?: ObservableWriteable<TValue> & NotPrimitive<TBind>;

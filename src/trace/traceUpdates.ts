@@ -1,5 +1,5 @@
 import { getNode, Observable, tracking } from '@legendapp/state';
-import { getNodePath } from 'src/trace/traceHelpers';
+import { getNodePath } from './traceHelpers';
 
 export function traceUpdates(name?: string) {
     tracking.updates = replaceUpdateFn.bind(this, name);
