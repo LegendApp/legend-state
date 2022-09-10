@@ -6,6 +6,8 @@ export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolGetNode = Symbol('getNode');
 
+export const extraPrimitiveProps = new Map<string, any>();
+
 export namespace Tracking {
     export const normal = true;
     export const shallow = Symbol('shallow');

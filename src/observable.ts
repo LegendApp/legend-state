@@ -1,4 +1,5 @@
 import {
+    extraPrimitiveProps,
     checkTracking,
     get,
     getChildNode,
@@ -313,6 +314,12 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Accessing primitive returns the raw value
         if (vProp === undefined || vProp === null || isPrimitive(vProp)) {
+            if (extraPrimitiveProps.size) {
+                const vPrim = extraPrimitiveProps.get(p);
+                if (vPrim !== undefined) {
+                    return vPrim?.__fn?.(getProxy(target)) ?? vPrim;
+                }
+            }
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
