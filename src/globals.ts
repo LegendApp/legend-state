@@ -34,8 +34,8 @@ export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Sy
     // Track by default
     checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
 
-    const value = getOutputValue(node);
-    return keyOrTrack ? value?.[keyOrTrack as string | number] : value;
+    const value = getNodeValue(node);
+    return node.root.isPrimitive ? value.value : keyOrTrack ? value?.[keyOrTrack as string | number] : value;
 }
 
 export function getNodeValue(node: NodeValue): any {
@@ -52,14 +52,6 @@ export function getNodeValue(node: NodeValue): any {
         }
     }
     return child;
-}
-
-export function getOutputValue(node: NodeValue) {
-    let value = getNodeValue(node);
-    if (node.root.isPrimitive) {
-        value = value.value;
-    }
-    return value;
 }
 
 export function getChildNode(node: NodeValue, key: string | number): NodeValue {
