@@ -45,7 +45,7 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forE
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
-    ['ref', ref],
+    ['obs', obs],
     ['onChange', onChange],
     ['assign', assign],
     ['delete', deleteFn],
@@ -60,7 +60,7 @@ const wrapFn = (fn: Function) =>
                 return fn(node, ...args);
             } else if (process.env.NODE_ENV === 'development') {
                 console.error(
-                    `[legend-state] Error calling ${fn} on a primitive with value ${this}. Please ensure that if you are saving references to observable functions on primitive values that you use ref() first, like obs.primitive.ref().set.`
+                    `[legend-state] Error calling ${fn} on a primitive with value ${this}. Please ensure that if you are saving references to observable functions on primitive values that you use obs() first, like obs.primitive.obs().set.`
                 );
             }
         }
@@ -236,7 +236,7 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
-function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
+function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
     if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
         track = keyOrTrack;
         keyOrTrack = undefined;
