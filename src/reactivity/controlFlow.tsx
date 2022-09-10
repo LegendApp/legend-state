@@ -79,7 +79,7 @@ export function For<
         const refChildren = useRef<(value: T) => ReactElement>();
         refChildren.current = children;
 
-        item = useMemo(() => observer(({ item }) => refChildren.current(item)), []);
+        item = useMemo(() => memo(({ item }) => useComputed(() => refChildren.current(item))), []);
     }
 
     // Get the appropriate id field
