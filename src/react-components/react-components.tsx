@@ -1,4 +1,5 @@
 import { isFunction } from '@legendapp/state';
+import { observer } from '@legendapp/state/react';
 import {
     ChangeEvent,
     createElement,
@@ -13,7 +14,6 @@ import {
     useCallback,
 } from 'react';
 import type { NotPrimitive, ObservableWriteable, Primitive } from '../observableInterfaces';
-import { observer } from './observer';
 
 type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     className?: string | ((value: TValue) => string);

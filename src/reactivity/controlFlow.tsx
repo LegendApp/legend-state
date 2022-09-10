@@ -1,15 +1,18 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
 import { createElement, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject, ObservableReadable } from '../observableInterfaces';
-import { observer, returnTrue } from './observer';
+import { observer } from '@legendapp/state/react';
 
 export const Isolate = observer(function Isolate({ children }: { children: () => ReactNode }): ReactElement {
     return (children as () => ReactElement)();
 });
 
-export const Memo = observer(function Memo({ children }: { children: () => ReactNode }): ReactElement {
-    return (children as () => ReactElement)();
-}, returnTrue);
+export const Memo = observer(
+    function Memo({ children }: { children: () => ReactNode }): ReactElement {
+        return (children as () => ReactElement)();
+    },
+    () => true
+);
 
 export const Show = observer(function Show<T>({
     if: if_,

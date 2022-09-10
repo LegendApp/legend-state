@@ -3,9 +3,6 @@ import { ComponentProps, createElement, FC, forwardRef, memo, useEffect, useStat
 import { useComputed } from './useComputed';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
-export const returnTrue = function () {
-    return true;
-};
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 const ReactForwardRefSymbol = hasSymbol
@@ -46,30 +43,33 @@ export function observer<T extends FC<any>>(
 }
 
 // Memoized component to wrap the observable value
-const Text = memo(function Text({ data }: { data: NodeValue }) {
-    // Exit the tracking context first
-    const trackingPrev = tracking.nodes;
-    tracking.nodes = undefined;
+const Text = memo(
+    function Text({ data }: { data: NodeValue }) {
+        // Exit the tracking context first
+        const trackingPrev = tracking.nodes;
+        tracking.nodes = undefined;
 
-    let [value, setValue] = useState(getNodeValue(data));
+        let [value, setValue] = useState(getNodeValue(data));
 
-    useEffect(() => {
-        const cur = getNodeValue(data);
-        // Set to current if it changed since mount
-        if (value !== cur) {
-            setValue(cur);
-        }
-        // Set up change listener
-        const dispose = onChange(data, (v) => setValue(v));
-        // Cleanup on unmount
-        return dispose;
-    }, []);
+        useEffect(() => {
+            const cur = getNodeValue(data);
+            // Set to current if it changed since mount
+            if (value !== cur) {
+                setValue(cur);
+            }
+            // Set up change listener
+            const dispose = onChange(data, (v) => setValue(v));
+            // Cleanup on unmount
+            return dispose;
+        }, []);
 
-    // Restore the tracking context
-    tracking.nodes = trackingPrev;
+        // Restore the tracking context
+        tracking.nodes = trackingPrev;
 
-    return value;
-}, returnTrue);
+        return value;
+    },
+    () => true
+);
 
 const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
 
