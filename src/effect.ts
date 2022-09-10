@@ -32,17 +32,31 @@ export function effect(run: () => void | (() => void)) {
     let cleanup: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
+        // Clear tracing
+        if (process.env.NODE_ENV === 'development') {
+            tracking.listeners = undefined;
+            tracking.updates = undefined;
+        }
+
         if (cleanup) {
             cleanup();
             cleanup = undefined;
         }
         cleanup = run() as () => void;
+
+        // Do tracing if it was requested
+        if (process.env.NODE_ENV === 'development') {
+            tracking.listeners?.(tracking.nodes);
+            if (tracking.updates) {
+                update = tracking.updates(update);
+            }
+        }
     };
 
     const trackingPrev = tracking.nodes;
     tracking.nodes = new Map();
 
-    cleanup = run() as () => void;
+    update();
 
     // Do tracing if it was requested
     if (process.env.NODE_ENV === 'development') {
