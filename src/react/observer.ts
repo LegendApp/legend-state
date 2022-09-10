@@ -1,4 +1,4 @@
-import { extraPrimitiveProps, Observable, tracking } from '@legendapp/state';
+import { extraPrimitiveProps, getNodeValue, NodeValue, onChange, tracking } from '@legendapp/state';
 import { ComponentProps, createElement, FC, forwardRef, memo, useEffect, useState } from 'react';
 import { useComputed } from './useComputed';
 
@@ -46,21 +46,21 @@ export function observer<T extends FC<any>>(
 }
 
 // Memoized component to wrap the observable value
-const Text = memo(function Text({ data }: { data: Observable }) {
+const Text = memo(function Text({ data }: { data: NodeValue }) {
     // Exit the tracking context first
     const trackingPrev = tracking.nodes;
     tracking.nodes = undefined;
 
-    let [value, setValue] = useState(data.get(false));
+    let [value, setValue] = useState(getNodeValue(data));
 
     useEffect(() => {
-        const cur = data.get(false);
+        const cur = getNodeValue(data);
         // Set to current if it changed since mount
         if (value !== cur) {
             setValue(cur);
         }
         // Set up change listener
-        const dispose = data.onChange((v) => setValue(v));
+        const dispose = onChange(data, (v) => setValue(v));
         // Cleanup on unmount
         return dispose;
     }, []);

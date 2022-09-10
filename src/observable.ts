@@ -313,7 +313,7 @@ const proxyHandler: ProxyHandler<any> = {
             if (extraPrimitiveProps.size) {
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
-                    return vPrim?.__fn?.(getProxy(target)) ?? vPrim;
+                    return vPrim?.__fn?.(target) ?? vPrim;
                 }
             }
             // Accessing a primitive saves the last accessed so that the observable functions

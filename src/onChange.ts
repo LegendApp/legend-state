@@ -7,7 +7,7 @@ export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
     options?: { runImmediately?: boolean; shallow?: boolean; optimized?: boolean }
-) {
+): () => void {
     let id = listenerIndex++ as unknown as string;
     let listeners = node.listeners;
     if (!listeners) {
