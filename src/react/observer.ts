@@ -1,9 +1,10 @@
-import { effect, tracking } from '@legendapp/state';
-import { ComponentProps, FC, forwardRef, memo, useEffect } from 'react';
-import { setupTracking } from 'src/effect';
-import { useForceRender } from './useForceRender';
+import { ComponentProps, FC, forwardRef, memo } from 'react';
+import { useComputed } from './useComputed';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
+export const returnTrue = function () {
+    return true;
+};
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 const ReactForwardRefSymbol = hasSymbol
@@ -28,43 +29,7 @@ export function observer<T extends FC<any>>(
 
     // Create a wrapper observer component
     let observer = function (props, ref) {
-        const forceRender = useForceRender();
-        let inRender = true;
-        let rendered;
-        let cachedNodes;
-
-        const update = function () {
-            if (inRender) {
-                rendered = component(props, ref);
-            } else {
-                forceRender();
-            }
-            inRender = false;
-
-            if (process.env.NODE_ENV === 'development') {
-                cachedNodes = tracking.nodes;
-            }
-        };
-
-        let dispose = effect(update);
-
-        if (process.env.NODE_ENV === 'development') {
-            useEffect(() => {
-                // Workaround for React 18's double calling useEffect. If this is the
-                // second useEffect, set up tracking again.
-                if (dispose === undefined) {
-                    dispose = setupTracking(cachedNodes, update);
-                }
-                return () => {
-                    dispose();
-                    dispose = undefined;
-                };
-            });
-        } else {
-            useEffect(() => dispose);
-        }
-
-        return rendered;
+        return useComputed(() => component(props, ref));
     };
 
     if (componentName !== '') {

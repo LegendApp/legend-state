@@ -1,11 +1,7 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
 import { createElement, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject, ObservableReadable } from '../observableInterfaces';
-import { observer } from './observer';
-
-const returnTrue = function () {
-    return true;
-};
+import { observer, returnTrue } from './observer';
 
 export const Isolate = observer(function Isolate({ children }: { children: () => ReactNode }): ReactElement {
     return (children as () => ReactElement)();
