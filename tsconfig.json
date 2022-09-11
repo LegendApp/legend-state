@@ -36,6 +36,9 @@
             "@legendapp/state/persist": [
                 "persist"
             ],
+            "@legendapp/state/react": [
+                "react"
+            ],
         },
         "resolveJsonModule": true,
         "noEmit": true
@@ -46,6 +49,7 @@
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "dist",
+        "state-types.d.ts"
     ],
 }

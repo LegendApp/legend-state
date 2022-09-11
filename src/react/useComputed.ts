@@ -1,25 +1,48 @@
-import { useMemo, useState } from 'react';
-import { effect } from 'src/effect';
+import { effect, setupTracking, tracking } from '@legendapp/state';
+import { useEffect } from 'react';
+import { useForceRender } from './useForceRender';
 
-export function useComputed<T>(selector: () => T, deps: any[]): T {
-    // Do computed computation inside a useMemo so we can get an initial value
-    const initial = useMemo(() => {
-        let prevValue;
-        // Do this in an effect to track automatically
-        effect(() => {
-            const v = selector();
-            // If the selector value is different than previously
-            if (v !== prevValue) {
-                prevValue = v;
-                // setValue may be undefined if this is the first run
-                setValue?.(v);
+export function useComputed<T>(selector: () => T) {
+    let inRun = true;
+    let ret: T;
+    let cachedNodes;
+
+    const forceRender = useForceRender();
+
+    const update = function () {
+        if (inRun) {
+            // If running, run and return the component
+            ret = selector();
+        } else {
+            // If not running, this is from observable changing so trigger a render
+            forceRender();
+        }
+        inRun = false;
+
+        // Workaround for React 18's double calling useEffect - cached the tracking nodes
+        if (process.env.NODE_ENV === 'development') {
+            cachedNodes = tracking.nodes;
+        }
+    };
+
+    let dispose = effect(update);
+
+    if (process.env.NODE_ENV === 'development') {
+        useEffect(() => {
+            // Workaround for React 18's double calling useEffect. If this is the
+            // second useEffect, set up tracking again.
+            if (dispose === undefined) {
+                dispose = setupTracking(cachedNodes, update);
             }
+            return () => {
+                dispose();
+                dispose = undefined;
+            };
         });
+    } else {
+        // Return dispose to cleanup before each render or unmount
+        useEffect(() => dispose);
+    }
 
-        return prevValue;
-    }, deps || []);
-
-    const [value, setValue] = useState(initial);
-
-    return value;
+    return ret;
 }

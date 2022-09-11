@@ -1,7 +1,6 @@
-import { effect, tracking } from '@legendapp/state';
-import { ComponentProps, FC, forwardRef, memo, useEffect } from 'react';
-import { setupTracking } from 'src/effect';
-import { useForceRender } from './useForceRender';
+import { extraPrimitiveProps, getNodeValue, NodeValue, onChange, tracking } from '@legendapp/state';
+import { ComponentProps, createElement, FC, forwardRef, memo, useEffect, useState } from 'react';
+import { useComputed } from './useComputed';
 
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
 
@@ -28,43 +27,7 @@ export function observer<T extends FC<any>>(
 
     // Create a wrapper observer component
     let observer = function (props, ref) {
-        const forceRender = useForceRender();
-        let inRender = true;
-        let rendered;
-        let cachedNodes;
-
-        const update = function () {
-            if (inRender) {
-                rendered = component(props, ref);
-            } else {
-                forceRender();
-            }
-            inRender = false;
-
-            if (process.env.NODE_ENV === 'development') {
-                cachedNodes = tracking.nodes;
-            }
-        };
-
-        let dispose = effect(update);
-
-        if (process.env.NODE_ENV === 'development') {
-            useEffect(() => {
-                // Workaround for React 18's double calling useEffect. If this is the
-                // second useEffect, set up tracking again.
-                if (dispose === undefined) {
-                    dispose = setupTracking(cachedNodes, update);
-                }
-                return () => {
-                    dispose();
-                    dispose = undefined;
-                };
-            });
-        } else {
-            useEffect(() => dispose);
-        }
-
-        return rendered;
+        return useComputed(() => component(props, ref));
     };
 
     if (componentName !== '') {
@@ -78,3 +41,42 @@ export function observer<T extends FC<any>>(
 
     return memo(observer, propsAreEqual) as unknown as T;
 }
+
+// Memoized component to wrap the observable value
+const Text = memo(
+    function Text({ data }: { data: NodeValue }) {
+        // Exit the tracking context first
+        const trackingPrev = tracking.nodes;
+        tracking.nodes = undefined;
+
+        let [value, setValue] = useState(getNodeValue(data));
+
+        useEffect(() => {
+            const cur = getNodeValue(data);
+            // Set to current if it changed since mount
+            if (value !== cur) {
+                setValue(cur);
+            }
+            // Set up change listener
+            const dispose = onChange(data, (v) => setValue(v));
+            // Cleanup on unmount
+            return dispose;
+        }, []);
+
+        // Restore the tracking context
+        tracking.nodes = trackingPrev;
+
+        return value;
+    },
+    () => true
+);
+
+const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
+
+// Set extra props for the proxyHandler to return on primitives
+extraPrimitiveProps.set('$$typeof', ReactTypeofSymbol);
+extraPrimitiveProps.set('type', Text);
+extraPrimitiveProps.set('props', {
+    __fn: (obs) => ({ data: obs }),
+});
+extraPrimitiveProps.set('ref', null);

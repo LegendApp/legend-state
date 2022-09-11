@@ -6,6 +6,8 @@ export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolGetNode = Symbol('getNode');
 
+export const extraPrimitiveProps = new Map<string, any>();
+
 export namespace Tracking {
     export const normal = true;
     export const shallow = Symbol('shallow');
@@ -29,11 +31,15 @@ export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Sy
         keyOrTrack = undefined;
     }
 
+    if (keyOrTrack) {
+        node = getChildNode(node, keyOrTrack as string);
+    }
+
     // Track by default
     checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
 
-    const value = getOutputValue(node);
-    return keyOrTrack ? value?.[keyOrTrack as string | number] : value;
+    const value = getNodeValue(node);
+    return node.root.isPrimitive ? value.value : value;
 }
 
 export function getNodeValue(node: NodeValue): any {
@@ -50,14 +56,6 @@ export function getNodeValue(node: NodeValue): any {
         }
     }
     return child;
-}
-
-export function getOutputValue(node: NodeValue) {
-    let value = getNodeValue(node);
-    if (node.root.isPrimitive) {
-        value = value.value;
-    }
-    return value;
 }
 
 export function getChildNode(node: NodeValue, key: string | number): NodeValue {

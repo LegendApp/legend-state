@@ -3,37 +3,37 @@ import 'react-native';
 
 declare module 'react-native' {
     interface FlatListProps<ItemT> extends VirtualizedListProps<ItemT> {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 
     interface ImagePropsBase {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 
     interface ViewProps {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 
     interface TextProps {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 
     interface SwitchProps {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 
     interface InputAccessoryViewProps {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 
     interface TouchableWithoutFeedbackProps {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 }

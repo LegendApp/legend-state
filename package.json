@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "0.15.0-next.9",
+    "version": "0.15.0-next.10",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
@@ -59,15 +59,15 @@
             "require": "./react.js",
             "types": "./react.d.ts"
         },
-        "./react-native": {
-            "import": "./react-native.mjs",
-            "require": "./react-native.js",
-            "types": "./react-native.d.ts"
+        "./react-components": {
+            "import": "./react-components.mjs",
+            "require": "./react-components.js",
+            "types": "./react-components.d.ts"
         },
-        "./reactivity": {
-            "import": "./reactivity.mjs",
-            "require": "./reactivity.js",
-            "types": "./reactivity.d.ts"
+        "./react-native-components": {
+            "import": "./react-native-components.mjs",
+            "require": "./react-native-components.js",
+            "types": "./react-native-components.d.ts"
         },
         "./trace": {
             "import": "./trace.mjs",

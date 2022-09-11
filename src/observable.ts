@@ -1,4 +1,5 @@
 import {
+    extraPrimitiveProps,
     checkTracking,
     get,
     getChildNode,
@@ -45,7 +46,7 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forE
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
-    ['ref', ref],
+    ['obs', obs],
     ['onChange', onChange],
     ['assign', assign],
     ['delete', deleteFn],
@@ -60,7 +61,7 @@ const wrapFn = (fn: Function) =>
                 return fn(node, ...args);
             } else if (process.env.NODE_ENV === 'development') {
                 console.error(
-                    `[legend-state] Error calling ${fn} on a primitive with value ${this}. Please ensure that if you are saving references to observable functions on primitive values that you use ref() first, like obs.primitive.ref().set.`
+                    `[legend-state] Error calling ${fn} on a primitive with value ${this}. Please ensure that if you are saving references to observable functions on primitive values that you use obs() first, like obs.primitive.obs().set.`
                 );
             }
         }
@@ -80,15 +81,14 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 
     if (node) {
         const parent = node.parent;
-        if (parent) {
-            const parentValue = getNodeValue(parent);
+        const key = parent ? node.key : '_';
+        const parentValue = parent ? getNodeValue(parent) : node.root;
 
-            // Set the object to the previous value first
-            parentValue[node.key] = prevValue;
+        // Set the object to the previous value first
+        parentValue[key] = prevValue;
 
-            // Then set with the new value so it notifies with the correct prevValue
-            setProp(parent, node.key, target);
-        }
+        // Then set with the new value so it notifies with the correct prevValue
+        setProp(parent || node, parent ? key : (undef as any), target);
     }
 
     // Return the original value
@@ -236,7 +236,7 @@ function getProxy(node: NodeValue, p?: string | number) {
     }
     return proxy;
 }
-function ref(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
+function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
     if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
         track = keyOrTrack;
         keyOrTrack = undefined;
@@ -266,10 +266,6 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
-            if (p !== 'get' && p !== 'ref') {
-                // Observable operations do not create listeners
-                if (tracking.nodes) untrack(node);
-            }
             return function (a, b, c) {
                 const l = arguments.length;
                 // Array call and apply are slow so micro-optimize this hot path.
@@ -313,6 +309,12 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Accessing primitive returns the raw value
         if (vProp === undefined || vProp === null || isPrimitive(vProp)) {
+            if (extraPrimitiveProps.size) {
+                const vPrim = extraPrimitiveProps.get(p);
+                if (vPrim !== undefined) {
+                    return vPrim?.__fn?.(target) ?? vPrim;
+                }
+            }
             // Accessing a primitive saves the last accessed so that the observable functions
             // bound to primitives can know which node was accessed
             lastAccessedNode = node;
@@ -324,7 +326,7 @@ const proxyHandler: ProxyHandler<any> = {
                     updateTracking(node, undefined, Tracking.shallow);
                 } else if (node.root.isPrimitive) {
                     updateTracking(node);
-                } else {
+                } else if (!isPrimitive(value)) {
                     updateTracking(getChildNode(node, p), node);
                 }
             }
@@ -589,9 +591,6 @@ function notify(node: NodeValue, value: any, prev: any, level: number, whenOptim
 }
 
 function assign(node: NodeValue, value: any) {
-    // Set operations do not create listeners
-    if (tracking.nodes) untrack(node);
-
     const proxy = getProxy(node);
 
     beginBatch();

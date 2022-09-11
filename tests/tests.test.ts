@@ -176,7 +176,7 @@ describe('Listeners', () => {
     test('Listen by ref', () => {
         const obs = observable({ test: { text: 't' } });
         expect(obs.test.text).toEqual('t');
-        const handler = expectChangeHandler(obs.test.ref('text'));
+        const handler = expectChangeHandler(obs.test.obs('text'));
         obs.test.set('text', 't2');
         expect(obs.test.text).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
@@ -750,9 +750,9 @@ describe('Primitives', () => {
         obs.set(20);
         expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
-    test('Set function with ref is stable', () => {
+    test('Set function with obs is stable', () => {
         const obs = observable({ num1: 10, num2: 20 });
-        const set = obs.ref('num1').set;
+        const set = obs.obs('num1').set;
         expect(obs.num2).toEqual(20);
 
         set(30);
@@ -785,6 +785,14 @@ describe('Array', () => {
         expect(obs.get()).toEqual([]);
         obs.set([1, 2, 3]);
         expect(obs.get()).toEqual([1, 2, 3]);
+    });
+    test('Array at root listens', () => {
+        const obs = observable([]);
+        expect(obs.get()).toEqual([]);
+        const handler = expectChangeHandler(obs);
+
+        obs.push(1);
+        expect(handler).toHaveBeenCalledWith([1], [], [], [1], []);
     });
     test('Array functions', () => {
         const obs = observable({ arr: [] });
@@ -1519,7 +1527,7 @@ describe('Shallow', () => {
         obs.onChange(handler, { shallow: true });
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
-        obs.ref('val2').set(10);
+        obs.obs('val2').set(10);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Shallow deep object', () => {
@@ -1685,32 +1693,32 @@ describe('Batching', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });
-describe('ref function', () => {
-    test('With and without ref', () => {
+describe('obs function', () => {
+    test('With and without obs', () => {
         const obs = observable({ text: 'hi' });
-        const prox = obs.ref('text');
-        const prox2 = obs.text.ref();
+        const prox = obs.obs('text');
+        const prox2 = obs.text.obs();
         expect(prox === prox2).toEqual(true);
         expect(prox2.get()).toEqual('hi');
     });
-    test('keyed ref', () => {
+    test('keyed obs', () => {
         const obs = observable({ text: 'hi' });
-        const prox = obs.ref('text');
-        const prox2 = obs.ref('text');
+        const prox = obs.obs('text');
+        const prox2 = obs.obs('text');
         expect(prox === prox2).toEqual(true);
         expect(prox2.get()).toEqual('hi');
     });
-    test('ref through undefined works', () => {
+    test('obs through undefined works', () => {
         const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
-        const refTest4 = obs.ref('test').ref('test2').ref('test3').ref('test4');
-        const handler = expectChangeHandler(refTest4);
+        const obsTest4 = obs.obs('test').obs('test2').obs('test3').obs('test4');
+        const handler = expectChangeHandler(obsTest4);
         obs.set({ test: { test2: { test3: { test4: 'hi' } } } });
         expect(handler).toHaveBeenCalledWith('hi', undefined, [], 'hi', undefined);
     });
-    test('ref through undefined with get()', () => {
+    test('obs through undefined with get()', () => {
         const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
-        const refTest4 = obs.ref('test').ref('test2').ref('test3').ref('test4');
-        expect(refTest4.get()).toEqual(undefined);
+        const obsTest4 = obs.obs('test').obs('test2').obs('test3').obs('test4');
+        expect(obsTest4.get()).toEqual(undefined);
     });
 });
 describe('effect', () => {

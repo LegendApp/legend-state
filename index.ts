@@ -17,6 +17,8 @@ export { onChange } from './src/onChange';
 /** @internal */
 export { tracking } from './src/tracking';
 /** @internal */
-export { symbolDateModified, symbolIsObservable } from './src/globals';
+export { symbolDateModified, symbolIsObservable, extraPrimitiveProps, getNodeValue } from './src/globals';
 /** @internal */
 export { getNode } from './src/helpers';
+/** @internal */
+export { setupTracking } from './src/effect';
