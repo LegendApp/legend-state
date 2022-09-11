@@ -1,7 +1,20 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
-import { observer, useComputed } from '@legendapp/state/react';
+import { useComputed } from '@legendapp/state/react';
 import { createElement, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
+
+function computeProp(p) {
+    return useComputed(() => {
+        if (isFunction(p)) {
+            p = p();
+        }
+
+        if (isObservable(p)) {
+            p = p.get();
+        }
+        return p;
+    });
+}
 
 export function Isolate({ children }: { children: () => ReactNode }): ReactElement {
     return useComputed(children) as ReactElement;
@@ -21,28 +34,29 @@ export function Show<T>({
     memo,
 }: {
     if: NotPrimitive<T>;
-    else?: () => ReactNode;
+    else?: ReactElement | (() => ReactElement);
     memo?: boolean;
-    children: () => ReactNode;
+    children: () => ReactElement;
 }): ReactElement {
-    const show = useComputed(() => {
-        if (isFunction(if_)) {
-            if_ = if_();
-        }
-
-        if (isObservable(if_)) {
-            if_ = (if_ as ObservableObject).get();
-        }
-        return if_;
-    });
-
-    return show
+    return computeProp(if_)
         ? ((memo ? useMemo(() => children, []) : children) as () => ReactElement)()
         : else_
         ? isFunction(else_)
             ? (else_ as () => ReactElement)()
             : else_
         : null;
+}
+
+export function Switch<T>({
+    value,
+    fallback,
+    children,
+}: {
+    value: NotPrimitive<T>;
+    fallback?: ReactElement | (() => ReactElement);
+    children?: Record<any, () => ReactElement>;
+}): ReactElement {
+    return children[computeProp(value)]?.() ?? (fallback ? (isFunction(fallback) ? fallback() : fallback) : null);
 }
 
 export function For<
