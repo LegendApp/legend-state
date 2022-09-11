@@ -31,19 +31,11 @@ export const Memo = memo(
 export function Show<T>(props: {
     if: NotPrimitive<T>;
     else?: ReactNode | (() => ReactNode);
-    memo: true;
-    children: (value?: T) => ReactNode;
-}): ReactElement;
-export function Show<T>(props: {
-    if: NotPrimitive<T>;
-    else?: ReactNode | (() => ReactNode);
-    memo?: false;
     children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement;
 export function Show<T>({
     if: if_,
     else: else_,
-    memo,
     children,
 }: {
     if: NotPrimitive<T>;
@@ -51,12 +43,6 @@ export function Show<T>({
     memo?: boolean;
     children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement {
-    if (memo && children) {
-        if (process.env.NODE_ENV === 'development' && !isFunction(children)) {
-            throw new Error('[legend-state] The memo prop on Show requires children to be a function');
-        }
-        children = useMemo<ReactElement>(children as () => ReactElement, []);
-    }
     const value = computeProp(if_);
     return (
         value
