@@ -32,13 +32,13 @@ export function Show<T>(props: {
     if: NotPrimitive<T>;
     else?: ReactElement | (() => ReactElement);
     memo: true;
-    children: () => ReactElement;
+    children: (value?: T) => ReactElement;
 }): ReactElement;
 export function Show<T>(props: {
     if: NotPrimitive<T>;
     else?: ReactElement | (() => ReactElement);
     memo?: false;
-    children: ReactElement | (() => ReactElement);
+    children: ReactElement | ((value?: T) => ReactElement);
 }): ReactElement;
 export function Show<T>({
     if: if_,
@@ -49,7 +49,7 @@ export function Show<T>({
     if: NotPrimitive<T>;
     else?: ReactElement | (() => ReactElement);
     memo?: boolean;
-    children: ReactElement | (() => ReactElement);
+    children: ReactElement | ((value?: T) => ReactElement);
 }): ReactElement {
     if (memo && children) {
         if (process.env.NODE_ENV === 'development' && !isFunction(children)) {
@@ -57,9 +57,10 @@ export function Show<T>({
         }
         children = useMemo<ReactElement>(children as () => ReactElement, []);
     }
-    return computeProp(if_)
+    const value = computeProp(if_);
+    return value
         ? isFunction(children)
-            ? children()
+            ? children(value)
             : children
         : else_
         ? isFunction(else_)
