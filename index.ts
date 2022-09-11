@@ -4,7 +4,7 @@ export { observable } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
-export { observe } from './src/effect';
+export { observe } from './src/observe';
 export { when } from './src/when';
 export * from './src/observableInterfaces';
 export { isEmpty } from './src/is';
@@ -21,4 +21,4 @@ export { symbolDateModified, symbolIsObservable, extraPrimitiveProps, getNodeVal
 /** @internal */
 export { getNode } from './src/helpers';
 /** @internal */
-export { setupTracking } from './src/effect';
+export { setupTracking } from './src/observe';

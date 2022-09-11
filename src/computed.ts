@@ -1,4 +1,4 @@
-import { observe } from './effect';
+import { observe } from './observe';
 import { observable } from './observable';
 import { Observable, ObservableComputed } from './observableInterfaces';
 

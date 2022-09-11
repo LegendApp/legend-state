@@ -1,5 +1,5 @@
 import { computed } from '../src/computed';
-import { observe } from '../src/effect';
+import { observe } from '../src/observe';
 import { isObservable, lockObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { beginBatch, endBatch } from '../src/batching';

@@ -1,4 +1,4 @@
-import { observe } from './effect';
+import { observe } from './observe';
 
 export function when(predicate: () => any): Promise<void>;
 export function when(predicate: () => any, effect: () => void | (() => void)): () => void;
