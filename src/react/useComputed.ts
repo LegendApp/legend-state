@@ -2,26 +2,31 @@ import { observe, setupTracking, symbolUndef, tracking } from '@legendapp/state'
 import { useEffect } from 'react';
 import { useForceRender } from './useForceRender';
 
-export function useComputed<T>(selector: () => T, alwaysUpdate?: boolean) {
+/**
+ * Runs the specified selector, automatically tracking observable access and optionally re-rendering
+ * @param selector A computation function
+ * @param whenToRender When to re-render. false = never re-render, undefined = render if different, true = always render
+ */
+export function useComputed<T>(selector: () => T, whenToRender?: boolean) {
     let inRun = true;
 
     let ret: T = symbolUndef as unknown as T;
     let cachedNodes;
 
-    const fr = useForceRender();
+    const fr = whenToRender !== false && useForceRender();
 
     const update = function () {
         // If running, run and return the value
         // Don't need to run the selector again if not running and alwaysUpdate
-        if (inRun || !alwaysUpdate) {
+        if (inRun || !whenToRender) {
             const cur = selector();
             // Re-render if not currently rendering and value has changed
-            if (!inRun && cur !== ret) {
+            if (!inRun && cur !== ret && whenToRender !== false) {
                 // Re-render if value changed
                 fr();
             }
             ret = cur;
-        } else if (alwaysUpdate) {
+        } else if (whenToRender) {
             fr();
         }
         inRun = false;
