@@ -1,24 +1,17 @@
 import '@legendapp/state/react';
 declare module '@legendapp/state/react' {
-    export declare const Computed: ({
-        children,
-    }: {
-        children: React.ReactNode | (() => React.ReactNode);
+    type Primitive = boolean | string | number | Date;
+    type NotPrimitive<T> = T extends Primitive ? never : T;
+    export declare const Computed: (props: {
+        children: React.ReactElement | (() => React.ReactElement);
     }) => React.ReactElement;
-    export declare const Memo: ({
-        children,
-    }: {
-        children: React.ReactNode | (() => React.ReactNode);
+    export declare const Memo: (props: {
+        children: React.ReactElement | (() => React.ReactElement);
     }) => React.ReactElement;
-    export declare const Show: <T>({
-        if: if_,
-        else: else_,
-        children,
-        memo,
-    }: {
-        if: any;
-        else?: React.ReactNode | (() => React.ReactNode);
+    export declare const Show: <T>(props: {
+        if: NotPrimitive<T>;
+        else?: React.ReactElement | (() => React.ReactElement);
         memo?: boolean;
-        children: React.ReactNode | (() => React.ReactNode);
+        children: React.ReactElement | (() => React.ReactElement);
     }) => React.ReactElement;
 }

@@ -17,35 +17,73 @@ function computeProp(prop) {
     });
 }
 
-export function Computed({ children }: { children: () => ReactNode }): ReactElement {
+export function Computed({ children }: { children: () => ReactElement }): ReactElement {
     return useComputed(children, true) as ReactElement;
 }
 
 export const Memo = memo(
-    function Memo({ children }: { children: () => ReactNode }): ReactElement {
+    function Memo({ children }: { children: () => ReactElement }): ReactElement {
         return useComputed(children, true) as ReactElement;
     },
     () => true
 );
 
+export function Show<T>(props: {
+    if: NotPrimitive<T>;
+    else?: ReactElement | (() => ReactElement);
+    memo: true;
+    children: () => ReactElement;
+}): ReactElement;
+export function Show<T>(props: {
+    if: NotPrimitive<T>;
+    else?: ReactElement | (() => ReactElement);
+    memo?: false;
+    children: ReactElement | (() => ReactElement);
+}): ReactElement;
 export function Show<T>({
     if: if_,
     else: else_,
-    children,
     memo,
+    children,
 }: {
     if: NotPrimitive<T>;
     else?: ReactElement | (() => ReactElement);
     memo?: boolean;
-    children: () => ReactElement;
+    children: ReactElement | (() => ReactElement);
 }): ReactElement {
+    if (memo && children) {
+        if (process.env.NODE_ENV === 'development' && !isFunction(children)) {
+            throw new Error('[legend-state] The memo prop on Show requires children to be a function');
+        }
+        children = useMemo<ReactElement>(children as () => ReactElement, []);
+    }
     return computeProp(if_)
-        ? ((memo ? useMemo(() => children, []) : children) as () => ReactElement)()
+        ? isFunction(children)
+            ? children()
+            : children
         : else_
         ? isFunction(else_)
-            ? (else_ as () => ReactElement)()
+            ? else_()
             : else_
         : null;
+
+    // const show = computeProp(if_);
+    // let child: ReactElement;
+    // if (memo) {
+    //     child = useMemo<ReactElement>(() => (show ? (children as () => ReactElement)() : null), [show]);
+    // } else {
+    //     child = show && (isFunction(children) ? children() : children);
+    // }
+
+    // if (child) {
+    //     return child;
+    // }
+
+    // let e = else_;
+    // if (isFunction(e)) {
+    //     e = e();
+    // }
+    // return e ?? null;
 }
 
 export function Switch<T>({
