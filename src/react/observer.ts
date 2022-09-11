@@ -57,10 +57,8 @@ const Text = memo(
             if (value !== cur) {
                 setValue(cur);
             }
-            // Set up change listener
-            const dispose = onChange(data, (v) => setValue(v));
-            // Cleanup on unmount
-            return dispose;
+            // Set up change listener, leanup on unmount
+            return onChange(data, (v) => setValue(v));
         }, []);
 
         // Restore the tracking context

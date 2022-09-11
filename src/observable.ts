@@ -68,11 +68,11 @@ const wrapFn = (fn: Function) =>
     };
 
 const toOverride = [Number, Boolean, String];
-objectFns.forEach((fn, key) => {
+for (let [key, fn] of objectFns) {
     for (let i = 0; i < toOverride.length; i++) {
         toOverride[i].prototype[key] = wrapFn(fn);
     }
-});
+}
 
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
@@ -139,9 +139,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                 if (!isPrimitive(prev)) {
                     updateNodes(child, undefined, prev);
                 }
-                const doNotify = !!child.listeners;
 
-                if (doNotify) {
+                if (child.listeners) {
                     _notify(child, undefined, [], undefined, prev, 0);
                 }
             }
@@ -204,8 +203,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
                     // the array's listener will cover it
-                    const doNotify = !!child.listeners;
-                    if (doNotify) {
+                    if (child.listeners) {
                         _notify(child, value, [], value, prev, 0, !isArrDiff);
                     }
                 }
@@ -230,11 +228,7 @@ function getProxy(node: NodeValue, p?: string | number) {
     if (p !== undefined) node = getChildNode(node, p);
 
     // Create a proxy if not already cached and return it
-    let proxy = node.proxy;
-    if (!proxy) {
-        proxy = node.proxy = new Proxy<NodeValue>(node, proxyHandler);
-    }
-    return proxy;
+    return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
 }
 function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
     if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
