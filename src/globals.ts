@@ -5,6 +5,7 @@ import { tracking, untrack, updateTracking } from './tracking';
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolGetNode = Symbol('getNode');
+export const symbolUndef = Symbol('undef');
 
 export const extraPrimitiveProps = new Map<string, any>();
 

@@ -27,7 +27,7 @@ export function observer<T extends FC<any>>(
 
     // Create a wrapper observer component
     let observer = function (props, ref) {
-        return useComputed(() => component(props, ref));
+        return useComputed(() => component(props, ref), true);
     };
 
     if (componentName !== '') {

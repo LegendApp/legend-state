@@ -1,21 +1,28 @@
-import { effect, setupTracking, tracking } from '@legendapp/state';
+import { effect, setupTracking, symbolUndef, tracking } from '@legendapp/state';
 import { useEffect } from 'react';
 import { useForceRender } from './useForceRender';
 
-export function useComputed<T>(selector: () => T) {
+export function useComputed<T>(selector: () => T, alwaysUpdate?: boolean) {
     let inRun = true;
-    let ret: T;
+
+    let ret: T = symbolUndef as unknown as T;
     let cachedNodes;
 
-    const forceRender = useForceRender();
+    const fr = useForceRender();
 
     const update = function () {
-        if (inRun) {
-            // If running, run and return the component
-            ret = selector();
-        } else {
-            // If not running, this is from observable changing so trigger a render
-            forceRender();
+        // If running, run and return the value
+        // Don't need to run the selector again if not running and alwaysUpdate
+        if (inRun || !alwaysUpdate) {
+            const cur = selector();
+            // Re-render if not currently rendering and value has changed
+            if (!inRun && cur !== ret) {
+                // Re-render if value changed
+                fr();
+            }
+            ret = cur;
+        } else if (alwaysUpdate) {
+            fr();
         }
         inRun = false;
 
@@ -40,7 +47,7 @@ export function useComputed<T>(selector: () => T) {
             };
         });
     } else {
-        // Return dispose to cleanup before each render or unmount
+        // Return dispose to cleanup before each render or on unmount
         useEffect(() => dispose);
     }
 

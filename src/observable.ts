@@ -8,6 +8,7 @@ import {
     symbolGetNode,
     symbolIsObservable,
     Tracking,
+    symbolUndef,
 } from './globals';
 import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { beginBatch, endBatch, batchNotify } from './batching';
@@ -27,7 +28,6 @@ let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
 let inSetFn = false;
 let inAssign = false;
-const undef = Symbol('undef');
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -88,7 +88,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
         parentValue[key] = prevValue;
 
         // Then set with the new value so it notifies with the correct prevValue
-        setProp(parent || node, parent ? key : (undef as any), target);
+        setProp(parent || node, parent ? key : (symbolUndef as any), target);
     }
 
     // Return the original value
@@ -416,7 +416,7 @@ function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
     } else if (node.root.isPrimitive) {
         return setProp(node, 'value', keyOrNewValue);
     } else if (!node.parent) {
-        return setProp(node, undef as any, keyOrNewValue);
+        return setProp(node, symbolUndef as any, keyOrNewValue);
     } else {
         return setProp(node.parent, node.key, keyOrNewValue);
     }
@@ -437,11 +437,11 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
         );
     }
 
-    const isDelete = newValue === undef;
+    const isDelete = newValue === symbolUndef;
     if (isDelete) newValue = undefined;
 
     inSetFn = true;
-    const isRoot = (key as any) === undef;
+    const isRoot = (key as any) === symbolUndef;
 
     // Get the child node for updating and notifying
     let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
@@ -613,7 +613,7 @@ function deleteFn(node: NodeValue, key?: string | number) {
     }
     if (!node.root.isPrimitive) {
         // delete sets to undefined first to notify
-        setProp(node, key, undef, /*level*/ -1);
+        setProp(node, key, symbolUndef, /*level*/ -1);
     }
 }
 

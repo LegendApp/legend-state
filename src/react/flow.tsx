@@ -3,8 +3,9 @@ import { useComputed } from './useComputed';
 import { createElement, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
 
-function computeProp(p) {
+function computeProp(prop) {
     return useComputed(() => {
+        let p = prop;
         if (isFunction(p)) {
             p = p();
         }
@@ -17,12 +18,12 @@ function computeProp(p) {
 }
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {
-    return useComputed(children) as ReactElement;
+    return useComputed(children, true) as ReactElement;
 }
 
 export const Memo = memo(
     function Memo({ children }: { children: () => ReactNode }): ReactElement {
-        return useComputed(children) as ReactElement;
+        return useComputed(children, true) as ReactElement;
     },
     () => true
 );
@@ -80,7 +81,8 @@ export function For<
                 id?: string;
                 _id?: string;
                 __id?: string;
-            }[]
+            }[],
+        true
     );
 
     if (!v) return null;
@@ -91,7 +93,7 @@ export function For<
         const refChildren = useRef<(value: T) => ReactElement>();
         refChildren.current = children;
 
-        item = useMemo(() => memo(({ item }) => useComputed(() => refChildren.current(item))), []);
+        item = useMemo(() => memo(({ item }) => useComputed(() => refChildren.current(item), true)), []);
     }
 
     // Get the appropriate id field
