@@ -24,7 +24,7 @@ export default function () {
             },
             ImportDeclaration: {
                 enter(path) {
-                    if (path.node.source.value === '@legendapp/state/reactivity') {
+                    if (path.node.source.value === '@legendapp/state/react') {
                         const specifiers = path.node.specifiers;
                         for (let i = 0; i < specifiers.length; i++) {
                             const s = specifiers[i].imported.name;
@@ -168,7 +168,7 @@ export default function () {
 
                             if (!imported[name]) {
                                 imported[name] = '_' + name;
-                                addNamed(root, name, '@legendapp/state/reactivity');
+                                addNamed(root, name, '@legendapp/state/react');
                             }
                         }
                     }

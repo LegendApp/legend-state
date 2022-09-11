@@ -69,11 +69,6 @@
             "require": "./react-native-components.js",
             "types": "./react-native-components.d.ts"
         },
-        "./reactivity": {
-            "import": "./reactivity.mjs",
-            "require": "./reactivity.js",
-            "types": "./reactivity.d.ts"
-        },
         "./trace": {
             "import": "./trace.mjs",
             "require": "./trace.js",

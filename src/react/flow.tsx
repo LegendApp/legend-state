@@ -1,5 +1,5 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
-import { useComputed } from '@legendapp/state/react';
+import { useComputed } from './useComputed';
 import { createElement, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
 
