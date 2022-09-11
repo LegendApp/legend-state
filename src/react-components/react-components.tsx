@@ -21,7 +21,7 @@ type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     bind?: ObservableWriteable<TValue> & NotPrimitive<TBind>;
 };
 
-export const Binder = function <
+const Binder = function <
     TValue extends Primitive,
     TElement,
     TProps extends { onChange?: any; value?: any; className?: string; style?: CSSProperties }
@@ -43,16 +43,18 @@ export const Binder = function <
             );
 
             // Get the bound value
-            const value = (props.value = useComputed(() => bind.get()));
+            const value = (props.value = useComputed(() => {
+                // Call className if it's a function
+                if (isFunction(className)) {
+                    props.className = className(value);
+                }
+                // Call style if it's a function
+                if (isFunction(style)) {
+                    props.style = style(value);
+                }
 
-            // Call className if it's a function
-            if (isFunction(className)) {
-                props.className = className(value);
-            }
-            // Call style if it's a function
-            if (isFunction(style)) {
-                props.style = style(value);
-            }
+                return bind.get();
+            }));
         }
 
         return createElement(Component as any, ref ? { ...props, ref } : props);

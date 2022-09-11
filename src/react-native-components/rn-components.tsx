@@ -20,7 +20,7 @@ type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
     style?: StyleProp<TStyle> | ((value: TValue) => StyleProp<TStyle>);
 };
 
-export const Binder = function <
+const Binder = function <
     TValue extends Primitive,
     TElement,
     TStyle,
@@ -43,12 +43,14 @@ export const Binder = function <
             );
 
             // Get the bound value
-            const value = useComputed(() => bind.get());
+            const value = useComputed(() => {
+                // Call style if it's a function
+                if (isFunction(style)) {
+                    props.style = style(value);
+                }
 
-            // Call style if it's a function
-            if (isFunction(style)) {
-                props.style = style(value);
-            }
+                return bind.get();
+            });
         }
 
         return createElement(Component as any, ref ? { ...props, ref } : props);
