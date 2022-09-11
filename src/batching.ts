@@ -1,4 +1,4 @@
-import { ListenerFn } from './observableInterfaces';
+import { ListenerFn, NodeValue } from './observableInterfaces';
 
 interface BatchItem {
     cb: ListenerFn<any>;
@@ -7,7 +7,7 @@ interface BatchItem {
     path: (string | number)[];
     valueAtPath: any;
     prevAtPath: any;
-    obs: any;
+    node: NodeValue;
 }
 let timeout;
 let numInBatch = 0;
@@ -37,7 +37,7 @@ export function batchNotify(b: BatchItem) {
             _batchMap.set(b.cb, b);
         }
     } else {
-        b.cb(b.value, b.getPrevious, b.path, b.valueAtPath, b.prevAtPath, b.obs);
+        b.cb(b.value, b.getPrevious, b.path, b.valueAtPath, b.prevAtPath, b.node);
     }
 }
 
@@ -62,8 +62,8 @@ export function endBatch(force?: boolean) {
         _batch = [];
         _batchMap = new WeakMap();
         for (let i = 0; i < batch.length; i++) {
-            const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, obs } = batch[i];
-            cb(value, prev, path, valueAtPath, prevAtPath, obs);
+            const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, node } = batch[i];
+            cb(value, prev, path, valueAtPath, prevAtPath, node);
         }
     }
 }

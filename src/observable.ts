@@ -551,7 +551,15 @@ function _notify(
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
-                batchNotify({ cb: listener, value, getPrevious, path, valueAtPath, prevAtPath, obs: getProxy(node) });
+                batchNotify({
+                    cb: listener,
+                    value,
+                    getPrevious,
+                    path,
+                    valueAtPath,
+                    prevAtPath,
+                    node,
+                });
             }
         }
     }

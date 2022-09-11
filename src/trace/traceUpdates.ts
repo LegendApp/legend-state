@@ -1,4 +1,4 @@
-import { getNode, Observable, tracking } from '@legendapp/state';
+import { NodeValue, tracking } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
 export function traceUpdates(name?: string) {
@@ -17,9 +17,8 @@ function onChange(
     path: (string | number)[],
     valueAtPath: any,
     prevAtPath: any,
-    obs: Observable
+    node: NodeValue
 ) {
-    const node = getNode(obs);
     console.log(`[legend-state] Rendering ${name ? name + ' ' : ''}because "${getNodePath(node)}" changed:
 from: ${JSON.stringify(getPrevious())}
 to: ${JSON.stringify(value)}`);
