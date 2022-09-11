@@ -1,5 +1,5 @@
 import { computed } from '../src/computed';
-import { effect } from '../src/effect';
+import { observe } from '../src/effect';
 import { isObservable, lockObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { beginBatch, endBatch } from '../src/batching';
@@ -1725,7 +1725,7 @@ describe('effect', () => {
     test('Basic effect', () => {
         const obs = observable({ text: 'hi' });
         const fn = jest.fn();
-        effect(() => {
+        observe(() => {
             fn(obs.text);
         });
         obs.text.set('hello');

@@ -1,4 +1,4 @@
-import { effect as observableEffect } from './effect';
+import { observe } from './effect';
 
 interface Options {
     repeat?: boolean;
@@ -33,7 +33,7 @@ export function when(predicate: () => any, effect?: () => void | (() => void), o
         });
 
     // Create an effect for the fn
-    cleanup = observableEffect(fn);
+    cleanup = observe(fn);
 
     // If it's already cleanup
     if (isDone) {

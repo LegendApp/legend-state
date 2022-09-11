@@ -1,4 +1,4 @@
-import { effect, setupTracking, symbolUndef, tracking } from '@legendapp/state';
+import { observe, setupTracking, symbolUndef, tracking } from '@legendapp/state';
 import { useEffect } from 'react';
 import { useForceRender } from './useForceRender';
 
@@ -32,7 +32,7 @@ export function useComputed<T>(selector: () => T, alwaysUpdate?: boolean) {
         }
     };
 
-    let dispose = effect(update);
+    let dispose = observe(update);
 
     if (process.env.NODE_ENV === 'development') {
         useEffect(() => {

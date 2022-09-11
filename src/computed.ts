@@ -1,4 +1,4 @@
-import { effect } from './effect';
+import { observe } from './effect';
 import { observable } from './observable';
 import { Observable, ObservableComputed } from './observableInterfaces';
 
@@ -17,7 +17,7 @@ export function computed<T>(compute: () => T): ObservableComputed<T> {
         }
     };
 
-    effect(fn);
+    observe(fn);
 
     return obs as unknown as ObservableComputed<T>;
 }

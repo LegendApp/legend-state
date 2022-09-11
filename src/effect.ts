@@ -28,7 +28,7 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
     };
 }
 
-export function effect(run: () => void | (() => void)) {
+export function observe(run: () => void | (() => void)) {
     let cleanup: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {

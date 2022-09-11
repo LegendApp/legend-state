@@ -4,7 +4,7 @@ export { observable } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
-export { effect } from './src/effect';
+export { observe } from './src/effect';
 export { when } from './src/when';
 export * from './src/observableInterfaces';
 export { isEmpty } from './src/is';
