@@ -69,46 +69,14 @@ export default function () {
                     } else if (name === 'Show') {
                         let children = removEmptyText(children_);
                         const if_ = openingElement.attributes.find((node) => node.name?.name === 'if');
+                        const memo = openingElement.attributes.find((node) => node.name?.name === 'memo');
 
                         if (if_ !== undefined) {
                             const attrs = [];
                             let needsChange = false;
 
                             if (
-                                if_.value.expression.type === 'ArrowFunctionExpression' ||
-                                if_.value.expression.type === 'FunctionExpression'
-                            ) {
-                                attrs.push(if_);
-                            } else {
-                                needsChange = true;
-                                attrs.push(
-                                    jsxAttribute(
-                                        jsxIdentifier('if'),
-                                        jsxExpressionContainer(arrowFunctionExpression([], if_.value.expression))
-                                    )
-                                );
-                            }
-
-                            const else_ = openingElement.attributes.find((node) => node.name?.name === 'else');
-
-                            if (else_) {
-                                if (
-                                    else_.value.expression.type === 'ArrowFunctionExpression' ||
-                                    else_.value.expression.type === 'FunctionExpression'
-                                ) {
-                                    attrs.push(else_);
-                                } else {
-                                    needsChange = true;
-                                    attrs.push(
-                                        jsxAttribute(
-                                            jsxIdentifier('else'),
-                                            jsxExpressionContainer(arrowFunctionExpression([], else_.value.expression))
-                                        )
-                                    );
-                                }
-                            }
-
-                            if (
+                                memo &&
                                 children[0].expression?.type !== 'ArrowFunctionExpression' &&
                                 children[0].expression?.type !== 'FunctionExpression'
                             ) {

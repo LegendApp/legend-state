@@ -67,24 +67,6 @@ export function Show<T>({
             ? else_()
             : else_
         : null;
-
-    // const show = computeProp(if_);
-    // let child: ReactElement;
-    // if (memo) {
-    //     child = useMemo<ReactElement>(() => (show ? (children as () => ReactElement)() : null), [show]);
-    // } else {
-    //     child = show && (isFunction(children) ? children() : children);
-    // }
-
-    // if (child) {
-    //     return child;
-    // }
-
-    // let e = else_;
-    // if (isFunction(e)) {
-    //     e = e();
-    // }
-    // return e ?? null;
 }
 
 export function Switch<T>({

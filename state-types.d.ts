@@ -12,6 +12,6 @@ declare module '@legendapp/state/react' {
         if: NotPrimitive<T>;
         else?: React.ReactElement | (() => React.ReactElement);
         memo?: boolean;
-        children: React.ReactElement | (() => React.ReactElement);
+        children: React.ReactElement | ((value?: T) => React.ReactElement);
     }) => React.ReactElement;
 }
