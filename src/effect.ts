@@ -32,12 +32,6 @@ export function effect(run: () => void | (() => void)) {
     let cleanup: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
-        // Clear tracing
-        if (process.env.NODE_ENV === 'development') {
-            tracking.listeners = undefined;
-            tracking.updates = undefined;
-        }
-
         if (cleanup) {
             cleanup();
             cleanup = undefined;
@@ -50,6 +44,9 @@ export function effect(run: () => void | (() => void)) {
             if (tracking.updates) {
                 update = tracking.updates(update);
             }
+            // Clear tracing
+            tracking.listeners = undefined;
+            tracking.updates = undefined;
         }
     };
 
