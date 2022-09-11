@@ -28,7 +28,7 @@ export default function () {
                         const specifiers = path.node.specifiers;
                         for (let i = 0; i < specifiers.length; i++) {
                             const s = specifiers[i].imported.name;
-                            if (!imported[s] && (s === 'Isolate' || s === 'Memo')) {
+                            if (!imported[s] && (s === 'Computed' || s === 'Memo')) {
                                 imported[s] = specifiers[i].local.name;
                             }
                         }
@@ -42,7 +42,7 @@ export default function () {
                     const children_ = path.node.children;
                     const name = openingElement.name.name;
 
-                    if (name === 'Isolate' || name === 'Memo') {
+                    if (name === 'Computed' || name === 'Memo') {
                         const children = removEmptyText(children_);
                         if (
                             children.length > 0 &&
@@ -137,8 +137,8 @@ export default function () {
                             }
                         }
                     } else {
-                        const hasIsolateProp = openingElement.attributes.findIndex(
-                            (node) => node.name && node.name.name === 'isolate' && node.value !== false
+                        const hasComputedProp = openingElement.attributes.findIndex(
+                            (node) => node.name && node.name.name === 'computed' && node.value !== false
                         );
                         const hasMemoProp = openingElement.attributes.findIndex(
                             (node) => node.name && node.name.name === 'memo' && node.value !== false
@@ -146,15 +146,15 @@ export default function () {
                         const keyProp = openingElement.attributes.find(
                             (node) => node.name && node.name.name === 'key' && node.value !== false
                         );
-                        if (hasIsolateProp >= 0 || hasMemoProp >= 0) {
-                            if (hasIsolateProp >= 0) {
-                                openingElement.attributes.splice(hasIsolateProp, 1);
+                        if (hasComputedProp >= 0 || hasMemoProp >= 0) {
+                            if (hasComputedProp >= 0) {
+                                openingElement.attributes.splice(hasComputedProp, 1);
                             }
                             if (hasMemoProp >= 0) {
                                 openingElement.attributes.splice(hasMemoProp, 1);
                             }
 
-                            const name = hasMemoProp >= 0 ? 'Memo' : 'Isolate';
+                            const name = hasMemoProp >= 0 ? 'Memo' : 'Computed';
 
                             const importName = imported[name] || '_' + name;
 

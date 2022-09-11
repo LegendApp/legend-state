@@ -2,7 +2,7 @@
 
 declare namespace React {
     interface DOMAttributes<T> {
-        isolate?: boolean;
+        computed?: boolean;
         memo?: boolean;
     }
 }

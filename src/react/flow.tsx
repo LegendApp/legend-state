@@ -16,7 +16,7 @@ function computeProp(p) {
     });
 }
 
-export function Isolate({ children }: { children: () => ReactNode }): ReactElement {
+export function Computed({ children }: { children: () => ReactNode }): ReactElement {
     return useComputed(children) as ReactElement;
 }
 

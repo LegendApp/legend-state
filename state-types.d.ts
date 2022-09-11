@@ -1,6 +1,6 @@
-import '@legendapp/state/reactivity';
-declare module '@legendapp/state/reactivity' {
-    export declare const Isolate: ({
+import '@legendapp/state/react';
+declare module '@legendapp/state/react' {
+    export declare const Computed: ({
         children,
     }: {
         children: React.ReactNode | (() => React.ReactNode);
