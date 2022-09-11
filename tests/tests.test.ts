@@ -1,6 +1,6 @@
 import { computed } from '../src/computed';
 import { effect } from '../src/effect';
-import { isObservable, lockEdits } from '../src/helpers';
+import { isObservable, lockObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { beginBatch, endBatch } from '../src/batching';
 import { event } from '../src/event';
@@ -1771,12 +1771,12 @@ describe('Observable with promise', () => {
 });
 describe('Locking', () => {
     const obs = observable({ text: 'hi' });
-    lockEdits(obs, true);
+    lockObservable(obs, true);
     expect(() => obs.text.set('hello')).toThrowError();
     expect(() => (obs.text = 'hello')).toThrowError();
     expect(() => obs.set({ text: 'hello' })).toThrowError();
     expect(obs.get()).toEqual({ text: 'hi' });
-    lockEdits(obs, false);
+    lockObservable(obs, false);
     obs.text.set('hey');
     expect(obs.get()).toEqual({ text: 'hey' });
 });

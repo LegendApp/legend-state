@@ -8,7 +8,7 @@ export { effect } from './src/effect';
 export { when } from './src/when';
 export * from './src/observableInterfaces';
 export { isEmpty } from './src/is';
-export { lockEdits } from './src/helpers';
+export { lockObservable } from './src/helpers';
 
 /** @internal */
 export { isArray, isFunction, isObject, isPrimitive } from './src/is';

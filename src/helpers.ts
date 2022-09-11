@@ -10,7 +10,7 @@ export function getNode(obs: ObservableRef): NodeValue {
     return obs[symbolGetNode];
 }
 
-export function lockEdits(obs: ObservableRef, value: boolean) {
+export function lockObservable(obs: ObservableRef, value: boolean) {
     const root = getNode(obs)?.root;
     if (root) {
         root.locked = value;
