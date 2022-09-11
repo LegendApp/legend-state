@@ -1,14 +1,9 @@
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
-export interface ListenerOptions {
-    runImmediately?: boolean;
-    shallow?: boolean;
-    optimized?: boolean;
-}
 
 export interface ObservableBaseFns<T> {
     get?(track?: boolean | Symbol): T;
     obs?(track?: boolean | Symbol): ObservableRef<T>;
-    onChange?(cb: ListenerFn<T>, options?: ListenerOptions): ObservableListenerDispose;
+    onChange?(cb: ListenerFn<T>, track?: boolean | Symbol): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
@@ -28,7 +23,7 @@ export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 export interface ObservableComputedFns<T> {
     get(track?: boolean | Symbol): T;
-    onChange(cb: ListenerFn<T>, options?: ListenerOptions): ObservableListenerDispose;
+    onChange(cb: ListenerFn<T>, track?: boolean | Symbol): ObservableListenerDispose;
 }
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {
@@ -274,7 +269,7 @@ export interface NodeValue {
     proxy?: object;
     key: string | number;
     root: ObservableWrapper;
-    listeners?: Map<string, ListenerFn>;
+    listeners?: Set<{ track: boolean | Symbol; listener: ListenerFn }>;
 }
 
 /** @internal */

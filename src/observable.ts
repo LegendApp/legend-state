@@ -537,12 +537,14 @@ function _notify(
     if (listeners) {
         let getPrevious;
         for (let listenerFn of listeners) {
-            const track = listenerFn[0][0];
-            const shallow = track === 's';
-            const optimized = track === 'o';
-            const listener = listenerFn[1];
+            const { track } = listenerFn;
 
-            const ok = shallow ? level <= 0 : optimized ? whenOptimizedOnlyIf && level <= 0 : true;
+            const ok =
+                track === Tracking.shallow
+                    ? level <= 0
+                    : track === Tracking.optimized
+                    ? whenOptimizedOnlyIf && level <= 0
+                    : true;
 
             // Notify if listener is not shallow or if this is the first level
             if (ok) {
@@ -552,7 +554,7 @@ function _notify(
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
                 batchNotify({
-                    cb: listener,
+                    cb: listenerFn.listener,
                     value,
                     getPrevious,
                     path,

@@ -1,5 +1,4 @@
-import { Tracking } from './globals';
-import { ListenerOptions, TrackingNode } from './observableInterfaces';
+import { TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { tracking } from './tracking';
 
@@ -8,14 +7,7 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
     // Listen to tracked nodes
     for (let tracked of nodes.values()) {
         const { node, track } = tracked;
-        let options: ListenerOptions;
-        if (track) {
-            options = {
-                shallow: track === Tracking.shallow,
-                optimized: track === Tracking.optimized,
-            };
-        }
-        listeners.push(onChange(node, update, options));
+        listeners.push(onChange(node, update, track));
     }
 
     return () => {

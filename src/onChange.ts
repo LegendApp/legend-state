@@ -1,31 +1,14 @@
-import { getNodeValue } from './globals';
 import { ListenerFn, NodeValue } from './observableInterfaces';
 
-let listenerIndex = 0;
-
-export function onChange(
-    node: NodeValue,
-    callback: ListenerFn<any>,
-    options?: { runImmediately?: boolean; shallow?: boolean; optimized?: boolean }
-): () => void {
-    let id = listenerIndex++ as unknown as string;
+export function onChange(node: NodeValue, callback: ListenerFn<any>, track?: boolean | Symbol): () => void {
     let listeners = node.listeners;
     if (!listeners) {
-        node.listeners = listeners = new Map();
+        node.listeners = listeners = new Set();
     }
 
-    if (options) {
-        // A memory efficient way to save shallowness is to put it on the id itself
-        if (options.shallow) id = 's' + id;
-        else if (options.optimized) id = 'o' + id;
+    const listener = { listener: callback, track: track };
 
-        if (options.runImmediately) {
-            const value = getNodeValue(node);
-            callback(value, () => value, [], value, value, node.proxy);
-        }
-    }
+    listeners.add(listener);
 
-    listeners.set(id, callback);
-
-    return () => listeners.delete(id);
+    return () => listeners.delete(listener);
 }
