@@ -1,7 +1,7 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
-import { useComputed } from './useComputed';
 import { createElement, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
+import { useComputed } from './useComputed';
 
 function computeProp(prop) {
     return useComputed(() => {
@@ -17,12 +17,12 @@ function computeProp(prop) {
     });
 }
 
-export function Computed({ children }: { children: () => ReactElement }): ReactElement {
+export function Computed({ children }: { children: () => ReactNode }): ReactElement {
     return useComputed(children, true) as ReactElement;
 }
 
 export const Memo = memo(
-    function Memo({ children }: { children: () => ReactElement }): ReactElement {
+    function Memo({ children }: { children: () => ReactNode }): ReactElement {
         return useComputed(children, true) as ReactElement;
     },
     () => true
@@ -30,15 +30,15 @@ export const Memo = memo(
 
 export function Show<T>(props: {
     if: NotPrimitive<T>;
-    else?: ReactElement | (() => ReactElement);
+    else?: ReactNode | (() => ReactNode);
     memo: true;
-    children: (value?: T) => ReactElement;
+    children: (value?: T) => ReactNode;
 }): ReactElement;
 export function Show<T>(props: {
     if: NotPrimitive<T>;
-    else?: ReactElement | (() => ReactElement);
+    else?: ReactNode | (() => ReactNode);
     memo?: false;
-    children: ReactElement | ((value?: T) => ReactElement);
+    children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement;
 export function Show<T>({
     if: if_,
@@ -47,9 +47,9 @@ export function Show<T>({
     children,
 }: {
     if: NotPrimitive<T>;
-    else?: ReactElement | (() => ReactElement);
+    else?: ReactNode | (() => ReactNode);
     memo?: boolean;
-    children: ReactElement | ((value?: T) => ReactElement);
+    children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement {
     if (memo && children) {
         if (process.env.NODE_ENV === 'development' && !isFunction(children)) {
@@ -58,15 +58,17 @@ export function Show<T>({
         children = useMemo<ReactElement>(children as () => ReactElement, []);
     }
     const value = computeProp(if_);
-    return value
-        ? isFunction(children)
-            ? children(value)
-            : children
-        : else_
-        ? isFunction(else_)
-            ? else_()
+    return (
+        value
+            ? isFunction(children)
+                ? children(value)
+                : children
             : else_
-        : null;
+            ? isFunction(else_)
+                ? else_()
+                : else_
+            : null
+    ) as ReactElement;
 }
 
 export function Switch<T>({
@@ -74,9 +76,9 @@ export function Switch<T>({
     children,
 }: {
     value: NotPrimitive<T>;
-    children?: Record<any, () => ReactElement>;
+    children?: Record<any, () => ReactNode>;
 }): ReactElement {
-    return children[computeProp(value)]?.() ?? children['default']?.() ?? null;
+    return (children[computeProp(value)]?.() ?? children['default']?.() ?? null) as ReactElement;
 }
 
 export function For<
