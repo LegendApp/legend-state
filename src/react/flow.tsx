@@ -49,14 +49,12 @@ export function Show<T>({
 
 export function Switch<T>({
     value,
-    fallback,
     children,
 }: {
     value: NotPrimitive<T>;
-    fallback?: ReactElement | (() => ReactElement);
     children?: Record<any, () => ReactElement>;
 }): ReactElement {
-    return children[computeProp(value)]?.() ?? (fallback ? (isFunction(fallback) ? fallback() : fallback) : null);
+    return children[computeProp(value)]?.() ?? children['default']?.() ?? null;
 }
 
 export function For<
