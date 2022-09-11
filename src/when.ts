@@ -1,29 +1,21 @@
 import { observe } from './effect';
 
-interface Options {
-    repeat?: boolean;
-}
-
 export function when(predicate: () => any): Promise<void>;
-export function when(predicate: () => any, effect: () => void | (() => void), options?: Options): () => void;
-export function when(predicate: () => any, effect?: () => void | (() => void), options?: Options) {
+export function when(predicate: () => any, effect: () => void | (() => void)): () => void;
+export function when(predicate: () => any, effect?: () => void | (() => void)) {
     let cleanup: () => void;
     let isDone = false;
 
     // Create a wrapping fn that calls the effect if predicate returns true
-    const fn = function () {
+    function run() {
         const ret = predicate();
         if (ret) {
             // If value is truthy then run the effect and cleanup
-            if (!options?.repeat) {
-                isDone = true;
-            }
+            isDone = true;
             effect();
-            if (isDone) {
-                cleanup?.();
-            }
+            cleanup?.();
         }
-    };
+    }
 
     // If no effect parameter return a promise
     const promise =
@@ -33,7 +25,7 @@ export function when(predicate: () => any, effect?: () => void | (() => void), o
         });
 
     // Create an effect for the fn
-    cleanup = observe(fn);
+    cleanup = observe(run);
 
     // If it's already cleanup
     if (isDone) {
