@@ -460,9 +460,9 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     newValue =
         !inAssign && isFunction(newValue)
             ? newValue(prevValue)
-            : isObject(newValue) && newValue?.[symbolIsObservable as any]
-            ? newValue.get()
-            : newValue;
+            : // : isObject(newValue) && newValue?.[symbolIsObservable as any]
+              // ? newValue.get()
+              newValue;
 
     const isPrim = isPrimitive(newValue);
 

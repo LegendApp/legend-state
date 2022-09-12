@@ -870,7 +870,7 @@ describe('Array', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         let arr = obs.test;
         let tmp = arr[1].get();
-        obs.test.set(1, arr[4]);
+        obs.test.set(1, arr.get()[4]);
         obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
         expect(obs.test[1]).toEqual({ text: 5 });
@@ -878,7 +878,7 @@ describe('Array', () => {
         expect(obs.test[4]).toEqual({ text: 2 });
         expect(arr[4]).toEqual({ text: 2 });
         tmp = arr[1].get();
-        obs.test.set(1, arr[4]);
+        obs.test.set(1, arr[4].get());
         obs.test.set(4, tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
     });
@@ -894,7 +894,7 @@ describe('Array', () => {
         });
         let arr = obs.test;
         let tmp = arr[1].get();
-        obs.test.set(1, arr[4]);
+        obs.test.set(1, arr[4].get());
         obs.test.set(4, tmp);
         obs.test.splice(0, 1);
         expect(obs.test[0].get()).toEqual({ id: 5, text: 5 });
@@ -1771,13 +1771,24 @@ describe('Observable with promise', () => {
     });
 });
 describe('Locking', () => {
-    const obs = observable({ text: 'hi' });
-    lockObservable(obs, true);
-    expect(() => obs.text.set('hello')).toThrowError();
-    expect(() => (obs.text = 'hello')).toThrowError();
-    expect(() => obs.set({ text: 'hello' })).toThrowError();
-    expect(obs.get()).toEqual({ text: 'hi' });
-    lockObservable(obs, false);
-    obs.text.set('hey');
-    expect(obs.get()).toEqual({ text: 'hey' });
+    test('Locking', () => {
+        const obs = observable({ text: 'hi' });
+        lockObservable(obs, true);
+        expect(() => obs.text.set('hello')).toThrowError();
+        expect(() => (obs.text = 'hello')).toThrowError();
+        expect(() => obs.set({ text: 'hello' })).toThrowError();
+        expect(obs.get()).toEqual({ text: 'hi' });
+        lockObservable(obs, false);
+        obs.text.set('hey');
+        expect(obs.get()).toEqual({ text: 'hey' });
+    });
+});
+describe('Assigning functions', () => {
+    test('Views', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        obs.assign({
+            test: computed(() => obs.text + '!'),
+        });
+        expect(obs.test.get() === 'hi!');
+    });
 });
