@@ -50,6 +50,6 @@
     "exclude": [
         "node_modules",
         "dist",
-        "state-types.d.ts"
+        "types.d.ts"
     ],
 }

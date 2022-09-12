@@ -13,7 +13,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp state-types.d.ts dist/state-types.d.ts && cp react-types.d.ts dist/react-types.d.ts && cp react-native-types.d.ts dist/react-native-types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
@@ -74,14 +74,8 @@
             "require": "./trace.js",
             "types": "./trace.d.ts"
         },
-        "./state-types": {
-            "types": "./state-types.d.ts"
-        },
-        "./react-types": {
-            "types": "./react-types.d.ts"
-        },
-        "./react-native-types": {
-            "types": "./react-native-types.d.ts"
+        "./types": {
+            "types": "./types.d.ts"
         },
         "./babel": "./babel.js"
     },
