@@ -1,8 +1,5 @@
-import { addNamed } from '@babel/helper-module-imports';
-
 import {
     arrowFunctionExpression,
-    jsxAttribute,
     jsxClosingElement,
     jsxClosingFragment,
     jsxElement,
@@ -102,41 +99,6 @@ export default function () {
                                         children
                                     )
                                 );
-                            }
-                        }
-                    } else {
-                        const hasComputedProp = openingElement.attributes.findIndex(
-                            (node) => node.name && node.name.name === 'computed' && node.value !== false
-                        );
-                        const hasMemoProp = openingElement.attributes.findIndex(
-                            (node) => node.name && node.name.name === 'memo' && node.value !== false
-                        );
-                        const keyProp = openingElement.attributes.find(
-                            (node) => node.name && node.name.name === 'key' && node.value !== false
-                        );
-                        if (hasComputedProp >= 0 || hasMemoProp >= 0) {
-                            if (hasComputedProp >= 0) {
-                                openingElement.attributes.splice(hasComputedProp, 1);
-                            }
-                            if (hasMemoProp >= 0) {
-                                openingElement.attributes.splice(hasMemoProp, 1);
-                            }
-
-                            const name = hasMemoProp >= 0 ? 'Memo' : 'Computed';
-
-                            const importName = imported[name] || '_' + name;
-
-                            path.replaceWith(
-                                jsxElement(
-                                    jsxOpeningElement(jsxIdentifier(importName), keyProp ? [keyProp] : []),
-                                    jsxClosingElement(jsxIdentifier(importName)),
-                                    [jsxExpressionContainer(arrowFunctionExpression([], path.node))]
-                                )
-                            );
-
-                            if (!imported[name]) {
-                                imported[name] = '_' + name;
-                                addNamed(root, name, '@legendapp/state/react');
                             }
                         }
                     }
