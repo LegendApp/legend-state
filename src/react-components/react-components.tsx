@@ -43,7 +43,9 @@ const Binder = function <
             );
 
             // Get the bound value
-            const value = (props.value = useComputed(() => {
+            props.value = useComputed(() => {
+                const value = bind.get();
+
                 // Call className if it's a function
                 if (isFunction(className)) {
                     props.className = className(value);
@@ -53,8 +55,8 @@ const Binder = function <
                     props.style = style(value);
                 }
 
-                return bind.get();
-            }));
+                return value;
+            });
         }
 
         return createElement(Component as any, ref ? { ...props, ref } : props);

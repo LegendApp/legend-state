@@ -79,7 +79,7 @@ export function For<
     optimized?: boolean;
     item?: (props: { item: T }) => ReactElement;
     children?: (value: T) => ReactElement;
-}): ReactElement {
+}): ReactElement[] {
     if (!each) return null;
 
     // Get the raw value with a shallow listener so this list only re-renders
@@ -118,5 +118,5 @@ export function For<
         }
     }
 
-    return out as unknown as ReactElement;
+    return out;
 }

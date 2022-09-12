@@ -24,7 +24,7 @@ const Binder = function <
     TValue extends Primitive,
     TElement,
     TStyle,
-    TProps extends { onChange?: any; style?: StyleProp<any> }
+    TProps extends { onChange?: any; value?: any; style?: StyleProp<any> }
 >(Component: TElement, getValue: (p: any) => TValue) {
     return forwardRef(function Bound<TBind extends ObservableWriteable<any>>(
         { bind, ...props }: Props<TValue, TStyle, TProps, TBind>,
@@ -43,13 +43,15 @@ const Binder = function <
             );
 
             // Get the bound value
-            const value = useComputed(() => {
+            props.value = useComputed(() => {
+                const value = bind.get();
+
                 // Call style if it's a function
                 if (isFunction(style)) {
                     props.style = style(value);
                 }
 
-                return bind.get();
+                return value;
             });
         }
 
