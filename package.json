@@ -92,7 +92,6 @@
         "@rollup/plugin-typescript": "^8.3.4",
         "@swc/cli": "^0.1.57",
         "@swc/core": "^1.2.223",
-        "@testing-library/react-hooks": "^8.0.1",
         "@types/jest": "^26.0.24",
         "@types/react": "^18.0.1",
         "@types/react-dom": "^18.0.0",
@@ -100,15 +99,19 @@
         "jest": "^27.0.6",
         "json": "^11.0.0",
         "prettier": "^2.7.1",
-        "react": "^18.0.0",
+        "react": "18.2.0",
         "react-native": "^0.69.4",
         "react-native-mmkv": "^2.4.3",
         "react-test-renderer": "^18.2.0",
         "rimraf": "^3.0.2",
         "rollup": "^2.77.2",
-        "ts-jest": "^27.0.4",
+        "ts-jest": "27.0.4",
         "tslib": "^2.4.0",
         "typescript": "^4.7.4"
+    },
+    "overrides": {
+        "react": "18.2.0",
+        "ts-jest": "27.0.4"
     },
     "peerDependencies": {
         "react": ">=16.8",
