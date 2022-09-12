@@ -72,14 +72,14 @@ const Component = observer(function Component() {
 
 ## Highlights
 
--   ✨ Super easy to use - observables are normal objects
--   ✨ No boilerplate
--   ✨ Safe from 🔫 footguns
--   ✨ Designed for maximum performance and scalability
--   ✨ React components re-render only on changes
--   ✨ Very strongly typed with TypeScript
--   ✨ Persistence plugins for automatically saving/loading from storage
--   ✨ State can be global or within components
+- ✨ Super easy to use - observables are normal objects
+- ✨ No boilerplate
+- ✨ Safe from 🔫 footguns
+- ✨ Designed for maximum performance and scalability
+- ✨ React components re-render only on changes
+- ✨ Very strongly typed with TypeScript
+- ✨ Persistence plugins for automatically saving/loading from storage
+- ✨ State can be global or within components
 
 [Read more](https://www.legendapp.com/dev/state/why/) about why Legend-State might be right for you.
 

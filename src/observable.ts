@@ -457,11 +457,12 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     const prevValue = parentValue[key];
 
     // Compute newValue if newValue is a function or an observable
-    newValue = isFunction(newValue)
-        ? newValue(prevValue)
-        : isObject(newValue) && newValue?.[symbolIsObservable as any]
-        ? newValue.get()
-        : newValue;
+    newValue =
+        !inAssign && isFunction(newValue)
+            ? newValue(prevValue)
+            : isObject(newValue) && newValue?.[symbolIsObservable as any]
+            ? newValue.get()
+            : newValue;
 
     const isPrim = isPrimitive(newValue);
 
@@ -638,7 +639,7 @@ export function observable<T extends boolean | string | number>(
     safe?: boolean
 ): ObservablePrimitive<T>;
 export function observable<T>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrPrimitive<T> {
-    const promise = (value as any).then && (value as unknown as Promise<T>);
+    const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
         value = undefined;
     }

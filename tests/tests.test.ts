@@ -124,6 +124,11 @@ describe('Set', () => {
             [{ text: 'hi2' }]
         );
     });
+    test('Assign with functions', () => {
+        const obs = observable({} as { test: () => string });
+        obs.assign({ test: () => 'hi' });
+        expect(obs.test()).toEqual('hi');
+    });
     test('Set with function', () => {
         const obs = observable({ test: { num: 1 } });
         obs.test.num.set((n) => n + 1);
