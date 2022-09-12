@@ -63,44 +63,6 @@ export default function () {
                                 )
                             );
                         }
-                    } else if (name === 'Show') {
-                        let children = removEmptyText(children_);
-                        const if_ = openingElement.attributes.find((node) => node.name?.name === 'if');
-                        const memo = openingElement.attributes.find((node) => node.name?.name === 'memo');
-
-                        if (if_ !== undefined) {
-                            const attrs = [];
-                            let needsChange = false;
-
-                            if (
-                                memo &&
-                                children[0].expression?.type !== 'ArrowFunctionExpression' &&
-                                children[0].expression?.type !== 'FunctionExpression'
-                            ) {
-                                needsChange = true;
-                                const oldChildren = children;
-                                children = [
-                                    jsxExpressionContainer(
-                                        arrowFunctionExpression(
-                                            [],
-                                            oldChildren.length > 0
-                                                ? jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), oldChildren)
-                                                : oldChildren[0]
-                                        )
-                                    ),
-                                ];
-                            }
-
-                            if (needsChange) {
-                                path.replaceWith(
-                                    jsxElement(
-                                        jsxOpeningElement(jsxIdentifier('Show'), attrs),
-                                        jsxClosingElement(jsxIdentifier('Show')),
-                                        children
-                                    )
-                                );
-                            }
-                        }
                     }
                 },
             },
