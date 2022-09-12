@@ -40,7 +40,7 @@ const ArrayModifiers = new Set([
     'splice',
     'unshift',
 ]);
-const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map']);
+const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
 
 const objectFns = new Map<string, Function>([
     ['get', get],
