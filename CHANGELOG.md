@@ -1,3 +1,26 @@
+## 0.15.0
+
+This is a big one with many breaking (but good) changes, so see https://legendapp.com/dev/state/migrating for more details. We're making a lot of breaking changes all once so that we can start to stabilize towards a 1.0.
+
+- Breaking: There are now three levels of safety: Unsafe, Default, Safe. "Default" is new and allows direct assignment to primitives but prevents directly assigning to everything else. The previous default behavior was "Unsafe" so you may see errors if you were directly assigning to objects/arrays/etc... Replace those with `.set(...)` or pass in `false` as the second parameter to `observable` to go back to "Unsafe" mode.
+- Breaking: Renamed `ref()` to `obs()`
+- Breaking: The array optimizations are now opt-in, because they can potentially have some unexpected behavior if modifying the DOM externally. You can enable them by using the `For` component with the `optimized` prop.
+- Breaking: Replaced `shallow` with a `Tracking` namespace, to add Optimized tracking. Change `shallow` to `Tracking.shallow` to get the previous behavior, or `Tracking.optimized` on an array to get the optimized behavior.
+- Breaking: Changed `observableBatcher` to export the batching functions directly instead of as a namespace
+- Breaking: Removed `onChangeShallow`, `onTrue`, `onEquals`, and `onHasValue` in favor of the new `effect` and `when` which automatically track any accessed observables.
+- Breaking: Renamed primitive observables' wrapping value from `current` to `value`.
+- Breaking: Renamed `observableComputed` to `computed` and `observableEvent` to `event`.
+- Breaking: Renamed the bindable components from `LS` to `Bindable` and they now export from '@legendapp/state/react-components' or '@legendapp/state/react-native-components'
+- Feat: Observable primitives can be rendered directly in React
+- Feat: Added `observe`, which can run arbitrary code while tracking all accessed observables.
+- Feat: Added `when`, which can run functions when the predicate returns a truthy value.
+- Feat: Added `Switch` component
+- Feat: Support creating an observable with a Promise as a value, which will update itself when the promise resolves.
+- Feat: A `lockObservable` function to prevent writes
+- Fix: Observables with arrays at the root were not notifying listeners properly
+- Fix: Accessing `current` (now `value`) on a primitive observable was not tracking as expected
+- Fix: Improve types of Memo/Computed/Show components so that they require functions by default, and are expanded to not need functions when referencing the babel types.
+
 ## 0.14.5
 - Feat: Allow passing observables directly to Show
 - Fix: Usage of old observe() when if prop is an observable
