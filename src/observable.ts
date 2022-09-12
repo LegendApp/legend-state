@@ -638,7 +638,7 @@ export function observable<T extends boolean | string | number>(
     safe?: boolean
 ): ObservablePrimitive<T>;
 export function observable<T>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrPrimitive<T> {
-    const promise = (value as any).then && (value as unknown as Promise<T>);
+    const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
         value = undefined;
     }
