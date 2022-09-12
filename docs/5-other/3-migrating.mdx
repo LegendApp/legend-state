@@ -1,0 +1,185 @@
+## 0.14 to 0.15
+
+### Safety
+
+There are now three levels of safety: **Unsafe**, **Default**, and **Safe**. Default is new and allows direct assignment to primitives but prevents directly assigning to everything else. The previous default behavior was Unsafe so you may see errors if you were directly assigning to objects/arrays/etc... TypeScript should show errors so it should be easy to find them. Replace those with `.set(...)` or pass in `false` as the second parameter to `observable` to go back to "Unsafe" mode.
+
+```js
+// 1. Unsafe: Use false for the previous unsafe behavior
+const obs = observable({ ... }, /*safe*/ false)
+
+// 2. Default: The new default behavior prevent directly assigning to objects, but allows directly assining to primitives
+const obs = observable({ text: 'hello',  obj: {} })
+
+obs.text = 'hi'
+// ✅ Setting a primitive works in default mode but not in safe mode.
+
+obs.obj = {}
+// ❌ Error. Cannot assign to objects directly.
+
+// 3. Safe: Safe mode prevents all direct assignment
+const obs = observable({ text: 'hello',  obj: {} }, /*safe*/true)
+
+obs.text = 'hi'
+// ❌ Error. Cannot assign directly in safe mode.
+```
+
+### Renamed ref to obs
+
+`ref` was a bit unclear and conflicted with React - the new feature to  [directly render observables](../fine-grained-reactivity/#render-an-observable-directly) requires a `ref` property. So it is now renamed to `obs`, which feels more intuitive as it is used to get an observable.
+
+```js
+const state = observable({ text: '' })
+
+// Before
+const textRef = state.ref('text')
+const textRef2 = state.text.ref()
+
+// Now
+const textObs = obs.obs('text')
+const textObs2 = obs.text.obs()
+```
+
+### Array optimizations
+
+The array optimizations are now opt-in, because they are only useful in React and can potentially have some unexpected behavior in React if modifying the DOM externally. You can enable them by using the `For` component with the `optimized` prop. See [Arrays](../arrays) for more.
+
+```jsx
+const obs = observable({ items: [] })
+
+const Row = observer(function Row({ item }) {
+    return <div>{item.text}</div>
+})
+
+const List = observer(function () {
+    // The optimized prop enables the optimizations which were previously default
+    return <For each={list} item={Row} optimized />
+})
+```
+
+### Shallow
+
+Since there's now a additionally the `optimized` tracking for arrays, the shallow option on `get()` and `obs()` now has another option. So instead of passing `shallow` to an observable, use the `Tracking` namespace now.
+
+```js
+import { Tracking } from '@legendapp/state'
+
+const obs = observable([])
+
+// Before
+obs.get(shallow)
+
+// Now
+obs.get(Tracking.shallow)
+```
+
+### Batching
+
+The `observableBatcher` namespace is removed and the batching functions are now exported on their own.
+
+```js
+import { batch, beginBatch, endBatch } from '@legendapp/state'
+
+// begin/end
+beginBatch()
+obs1.set(...)
+obs2.set(...)
+endBatch()
+
+// batch()
+batch(() => {
+    obs1.set(...)
+    obs2.set(...)
+}
+```
+
+### Change functions => observe/when
+
+The new `observe` and `when` functions can automatically track all observables accessed while running them. This made the old extra change utilities unnecessary, so `onTrue`, `onHasValue`, `onEquals`, and `onChangeShallow` have been removed, saving 200 bytes (7%) from the bundle size. These are the new equivalents:
+
+```js
+import { observe, when } from "@legendapp/state"
+
+const obs = observable({ value: undefined })
+
+// onTrue
+obs.value.onTrue(handler)
+// New onTrue equivalent
+when(() => obs.value === true, handler)
+
+// onHasValue
+obs.value.onHasValue('text', handler)
+// onHasValue equivalent
+when(() => obs.value, handler)
+
+// onEquals
+obs.value.onEquals('text', handler)
+// onEquals equivalent
+when(() => obs.value === 'text', handler)
+
+// onChangeShallow
+obs.value.onChangeShallow(handler)
+// onChangeShallow equivalent
+obs.value.onChange(handler, { shallow: true })
+```
+
+### Primitive current => value
+
+Primitive observables are now wrapped in `{ value }` instead of `{ current }`. You can also now modify the `value` directly.
+
+```js
+const obs = observable(10)
+// Before
+obs.current === 10
+obs.curent = 20 // ❌ Error
+// Now
+obs.value === 10
+obs.value = 20 // ✅ Works
+```
+
+### Renamed observableComputed and observableEvent
+
+`observableComputed` is now just `computed` and `observableEvent` is now just `event`.
+
+```js
+import { computed, event } from '@legendapp/state'
+
+// Before
+const value = observableComputed(() => ...)
+// Now
+const value = computed(() => ...)
+
+// Before
+const evt = observableEvent(() => ...)
+// Now
+const evt = event(() => ...)
+```
+
+### Renamed LS to Bindable
+
+The automatically bound exports are now named better and in their own exports, so change your exports from `LS` to:
+
+```js
+// Web
+import { Bindable } from '@legendapp/state/react-components'
+
+// React Native
+import { Bindable } from '@legendapp/state/react-native-components'
+```
+
+### Renamed Isolate to Computed
+
+The control flow component `Isolate` is renamed to `Computed` for naming consistency.
+
+### Removed memo and isolate props
+
+We found these confusing in practice as it wasn't super clear when a component was getting memoized, and it's not much extra work to use the Memo and Computed components directly. If you were using those, switch to the Computed and Memo components instead
+
+```jsx
+// Before
+<div memo>...</div>
+<div computed>...</div>
+
+// Now
+<Memo><div>...</div></Memo>
+<Computed><div>...</div></Computed>

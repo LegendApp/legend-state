@@ -1,0 +1,70 @@
+If you notice your components feeling too slow or seeming to render too often, two helpful functions can show you exactly what observables they're listening to and why they're rendering.
+
+## traceListeners()
+
+Call `traceListeners()` anywhere within an `observer` to console.log a list of every observable being track for changes. This can help you find and reduce the number of listeners.
+
+```jsx
+import { traceListeners } from "legendapp/state/trace"
+import { observer } from "@legendapp/state/react"
+
+const Component = observer((props) => {
+
+    // Call traceListeners anywhere inside the observer
+    traceListeners()
+
+    return (
+        <div>{state.count}</div>
+    )
+
+    /* This logs:
+
+    [legend-state] tracking 1 observable:
+    1: count
+
+    */
+})
+```
+
+## traceUpdates()
+
+Call `traceUpdates()` anywhere within an `observer` to console.log information about the observable change that causes each render. This can help you track down why components are rendering too often.
+
+```jsx
+import { traceUpdates } from "legendapp/state/trace"
+import { observer } from "@legendapp/state/react"
+
+const Component = observer((props) => {
+    // Call traceUpdates anywhere inside the observer
+    traceUpdates()
+
+    return (
+        <div>{state.count}</div>
+    )
+
+    /* This logs:
+
+    [legend-state] Rendering because "count" changed:
+    from: 0
+    to: 1
+
+    */
+})
+```
+
+## What to do with this information
+
+- You may want to call `get()` at a higher level in an object to only listen to it, and not every single child.
+- `get(Tracking.shallow)` will only update when keys are added to or removed from the object.
+- If you're passing primitives down to children, call `obs()` on it to get a reference to it without listening to it.
+- You may want to call `get()` to not listen at all.
+
+If you find an observable changing often and you're not sure why, you can put a breakpoint on the console log to catch it. Or add your own listener to the observable to watch every change:
+```js
+// Why is count rendering so often?
+state.count.onChange(value => {
+    console.log('Count changed', value);
+    console.trace();
+    debugger;
+})
+```

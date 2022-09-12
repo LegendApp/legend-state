@@ -1,0 +1,18 @@
+## mergeIntoObservable
+
+If you want to mergeIntoObservable a deep object into an observable, `mergeIntoObservable` can do that and retain all of the existing observables and listeners on the way, and fire listeners as values change. This is used by `persistObservable` under the hood.
+
+```js
+import { mergeIntoObservable } from '@legendapp/state'
+
+const obs = observable({ store: { text: 'hello', other: 'hello there' } })
+
+obs.store.text.on('change', () => ... )
+
+const newValue = { store: { text: 'hi', other: 'hi there' }}
+mergeIntoObservable(obs, newValue)
+
+// Change handler on obs.store.text is called
+
+obs.store === newValue.store // ✅ true
+```

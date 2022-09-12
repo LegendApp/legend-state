@@ -1,0 +1,122 @@
+Listening for changes is the core purpose of observables, so Legend-State provides many options. You can use these listening functions anywhere within an observable object.
+
+```js
+const obs = observable({ text: 'hi' })
+
+// Use onChange directly on the observable
+obs.text.onChange(() => ...)
+```
+
+## onChange
+
+`onChange` listens to an observable for any changes anywhere within it. Use this as specifically as possible because it will fire notifications for every change recursively up the tree.
+
+```js
+const obs = observable({ text: 'hi' })
+
+obs.text.onChange(text => console.log('text changed to', text))
+obs.onChange(value => console.log('obs changed to', value))
+
+obs.text.set('hello')
+
+// text changed to "hello"
+// obs changed to { text: "hello" }
+```
+
+### Dispose of listeners
+
+Listening to an observable returns a dispose function to stop listening. Just call it when you want to stop listening.
+
+```js
+const obs = observable({ text: 'hello' })
+
+const onChange = () => { ... }
+
+const dispose = obs.text.onChange(onChange)
+
+// Cancel listening manually
+dispose()
+```
+
+## observe
+
+`observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes. You can optionally return a cleanup function to run before it re-eveluates.
+
+This can be useful to use multiple observables at once, for the benefit of cleanup effects, or if you just like it more than [onChange](#onchange) 😎.
+
+```js
+import { observe, observable } from "@legendapp/state"
+const state = observable({ isOnline: false, toasts: [] })
+
+const dispose = observe(() => {
+    // This observe will automatically track state.isOnline for changes
+    if (!state.isOnline) {
+        // Show an "Offline" toast when offline
+        const toast = { id: 'offline', text: 'Offline', color: 'red' }
+        state.toasts.push(toast)
+
+        // Remove the toast when the observe is re-run, which will be when isOnline becomes true
+        return () => state.toasts.splice(state.toasts.indexOf(toast), 1)
+    }
+})
+
+// Cancel the observe
+dispose()
+```
+
+## when
+
+`when` runs the given function when the predicate returns a truthy value, and automatically tracks the observables accessed while running the predicate so it will update whenever one of them changes. When the value becomes truthy it will call the function and dispose the listeners. If not given a function it will return a promise that resolves when the predicate returns a truthy value.
+
+```js
+import { when } from "@legendapp/state"
+
+const obs = observable({ ok: false })
+
+// Option 1: Promise
+await when(() => obs.ok)
+
+// Option 2: callback
+const dispose = when(() => obs.ok, () => console.log("Don't worry, it's ok"))
+
+// Cancel listening manually
+dispose()
+```
+
+## computed
+
+`computed` automatically tracks the observables accessed while computing, so you can  return a computed value based on multiple observables, and it will update whenever one of them changes.
+
+```js
+import { computed } from "@legendapp/state"
+
+const obs = observable({ test: 10, test2: 20 })
+const computed = computed(() => obs.test + obs.test2)
+// computed.get() === 30
+
+obs.test.set(5)
+// computed.get() === 25
+```
+
+## event
+
+`event` works like an observable without a value. You can listen for changes as usual, and dispatch it manually whenever you want. This can be useful for simple events with no value, like onClosed.
+
+```js
+import { event } from "@legendapp/state"
+
+const onClosed = event()
+
+const handleClosed = () => {
+    // Do some cleanup when closed
+}
+
+// Simply pass a callback to the `on` function
+onClosed.on(handleClosed)
+
+// Or use it with 'onChange' like other observables
+onClosed.onChange(handleClosed)
+
+// Dispatch the event to call listeners
+onClosed.dispatch()
+```

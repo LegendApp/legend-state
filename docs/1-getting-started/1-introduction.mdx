@@ -1,0 +1,318 @@
+Legend-State is a super fast and powerful state library for JavaScript apps with two primary goals:
+
+### 1. <span className="text-xl">🦄</span> As easy as possible to use
+
+There is no boilerplate and there are no actions, reducers, selectors, dispatchers, sagas, thunks, or epics. Observables are just normal objects that you can read/write and listen to for changes.
+
+```jsx
+// Create an observable object
+const state = observable({ settings: { theme: 'dark' } })
+
+// Observables work like any other object
+state.settings.theme === 'dark' // true
+state.settings.theme = 'light'
+
+// Listen anywhere for changes
+state.settings.theme.onChange((theme) => { ... })
+
+// observer components automatically re-render when state changes
+const Component = observer(() => {
+    return <div>Theme: {state.settings.theme}</div>
+})
+```
+
+### 2. <span className="text-xl">⚡️</span> The fastest React state library
+
+Legend-State beats every other state library on just about every metric and is so optimized for arrays that it even beats vanilla JS on the "swap" and "replace all rows" benchmarks. At only `3kb` and with the massive reduction in boilerplate code, you'll have big savings in file size too.
+
+<img src="/img/dev/state/times.png" style={{ borderRadius: '1rem' }} />
+
+See [Fast 🔥](./fast) for more details of why Legend-State is so fast.
+
+## Example
+<Example name="Intro">
+```jsx
+// Create an observable object
+const state = observable({ settings: { theme: 'dark' } })
+
+// Observables work like any other object
+state.settings.theme === 'dark'   // true
+
+// Listen anywhere for changes
+state.settings.theme.onChange((theme) => { ... })
+
+// Assign to state like anything else
+state.settings.theme = 'light'
+
+// Automatically persist state
+persistObservable(state, { local: 'exampleState' })
+
+// Components re-render only when accessed observables change
+// This is the code for the example on your right ----->
+const Component = observer(function Component() {
+    const toggle = () => {
+        state.settings.theme.set(theme =>
+            theme === 'dark' ? 'light' : 'dark'
+        )
+    }
+
+    // state.settings.theme is automatically tracked for changes
+
+    return (
+        <div>
+            <div>Theme: {state.settings.theme}</div>
+            <Button onClick={toggle}>
+                Toggle theme
+            </Button>
+        </div>
+    )
+})
+```
+</Example>
+
+## Highlights
+- ✨ Super easy to use 😌
+- ✨ Super fast ⚡️
+- ✨ Super small at 3kb 🐥
+- ✨ No boilerplate
+- ✨ Designed for maximum performance and scalability
+- ✨ React components re-render only on changes
+- ✨ Very strongly typed with TypeScript
+- ✨ Persistence plugins for automatically saving/loading from storage
+- ✨ State can be global or within components
+
+The core is platform agnostic so you can use it in vanilla JS or any framework to create and listen to observables. It includes hooks and a HOC component for React and React Native, and has plugins for automatically persisting to storage.
+
+[Read more](./why) about why Legend-State might be right for your projects.
+
+## Install
+
+<Install name="@legendapp/state" />
+
+## Create observables
+
+You can put anything in an observable: primitives, deeply nested objects, arrays, functions, etc... Observables track changes on all nested objects and notify listeners whenever anything changes. Observables work just like normal objects so you can interact with them without any extra complication.
+
+```js
+import { observable } from "@legendapp/state"
+
+const obs = observable({ text: 'hello', obj: { value: 10 } })
+
+obs.text === 'hello' // true
+obs.obj.value === 10 // true
+```
+
+[Read more](./observable)
+
+## Modify observables
+
+Observables supports direct assignment along with safe modification functions: `set`, `assign`, and `delete`. You can use observable functions on any object, array, or primitive in your state.
+
+Note that observables can optionally be used in [safe mode](./observable#safe-mode) which prevents direct assignment to make your state safer.
+
+```js
+const obs = observable({ text: '', num: 10 })
+
+obs.text = 'hi'
+// obs == { text: 'hi', num: 10 }
+
+obs.text.set('hello')
+// obs == { text: 'hello', num: 10 }
+
+obs.assign({ text: 'hello there' })
+// obs == { text: 'hello there', num: 10 }
+```
+
+[Read more](./observable#set)
+
+## Listen for changes anywhere
+
+`observable` makes every value anywhere within the state object observable, so you can listen to changes anywhere within the object tree.
+
+```js
+const obs = observable({ settings: { theme: 'light' }, array: [{text: 'hi'}] })
+
+obs.settings.theme.onEquals('dark', (theme) => console.log('Theme is dark'))
+obs.settings.onChange((settings) => console.log('Settings changed to', settings))
+```
+
+Or use `observe` to track accessed observables automatically.
+
+```js
+observe(() => {
+    console.log('Theme is', obs.settings.theme)
+})
+```
+
+[Read more](./reactivity)
+
+## React observer minimizes renders
+
+Legend-State's React [observer HOC](./react-basics#observer) automatically listens to the accessed observables for changes while rendering. Observer components will re-render only when these observables change, so it's ideal to be as specific as possible to minimize renders. See [Performance](./performance) for more optimization tips.
+
+```jsx
+const obs = observable({ text: 'hello', num: 10, other: {} as LargeObject })
+
+const Component = observer(function Component() {
+    // This will only re-render on changes to text or num
+    return <div>{obs.text} {obs.num}</div>
+})
+```
+
+[Read more](./react-basics)
+
+## Easy fine-grained reactivity
+
+Use the `Computed` and `Memo` components to isolate children so that they re-render from their own observables without needing to re-render the parent. This is a very easy way to optimize large components to render less often.
+
+Or just render an observable directly to give it its own tracking context
+
+<Example name="Easy">
+```jsx
+const MemoExample = observer(() => {
+    const renderCount = ++useRef(0).current
+    const state = useObservable({ count: 0 })
+
+    useInterval(() => {
+        state.count ++
+    }, 500)
+
+    return (
+        <div>
+            <div>Renders: {renderCount}</div>
+            <div>Count: {state.count.obs()}</div>
+            <Memo>
+                <div>Count: {state.count}</div>
+            </Memo>
+        </div>
+    )
+})
+```
+</Example>
+
+[Read more](./reactivity)
+
+## Get the raw data
+
+You may want to access the underlying data to modify without notifying, or to check for strict equality. You can just call `get()` on any observable to get the raw value.
+
+```js
+const obs = observable({ profile: { name: '' } })
+const profile = { name: 'Test user' }
+obs.profile.set(profile)
+
+obs.profile === profile       // ❌ false. The observable is a Proxy.
+obs.profile.get() === profile // ✅ true. The raw data is exactly what was set.
+```
+
+[Read more](./observable#get)
+
+## Computed values
+
+`computed` automatically tracks the observables accessed while computing, so you can just return a computed value based on multiple observables, and it will update whenever one of them changes.
+
+```js
+const obs = observable({ first: 'Hi', last: 'there' })
+const computed = computed(() => obs.first + ' ' + obs.last)
+// computed.get() === 'Hi there'
+
+obs.first = 'Hello'
+// computed.get() === 'Hello there'
+```
+
+[Read more](./reactivity#computed)
+
+
+## Observable primitives
+
+`observable` can also be used with primitives. They are wrapped in `{ value }` so that you can always get the latest value of the observable.
+
+```js
+const theme = observable('dark')
+
+theme.value === 'dark' // true
+
+theme.set('light')
+
+theme.value === 'light' // true
+
+// Or use the get() function
+theme.get() === 'light' // true
+```
+
+[Read more](./observable#observable-primitives)
+
+## Persistence plugins
+
+Use `persistObservable` to automatically persist state using any kind of local or remote storage. Legend-State includes local providers for Local Storage on web and [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) in React Native, with more local and remote providers coming soon. Use `configureObservablePersistence` to set default providers for all persisted observables, or you can set them individually if they need to be different.
+
+The given observables will be populated with their persisted state immediately after calling `persistObservable`.
+
+```js
+// Global configuration
+configureObservablePersistence({
+    // Use Local Storage on web
+    persistLocal: ObservablePersistLocalStorage
+    // Use react-native-mmkv in React Native
+    persistLocal: ObservablePersistMMKV
+})
+
+const obs = observable({ store: { bigObject: { ... } } })
+
+// Persist this observable
+persistObservable(obs, {
+    local: 'store' // Unique name
+})
+```
+
+[Read more](./persistence)
+
+## Batch changes
+
+You may want to modify multiple observables at once without triggering renders for each change. Batching functions delay renders and listeners until the end of the batch.
+
+```js
+import { batch, beginBatch, endBatch } from '@legendapp/state'
+const obs = observable({ items: [] })
+
+function addItems() {
+    for (let i = 0; i < 1000; i ++) {
+        obs.items.push({ text: `Item ${i}` })
+    }
+}
+
+// Wrap in begin and end
+beginBatch()
+addItems()
+endBatch()
+
+// Or batch with a callback
+batch(() => {
+    addItems()
+})
+```
+
+[Read more](./batching)
+
+## Create actions
+
+If you prefer to modify your stores with actions, you can do that by adding functions to the observables, although it's not required.
+
+```js
+const obs = observable({
+    settings: {
+        theme: 'light'
+    },
+    setTheme: (theme) => obs.settings.theme.set(theme)
+})
+```
+
+Or you can have external management functions for modifying state if you prefer.
+
+```js
+export function setTheme(theme) {
+    obs.settings.theme.set(theme)
+}
+```
+
+[Read more](./patterns)

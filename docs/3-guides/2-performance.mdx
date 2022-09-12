@@ -1,0 +1,45 @@
+Legend-State is designed to be high performance so it should be well optimized without having to think about it. But there are some considerations to keep in mind.
+
+Note: This page is under construction after a recent change in how Legend-State is consumed from React. More tips coming soon!
+
+## Batch multiple changes
+
+Modifying multiple observables in a row can re-compute computed observables, re-render React components, or write to storage multiple times if [persisting](../persistence). You can delay listener notification until after all writes to notify only once.
+
+See [Batching](../batching) for more details.
+
+```js
+import { batch } from "@legendapp/state"
+
+const obs = observable({ items: [] })
+
+function addItems() {
+    for (let i = 0; i < 1000; i ++) {
+        obs.items.push({ text: `Item ${i}` })
+    }
+}
+
+// ❌ This can notify listeners 1000 times while pushing to the array
+addItems()
+
+// ✅ This notifies once when all changes are complete
+batch(addItems)
+```
+
+## Iterating through observables creates Proxies
+
+For most usage this effect is negligible, but may be a concern with huge arrays of objects.
+
+Accessing objects/arrays in observables creates Proxies to give them the observable functions. If you are iterating through large objects that don't need to be tracked for changes, call `get()` first to access the raw data, skipping all the Proxy creation.
+
+```js
+const obs = observable({ items: [{ data: { value: 10 }}, ...] })
+
+let sum = 0
+
+// 🔥 This will create proxies for each element's data and value
+obs.items.forEach(item => sum += item.data.value)
+
+// 💨 This will not do anything special
+obs.items.get().forEach(item => sum += item.data.value)
+```

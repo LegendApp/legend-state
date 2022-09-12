@@ -1,0 +1,346 @@
+To get the best performance with React it's ideal to make components as small as possible so that state changes re-render the minimum number of components.
+
+If you pass state changes down the component tree as props, each component along the way has to re-render. Legend-State helps you make sure that each change causes only the smallest and fewest renders.
+
+## ❌ The slow normal React way
+
+In this example of what can be slow, the component re-renders when any state changes. With huge components and lots of state, you'll get lots of re-renders which can slow your app down.
+
+```jsx
+const BigComponent = function BigComponent() {
+    const [count, setCount] = useState(0)
+    const [message, setMessage] = useState('')
+    const [showModal, setShowModal] = useState(false)
+    // Re-renders when count, message, or showModal changes
+    return (
+        <div>
+            {/* ... tons of other components */}
+            <div>{count}</div>
+            <div>{message}</div>
+            {showModal && <Modal />}
+        </div>
+    )
+}
+```
+
+## ⚡️ The fast fine-grained way
+
+But if we go for fine-grained reactivity with observables, each component listens to only the state it cares about, and you get targeted small re-renders.
+
+```jsx
+const state = observable({ message: '', count: 0, showModal: false })
+
+const Counter = observer(function Counter() {
+    // Only re-renders when count changes
+    return <div>{state.count}</div>
+})
+const Message = observer(function Message() {
+    // Only re-renders when message changes
+    return <div>{state.message}</div>
+})
+function App() {
+    // Never re-renders
+    return (
+        <div>
+            <Counter />
+            <Message />
+            <Show if={showModal}>
+                <Modal />
+            </Modal>
+        </div>
+    )
+}
+```
+
+Extracting small components is a great strategy, but it can get confusing and annoying to have to extract every little thing into a sub-component, especially when it has no other logic than just tracking observables and rendering. So Legend-State includes ways to easily isolate pieces of a component from affecting everything, to get the performance benefits of fine-grained reactivity without the overhead of manually extracting every little thing.
+
+There is a tradeoff - creating extra elements does have a performance cost. So keep in mind:
+- If a child doesn't re-render itself often, it may not be worth the extra component for it.
+- If a parent renders every time a child renders anyway, there's no point in isolating the child.
+
+## Render an observable directly
+
+The easiest way to isolate your renders is to pass an observable `string` or `number` straight into React, and it will automatically be extracted as a separate memoized component with its own tracking context. This works out of the box - you don't need to do anything special to enable it.
+
+Just call `obs()` on an observable primitive to get its observable.
+
+```jsx
+<div>Count: {state.count.obs()}</div>
+```
+
+### Example
+
+<Example name="Primitive">
+```js
+const state = observable({ count: 0 })
+setInterval(() => {
+    state.count ++
+}, 500)
+
+const Normal = observer(function Normal() {
+    const renderCount = ++useRef(0).current
+
+    return <>
+        <div>Renders: {renderCount}</div>
+        <div>Count: {state.count}</div>
+    </>
+}
+function Optimized() {
+    const renderCount = ++useRef(0).current
+
+    return <>
+        <div>Renders: {renderCount}</div>
+        <div>Count: {state.count.obs()}</div>
+    </>
+}
+```
+</Example>
+
+## Computed
+
+Computed extracts children so that their changes do not affect the parent, but the parent's changes will still re-render them. Use this when children use observables that change often without affecting the parent, but also depends on local state in the parent.
+
+The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
+
+```jsx
+// With Babel plugin
+<Computed>
+    {state.messages.map(message => (
+        <div key={message.id}>{message.text} {localVar}</div>
+    )}
+</Computed>
+
+// Without Babel plugin
+<Computed>
+    {() => state.messages.map(message => (
+        <div key={message.id}>{message.text} {localVar}</div>
+    )}
+</Computed>
+```
+
+### Example
+
+In this example see that clicking the "Render parent" button renders the parent and increments `value` and the computed children are updated too.
+
+<Example name="Computed">
+```jsx
+import { Computed } from "@legendapp/state/react"
+
+const ComputedExample = observer(() => {
+    const renderCount = ++useRef(0).current
+    const state = useObservable({ count: 0 })
+    const [value, setValue] = useState(1)
+
+    const onClick = () => setValue(v => v + 1)
+    useInterval(() => {
+        state.count.set(c => c + 1)
+    }, 500)
+
+    return (
+        <div>
+            <div>Renders: {renderCount}</div>
+            <div>Value: {value}</div>
+
+            <Computed>
+                <div>Value: {value}</div>
+                <div>Count: {state.count}</div>
+            </Computed>
+        </div>
+    )
+})
+```
+</Example>
+
+## Memo
+
+Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly indepdendent from the parent component. This is equivalent to extracting it as a separate `observer` function.
+
+The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
+
+```jsx
+// With Babel plugin
+<Computed>
+    {state.messages.map(message => (
+        <div key={message.id}>{message.text}</div>
+    )}
+</Computed>
+
+// Without Babel plugin
+<Computed>
+    {() => state.messages.map(message => (
+        <div key={message.id}>{message.text}</div>
+    )}
+</Computed>
+```
+
+### Example
+
+This is the same as the Computed example, except that the memoized children are not updated with the parent's value.
+
+<Example name="Memo">
+```jsx
+import { Memo } from "@legendapp/state/react"
+
+const MemoExample = observer(() => {
+    const renderCount = ++useRef(0).current
+    const state = useObservable({ count: 0 })
+    const [value, setValue] = useState(1)
+
+    const onClick = () => setValue(v => v + 1)
+    useInterval(() => {
+        state.count.set(c => c + 1)
+    }, 500)
+
+    return (
+        <div>
+            <div>Renders: {renderCount}</div>
+            <div>Value: {value}</div>
+
+            <Memo>
+                <div>Value: {value}</div>
+                <div>Count: {state.count}</div>
+            </Memo>
+        </div>
+    )
+})
+```
+</Example>
+
+## Show
+
+Show renders child components conditionally based on the if/else props, and does not re-render the parent when the condition changes.
+
+Props:
+- `if`: A computed function or an observable (use `obs()` to get the observable from a primitive)
+- `else`: Optionally provide a component to render if the condition is not met
+- `children`: The components to show conditionally. This can be React elements or a function given the value returned from `if` which you can use to do more complex conditional rendering.
+
+```jsx
+<Show
+    if={() => state.show}
+    else={<div>Nothing to see here</div>}
+>
+    <Modal />
+</Show>
+```
+
+### Example
+
+<Example name="Show">
+```jsx
+import { Show } from "@legendapp/state/react"
+
+const ShowExample = observer(() => {
+    const renderCount = ++useRef(0).current
+    const state = useObservable({ show: false })
+
+    const onClick = () => state.show.set(show => !show)
+
+    return (
+        <div>
+            <div>Renders: {renderCount}</div>
+            <button onClick={onClick}>Toggle</button>
+
+            <!-- 1. Direct children -->
+            <Show
+                if={state.show.obs()}
+                else={<div>Nothing to see here</div>}
+            >
+                <Modal />
+            </Show>
+
+            <!-- 2. With a function -->
+            <Show
+                if={state.show.obs()}
+            >
+                {(show) => show ? (
+                    <div>Modal</div>
+                ) : (
+                    <div>Nothing to see here</>
+                )}
+            </Show>
+        </div>
+    )
+})
+```
+</Example>
+
+## Switch
+
+Switch renders one child component conditionally based on the `value` prop, and does not re-render the parent when the condition changes.
+
+Props:
+- `value`: A computed function or an observable (use `obs()` to get the observable from a primitive)
+- `children`: An object with the possible cases of `value` as keys. If `value` doesn't match any of the cases it will use the `default` case if it exists.
+
+```jsx
+<Switch value={() => state.index)}>
+    {{
+        0: () => <div>Tab 1</div>,
+        1: () => <div>Tab 2</div>,
+        default: () => <div>Error</div>
+    }}
+</Switch>
+```
+
+### Example
+
+<Example name="Switch">
+```jsx
+import { Switch } from "@legendapp/state/react"
+
+const SwitchExample = observer(() => {
+    const renderCount = ++useRef(0).current
+    const index = useObservable(0)
+
+    const onClick = () => index.set(v => v > 2 ? 0 : v + 1)
+
+    return (
+        <div>
+            <div>Renders: {renderCount}</div>
+            <button onClick={onClick}>Next tab</button>
+
+            <Switch value={tabIndex}>
+                {{
+                    0: () => <Tab1 />,
+                    1: () => <Tab2 />,
+                    2: () => <Tab3 />,
+                    default: () => <Error />
+                }}
+            </Switch>
+        </div>
+    )
+})
+```
+</Example>
+
+## Optionally add the Babel plugin
+
+The Babel plugin can make the syntax for Computed and Memo less verbose. But they work fine without Babel if you don't want to or can't use it. The Babel plugin converts the JSX under the hood so you don't need to use functions as children. It basically does this:
+
+```jsx
+<Computed><div>Count: {state.count}</div></Computed>
+
+// becomes:
+
+<Computed>{() => <div>Count: {state.count}</div>}</Computed>
+```
+
+### Install
+
+Add `@legendapp/state/babel` to the plugins in your `babel.config.js`:
+
+```js
+module.exports = {
+    plugins: [
+        ...
+        "@legendapp/state/babel",
+    ],
+}
+```
+
+If you're using typescript you can add a `.d.ts` file to your project with this in it, to expand the types to allow direct children to Computed and Memo.
+
+```js
+/// <reference types="@legendapp/state/types" />
+```

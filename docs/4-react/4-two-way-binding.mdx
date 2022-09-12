@@ -1,0 +1,110 @@
+Legend-State makes it easy to bind components directly to an observable, so you don't have to worry about managing refs or onChange handlers.
+
+With these components you can just pass an observable to the `bind` prop to automatically update an observable as the input changes.
+
+Note that primitive values should be passed down with `obs()` to create a stable reference.
+
+## Example
+
+<Example name="Input">
+```jsx
+const Component = observer(function Component() {
+    const state = useObservable({ name: 'Legend' })
+
+    return (
+        <div>
+            <div>{state.name}</div>
+            <Bindable.input
+                bind={state.name.obs()}
+                className={(value) =>
+                    value === 'Legend' ?
+                        'text-white' :
+                        'text-red-500'
+                }
+            />
+        </div>
+    )
+})
+```
+</Example>
+
+## React
+
+Three input components are provided for React: `input`, `textarea`, and `select`.
+
+The `className` and `style` props can optionally be a function given the current value.
+
+```jsx
+import { Bindable } from "@legendapp/state/react"
+
+function Component() {
+    const state = useObservable({ name: '', age: 18 })
+
+    return (
+        <div>
+            <Bindable.textarea bind={state.name.obs()} />
+            <Bindable.select bind={state.age.obs()}>
+            <Bindable.input
+                bind={state.name.obs()}
+                className={(value) => !value && "border-red-500"}
+                style={(value) => !value && { borderWidth: 1 }}
+            />
+        </div>
+    )
+}
+```
+
+## React Native
+
+Two input components provided for React Native are `TextInput` and `Switch`.
+
+The `style` prop can optionally be a function given the current value.
+
+
+```jsx
+import { Bindable } from "@legendapp/state/react-native"
+
+function Component() {
+    const state = useObservable({ name: '', enabled: false })
+
+    return (
+        <div>
+            <Bindable.Switch bind={state.enabled.obs()} />
+            <Bindable.TextInput
+                bind={state.name.obs()}
+                style={(value) => !value && { borderColor: "red" }}
+            />
+        </div>
+    )
+}
+```
+
+## Create your own
+
+These components are fairly simple - they get the `bind` value with useComputed and `set()` the observable on change. So it's easy to create your own custom bindable components if you like.
+
+This is basically how they work:
+
+```jsx
+export const Bound = function (Component) {
+    return forwardRef(function Bound({ bind, ...props }, ref) {
+        const { onChange } = props;
+
+        // Set the bound value and forward onChange
+        props.onChange = useCallback(
+            (e) => {
+                bind.set(e.target.value);
+                onChange?.(e);
+            },
+            [onChange]
+        );
+
+        // Get the bound value
+        props.value = useComputed(() => bind.get())
+
+        return createElement(Component as any, ref ? { ...props, ref } : props)
+    })
+};
+```
+
+ See [react-components on GitHub](https://github.com/LegendApp/legend-state/blob/main/src/react-components/react-components.tsx) for the latest full source.
