@@ -174,4 +174,20 @@ describe('Tracking', () => {
         expect(nodes[0].node.key).toEqual('arr');
         expect(nodes[0].track).toEqual(Tracking.shallow);
     });
+    test('obs() untracks only last accessed', () => {
+        const obs = observable({ text: 'hi' });
+        const text = obs.text;
+
+        const ref = obs.text.obs();
+
+        expect(tracking.nodes.size).toEqual(1);
+    });
+    test('obs(key) untracks only last accessed', () => {
+        const obs = observable({ text: 'hi' });
+        const text = obs.text;
+
+        const ref = obs.obs('text');
+
+        expect(tracking.nodes.size).toEqual(1);
+    });
 });

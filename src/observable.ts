@@ -240,8 +240,11 @@ function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, t
         node = getChildNode(node, keyOrTrack as string | number);
     }
 
-    // Untrack by default
-    checkTracking(node, track === true ? Tracking.normal : track === false ? undefined : track);
+    // Don't untrack if getting node by key
+    if (track !== undefined || !keyOrTrack) {
+        // Untrack by default
+        checkTracking(node, track === true ? Tracking.normal : track === false ? undefined : track);
+    }
 
     return getProxy(node);
 }

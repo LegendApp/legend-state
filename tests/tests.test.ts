@@ -1717,8 +1717,8 @@ describe('obs function', () => {
         expect(obsTest4.get()).toEqual(undefined);
     });
 });
-describe('effect', () => {
-    test('Basic effect', () => {
+describe('observe', () => {
+    test('Basic observe', () => {
         const obs = observable({ text: 'hi' });
         const fn = jest.fn();
         observe(() => {
