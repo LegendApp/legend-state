@@ -19,7 +19,7 @@ export const nextNodeID = { current: 0 };
 export function checkTracking(node: NodeValue, track: boolean | Symbol) {
     if (tracking.nodes) {
         if (track) {
-            updateTracking(node, undefined, track, /*manual*/ true);
+            updateTracking(node, track, /*manual*/ true);
         } else {
             untrack(node);
         }

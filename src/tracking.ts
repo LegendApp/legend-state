@@ -8,10 +8,7 @@ export const tracking = {
     updates: undefined as (fn: () => void) => () => void,
 };
 
-export function updateTracking(node: NodeValue, parent?: NodeValue, track?: boolean | Symbol, manual?: boolean) {
-    if (parent) {
-        untrack(parent);
-    }
+export function updateTracking(node: NodeValue, track?: boolean | Symbol, manual?: boolean) {
     lastNode = node;
     const existing = tracking.nodes.get(node.id);
     if (existing) {
