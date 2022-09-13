@@ -1,29 +1,26 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
 import { createElement, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
-import { useComputed } from './useComputed';
 
 function computeProp(prop) {
-    return useComputed(() => {
-        let p = prop;
-        if (isFunction(p)) {
-            p = p();
-        }
+    let p = prop;
+    if (isFunction(p)) {
+        p = p();
+    }
 
-        if (isObservable(p)) {
-            p = p.get();
-        }
-        return p;
-    });
+    if (isObservable(p)) {
+        p = p.get();
+    }
+    return p;
 }
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {
-    return useComputed(children, true) as ReactElement;
+    return children() as ReactElement;
 }
 
 export const Memo = memo(
     function Memo({ children }: { children: () => ReactNode }): ReactElement {
-        return useComputed(children, true) as ReactElement;
+        return children() as ReactElement;
     },
     () => true
 );
@@ -84,15 +81,7 @@ export function For<
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = useComputed(
-        () =>
-            (each as ObservableObject).get(optimized ? Tracking.optimized : Tracking.shallow) as {
-                id?: string;
-                _id?: string;
-                __id?: string;
-            }[],
-        true
-    );
+    const v = (each as ObservableObject).get(optimized ? Tracking.optimized : Tracking.shallow);
 
     if (!v) return null;
 
@@ -102,7 +91,7 @@ export function For<
         const refChildren = useRef<(value: T) => ReactElement>();
         refChildren.current = children;
 
-        item = useMemo(() => memo(({ item }) => useComputed(() => refChildren.current(item), true)), []);
+        item = useMemo(() => memo(({ item }) => refChildren.current(item)), []);
     }
 
     // Get the appropriate id field

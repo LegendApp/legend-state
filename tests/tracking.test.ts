@@ -28,7 +28,7 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const ref = obs.test.test2.obs();
 
-        expect(tracking.nodes.size).toEqual(0);
+        expect(tracking.nodes).toEqual(undefined);
 
         expect(ref.get(false)).toEqual({ test3: 'hi' });
     });
@@ -44,7 +44,7 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         const ref = obs.test.test2.obs();
 
-        expect(tracking.nodes.size).toEqual(0);
+        expect(tracking.nodes).toEqual(undefined);
 
         ref.test3;
 
@@ -68,7 +68,7 @@ describe('Tracking', () => {
         const obs = observable({ test: { text: 'hi' } });
         obs.test;
 
-        expect(tracking.nodes.size).toEqual(0);
+        expect(tracking.nodes).toEqual(undefined);
     });
     test('get() observes', () => {
         const obs = observable({ test: { text: 'hi' } });

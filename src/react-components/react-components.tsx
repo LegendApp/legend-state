@@ -1,5 +1,4 @@
 import { isFunction } from '@legendapp/state';
-import { useComputed } from '@legendapp/state/react';
 import {
     ChangeEvent,
     createElement,
@@ -43,20 +42,16 @@ const Binder = function <
             );
 
             // Get the bound value
-            props.value = useComputed(() => {
-                const value = bind.get();
+            const value = (props.value = bind.get());
 
-                // Call className if it's a function
-                if (isFunction(className)) {
-                    props.className = className(value);
-                }
-                // Call style if it's a function
-                if (isFunction(style)) {
-                    props.style = style(value);
-                }
-
-                return value;
-            });
+            // Call className if it's a function
+            if (isFunction(className)) {
+                props.className = className(value);
+            }
+            // Call style if it's a function
+            if (isFunction(style)) {
+                props.style = style(value);
+            }
         }
 
         return createElement(Component as any, ref ? { ...props, ref } : props);

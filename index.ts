@@ -15,7 +15,7 @@ export { isArray, isFunction, isObject, isPrimitive } from './src/is';
 /** @internal */
 export { onChange } from './src/onChange';
 /** @internal */
-export { tracking } from './src/tracking';
+export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
 /** @internal */
 export { symbolDateModified, symbolIsObservable, extraPrimitiveProps, getNodeValue, symbolUndef } from './src/globals';
 /** @internal */

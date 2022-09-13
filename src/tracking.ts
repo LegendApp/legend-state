@@ -10,13 +10,16 @@ export const tracking = {
 };
 
 export function beginTracking() {
+    // Keep a copy of the previous tracking context so it can be restored
+    // when this context is complete
     const prev = tracking.nodes;
     tracking.isTracking = true;
     tracking.nodes = undefined;
     return prev;
 }
 export function endTracking(prevNodes: Map<number, TrackingNode>) {
-    tracking.isTracking = false;
+    // Restore the previous tracking context
+    tracking.isTracking = !!prevNodes;
     tracking.nodes = prevNodes;
 }
 
