@@ -358,7 +358,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
     getOwnPropertyDescriptor(node, p) {
         const value = getNodeValue(node);
-        return Reflect.getOwnPropertyDescriptor(value, p);
+        return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, p) : undefined;
     },
     set(node: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
