@@ -268,7 +268,7 @@ export interface NodeValue {
     proxy?: object;
     key?: string | number;
     root: ObservableWrapper;
-    listeners?: Set<{ track: boolean | Symbol; listener: ListenerFn }>;
+    listeners?: Set<{ track: boolean | Symbol; noArgs?: boolean; listener: ListenerFn }>;
 }
 
 /** @internal */

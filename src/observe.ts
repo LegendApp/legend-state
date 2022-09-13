@@ -2,13 +2,13 @@ import { TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { beginTracking, endTracking, tracking } from './tracking';
 
-export function setupTracking(nodes: Map<number, TrackingNode>, update: () => void) {
+export function setupTracking(nodes: Map<number, TrackingNode>, update: () => void, noArgs?: boolean) {
     let listeners = [];
     // Listen to tracked nodes
     if (nodes) {
         for (let tracked of nodes.values()) {
             const { node, track } = tracked;
-            listeners.push(onChange(node, update, track));
+            listeners.push(onChange(node, update, track, noArgs));
         }
     }
 

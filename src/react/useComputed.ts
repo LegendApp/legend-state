@@ -44,7 +44,7 @@ export function useComputed<T>(selector: () => T, whenToRender?: boolean) {
             // Workaround for React 18's double calling useEffect. If this is the
             // second useEffect, set up tracking again.
             if (dispose === undefined) {
-                dispose = setupTracking(cachedNodes, update);
+                dispose = setupTracking(cachedNodes, update, /*noArgs*/ true);
             }
             return () => {
                 dispose();

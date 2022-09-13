@@ -1,19 +1,20 @@
+import { isFunction } from './is';
 import { ListenerFn, NodeValue } from './observableInterfaces';
 
 interface BatchItem {
     cb: ListenerFn<any>;
     value: any;
-    getPrevious: () => any;
-    path: (string | number)[];
-    valueAtPath: any;
-    prevAtPath: any;
-    node: NodeValue;
+    getPrevious?: () => any;
+    path?: (string | number)[];
+    valueAtPath?: any;
+    prevAtPath?: any;
+    node?: NodeValue;
 }
 let timeout;
 let numInBatch = 0;
-let _batch: BatchItem[] = [];
-// Use a WeakMap of callbacks for fast lookups to update the BatchItem
-let _batchMap = new WeakMap<ListenerFn, BatchItem>();
+let _batch: (BatchItem | (() => void))[] = [];
+// Use a Map of callbacks for fast lookups to update the BatchItem
+let _batchMap = new Map<ListenerFn, BatchItem | true>();
 
 function onActionTimeout() {
     if (_batch.length > 0) {
@@ -26,18 +27,21 @@ function onActionTimeout() {
     }
 }
 
-export function batchNotify(b: BatchItem) {
+export function batchNotify(b: BatchItem | (() => void)) {
+    const isFunc = isFunction(b);
+    const cb = isFunc ? b : b.cb;
     if (numInBatch > 0) {
-        const existing = _batchMap.get(b.cb);
+        const existing = _batchMap.get(cb);
+        const it = isFunc ? true : b;
         // If this callback already exists, make sure it has the latest value but do not add it
         if (existing) {
-            _batchMap.set(b.cb, b);
+            _batchMap.set(cb, it);
         } else {
             _batch.push(b);
-            _batchMap.set(b.cb, b);
+            _batchMap.set(cb, it);
         }
     } else {
-        b.cb(b.value, b.getPrevious, b.path, b.valueAtPath, b.prevAtPath, b.node);
+        isFunc ? b() : b.cb(b.value, b.getPrevious, b.path, b.valueAtPath, b.prevAtPath, b.node);
     }
 }
 
@@ -60,10 +64,15 @@ export function endBatch(force?: boolean) {
         // This can happen with observableComputed for example.
         const batch = _batch;
         _batch = [];
-        _batchMap = new WeakMap();
+        _batchMap = new Map();
         for (let i = 0; i < batch.length; i++) {
-            const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, node } = batch[i];
-            cb(value, prev, path, valueAtPath, prevAtPath, node);
+            const b = batch[i];
+            if (isFunction(b)) {
+                b();
+            } else {
+                const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, node } = b;
+                cb(value, prev, path, valueAtPath, prevAtPath, node);
+            }
         }
     }
 }

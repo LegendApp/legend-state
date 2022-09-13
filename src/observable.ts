@@ -533,7 +533,7 @@ function _notify(
     if (listeners) {
         let getPrevious;
         for (let listenerFn of listeners) {
-            const { track } = listenerFn;
+            const { track, noArgs } = listenerFn;
 
             const ok =
                 track === Tracking.shallow
@@ -549,15 +549,19 @@ function _notify(
                 if (!getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
-                batchNotify({
-                    cb: listenerFn.listener,
-                    value,
-                    getPrevious,
-                    path,
-                    valueAtPath,
-                    prevAtPath,
-                    node,
-                });
+                batchNotify(
+                    noArgs
+                        ? (listenerFn.listener as () => void)
+                        : {
+                              cb: listenerFn.listener,
+                              value,
+                              getPrevious,
+                              path,
+                              valueAtPath,
+                              prevAtPath,
+                              node,
+                          }
+                );
             }
         }
     }

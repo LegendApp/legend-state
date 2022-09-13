@@ -1,4 +1,4 @@
-import { checkTracking } from 'src/tracking';
+import { checkTracking } from './tracking';
 import { isBoolean, isString, isSymbol } from './is';
 import { NodeValue } from './observableInterfaces';
 
