@@ -210,7 +210,6 @@ export type ObservableListenerDispose = () => void;
 
 export interface ObservableWrapper {
     _: any;
-    isPrimitive: boolean;
     safeMode: 0 | 1 | 2;
     locked?: boolean;
 }
@@ -264,10 +263,10 @@ export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimi
 
 export interface NodeValue {
     id: number;
-    parent: NodeValue;
+    parent?: NodeValue;
     children?: Map<string | number, NodeValue>;
     proxy?: object;
-    key: string | number;
+    key?: string | number;
     root: ObservableWrapper;
     listeners?: Set<{ track: boolean | Symbol; listener: ListenerFn }>;
 }

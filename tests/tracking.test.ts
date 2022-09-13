@@ -136,7 +136,7 @@ describe('Tracking', () => {
 
         expect(tracking.nodes.size).toEqual(1);
     });
-    test('current on a primitive observes', () => {
+    test('value on a primitive observes', () => {
         const prim = observable(0);
 
         const a = prim.value;

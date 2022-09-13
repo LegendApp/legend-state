@@ -1771,13 +1771,45 @@ describe('Observable with promise', () => {
     });
 });
 describe('Locking', () => {
-    const obs = observable({ text: 'hi' });
-    lockObservable(obs, true);
-    expect(() => obs.text.set('hello')).toThrowError();
-    expect(() => (obs.text = 'hello')).toThrowError();
-    expect(() => obs.set({ text: 'hello' })).toThrowError();
-    expect(obs.get()).toEqual({ text: 'hi' });
-    lockObservable(obs, false);
-    obs.text.set('hey');
-    expect(obs.get()).toEqual({ text: 'hey' });
+    test('Locking', () => {
+        const obs = observable({ text: 'hi' });
+        lockObservable(obs, true);
+        expect(() => obs.text.set('hello')).toThrowError();
+        expect(() => (obs.text = 'hello')).toThrowError();
+        expect(() => obs.set({ text: 'hello' })).toThrowError();
+        expect(obs.get()).toEqual({ text: 'hi' });
+        lockObservable(obs, false);
+        obs.text.set('hey');
+        expect(obs.get()).toEqual({ text: 'hey' });
+    });
+});
+describe('Primitive <-> Object', () => {
+    test('Starting as undefined', () => {
+        const obs = observable<{ test: string }>(undefined);
+        expect(obs.get()).toEqual(undefined);
+        obs.set({ test: 'hi' });
+        expect(obs.get()).toEqual({ test: 'hi' });
+    });
+    test('Starting as string', () => {
+        const obs = observable<{ test: string } | string>('hello');
+        expect(obs.get()).toEqual('hello');
+        obs.set({ test: 'hi' });
+        expect(obs.get()).toEqual({ test: 'hi' });
+    });
+    test('Object to string', () => {
+        const obs = observable<{ test: string } | string>({ test: 'hi' });
+        expect(obs.get()).toEqual({ test: 'hi' });
+        obs.set('hello');
+        expect(obs.get()).toEqual('hello');
+    });
+});
+
+describe('Assigning functions', () => {
+    test('Views', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        obs.assign({
+            test: computed(() => obs.text + '!'),
+        });
+        expect(obs.test.get() === 'hi!');
+    });
 });

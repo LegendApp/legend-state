@@ -272,6 +272,14 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         let value = getNodeValue(node);
+
+        if (!node.parent && isPrimitive(value) && p === 'value') {
+            if (tracking.nodes) {
+                updateTracking(node);
+            }
+            return value;
+        }
+
         const vProp = value?.[p];
 
         // Accessing symbols passes straight through
@@ -320,8 +328,6 @@ const proxyHandler: ProxyHandler<any> = {
             if (tracking.nodes) {
                 if (isArray(value) && p === 'length') {
                     updateTracking(node, Tracking.shallow);
-                } else if (node.root.isPrimitive) {
-                    updateTracking(node);
                 } else if (!isPrimitive(value)) {
                     updateTracking(getChildNode(node, p));
                 }
@@ -383,7 +389,7 @@ const proxyHandler: ProxyHandler<any> = {
                 `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
             );
         }
-        set(target, prop, value);
+        set(node, prop, value);
         return true;
     },
     deleteProperty(target: NodeValue, prop) {
@@ -411,8 +417,6 @@ const proxyHandler: ProxyHandler<any> = {
 function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
     if (arguments.length > 2) {
         return setProp(node, keyOrNewValue, newValue);
-    } else if (node.root.isPrimitive) {
-        return setProp(node, 'value', keyOrNewValue);
     } else if (!node.parent) {
         return setProp(node, symbolUndef as any, keyOrNewValue);
     } else {
@@ -439,7 +443,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     if (isDelete) newValue = undefined;
 
     inSetFn = true;
-    const isRoot = (key as any) === symbolUndef;
+    const isRoot = (key as any) === symbolUndef || (!node.parent && key === 'value' && isPrimitive(newValue));
 
     // Get the child node for updating and notifying
     let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
@@ -490,7 +494,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     // Notify for this element if it's an object or it's changed
     if (!isPrim || newValue !== prevValue) {
         notify(
-            node.root.isPrimitive ? node : childNode,
+            isPrim && isRoot ? node : childNode,
             newValue,
             prevValue,
             level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
@@ -604,6 +608,10 @@ function assign(node: NodeValue, value: any) {
 
     beginBatch();
 
+    if (isPrimitive(node.root._)) {
+        node.root._ = {};
+    }
+
     // Set inAssign to allow setting on safe observables
     inAssign = true;
     Object.assign(proxy, value);
@@ -620,10 +628,8 @@ function deleteFn(node: NodeValue, key?: string | number) {
         key = node.key;
         node = node.parent;
     }
-    if (!node.root.isPrimitive) {
-        // delete sets to undefined first to notify
-        setProp(node, key, symbolUndef, /*level*/ -1);
-    }
+    // delete sets to undefined first to notify
+    setProp(node, key, symbolUndef, /*level*/ -1);
 }
 
 export function observable<T extends boolean>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<boolean>;
@@ -639,28 +645,20 @@ export function observable<T extends boolean | string | number>(
     value: T | Promise<T>,
     safe?: boolean
 ): ObservablePrimitive<T>;
+export function observable<T extends unknown>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<unknown>;
 export function observable<T>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrPrimitive<T> {
     const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
         value = undefined;
     }
-    const isPrim = !promise && isPrimitive(value);
-    // Primitives wrap in value
-    if (isPrim) {
-        value = { value } as any;
-    }
-
     const obs = {
-        _: value as Observable<T>,
-        isPrimitive: isPrim,
+        _: promise ? undefined : (value as Observable<T>),
         safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
 
     const node: NodeValue = {
         id: nextNodeID.current++,
         root: obs,
-        parent: undefined,
-        key: undefined,
     };
 
     const proxy = getProxy(node) as ObservableObjectOrPrimitive<T>;
@@ -670,10 +668,6 @@ export function observable<T>(value: T | Promise<T>, safe?: boolean): Observable
             proxy.set({ error } as any);
         });
         promise.then((value) => {
-            obs.isPrimitive = isPrimitive(value);
-            if (obs.isPrimitive) {
-                obs._ = { value: undefined };
-            }
             proxy.set(value);
         });
     }

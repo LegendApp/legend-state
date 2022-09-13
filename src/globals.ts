@@ -40,7 +40,7 @@ export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Sy
     checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
 
     const value = getNodeValue(node);
-    return node.root.isPrimitive ? value.value : value;
+    return value;
 }
 
 export function getNodeValue(node: NodeValue): any {
