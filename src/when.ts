@@ -1,8 +1,8 @@
 import { observe } from './observe';
 
-export function when(predicate: () => any): Promise<void>;
-export function when(predicate: () => any, effect: () => void | (() => void)): () => void;
-export function when(predicate: () => any, effect?: () => void | (() => void)) {
+export function when<T>(predicate: () => T): Promise<T>;
+export function when<T>(predicate: () => T, effect: (T) => void | (() => void)): () => void;
+export function when<T>(predicate: () => T, effect?: (T) => void | (() => void)) {
     let cleanup: () => void;
     let isDone = false;
 
@@ -12,7 +12,7 @@ export function when(predicate: () => any, effect?: () => void | (() => void)) {
         if (ret) {
             // If value is truthy then run the effect and cleanup
             isDone = true;
-            effect();
+            effect(ret);
             cleanup?.();
         }
     }
