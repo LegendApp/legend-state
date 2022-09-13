@@ -30,14 +30,14 @@ But if we go for fine-grained reactivity with observables, each component listen
 ```jsx
 const state = observable({ message: '', count: 0, showModal: false })
 
-const Counter = observer(function Counter() {
+function Counter() {
     // Only re-renders when count changes
     return <div>{state.count}</div>
-})
-const Message = observer(function Message() {
+}
+function Message() {
     // Only re-renders when message changes
     return <div>{state.message}</div>
-})
+}
 function App() {
     // Never re-renders
     return (
@@ -77,7 +77,7 @@ setInterval(() => {
     state.count ++
 }, 500)
 
-const Normal = observer(function Normal() {
+function Normal() {
     const renderCount = ++useRef(0).current
 
     return <>
@@ -85,7 +85,7 @@ const Normal = observer(function Normal() {
         <div>Count: {state.count}</div>
     </>
 }
-function Optimized() {
+function Direct() {
     const renderCount = ++useRef(0).current
 
     return <>
@@ -126,7 +126,7 @@ In this example see that clicking the "Render parent" button renders the parent 
 ```jsx
 import { Computed } from "@legendapp/state/react"
 
-const ComputedExample = observer(() => {
+function ComputedExample() {
     const renderCount = ++useRef(0).current
     const state = useObservable({ count: 0 })
     const [value, setValue] = useState(1)
@@ -153,7 +153,7 @@ const ComputedExample = observer(() => {
 
 ## Memo
 
-Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly indepdendent from the parent component. This is equivalent to extracting it as a separate `observer` function.
+Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly indepdendent from the parent component. This is equivalent to extracting it as a separate function.
 
 The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
 
@@ -181,7 +181,7 @@ This is the same as the Computed example, except that the memoized children are 
 ```jsx
 import { Memo } from "@legendapp/state/react"
 
-const MemoExample = observer(() => {
+function MemoExample() {
     const renderCount = ++useRef(0).current
     const state = useObservable({ count: 0 })
     const [value, setValue] = useState(1)
@@ -230,7 +230,7 @@ Props:
 ```jsx
 import { Show } from "@legendapp/state/react"
 
-const ShowExample = observer(() => {
+function ShowExample() {
     const renderCount = ++useRef(0).current
     const state = useObservable({ show: false })
 
@@ -253,7 +253,7 @@ const ShowExample = observer(() => {
             <Show
                 if={state.show.obs()}
             >
-                {(show) => show ? (
+                {show => show ? (
                     <div>Modal</div>
                 ) : (
                     <div>Nothing to see here</>
@@ -289,7 +289,7 @@ Props:
 ```jsx
 import { Switch } from "@legendapp/state/react"
 
-const SwitchExample = observer(() => {
+function SwitchExample() {
     const renderCount = ++useRef(0).current
     const index = useObservable(0)
 
@@ -319,10 +319,10 @@ const SwitchExample = observer(() => {
 The Babel plugin can make the syntax for Computed and Memo less verbose. But they work fine without Babel if you don't want to or can't use it. The Babel plugin converts the JSX under the hood so you don't need to use functions as children. It basically does this:
 
 ```jsx
+// You write
 <Computed><div>Count: {state.count}</div></Computed>
 
-// becomes:
-
+// Babel transforms it to
 <Computed>{() => <div>Count: {state.count}</div>}</Computed>
 ```
 

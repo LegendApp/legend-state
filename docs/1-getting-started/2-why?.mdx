@@ -19,23 +19,46 @@ obs.value = 2
 
 ## Fine-grained reactivity
 
-Legend-State has [built-in helpers](../fine-grained-reactivity) to easily extract children so that their changes do not affect the parent. This keeps large parent components from rendering often just because their children change.
+Render an observable automatically extracts it as a separate memoized component with its own tracking context, so it takes practically no effort to isolate renders to a single text element.
 
-<Example name="Memo">
+<Example name="BasicDirect">
 ```jsx
-const MemoExample = observer(() => {
+import { observable } from "@legendapp/state"
+
+const state = observable({ count: 0 })
+
+function ComponentDirect() {
+    // Rendering the observable: tracks in an isolated element
     const renderCount = ++useRef(0).current
-    const state = useObservable({ count: 0 })
+    return (
+        <div>Renders: {renderCount}</div>
+        <div>Count: {state.count.obs()}</div>
+    )
+}
+```
+</Example>
+
+For isolating a group of elements, Legend-State has [built-in helpers](../fine-grained-reactivity) to easily extract children so that their changes do not affect the parent. This keeps large parent components from rendering often just because their children change.
+
+<Example name="MemoArray">
+```jsx
+function MemoExample() {
+    const renderCount = ++useRef(0).current
+    const messages = useObservable([])
 
     useInterval(() => {
-        state.count.set(c => c + 1)
-    }, 500)
+        messages.splice(0, 0, `Message ${messages.length + 1}`)
+    }, 1000)
 
     return (
-        <div>
+        <div className="text-md" style={{ width: 300 }}>
             <div>Renders: {renderCount}</div>
             <Memo>
-                <div>Count: {state.count}</div>
+                <div className="pt-4 h-[300px] overflow-auto">
+                    {messages.map((m, i) => (
+                        <div key={i}>{m}</div>
+                    ))}
+                </div>
             </Memo>
         </div>
     )

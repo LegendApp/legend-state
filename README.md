@@ -13,13 +13,16 @@ const state = observable({ settings: { theme: 'dark' } })
 // Observables work like any other object
 state.settings.theme === 'dark' // true
 
-// Listen anywhere for changes
-state.settings.theme.onChange((theme) => { ... })
-
-// observer HOC automatically re-renders when state changes
-const Component = observer(() => {
-    return <div>Theme: {state.settings.theme}</div>
+// observe re-runs when any observables change
+observe(() => {
+    console.log(state.settings.theme)
 })
+
+// Components automatically track observables and re-render when state changes
+// No HOC or selector needed
+function Component {
+    return <div>Theme: {state.settings.theme}</div>
+}
 ```
 
 ### 2. <span className="text-xl">⚡️</span> The fastest React state library
@@ -55,7 +58,7 @@ state.settings.theme.set('light')
 persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
-const Component = observer(function Component() {
+function Component() {
     const toggle = () => {
         state.settings.theme.set(theme => theme === 'dark' ? 'light' : 'dark')
     }
@@ -67,7 +70,7 @@ const Component = observer(function Component() {
             </Button>
         </div>
     )
-})
+}
 ```
 
 ## Highlights

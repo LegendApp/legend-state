@@ -8,7 +8,7 @@ Note that primitive values should be passed down with `obs()` to create a stable
 
 <Example name="Input">
 ```jsx
-const Component = observer(function Component() {
+function Component() {
     const state = useObservable({ name: 'Legend' })
 
     return (
@@ -24,7 +24,7 @@ const Component = observer(function Component() {
             />
         </div>
     )
-})
+}
 ```
 </Example>
 

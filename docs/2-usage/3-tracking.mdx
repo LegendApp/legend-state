@@ -1,4 +1,4 @@
-`observe`, `when`, `computed`, `useComputed`, and `observer` automatically track accessing primitives through an observable and array looping functions while rendering the component, so you generally don't have to think about it unless you want to specifically optimize. When an observable is tracked, it will re-run on any changes anywhere within the observable and it's children.
+`observe`, `when`, `computed`, `useComputed`, and React components automatically track accessing primitives through an observable and array looping functions while rendering the component, so you generally don't have to think about it unless you want to specifically optimize. When an observable is tracked, it will re-run on any changes anywhere within the observable and it's children.
 
 These operations track:
 1. Accessing a primitive through an observable: `settings.theme === 'dark'`
@@ -94,12 +94,12 @@ The automatic behavior can be modified with two observable functions:
 ```jsx
 const state = observable({ user: { name: 'Name' }})
 
-const Component = observer((props) => {
+function Component() {
     // Tracking []
     // The Input component is bound to the name property
     // Without obs it would just be a string
     return <MyInput bind={state.user.name.obs()} />
-})
+}
 ```
 
 ### shallow modifier

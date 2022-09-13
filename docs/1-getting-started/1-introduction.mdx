@@ -12,13 +12,16 @@ const state = observable({ settings: { theme: 'dark' } })
 state.settings.theme === 'dark' // true
 state.settings.theme = 'light'
 
-// Listen anywhere for changes
-state.settings.theme.onChange((theme) => { ... })
-
-// observer components automatically re-render when state changes
-const Component = observer(() => {
-    return <div>Theme: {state.settings.theme}</div>
+// observe re-runs when any observables change
+observe(() => {
+    console.log(state.settings.theme)
 })
+
+// Components automatically track observables and re-render when state changes
+// No HOC or selector needed
+function Component {
+    return <div>Theme: {state.settings.theme}</div>
+}
 ```
 
 ### 2. <span className="text-xl">⚡️</span> The fastest React state library
@@ -38,8 +41,10 @@ const state = observable({ settings: { theme: 'dark' } })
 // Observables work like any other object
 state.settings.theme === 'dark'   // true
 
-// Listen anywhere for changes
-state.settings.theme.onChange((theme) => { ... })
+// observe re-runs when any observables change
+observe(() => {
+    console.log(state.settings.theme)
+})
 
 // Assign to state like anything else
 state.settings.theme = 'light'
@@ -49,7 +54,7 @@ persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
 // This is the code for the example on your right ----->
-const Component = observer(function Component() {
+function Component() {
     const toggle = () => {
         state.settings.theme.set(theme =>
             theme === 'dark' ? 'light' : 'dark'
@@ -66,7 +71,7 @@ const Component = observer(function Component() {
             </Button>
         </div>
     )
-})
+}
 ```
 </Example>
 
@@ -83,7 +88,7 @@ const Component = observer(function Component() {
 
 The core is platform agnostic so you can use it in vanilla JS or any framework to create and listen to observables. It includes hooks and a HOC component for React and React Native, and has plugins for automatically persisting to storage.
 
-[Read more](./why) about why Legend-State might be right for your projects.
+[Read more](./why) about why you'll love Legend-State ❤️
 
 ## Install
 
@@ -146,17 +151,17 @@ observe(() => {
 
 [Read more](./reactivity)
 
-## React observer minimizes renders
+## Minimizes React renders
 
-Legend-State's React [observer HOC](./react-basics#observer) automatically listens to the accessed observables for changes while rendering. Observer components will re-render only when these observables change, so it's ideal to be as specific as possible to minimize renders. See [Performance](./performance) for more optimization tips.
+Legend-State's React integration automatically listens to the accessed observables for changes while rendering. Components will re-render only when these observables change, so it's ideal to be as specific as possible to minimize renders. See [Performance](./performance) for more optimization tips.
 
 ```jsx
 const obs = observable({ text: 'hello', num: 10, other: {} as LargeObject })
 
-const Component = observer(function Component() {
+function Component() {
     // This will only re-render on changes to text or num
     return <div>{obs.text} {obs.num}</div>
-})
+}
 ```
 
 [Read more](./react-basics)
@@ -169,7 +174,7 @@ Or just render an observable directly to give it its own tracking context
 
 <Example name="Easy">
 ```jsx
-const MemoExample = observer(() => {
+function MemoExample() {
     const renderCount = ++useRef(0).current
     const state = useObservable({ count: 0 })
 

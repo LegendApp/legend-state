@@ -38,7 +38,7 @@ Each node keeps a `Set` of listeners so that you can listen to changes to any va
 
 ### Granular renders
 
-Extensive care is taken to ensure that components are rendered only when their state truly changes. Legend-State's observer provides [functions](../observer#when-observer-tracks) to be extra specific about when it tracks changes and [useComputed](../useComputed) to isolate a tracking computation to return one value. The best thing for your app's performance is to ensure that state changes cause minimal component renders.
+Extensive care is taken to ensure that components are rendered only when their state truly changes. Legend-State provides [functions](../tracking) to be extra specific about when it tracks changes and [useComputed](../useComputed) to isolate a tracking computation to return one value. The best thing for your app's performance is to ensure that state changes cause minimal component renders.
 
 ### Easy fine-grained reactivity
 
@@ -46,7 +46,7 @@ Legend-State has [built-in helpers](../reactivity) to easily extract children so
 
 <Example name="Memo">
 ```jsx
-const MemoExample = observer(() => {
+function MemoExample() {
     const renderCount = ++useRef(0).current
     const state = useObservable({ count: 0 })
 
@@ -62,7 +62,7 @@ const MemoExample = observer(() => {
             </Memo>
         </div>
     )
-})
+}
 ```
 </Example>
 

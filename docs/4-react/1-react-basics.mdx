@@ -1,57 +1,39 @@
 There are three ways to consume observables in React:
-1. Rendering them directly
-2. `observer` HOC to automatically track the whole component
+1. Accessing observable makes the component automatically track them
+2. Rendering them directly
 3. `useComputed` to get individual values
 
-## Rendering directly
+## Access an observable
 
-Render an observable `string` or `number` straight into React and it will automatically be extracted as a separate memoized component with its own tracking context.
+Accessing observables within any React component automatically makes it track the accessed observables for changes. Just call `enableLegendStateReact()` once at the beginning of your application to enable it.
 
-Just call `obs()` on an observable primitive to get its observable.
 
 ```jsx
-<div>Count: {state.count.obs()}</div>
-```
+import { enableLegendStateReact } from "@legendapp/state/react"
 
-### Example
-
-<Example name="BasicDirect">
-```jsx
-import { observable } from "@legendapp/state"
+enableLegendStateReact()
 
 const state = observable({ count: 0 })
 
-// Rendering the primitive just does the normal React thing
-const Normal = () => <div>Count: {state.count}</div>
+// No HOC or selector needed
+function Component() {
+    // Accessing state automatically makes this
+    // component track changes to re-render
+    const count = state.count;
 
-// Rendering the observable extracts it and tracks it for changes
-const Tracked = () => <div>Count: {state.count.obs()}</div>
-```
-</Example>
-
-See [fine-grained reactivity](../fine-grained-reactivity/#1-render-an-observable-directly) for more details.
-
-## observer
-
-`observer` is a higher order function (HOC) which makes a component automatically listen to the state values that you read while rendering. It also applies `React.memo` to the component. It uses `useComputed` under the hood.
-
-```jsx
-import { observer } from "@legendapp/state/react"
-
-const Component = observer((props) => {
-    return <div>{state.count}</div>
-})
+    // Magic 🦄
+    return <div>{count}</div>
+}
 ```
 
 ### Example
 
 ```jsx
 import { observable } from "@legendapp/state"
-import { observer } from "@legendapp/state/react"
 
 const state = observable({ settings: { theme: 'dark' }, messages: [{ id: 0, text: 'hi' }] })
 
-const Component = observer((props) => {
+function Component {
     // Automatically tracks for changes:
     // [settings.theme, state.messages (shallow)]
 
@@ -67,8 +49,44 @@ const Component = observer((props) => {
 })
 ```
 
-See [Tracking](../tracking) for details about how `observer` automatically tracks changes
+## Rendering directly
 
+Render an observable `string` or `number` straight into React and it will automatically be extracted as a separate memoized component with its own tracking context.
+
+Just call `obs()` on an observable primitive to get its observable.
+
+```jsx
+<div>Count: {state.count.obs()}</div>
+```
+
+### Example
+
+<Example name="Primitive">
+```jsx
+import { observable } from "@legendapp/state"
+
+const state = observable({ count: 0 })
+
+function ComponentNormal() {
+    // Rendering the primitive: the component tracks it
+    const renderCount = ++useRef(0).current
+    return (
+        <div>Renders: {renderCount}</div>
+        <div>Normal: {state.count}</div>
+    )
+}
+function ComponentDirect() {
+    // Rendering the observable: tracks in an isolated element
+    const renderCount = ++useRef(0).current
+    return (
+        <div>Renders: {renderCount}</div>
+        <div>Tracked: {state.count.obs()}</div>
+    )
+}
+```
+</Example>
+
+See [fine-grained reactivity](../fine-grained-reactivity/#1-render-an-observable-directly) for more details.
 
 ## useComputed
 

@@ -1,11 +1,11 @@
 The `useObservable` hook can be used to create an observable within a React component. This can be useful when state is specific to the lifetime of the component, or to hold multiple values in local state.
 
-Its observables can be tracked for re-rendering the same as any other observable with [useComputed](../react-basics#usecomputed) or [observer](../react-basics#observer), so if you want to just pass primitive values down to children, be sure to use `obs()` to get a stable reference to the observable.
+Its observables will be [tracked for re-rendering](../react-basics) the same as any other observable, so if you want to just pass primitive values down to children, be sure to use `obs()` to get a stable reference to the observable.
 
 ```jsx
 import { useObservable } from "@legendapp/state/react"
 
-const Component = observer(function Component() {
+function Component() {
     const state = useObservable({
         title: 'Title',
         first: '',
@@ -24,12 +24,12 @@ const Component = observer(function Component() {
         </div>
     )
     // Tracking: [state.title]
-})
+}
 ```
 
 ### Using with Context
 
-You may prefer passing state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from an [observer](../react-basics#observer) child component. The observable itself is a stable object so changing the data inside the observable will not cause a re-render like Context normally does.
+You may prefer passing state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from child component. The observable itself is a stable object so changing the data inside the observable will not cause a re-render like Context normally does.
 
 ```jsx
 import { useObservable } from "@legendapp/state/react"
@@ -51,7 +51,7 @@ function App() {
     )
 }
 
-const Sidebar = observer(function Sidebar() {
+function Sidebar() {
     // StateContext will never change so this will never cause a render
     const state = useContext(StateContext);
 
@@ -63,5 +63,5 @@ const Sidebar = observer(function Sidebar() {
             Name: {name}
         </div>
     )
-})
+}
 ```
