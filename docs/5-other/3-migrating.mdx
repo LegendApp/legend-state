@@ -6,6 +6,25 @@ Legend-State now automatically tracks observable access in any component. To set
 
 Now `observer` is no longer needed, so just remove all usage of `observer`.
 
+```jsx
+import { enableLegendStateReact } from "@legendapp/state/react"
+
+// Enable all React components to automatically become observers
+enableLegendStateReact()
+
+const state = observable({ count: 0 })
+
+// No HOC or selector needed
+function Component() {
+    // Accessing state automatically makes this
+    // component track changes to re-render
+    const count = state.count;
+
+    // Magic 🦄
+    return <div>{count}</div>
+}
+```
+
 
 ## 0.14 to 0.15
 

@@ -11,6 +11,7 @@ Accessing observables within any React component automatically makes it track th
 ```jsx
 import { enableLegendStateReact } from "@legendapp/state/react"
 
+// Enable all React components to automatically become observers
 enableLegendStateReact()
 
 const state = observable({ count: 0 })
