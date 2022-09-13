@@ -57,12 +57,25 @@ export function enableLegendStateReact() {
                     // If the previous dispatcher tracked nodes then set up hooks
                     if (tracking.nodes) {
                         try {
-                            const [, forceRender] = dispatcher.useReducer((s) => s + 1, 0);
+                            let [, forceRender] = dispatcher.useReducer((s) => s + 1, 0);
+
+                            let noArgs = true;
+                            if (process.env.NODE_ENV === 'development') {
+                                tracking.listeners?.(tracking.nodes);
+                                if (tracking.updates) {
+                                    noArgs = false;
+                                    forceRender = tracking.updates(forceRender);
+                                }
+                            }
 
                             // Track all of the nodes accessed during the dispatcher
-                            let dispose = setupTracking(tracking.nodes, forceRender, /*noArgs*/ true);
+                            let dispose = setupTracking(tracking.nodes, forceRender, /*noArgs*/ noArgs);
 
                             if (process.env.NODE_ENV === 'development') {
+                                // Clear tracing
+                                tracking.listeners = undefined;
+                                tracking.updates = undefined;
+
                                 const cachedNodes = tracking.nodes;
                                 dispatcher.useEffect(() => {
                                     // Workaround for React 18's double calling useEffect. If this is the
