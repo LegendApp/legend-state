@@ -51,6 +51,11 @@ state.settings.theme === 'dark'   // true
 // Listen anywhere for changes
 state.settings.theme.onChange((theme) => { ... })
 
+// observe re-runs when any observables change
+observe(() => {
+    console.log(state.settings.theme)
+})
+
 // Modify with simple set functions
 state.settings.theme.set('light')
 

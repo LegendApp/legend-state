@@ -83,7 +83,7 @@ export function enableLegendStateReact() {
                                     // Workaround for React 18's double calling useEffect. If this is the
                                     // second useEffect, set up tracking again.
                                     if (dispose === undefined) {
-                                        dispose = setupTracking(cachedNodes, forceRender, /*noArgs*/ true);
+                                        dispose = setupTracking(cachedNodes, forceRender, /*noArgs*/ noArgs);
                                     }
                                     return () => {
                                         dispose();
