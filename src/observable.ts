@@ -250,16 +250,15 @@ function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, t
 }
 
 const proxyHandler: ProxyHandler<any> = {
-    get(target: NodeValue, p: any) {
+    get(node: NodeValue, p: any) {
         // Return true is called by isObservable()
         if (p === symbolIsObservable) {
             return true;
         }
         if (p === symbolGetNode) {
-            return target;
+            return node;
         }
 
-        const node = target;
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
@@ -309,7 +308,7 @@ const proxyHandler: ProxyHandler<any> = {
             if (extraPrimitiveProps.size) {
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
-                    return vPrim?.__fn?.(target) ?? vPrim;
+                    return vPrim?.__fn?.(node) ?? vPrim;
                 }
             }
             // Accessing a primitive saves the last accessed so that the observable functions
@@ -332,46 +331,48 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         // Return an observable proxy to the property
-        return getProxy(target, p);
+        return getProxy(node, p);
     },
     // Forward all proxy properties to the target's value
-    getPrototypeOf(target) {
-        const value = getNodeValue(target);
+    getPrototypeOf(node) {
+        const value = getNodeValue(node);
         return typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
-    ownKeys(target: NodeValue) {
-        const value = getNodeValue(target);
+    ownKeys(node: NodeValue) {
+        const value = getNodeValue(node);
+        if (isPrimitive(value)) return [];
+
         const keys = value ? Reflect.ownKeys(value) : [];
 
         // Update that this node was accessed for observers
         if (tracking.nodes) {
-            updateTracking(target, Tracking.shallow);
+            updateTracking(node, Tracking.shallow);
         }
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for
-        // property 'length' which is either non-existent or configurable in the proxy target
+        // property 'length' which is either non-existent or configurable in the proxy node
         if (isArray(value) && keys[keys.length - 1] === 'length') {
             keys.splice(keys.length - 1, 1);
         }
         return keys;
     },
-    getOwnPropertyDescriptor(target, p) {
-        const value = getNodeValue(target);
+    getOwnPropertyDescriptor(node, p) {
+        const value = getNodeValue(node);
         return Reflect.getOwnPropertyDescriptor(value, p);
     },
-    set(target: NodeValue, prop: string, value) {
+    set(node: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
         if (inSetFn) {
-            return Reflect.set(target, prop, value);
+            return Reflect.set(node, prop, value);
         }
 
-        if (!inAssign && target.root.safeMode) {
+        if (!inAssign && node.root.safeMode) {
             // Don't allow in safe mode
-            if (target.root.safeMode === 2) return false;
+            if (node.root.safeMode === 2) return false;
 
             // Don't allow set on objects in default mode
-            const existing = getNodeValue(getChildNode(target, prop));
+            const existing = getNodeValue(getChildNode(node, prop));
             if (isObject(existing) || isArray(existing) || isObject(value) || isArray(value)) {
                 return false;
             }
