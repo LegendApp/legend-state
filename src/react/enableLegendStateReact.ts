@@ -100,7 +100,7 @@ export function enableLegendStateReact() {
                     newDispatcher &&
                     !tracking.isTracking &&
                     (process.env.NODE_ENV === 'development'
-                        ? /mountHookTypes|updateHookTypes/.test(newDispatcher.useCallback)
+                        ? !newDispatcher.useCallback.toString().includes('Invalid')
                         : newDispatcher.useCallback.length === 2)
                 ) {
                     didBeginTracking = true;
