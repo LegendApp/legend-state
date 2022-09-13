@@ -20,6 +20,8 @@ export function enableLegendStateReact() {
     if (!isEnabled) {
         isEnabled = true;
 
+        // Inspired by Preact Signals: https://github.com/preactjs/signals/blob/main/packages/react/src/index.ts
+
         // 1. Add the extra primitive props so that observables can render directly
         // Memoized component to wrap the observable value
         const Text = memo(
