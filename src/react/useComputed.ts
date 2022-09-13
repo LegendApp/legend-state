@@ -16,8 +16,8 @@ export function useComputed<T>(selector: () => T, whenToRender?: boolean) {
     const fr = whenToRender !== false && useForceRender();
 
     const update = function () {
-        // If running, run and return the value
-        // Don't need to run the selector again if not running and alwaysUpdate
+        // If running, call selector and return the value
+        // Don't need to call the selector again if not running and alwaysUpdate
         if (inRun || !whenToRender) {
             const cur = selector();
             // Re-render if not currently rendering and value has changed

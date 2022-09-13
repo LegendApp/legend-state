@@ -1803,7 +1803,6 @@ describe('Primitive <-> Object', () => {
         expect(obs.get()).toEqual('hello');
     });
 });
-
 describe('Assigning functions', () => {
     test('Views', () => {
         const obs = observable({ text: 'hi' } as { text: any; test: any });

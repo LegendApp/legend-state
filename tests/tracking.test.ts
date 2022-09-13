@@ -1,10 +1,14 @@
 import { Tracking } from '../src/globals';
 import { observable } from '../src/observable';
 import { event } from '../src/event';
-import { tracking } from '../src/tracking';
+import { beginTracking, endTracking, tracking } from '../src/tracking';
 
+let prevTracking = undefined;
 beforeEach(() => {
-    tracking.nodes = new Map();
+    prevTracking = beginTracking();
+});
+afterEach(() => {
+    endTracking(prevTracking);
 });
 
 describe('Tracking', () => {

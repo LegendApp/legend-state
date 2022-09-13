@@ -1,13 +1,15 @@
 import { TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
-import { tracking } from './tracking';
+import { beginTracking, endTracking, tracking } from './tracking';
 
 export function setupTracking(nodes: Map<number, TrackingNode>, update: () => void) {
     let listeners = [];
     // Listen to tracked nodes
-    for (let tracked of nodes.values()) {
-        const { node, track } = tracked;
-        listeners.push(onChange(node, update, track));
+    if (nodes) {
+        for (let tracked of nodes.values()) {
+            const { node, track } = tracked;
+            listeners.push(onChange(node, update, track));
+        }
     }
 
     return () => {
@@ -42,8 +44,7 @@ export function observe(run: () => void | (() => void)) {
         }
     };
 
-    const trackingPrev = tracking.nodes;
-    tracking.nodes = new Map();
+    const trackingPrev = beginTracking();
 
     update();
 
@@ -57,7 +58,7 @@ export function observe(run: () => void | (() => void)) {
 
     const ret = setupTracking(tracking.nodes, update);
 
-    tracking.nodes = trackingPrev;
+    endTracking(trackingPrev);
 
     return ret;
 }

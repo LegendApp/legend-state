@@ -1,6 +1,5 @@
 import {
     extraPrimitiveProps,
-    checkTracking,
     get,
     getChildNode,
     getNodeValue,
@@ -22,7 +21,7 @@ import {
     ObservableWrapper,
 } from './observableInterfaces';
 import { onChange } from './onChange';
-import { tracking, untrack, updateTracking } from './tracking';
+import { checkTracking, tracking, untrack, updateTracking } from './tracking';
 
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
@@ -274,9 +273,7 @@ const proxyHandler: ProxyHandler<any> = {
         let value = getNodeValue(node);
 
         if (!node.parent && isPrimitive(value) && p === 'value') {
-            if (tracking.nodes) {
-                updateTracking(node);
-            }
+            updateTracking(node);
             return value;
         }
 
@@ -296,9 +293,7 @@ const proxyHandler: ProxyHandler<any> = {
                 } else if (ArrayLoopers.has(p)) {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
-                    if (tracking.nodes) {
-                        updateTracking(node, Tracking.shallow);
-                    }
+                    updateTracking(node, Tracking.shallow);
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
@@ -325,7 +320,7 @@ const proxyHandler: ProxyHandler<any> = {
             lastAccessedPrimitive = p;
 
             // Update that this primitive node was accessed for observers
-            if (tracking.nodes) {
+            if (tracking.isTracking) {
                 if (isArray(value) && p === 'length') {
                     updateTracking(node, Tracking.shallow);
                 } else if (!isPrimitive(value)) {
@@ -351,9 +346,7 @@ const proxyHandler: ProxyHandler<any> = {
         const keys = value ? Reflect.ownKeys(value) : [];
 
         // Update that this node was accessed for observers
-        if (tracking.nodes) {
-            updateTracking(node, Tracking.shallow);
-        }
+        updateTracking(node, Tracking.shallow);
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for
@@ -384,7 +377,7 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        if (process.env.NODE_ENV === 'development' && tracking.nodes) {
+        if (process.env.NODE_ENV === 'development' && tracking.isTracking) {
             console.error(
                 `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
             );
@@ -399,7 +392,7 @@ const proxyHandler: ProxyHandler<any> = {
         } else if (target.root.safeMode) {
             return false;
         } else {
-            if (process.env.NODE_ENV === 'development' && tracking.nodes) {
+            if (process.env.NODE_ENV === 'development' && tracking.isTracking) {
                 console.error(
                     `[legend-state] Should not delete an observable property within an observer. You may have done this by accident. Please use delete() if you really want to do this.`
                 );
@@ -449,7 +442,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
     // Set operations do not create listeners
-    if (tracking.nodes) untrack(childNode);
+    untrack(childNode);
 
     // Get the value of the parent
     let parentValue = isRoot ? node.root : getNodeValue(node);
