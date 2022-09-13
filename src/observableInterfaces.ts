@@ -275,6 +275,5 @@ export interface NodeValue {
 export interface TrackingNode {
     node: NodeValue;
     track?: boolean | Symbol;
-    manual?: boolean;
     num?: number;
 }

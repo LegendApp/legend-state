@@ -78,7 +78,6 @@ describe('Tracking', () => {
         expect(tracking.nodes.size).toEqual(1);
 
         const nodes = [...tracking.nodes.values()];
-        expect(nodes[0].manual).toEqual(true);
         expect(nodes[0].track).toEqual(true);
     });
     test('get() shallow', () => {
@@ -89,7 +88,6 @@ describe('Tracking', () => {
         expect(tracking.nodes.size).toEqual(1);
 
         const nodes = [...tracking.nodes.values()];
-        expect(nodes[0].manual).toEqual(true);
         expect(nodes[0].track).toEqual(Tracking.shallow);
     });
     test('primitive get access observes', () => {

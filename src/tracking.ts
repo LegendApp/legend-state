@@ -23,7 +23,7 @@ export function endTracking(prevNodes: Map<number, TrackingNode>) {
     tracking.nodes = prevNodes;
 }
 
-export function updateTracking(node: NodeValue, track?: boolean | Symbol, manual?: boolean) {
+export function updateTracking(node: NodeValue, track?: boolean | Symbol) {
     if (tracking.isTracking) {
         if (!tracking.nodes) {
             tracking.nodes = new Map();
@@ -32,10 +32,9 @@ export function updateTracking(node: NodeValue, track?: boolean | Symbol, manual
         const existing = tracking.nodes.get(node.id);
         if (existing) {
             existing.track = existing.track || track;
-            existing.manual = existing.manual || manual;
             existing.num++;
         } else {
-            tracking.nodes.set(node.id, { node, track, manual, num: 1 });
+            tracking.nodes.set(node.id, { node, track, num: 1 });
         }
     }
 }
@@ -43,7 +42,7 @@ export function updateTracking(node: NodeValue, track?: boolean | Symbol, manual
 export function untrack(node: NodeValue) {
     if (tracking.nodes) {
         const tracked = tracking.nodes.get(node.id);
-        if (tracked && !tracked.manual) {
+        if (tracked) {
             if (tracked.num === 1) {
                 tracking.nodes.delete(node.id);
             } else {
@@ -56,7 +55,7 @@ export function untrack(node: NodeValue) {
 export function checkTracking(node: NodeValue, track: boolean | Symbol) {
     if (tracking.isTracking) {
         if (track) {
-            updateTracking(node, track, /*manual*/ true);
+            updateTracking(node, track);
         } else {
             untrack(node);
         }
