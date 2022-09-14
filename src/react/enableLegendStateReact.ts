@@ -17,6 +17,7 @@ import {
 let isEnabled = false;
 
 const Updater = (s) => s + 1;
+const EmptyEffect = () => {};
 
 export function enableLegendStateReact() {
     if (!isEnabled) {
@@ -106,7 +107,11 @@ export function enableLegendStateReact() {
                                     throw new Error('[legend-state] error creating hooks');
                                 }
                             }
+                        } else {
+                            dispatcher.useReducer(Updater, 0);
+                            dispatcher.useEffect(EmptyEffect);
                         }
+
                         // Restore the previous tracking context
                         endTracking(prevNodes);
                     }
