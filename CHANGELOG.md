@@ -1,3 +1,6 @@
+## 0.16.1
+- Fix: A component going from tracking nodes to not tracking nodes was causing errors
+
 ## 0.16.0
 
 See https://legendapp.com/dev/state/migrating for more details.
@@ -6,7 +9,6 @@ See https://legendapp.com/dev/state/migrating for more details.
 - Feat: No longer need `observer` HOC - Call `enableLegendStateReact()` at the beginning of your app, and then all components automatically observe any accessed state
 - Feat: `when` callback receives the current value as the parameter
 - Feat: Add join to array functions that create shallow listeners
-
 
 ## 0.15.3
 - Feat: Observables can easily switch back and forth between being an object or a primitive, and observable primitives have less overhead

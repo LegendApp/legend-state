@@ -108,6 +108,7 @@ export function enableLegendStateReact() {
                                 }
                             }
                         } else {
+                            // Run empty hooks if not tracking nodes, to keep the same number of hooks per render
                             dispatcher.useReducer(Updater, 0);
                             dispatcher.useEffect(EmptyEffect);
                         }
