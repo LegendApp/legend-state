@@ -10,7 +10,9 @@ export function event(): ObservableEvent {
             // Notify increments the value so that the observable changes
             obs.value++;
         },
-        on: obs.onChange as any,
-        get: obs.get,
+        on: function (cb) {
+            return obs.onChange(cb);
+        },
+        get: () => obs.get(),
     };
 }

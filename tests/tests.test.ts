@@ -735,27 +735,6 @@ describe('Primitives', () => {
         expect(obs.val.val2.val3).toEqual(20);
         expect(obs.val.val2.val3.get()).toEqual(20);
     });
-    test('observable root can be primitive', () => {
-        const obs = observable(10);
-        expect(obs.value).toEqual(10);
-        obs.set(20);
-        expect(obs.value).toEqual(20);
-    });
-    test('set value on observable notifies', () => {
-        const obs = observable(10);
-        expect(obs.value).toEqual(10);
-        const handler = expectChangeHandler(obs);
-        obs.value = 20;
-        expect(obs.value).toEqual(20);
-        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
-    });
-    test('Primitive callback does not have value', () => {
-        const obs = observable(10);
-        const handler = expectChangeHandler(obs);
-        obs.onChange(handler);
-        obs.set(20);
-        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
-    });
     test('Set function with obs is stable', () => {
         const obs = observable({ num1: 10, num2: 20 });
         const set = obs.obs('num1').set;
@@ -1607,10 +1586,14 @@ describe('Computed', () => {
         const comp = computed(() => obs.test + obs.test2);
         // @ts-expect-error
         comp.set(40);
-        // @ts-expect-error
-        comp.assign({ text: 'hi' });
-        // @ts-expect-error
-        comp.delete();
+        expect(() => {
+            // @ts-expect-error
+            comp.assign({ text: 'hi' });
+        }).toThrow();
+        expect(() => {
+            // @ts-expect-error
+            comp.delete();
+        }).toThrow();
     });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
@@ -1810,5 +1793,28 @@ describe('Assigning functions', () => {
             test: computed(() => obs.text + '!'),
         });
         expect(obs.test.get() === 'hi!');
+    });
+});
+describe('Signals', () => {
+    test('observable root can be primitive', () => {
+        const obs = observable(10);
+        expect(obs.value).toEqual(10);
+        obs.set(20);
+        expect(obs.value).toEqual(20);
+    });
+    test('set value on observable notifies', () => {
+        const obs = observable(10);
+        expect(obs.value).toEqual(10);
+        const handler = expectChangeHandler(obs);
+        obs.value = 20;
+        expect(obs.value).toEqual(20);
+        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
+    });
+    test('Primitive callback does not have value', () => {
+        const obs = observable(10);
+        const handler = expectChangeHandler(obs);
+        obs.onChange(handler);
+        obs.set(20);
+        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
 });

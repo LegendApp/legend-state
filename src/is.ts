@@ -35,3 +35,12 @@ export function isBoolean(obj: unknown): obj is boolean {
 export function isEmpty(obj: object) {
     return obj && Object.keys(obj).length === 0;
 }
+const mapPrimitives = new Map([
+    ['boolean', true],
+    ['string', true],
+    ['number', true],
+]);
+/** @internal */
+export function isActualPrimitive(arg) {
+    return mapPrimitives.has(typeof arg);
+}

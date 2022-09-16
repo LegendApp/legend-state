@@ -22,3 +22,5 @@ export { symbolDateModified, symbolIsObservable, extraPrimitiveProps, getNodeVal
 export { getNode } from './src/helpers';
 /** @internal */
 export { setupTracking } from './src/observe';
+/** @internal */
+export { ObservablePrimitive } from './src/ObservablePrimitive';

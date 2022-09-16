@@ -9,7 +9,7 @@ import {
     Tracking,
     symbolUndef,
 } from './globals';
-import { isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isString, isSymbol } from './is';
 import { beginBatch, endBatch, batchNotify } from './batching';
 import {
     NodeValue,
@@ -17,11 +17,12 @@ import {
     ObservableObjectOrPrimitive,
     ObservableObjectOrPrimitiveDefault,
     ObservableObjectOrPrimitiveSafe,
-    ObservablePrimitive,
+    ObservablePrimitiveChild,
     ObservableWrapper,
 } from './observableInterfaces';
 import { onChange } from './onChange';
 import { checkTracking, tracking, untrack, updateTracking } from './tracking';
+import { ObservablePrimitive } from './ObservablePrimitive';
 import { doNotify, notify } from './notify';
 
 let lastAccessedNode: NodeValue;
@@ -545,8 +546,11 @@ export function observable<T extends object>(
 export function observable<T extends boolean | string | number>(
     value: T | Promise<T>,
     safe?: boolean
-): ObservablePrimitive<T>;
-export function observable<T extends unknown>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<unknown>;
+): ObservablePrimitiveChild<T>;
+export function observable<T extends unknown>(
+    value: T | Promise<T>,
+    safe?: boolean
+): ObservableObjectOrPrimitive<unknown>;
 export function observable<T>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrPrimitive<T> {
     const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
@@ -562,16 +566,21 @@ export function observable<T>(value: T | Promise<T>, safe?: boolean): Observable
         root: obs,
     };
 
-    const proxy = getProxy(node) as ObservableObjectOrPrimitive<T>;
+    if (isActualPrimitive(value)) {
+        // @ts-ignore
+        return new ObservablePrimitive<T>(node);
+    } else {
+        const proxy = getProxy(node) as ObservableObjectOrPrimitive<T>;
 
-    if (promise) {
-        promise.catch((error) => {
-            proxy.set({ error } as any);
-        });
-        promise.then((value) => {
-            proxy.set(value);
-        });
+        if (promise) {
+            promise.catch((error) => {
+                proxy.set({ error } as any);
+            });
+            promise.then((value) => {
+                proxy.set(value);
+            });
+        }
+
+        return proxy;
     }
-
-    return proxy;
 }

@@ -7,6 +7,7 @@ import {
     setupTracking,
     tracking,
     updateTracking,
+    ObservablePrimitive,
 } from '@legendapp/state';
 import {
     createElement,
@@ -46,6 +47,18 @@ export function enableLegendStateReact() {
             __fn: (obs) => ({ data: obs }),
         });
         extraPrimitiveProps.set('ref', null);
+        // Set extra props for ObservablePrimitive to return on primitives
+        Object.defineProperties(ObservablePrimitive.prototype, {
+            $$typeof: { configurable: true, value: ReactTypeofSymbol },
+            type: { configurable: true, value: Text },
+            props: {
+                configurable: true,
+                get() {
+                    return { data: (this as ObservablePrimitive).getNode() };
+                },
+            },
+            ref: { configurable: true, value: null },
+        });
 
         // 2. Override dispatcher access to hook up tracking
         let dispatcher;

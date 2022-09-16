@@ -1,3 +1,5 @@
+import type { ObservablePrimitive } from './ObservablePrimitive';
+
 export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
 
 export interface ObservableBaseFns<T> {
@@ -231,7 +233,7 @@ export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & Obse
 export type ObservableObjectDefault<T = any> = ObservableFnsRecursiveDefault<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
-export type ObservablePrimitive<T = any> = { value: T } & ObservablePrimitiveFns<T>;
+export type ObservablePrimitiveChild<T = any> = { value: T } & ObservablePrimitiveFns<T>;
 
 export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive]
     ? ObservablePrimitive<T>
@@ -239,12 +241,12 @@ export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive]
     ? ObservableArray<T>
     : ObservableObject<T>;
 export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
-    ? ObservablePrimitive<T>
+    ? ObservablePrimitiveChild<T>
     : T extends any[]
     ? ObservableArraySafe<T>
     : ObservableObjectSafe<T>;
 export type ObservableObjectOrPrimitiveDefault<T> = [T] extends [Primitive]
-    ? ObservablePrimitive<T>
+    ? ObservablePrimitiveChild<T>
     : T extends any[]
     ? ObservableArrayDefault<T>
     : ObservableObjectDefault<T>;
@@ -252,14 +254,14 @@ export type ObservableObjectOrPrimitiveDefault<T> = [T] extends [Primitive]
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
     ObservableComputedFnsRecursive<T> &
     ([T] extends [Primitive] ? { readonly value: T } : T);
-export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitive<T> : ObservableObject<T>;
+export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 
 export type ObservableReadable<T = any> =
     | ObservableObject<T>
     | ObservableComputed<T>
-    | ObservablePrimitive<T>
+    | ObservablePrimitiveChild<T>
     | ObservableRef<T>;
-export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitive<T> | ObservableRef<T>;
+export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T> | ObservableRef<T>;
 
 export interface NodeValue {
     id: number;
