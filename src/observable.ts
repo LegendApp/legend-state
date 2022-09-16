@@ -52,7 +52,7 @@ const objectFns = new Map<string, Function>([
 ]);
 
 // Override primitives
-const wrapFn = (fn: Function) =>
+const wrapFn = (name: string, fn: Function) =>
     function (...args: any) {
         if (lastAccessedNode && lastAccessedPrimitive) {
             const node: NodeValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
@@ -60,8 +60,9 @@ const wrapFn = (fn: Function) =>
                 return fn(node, ...args);
             } else if (process.env.NODE_ENV === 'development') {
                 console.error(
-                    `[legend-state] Error calling ${fn} on a primitive with value ${this}. Please ensure that if you are saving references to observable functions on primitive values that you use obs() first, like obs.primitive.obs().set.`
+                    `[legend-state] Error calling ${name} on a primitive with value [${this}]. Please ensure that if you are saving references to observable functions on primitive values that you use obs() first, like obs.primitive.obs().set.`
                 );
+                debugger;
             }
         }
     };
@@ -69,7 +70,7 @@ const wrapFn = (fn: Function) =>
 const toOverride = [Number, Boolean, String];
 for (let [key, fn] of objectFns) {
     for (let i = 0; i < toOverride.length; i++) {
-        toOverride[i].prototype[key] = wrapFn(fn);
+        toOverride[i].prototype[key] = wrapFn(key, fn);
     }
 }
 
