@@ -272,7 +272,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
 
-        if (!node.parent && isPrimitive(value) && p === 'value') {
+        if (!node.parent && isPrimitive(value) && node.root._ === value && p === 'value') {
             updateTracking(node);
             return value;
         }
