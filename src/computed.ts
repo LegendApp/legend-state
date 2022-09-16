@@ -13,7 +13,7 @@ export function computed<T>(compute: () => T): ObservableComputed<T> {
             obs.set(val);
         } else {
             // Create the observable on the first run
-            obs = observable(val as any);
+            obs = observable(val);
         }
     };
 

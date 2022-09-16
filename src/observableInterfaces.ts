@@ -235,33 +235,30 @@ export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservableP
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = { value: T } & ObservablePrimitiveFns<T>;
 
-export type ObservableObjectOrPrimitive<T> = [T] extends [Primitive]
-    ? ObservablePrimitive<T>
-    : T extends any[]
-    ? ObservableArray<T>
-    : ObservableObject<T>;
-export type ObservableObjectOrPrimitiveSafe<T> = [T] extends [Primitive]
-    ? ObservablePrimitiveChild<T>
-    : T extends any[]
-    ? ObservableArraySafe<T>
-    : ObservableObjectSafe<T>;
-export type ObservableObjectOrPrimitiveDefault<T> = [T] extends [Primitive]
-    ? ObservablePrimitiveChild<T>
-    : T extends any[]
+export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
+export type ObservableObjectOrArraySafe<T> = T extends any[] ? ObservableArraySafe<T> : ObservableObjectSafe<T>;
+export type ObservableObjectOrArrayDefault<T> = T extends any[]
     ? ObservableArrayDefault<T>
     : ObservableObjectDefault<T>;
 
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
     ObservableComputedFnsRecursive<T> &
     ([T] extends [Primitive] ? { readonly value: T } : T);
-export type Observable<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
+export declare type Observable<T = any> = [T] extends [object]
+    ? ObservableObject<T>
+    : T extends boolean
+    ? ObservablePrimitive<boolean>
+    : T extends number
+    ? ObservablePrimitive<number>
+    : T extends string
+    ? ObservablePrimitive<string>
+    : ObservablePrimitive<T>;
 
 export type ObservableReadable<T = any> =
     | ObservableObject<T>
     | ObservableComputed<T>
     | ObservablePrimitiveChild<T>
     | ObservableRef<T>;
-export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T> | ObservableRef<T>;
 
 export interface NodeValue {
     id: number;

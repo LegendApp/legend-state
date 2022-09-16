@@ -12,10 +12,10 @@ import {
     TextStyle,
     ViewStyle,
 } from 'react-native';
-import type { NotPrimitive, ObservableFns, ObservableWriteable, Primitive } from '../observableInterfaces';
+import type { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
 
 type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
-    bind?: ObservableWriteable<TValue> & NotPrimitive<TBind>;
+    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
     style?: StyleProp<TStyle> | ((value: TValue) => StyleProp<TStyle>);
 };
 
@@ -25,7 +25,7 @@ const Binder = function <
     TStyle,
     TProps extends { onChange?: any; value?: any; style?: StyleProp<any> }
 >(Component: TElement, getValue: (p: any) => TValue) {
-    return forwardRef(function Bound<TBind extends ObservableWriteable<any>>(
+    return forwardRef(function Bound<TBind extends ObservableFns<any>>(
         { bind, ...props }: Props<TValue, TStyle, TProps, TBind>,
         ref: LegacyRef<TElement>
     ) {

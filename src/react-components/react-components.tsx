@@ -12,12 +12,12 @@ import {
     TextareaHTMLAttributes,
     useCallback,
 } from 'react';
-import type { NotPrimitive, ObservableWriteable, Primitive } from '../observableInterfaces';
+import type { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
 
 type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     className?: string | ((value: TValue) => string);
     style?: CSSProperties | ((value: TValue) => CSSProperties);
-    bind?: ObservableWriteable<TValue> & NotPrimitive<TBind>;
+    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
 };
 
 const Binder = function <
@@ -25,7 +25,7 @@ const Binder = function <
     TElement,
     TProps extends { onChange?: any; value?: any; className?: string; style?: CSSProperties }
 >(Component) {
-    return forwardRef(function Bound<TBind extends ObservableWriteable<any>>(
+    return forwardRef(function Bound<TBind extends ObservableFns<any>>(
         { bind, ...props }: Props<TValue, TProps, TBind>,
         ref: LegacyRef<TElement>
     ) {
@@ -56,7 +56,7 @@ const Binder = function <
 
         return createElement(Component as any, ref ? { ...props, ref } : props);
         // TS hack because forwardRef messes with the types
-    }) as any as <TBind extends ObservableWriteable<any>>(props: Props<TValue, TProps, TBind>) => ReactElement | null;
+    }) as any as <TBind extends ObservableFns<any>>(props: Props<TValue, TProps, TBind>) => ReactElement | null;
 };
 
 export namespace Bindable {

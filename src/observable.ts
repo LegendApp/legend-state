@@ -1,3 +1,4 @@
+import { beginBatch, endBatch } from './batching';
 import {
     extraPrimitiveProps,
     get,
@@ -6,24 +7,21 @@ import {
     nextNodeID,
     symbolGetNode,
     symbolIsObservable,
-    Tracking,
     symbolUndef,
+    Tracking,
 } from './globals';
-import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isString, isSymbol } from './is';
-import { beginBatch, endBatch, batchNotify } from './batching';
+import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { doNotify, notify } from './notify';
 import {
     NodeValue,
-    Observable,
-    ObservableObjectOrPrimitive,
-    ObservableObjectOrPrimitiveDefault,
-    ObservableObjectOrPrimitiveSafe,
-    ObservablePrimitiveChild,
+    ObservableObjectOrArray,
+    ObservableObjectOrArrayDefault,
+    ObservableObjectOrArraySafe,
     ObservableWrapper,
 } from './observableInterfaces';
+import { ObservablePrimitive } from './ObservablePrimitive';
 import { onChange } from './onChange';
 import { checkTracking, tracking, untrack, updateTracking } from './tracking';
-import { ObservablePrimitive } from './ObservablePrimitive';
-import { doNotify, notify } from './notify';
 
 let lastAccessedNode: NodeValue;
 let lastAccessedPrimitive: string;
@@ -534,30 +532,26 @@ function deleteFn(node: NodeValue, key?: string | number) {
     setProp(node, key, symbolUndef, /*level*/ -1);
 }
 
-export function observable<T extends boolean>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<boolean>;
-export function observable<T extends string>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<string>;
-export function observable<T extends number>(value: T | Promise<T>, safe?: boolean): ObservablePrimitive<number>;
-export function observable<T extends object>(value: T | Promise<T>, safe: true): ObservableObjectOrPrimitiveSafe<T>;
-export function observable<T extends object>(value: T | Promise<T>, safe: false): ObservableObjectOrPrimitive<T>;
+export function observable(value: boolean | Promise<boolean>, safe?: boolean): ObservablePrimitive<boolean>;
+export function observable(value: string | Promise<string>, safe?: boolean): ObservablePrimitive<string>;
+export function observable(value: number | Promise<number>, safe?: boolean): ObservablePrimitive<number>;
+export function observable<T extends object>(value: T | Promise<T>, safe: true): ObservableObjectOrArraySafe<T>;
+export function observable<T extends object>(value: T | Promise<T>, safe: false): ObservableObjectOrArray<T>;
 export function observable<T extends object>(
     value: T | Promise<T>,
     safe?: undefined
-): ObservableObjectOrPrimitiveDefault<T>;
-export function observable<T extends boolean | string | number>(
+): ObservableObjectOrArrayDefault<T>;
+export function observable<T extends unknown>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrArray<unknown>;
+export function observable<T>(
     value: T | Promise<T>,
     safe?: boolean
-): ObservablePrimitiveChild<T>;
-export function observable<T extends unknown>(
-    value: T | Promise<T>,
-    safe?: boolean
-): ObservableObjectOrPrimitive<unknown>;
-export function observable<T>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrPrimitive<T> {
+): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
         value = undefined;
     }
     const obs = {
-        _: promise ? undefined : (value as Observable<T>),
+        _: promise ? undefined : value,
         safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
 
@@ -570,7 +564,7 @@ export function observable<T>(value: T | Promise<T>, safe?: boolean): Observable
         // @ts-ignore
         return new ObservablePrimitive<T>(node);
     } else {
-        const proxy = getProxy(node) as ObservableObjectOrPrimitive<T>;
+        const proxy = getProxy(node) as ObservableObjectOrArray<T>;
 
         if (promise) {
             promise.catch((error) => {
