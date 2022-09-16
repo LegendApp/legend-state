@@ -1584,8 +1584,10 @@ describe('Computed', () => {
     test('Cannot directly set a computed', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => obs.test + obs.test2);
-        // @ts-expect-error
-        comp.set(40);
+        expect(() => {
+            // @ts-expect-error
+            comp.set(40);
+        }).toThrow();
         expect(() => {
             // @ts-expect-error
             comp.assign({ text: 'hi' });
@@ -1601,6 +1603,7 @@ describe('Computed', () => {
         expect(comp.value).toEqual(30);
 
         const handler = expectChangeHandler(comp.value);
+
         obs.test = 5;
 
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);

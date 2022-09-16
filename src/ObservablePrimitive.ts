@@ -17,6 +17,13 @@ export class ObservablePrimitive<T = any> {
         return node.root._;
     }
     set value(value: T) {
+        if (this.#node.root.locked) {
+            throw new Error(
+                process.env.NODE_ENV === 'development'
+                    ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
+                    : '[legend-state] Modified locked observable'
+            );
+        }
         const prev = this.#node.root._;
         this.#node.root._ = value;
         doNotify(this.#node, value, [], value, prev, 0);

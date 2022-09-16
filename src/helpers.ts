@@ -8,7 +8,7 @@ export function isObservable(obs: any): obs is ObservableObject {
 }
 
 export function getNode(obs: ObservableRef): NodeValue {
-    return obs[symbolGetNode];
+    return obs instanceof ObservablePrimitive ? obs.getNode() : obs[symbolGetNode];
 }
 
 export function lockObservable(obs: ObservableRef, value: boolean) {
