@@ -1,5 +1,5 @@
 import { isFunction, isObservable, Tracking } from '@legendapp/state';
-import { createElement, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
+import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
 
 function computeProp(prop) {
@@ -28,20 +28,22 @@ export const Memo = memo(
 export function Show<T>(props: {
     if: NotPrimitive<T>;
     else?: ReactNode | (() => ReactNode);
+    wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement;
 export function Show<T>({
     if: if_,
     else: else_,
+    wrap,
     children,
 }: {
     if: NotPrimitive<T>;
     else?: ReactNode | (() => ReactNode);
-    memo?: boolean;
+    wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement {
     const value = computeProp(if_);
-    return (
+    const child = (
         value
             ? isFunction(children)
                 ? children(value)
@@ -52,6 +54,7 @@ export function Show<T>({
                 : else_
             : null
     ) as ReactElement;
+    return wrap ? createElement(wrap, undefined, child) : child;
 }
 
 export function Switch<T>({
