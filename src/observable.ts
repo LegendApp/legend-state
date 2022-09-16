@@ -547,7 +547,7 @@ function _notify(
             if (ok) {
                 // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
                 // it often, so leave it up to the caller.
-                if (!getPrevious) {
+                if (!noArgs && !getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
                 batchNotify(

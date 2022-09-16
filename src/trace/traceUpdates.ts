@@ -22,5 +22,5 @@ function onChange(
     console.log(`[legend-state] Rendering ${name ? name + ' ' : ''}because "${getNodePath(node)}" changed:
 from: ${JSON.stringify(getPrevious())}
 to: ${JSON.stringify(value)}`);
-    updateFn();
+    return updateFn();
 }
