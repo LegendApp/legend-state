@@ -7,6 +7,7 @@ export const tracking = {
     nodes: undefined as Map<number, TrackingNode>,
     listeners: undefined as (nodes: Map<number, TrackingNode>) => void,
     updates: undefined as (fn: () => void) => () => void,
+    callbacksMarked: new Set<() => void>(),
 };
 
 export function beginTracking() {
@@ -60,4 +61,21 @@ export function checkTracking(node: NodeValue, track: boolean | Symbol) {
             untrack(node);
         }
     }
+}
+
+let timeoutSweep;
+export function scheduleSweep() {
+    if (timeoutSweep) {
+        clearTimeout(timeoutSweep);
+    }
+    timeoutSweep = setTimeout(sweep, 0);
+}
+
+export function sweep() {
+    timeoutSweep = undefined;
+    if (tracking.callbacksMarked.size) console.log('sweeping');
+    for (let marked of tracking.callbacksMarked) {
+        marked();
+    }
+    tracking.callbacksMarked.clear();
 }

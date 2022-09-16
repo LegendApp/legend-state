@@ -44,12 +44,12 @@ export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | '
 }
 
 export type ListenerFn<T = any> = (
-    value: T,
-    getPrevious: () => T,
-    path: (string | number)[],
-    valueAtPath: any,
-    prevAtPath: any,
-    node: NodeValue
+    value?: T,
+    getPrevious?: () => T,
+    path?: (string | number)[],
+    valueAtPath?: any,
+    prevAtPath?: any,
+    node?: NodeValue
 ) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
@@ -260,6 +260,12 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveChild<T>
     | ObservableRef<T>;
 
+export interface ListenerInfo {
+    track: boolean | Symbol;
+    noArgs?: boolean;
+    listener: ListenerFn;
+}
+
 export interface NodeValue {
     id: number;
     parent?: NodeValue;
@@ -267,7 +273,7 @@ export interface NodeValue {
     proxy?: object;
     key?: string | number;
     root: ObservableWrapper;
-    listeners?: Set<{ track: boolean | Symbol; noArgs?: boolean; listener: ListenerFn }>;
+    listeners?: Set<ListenerInfo>;
 }
 
 /** @internal */
