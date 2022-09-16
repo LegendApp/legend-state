@@ -56,7 +56,7 @@ export function observe(run: () => void | (() => void)) {
         }
     }
 
-    const ret = setupTracking(tracking.nodes, update);
+    const ret = setupTracking(tracking.nodes, update, /*noArgs*/ true);
 
     endTracking(trackingPrev);
 
