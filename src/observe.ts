@@ -1,3 +1,4 @@
+import { isFunction } from './is';
 import { TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { beginTracking, endTracking, tracking } from './tracking';
@@ -26,7 +27,7 @@ export function observe(run: () => void | (() => void)) {
     let cleanup: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
-        if (cleanup) {
+        if (cleanup && isFunction(cleanup)) {
             cleanup();
             cleanup = undefined;
         }
