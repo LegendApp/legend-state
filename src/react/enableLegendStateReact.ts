@@ -13,6 +13,7 @@ import {
 import {
     createElement,
     memo,
+    version as ReactVersion,
     // @ts-ignore
     __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals,
 } from 'react';
@@ -61,6 +62,7 @@ export function enableLegendStateReact() {
         const mapOwnersDispose = new WeakMap<any, () => void>();
 
         const Updater = (s) => s + 1;
+        const EmptyEffect = () => {};
 
         function runOwnerDisposes(owner) {
             // Dispose old listeners if exists
@@ -78,6 +80,7 @@ export function enableLegendStateReact() {
         let dispatcher;
         let didBeginTracking = false;
         let prevNodes;
+        const canUseOwner = +ReactVersion.split('.')[0] >= 18;
         Object.defineProperty(ReactInternals.ReactCurrentDispatcher, 'current', {
             get() {
                 return dispatcher;
@@ -86,7 +89,7 @@ export function enableLegendStateReact() {
                 const owner = ReactInternals.ReactCurrentOwner.current;
                 if (newDispatcher) {
                     // If owner then this might be a component
-                    if (owner) {
+                    if (!canUseOwner || owner) {
                         const useCallback = newDispatcher.useCallback;
                         // Check properties of newDispatcher's useCallback to determine whether this is a component and we should do the work
                         // Filter out dispatchers for hooks because we don't care about those
@@ -116,20 +119,51 @@ export function enableLegendStateReact() {
                                         }
                                     }
 
-                                    // Dispose old listeners if exists
-                                    runOwnerDisposes(owner);
-                                    runOwnerDisposes(owner.alternate);
+                                    if (canUseOwner) {
+                                        // Dispose old listeners if exists
+                                        runOwnerDisposes(owner);
+                                        runOwnerDisposes(owner.alternate);
+                                    }
 
                                     // Track all of the nodes accessed during the dispatcher
                                     dispose = setupTracking(
                                         tracking.nodes,
                                         forceRender,
                                         /*noArgs*/ noArgs,
-                                        /*markAndSweep*/ true
+                                        /*markAndSweep*/ canUseOwner
                                     );
 
-                                    // Add this dispose function to the map to be able to clear listeners on the next run
-                                    mapOwnersDispose.set(owner, dispose);
+                                    if (canUseOwner) {
+                                        // Add this dispose function to the map to be able to clear listeners on the next run
+                                        mapOwnersDispose.set(owner, dispose);
+                                    } else {
+                                        // If can't use owner (in React 17 or less) then we have to inject a useEffect to cleanup
+                                        if (process.env.NODE_ENV === 'development') {
+                                            // Clear tracing
+                                            tracking.listeners = undefined;
+                                            tracking.updates = undefined;
+
+                                            const cachedNodes = tracking.nodes;
+                                            dispatcher.useEffect(() => {
+                                                // Workaround for React 18's double calling useEffect. If this is the
+                                                // second useEffect, set up tracking again.
+                                                if (dispose === undefined) {
+                                                    dispose = setupTracking(
+                                                        cachedNodes,
+                                                        forceRender,
+                                                        /*noArgs*/ noArgs
+                                                    );
+                                                }
+                                                return () => {
+                                                    dispose();
+                                                    dispose = undefined;
+                                                };
+                                            });
+                                        } else {
+                                            // Return dispose to cleanup before each render or on unmount
+                                            dispatcher.useEffect(() => dispose);
+                                        }
+                                    }
                                 } catch (err) {
                                     // This may not ever be an error but since this is new we'll leave this here
                                     // for a bit while we see what the behavior is like
@@ -143,6 +177,9 @@ export function enableLegendStateReact() {
                             } else {
                                 // Run empty hook if not tracking nodes, to keep the same number of hooks per render
                                 dispatcher.useReducer(Updater, 0);
+                                if (!canUseOwner) {
+                                    dispatcher.useReducer(EmptyEffect, 0);
+                                }
                             }
 
                             // Restore the previous tracking context
