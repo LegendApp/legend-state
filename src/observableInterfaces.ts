@@ -259,6 +259,7 @@ export type ObservableReadable<T = any> =
     | ObservableComputed<T>
     | ObservablePrimitiveChild<T>
     | ObservableRef<T>;
+export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T> | ObservableRef<T>;
 
 export interface NodeValue {
     id: number;
