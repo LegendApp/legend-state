@@ -64,12 +64,15 @@ export function enableLegendStateReact() {
         let dispatcher;
         let didBeginTracking = false;
         let prevNodes;
+        let lock;
         Object.defineProperty(ReactInternals.ReactCurrentDispatcher, 'current', {
             get() {
                 return dispatcher;
             },
             set(newDispatcher) {
-                if (newDispatcher) {
+                // Skip this inside a recursive set from our usage of useReducer/useEffect
+                if (newDispatcher && !lock) {
+                    lock = true;
                     const useCallback = newDispatcher.useCallback;
                     // When the React render is complete it sets the dispatcher to an object where useCallback has a length of 0
                     if (dispatcher && didBeginTracking && useCallback.length < 2) {
@@ -129,7 +132,6 @@ export function enableLegendStateReact() {
                         // Restore the previous tracking context
                         endTracking(prevNodes);
                     }
-                    dispatcher = newDispatcher;
 
                     // Start a new tracking context when entering a new rendering dispatcher
                     // In development, rendering dispatchers have useCallback named either "mountHookTypes" or "updateHookTypes"
@@ -145,7 +147,10 @@ export function enableLegendStateReact() {
                         // Keep a copy of the previous tracking context
                         prevNodes = beginTracking();
                     }
+                    lock = false;
                 }
+
+                dispatcher = newDispatcher;
             },
         });
     }
