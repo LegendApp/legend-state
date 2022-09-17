@@ -1562,6 +1562,15 @@ describe('Shallow', () => {
         expect(handler).toHaveBeenCalledTimes(2);
         expect(handler2).toHaveBeenCalledTimes(2);
     });
+    test('Shallow tracks object getting set to undefined', () => {
+        const obs = observable({ test: { text: 'hi' } });
+        const handler = jest.fn();
+        obs.test.onChange(handler, Tracking.shallow);
+
+        obs.test.set(undefined);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
 });
 describe('Computed', () => {
     test('Basic computed', () => {

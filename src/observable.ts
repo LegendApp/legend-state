@@ -220,6 +220,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
         return hasADiff || didMove;
+    } else if (prevValue) {
+        // If value got set to undefined, it has a diff
+        return true;
     }
 }
 
