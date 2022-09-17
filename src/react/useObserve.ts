@@ -1,10 +1,11 @@
 import { observe } from '@legendapp/state';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-export function useObserve(selector: () => void, deps?: any[]): void {
+export function useObserve(selector: () => void): void {
+    const cb = useRef(selector);
+    cb.current = selector;
+
     useEffect(() => {
-        const dispose = observe(selector);
-
-        return dispose;
-    }, deps || [selector]);
+        return observe(cb.current);
+    }, []);
 }

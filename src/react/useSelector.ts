@@ -11,13 +11,11 @@ export function useSelector<T>(selector: () => T): T {
     const fr = useForceRender();
 
     const update = function () {
-        // If running, call selector and return the value
-        // Don't need to call the selector again if not running and alwaysUpdate
+        // If running, call selector and re-render if changed
         if (inRun) {
             const cur = selector();
             // Re-render if not currently rendering and value has changed
             if (!inRun && cur !== ret) {
-                // Re-render if value changed
                 fr();
             }
             ret = cur;
