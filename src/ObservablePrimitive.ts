@@ -44,9 +44,9 @@ export class ObservablePrimitive<T = any> {
         noArgs?: boolean,
         markAndSweep?: boolean
     ): ObservableListenerDispose {
-        return onChange(this.#node, cb, track, noArgs);
+        return onChange(this.#node, cb, track, noArgs, markAndSweep);
     }
-    obs() {
+    obs(): ObservablePrimitive<T> {
         return this;
     }
     /** @internal */

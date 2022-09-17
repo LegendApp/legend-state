@@ -242,8 +242,7 @@ export type ObservableObjectOrArrayDefault<T> = T extends any[]
     : ObservableObjectDefault<T>;
 
 export type ObservableComputed<T = any> = ObservableComputedFns<T> &
-    ObservableComputedFnsRecursive<T> &
-    ([T] extends [Primitive] ? { readonly value: T } : T);
+    (T extends object ? ObservableComputedFnsRecursive<T> : Omit<ObservablePrimitive<T>, 'set'>);
 export declare type Observable<T = any> = [T] extends [object]
     ? ObservableObject<T>
     : T extends boolean
