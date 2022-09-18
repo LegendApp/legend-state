@@ -1,18 +1,7 @@
-import { isFunction, isObservable, Tracking } from '@legendapp/state';
+import { isFunction, isObservable, ObservablePrimitive, Tracking } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
-
-function computeProp(prop) {
-    let p = prop;
-    if (isFunction(p)) {
-        p = p();
-    }
-
-    if (isObservable(p)) {
-        p = p.get();
-    }
-    return p;
-}
+import { useSelector } from './useSelector';
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {
     return children() as ReactElement;
@@ -26,7 +15,7 @@ export const Memo = memo(
 );
 
 export function Show<T>(props: {
-    if: NotPrimitive<T>;
+    if: ObservablePrimitive<T> | (() => T);
     else?: ReactNode | (() => ReactNode);
     wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
@@ -37,12 +26,13 @@ export function Show<T>({
     wrap,
     children,
 }: {
-    if: NotPrimitive<T>;
+    if: ObservablePrimitive<T> | (() => T);
     else?: ReactNode | (() => ReactNode);
     wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
 }): ReactElement {
-    const value = computeProp(if_);
+    const value = useSelector<T>(if_);
+
     const child = (
         value
             ? isFunction(children)
@@ -54,6 +44,7 @@ export function Show<T>({
                 : else_
             : null
     ) as ReactElement;
+
     return wrap ? createElement(wrap, undefined, child) : child;
 }
 
@@ -61,10 +52,10 @@ export function Switch<T>({
     value,
     children,
 }: {
-    value: NotPrimitive<T>;
+    value: ObservablePrimitive<T> | (() => T);
     children?: Record<any, () => ReactNode>;
 }): ReactElement {
-    return (children[computeProp(value)]?.() ?? children['default']?.() ?? null) as ReactElement;
+    return (children[useSelector(value)]?.() ?? children['default']?.() ?? null) as ReactElement;
 }
 
 export function For<

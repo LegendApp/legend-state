@@ -19,9 +19,6 @@ function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
                 }`
             );
         }
-    } else if (process.env.NODE_ENV === 'development') {
-        // Shouldn't be possible, but leave as a sanity check
-        debugger;
     }
 
     console.log(
