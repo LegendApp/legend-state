@@ -381,11 +381,6 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        if (process.env.NODE_ENV === 'development' && tracking.isTracking) {
-            console.error(
-                `[legend-state] Should not assign to an observable within an observer. You may have done this by accident. Please use set() if you really want to do this.`
-            );
-        }
         set(node, prop, value);
         return true;
     },
