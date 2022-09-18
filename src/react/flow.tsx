@@ -1,6 +1,6 @@
-import { isFunction, isObservable, ObservablePrimitive, Tracking } from '@legendapp/state';
+import { isFunction, ObservablePrimitive, Tracking } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import type { NotPrimitive, ObservableObject } from '../observableInterfaces';
+import type { ObservableObject } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {

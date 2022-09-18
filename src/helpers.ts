@@ -1,7 +1,7 @@
-import { ObservablePrimitive } from './ObservablePrimitive';
 import { symbolDateModified, symbolGetNode, symbolIsObservable } from './globals';
 import { isObject } from './is';
 import type { NodeValue, ObservableObject, ObservableRef } from './observableInterfaces';
+import { ObservablePrimitive } from './ObservablePrimitive';
 
 export function isObservable(obs: any): obs is ObservableObject {
     return obs && (obs instanceof ObservablePrimitive || !!obs[symbolIsObservable as any]);

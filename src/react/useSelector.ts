@@ -1,14 +1,8 @@
-import {
-    observe,
-    setupTracking,
-    symbolUndef,
-    tracking,
-    isFunction,
-    isObservable,
-    ObservablePrimitive,
-} from '@legendapp/state';
-import { useEffect } from 'react';
-import { useForceRender } from './useForceRender';
+import { ObservablePrimitive, observe, setupTracking, symbolUndef, tracking } from '@legendapp/state';
+import { useEffect, useReducer } from 'react';
+import { computeSelector } from 'src/react/reactHelpers';
+
+const Update = (s) => s + 1;
 
 export function useSelector<T>(selector: ObservablePrimitive<T> | (() => T)): T {
     let inRun = true;
@@ -16,18 +10,11 @@ export function useSelector<T>(selector: ObservablePrimitive<T> | (() => T)): T 
     let ret: T = symbolUndef as unknown as T;
     let cachedNodes;
 
-    const fr = useForceRender();
+    const fr = useReducer(Update, 0)[1];
 
     const update = function () {
         // If running, call selector and re-render if changed
-        let cur = selector as any;
-        if (isFunction(cur)) {
-            cur = cur();
-        }
-
-        if (isObservable(cur)) {
-            cur = cur.get();
-        }
+        let cur = computeSelector(selector);
         // Re-render if not currently rendering and value has changed
         if (!inRun && cur !== ret) {
             fr();
