@@ -1,4 +1,4 @@
-import { tracking, TrackingNode, Tracking } from '@legendapp/state';
+import { tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
 export function traceListeners(name?: string) {
@@ -11,8 +11,8 @@ function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
     if (nodes) {
         for (let tracked of nodes.values()) {
             const { node, track } = tracked;
-            const shallow = track === Tracking.shallow;
-            const optimized = track === Tracking.optimized;
+            const shallow = track === true;
+            const optimized = track === 'optimize';
             arr.push(
                 `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
                     optimized ? ' (optimized)' : ''

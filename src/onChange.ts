@@ -1,9 +1,9 @@
-import { ListenerFn, NodeValue } from './observableInterfaces';
+import { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
 
 export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
-    track?: boolean | Symbol,
+    track?: TrackingType,
     noArgs?: boolean
 ): () => void {
     let listeners = node.listeners;

@@ -1,10 +1,10 @@
 import type { ObservablePrimitive } from './ObservablePrimitive';
 
-export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasValue' | 'true';
+export type TrackingType = boolean | 'optimize';
 
 export interface ObservableBaseFns<T> {
-    get?(track?: boolean | Symbol): T;
-    onChange?(cb: ListenerFn<T>, track?: boolean | Symbol): ObservableListenerDispose;
+    get?(track?: TrackingType): T;
+    onChange?(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
@@ -13,16 +13,12 @@ export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFns<T
     delete?(): ObservableChild<T>;
 }
 export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
-    get?(track?: boolean | Symbol): T;
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
     assign?(value: T | Partial<T>): ObservableChild<T>;
     delete?(): ObservableChild<T>;
 }
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
-export interface ObservableComputedFns<T> {
-    get(track?: boolean | Symbol): T;
-    onChange(cb: ListenerFn<T>, track?: boolean | Symbol): ObservableListenerDispose;
-}
+
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {
     /**
@@ -73,7 +69,7 @@ type ObservableFnsRecursive<T> = {
     [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 };
 type ObservableComputedFnsRecursive<T> = {
-    [K in keyof T]: Recurse<T, K, ObservableComputedFns<T[K]>>;
+    [K in keyof T]: Recurse<T, K, ObservableBaseFns<T[K]>>;
 };
 type ObservableFnsRecursiveSafe<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObservableObjectSafe<T[K]>>;
@@ -237,7 +233,7 @@ export type ObservableObjectOrArrayDefault<T> = T extends any[]
     ? ObservableArrayDefault<T>
     : ObservableObjectDefault<T>;
 
-export type ObservableComputed<T = any> = ObservableComputedFns<T> &
+export type ObservableComputed<T = any> = ObservableBaseFns<T> &
     ObservableComputedFnsRecursive<T> &
     ([T] extends [Primitive] ? { readonly value: T } : T);
 export declare type Observable<T = any> = [T] extends [object]
@@ -264,12 +260,12 @@ export interface NodeValue {
     proxy?: object;
     key?: string | number;
     root: ObservableWrapper;
-    listeners?: Set<{ track: boolean | Symbol; noArgs?: boolean; listener: ListenerFn }>;
+    listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
 }
 
 /** @internal */
 export interface TrackingNode {
     node: NodeValue;
-    track?: boolean | Symbol;
+    track?: TrackingType;
     num?: number;
 }

@@ -1,12 +1,10 @@
+import { beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
-import { observe } from '../src/observe';
+import { event } from '../src/event';
 import { isObservable, lockObservable } from '../src/helpers';
 import { observable } from '../src/observable';
-import { beginBatch, endBatch } from '../src/batching';
-import { event } from '../src/event';
-import { ObservableRef } from '../src/observableInterfaces';
+import { Observable } from '../src/observableInterfaces';
 import { when } from '../src/when';
-import { Tracking } from '../src/globals';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -21,7 +19,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: ObservableRef, track?: boolean | Symbol) {
+function expectChangeHandler(obs: Observable, track?: boolean | 'optimize') {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {
@@ -246,8 +244,8 @@ describe('Listeners', () => {
     test('Shallow listener', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
 
-        const handler = expectChangeHandler(obs.test, Tracking.shallow);
-        const handler2 = expectChangeHandler(obs, Tracking.shallow);
+        const handler = expectChangeHandler(obs.test, true);
+        const handler2 = expectChangeHandler(obs, true);
 
         obs.test.test2.test3.set('hello');
         expect(handler).not.toHaveBeenCalled();
@@ -1016,7 +1014,7 @@ describe('Array', () => {
             ],
         });
         const handler = jest.fn();
-        obs.test.onChange(handler, Tracking.shallow);
+        obs.test.onChange(handler, true);
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
         obs.test[2].onChange(() => {});
@@ -1287,7 +1285,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, Tracking.optimized);
+        obs.test.onChange(handlerShallow, 'optimize');
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();
@@ -1538,7 +1536,7 @@ describe('Shallow', () => {
     test('Shallow set primitive', () => {
         const obs = observable({ val: false } as { val: boolean; val2?: number });
         const handler = jest.fn();
-        obs.onChange(handler, Tracking.shallow);
+        obs.onChange(handler, true);
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
         obs.val2.set(10);
@@ -1547,14 +1545,14 @@ describe('Shallow', () => {
     test('Shallow deep object', () => {
         const obs = observable({ val: { val2: { val3: 'hi' } } });
         const handler = jest.fn();
-        obs.onChange(handler, Tracking.shallow);
+        obs.onChange(handler, true);
         obs.val.val2.val3.set('hello');
         expect(handler).not.toHaveBeenCalled();
     });
     test('Shallow array', () => {
         const obs = observable({ data: [], selected: 0 });
         const handler = jest.fn();
-        obs.data.onChange(handler, Tracking.shallow);
+        obs.data.onChange(handler, true);
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
         // Setting an index in an array should not notify the array
@@ -1564,7 +1562,7 @@ describe('Shallow', () => {
     test('Key delete notifies shallow', () => {
         const obs = observable({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
         const handler = jest.fn();
-        obs.test.onChange(handler, Tracking.shallow);
+        obs.test.onChange(handler, true);
 
         obs.test.key2.delete();
 
@@ -1584,7 +1582,7 @@ describe('Shallow', () => {
         const obs = observable({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        obs.arr.onChange(handler, Tracking.shallow);
+        obs.arr.onChange(handler, true);
         obs.arr.onChange(handler2);
 
         obs.arr.splice(1, 1);
@@ -1600,7 +1598,7 @@ describe('Shallow', () => {
     test('Shallow tracks object getting set to undefined', () => {
         const obs = observable({ test: { text: 'hi' } });
         const handler = jest.fn();
-        obs.test.onChange(handler, Tracking.shallow);
+        obs.test.onChange(handler, true);
 
         obs.test.set(undefined);
 
@@ -1791,7 +1789,7 @@ describe('Assigning functions', () => {
     test('Views', () => {
         const obs = observable({ text: 'hi' } as { text: any; test: any });
         obs.assign({
-            test: computed(() => obs.text + '!'),
+            test: computed(() => obs.text.get() + '!'),
         });
         expect(obs.test.get() === 'hi!');
     });

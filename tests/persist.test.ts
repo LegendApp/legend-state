@@ -1,9 +1,8 @@
 import { isArray, isObject, isString } from '../src/is';
-import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
-import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';
-import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
+import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { ObservablePersistLocalStorage } from '../src/persist/local-storage';
+import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 
 class LocalStorageMock {
     store: Record<any, any>;

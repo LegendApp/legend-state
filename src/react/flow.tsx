@@ -75,7 +75,7 @@ export function For<
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = (each as ObservableObject).get(optimized ? Tracking.optimized : Tracking.shallow);
+    const v = (each as ObservableObject).get(optimized ? 'optimize' : true);
 
     if (!v) return null;
 

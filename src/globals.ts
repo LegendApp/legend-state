@@ -1,5 +1,5 @@
 import { isString } from './is';
-import { NodeValue } from './observableInterfaces';
+import { NodeValue, TrackingType } from './observableInterfaces';
 import { checkTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
@@ -9,16 +9,11 @@ export const symbolUndef = Symbol('undef');
 
 export const extraPrimitiveProps = new Map<string, any>();
 
-export namespace Tracking {
-    export const normal = true;
-    export const shallow = Symbol('shallow');
-    export const optimized = Symbol('optimized');
-}
 export const nextNodeID = { current: 0 };
 
-export function get(node: NodeValue, track?: boolean | Symbol) {
+export function get(node: NodeValue, track?: TrackingType) {
     // Track by default
-    checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
+    checkTracking(node, track === undefined ? true : track === false ? undefined : track);
 
     const value = getNodeValue(node);
     return value;

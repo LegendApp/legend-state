@@ -1,5 +1,5 @@
 import { batchNotify } from './batching';
-import { getNodeValue, Tracking } from './globals';
+import { getNodeValue } from './globals';
 import { NodeValue } from './observableInterfaces';
 
 function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
@@ -35,12 +35,7 @@ export function doNotify(
         for (let listenerFn of listeners) {
             const { track, noArgs } = listenerFn;
 
-            const ok =
-                track === Tracking.shallow
-                    ? level <= 0
-                    : track === Tracking.optimized
-                    ? whenOptimizedOnlyIf && level <= 0
-                    : true;
+            const ok = track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
 
             // Notify if listener is not shallow or if this is the first level
             if (ok) {

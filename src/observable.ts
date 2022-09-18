@@ -9,9 +9,8 @@ import {
     symbolGetNode,
     symbolIsObservable,
     symbolUndef,
-    Tracking,
 } from './globals';
-import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive } from './is';
 import { doNotify, notify } from './notify';
 import {
     NodeValue,
@@ -249,7 +248,7 @@ const proxyHandler: ProxyHandler<any> = {
                 } else if (ArrayLoopers.has(p)) {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
-                    updateTracking(node, Tracking.shallow);
+                    updateTracking(node, true);
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
@@ -273,7 +272,7 @@ const proxyHandler: ProxyHandler<any> = {
             if (value !== undefined && value !== null) {
                 // Update that this primitive node was accessed for observers
                 if (isArray(value) && p === 'length') {
-                    updateTracking(node, Tracking.shallow);
+                    updateTracking(node, true);
                     // } else if (!isPrimitive(value)) {
                     //     updateTracking(getChildNode(node, p));
                     return vProp;
@@ -296,7 +295,7 @@ const proxyHandler: ProxyHandler<any> = {
         const keys = value ? Reflect.ownKeys(value) : [];
 
         // Update that this node was accessed for observers
-        updateTracking(node, Tracking.shallow);
+        updateTracking(node, true);
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for

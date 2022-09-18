@@ -1,4 +1,3 @@
-export { Tracking } from './src/globals';
 export { isObservable, mergeIntoObservable } from './src/helpers';
 export { observable } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/batching';

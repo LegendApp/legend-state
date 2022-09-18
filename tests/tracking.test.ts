@@ -1,6 +1,5 @@
-import { Tracking } from '../src/globals';
-import { observable } from '../src/observable';
 import { event } from '../src/event';
+import { observable } from '../src/observable';
 import { beginTracking, endTracking, tracking } from '../src/tracking';
 
 let prevTracking = undefined;
@@ -55,12 +54,12 @@ describe('Tracking', () => {
     test('get() shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
 
-        obs.test.get(Tracking.shallow);
+        obs.test.get(true);
 
         expect(tracking.nodes.size).toEqual(1);
 
         const nodes = [...tracking.nodes.values()];
-        expect(nodes[0].track).toEqual(Tracking.shallow);
+        expect(nodes[0].track).toEqual(true);
     });
     test('primitive get access observes', () => {
         const obs = observable({ test: 'hi' });
@@ -78,7 +77,7 @@ describe('Tracking', () => {
         const nodes = [...tracking.nodes.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
-        expect(nodes[0].track).toEqual(Tracking.shallow);
+        expect(nodes[0].track).toEqual(true);
     });
     test('Object.entries(obs) observes shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
@@ -90,7 +89,7 @@ describe('Tracking', () => {
         const nodes = [...tracking.nodes.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
-        expect(nodes[0].track).toEqual(Tracking.shallow);
+        expect(nodes[0].track).toEqual(true);
     });
     test('Accessing undefined observes', () => {
         const obs = observable({ test: {} as Record<string, { text: 'hi' }> });
@@ -146,6 +145,6 @@ describe('Tracking', () => {
         const nodes = [...tracking.nodes.values()];
 
         expect(nodes[0].node.key).toEqual('arr');
-        expect(nodes[0].track).toEqual(Tracking.shallow);
+        expect(nodes[0].track).toEqual(true);
     });
 });
