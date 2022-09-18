@@ -1,7 +1,7 @@
 import { tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
-export function traceListeners(name?: string) {
+export function verifyNotTracked(name?: string) {
     if (process.env.NODE_ENV === 'development') {
         tracking.listeners = traceNodes.bind(this, name);
     }
@@ -22,12 +22,11 @@ function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
                     }`
                 );
             }
+            console.error(
+                `[legend-state] ${name ? name + ' ' : ''}tracking ${arr.length} observable${
+                    arr.length !== 1 ? 's' : ''
+                } when it should not be:\n${arr.join('\n')}`
+            );
         }
-
-        console.log(
-            `[legend-state] ${name ? name + ' ' : ''}tracking ${arr.length} observable${
-                arr.length !== 1 ? 's' : ''
-            }:\n${arr.join('\n')}`
-        );
     }
 }
