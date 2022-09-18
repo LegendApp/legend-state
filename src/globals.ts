@@ -19,6 +19,10 @@ export function get(node: NodeValue, track?: TrackingType) {
     return value;
 }
 
+export function peek(node: NodeValue) {
+    return getNodeValue(node);
+}
+
 export function getNodeValue(node: NodeValue): any {
     const arr: (string | number)[] = [];
     let n = node;

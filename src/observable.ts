@@ -6,6 +6,7 @@ import {
     getChildNode,
     getNodeValue,
     nextNodeID,
+    peek,
     symbolGetNode,
     symbolIsObservable,
     symbolUndef,
@@ -43,6 +44,7 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forE
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
+    ['peek', peek],
     ['onChange', onChange],
     ['assign', assign],
     ['delete', deleteFn],

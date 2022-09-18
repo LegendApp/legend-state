@@ -3,6 +3,7 @@ import type { ObservablePrimitive } from './ObservablePrimitive';
 export type TrackingType = boolean | 'optimize';
 
 export interface ObservableBaseFns<T> {
+    peek?(): T;
     get?(track?: TrackingType): T;
     onChange?(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
 }

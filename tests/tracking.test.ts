@@ -23,6 +23,12 @@ describe('Tracking', () => {
 
         expect(tracking.nodes).toEqual(undefined);
     });
+    test('peek() does not observe', () => {
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
+        obs.test.test2.test3.peek();
+
+        expect(tracking.nodes).toEqual(undefined);
+    });
     test('set() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.set('hello');

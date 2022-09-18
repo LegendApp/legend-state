@@ -28,6 +28,9 @@ export class ObservablePrimitive<T = any> {
         this.#node.root._ = value;
         doNotify(this.#node, value, [], value, prev, 0);
     }
+    peek(): T {
+        return this.#node.root._;
+    }
     get(track?: boolean | 'optimize'): T {
         return track !== false ? this.value : this.#node.root._;
     }
