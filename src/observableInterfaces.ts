@@ -227,9 +227,7 @@ export type ObservableArrayDefault<T extends any[]> = Omit<T, ArrayOverrideFnNam
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & ObservableObjectFns<T>;
 export type ObservableObjectDefault<T = any> = ObservableFnsRecursiveDefault<T> & ObservableObjectFns<T>;
-export type ObservableChild<T = any> = [T] extends [Primitive]
-    ? T & ObservablePrimitiveChildFns<T>
-    : ObservableObject<T>;
+export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChildFns<T> : ObservableObject<T>;
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = ObservablePrimitive<T> & ObservablePrimitiveChildFns<T>;
 

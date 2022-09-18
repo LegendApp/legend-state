@@ -1,6 +1,6 @@
-import { checkTracking } from './tracking';
-import { isBoolean, isString, isSymbol } from './is';
+import { isString } from './is';
 import { NodeValue } from './observableInterfaces';
+import { checkTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');

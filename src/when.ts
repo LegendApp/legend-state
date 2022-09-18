@@ -1,11 +1,12 @@
+import { Observable } from 'src/observableInterfaces';
 import { isObservable } from './helpers';
 import { isFunction } from './is';
 import { ObservablePrimitive } from './ObservablePrimitive';
 import { observe } from './observe';
 
-export function when<T>(predicate: ObservablePrimitive<T> | (() => T)): Promise<T>;
-export function when<T>(predicate: ObservablePrimitive<T> | (() => T), effect: (T) => void | (() => void)): () => void;
-export function when<T>(predicate: ObservablePrimitive<T> | (() => T), effect?: (T) => void | (() => void)) {
+export function when<T>(predicate: Observable<T> | (() => T)): Promise<T>;
+export function when<T>(predicate: Observable<T> | (() => T), effect: (T) => void | (() => void)): () => void;
+export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => void | (() => void)) {
     let cleanup: () => void;
     let isDone = false;
 
