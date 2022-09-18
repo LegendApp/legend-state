@@ -1,5 +1,6 @@
-import { isFunction, ObservablePrimitive, Tracking } from '@legendapp/state';
+import { isFunction } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
+import { Selector } from './reactHelpers';
 import type { ObservableObject } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
@@ -15,7 +16,7 @@ export const Memo = memo(
 );
 
 export function Show<T>(props: {
-    if: ObservablePrimitive<T> | (() => T);
+    if: Selector<T>;
     else?: ReactNode | (() => ReactNode);
     wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
@@ -26,7 +27,7 @@ export function Show<T>({
     wrap,
     children,
 }: {
-    if: ObservablePrimitive<T> | (() => T);
+    if: Selector<T>;
     else?: ReactNode | (() => ReactNode);
     wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
@@ -52,7 +53,7 @@ export function Switch<T>({
     value,
     children,
 }: {
-    value: ObservablePrimitive<T> | (() => T);
+    value: Selector<T>;
     children?: Record<any, () => ReactNode>;
 }): ReactElement {
     return (children[useSelector(value)]?.() ?? children['default']?.() ?? null) as ReactElement;

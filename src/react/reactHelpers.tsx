@@ -1,7 +1,6 @@
-import { isFunction, isObservable } from '@legendapp/state';
-import type { ObservablePrimitive } from '../ObservablePrimitive';
+import { isFunction, isObservable, Observable } from '@legendapp/state';
 
-export type Selector<T> = ObservablePrimitive<T> | (() => T);
+export type Selector<T> = Observable<T> | (() => T);
 
 export function computeSelector<T>(selector: Selector<T>) {
     let c = selector as any;

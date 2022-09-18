@@ -1,7 +1,6 @@
-import { Observable } from 'src/observableInterfaces';
+import type { Observable } from './observableInterfaces';
 import { isObservable } from './helpers';
 import { isFunction } from './is';
-import { ObservablePrimitive } from './ObservablePrimitive';
 import { observe } from './observe';
 
 export function when<T>(predicate: Observable<T> | (() => T)): Promise<T>;

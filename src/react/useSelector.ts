@@ -1,10 +1,10 @@
-import { ObservablePrimitive, observe, setupTracking, symbolUndef, tracking } from '@legendapp/state';
+import { observe, setupTracking, symbolUndef, tracking } from '@legendapp/state';
 import { useEffect, useReducer } from 'react';
-import { computeSelector } from 'src/react/reactHelpers';
+import { computeSelector, Selector } from './reactHelpers';
 
 const Update = (s) => s + 1;
 
-export function useSelector<T>(selector: ObservablePrimitive<T> | (() => T)): T {
+export function useSelector<T>(selector: Selector<T>): T {
     let inRun = true;
 
     let ret: T = symbolUndef as unknown as T;

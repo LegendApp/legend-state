@@ -1,5 +1,3 @@
-import type { ObservablePrimitive } from './ObservablePrimitive';
-
 export type TrackingType = boolean | 'optimize';
 
 export interface ObservableBaseFns<T> {
@@ -19,6 +17,10 @@ export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
     delete?(): ObservableChild<T>;
 }
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
+
+export interface ObservablePrimitive<T> extends Required<ObservablePrimitiveFns<T>> {
+    value: T;
+}
 
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {

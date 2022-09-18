@@ -8,7 +8,6 @@ export { when } from './src/when';
 export * from './src/observableInterfaces';
 export { isEmpty } from './src/is';
 export { lockObservable } from './src/helpers';
-export { ObservablePrimitive } from './src/ObservablePrimitive';
 
 /** @internal */
 export { isArray, isFunction, isObject, isPrimitive } from './src/is';

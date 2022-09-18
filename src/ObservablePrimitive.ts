@@ -1,11 +1,18 @@
 import { doNotify } from './notify';
 import { isFunction } from './is';
-import { ListenerFn, NodeValue, ObservableListenerDispose } from './observableInterfaces';
+import {
+    ListenerFn,
+    NodeValue,
+    ObservableChild,
+    ObservableListenerDispose,
+    ObservablePrimitiveFns,
+} from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
-export class ObservablePrimitive<T = any> {
+export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns<T> {
     #node: NodeValue;
+    [Symbol.iterator];
 
     constructor(node: NodeValue) {
         this.#node = node;
@@ -34,12 +41,12 @@ export class ObservablePrimitive<T = any> {
     get(track?: boolean | 'optimize'): T {
         return track !== false ? this.value : this.#node.root._;
     }
-    set(value: T | ((prev: T) => T)) {
+    set(value: T | ((prev: T) => T)): ObservableChild<T> {
         if (isFunction(value)) {
             value = value(this.#node.root._);
         }
         this.value = value;
-        return this;
+        return this as unknown as ObservableChild<T>;
     }
     onChange(cb: ListenerFn<T>, track?: boolean | 'optimize', noArgs?: boolean): ObservableListenerDispose {
         return onChange(this.#node, cb, track, noArgs);

@@ -18,9 +18,10 @@ import {
     ObservableObjectOrArray,
     ObservableObjectOrArrayDefault,
     ObservableObjectOrArraySafe,
+    ObservablePrimitive,
     ObservableWrapper,
 } from './observableInterfaces';
-import { ObservablePrimitive } from './ObservablePrimitive';
+import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
 import { tracking, untrack, updateTracking } from './tracking';
 
@@ -511,8 +512,7 @@ export function observable<T>(
     };
 
     if (isActualPrimitive(value)) {
-        // @ts-ignore
-        return new ObservablePrimitive<T>(node);
+        return new ObservablePrimitiveClass<T>(node) as unknown as ObservablePrimitive<T>;
     } else {
         const proxy = getProxy(node) as ObservableObjectOrArray<T>;
 

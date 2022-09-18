@@ -7,7 +7,6 @@ import {
     setupTracking,
     tracking,
     updateTracking,
-    ObservablePrimitive,
 } from '@legendapp/state';
 import {
     createElement,
@@ -15,6 +14,7 @@ import {
     // @ts-ignore
     __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals,
 } from 'react';
+import { ObservablePrimitiveClass } from './ObservablePrimitive';
 let isEnabled = false;
 
 const Updater = (s) => s + 1;
@@ -50,13 +50,13 @@ export function enableLegendStateReact() {
         });
         extraPrimitiveProps.set('ref', null);
         // Set extra props for ObservablePrimitive to return on primitives
-        Object.defineProperties(ObservablePrimitive.prototype, {
+        Object.defineProperties(ObservablePrimitiveClass.prototype, {
             $$typeof: { configurable: true, value: ReactTypeofSymbol },
             type: { configurable: true, value: Text },
             props: {
                 configurable: true,
                 get() {
-                    return { data: (this as ObservablePrimitive).getNode() };
+                    return { data: (this as ObservablePrimitiveClass).getNode() };
                 },
             },
             ref: { configurable: true, value: null },

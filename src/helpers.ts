@@ -1,14 +1,14 @@
 import { symbolDateModified, symbolGetNode, symbolIsObservable } from './globals';
 import { isObject } from './is';
 import type { NodeValue, ObservableObject, ObservableRef } from './observableInterfaces';
-import { ObservablePrimitive } from './ObservablePrimitive';
+import { ObservablePrimitiveClass } from './ObservablePrimitive';
 
 export function isObservable(obs: any): obs is ObservableObject {
-    return obs && (obs instanceof ObservablePrimitive || !!obs[symbolIsObservable as any]);
+    return obs && (obs instanceof ObservablePrimitiveClass || !!obs[symbolIsObservable as any]);
 }
 
 export function getNode(obs: ObservableRef): NodeValue {
-    return obs instanceof ObservablePrimitive ? obs.getNode() : obs[symbolGetNode];
+    return obs instanceof ObservablePrimitiveClass ? obs.getNode() : obs[symbolGetNode];
 }
 
 export function lockObservable(obs: ObservableRef, value: boolean) {
