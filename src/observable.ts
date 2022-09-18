@@ -240,11 +240,6 @@ const proxyHandler: ProxyHandler<any> = {
 
         const vProp = value?.[p];
 
-        // Accessing symbols passes straight through
-        if (isSymbol(p)) {
-            return vProp;
-        }
-
         // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {
