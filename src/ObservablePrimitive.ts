@@ -31,8 +31,9 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
                     : '[legend-state] Modified locked observable'
             );
         }
-        const prev = this.#node.root._;
-        this.#node.root._ = value;
+        const root = this.#node.root;
+        const prev = root._;
+        root._ = value;
         doNotify(this.#node, value, [], value, prev, 0);
     }
     peek(): T {
@@ -50,9 +51,6 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
     }
     onChange(cb: ListenerFn<T>, track?: boolean | 'optimize', noArgs?: boolean): ObservableListenerDispose {
         return onChange(this.#node, cb, track, noArgs);
-    }
-    obs() {
-        return this;
     }
     /** @internal */
     getNode() {
