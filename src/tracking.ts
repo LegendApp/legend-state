@@ -3,7 +3,7 @@ import type { NodeValue, TrackingNode } from './observableInterfaces';
 let lastNode: NodeValue;
 
 export const tracking = {
-    isTracking: false,
+    isTracking: 0,
     nodes: undefined as Map<number, TrackingNode>,
     listeners: undefined as (nodes: Map<number, TrackingNode>) => void,
     updates: undefined as (fn: () => void) => () => void,
@@ -13,13 +13,20 @@ export function beginTracking() {
     // Keep a copy of the previous tracking context so it can be restored
     // when this context is complete
     const prev = tracking.nodes;
-    tracking.isTracking = true;
+    tracking.isTracking++;
     tracking.nodes = undefined;
     return prev;
 }
 export function endTracking(prevNodes: Map<number, TrackingNode>) {
     // Restore the previous tracking context
-    tracking.isTracking = !!prevNodes;
+    tracking.isTracking--;
+    if (tracking.isTracking < 0) {
+        tracking.isTracking = 0;
+        if (process.env.NODE_ENV === 'development') {
+            // Shouldn't be possible, but leave as a sanity check
+            debugger;
+        }
+    }
     tracking.nodes = prevNodes;
 }
 

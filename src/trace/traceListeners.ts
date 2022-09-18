@@ -8,13 +8,20 @@ export function traceListeners(name?: string) {
 function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
     tracking.listeners = undefined;
     const arr: string[] = [];
-    for (let tracked of nodes.values()) {
-        const { node, track } = tracked;
-        const shallow = track === Tracking.shallow;
-        const optimized = track === Tracking.optimized;
-        arr.push(
-            `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${optimized ? ' (optimized)' : ''}`
-        );
+    if (nodes) {
+        for (let tracked of nodes.values()) {
+            const { node, track } = tracked;
+            const shallow = track === Tracking.shallow;
+            const optimized = track === Tracking.optimized;
+            arr.push(
+                `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
+                    optimized ? ' (optimized)' : ''
+                }`
+            );
+        }
+    } else if (process.env.NODE_ENV === 'development') {
+        // Shouldn't be possible, but leave as a sanity check
+        debugger;
     }
 
     console.log(

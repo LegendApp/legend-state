@@ -62,7 +62,7 @@ export function enableLegendStateReact() {
 
         // 2. Override dispatcher access to hook up tracking
         let dispatcher;
-        let didBeginTracking = false;
+        let numTracking = 0;
         let prevNodes;
         let lock;
         Object.defineProperty(ReactInternals.ReactCurrentDispatcher, 'current', {
@@ -75,8 +75,8 @@ export function enableLegendStateReact() {
                     lock = true;
                     const useCallback = newDispatcher.useCallback;
                     // When the React render is complete it sets the dispatcher to an object where useCallback has a length of 0
-                    if (dispatcher && didBeginTracking && useCallback.length < 2) {
-                        didBeginTracking = false;
+                    if (dispatcher && numTracking > 0 && useCallback.length < 2) {
+                        numTracking--;
                         // If the previous dispatcher tracked nodes then set up hooks
                         if (tracking.nodes) {
                             try {
@@ -137,12 +137,12 @@ export function enableLegendStateReact() {
                     // In development, rendering dispatchers have useCallback named either "mountHookTypes" or "updateHookTypes"
                     // In production, they just have length = 2
                     if (
-                        !tracking.isTracking &&
+                        !numTracking &&
                         (process.env.NODE_ENV === 'development'
                             ? !useCallback.toString().includes('Invalid')
                             : useCallback.length === 2)
                     ) {
-                        didBeginTracking = true;
+                        numTracking++;
 
                         // Keep a copy of the previous tracking context
                         prevNodes = beginTracking();
