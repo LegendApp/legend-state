@@ -43,6 +43,8 @@ export function enableLegendStateReact() {
         // Set extra props for the proxyHandler to return on primitives
         extraPrimitiveProps.set('$$typeof', ReactTypeofSymbol);
         extraPrimitiveProps.set('type', Text);
+        extraPrimitiveProps.set('_store', { validated: true });
+        extraPrimitiveProps.set('key', '');
         extraPrimitiveProps.set('props', {
             __fn: (obs) => ({ data: obs }),
         });
