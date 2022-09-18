@@ -40,22 +40,22 @@ describe('Set', () => {
         const obs = observable({ test: { text: 't' } });
         obs.test.set({ text: 't2' });
         expect(obs.test.get()).toEqual({ text: 't2' });
-        expect(obs).toEqual({ test: { text: 't2' } });
+        expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Set primitive', () => {
         const obs = observable({ test: { text: 't' } });
         obs.test.text.set('t2');
-        expect(obs).toEqual({ test: { text: 't2' } });
+        expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Set prop', () => {
         const obs = observable({ test: { text: 't' } });
-        obs.test.set('text', 't2');
-        expect(obs).toEqual({ test: { text: 't2' } });
+        obs.test.text.set('t2');
+        expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Set child', () => {
         const obs = observable({ test: { text: { text2: 't' } } });
         obs.test.text.set({ text2: 't2' });
-        expect(obs).toEqual({ test: { text: { text2: 't2' } } });
+        expect(obs.get()).toEqual({ test: { text: { text2: 't2' } } });
     });
     test('Set in array', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
@@ -63,27 +63,26 @@ describe('Set', () => {
         expect(obs.arr.length).toEqual(1);
 
         expect(obs.arr.get()).toEqual([{ text: 'hi2' }]);
-        expect(obs.arr[0].text).toEqual('hi2');
+        expect(obs.arr[0].text.get()).toEqual('hi2');
         obs.arr[0].text.set('hi3');
-        expect(obs.arr[0].text).toEqual('hi3');
-        expect(obs.arr.map((a) => a)).toEqual([{ text: 'hi3' }]);
+        expect(obs.arr[0].text.get()).toEqual('hi3');
+        expect(obs.arr.map((a) => a.get())).toEqual([{ text: 'hi3' }]);
     });
     test('Set at root', () => {
         const obs = observable({ test: { text: 't' } });
         obs.set({ test: { text: 't2' } });
-        expect(obs).toEqual({ test: { text: 't2' } });
+        expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Set empty object at root', () => {
         const obs = observable({ test: { text: 't' } } as Record<string, any>);
         obs.set({});
-        expect(obs).toEqual({});
         expect(obs.get()).toEqual({});
     });
     test('Set at root deletes other properties', () => {
         const obs = observable({ test: { text: 't' }, test2: 'hello' });
         // @ts-expect-error
         obs.set({ test: { text: 't2' } });
-        expect(obs).toEqual({ test: { text: 't2' } });
+        expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Set array at root', () => {
         const obs = observable([1, 2, 3]);
@@ -136,31 +135,29 @@ describe('Set', () => {
     });
     test('Set prop with function', () => {
         const obs = observable({ test: { num: 1 } });
-        obs.test.set('num', (n) => n + 1);
+        obs.test.num.set((n) => n + 1);
         expect(obs.test.get()).toEqual({ num: 2 });
     });
-    test("Set with child that's an observable", () => {
-        const obsOther = observable({ a: { b: 'hi' } });
-        const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
-        obs.test.set({ t: obsOther });
-        expect(obs.get()).toEqual({ test: { t: { a: { b: 'hi' } } } });
-        expect(obs).toEqual({ test: { t: { a: { b: 'hi' } } } });
-        obs.test.set({ t: { tt: obsOther.a } });
-        expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
-        expect(obs).toEqual({ test: { t: { tt: { b: 'hi' } } } });
-        expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
-    });
+    // test("Set with child that's an observable", () => {
+    //     const obsOther = observable({ a: { b: 'hi' } });
+    //     const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
+    //     obs.test.set({ t: obsOther });
+    //     expect(obs.get()).toEqual({ test: { t: { a: { b: 'hi' } } } });
+    //     obs.test.set({ t: { tt: obsOther.a } });
+    //     expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
+    //     expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
+    // });
 });
 describe('Assign', () => {
     test('Assign', () => {
         const obs = observable({ test: { text: 't' } });
         obs.test.assign({ text: 't2' });
-        expect(obs).toEqual({ test: { text: 't2' } });
+        expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Assign more keys', () => {
         const obs = observable<Record<string, any>>({ test: { text: 't' } });
         obs.test.assign({ text: 'tt', text2: 'tt2' });
-        expect(obs).toEqual({ test: { text: 'tt', text2: 'tt2' } });
+        expect(obs.get()).toEqual({ test: { text: 'tt', text2: 'tt2' } });
     });
 });
 describe('Listeners', () => {
@@ -168,7 +165,6 @@ describe('Listeners', () => {
         const obs = observable({ test: { text: 't' }, arr: [] });
         const handler = expectChangeHandler(obs.test);
         const handler2 = expectChangeHandler(obs);
-
         obs.test.set({ text: 't2' });
         expect(handler).toHaveBeenCalledWith({ text: 't2' }, { text: 't' }, [], { text: 't2' }, { text: 't' });
         expect(handler2).toHaveBeenCalledWith(
@@ -181,27 +177,26 @@ describe('Listeners', () => {
     });
     test('Listen by ref', () => {
         const obs = observable({ test: { text: 't' } });
-        expect(obs.test.text).toEqual('t');
-        const handler = expectChangeHandler(obs.test.obs('text'));
-        obs.test.set('text', 't2');
-        expect(obs.test.text).toEqual('t2');
+        expect(obs.test.text.get()).toEqual('t');
+        const handler = expectChangeHandler(obs.test.text);
+        obs.test.text.set('t2');
+        expect(obs.test.text.get()).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
     });
     test('Listen by key', () => {
         const obs = observable({ test: { text: 't' } });
-        expect(obs.test.text).toEqual('t');
+        expect(obs.test.text.get()).toEqual('t');
         const handler = expectChangeHandler(obs.test.text);
-        obs.test.set('text', 't2');
-        expect(obs.test.text).toEqual('t2');
+        obs.test.text.set('t2');
+        expect(obs.test.text.get()).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
     });
     test('Listen deep', () => {
         const obs = observable({ test: { test2: { test3: { text: 't' } } } });
         const handler = expectChangeHandler(obs.test.test2.test3.text);
         const handler2 = expectChangeHandler(obs);
-
         obs.test.test2.test3.text.set('t2');
-        expect(obs.test.test2.test3.text).toEqual('t2');
+        expect(obs.test.test2.test3.text.get()).toEqual('t2');
         expect(handler).toHaveBeenCalledWith('t2', 't', [], 't2', 't');
         expect(handler2).toHaveBeenCalledWith(
             { test: { test2: { test3: { text: 't2' } } } },
@@ -215,7 +210,7 @@ describe('Listeners', () => {
         const obs = observable({ test: { test2: { test3: { text: 't' } } } });
         const handler = expectChangeHandler(obs);
         obs.test.test2.test3.text.set('t2');
-        expect(obs.test.test2.test3.text).toEqual('t2');
+        expect(obs.test.test2.test3.text.get()).toEqual('t2');
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: { text: 't2' } } } },
             { test: { test2: { test3: { text: 't' } } } },
@@ -224,7 +219,7 @@ describe('Listeners', () => {
             't'
         );
         obs.test.test2.test3.text.set('t3');
-        expect(obs.test.test2.test3.text).toEqual('t3');
+        expect(obs.test.test2.test3.text.get()).toEqual('t3');
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: { test3: { text: 't3' } } } },
             { test: { test2: { test3: { text: 't2' } } } },
@@ -239,7 +234,7 @@ describe('Listeners', () => {
         obs.test.set({ test2: 'hello' });
         expect(handler).toHaveBeenCalledWith('hello', 'hi', [], 'hello', 'hi');
         obs.test.set({ test2: 'hi there' });
-        expect(obs.test.test2).toEqual('hi there');
+        expect(obs.test.test2.get()).toEqual('hi there');
         expect(handler).toHaveBeenCalledWith('hi there', 'hello', [], 'hi there', 'hello');
     });
     test('Set on root calls deep listeners', () => {
@@ -346,7 +341,7 @@ describe('Listeners', () => {
     test('Start null set to something', () => {
         const obs = observable({ test: null });
         const handler = expectChangeHandler(obs);
-        obs.set('test', { test2: 'hi' });
+        obs.test.set({ test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
             { test: null },
@@ -360,7 +355,7 @@ describe('Listeners', () => {
     test('Start undefined set to something', () => {
         const obs = observable({ test: undefined });
         const handler = expectChangeHandler(obs);
-        obs.set('test', { test2: 'hi' });
+        obs.test.set({ test2: 'hi' });
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi' } },
             { test: undefined },
@@ -374,7 +369,7 @@ describe('Listeners', () => {
     test('Set with object should only fire listeners once', () => {
         const obs = observable({ test: undefined });
         const handler = expectChangeHandler(obs);
-        obs.set('test', { test2: 'hi', test3: 'hi3', test4: 'hi4' });
+        obs.test.set({ test2: 'hi', test3: 'hi3', test4: 'hi4' });
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
             { test: { test2: 'hi', test3: 'hi3', test4: 'hi4' } },
@@ -386,7 +381,7 @@ describe('Listeners', () => {
     });
     test('Listener promises', async () => {
         const obs = observable({ test: 'hi' });
-        const promise = when(() => obs.test === 'hi2');
+        const promise = when(() => obs.test.get() === 'hi2');
         let didResolve = false;
         promise.then(() => (didResolve = true));
         expect(didResolve).toEqual(false);
@@ -436,7 +431,7 @@ describe('Listeners', () => {
     test('Set undefined deep with deep listener', () => {
         const obs = observable({ obj: { test: 'hi' } });
         const handler = expectChangeHandler(obs.obj.test);
-        obs.obj.set('test', undefined);
+        obs.obj.test.set(undefined);
         expect(handler).toHaveBeenCalledWith(undefined, 'hi', [], undefined, 'hi');
     });
     test('Modify value does not copy object', () => {
@@ -448,132 +443,25 @@ describe('Listeners', () => {
     test('set returns correct value', () => {
         const obs = observable({ test: '' });
         const ret = obs.set({ test: 'hello' });
-        expect(ret).toEqual({ test: 'hello' });
+        expect(ret.get()).toEqual({ test: 'hello' });
         const ret2 = obs.test.set('hello');
         expect(ret2.get()).toEqual('hello');
-        expect(obs.test).toEqual('hello');
+        expect(obs.test.get()).toEqual('hello');
         const ret3 = obs.assign({ test: 'hello2' });
-        expect(obs.test).toEqual('hello2');
-        expect(ret3).toEqual({ test: 'hello2' });
-        expect(obs).toEqual({ test: 'hello2' });
-    });
-    test('undefined is undefined', () => {
-        const obs = observable({ test: undefined });
-        expect(obs.test).toEqual(undefined);
-    });
-    test('Set undefined to value and back', () => {
-        const obs = observable({ test: { test2: { test3: undefined } } });
-        const handler = expectChangeHandler(obs.test);
-        expect(obs.test).toEqual({ test2: { test3: undefined } });
-        expect(obs.test.test2).toEqual({ test3: undefined });
-        expect(obs.test.test2.test3).toEqual(undefined);
-        obs.test.test2.set('test3', { test4: 'hi4', test5: 'hi5' });
-        expect(obs.test.test2.test3).toEqual({ test4: 'hi4', test5: 'hi5' });
-        expect(obs.test.test2).toEqual({ test3: { test4: 'hi4', test5: 'hi5' } });
-        expect(obs.test).toEqual({ test2: { test3: { test4: 'hi4', test5: 'hi5' } } });
-        expect(obs).toEqual({ test: { test2: { test3: { test4: 'hi4', test5: 'hi5' } } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
-            { test2: { test3: undefined } },
-            ['test2', 'test3'],
-            { test4: 'hi4', test5: 'hi5' },
-            undefined
-        );
-        obs.test.test2.set('test3', undefined);
-        expect(obs.test.test2.test3).toEqual(undefined);
-        expect(obs.test.test2).toEqual({ test3: undefined });
-        expect(obs.test).toEqual({ test2: { test3: undefined } });
-        expect(obs).toEqual({ test: { test2: { test3: undefined } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: undefined } },
-            { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
-            ['test2', 'test3'],
-            undefined,
-            { test4: 'hi4', test5: 'hi5' }
-        );
-        obs.test.test2.set('test3', { test4: 'hi6', test5: 'hi7' });
-        expect(obs.test.test2.test3).toEqual({ test4: 'hi6', test5: 'hi7' });
-        expect(obs.test.test2).toEqual({ test3: { test4: 'hi6', test5: 'hi7' } });
-        expect(obs.test).toEqual({ test2: { test3: { test4: 'hi6', test5: 'hi7' } } });
-        expect(obs).toEqual({ test: { test2: { test3: { test4: 'hi6', test5: 'hi7' } } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: { test4: 'hi6', test5: 'hi7' } } },
-            { test2: { test3: undefined } },
-            ['test2', 'test3'],
-            { test4: 'hi6', test5: 'hi7' },
-            undefined
-        );
-    });
-    test('Set deep primitive undefined to value and back', () => {
-        const obs = observable({ test: { test2: { test3: undefined } } });
-        const handler = expectChangeHandler(obs.test);
-        expect(obs.test).toEqual({ test2: { test3: undefined } });
-        expect(obs.test.test2).toEqual({ test3: undefined });
-        expect(obs.test.test2.test3).toEqual(undefined);
-        obs.test.test2.set('test3', 'hi');
-        expect(obs.test.test2.test3).toEqual('hi');
-        expect(obs.test.test2.test3).toEqual('hi');
-        expect(obs.test.test2).toEqual({ test3: 'hi' });
-        expect(obs.test).toEqual({ test2: { test3: 'hi' } });
-        expect(obs).toEqual({ test: { test2: { test3: 'hi' } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: 'hi' } },
-            { test2: { test3: undefined } },
-            ['test2', 'test3'],
-            'hi',
-            undefined
-        );
-        obs.test.test2.set('test3', undefined);
-        expect(obs.test.test2.test3).toEqual(undefined);
-        expect(obs.test.test2).toEqual({ test3: undefined });
-        expect(obs.test).toEqual({ test2: { test3: undefined } });
-        expect(obs).toEqual({ test: { test2: { test3: undefined } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: undefined } },
-            { test2: { test3: 'hi' } },
-            ['test2', 'test3'],
-            undefined,
-            'hi'
-        );
-        obs.test.test2.set('test3', 'hi');
-        expect(obs.test.test2.test3).toEqual('hi');
-        expect(obs.test.test2.test3).toEqual('hi');
-        expect(obs.test.test2).toEqual({ test3: 'hi' });
-        expect(obs.test.test2).toEqual({ test3: 'hi' });
-        expect(obs.test).toEqual({ test2: { test3: 'hi' } });
-        expect(obs).toEqual({ test: { test2: { test3: 'hi' } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: 'hi' } },
-            { test2: { test3: undefined } },
-            ['test2', 'test3'],
-            'hi',
-            undefined
-        );
-        obs.test.test2.set({ test3: 'hi2' });
-        expect(obs.test.test2.test3).toEqual('hi2');
-        expect(obs.test.test2.test3).toEqual('hi2');
-        expect(obs.test.test2).toEqual({ test3: 'hi2' });
-        expect(obs.test.test2).toEqual({ test3: 'hi2' });
-        expect(obs.test).toEqual({ test2: { test3: 'hi2' } });
-        expect(obs).toEqual({ test: { test2: { test3: 'hi2' } } });
-        expect(handler).toHaveBeenCalledWith(
-            { test2: { test3: 'hi2' } },
-            { test2: { test3: 'hi' } },
-            ['test2'],
-            { test3: 'hi2' },
-            { test3: 'hi' }
-        );
+        expect(obs.test.get()).toEqual('hello2');
+        expect(ret3.get()).toEqual({ test: 'hello2' });
+        expect(obs.get()).toEqual({ test: 'hello2' });
     });
     test('Set number key', () => {
         const obs = observable({ test: {} as Record<number, string> });
         const handler = expectChangeHandler(obs.test);
-        obs.test.set(1, 'hi');
+        obs.test[1].set('hi');
         expect(handler).toHaveBeenCalledWith({ '1': 'hi' }, { '1': undefined }, [1], 'hi', undefined);
     });
     test('Set number key multiple times', () => {
         const obs = observable({ test: { t: {} as Record<number, any> } });
         const handler = expectChangeHandler(obs.test);
-        obs.test.t.set(1000, { test1: { text: ['hi'] } });
+        obs.test.t[1000].set({ test1: { text: ['hi'] } });
         expect(obs.get()).toEqual({
             test: {
                 t: {
@@ -618,7 +506,7 @@ describe('Listeners', () => {
             { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
             { test1: { text: ['hi'] } }
         );
-        obs.test.t.set(1000, { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
+        obs.test.t[1000].set({ test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
         expect(obs.test.t.get()).toEqual({
             1000: {
                 test1: { text: ['hiz'], text2: 'hiz2' },
@@ -637,7 +525,6 @@ describe('Listeners', () => {
         const obs = observable({ test: { test1: 'hi' } });
         const handler = jest.fn();
         obs.test.onChange(handler);
-        obs.test.set('test1', 'hi');
         obs.test.test1.set('hi');
         expect(handler).toHaveBeenCalledTimes(0);
     });
@@ -645,12 +532,123 @@ describe('Listeners', () => {
         const obs = observable({ val: 10 });
         expect(Object.keys(obs.val)).toEqual([]);
     });
-    test('Set key on undefined fails', () => {
-        const obs = observable({ val: undefined });
-        expect(() => {
-            obs.val.set('key', 10);
-        }).toThrow();
-        expect(obs.val).toEqual(undefined);
+});
+describe('undefined', () => {
+    test('undefined is undefined', () => {
+        const obs = observable({ test: undefined });
+        expect(obs.test.get()).toEqual(undefined);
+    });
+    test('Can dot through undefined', () => {
+        const obs = observable({ test: undefined } as { test: { test2: { test3: string } } });
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+    });
+    test('Can set through undefined', () => {
+        const obs = observable({ test: undefined } as { test: { test2: { test3: string } } });
+        obs.test.test2.test3.set('hi');
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+    });
+    test('Set undefined to value and back', () => {
+        const obs = observable({ test: { test2: { test3: undefined } } });
+        const handler = expectChangeHandler(obs.test);
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+        obs.test.test2.test3.set({ test4: 'hi4', test5: 'hi5' });
+        expect(obs.test.test2.test3.get()).toEqual({ test4: 'hi4', test5: 'hi5' });
+        expect(obs.test.test2.get()).toEqual({ test3: { test4: 'hi4', test5: 'hi5' } });
+        expect(obs.test.get()).toEqual({ test2: { test3: { test4: 'hi4', test5: 'hi5' } } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: { test4: 'hi4', test5: 'hi5' } } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            { test4: 'hi4', test5: 'hi5' },
+            undefined
+        );
+        obs.test.test2.test3.set(undefined);
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: undefined } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: undefined } },
+            { test2: { test3: { test4: 'hi4', test5: 'hi5' } } },
+            ['test2', 'test3'],
+            undefined,
+            { test4: 'hi4', test5: 'hi5' }
+        );
+        obs.test.test2.test3.set({ test4: 'hi6', test5: 'hi7' });
+        expect(obs.test.test2.test3.get()).toEqual({ test4: 'hi6', test5: 'hi7' });
+        expect(obs.test.test2.get()).toEqual({ test3: { test4: 'hi6', test5: 'hi7' } });
+        expect(obs.test.get()).toEqual({ test2: { test3: { test4: 'hi6', test5: 'hi7' } } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: { test4: 'hi6', test5: 'hi7' } } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: { test4: 'hi6', test5: 'hi7' } } },
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            { test4: 'hi6', test5: 'hi7' },
+            undefined
+        );
+    });
+    test('Set deep primitive undefined to value and back', () => {
+        const obs = observable({ test: { test2: { test3: undefined } } });
+        const handler = expectChangeHandler(obs.test);
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+        obs.test.test2.test3.set('hi');
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
+        expect(obs.test.get()).toEqual({ test2: { test3: 'hi' } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: 'hi' } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: 'hi' } },
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            'hi',
+            undefined
+        );
+        obs.test.test2.test3.set(undefined);
+        expect(obs.test.test2.test3.get()).toEqual(undefined);
+        expect(obs.test.test2.get()).toEqual({ test3: undefined });
+        expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: undefined } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: undefined } },
+            { test2: { test3: 'hi' } },
+            ['test2', 'test3'],
+            undefined,
+            'hi'
+        );
+        obs.test.test2.test3.set('hi');
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi' });
+        expect(obs.test.get()).toEqual({ test2: { test3: 'hi' } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: 'hi' } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: 'hi' } },
+            { test2: { test3: undefined } },
+            ['test2', 'test3'],
+            'hi',
+            undefined
+        );
+        obs.test.test2.set({ test3: 'hi2' });
+        expect(obs.test.test2.test3.get()).toEqual('hi2');
+        expect(obs.test.test2.test3.get()).toEqual('hi2');
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi2' });
+        expect(obs.test.test2.get()).toEqual({ test3: 'hi2' });
+        expect(obs.test.get()).toEqual({ test2: { test3: 'hi2' } });
+        expect(obs.get()).toEqual({ test: { test2: { test3: 'hi2' } } });
+        expect(handler).toHaveBeenCalledWith(
+            { test2: { test3: 'hi2' } },
+            { test2: { test3: 'hi' } },
+            ['test2'],
+            { test3: 'hi2' },
+            { test3: 'hi' }
+        );
     });
 });
 describe('Equality', () => {
@@ -679,15 +677,15 @@ describe('Equality', () => {
     });
 });
 describe('Safety', () => {
-    test('Writes are ok in unsafe', () => {
-        const obs = observable({ test: { text: 't' } }, false);
-        obs.test.text = 'hello';
-        obs.test = { text: 'hello' };
-        delete obs.test;
-    });
+    // test('Writes are ok in unsafe', () => {
+    //     const obs = observable({ test: { text: 't' } }, false);
+    //     obs.test.text.value = 'hello';
+    //     obs.test = { text: 'hello' };
+    //     delete obs.test;
+    // });
     test('Prevent object writes in default safety', () => {
         const obs = observable({ test: { text: 't' } });
-        obs.test.text = 'hello';
+        obs.test.text.value = 'hello';
         expect(() => {
             // @ts-expect-error
             obs.test = { text: 'hello' };
@@ -722,34 +720,66 @@ describe('Safety', () => {
     });
 });
 describe('Primitives', () => {
+    test('Primitive node object', () => {
+        const obs = observable({ test: 'hi' });
+        expect(obs.test).not.toEqual('hi');
+        expect(obs.test.get()).toEqual('hi');
+    });
+    test('Primitive has "value"', () => {
+        const obs = observable({ test: 'hi' });
+        expect(obs.test.value).toEqual('hi');
+    });
     test('Primitive set', () => {
         const obs = observable({ test: { text: 't' } });
-        expect(obs.test.text).toEqual('t');
+        expect(obs.test.text.get()).toEqual('t');
         obs.test.text.set('t2');
-        expect(obs.test.text).toEqual('t2');
+        expect(obs.test.text.get()).toEqual('t2');
+    });
+    test('Primitive direct assign value', () => {
+        const obs = observable({ test: 'hi' });
+        obs.test.value = 'hello';
+        expect(obs.test.value).toEqual('hello');
     });
     test('Deep primitive access', () => {
         const obs = observable({ val: { val2: { val3: 10 } } });
-        expect(obs.val.val2.val3).toEqual(10);
+        expect(obs.val.val2.val3.get()).toEqual(10);
         obs.val.val2.val3.set(20);
-        expect(obs.val.val2.val3).toEqual(20);
         expect(obs.val.val2.val3.get()).toEqual(20);
     });
-    test('Set function with obs is stable', () => {
+    test('observable root can be primitive', () => {
+        const obs = observable(10);
+        expect(obs.get()).toEqual(10);
+        obs.set(20);
+        expect(obs.get()).toEqual(20);
+    });
+    test('set observable primitive notifies', () => {
+        const obs = observable(10);
+        expect(obs.get()).toEqual(10);
+        const handler = expectChangeHandler(obs);
+        obs.set(20);
+        expect(obs.get()).toEqual(20);
+        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
+    });
+    test('Primitive callback does not have value', () => {
+        const obs = observable(10);
+        const handler = expectChangeHandler(obs);
+        obs.onChange(handler);
+        obs.set(20);
+        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
+    });
+    test('Set function is stable', () => {
         const obs = observable({ num1: 10, num2: 20 });
-        const set = obs.obs('num1').set;
-        expect(obs.num2).toEqual(20);
-
+        const set = obs.num1.set;
+        expect(obs.num2.get()).toEqual(20);
         set(30);
-
-        expect(obs.num1).toEqual(30);
+        expect(obs.num1.get()).toEqual(30);
     });
     test('Assign on a primitive errors', async () => {
         const obs = observable({ num1: 10, num2: 20 });
 
         expect(() => {
             // @ts-expect-error
-            obs.num1.assign({ value: 'hi' });
+            obs.num1.assign({ test: 'hi' });
             // @ts-expect-error
             obs.num1.assign;
         }).toThrow();
@@ -810,7 +840,6 @@ describe('Array', () => {
         const last = obs.test[2].get();
         obs.test.splice(1, 1);
         expect(obs.test.get()).toEqual([{ text: 'hi' }, { text: 'there' }]);
-        expect(obs.test[1]).toEqual(last);
         expect(obs.test[1].get()).toBe(last);
         expect(handler).toHaveBeenCalledWith(
             { test: [{ text: 'hi' }, { text: 'there' }] },
@@ -826,13 +855,14 @@ describe('Array', () => {
     // });
     test('Array swap', () => {
         const obs = observable({ test: [1, 2, 3, 4, 5] });
-        let tmp = obs.test[1];
-        obs.test.set(1, obs.test[4]);
-        obs.test.set(4, tmp);
+        const arr = obs.test.get();
+        let tmp = arr[1];
+        obs.test[1].set(arr[4]);
+        obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([1, 5, 3, 4, 2]);
-        tmp = obs.test[1];
-        obs.test.set(1, obs.test[4]);
-        obs.test.set(4, tmp);
+        tmp = arr[1];
+        obs.test[1].set(arr[4]);
+        obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([1, 2, 3, 4, 5]);
     });
     test('Array set', () => {
@@ -843,22 +873,22 @@ describe('Array', () => {
         }
         obs.test.set(arr);
         expect(obs.test.length).toEqual(1000);
-        expect(obs.test[3].id).toEqual(3);
+        expect(obs.test[3].id.get()).toEqual(3);
     });
     test('Array swap with objects', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         let arr = obs.test;
         let tmp = arr[1].get();
-        obs.test.set(1, arr[4]);
-        obs.test.set(4, tmp);
+        obs.test[1].set(arr[4]);
+        obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
-        expect(obs.test[1]).toEqual({ text: 5 });
-        expect(arr[1]).toEqual({ text: 5 });
-        expect(obs.test[4]).toEqual({ text: 2 });
-        expect(arr[4]).toEqual({ text: 2 });
+        expect(obs.test[1].get()).toEqual({ text: 5 });
+        expect(arr[1].get()).toEqual({ text: 5 });
+        expect(obs.test[4].get()).toEqual({ text: 2 });
+        expect(arr[4].get()).toEqual({ text: 2 });
         tmp = arr[1].get();
-        obs.test.set(1, arr[4]);
-        obs.test.set(4, tmp);
+        obs.test[1].set(arr[4]);
+        obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
     });
     test('Array swap with objects and then remove', () => {
@@ -873,18 +903,17 @@ describe('Array', () => {
         });
         let arr = obs.test;
         let tmp = arr[1].get();
-        obs.test.set(1, arr[4]);
-        obs.test.set(4, tmp);
+        obs.test[1].set(arr[4]);
+        obs.test[4].set(tmp);
         obs.test.splice(0, 1);
         expect(obs.test[0].get()).toEqual({ id: 5, text: 5 });
-        expect(obs.test[0]).toEqual({ id: 5, text: 5 });
     });
     test('Array swap if empty', () => {
         const obs = observable({ test: [] });
         let tmp = obs.test[1];
-        obs.test.set(1, obs.test[4]);
+        obs.test[1].set(obs.test[4]);
         expect(obs.test.get()).toEqual([undefined, undefined]);
-        obs.test.set(4, tmp);
+        obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([undefined, undefined, undefined, undefined, undefined]);
     });
     test('Clear array fires listener once', () => {
@@ -925,8 +954,7 @@ describe('Array', () => {
         obs.test[3].onChange(() => {});
         obs.test[4].onChange(() => {});
         obs.test.splice(0, 1);
-        expect(obs.test[0]).toEqual({ id: 2, text: 2 });
-        expect(obs.test[0]).toEqual({ id: 2, text: 2 });
+        expect(obs.test[0].get()).toEqual({ id: 2, text: 2 });
         expect(obs.test.get()).toEqual([
             { id: 2, text: 2 },
             { id: 3, text: 3 },
@@ -940,15 +968,13 @@ describe('Array', () => {
             { id: 5, text: 5 },
         ]);
         expect(obs.test.length).toEqual(4);
-        expect(obs.test.length).toEqual(4);
-        expect(obs.test.map((a) => a)).toEqual([
+        expect(obs.test.map((a) => a.get())).toEqual([
             { id: 2, text: 2 },
             { id: 3, text: 3 },
             { id: 4, text: 4 },
             { id: 5, text: 5 },
         ]);
-        // TODO
-        // expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
             [
                 { id: 2, text: 2 },
@@ -1001,7 +1027,7 @@ describe('Array', () => {
     test('Array set by index', () => {
         const obs = observable({ test: [{ text: 'hi' }] });
         obs.test[0].set({ text: 'hi2' });
-        expect(obs.test[0]).toEqual({ text: 'hi2' });
+        expect(obs.test[0].get()).toEqual({ text: 'hi2' });
     });
     test('Array map returns observables', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
@@ -1062,8 +1088,8 @@ describe('Array', () => {
 
         const arr = obs.arr.get();
         let tmp = arr[1];
-        obs.arr.set(1, arr[2]);
-        obs.arr.set(2, tmp);
+        obs.arr[1].set(arr[2]);
+        obs.arr[2].set(tmp);
         // This makes second become h3
 
         expect(handler).toHaveBeenCalledWith(
@@ -1119,14 +1145,14 @@ describe('Array', () => {
 
         let arr = obs.arr.get();
         let tmp = arr[1];
-        obs.arr.set(1, arr[2]);
+        obs.arr[1].set(arr[2]);
         expect(obs.arr.get()).toEqual([
             { id: 'h1', text: 'h1' },
             { id: 'h3', text: 'h3' },
             { id: 'h3', text: 'h3' },
         ]);
         expect(tmp).toEqual({ id: 'h2', text: 'h2' });
-        obs.arr.set(2, tmp);
+        obs.arr[2].set(tmp);
 
         // Second becomes h3 still at index 1
 
@@ -1175,14 +1201,14 @@ describe('Array', () => {
 
         let arr = obs.arr.get();
         let tmp = arr[1];
-        obs.arr.set(1, arr[2]);
+        obs.arr[1].set(arr[2]);
         expect(obs.arr.get()).toEqual([
             { id: 'h1', text: 'hi' },
             { id: 'h3', text: 'h3' },
             { id: 'h3', text: 'h3' },
         ]);
         expect(tmp).toEqual({ id: 'h2', text: 'hello' });
-        obs.arr.set(2, tmp);
+        obs.arr[2].set(tmp);
 
         expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
         expect(obs.arr.get()).toEqual([
@@ -1207,8 +1233,8 @@ describe('Array', () => {
 
         arr = obs.arr.get();
         tmp = arr[1];
-        obs.arr.set(1, arr[2]);
-        obs.arr.set(2, tmp);
+        obs.arr[1].set(arr[2]);
+        obs.arr[2].set(tmp);
 
         expect(obs.arr.get()).toEqual([
             { id: 'h1', text: 'hi' },
@@ -1317,63 +1343,63 @@ describe('Deep changes keep listeners', () => {
     test('Deep set keeps keys', () => {
         const obs = observable({ test: { test2: { a1: 'ta' } as Record<string, any> } });
         obs.test.test2.a1.set({ text: 'ta1' });
-        expect(obs).toEqual({ test: { test2: { a1: { text: 'ta1' } } } });
-        expect(obs.test.test2).toEqual({ a1: { text: 'ta1' } });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1']);
-        obs.test.test2.set('a2', { text: 'ta2' });
-        expect(obs).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
-        expect(obs.test.test2).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        obs.test.test2.assign({ a2: { text: 'ta2' } });
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
-        obs.test.test2.set('a3', { text: 'ta3' });
-        expect(obs).toEqual({
+        obs.test.test2.assign({ a3: { text: 'ta3' } });
+        expect(obs.get()).toEqual({
             test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } } },
         });
-        expect(obs.test.test2).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
     });
     test('Set shallow of deep object keeps keys', () => {
         const obs = observable({ test: { test2: { a0: { text: 't0' } } as Record<string, any> } });
         obs.test.set({ test2: { a1: { text: 'ta1' } } });
-        expect(obs).toEqual({ test: { test2: { a1: { text: 'ta1' } } } });
-        expect(obs.test.test2).toEqual({ a1: { text: 'ta1' } });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1']);
         obs.test.set({ test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } });
-        expect(obs).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
-        expect(obs.test.test2).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.get()).toEqual({ test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' } } } });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2']);
-        obs.test.test2.set('a3', { text: 'ta3' });
-        expect(obs).toEqual({
+        obs.test.test2.assign({ a3: { text: 'ta3' } });
+        expect(obs.get()).toEqual({
             test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } } },
         });
-        expect(obs.test.test2).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.test.test2.get()).toEqual({ a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' } });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3']);
-        obs.test.test2.set('a4', { text: 'ta4' });
-        expect(obs).toEqual({
+        obs.test.test2.assign({ a4: { text: 'ta4' } });
+        expect(obs.get()).toEqual({
             test: { test2: { a1: { text: 'ta1' }, a2: { text: 'ta2' }, a3: { text: 'ta3' }, a4: { text: 'ta4' } } },
         });
-        expect(obs.test.test2).toEqual({
+        expect(obs.test.test2.get()).toEqual({
             a1: { text: 'ta1' },
             a2: { text: 'ta2' },
             a3: { text: 'ta3' },
             a4: { text: 'ta4' },
         });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3', 'a4']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3', 'a4']);
         obs.test.test2.assign({ a5: { text: 'ta5' } });
-        expect(obs).toEqual({
+        expect(obs.get()).toEqual({
             test: {
                 test2: {
                     a1: { text: 'ta1' },
@@ -1384,28 +1410,28 @@ describe('Deep changes keep listeners', () => {
                 },
             },
         });
-        expect(obs.test.test2).toEqual({
+        expect(obs.test.test2.get()).toEqual({
             a1: { text: 'ta1' },
             a2: { text: 'ta2' },
             a3: { text: 'ta3' },
             a4: { text: 'ta4' },
             a5: { text: 'ta5' },
         });
-        expect(obs.test.test2.a1).toEqual({ text: 'ta1' });
+        expect(obs.test.test2.a1.get()).toEqual({ text: 'ta1' });
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3', 'a4', 'a5']);
         expect(Object.keys(obs.test.test2)).toEqual(['a1', 'a2', 'a3', 'a4', 'a5']);
         obs.test.test2.set({ a6: { text: 'ta6' } });
-        expect(obs).toEqual({
+        expect(obs.get()).toEqual({
             test: {
                 test2: {
                     a6: { text: 'ta6' },
                 },
             },
         });
-        expect(obs.test.test2).toEqual({
+        expect(obs.test.test2.get()).toEqual({
             a6: { text: 'ta6' },
         });
-        expect(obs.test.test2.a1).toEqual(undefined);
+        expect(obs.test.test2.get().a1).toEqual(undefined);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
     });
@@ -1413,18 +1439,18 @@ describe('Deep changes keep listeners', () => {
 describe('Delete', () => {
     test('Delete key', () => {
         const obs = observable({ test: { text: 't', text2: 't2' } });
-        obs.test.delete('text2');
-        expect(obs).toEqual({ test: { text: 't' } });
+        obs.test.text2.delete();
+        expect(obs.get()).toEqual({ test: { text: 't' } });
     });
     test('Delete self', () => {
         const obs = observable({ test: { text: 't' }, test2: { text2: 't2' } });
         obs.test2.delete();
-        expect(obs).toEqual({ test: { text: 't' } });
+        expect(obs.get()).toEqual({ test: { text: 't' } });
     });
     test('Delete property fires listeners', () => {
         const obs = observable({ obj: { val: true } });
         const handler = expectChangeHandler(obs.obj.val);
-        obs.obj.delete('val');
+        obs.obj.val.delete();
         expect(handler).toHaveBeenCalledWith(undefined, true, [], undefined, true);
         expect(Object.keys(obs.obj)).toEqual([]);
     });
@@ -1438,21 +1464,21 @@ describe('Delete', () => {
     test('Delete fires listeners of children', () => {
         const obs = observable({ obj: { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } } });
         const handler = expectChangeHandler(obs.obj.num1);
-        obs.delete('obj');
+        obs.obj.delete();
         expect(handler).toHaveBeenCalledWith(undefined, 1, [], undefined, 1);
     });
     test('Accessing a deleted node', () => {
         const obs = observable({ obj: { text: 'hi' } });
         const obj = obs.obj;
-        obs.delete('obj');
-        expect(() => {
-            obj.set('text', 'hello');
-        }).toThrow();
-        expect(obs).toEqual({});
+        obs.obj.delete();
+        expect(obs.get()).toEqual({});
+
+        obj.text.set('hello');
+        expect(obs.get()).toEqual({ obj: { text: 'hello' } });
     });
     test('Delete key', () => {
         const obs = observable({ test: { text: 't', text2: 't2' } });
-        obs.test.delete('text2');
+        obs.test.text2.delete();
         expect(Object.keys(obs.test)).toEqual(['text']);
     });
 });
@@ -1460,7 +1486,7 @@ describe('on functions', () => {
     test('when equals', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        when(() => obs.val === 20, handler);
+        when(() => obs.val.get() === 20, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.val.set(20);
         expect(handler).toHaveBeenCalled();
@@ -1468,13 +1494,13 @@ describe('on functions', () => {
     test('when equals immediate', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
-        when(() => obs.val === 10, handler);
+        when(() => obs.val.get() === 10, handler);
         expect(handler).toHaveBeenCalled();
     });
     test('when equals deep', () => {
         const obs = observable({ test: { test2: '', test3: '' } });
         const handler = jest.fn();
-        when(() => obs.test.test2 === 'hello', handler);
+        when(() => obs.test.test2.get() === 'hello', handler);
         expect(handler).not.toHaveBeenCalled();
         obs.test.test2.set('hi');
         expect(handler).not.toHaveBeenCalled();
@@ -1484,7 +1510,7 @@ describe('on functions', () => {
     test('when true', () => {
         const obs = observable({ val: false });
         const handler = jest.fn();
-        when(() => obs.val, handler);
+        when(() => obs.val.get(), handler);
         expect(handler).not.toHaveBeenCalled();
         obs.val.set(true);
         expect(handler).toHaveBeenCalled();
@@ -1492,12 +1518,20 @@ describe('on functions', () => {
     test('when true starting true', () => {
         const obs = observable({ val: true });
         const handler = jest.fn();
-        when(() => obs.val, handler);
+        when(() => obs.val.get(), handler);
         expect(handler).toHaveBeenCalled();
         obs.val.set(false);
         expect(handler).toHaveBeenCalledTimes(1);
         obs.val.set(true);
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('when with primitive', () => {
+        const obs = observable({ val: false });
+        const handler = jest.fn();
+        when(obs.val, handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs.val.set(true);
+        expect(handler).toHaveBeenCalled();
     });
 });
 describe('Shallow', () => {
@@ -1507,7 +1541,7 @@ describe('Shallow', () => {
         obs.onChange(handler, Tracking.shallow);
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
-        obs.obs('val2').set(10);
+        obs.val2.set(10);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Shallow deep object', () => {
@@ -1524,7 +1558,7 @@ describe('Shallow', () => {
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
         // Setting an index in an array should not notify the array
-        obs.data.set(0, { text: 11 });
+        obs.data[0].set({ text: 11 });
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Key delete notifies shallow', () => {
@@ -1532,16 +1566,17 @@ describe('Shallow', () => {
         const handler = jest.fn();
         obs.test.onChange(handler, Tracking.shallow);
 
-        obs.test.delete('key2');
+        obs.test.key2.delete();
 
         expect(handler).toHaveBeenCalledTimes(1);
 
         // But setting to undefined does not
-        obs.test.set('key1', undefined);
+        obs.test.key1.set(undefined);
 
         expect(handler).toHaveBeenCalledTimes(1);
 
-        obs.test.set('key3', { text: 'hello3' });
+        // @ts-ignore
+        obs.test.key3.set({ text: 'hello3' });
 
         expect(handler).toHaveBeenCalledTimes(2);
     });
@@ -1575,45 +1610,44 @@ describe('Shallow', () => {
 describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test + obs.test2);
-        expect(comp.value).toEqual(30);
+        const comp = computed(() => obs.test.get() + obs.test2.get());
+        expect(comp.get()).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test + obs.test2);
-        expect(comp.value).toEqual(30);
+        const comp = computed(() => obs.test.get() + obs.test2.get());
+        expect(comp.get()).toEqual(30);
         const handler = expectChangeHandler(comp);
         obs.test.set(5);
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
-        expect(comp.value).toEqual(25);
+        expect(comp.get()).toEqual(25);
         obs.test.set(1);
         expect(handler).toHaveBeenCalledWith(21, 25, [], 21, 25);
-        expect(comp.value).toEqual(21);
+        expect(comp.get()).toEqual(21);
     });
     test('Cannot directly set a computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test + obs.test2);
+        const comp = computed(() => obs.test.get() + obs.test2.get());
         expect(() => {
             // @ts-expect-error
             comp.set(40);
-        }).toThrow();
+        }).toThrowError();
         expect(() => {
             // @ts-expect-error
             comp.assign({ text: 'hi' });
-        }).toThrow();
+        }).toThrowError();
         expect(() => {
             // @ts-expect-error
             comp.delete();
-        }).toThrow();
+        }).toThrowError();
     });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => ({ value: obs.test + obs.test2 }));
-        expect(comp.value).toEqual(30);
-
+        const comp = computed(() => ({ value: obs.test.get() + obs.test2.get() }));
+        expect(comp.value.get()).toEqual(30);
         const handler = expectChangeHandler(comp.value);
 
-        obs.test = 5;
+        obs.test.value = 5;
 
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
     });
@@ -1689,47 +1723,6 @@ describe('Batching', () => {
         expect(handler).toHaveBeenCalledTimes(1);
     });
 });
-describe('obs function', () => {
-    test('With and without obs', () => {
-        const obs = observable({ text: 'hi' });
-        const prox = obs.obs('text');
-        const prox2 = obs.text.obs();
-        expect(prox === prox2).toEqual(true);
-        expect(prox2.get()).toEqual('hi');
-    });
-    test('keyed obs', () => {
-        const obs = observable({ text: 'hi' });
-        const prox = obs.obs('text');
-        const prox2 = obs.obs('text');
-        expect(prox === prox2).toEqual(true);
-        expect(prox2.get()).toEqual('hi');
-    });
-    test('obs through undefined works', () => {
-        const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
-        const obsTest4 = obs.obs('test').obs('test2').obs('test3').obs('test4');
-        const handler = expectChangeHandler(obsTest4);
-        obs.set({ test: { test2: { test3: { test4: 'hi' } } } });
-        expect(handler).toHaveBeenCalledWith('hi', undefined, [], 'hi', undefined);
-    });
-    test('obs through undefined with get()', () => {
-        const obs = observable({ test: undefined } as { test: { test2: { test3: { test4: string } } } });
-        const obsTest4 = obs.obs('test').obs('test2').obs('test3').obs('test4');
-        expect(obsTest4.get()).toEqual(undefined);
-    });
-});
-describe('observe', () => {
-    test('Basic observe', () => {
-        const obs = observable({ text: 'hi' });
-        const fn = jest.fn();
-        observe(() => {
-            fn(obs.text);
-        });
-        obs.text.set('hello');
-        expect(fn).toHaveBeenCalledWith('hello');
-        obs.text.set('a');
-        expect(fn).toHaveBeenCalledWith('a');
-    });
-});
 describe('Observable with promise', () => {
     test('Promise', async () => {
         let resolver;
@@ -1737,14 +1730,10 @@ describe('Observable with promise', () => {
             resolver = resolve;
         });
         const obs = observable(promise);
-
-        expect(obs.value).toEqual(undefined);
-
+        expect(obs.get()).toEqual(undefined);
         resolver(10);
-
         await promiseTimeout(0);
-
-        expect(obs.value).toEqual(10);
+        expect(obs.get()).toEqual(10);
     });
     test('when with promise observable', async () => {
         let resolver;
@@ -1770,7 +1759,7 @@ describe('Locking', () => {
         const obs = observable({ text: 'hi' });
         lockObservable(obs, true);
         expect(() => obs.text.set('hello')).toThrowError();
-        expect(() => (obs.text = 'hello')).toThrowError();
+        expect(() => (obs.text.value = 'hello')).toThrowError();
         expect(() => obs.set({ text: 'hello' })).toThrowError();
         expect(obs.get()).toEqual({ text: 'hi' });
         lockObservable(obs, false);
@@ -1807,7 +1796,7 @@ describe('Assigning functions', () => {
         expect(obs.test.get() === 'hi!');
     });
 });
-describe('Signals', () => {
+describe('Primitive root', () => {
     test('observable root can be primitive', () => {
         const obs = observable(10);
         expect(obs.value).toEqual(10);

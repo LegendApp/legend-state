@@ -28,8 +28,8 @@ export class ObservablePrimitive<T = any> {
         this.#node.root._ = value;
         doNotify(this.#node, value, [], value, prev, 0);
     }
-    get(): T {
-        return this.value;
+    get(track?: boolean | Symbol): T {
+        return track !== false ? this.value : this.#node.root._;
     }
     set(value: T | ((prev: T) => T)) {
         if (isFunction(value)) {
@@ -38,12 +38,7 @@ export class ObservablePrimitive<T = any> {
         this.value = value;
         return this;
     }
-    onChange(
-        cb: ListenerFn<T>,
-        track?: boolean | Symbol,
-        noArgs?: boolean,
-        markAndSweep?: boolean
-    ): ObservableListenerDispose {
+    onChange(cb: ListenerFn<T>, track?: boolean | Symbol, noArgs?: boolean): ObservableListenerDispose {
         return onChange(this.#node, cb, track, noArgs);
     }
     obs() {

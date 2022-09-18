@@ -1,5 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import {
+    ensureNodeValue,
     extraPrimitiveProps,
     get,
     getChildNode,
@@ -10,7 +11,7 @@ import {
     symbolUndef,
     Tracking,
 } from './globals';
-import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive, isSymbol } from './is';
 import { doNotify, notify } from './notify';
 import {
     NodeValue,
@@ -21,11 +22,9 @@ import {
 } from './observableInterfaces';
 import { ObservablePrimitive } from './ObservablePrimitive';
 import { onChange } from './onChange';
-import { checkTracking, tracking, untrack, updateTracking } from './tracking';
+import { tracking, untrack, updateTracking } from './tracking';
 
-let lastAccessedNode: NodeValue;
-let lastAccessedPrimitive: string;
-let inSetFn = false;
+let inSet = false;
 let inAssign = false;
 
 const ArrayModifiers = new Set([
@@ -45,34 +44,10 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forE
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
-    ['obs', obs],
     ['onChange', onChange],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
-
-// Override primitives
-const wrapFn = (name: string, fn: Function) =>
-    function (...args: any) {
-        if (lastAccessedNode && lastAccessedPrimitive) {
-            const node: NodeValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
-            if (getNodeValue(node) === this) {
-                return fn(node, ...args);
-            } else if (process.env.NODE_ENV === 'development') {
-                console.error(
-                    `[legend-state] Error calling ${name} on a primitive with value [${this}]. Please ensure that if you are saving references to observable functions on primitive values that you use obs() first, like obs.primitive.obs().set.`
-                );
-                debugger;
-            }
-        }
-    };
-
-const toOverride = [Number, Boolean, String];
-for (let [key, fn] of objectFns) {
-    for (let i = 0; i < toOverride.length; i++) {
-        toOverride[i].prototype[key] = wrapFn(key, fn);
-    }
-}
 
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
@@ -88,7 +63,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
         parentValue[key] = prevValue;
 
         // Then set with the new value so it notifies with the correct prevValue
-        setProp(parent || node, parent ? key : (symbolUndef as any), target);
+        setKey(parent || node, parent ? key : (symbolUndef as any), target);
     }
 
     // Return the original value
@@ -233,24 +208,6 @@ function getProxy(node: NodeValue, p?: string | number) {
     // Create a proxy if not already cached and return it
     return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
 }
-function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
-        track = keyOrTrack;
-        keyOrTrack = undefined;
-    }
-
-    if (keyOrTrack !== undefined) {
-        node = getChildNode(node, keyOrTrack as string | number);
-    }
-
-    // Don't untrack if getting node by key
-    if (track !== undefined || !keyOrTrack) {
-        // Untrack by default
-        checkTracking(node, track === true ? Tracking.normal : track === false ? undefined : track);
-    }
-
-    return getProxy(node);
-}
 
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeValue, p: any) {
@@ -276,7 +233,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
 
-        if (!node.parent && isPrimitive(value) && node.root._ === value && p === 'value') {
+        if (isPrimitive(value) && p === 'value') {
             updateTracking(node);
             return value;
         }
@@ -318,21 +275,15 @@ const proxyHandler: ProxyHandler<any> = {
                     return vPrim?.__fn?.(node) ?? vPrim;
                 }
             }
-            // Accessing a primitive saves the last accessed so that the observable functions
-            // bound to primitives can know which node was accessed
-            lastAccessedNode = node;
-            lastAccessedPrimitive = p;
-
-            // Update that this primitive node was accessed for observers
-            if (tracking.isTracking) {
+            if (value !== undefined && value !== null) {
+                // Update that this primitive node was accessed for observers
                 if (isArray(value) && p === 'length') {
                     updateTracking(node, Tracking.shallow);
-                } else if (!isPrimitive(value)) {
-                    updateTracking(getChildNode(node, p));
+                    // } else if (!isPrimitive(value)) {
+                    //     updateTracking(getChildNode(node, p));
+                    return vProp;
                 }
             }
-
-            return vProp;
         }
 
         // Return an observable proxy to the property
@@ -366,7 +317,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
     set(node: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
-        if (inSetFn) {
+        if (inSet) {
             return Reflect.set(node, prop, value);
         }
 
@@ -381,12 +332,12 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        set(node, prop, value);
+        setKey(node, prop, value);
         return true;
     },
     deleteProperty(target: NodeValue, prop) {
         // If this delete comes from within an observable function it's allowed
-        if (inSetFn) {
+        if (inSet) {
             Reflect.deleteProperty(target, prop);
         } else if (target.root.safeMode) {
             return false;
@@ -406,17 +357,15 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
-    if (arguments.length > 2) {
-        return setProp(node, keyOrNewValue, newValue);
-    } else if (!node.parent) {
-        return setProp(node, symbolUndef as any, keyOrNewValue);
+function set(node: NodeValue, newValue?: any) {
+    if (!node.parent) {
+        return setKey(node, symbolUndef as any, newValue);
     } else {
-        return setProp(node.parent, node.key, keyOrNewValue);
+        return setKey(node.parent, node.key, newValue);
     }
 }
 
-function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
+function setKey(node: NodeValue, key: string | number, newValue?: any, level?: number) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
@@ -434,7 +383,16 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     const isDelete = newValue === symbolUndef;
     if (isDelete) newValue = undefined;
 
-    inSetFn = true;
+    const isPrim = isPrimitive(newValue);
+
+    if (isPrim) {
+        if (key === 'value' && isPrimitive(getNodeValue(node))) {
+            key = node.key;
+            node = node.parent;
+        }
+    }
+
+    inSet = true;
     const isRoot = (key as any) === symbolUndef || (!node.parent && key === 'value' && isPrimitive(newValue));
 
     // Get the child node for updating and notifying
@@ -444,7 +402,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     untrack(childNode);
 
     // Get the value of the parent
-    let parentValue = isRoot ? node.root : getNodeValue(node);
+    let parentValue = isRoot ? node.root : ensureNodeValue(node);
 
     if (isRoot) {
         key = '_';
@@ -460,8 +418,6 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
             ? newValue.get()
             : newValue;
-
-    const isPrim = isPrimitive(newValue);
 
     // Save the new value
     if (isDelete) {
@@ -496,7 +452,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
 
     endBatch();
 
-    inSetFn = false;
+    inSet = false;
 
     return isRoot ? getProxy(node) : getProxy(node, key);
 }
@@ -527,7 +483,7 @@ function deleteFn(node: NodeValue, key?: string | number) {
         node = node.parent;
     }
     // delete sets to undefined first to notify
-    setProp(node, key, symbolUndef, /*level*/ -1);
+    setKey(node, key, symbolUndef, /*level*/ -1);
 }
 
 export function observable(value: boolean | Promise<boolean>, safe?: boolean): ObservablePrimitive<boolean>;

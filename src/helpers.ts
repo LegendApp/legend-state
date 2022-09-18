@@ -27,7 +27,8 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
     if (isObject(target) && isObject(source)) {
         if (source[symbolDateModified as any]) {
             if (needsSet) {
-                target.set(symbolDateModified, source[symbolDateModified as any]);
+                // @ts-ignore
+                target[symbolDateModified].set(source[symbolDateModified as any]);
             } else {
                 target[symbolDateModified as any] = source[symbolDateModified as any];
             }
@@ -36,11 +37,11 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
         for (const key in source) {
             if (isObject(source[key])) {
                 if (!value[key] || !isObject(value[key])) {
-                    needsSet ? target.set(key, {}) : (target[key] = {});
+                    needsSet ? target[key].set({}) : (target[key] = {});
                 }
                 mergeIntoObservable(target[key], source[key]);
             } else {
-                needsSet ? target.set(key, source[key]) : (target[key] = source[key]);
+                needsSet ? target[key].set(source[key]) : (target[key] = source[key]);
             }
         }
     }

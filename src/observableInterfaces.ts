@@ -4,23 +4,19 @@ export type ObservableEventType = 'change' | 'changeShallow' | 'equals' | 'hasVa
 
 export interface ObservableBaseFns<T> {
     get?(track?: boolean | Symbol): T;
-    obs?(track?: boolean | Symbol): ObservableRef<T>;
     onChange?(cb: ListenerFn<T>, track?: boolean | Symbol): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
 }
+export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFns<T> {
+    delete?(): ObservableChild<T>;
+}
 export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
     get?(track?: boolean | Symbol): T;
-    get?<K extends keyof T>(key: K, track?: boolean | Symbol): T[K];
-    obs?(track?: boolean | Symbol): ObservableRef<T>;
-    obs?<K extends keyof T>(prop: K, track?: boolean | Symbol): ObservableRef<T[K]>;
     set?(value: T | ((prev: T) => T)): ObservableChild<T>;
-    set?<K extends keyof T>(key: K, prev: T[K] | ((prev: T[K]) => T[K])): ObservableChild<T[K]>;
-    set?<V>(key: string | number, value: V): ObservableChild<V>;
     assign?(value: T | Partial<T>): ObservableChild<T>;
     delete?(): ObservableChild<T>;
-    delete?<K extends keyof T>(key: K | string | number): ObservableChild<T>;
 }
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 export interface ObservableComputedFns<T> {
@@ -64,7 +60,7 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | Promise<any>
     ? T[K]
     : T[K] extends Primitive
-    ? T[K] & ObservablePrimitiveFns<T[K]>
+    ? ObservablePrimitiveChild<T[K]>
     : T[K] extends Array<any>
     ? Omit<T[K], ArrayOverrideFnNames> &
           ObservableObjectFns<T[K]> &
@@ -231,9 +227,11 @@ export type ObservableArrayDefault<T extends any[]> = Omit<T, ArrayOverrideFnNam
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & ObservableObjectFns<T>;
 export type ObservableObjectDefault<T = any> = ObservableFnsRecursiveDefault<T> & ObservableObjectFns<T>;
-export type ObservableChild<T = any> = [T] extends [Primitive] ? T & ObservablePrimitiveFns<T> : ObservableObject<T>;
+export type ObservableChild<T = any> = [T] extends [Primitive]
+    ? T & ObservablePrimitiveChildFns<T>
+    : ObservableObject<T>;
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
-export type ObservablePrimitiveChild<T = any> = { value: T } & ObservablePrimitiveFns<T>;
+export type ObservablePrimitiveChild<T = any> = ObservablePrimitive<T> & ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
 export type ObservableObjectOrArraySafe<T> = T extends any[] ? ObservableArraySafe<T> : ObservableObjectSafe<T>;

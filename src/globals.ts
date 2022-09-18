@@ -16,16 +16,7 @@ export namespace Tracking {
 }
 export const nextNodeID = { current: 0 };
 
-export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
-        track = keyOrTrack;
-        keyOrTrack = undefined;
-    }
-
-    if (keyOrTrack) {
-        node = getChildNode(node, keyOrTrack as string);
-    }
-
+export function get(node: NodeValue, track?: boolean | Symbol) {
     // Track by default
     checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
 
@@ -75,4 +66,13 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     }
 
     return child;
+}
+
+export function ensureNodeValue(node: NodeValue) {
+    let value = getNodeValue(node);
+    if (!value) {
+        const parent = ensureNodeValue(node.parent);
+        value = parent[node.key] = {};
+    }
+    return value;
 }

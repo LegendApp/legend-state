@@ -22,45 +22,17 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.get(false);
 
-        expect(tracking.nodes.size).toEqual(0);
-    });
-    test('obs() does not observe', () => {
-        const obs = observable({ test: { test2: { test3: 'hi' } } });
-        const ref = obs.test.test2.obs();
-
         expect(tracking.nodes).toEqual(undefined);
-
-        expect(ref.get(false)).toEqual({ test3: 'hi' });
-    });
-    test('obs(true) observes', () => {
-        const obs = observable({ test: { test2: { test3: 'hi' } } });
-        const ref = obs.test.test2.obs(true);
-
-        expect(tracking.nodes.size).toEqual(1);
-
-        expect(ref.get()).toEqual({ test3: 'hi' });
-    });
-    test('child of obs() observes', () => {
-        const obs = observable({ test: { test2: { test3: 'hi' } } });
-        const ref = obs.test.test2.obs();
-
-        expect(tracking.nodes).toEqual(undefined);
-
-        ref.test3;
-
-        expect(tracking.nodes.size).toEqual(1);
-
-        expect(ref.get()).toEqual({ test3: 'hi' });
     });
     test('set() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.set('hello');
 
-        expect(tracking.nodes.size).toEqual(0);
+        expect(tracking.nodes).toEqual(undefined);
     });
     test('primitive access observes', () => {
         const obs = observable({ test: 'hi' });
-        obs.test;
+        obs.test.get();
 
         expect(tracking.nodes.size).toEqual(1);
     });
@@ -123,7 +95,7 @@ describe('Tracking', () => {
     test('Accessing undefined observes', () => {
         const obs = observable({ test: {} as Record<string, { text: 'hi' }> });
 
-        obs.test['a'];
+        obs.test['a'].get();
 
         expect(tracking.nodes.size).toEqual(1);
 
@@ -175,21 +147,5 @@ describe('Tracking', () => {
 
         expect(nodes[0].node.key).toEqual('arr');
         expect(nodes[0].track).toEqual(Tracking.shallow);
-    });
-    test('obs() untracks only last accessed', () => {
-        const obs = observable({ text: 'hi' });
-        const text = obs.text;
-
-        const ref = obs.text.obs();
-
-        expect(tracking.nodes.size).toEqual(1);
-    });
-    test('obs(key) untracks only last accessed', () => {
-        const obs = observable({ text: 'hi' });
-        const text = obs.text;
-
-        const ref = obs.obs('text');
-
-        expect(tracking.nodes.size).toEqual(1);
     });
 });
