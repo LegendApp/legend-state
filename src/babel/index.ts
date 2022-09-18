@@ -39,7 +39,7 @@ export default function () {
                     const children_ = path.node.children;
                     const name = openingElement.name.name;
 
-                    if (name === 'Computed' || name === 'Memo') {
+                    if (name === 'Computed' || name === 'Memo' || name === 'Show') {
                         const children = removEmptyText(children_);
                         if (
                             children.length > 0 &&
