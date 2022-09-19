@@ -75,28 +75,28 @@ beforeEach(() => {
 });
 
 describe('Persist local', () => {
-    // test('Saves to local', () => {
-    //     const obs = observable({ test: '' });
+    test('Saves to local', () => {
+        const obs = observable({ test: '' });
 
-    //     persistObservable(obs, {
-    //         local: 'jestlocal',
-    //     });
+        persistObservable(obs, {
+            local: 'jestlocal',
+        });
 
-    //     obs.set({ test: 'hello' });
+        obs.set({ test: 'hello' });
 
-    //     const localValue = global.localStorage.getItem('jestlocal');
+        const localValue = global.localStorage.getItem('jestlocal');
 
-    //     // Should have saved to local storage
-    //     expect(localValue).toBe(`{"test":"hello"}`);
+        // Should have saved to local storage
+        expect(localValue).toBe(`{"test":"hello"}`);
 
-    //     // obs2 should load with the same value it was just saved as
-    //     const obs2 = observable({});
-    //     persistObservable(obs2, {
-    //         local: 'jestlocal',
-    //     });
+        // obs2 should load with the same value it was just saved as
+        const obs2 = observable({});
+        persistObservable(obs2, {
+            local: 'jestlocal',
+        });
 
-    //     expect(obs2).toEqual({ test: 'hello' });
-    // });
+        expect(obs2.get()).toEqual({ test: 'hello' });
+    });
     test('Saves empty root object to local', () => {
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
