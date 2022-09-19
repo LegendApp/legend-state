@@ -287,7 +287,7 @@ const proxyHandler: ProxyHandler<any> = {
     // Forward all proxy properties to the target's value
     getPrototypeOf(node) {
         const value = getNodeValue(node);
-        return typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
+        return value !== null && typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
     ownKeys(node: NodeValue) {
         const value = getNodeValue(node);

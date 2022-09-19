@@ -4,7 +4,7 @@ import type { NodeValue, ObservableObject, ObservableRef } from './observableInt
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 
 export function isObservable(obs: any): obs is ObservableObject {
-    return obs && (obs instanceof ObservablePrimitiveClass || !!obs[symbolIsObservable as any]);
+    return obs && (!!obs[symbolIsObservable as any] || obs instanceof ObservablePrimitiveClass);
 }
 
 export function getNode(obs: ObservableRef): NodeValue {

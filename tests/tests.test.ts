@@ -673,6 +673,11 @@ describe('Equality', () => {
         expect(obs.arr.get()).toBe(arr);
         expect(handler).toHaveBeenCalled();
     });
+    test('isObservable on null', () => {
+        const obs = observable({ arr: null });
+        const isObs = isObservable(obs.arr);
+        expect(isObs).toEqual(true);
+    });
 });
 describe('Safety', () => {
     // test('Writes are ok in unsafe', () => {
