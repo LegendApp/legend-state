@@ -146,6 +146,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         isLoadedLocal: false,
         isLoadedRemote: false,
         clearLocal: undefined,
+        sync: () => Promise.resolve(true),
     });
 
     const { remote } = persistOptions;
@@ -164,9 +165,10 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         }
         localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
 
-        when(
-            () => obsState.isLoadedLocal,
-            () => {
+        let isSynced = false;
+        const sync = () => {
+            if (!isSynced) {
+                isSynced = true;
                 localState.persistenceRemote.listen(
                     obs,
                     persistOptions,
@@ -175,8 +177,18 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                     },
                     onChangeRemote.bind(this, localState)
                 );
+
+                return when(obsState.isLoadedRemote);
             }
-        );
+        };
+
+        if (remote.manual) {
+            obsState.assign({ sync });
+        } else {
+            when(obsState.isLoadedLocal, sync);
+        }
+    } else {
+        obsState.assign({ sync: () => Promise.resolve(true) });
     }
 
     obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));

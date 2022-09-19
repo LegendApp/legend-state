@@ -103,6 +103,7 @@ export interface PersistOptionsRemote<T = any> {
     once?: boolean;
     requireAuth?: boolean;
     saveTimeout?: number;
+    manual?: boolean;
     adjustData?: {
         load: (value: any, basePath: string) => Promise<any>;
         save: (value: any, basePath: string, path: string[]) => Promise<any>;
@@ -152,6 +153,7 @@ export interface ObservablePersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
     clearLocal: () => Promise<void>;
+    sync: () => Promise<boolean>;
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;

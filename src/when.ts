@@ -4,8 +4,8 @@ import { isFunction } from './is';
 import { observe } from './observe';
 
 export function when<T>(predicate: Observable<T> | (() => T)): Promise<T>;
-export function when<T>(predicate: Observable<T> | (() => T), effect: (T) => void | (() => void)): () => void;
-export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => void | (() => void)) {
+export function when<T>(predicate: Observable<T> | (() => T), effect: (T) => any | (() => any)): () => void;
+export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => any | (() => any)) {
     let cleanup: () => void;
     let isDone = false;
 
