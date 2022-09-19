@@ -32,7 +32,9 @@ export function doNotify(
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
-        for (let listenerFn of listeners) {
+        let arr = Array.from(listeners);
+        for (let i = 0; i < arr.length; i++) {
+            const listenerFn = arr[i];
             const { track, noArgs } = listenerFn;
 
             const ok = track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
