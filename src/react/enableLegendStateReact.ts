@@ -7,6 +7,7 @@ import {
     setupTracking,
     tracking,
     updateTracking,
+    ObservablePrimitiveClass,
 } from '@legendapp/state';
 import {
     createElement,
@@ -14,7 +15,6 @@ import {
     // @ts-ignore
     __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals,
 } from 'react';
-import { ObservablePrimitiveClass } from './ObservablePrimitive';
 let isEnabled = false;
 
 const Updater = (s) => s + 1;
