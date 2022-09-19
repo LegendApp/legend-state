@@ -33,11 +33,11 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
                 target[symbolDateModified as any] = source[symbolDateModified as any];
             }
         }
-        const value = (target as any).get?.() || target;
+        const value = (target as any).peek?.() || target;
         for (const key in source) {
             if (isObject(source[key])) {
-                if (!value[key] || !isObject(value[key])) {
-                    needsSet ? target[key].set({}) : (target[key] = {});
+                if (!needsSet && (!value[key] || !isObject(value[key]))) {
+                    target[key] = {};
                 }
                 mergeIntoObservable(target[key], source[key]);
             } else {

@@ -1740,7 +1740,7 @@ describe('Observable with promise', () => {
         });
         const obs = observable(promise);
 
-        expect(obs.value).toEqual(undefined);
+        expect(obs.get()).toEqual(undefined);
 
         const fn = jest.fn();
         when(() => obs.get() === 10, fn);

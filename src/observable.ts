@@ -265,21 +265,19 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         // Accessing primitive returns the raw value
-        if (vProp === undefined || vProp === null || isPrimitive(vProp)) {
+        if (isPrimitive(vProp)) {
             if (extraPrimitiveProps.size) {
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
                     return vPrim?.__fn?.(node) ?? vPrim;
                 }
             }
-            if (value !== undefined && value !== null) {
-                // Update that this primitive node was accessed for observers
-                if (isArray(value) && p === 'length') {
-                    updateTracking(node, true);
-                    // } else if (!isPrimitive(value)) {
-                    //     updateTracking(getChildNode(node, p));
-                    return vProp;
-                }
+            // Update that this primitive node was accessed for observers
+            if (isArray(value) && p === 'length') {
+                updateTracking(node, true);
+                // } else if (!isPrimitive(value)) {
+                //     updateTracking(getChildNode(node, p));
+                return vProp;
             }
         }
 
