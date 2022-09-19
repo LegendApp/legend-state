@@ -487,12 +487,12 @@ export function observable(value: number | Promise<number>, safe?: boolean): Obs
 export function observable<T extends object>(value: T | Promise<T>, safe: true): ObservableObjectOrArraySafe<T>;
 export function observable<T extends object>(value: T | Promise<T>, safe: false): ObservableObjectOrArray<T>;
 export function observable<T extends object>(
-    value: T | Promise<T>,
+    value?: T | Promise<T>,
     safe?: undefined
 ): ObservableObjectOrArrayDefault<T>;
-export function observable<T extends unknown>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrArray<unknown>;
+export function observable<T extends unknown>(value?: T | Promise<T>, safe?: boolean): ObservableObjectOrArray<unknown>;
 export function observable<T>(
-    value: T | Promise<T>,
+    value?: T | Promise<T>,
     safe?: boolean
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const promise = (value as any)?.then && (value as unknown as Promise<T>);
