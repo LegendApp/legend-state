@@ -237,7 +237,6 @@ const proxyHandler: ProxyHandler<any> = {
                     return vPrim?.__fn?.(node) ?? vPrim;
                 }
             }
-            return value;
         }
 
         const vProp = value?.[p];
