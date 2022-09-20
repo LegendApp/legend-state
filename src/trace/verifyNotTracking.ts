@@ -1,7 +1,7 @@
 import { tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
-export function verifyNotTracked(name?: string) {
+export function verifyNotTracking(name?: string) {
     if (process.env.NODE_ENV === 'development') {
         tracking.listeners = traceNodes.bind(this, name);
     }
