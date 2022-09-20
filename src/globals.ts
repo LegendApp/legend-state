@@ -17,11 +17,14 @@ export function get(node: NodeValue, track?: TrackingType) {
         updateTracking(node, track);
     }
 
-    const value = getNodeValue(node);
-    return value;
+    return peek(node);
 }
 
 export function peek(node: NodeValue) {
+    if (node.activate) {
+        node.activate();
+        node.activate = undefined;
+    }
     return getNodeValue(node);
 }
 

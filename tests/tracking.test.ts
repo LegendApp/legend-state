@@ -47,7 +47,7 @@ describe('Tracking', () => {
 
         expect(tracking.nodes).toEqual(undefined);
     });
-    test('get() observes', () => {
+    test('get() observes2', () => {
         const obs = observable({ test: { text: 'hi' } });
 
         obs.test.get();
@@ -55,7 +55,7 @@ describe('Tracking', () => {
         expect(tracking.nodes.size).toEqual(1);
 
         const nodes = [...tracking.nodes.values()];
-        expect(nodes[0].track).toEqual(true);
+        expect(nodes[0].track).toEqual(undefined);
     });
     test('get() shallow', () => {
         const obs = observable({ test: { text: 'hi' } });

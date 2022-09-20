@@ -31,10 +31,6 @@ export function endTracking(prevNodes: Map<number, TrackingNode>) {
 }
 
 export function updateTracking(node: NodeValue, track?: TrackingType) {
-    if (track && node.activate) {
-        node.activate();
-        node.activate = undefined;
-    }
     if (tracking.isTracking) {
         if (!tracking.nodes) {
             tracking.nodes = new Map();

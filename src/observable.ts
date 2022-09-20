@@ -229,8 +229,7 @@ const proxyHandler: ProxyHandler<any> = {
         let value = getNodeValue(node);
 
         if (isPrimitive(value) && p === 'value') {
-            updateTracking(node);
-            return value;
+            return get(node);
         }
 
         const vProp = value?.[p];
