@@ -1,9 +1,8 @@
 import { isArray, isObject, isString } from '../src/is';
-import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
-import { symbolDateModified } from '../src/globals';
 import { observable } from '../src/observable';
-import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
+import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { ObservablePersistLocalStorage } from '../src/persist/local-storage';
+import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 
 class LocalStorageMock {
     store: Record<any, any>;
@@ -96,7 +95,7 @@ describe('Persist local', () => {
             local: 'jestlocal',
         });
 
-        expect(obs2).toEqual({ test: 'hello' });
+        expect(obs2.get()).toEqual({ test: 'hello' });
     });
     test('Saves empty root object to local', () => {
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
@@ -118,7 +117,7 @@ describe('Persist local', () => {
             local: 'jestlocal',
         });
 
-        expect(obs2).toEqual({ test: {} });
+        expect(obs2.get()).toEqual({ test: {} });
     });
     test('Saves empty root object to local', () => {
         const obs = observable({ test: 'hello' } as Record<string, any>);

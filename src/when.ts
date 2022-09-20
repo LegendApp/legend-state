@@ -1,14 +1,24 @@
+import type { Observable } from './observableInterfaces';
+import { isObservable } from './helpers';
+import { isFunction } from './is';
 import { observe } from './observe';
 
-export function when<T>(predicate: () => T): Promise<T>;
-export function when<T>(predicate: () => T, effect: (T) => void | (() => void)): () => void;
-export function when<T>(predicate: () => T, effect?: (T) => void | (() => void)) {
+export function when<T>(predicate: Observable<T> | (() => T)): Promise<T>;
+export function when<T>(predicate: Observable<T> | (() => T), effect: (T) => any | (() => any)): () => void;
+export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => any | (() => any)) {
     let cleanup: () => void;
     let isDone = false;
 
     // Create a wrapping fn that calls the effect if predicate returns true
     function run() {
-        const ret = predicate();
+        let ret = predicate as any;
+        if (isFunction(ret)) {
+            ret = ret();
+        }
+
+        if (isObservable(ret)) {
+            ret = ret.get();
+        }
         if (ret) {
             // If value is truthy then run the effect and cleanup
             isDone = true;

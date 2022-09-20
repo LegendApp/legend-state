@@ -1,9 +1,15 @@
 import { computed, ObservableComputed } from '@legendapp/state';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 
 export function useComputed<T>(compute: () => T): ObservableComputed<T> {
-    const cb = useRef(compute);
-    cb.current = compute;
+    const ref = useRef<{ computed?: ObservableComputed<T>; compute?: () => T }>({});
+    ref.current.compute = compute;
 
-    return useMemo(() => computed(cb.current), []);
+    let comp = ref.current.computed;
+
+    if (!comp) {
+        comp = ref.current.computed = computed(() => ref.current.compute());
+    }
+
+    return comp;
 }

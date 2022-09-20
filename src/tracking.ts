@@ -1,4 +1,4 @@
-import type { NodeValue, TrackingNode } from './observableInterfaces';
+import type { NodeValue, TrackingNode, TrackingType } from './observableInterfaces';
 
 let lastNode: NodeValue;
 
@@ -30,7 +30,7 @@ export function endTracking(prevNodes: Map<number, TrackingNode>) {
     tracking.nodes = prevNodes;
 }
 
-export function updateTracking(node: NodeValue, track?: boolean | Symbol) {
+export function updateTracking(node: NodeValue, track?: TrackingType) {
     if (tracking.isTracking) {
         if (!tracking.nodes) {
             tracking.nodes = new Map();
@@ -55,16 +55,6 @@ export function untrack(node: NodeValue) {
             } else {
                 tracked.num--;
             }
-        }
-    }
-}
-
-export function checkTracking(node: NodeValue, track: boolean | Symbol) {
-    if (tracking.isTracking) {
-        if (track) {
-            updateTracking(node, track);
-        } else {
-            untrack(node);
         }
     }
 }

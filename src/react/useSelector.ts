@@ -1,25 +1,25 @@
 import { observe, setupTracking, symbolUndef, tracking } from '@legendapp/state';
-import { useEffect } from 'react';
-import { useForceRender } from './useForceRender';
+import { useEffect, useReducer } from 'react';
+import { computeSelector, Selector } from './reactHelpers';
 
-export function useSelector<T>(selector: () => T): T {
+const Update = (s) => s + 1;
+
+export function useSelector<T>(selector: Selector<T>): T {
     let inRun = true;
 
     let ret: T = symbolUndef as unknown as T;
     let cachedNodes;
 
-    const fr = useForceRender();
+    const fr = useReducer(Update, 0)[1];
 
     const update = function () {
         // If running, call selector and re-render if changed
-        if (inRun) {
-            const cur = selector();
-            // Re-render if not currently rendering and value has changed
-            if (!inRun && cur !== ret) {
-                fr();
-            }
-            ret = cur;
+        let cur = computeSelector(selector);
+        // Re-render if not currently rendering and value has changed
+        if (!inRun && cur !== ret) {
+            fr();
         }
+        ret = cur;
         inRun = false;
 
         // Workaround for React 18's double calling useEffect - cached the tracking nodes

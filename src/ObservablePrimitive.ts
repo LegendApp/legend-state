@@ -1,21 +1,41 @@
 import { doNotify } from './notify';
 import { isFunction } from './is';
-import { ListenerFn, NodeValue, ObservableListenerDispose } from './observableInterfaces';
+import {
+    ListenerFn,
+    NodeValue,
+    ObservableChild,
+    ObservableListenerDispose,
+    ObservablePrimitiveFns,
+} from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
-export class ObservablePrimitive<T = any> {
+export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns<T> {
     #node: NodeValue;
+    [Symbol.iterator]; // This is for React to think it's a ReactNode
 
     constructor(node: NodeValue) {
         this.#node = node;
         this.set = this.set.bind(this);
     }
+    // Getters
     get value() {
         const node = this.#node;
         updateTracking(node);
-        return node.root._;
+        return this.peek();
     }
+    peek(): T {
+        const node = this.#node;
+        if (node.activate) {
+            node.activate();
+            node.activate = undefined;
+        }
+        return this.#node.root._;
+    }
+    get(track?: boolean | 'optimize'): T {
+        return track !== false ? this.value : this.peek();
+    }
+    // Setters
     set value(value: T) {
         if (this.#node.root.locked) {
             throw new Error(
@@ -24,30 +44,21 @@ export class ObservablePrimitive<T = any> {
                     : '[legend-state] Modified locked observable'
             );
         }
-        const prev = this.#node.root._;
-        this.#node.root._ = value;
+        const root = this.#node.root;
+        const prev = root._;
+        root._ = value;
         doNotify(this.#node, value, [], value, prev, 0);
     }
-    get(): T {
-        return this.value;
-    }
-    set(value: T | ((prev: T) => T)) {
+    set(value: T | ((prev: T) => T)): ObservableChild<T> {
         if (isFunction(value)) {
             value = value(this.#node.root._);
         }
         this.value = value;
-        return this;
+        return this as unknown as ObservableChild<T>;
     }
-    onChange(
-        cb: ListenerFn<T>,
-        track?: boolean | Symbol,
-        noArgs?: boolean,
-        markAndSweep?: boolean
-    ): ObservableListenerDispose {
+    // Listener
+    onChange(cb: ListenerFn<T>, track?: boolean | 'optimize', noArgs?: boolean): ObservableListenerDispose {
         return onChange(this.#node, cb, track, noArgs);
-    }
-    obs() {
-        return this;
     }
     /** @internal */
     getNode() {

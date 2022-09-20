@@ -1,6 +1,6 @@
-import { checkTracking } from './tracking';
-import { isBoolean, isString, isSymbol } from './is';
-import { NodeValue } from './observableInterfaces';
+import { updateTracking } from './tracking';
+import { isString } from './is';
+import { NodeValue, TrackingType } from './observableInterfaces';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
@@ -9,28 +9,23 @@ export const symbolUndef = Symbol('undef');
 
 export const extraPrimitiveProps = new Map<string, any>();
 
-export namespace Tracking {
-    export const normal = true;
-    export const shallow = Symbol('shallow');
-    export const optimized = Symbol('optimized');
-}
 export const nextNodeID = { current: 0 };
 
-export function get(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
-        track = keyOrTrack;
-        keyOrTrack = undefined;
+export function get(node: NodeValue, track?: TrackingType) {
+    if (track !== false) {
+        // Track by default
+        updateTracking(node, track);
     }
 
-    if (keyOrTrack) {
-        node = getChildNode(node, keyOrTrack as string);
+    return peek(node);
+}
+
+export function peek(node: NodeValue) {
+    if (node.activate) {
+        node.activate();
+        node.activate = undefined;
     }
-
-    // Track by default
-    checkTracking(node, track === true || track === undefined ? Tracking.normal : track === false ? undefined : track);
-
-    const value = getNodeValue(node);
-    return value;
+    return getNodeValue(node);
 }
 
 export function getNodeValue(node: NodeValue): any {
@@ -75,4 +70,13 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
     }
 
     return child;
+}
+
+export function ensureNodeValue(node: NodeValue) {
+    let value = getNodeValue(node);
+    if (!value) {
+        const parent = ensureNodeValue(node.parent);
+        value = parent[node.key] = {};
+    }
+    return value;
 }

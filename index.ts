@@ -1,6 +1,5 @@
-export { Tracking } from './src/globals';
 export { isObservable, mergeIntoObservable } from './src/helpers';
-export { observable } from './src/observable';
+export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
@@ -9,7 +8,6 @@ export { when } from './src/when';
 export * from './src/observableInterfaces';
 export { isEmpty } from './src/is';
 export { lockObservable } from './src/helpers';
-export { ObservablePrimitive } from './src/ObservablePrimitive';
 
 /** @internal */
 export { isArray, isFunction, isObject, isPrimitive } from './src/is';
@@ -23,3 +21,5 @@ export { symbolDateModified, symbolIsObservable, extraPrimitiveProps, getNodeVal
 export { getNode } from './src/helpers';
 /** @internal */
 export { setupTracking } from './src/observe';
+/** @internal */
+export { ObservablePrimitiveClass } from './src/ObservablePrimitive';

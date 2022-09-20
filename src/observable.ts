@@ -1,31 +1,24 @@
 import { beginBatch, endBatch } from './batching';
 import {
+    ensureNodeValue,
     extraPrimitiveProps,
     get,
     getChildNode,
     getNodeValue,
     nextNodeID,
+    peek,
     symbolGetNode,
     symbolIsObservable,
     symbolUndef,
-    Tracking,
 } from './globals';
-import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isSymbol } from './is';
+import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive } from './is';
 import { doNotify, notify } from './notify';
-import {
-    NodeValue,
-    ObservableObjectOrArray,
-    ObservableObjectOrArrayDefault,
-    ObservableObjectOrArraySafe,
-    ObservableWrapper,
-} from './observableInterfaces';
-import { ObservablePrimitive } from './ObservablePrimitive';
+import { NodeValue, ObservableObjectOrArray, ObservablePrimitive, ObservableWrapper } from './observableInterfaces';
+import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
-import { checkTracking, tracking, untrack, updateTracking } from './tracking';
+import { tracking, untrack, updateTracking } from './tracking';
 
-let lastAccessedNode: NodeValue;
-let lastAccessedPrimitive: string;
-let inSetFn = false;
+let inSet = false;
 let inAssign = false;
 
 const ArrayModifiers = new Set([
@@ -45,34 +38,11 @@ const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forE
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
-    ['obs', obs],
+    ['peek', peek],
     ['onChange', onChange],
     ['assign', assign],
     ['delete', deleteFn],
 ]);
-
-// Override primitives
-const wrapFn = (name: string, fn: Function) =>
-    function (...args: any) {
-        if (lastAccessedNode && lastAccessedPrimitive) {
-            const node: NodeValue = getChildNode(lastAccessedNode, lastAccessedPrimitive);
-            if (getNodeValue(node) === this) {
-                return fn(node, ...args);
-            } else if (process.env.NODE_ENV === 'development') {
-                console.error(
-                    `[legend-state] Error calling ${name} on a primitive with value [${this}]. Please ensure that if you are saving references to observable functions on primitive values that you use obs() first, like obs.primitive.obs().set.`
-                );
-                debugger;
-            }
-        }
-    };
-
-const toOverride = [Number, Boolean, String];
-for (let [key, fn] of objectFns) {
-    for (let i = 0; i < toOverride.length; i++) {
-        toOverride[i].prototype[key] = wrapFn(key, fn);
-    }
-}
 
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
@@ -88,7 +58,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
         parentValue[key] = prevValue;
 
         // Then set with the new value so it notifies with the correct prevValue
-        setProp(parent || node, parent ? key : (symbolUndef as any), target);
+        setKey(parent || node, parent ? key : (symbolUndef as any), target);
     }
 
     // Return the original value
@@ -233,24 +203,6 @@ function getProxy(node: NodeValue, p?: string | number) {
     // Create a proxy if not already cached and return it
     return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
 }
-function obs(node: NodeValue, keyOrTrack?: string | number | boolean | Symbol, track?: boolean | Symbol) {
-    if (isBoolean(keyOrTrack) || isSymbol(keyOrTrack)) {
-        track = keyOrTrack;
-        keyOrTrack = undefined;
-    }
-
-    if (keyOrTrack !== undefined) {
-        node = getChildNode(node, keyOrTrack as string | number);
-    }
-
-    // Don't untrack if getting node by key
-    if (track !== undefined || !keyOrTrack) {
-        // Untrack by default
-        checkTracking(node, track === true ? Tracking.normal : track === false ? undefined : track);
-    }
-
-    return getProxy(node);
-}
 
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeValue, p: any) {
@@ -276,17 +228,11 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
 
-        if (!node.parent && isPrimitive(value) && node.root._ === value && p === 'value') {
-            updateTracking(node);
-            return value;
+        if (isPrimitive(value) && p === 'value') {
+            return get(node);
         }
 
         const vProp = value?.[p];
-
-        // Accessing symbols passes straight through
-        if (isSymbol(p)) {
-            return vProp;
-        }
 
         // Handle function calls
         if (isFunction(vProp)) {
@@ -297,7 +243,7 @@ const proxyHandler: ProxyHandler<any> = {
                 } else if (ArrayLoopers.has(p)) {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
-                    updateTracking(node, Tracking.shallow);
+                    updateTracking(node, true);
                     return function (cbOrig, thisArg) {
                         function cb(_, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
@@ -311,28 +257,20 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         // Accessing primitive returns the raw value
-        if (vProp === undefined || vProp === null || isPrimitive(vProp)) {
+        if (isPrimitive(vProp)) {
             if (extraPrimitiveProps.size) {
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
                     return vPrim?.__fn?.(node) ?? vPrim;
                 }
             }
-            // Accessing a primitive saves the last accessed so that the observable functions
-            // bound to primitives can know which node was accessed
-            lastAccessedNode = node;
-            lastAccessedPrimitive = p;
-
             // Update that this primitive node was accessed for observers
-            if (tracking.isTracking) {
-                if (isArray(value) && p === 'length') {
-                    updateTracking(node, Tracking.shallow);
-                } else if (!isPrimitive(value)) {
-                    updateTracking(getChildNode(node, p));
-                }
+            if (isArray(value) && p === 'length') {
+                updateTracking(node, true);
+                // } else if (!isPrimitive(value)) {
+                //     updateTracking(getChildNode(node, p));
+                return vProp;
             }
-
-            return vProp;
         }
 
         // Return an observable proxy to the property
@@ -341,7 +279,7 @@ const proxyHandler: ProxyHandler<any> = {
     // Forward all proxy properties to the target's value
     getPrototypeOf(node) {
         const value = getNodeValue(node);
-        return typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
+        return value !== null && typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
     ownKeys(node: NodeValue) {
         const value = getNodeValue(node);
@@ -350,7 +288,7 @@ const proxyHandler: ProxyHandler<any> = {
         const keys = value ? Reflect.ownKeys(value) : [];
 
         // Update that this node was accessed for observers
-        updateTracking(node, Tracking.shallow);
+        updateTracking(node, true);
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for
@@ -366,39 +304,24 @@ const proxyHandler: ProxyHandler<any> = {
     },
     set(node: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
-        if (inSetFn) {
+        if (inSet) {
             return Reflect.set(node, prop, value);
         }
 
-        if (!inAssign && node.root.safeMode) {
-            // Don't allow in safe mode
-            if (node.root.safeMode === 2) return false;
-
-            // Don't allow set on objects in default mode
-            const existing = getNodeValue(getChildNode(node, prop));
-            if (isObject(existing) || isArray(existing) || isObject(value) || isArray(value)) {
-                return false;
-            }
+        if (!inAssign && prop !== 'value') {
+            return false;
         }
 
-        set(node, prop, value);
+        setKey(node, prop, value);
         return true;
     },
     deleteProperty(target: NodeValue, prop) {
         // If this delete comes from within an observable function it's allowed
-        if (inSetFn) {
-            Reflect.deleteProperty(target, prop);
-        } else if (target.root.safeMode) {
-            return false;
+        if (inSet) {
+            return Reflect.deleteProperty(target, prop);
         } else {
-            if (process.env.NODE_ENV === 'development' && tracking.isTracking) {
-                console.error(
-                    `[legend-state] Should not delete an observable property within an observer. You may have done this by accident. Please use delete() if you really want to do this.`
-                );
-            }
-            deleteFn(target, prop as any);
+            return false;
         }
-        return true;
     },
     has(target, prop) {
         const value = getNodeValue(target);
@@ -406,17 +329,15 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-function set(node: NodeValue, keyOrNewValue: any, newValue?: any) {
-    if (arguments.length > 2) {
-        return setProp(node, keyOrNewValue, newValue);
-    } else if (!node.parent) {
-        return setProp(node, symbolUndef as any, keyOrNewValue);
+function set(node: NodeValue, newValue?: any) {
+    if (!node.parent) {
+        return setKey(node, symbolUndef as any, newValue);
     } else {
-        return setProp(node.parent, node.key, keyOrNewValue);
+        return setKey(node.parent, node.key, newValue);
     }
 }
 
-function setProp(node: NodeValue, key: string | number, newValue?: any, level?: number) {
+function setKey(node: NodeValue, key: string | number, newValue?: any, level?: number) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
@@ -434,7 +355,16 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     const isDelete = newValue === symbolUndef;
     if (isDelete) newValue = undefined;
 
-    inSetFn = true;
+    const isPrim = isPrimitive(newValue);
+
+    if (isPrim) {
+        if (key === 'value' && isPrimitive(getNodeValue(node))) {
+            key = node.key;
+            node = node.parent;
+        }
+    }
+
+    inSet = true;
     const isRoot = (key as any) === symbolUndef || (!node.parent && key === 'value' && isPrimitive(newValue));
 
     // Get the child node for updating and notifying
@@ -444,7 +374,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
     untrack(childNode);
 
     // Get the value of the parent
-    let parentValue = isRoot ? node.root : getNodeValue(node);
+    let parentValue = isRoot ? node.root : ensureNodeValue(node);
 
     if (isRoot) {
         key = '_';
@@ -460,8 +390,6 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
             ? newValue.get()
             : newValue;
-
-    const isPrim = isPrimitive(newValue);
 
     // Save the new value
     if (isDelete) {
@@ -496,7 +424,7 @@ function setProp(node: NodeValue, key: string | number, newValue?: any, level?: 
 
     endBatch();
 
-    inSetFn = false;
+    inSet = false;
 
     return isRoot ? getProxy(node) : getProxy(node, key);
 }
@@ -527,52 +455,49 @@ function deleteFn(node: NodeValue, key?: string | number) {
         node = node.parent;
     }
     // delete sets to undefined first to notify
-    setProp(node, key, symbolUndef, /*level*/ -1);
+    setKey(node, key, symbolUndef, /*level*/ -1);
 }
 
-export function observable(value: boolean | Promise<boolean>, safe?: boolean): ObservablePrimitive<boolean>;
-export function observable(value: string | Promise<string>, safe?: boolean): ObservablePrimitive<string>;
-export function observable(value: number | Promise<number>, safe?: boolean): ObservablePrimitive<number>;
-export function observable<T extends object>(value: T | Promise<T>, safe: true): ObservableObjectOrArraySafe<T>;
-export function observable<T extends object>(value: T | Promise<T>, safe: false): ObservableObjectOrArray<T>;
-export function observable<T extends object>(
-    value: T | Promise<T>,
-    safe?: undefined
-): ObservableObjectOrArrayDefault<T>;
-export function observable<T extends unknown>(value: T | Promise<T>, safe?: boolean): ObservableObjectOrArray<unknown>;
-export function observable<T>(
-    value: T | Promise<T>,
-    safe?: boolean
-): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
+function createObservable<T>(value, makePrimitive?: boolean) {
     const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
         value = undefined;
     }
-    const obs = {
+    const root = {
         _: promise ? undefined : value,
-        safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
 
     const node: NodeValue = {
         id: nextNodeID.current++,
-        root: obs,
+        root,
     };
 
-    if (isActualPrimitive(value)) {
-        // @ts-ignore
-        return new ObservablePrimitive<T>(node);
-    } else {
-        const proxy = getProxy(node) as ObservableObjectOrArray<T>;
+    const obs =
+        makePrimitive || isActualPrimitive(value)
+            ? (new ObservablePrimitiveClass<T>(node) as unknown as ObservablePrimitive<T>)
+            : (getProxy(node) as ObservableObjectOrArray<T>);
 
-        if (promise) {
-            promise.catch((error) => {
-                proxy.set({ error } as any);
-            });
-            promise.then((value) => {
-                proxy.set(value);
-            });
-        }
-
-        return proxy;
+    if (promise) {
+        promise.catch((error) => {
+            obs.set({ error } as any);
+        });
+        promise.then((value) => {
+            obs.set(value);
+        });
     }
+
+    return obs;
+}
+
+export function observable(value: boolean | Promise<boolean>): ObservablePrimitive<boolean>;
+export function observable(value: string | Promise<string>): ObservablePrimitive<string>;
+export function observable(value: number | Promise<number>): ObservablePrimitive<number>;
+export function observable<T extends object>(value?: T | Promise<T>): ObservableObjectOrArray<T>;
+export function observable<T extends unknown>(value?: T | Promise<T>): ObservableObjectOrArray<unknown>;
+export function observable<T>(value?: T | Promise<T>): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
+    return createObservable(value);
+}
+
+export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
+    return createObservable(value, /*makePrimitive*/ true) as ObservablePrimitive<T>;
 }

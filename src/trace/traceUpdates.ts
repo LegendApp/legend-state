@@ -2,7 +2,9 @@ import { NodeValue, tracking } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
 export function traceUpdates(name?: string) {
-    tracking.updates = replaceUpdateFn.bind(this, name);
+    if (process.env.NODE_ENV === 'development') {
+        tracking.updates = replaceUpdateFn.bind(this, name);
+    }
 }
 
 function replaceUpdateFn(name: string, updateFn: () => void) {
@@ -19,8 +21,10 @@ function onChange(
     prevAtPath: any,
     node: NodeValue
 ) {
-    console.log(`[legend-state] Rendering ${name ? name + ' ' : ''}because "${getNodePath(node)}" changed:
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[legend-state] Rendering ${name ? name + ' ' : ''}because "${getNodePath(node)}" changed:
 from: ${JSON.stringify(getPrevious())}
 to: ${JSON.stringify(value)}`);
-    return updateFn();
+        return updateFn();
+    }
 }

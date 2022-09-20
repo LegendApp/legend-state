@@ -17,7 +17,7 @@ export function isFunction(obj: unknown): obj is Function {
 /** @internal */
 export function isPrimitive(arg) {
     var type = typeof arg;
-    return arg == null || (type != 'object' && type != 'function');
+    return arg !== undefined && arg !== null && type != 'object' && type != 'function';
 }
 /** @internal */
 export function isObjectEmpty(obj: object) {

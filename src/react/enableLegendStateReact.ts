@@ -7,7 +7,7 @@ import {
     setupTracking,
     tracking,
     updateTracking,
-    ObservablePrimitive,
+    ObservablePrimitiveClass,
 } from '@legendapp/state';
 import {
     createElement,
@@ -43,18 +43,20 @@ export function enableLegendStateReact() {
         // Set extra props for the proxyHandler to return on primitives
         extraPrimitiveProps.set('$$typeof', ReactTypeofSymbol);
         extraPrimitiveProps.set('type', Text);
+        extraPrimitiveProps.set('_store', { validated: true });
+        extraPrimitiveProps.set('key', '');
         extraPrimitiveProps.set('props', {
             __fn: (obs) => ({ data: obs }),
         });
         extraPrimitiveProps.set('ref', null);
         // Set extra props for ObservablePrimitive to return on primitives
-        Object.defineProperties(ObservablePrimitive.prototype, {
+        Object.defineProperties(ObservablePrimitiveClass.prototype, {
             $$typeof: { configurable: true, value: ReactTypeofSymbol },
             type: { configurable: true, value: Text },
             props: {
                 configurable: true,
                 get() {
-                    return { data: (this as ObservablePrimitive).getNode() };
+                    return { data: (this as ObservablePrimitiveClass).getNode() };
                 },
             },
             ref: { configurable: true, value: null },
