@@ -13,7 +13,12 @@ import {
 } from './globals';
 import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive } from './is';
 import { doNotify, notify } from './notify';
-import { NodeValue, ObservableObjectOrArray, ObservablePrimitive, ObservableWrapper } from './observableInterfaces';
+import {
+    NodeValue,
+    ObservableObjectOrArray,
+    ObservablePrimitive,
+    ObservableWrapper as ObservableRoot,
+} from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
 import { tracking, untrack, updateTracking } from './tracking';
@@ -466,7 +471,7 @@ function createObservable<T>(value, makePrimitive?: boolean) {
     }
     const root = {
         _: promise ? undefined : value,
-    } as ObservableWrapper;
+    } as ObservableRoot;
 
     const node: NodeValue = {
         id: nextNodeID.current++,

@@ -21,9 +21,10 @@ export function get(node: NodeValue, track?: TrackingType) {
 }
 
 export function peek(node: NodeValue) {
-    if (node.activate) {
-        node.activate();
-        node.activate = undefined;
+    const root = node.root;
+    if (root.activate) {
+        root.activate();
+        root.activate = undefined;
     }
     return getNodeValue(node);
 }

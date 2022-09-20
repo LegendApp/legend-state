@@ -1661,6 +1661,17 @@ describe('Computed', () => {
         comp.get();
         expect(fn).toHaveBeenCalled();
     });
+    test('Computed is lazy, activates on child get', () => {
+        const fn = jest.fn();
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = computed(() => {
+            fn();
+            return { v: obs.test.get() + obs.test2.get() };
+        });
+        expect(fn).not.toHaveBeenCalled();
+        comp.v.get();
+        expect(fn).toHaveBeenCalled();
+    });
 });
 describe('Event', () => {
     test('Event', () => {

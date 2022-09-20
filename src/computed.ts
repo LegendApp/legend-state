@@ -9,7 +9,7 @@ export function computed<T>(compute: () => T): ObservableComputed<T> {
     lockObservable(obs, true);
 
     // Lazily activate the observable when get is called
-    getNode(obs).activate = () => {
+    getNode(obs).root.activate = () => {
         const fn = function () {
             const val = compute();
             if (obs) {

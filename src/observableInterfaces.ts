@@ -208,6 +208,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableWrapper {
     _: any;
     locked?: boolean;
+    activate?: () => void;
 }
 
 export type Primitive = boolean | string | number | Date;
@@ -251,7 +252,6 @@ export interface NodeValue {
     key?: string | number;
     root: ObservableWrapper;
     listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
-    activate?: () => void;
 }
 
 /** @internal */

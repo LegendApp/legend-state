@@ -25,12 +25,12 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
         return this.peek();
     }
     peek(): T {
-        const node = this.#node;
-        if (node.activate) {
-            node.activate();
-            node.activate = undefined;
+        const root = this.#node.root;
+        if (root.activate) {
+            root.activate();
+            root.activate = undefined;
         }
-        return this.#node.root._;
+        return root._;
     }
     get(track?: boolean | 'optimize'): T {
         return track !== false ? this.value : this.peek();
