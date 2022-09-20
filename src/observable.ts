@@ -459,39 +459,46 @@ function deleteFn(node: NodeValue, key?: string | number) {
     setKey(node, key, symbolUndef, /*level*/ -1);
 }
 
+function createObservable<T>(value, makePrimitive?: boolean) {
+    const promise = (value as any)?.then && (value as unknown as Promise<T>);
+    if (promise) {
+        value = undefined;
+    }
+    const root = {
+        _: promise ? undefined : value,
+    } as ObservableWrapper;
+
+    const node: NodeValue = {
+        id: nextNodeID.current++,
+        root,
+    };
+
+    const obs =
+        makePrimitive || isActualPrimitive(value)
+            ? (new ObservablePrimitiveClass<T>(node) as unknown as ObservablePrimitive<T>)
+            : (getProxy(node) as ObservableObjectOrArray<T>);
+
+    if (promise) {
+        promise.catch((error) => {
+            obs.set({ error } as any);
+        });
+        promise.then((value) => {
+            obs.set(value);
+        });
+    }
+
+    return obs;
+}
+
 export function observable(value: boolean | Promise<boolean>): ObservablePrimitive<boolean>;
 export function observable(value: string | Promise<string>): ObservablePrimitive<string>;
 export function observable(value: number | Promise<number>): ObservablePrimitive<number>;
 export function observable<T extends object>(value?: T | Promise<T>): ObservableObjectOrArray<T>;
 export function observable<T extends unknown>(value?: T | Promise<T>): ObservableObjectOrArray<unknown>;
 export function observable<T>(value?: T | Promise<T>): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
-    const promise = (value as any)?.then && (value as unknown as Promise<T>);
-    if (promise) {
-        value = undefined;
-    }
-    const obs = {
-        _: promise ? undefined : value,
-    } as ObservableWrapper;
+    return createObservable(value);
+}
 
-    const node: NodeValue = {
-        id: nextNodeID.current++,
-        root: obs,
-    };
-
-    if (isActualPrimitive(value)) {
-        return new ObservablePrimitiveClass<T>(node) as unknown as ObservablePrimitive<T>;
-    } else {
-        const proxy = getProxy(node) as ObservableObjectOrArray<T>;
-
-        if (promise) {
-            promise.catch((error) => {
-                proxy.set({ error } as any);
-            });
-            promise.then((value) => {
-                proxy.set(value);
-            });
-        }
-
-        return proxy;
-    }
+export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
+    return createObservable(value, /*makePrimitive*/ true) as ObservablePrimitive<T>;
 }

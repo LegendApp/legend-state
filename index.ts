@@ -1,5 +1,5 @@
 export { isObservable, mergeIntoObservable } from './src/helpers';
-export { observable } from './src/observable';
+export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
