@@ -762,7 +762,7 @@ describe('Primitives', () => {
         set(30);
         expect(obs.num1.get()).toEqual(30);
     });
-    test('Assign on a primitive errors', async () => {
+    test('Assign on a primitive errors', () => {
         const obs = observable({ num1: 10, num2: 20 });
 
         expect(() => {
@@ -774,6 +774,11 @@ describe('Primitives', () => {
 
         // This error will leave observableBatch in progress, so force end it
         endBatch(true);
+    });
+    test('toString() and valueOf()', () => {
+        const obs = observable({ val: 10 });
+        expect(obs.val.toString()).toBe('10');
+        expect(obs.val.valueOf()).toBe(10);
     });
 });
 describe('Array', () => {
