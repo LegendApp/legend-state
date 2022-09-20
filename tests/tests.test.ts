@@ -680,26 +680,11 @@ describe('Equality', () => {
     });
 });
 describe('Safety', () => {
-    // test('Writes are ok in unsafe', () => {
-    //     const obs = observable({ test: { text: 't' } }, false);
-    //     obs.test.text.value = 'hello';
-    //     obs.test = { text: 'hello' };
-    //     delete obs.test;
-    // });
-    test('Prevent object writes in default safety', () => {
+    // Note: If TypeScript adds support for variant accessors on indexed types we could add back unsafe mode.
+    // But for now trying to assign directly causes type errors.
+    // https://github.com/microsoft/TypeScript/issues/43826
+    test('Prevent writes on objects', () => {
         const obs = observable({ test: { text: 't' } });
-        obs.test.text.value = 'hello';
-        expect(() => {
-            // @ts-expect-error
-            obs.test = { text: 'hello' };
-        }).toThrow();
-        expect(() => {
-            // @ts-expect-error
-            delete obs.test;
-        }).toThrow();
-    });
-    test('Prevent writes in safe', () => {
-        const obs = observable({ test: { text: 't' } }, true);
         expect(() => {
             // @ts-expect-error
             obs.test.text = 'hello';

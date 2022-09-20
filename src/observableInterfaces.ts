@@ -68,20 +68,18 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     ? TRecurse
     : T[K];
 
-type ObservableFnsRecursive<T> = {
+type ObservableFnsRecursiveUnsafe<T> = {
     [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 };
-type ObservableComputedFnsRecursive<T> = {
-    [K in keyof T]: Recurse<T, K, ObservableBaseFns<T[K]>>;
-};
 type ObservableFnsRecursiveSafe<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObservableObjectSafe<T[K]>>;
+    readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 };
-type ObservableFnsRecursiveDefaultObject<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObservableObjectDefault<T[K]>>;
+type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
+    ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
+
+type ObservableComputedFnsRecursive<T> = {
+    readonly [K in keyof T]: Recurse<T, K, ObservableBaseFns<T[K]>>;
 };
-type ObservableFnsRecursiveDefault<T> = ObservableFnsRecursiveDefaultObject<NonPrimitiveKeys<T>> &
-    ObservableFnsRecursive<PrimitiveKeys<T>>;
 
 export interface ObservableEvent {
     dispatch(): void;
@@ -209,7 +207,6 @@ export type ObservableListenerDispose = () => void;
 
 export interface ObservableWrapper {
     _: any;
-    safeMode: 0 | 1 | 2;
     locked?: boolean;
 }
 
@@ -219,24 +216,12 @@ export type NotPrimitive<T> = T extends Primitive ? never : T;
 export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
     ObservableObjectFns<T> &
     ObservableArrayOverride<ObservableObject<T[number]>>;
-export type ObservableArraySafe<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
-    ObservableObjectFns<T> &
-    ObservableArrayOverride<ObservableObjectSafe<T[number]>>;
-export type ObservableArrayDefault<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
-    ObservableObjectFns<T> &
-    ObservableArrayOverride<ObservableObjectDefault<T[number]>>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
-export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & ObservableObjectFns<T>;
-export type ObservableObjectDefault<T = any> = ObservableFnsRecursiveDefault<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChildFns<T> : ObservableObject<T>;
 export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = ObservablePrimitive<T> & ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
-export type ObservableObjectOrArraySafe<T> = T extends any[] ? ObservableArraySafe<T> : ObservableObjectSafe<T>;
-export type ObservableObjectOrArrayDefault<T> = T extends any[]
-    ? ObservableArrayDefault<T>
-    : ObservableObjectDefault<T>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> &
     ObservableComputedFnsRecursive<T> &

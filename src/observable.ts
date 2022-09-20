@@ -13,14 +13,7 @@ import {
 } from './globals';
 import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive } from './is';
 import { doNotify, notify } from './notify';
-import {
-    NodeValue,
-    ObservableObjectOrArray,
-    ObservableObjectOrArrayDefault,
-    ObservableObjectOrArraySafe,
-    ObservablePrimitive,
-    ObservableWrapper,
-} from './observableInterfaces';
+import { NodeValue, ObservableObjectOrArray, ObservablePrimitive, ObservableWrapper } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
 import { tracking, untrack, updateTracking } from './tracking';
@@ -316,15 +309,8 @@ const proxyHandler: ProxyHandler<any> = {
             return Reflect.set(node, prop, value);
         }
 
-        if (!inAssign && node.root.safeMode) {
-            // Don't allow in safe mode
-            if (node.root.safeMode === 2) return false;
-
-            // Don't allow set on objects in default mode
-            const existing = getNodeValue(getChildNode(node, prop));
-            if (isObject(existing) || isArray(existing) || isObject(value) || isArray(value)) {
-                return false;
-            }
+        if (!inAssign && prop !== 'value') {
+            return false;
         }
 
         setKey(node, prop, value);
@@ -333,18 +319,10 @@ const proxyHandler: ProxyHandler<any> = {
     deleteProperty(target: NodeValue, prop) {
         // If this delete comes from within an observable function it's allowed
         if (inSet) {
-            Reflect.deleteProperty(target, prop);
-        } else if (target.root.safeMode) {
-            return false;
+            return Reflect.deleteProperty(target, prop);
         } else {
-            if (process.env.NODE_ENV === 'development' && tracking.isTracking) {
-                console.error(
-                    `[legend-state] Should not delete an observable property within an observer. You may have done this by accident. Please use delete() if you really want to do this.`
-                );
-            }
-            deleteFn(target, prop as any);
+            return false;
         }
-        return true;
     },
     has(target, prop) {
         const value = getNodeValue(target);
@@ -481,27 +459,18 @@ function deleteFn(node: NodeValue, key?: string | number) {
     setKey(node, key, symbolUndef, /*level*/ -1);
 }
 
-export function observable(value: boolean | Promise<boolean>, safe?: boolean): ObservablePrimitive<boolean>;
-export function observable(value: string | Promise<string>, safe?: boolean): ObservablePrimitive<string>;
-export function observable(value: number | Promise<number>, safe?: boolean): ObservablePrimitive<number>;
-export function observable<T extends object>(value: T | Promise<T>, safe: true): ObservableObjectOrArraySafe<T>;
-export function observable<T extends object>(value: T | Promise<T>, safe: false): ObservableObjectOrArray<T>;
-export function observable<T extends object>(
-    value?: T | Promise<T>,
-    safe?: undefined
-): ObservableObjectOrArrayDefault<T>;
-export function observable<T extends unknown>(value?: T | Promise<T>, safe?: boolean): ObservableObjectOrArray<unknown>;
-export function observable<T>(
-    value?: T | Promise<T>,
-    safe?: boolean
-): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
+export function observable(value: boolean | Promise<boolean>): ObservablePrimitive<boolean>;
+export function observable(value: string | Promise<string>): ObservablePrimitive<string>;
+export function observable(value: number | Promise<number>): ObservablePrimitive<number>;
+export function observable<T extends object>(value?: T | Promise<T>): ObservableObjectOrArray<T>;
+export function observable<T extends unknown>(value?: T | Promise<T>): ObservableObjectOrArray<unknown>;
+export function observable<T>(value?: T | Promise<T>): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const promise = (value as any)?.then && (value as unknown as Promise<T>);
     if (promise) {
         value = undefined;
     }
     const obs = {
         _: promise ? undefined : value,
-        safeMode: safe === true ? 2 : safe === false ? 0 : 1,
     } as ObservableWrapper;
 
     const node: NodeValue = {
