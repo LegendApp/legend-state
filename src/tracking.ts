@@ -62,11 +62,3 @@ export function untrack(node: NodeValue) {
         }
     }
 }
-
-export function checkTracking(node: NodeValue, track: TrackingType) {
-    if (track) {
-        updateTracking(node, track);
-    } else {
-        untrack(node);
-    }
-}

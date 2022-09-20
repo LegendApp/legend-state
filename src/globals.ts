@@ -1,6 +1,6 @@
+import { updateTracking } from './tracking';
 import { isString } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
-import { checkTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
@@ -12,8 +12,10 @@ export const extraPrimitiveProps = new Map<string, any>();
 export const nextNodeID = { current: 0 };
 
 export function get(node: NodeValue, track?: TrackingType) {
-    // Track by default
-    checkTracking(node, track === undefined ? true : track === false ? undefined : track);
+    if (track !== false) {
+        // Track by default
+        updateTracking(node, track);
+    }
 
     const value = getNodeValue(node);
     return value;
