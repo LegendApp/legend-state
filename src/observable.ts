@@ -228,8 +228,16 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
 
-        if (isPrimitive(value) && p === 'value') {
-            return get(node);
+        if (isPrimitive(value)) {
+            if (p === 'value') {
+                return get(node);
+            } else if (extraPrimitiveProps.size) {
+                const vPrim = extraPrimitiveProps.get(p);
+                if (vPrim !== undefined) {
+                    return vPrim?.__fn?.(node) ?? vPrim;
+                }
+            }
+            return value;
         }
 
         const vProp = value?.[p];
@@ -258,12 +266,6 @@ const proxyHandler: ProxyHandler<any> = {
 
         // Accessing primitive returns the raw value
         if (isPrimitive(vProp)) {
-            if (extraPrimitiveProps.size) {
-                const vPrim = extraPrimitiveProps.get(p);
-                if (vPrim !== undefined) {
-                    return vPrim?.__fn?.(node) ?? vPrim;
-                }
-            }
             // Update that this primitive node was accessed for observers
             if (isArray(value) && p === 'length') {
                 updateTracking(node, true);
