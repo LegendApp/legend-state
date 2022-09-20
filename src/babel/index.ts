@@ -41,6 +41,9 @@ export default function () {
 
                     if (name === 'Computed' || name === 'Memo' || name === 'Show') {
                         const children = removEmptyText(children_);
+
+                        const attrs = openingElement.attributes;
+
                         if (
                             children.length > 0 &&
                             children[0].expression?.type !== 'ArrowFunctionExpression' &&
@@ -48,15 +51,13 @@ export default function () {
                         ) {
                             path.replaceWith(
                                 jsxElement(
-                                    jsxOpeningElement(jsxIdentifier(name), []),
+                                    jsxOpeningElement(jsxIdentifier(name), attrs),
                                     jsxClosingElement(jsxIdentifier(name)),
                                     [
                                         jsxExpressionContainer(
                                             arrowFunctionExpression(
                                                 [],
-                                                children.length > 0
-                                                    ? jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children)
-                                                    : children[0]
+                                                jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children)
                                             )
                                         ),
                                     ]
