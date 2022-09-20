@@ -1633,16 +1633,33 @@ describe('Computed', () => {
             // @ts-expect-error
             comp.delete();
         }).toThrowError();
+
+        // This failing test would put batch in a bad state until timeout,
+        // so clear it out manually
+        endBatch();
     });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => ({ value: obs.test.get() + obs.test2.get() }));
+
+        expect(comp.get()).toEqual({ value: 30 });
         expect(comp.value.get()).toEqual(30);
         const handler = expectChangeHandler(comp.value);
 
         obs.test.value = 5;
 
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
+    });
+    test('Computed is lazy', () => {
+        const fn = jest.fn();
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = computed(() => {
+            fn();
+            return { v: obs.test.get() + obs.test2.get() };
+        });
+        expect(fn).not.toHaveBeenCalled();
+        comp.get();
+        expect(fn).toHaveBeenCalled();
     });
 });
 describe('Event', () => {

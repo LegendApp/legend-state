@@ -251,6 +251,7 @@ export interface NodeValue {
     key?: string | number;
     root: ObservableWrapper;
     listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
+    activate?: () => void;
 }
 
 /** @internal */
