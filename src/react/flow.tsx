@@ -30,20 +30,12 @@ export function Show<T>({
     if: Selector<T>;
     else?: ReactNode | (() => ReactNode);
     wrap?: FC;
-    children: ReactNode | ((value?: T) => ReactNode);
+    children: ReactNode | (() => ReactNode);
 }): ReactElement {
     const value = useSelector<T>(if_);
 
     const child = (
-        value
-            ? isFunction(children)
-                ? children(value)
-                : children
-            : else_
-            ? isFunction(else_)
-                ? else_()
-                : else_
-            : null
+        value ? (isFunction(children) ? children() : children) : else_ ? (isFunction(else_) ? else_() : else_) : null
     ) as ReactElement;
 
     return wrap ? createElement(wrap, undefined, child) : child;
