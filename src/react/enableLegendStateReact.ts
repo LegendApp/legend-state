@@ -126,9 +126,13 @@ export function enableLegendStateReact() {
                                 }
                             }
                         } else {
-                            // Run empty hooks if not tracking nodes, to keep the same number of hooks per render
-                            dispatcher.useReducer(Updater, 0);
-                            dispatcher.useEffect(EmptyEffect);
+                            // Wrap in try/catch because this can sometimes cause errors,
+                            // like when hydrating in Next.js
+                            try {
+                                // Run empty hooks if not tracking nodes, to keep the same number of hooks per render
+                                dispatcher.useReducer(Updater, 0);
+                                dispatcher.useEffect(EmptyEffect);
+                            } catch {}
                         }
 
                         // Restore the previous tracking context
