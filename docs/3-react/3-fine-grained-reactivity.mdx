@@ -32,11 +32,11 @@ const state = observable({ message: '', count: 0, showModal: false })
 
 function Counter() {
     // Only re-renders when count changes
-    return <div>{state.count}</div>
+    return <div>{state.count.get()}</div>
 }
 function Message() {
     // Only re-renders when message changes
-    return <div>{state.message}</div>
+    return <div>{state.message.get()}</div>
 }
 function App() {
     // Never re-renders
@@ -44,7 +44,7 @@ function App() {
         <div>
             <Counter />
             <Message />
-            <Show if={showModal}>
+            <Show if={state.showModal}>
                 <Modal />
             </Modal>
         </div>
@@ -62,36 +62,29 @@ There is a tradeoff - creating extra elements does have a performance cost. So k
 
 The easiest way to isolate your renders is to pass an observable `string` or `number` straight into React, and it will automatically be extracted as a separate memoized component with its own tracking context. This works out of the box - you don't need to do anything special to enable it.
 
-Just call `obs()` on an observable primitive to get its observable.
-
 ```jsx
-<div>Count: {state.count.obs()}</div>
+<div>Count: {state.count}</div>
 ```
 
 ### Example
 
 <Example name="Primitive">
-```js
-const state = observable({ count: 0 })
-setInterval(() => {
-    state.count ++
-}, 500)
+```jsx
+import { observable } from "@legendapp/state"
+
+const count = observable(0)
 
 function Normal() {
-    const renderCount = ++useRef(0).current
-
-    return <>
-        <div>Renders: {renderCount}</div>
-        <div>Count: {state.count}</div>
-    </>
+    // This re-renders when count changes
+    return (
+        <div>Count: {count.get()}</div>
+    )
 }
-function Direct() {
-    const renderCount = ++useRef(0).current
-
-    return <>
-        <div>Renders: {renderCount}</div>
-        <div>Count: {state.count.obs()}</div>
-    </>
+function FineGrained() {
+    // This never re-renders when observable is rendered directly
+    return (
+        <div>Count: {count}</div>
+    )
 }
 ```
 </Example>
@@ -210,14 +203,16 @@ function MemoExample() {
 
 Show renders child components conditionally based on the if/else props, and does not re-render the parent when the condition changes.
 
+Passing children as a function can prevent the JSX from being created until it needs to render. That's done automatically if you use the [babel plugin](#optionally-add-the-babel-plugin).
+
 Props:
-- `if`: A computed function or an observable (use `obs()` to get the observable from a primitive)
+- `if`: A computed function or an observable
 - `else`: Optionally provide a component to render if the condition is not met
 - `children`: The components to show conditionally. This can be React elements or a function given the value returned from `if` which you can use to do more complex conditional rendering.
 
 ```jsx
 <Show
-    if={() => state.show}
+    if={state.show}
     else={<div>Nothing to see here</div>}
 >
     <Modal />
@@ -243,7 +238,7 @@ function ShowExample() {
 
             <!-- 1. Direct children -->
             <Show
-                if={state.show.obs()}
+                if={state.show}
                 else={<div>Nothing to see here</div>}
             >
                 <Modal />
@@ -251,13 +246,11 @@ function ShowExample() {
 
             <!-- 2. With a function -->
             <Show
-                if={state.show.obs()}
+                if={() => state.show.get()}
+                else={() => <div>Nothing to see here</div>}
+
             >
-                {show => show ? (
-                    <div>Modal</div>
-                ) : (
-                    <div>Nothing to see here</>
-                )}
+                {() => <div>Modal</div>}
             </Show>
         </div>
     )
@@ -270,11 +263,11 @@ function ShowExample() {
 Switch renders one child component conditionally based on the `value` prop, and does not re-render the parent when the condition changes.
 
 Props:
-- `value`: A computed function or an observable (use `obs()` to get the observable from a primitive)
-- `children`: An object with the possible cases of `value` as keys. If `value` doesn't match any of the cases it will use the `default` case if it exists.
+- `value`: A computed function or an observable
+- `children`: An object with the possible cases of `value` as keys. If `value` doesn't match any of the cases it will use the `default` case if available.
 
 ```jsx
-<Switch value={() => state.index)}>
+<Switch value={state.index)}>
     {{
         0: () => <div>Tab 1</div>,
         1: () => <div>Tab 2</div>,
@@ -320,10 +313,10 @@ The Babel plugin can make the syntax for Computed and Memo less verbose. But the
 
 ```jsx
 // You write
-<Computed><div>Count: {state.count}</div></Computed>
+<Computed><div>Count: {state.count.get()}</div></Computed>
 
 // Babel transforms it to
-<Computed>{() => <div>Count: {state.count}</div>}</Computed>
+<Computed>{() => <div>Count: {state.count.get()}</div>}</Computed>
 ```
 
 ### Install

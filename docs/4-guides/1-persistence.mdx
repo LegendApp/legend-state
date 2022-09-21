@@ -1,4 +1,6 @@
-A primary goal of Legend-State is to make automatic persistence easy. Persistence plugins listen for all changes within an object and write them to local or remote storage.
+A primary goal of Legend-State is to make automatic persistence easy. We use Legend-State as the sync systems in [Bravely](https://bravely.io) and [Legend](https://legendapp.com).
+
+Persistence plugins listen for all changes within an object and write them to local or remote storage.
 
 Legend-State currently ships with local plugins for Local Storage on web and `react-native-mmkv` in React Native, and remote plugins for Firebase and Firestore are coming soon.
 
@@ -48,7 +50,7 @@ If you are on React Native you will need to install `react-native-mmvk` too:
 
 ## Coming soon
 
-We are working on remote persistence plugins for Firebase and Firestore for both web and React Native. They are more complex, because they include conflict resolution and extensive optimization, so they need some more work before they're ready for release. Please [let us know](https://github.com/LegendApp/legend-state/issues) if you'd like us to hurry up with that.
+We are working on remote persistence plugins for Firebase and Firestore for both web and React Native. They are more complex, because they include conflict resolution and extensive optimization, so they need some more work before they're ready for release. Please [let us know](https://github.com/LegendApp/legend-state/issues/5) if you'd like us to hurry up with that.
 
 We will create a local persistence plugin for IndexedDB on web soon. For React Native we think that [`react-native-mmkv`](https://github.com/mrousavy/react-native-mmkv) is the best and fastest solution, but if you would like to use a different persistence layer, we would happily accept a [Pull Request](https://github.com/LegendApp/legend-state) to add it.
 
@@ -60,4 +62,4 @@ Remote persistence plugins are more complex, and we have not quite locked down t
 
 ## Contribute
 
-The plugin system is designed to be used for all sorts of providers, so please [request additional providers](https://github.com/LegendApp/legend-state/issues) or ideally even submit a PR with an additional plugin provider. If you do build your own plugin, please let us know as we'd love to build it in as an officially supported plugin.
+The plugin system is designed to be used for all sorts of providers, so please [request additional providers](https://github.com/LegendApp/legend-state/issues) or ideally even submit a PR with an additional plugin provider. If you do build your own plugin, please let us know as we'd love to include it as an officially supported plugin.

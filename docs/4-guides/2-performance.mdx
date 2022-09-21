@@ -38,7 +38,7 @@ const obs = observable({ items: [{ data: { value: 10 }}, ...] })
 let sum = 0
 
 // 🔥 This will create proxies for each element's data and value
-obs.items.forEach(item => sum += item.data.value)
+obs.items.forEach(item => sum += item.data.value.get())
 
 // 💨 This will not do anything special
 obs.items.get().forEach(item => sum += item.data.value)

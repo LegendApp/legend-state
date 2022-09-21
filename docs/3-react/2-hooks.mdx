@@ -1,0 +1,132 @@
+## useObservable
+
+The `useObservable` hook can be used to create an observable within a React component. This can be useful when state is specific to the lifetime of the component, or to hold multiple values in local state.
+
+Its observables will be [tracked for re-rendering](../react-basics) the same as any other observable, so use `get()` to track it.
+
+```jsx
+import { useObservable } from "@legendapp/state/react"
+
+function Component() {
+    const state = useObservable({
+        title: 'Title',
+        first: '',
+        last: '',
+        profile: {...}
+    })
+
+    return (
+        <div>
+            <div>{state.title.get()}</div>
+            <Input text={state.first} />
+            <Input text={state.last} />
+            <Profile profile={state.profile} />
+        </div>
+    )
+    // Tracking: [state.title]
+}
+```
+
+### Using with Context
+
+You may prefer passing state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from child component. The observable itself is a stable object so changing the data inside the observable will not cause a re-render like Context normally does.
+
+```jsx
+import { useObservable } from "@legendapp/state/react"
+
+function App() {
+    const state = useObservable({
+        profile: {
+            name: ''
+        }
+    })
+
+    return (
+        <StateContext.Provider value={state}>
+            <div>
+                <Sidebar />
+                <Main />
+            </div>
+        </StateContext.Provider>
+    )
+}
+
+function Sidebar() {
+    // StateContext will never change so this will never cause a render
+    const state = useContext(StateContext);
+
+    const { name } = state.profile;
+    // Tracking: [state.profile.name]
+
+    return (
+        <div>
+            Name: {name}
+        </div>
+    )
+}
+```
+
+## useComputed
+
+`useComputed` is like `useObservable` and creates a [computed](../reactivity#computed) observable.
+
+```jsx
+import { useComputed } from "@legendapp/state/react"
+
+const obs = observable({ test: 10, test2: 20 })
+
+function Component() {
+    const sum = useComputed(() => obs.test.get() + obs.test2.get())
+
+    return (
+        <div>Sum: {sum}</div>
+    )
+}
+```
+
+## useObserve
+
+`useObserve` creates an [observe](../reactivity#observe) which you can use to take actions when observables change. This is like `useEffect` for observables which runs only when observables change and not because of rendering.
+
+```jsx
+import { useObserve } from "@legendapp/state/react"
+
+function ProfilePage() {
+    // This component never re-renders
+
+    const profile = useObservable({ name: '' })
+
+    // This runs whenever profile changes
+    useObserve(() => {
+        document.title = `${profile.name.get()} - Profile`
+    })
+
+    return (
+        <div>
+            <span>Name:</span>
+            <Bindable.input bind={profile.name} />
+        </div>
+    )
+}
+```
+
+## useSelector
+
+`useSelector` computes a value and automatically listen to any observables accessed while running, and only re-renders if the computed value changes.
+
+Props:
+- `selector`: Computation function that listens to observables accessed while running
+
+```jsx
+import { observable } from "@legendapp/state"
+import { useSelector } from "@legendapp/state/react"
+
+const state = observable({ selected: 1 })
+
+const Component = ({ id }) => {
+    const isSelected = useSelector(() => id === state.selected.get())
+    // Only re-renders if the return value changes
+
+    return <div>Selected: {isSelected}</div>
+}
+```

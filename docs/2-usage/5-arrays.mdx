@@ -2,7 +2,7 @@ Legend-State is especially optimized for arrays since [Legend](https://www.legen
 
 ## Arrays of objects require a unique id
 
-To optimize rendering of arrays, Legend-State requires a unique `id`, `_id`, or `__id` field on each object.
+To optimize rendering of arrays of objects, Legend-State requires a unique `id`, `_id`, or `__id` field on each object.
 
 Under the hood, Legend-State listens to elements by path within the object. Operations like `splice` can change the index of an element which changes its path, so it uses the unique `id` to handle elements being moved and keep observables as stable references to their underlying element. It also optimizes for repositioning items within arrays and only re-renders the changed elements.
 
@@ -12,7 +12,7 @@ The `For` component is optimized for rendering arrays of observable objects so t
 
 You can use it in two ways, providing an `item` component or a function as a child.
 
-An `optimized` prop adds additional optimizations, but in an unusual way by re-using React nodes, See [Optimized rendering](#optimized-rendering)
+An `optimized` prop adds additional optimizations, but in an unusual way by re-using React nodes. See [Optimized rendering](#optimized-rendering) for more details.
 
 ```jsx
 import { For } from "@legendapp/state/react"
@@ -89,7 +89,7 @@ function TodosExample() {
 
 The `map` function automatically sets up a shallow listener, so it will only re-render when the array is changed and not when individual elements are changed. For best performance it's best to let the child component track each item observable.
 
-Make sure that you don't access any observable properties while mapping, like accessing the id for the key, so use `get(false)` to prevent tracking.
+Make sure that you don't access any observable properties while mapping, like accessing the id for the key, so use `peek()` to prevent tracking.
 
 ```jsx
 import { For } from "@legendapp/state/react"
@@ -100,9 +100,9 @@ function Row({ item }) {
     return <div>{item.text}</div>
 }
 function List() {
-    // Be sure to use get(false) to make sure you don't track any observable fields here
+    // Be sure to use peek() to make sure you don't track any observable fields here
     return list.map(item =>
-        <Row key={item.get(false).id} item={item} />
+        <Row key={item.id.peek()} item={item} />
     )
 }
 ```
@@ -110,6 +110,8 @@ function List() {
 ## Optimized rendering
 
 The `For` component has an `optimized` prop which takes the optimizations even further. It prevents re-rendering the parent component when possible, so if the array length doesn't change it updates React elements in place instead of the whole list rendering. This massively reduces the rendering time when swapping elements, sorting an array, or replacing some individual elements. But because it reuses React nodes rather than replacing them as usual, it may have unexpected behavior with animations or if you are modifying the DOM externally.
+
+This is how the fast "replace all rows" and "swap rows" speeds in the [benchmark](../fast#benchmark) are achieved.
 
 ```jsx
 import { For } from "@legendapp/state/react"

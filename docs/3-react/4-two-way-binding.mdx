@@ -2,8 +2,6 @@ Legend-State makes it easy to bind components directly to an observable, so you 
 
 With these components you can just pass an observable to the `bind` prop to automatically update an observable as the input changes.
 
-Note that primitive values should be passed down with `obs()` to create a stable reference.
-
 ## Example
 
 <Example name="Input">
@@ -15,7 +13,7 @@ function Component() {
         <div>
             <div>{state.name}</div>
             <Bindable.input
-                bind={state.name.obs()}
+                bind={state.name}
                 className={(value) =>
                     value === 'Legend' ?
                         'text-white' :
@@ -42,10 +40,10 @@ function Component() {
 
     return (
         <div>
-            <Bindable.textarea bind={state.name.obs()} />
-            <Bindable.select bind={state.age.obs()}>
+            <Bindable.textarea bind={state.name} />
+            <Bindable.select bind={state.age}>...</Bindable.select>
             <Bindable.input
-                bind={state.name.obs()}
+                bind={state.name}
                 className={(value) => !value && "border-red-500"}
                 style={(value) => !value && { borderWidth: 1 }}
             />
@@ -69,9 +67,9 @@ function Component() {
 
     return (
         <div>
-            <Bindable.Switch bind={state.enabled.obs()} />
+            <Bindable.Switch bind={state.enabled} />
             <Bindable.TextInput
-                bind={state.name.obs()}
+                bind={state.name}
                 style={(value) => !value && { borderColor: "red" }}
             />
         </div>

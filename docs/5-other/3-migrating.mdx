@@ -1,3 +1,49 @@
+## 0.16 to 0.17
+
+### Primitives are now returned as observables
+
+Observables previously tried to be clever by returning primitives directly, which was great in making it easy to work with state directly. But especially as the goal has moved more towards fine-grained reactivity, the balance shifted towards observable objects being better. So accessing primitives through state now returns observables like anything else.
+
+#### Raw primitives:
+- Pro: Easy to work with
+- Con: Required `obs()` to get the observable to pass to props or render directly
+- Con: Easy to track a value without realizing it
+
+#### Observable primitives
+- Pro: More consistent
+- Pro: Easier to deal with undefined
+- Pro: Can dot through undefined paths easily
+- Pro: Doesn’t need `obs()` or set by key
+- Pro: Easier to use fine-grained features without `obs()` everywhere
+- Pro: Easier to pass as props without needing `obs()`
+- Con: Requires `get()` or `.value` for primitives
+
+#### Changes to make:
+
+**get()**
+
+Wherever you were accessing primitives directly, add a `.get()` to the end of it.
+
+**set(key, value)**
+
+Change set by key to access the node first. It will now work fine if the node is undefined.
+
+From: `state.profile.set('name', 'Annyong')`
+
+To:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`state.profile.name.set('Annyong')`
+
+**obs()**
+
+Just remove it. The default behavior is now the same as what `obs()` did before.
+
+### Hooks renamed
+
+`useComputed` is now `useSelector`, re-rendering only when the return value changes.
+
+`useComputed` now returns a `computed` observable.
+
+
+
 ## 0.15 to 0.16
 
 ### enableLegendStateReact() to observe, removed observer
@@ -5,26 +51,6 @@
 Legend-State now automatically tracks observable access in any component. To set it up, just call `enableLegendStateReact()` at the beginning of your app.
 
 Now `observer` is no longer needed, so just remove all usage of `observer`.
-
-```jsx
-import { enableLegendStateReact } from "@legendapp/state/react"
-
-// Enable all React components to automatically become observers
-enableLegendStateReact()
-
-const state = observable({ count: 0 })
-
-// No HOC or selector needed
-function Component() {
-    // Accessing state automatically makes this
-    // component track changes to re-render
-    const count = state.count;
-
-    // Magic 🦄
-    return <div>{count}</div>
-}
-```
-
 
 ## 0.14 to 0.15
 

@@ -1,0 +1,91 @@
+## Initial setup
+
+Legend-State hooks directly into React so that it doesn't need any selectors, hooks, or higher order components.
+
+Just call `enableLegendStateReact()` once at the beginning of your application to enable it.
+
+```js
+import { enableLegendStateReact } from "@legendapp/state/react"
+
+enableLegendStateReact()
+```
+
+---
+
+There are three ways to consume observables in React:
+1. `get()` on observables makes the component automatically track them
+2. Rendering them directly
+3. `useSelector` to get individual values
+
+## get()
+
+Calling `get()` on an observable within any React component makes it track the accessed observables for changes. See [Tracking](../tracking) for more about when it tracks.
+
+```jsx
+const state = observable({ count: 0 })
+
+// No HOC or selector needed
+function Component() {
+    // Accessing state automatically makes this component track changes to re-render
+    const count = state.count.get();
+
+    // Magic 🦄
+    return <div>{count}</div>
+}
+```
+
+## Rendering directly
+
+Render an observable `string` or `number` straight into React and it will automatically be extracted as a separate memoized component with its own tracking context.
+
+```jsx
+<div>Count: {state.count}</div>
+```
+
+### Example
+
+<Example name="Primitive">
+```jsx
+import { observable } from "@legendapp/state"
+
+const count = observable(0)
+
+function Normal() {
+    // This re-renders when count changes
+    return (
+        <div>Count: {count.get()}</div>
+    )
+}
+function FineGrained() {
+    // This never re-renders when observable is rendered directly
+    return (
+        <div>Count: {count}</div>
+    )
+}
+```
+</Example>
+
+See [fine-grained reactivity](../fine-grained-reactivity/#1-render-an-observable-directly) for more details.
+
+## useSelector
+
+`useSelector` computes a value and automatically listens to any observables accessed while running, and only re-renders if the computed value changes.
+
+Props:
+- `selector`: Computation function that listens to observables accessed while running
+
+```jsx
+import { observable } from "@legendapp/state"
+import { useSelector } from "@legendapp/state/react"
+
+const state = observable({ selected: 1 })
+
+const Component = ({ id }) => {
+    const isSelected = useSelector(() => id === state.selected.get())
+    // Only re-renders if the return value changes
+
+    return <div>Selected: {isSelected}</div>
+}
+```
+
+See [Tracking](../tracking) for details about how Legend-State automatically tracks changes.

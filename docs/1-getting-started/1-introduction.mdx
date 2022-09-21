@@ -1,30 +1,57 @@
-Legend-State is a super fast and powerful state library for JavaScript apps with two primary goals:
+Legend-State is a super fast and powerful state library for JavaScript apps with three primary goals:
 
-### 1. <span className="text-xl">🦄</span> As easy as possible to use
+### 1. 🔥 Fine-grained reactivity for minimal renders
 
-There is no boilerplate and there are no actions, reducers, selectors, dispatchers, sagas, thunks, or epics. Observables are just normal objects that you can read/write and listen to for changes.
+Legend-State lets you make your renders super fine-grained, making your apps much faster because React has to do less work. The best way to be fast is to render less, less often.
+
+<Example name="Primitive">
+```jsx
+const count = observable(0)
+
+function Normal() {
+    // This re-renders when count changes
+    return (
+        <div>Count: {count.get()}</div>
+    )
+}
+function FineGrained() {
+    // This never re-renders when observable is rendered directly
+    return (
+        <div>Count: {count}</div>
+    )
+}
+```
+</Example>
+
+### 2. <span className="text-lg">🦄</span> As easy as possible to use
+
+There is no boilerplate and there are no contexts, actions, reducers, selectors, dispatchers, sagas, thunks, or epics. Just call `get()` to get the raw data and `set()` to change it.
+
+In React there are no selectors, hooks, or higher order components. Just access observables and your components update themselves automatically.
 
 ```jsx
 // Create an observable object
 const state = observable({ settings: { theme: 'dark' } })
 
-// Observables work like any other object
-state.settings.theme === 'dark' // true
-state.settings.theme = 'light'
+// Just get and set
+state.settings.theme.get() === 'dark'
+state.settings.theme.set('light')
 
-// observe re-runs when any observables change
+// observe re-runs when accessed observables change
 observe(() => {
-    console.log(state.settings.theme)
+    console.log(state.settings.theme.get())
 })
 
-// Components automatically track observables and re-render when state changes
+// Components automatically track observables and re-render when they change
 // No HOC or selector needed
 function Component {
-    return <div>Theme: {state.settings.theme}</div>
+    const theme = state.settings.theme.get()
+
+    return <div>Theme: {theme}</div>
 }
 ```
 
-### 2. <span className="text-xl">⚡️</span> The fastest React state library
+### 3. <span className="text-lg">⚡️</span> The fastest React state library
 
 Legend-State beats every other state library on just about every metric and is so optimized for arrays that it even beats vanilla JS on the "swap" and "replace all rows" benchmarks. At only `3kb` and with the massive reduction in boilerplate code, you'll have big savings in file size too.
 
@@ -35,37 +62,42 @@ See [Fast 🔥](./fast) for more details of why Legend-State is so fast.
 ## Example
 <Example name="Intro">
 ```jsx
+import { observable } from "@legendapp/state"
+
 // Create an observable object
 const state = observable({ settings: { theme: 'dark' } })
 
-// Observables work like any other object
-state.settings.theme === 'dark'   // true
+// get() returns the raw data
+state.settings.theme.get() === 'dark'
 
 // observe re-runs when any observables change
 observe(() => {
-    console.log(state.settings.theme)
+    console.log(state.settings.theme.get())
 })
 
-// Assign to state like anything else
-state.settings.theme = 'light'
+// Assign to state with set
+state.settings.theme.set('light')
 
-// Automatically persist state
+// Automatically persist state. Refresh this page to try it.
 persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
 // This is the code for the example on your right ----->
 function Component() {
+    const theme = state.settings.theme.get()
+    // state.settings.theme is automatically tracked for changes
+
     const toggle = () => {
         state.settings.theme.set(theme =>
             theme === 'dark' ? 'light' : 'dark'
         )
     }
 
-    // state.settings.theme is automatically tracked for changes
-
     return (
-        <div>
-            <div>Theme: {state.settings.theme}</div>
+        <div
+            className={theme === 'dark' ? 'theme-dark' : 'theme-light'}
+        >
+            <div>Theme: {theme}</div>
             <Button onClick={toggle}>
                 Toggle theme
             </Button>
@@ -79,6 +111,7 @@ function Component() {
 - ✨ Super easy to use 😌
 - ✨ Super fast ⚡️
 - ✨ Super small at 3kb 🐥
+- ✨ Fine-grained reactivity 🔥
 - ✨ No boilerplate
 - ✨ Designed for maximum performance and scalability
 - ✨ React components re-render only on changes
@@ -86,7 +119,7 @@ function Component() {
 - ✨ Persistence plugins for automatically saving/loading from storage
 - ✨ State can be global or within components
 
-The core is platform agnostic so you can use it in vanilla JS or any framework to create and listen to observables. It includes hooks and a HOC component for React and React Native, and has plugins for automatically persisting to storage.
+The core is platform agnostic so you can use it in vanilla JS or any framework to create and listen to observables. It includes support for React and React Native, and has plugins for automatically persisting to storage.
 
 [Read more](./why) about why you'll love Legend-State ❤️
 
@@ -103,29 +136,32 @@ import { observable } from "@legendapp/state"
 
 const obs = observable({ text: 'hello', obj: { value: 10 } })
 
-obs.text === 'hello' // true
-obs.obj.value === 10 // true
+obs.text.get() === 'hello' // true
+obs.obj.value.get() === 10 // true
 ```
 
 [Read more](./observable)
 
 ## Modify observables
 
-Observables supports direct assignment along with safe modification functions: `set`, `assign`, and `delete`. You can use observable functions on any object, array, or primitive in your state.
+Observables have safe modification functions: `set`, `assign`, and `delete`. You can use observable functions on any object, array, or primitive in your state.
 
-Note that observables can optionally be used in [safe mode](./observable#safe-mode) which prevents direct assignment to make your state safer.
+Primitives (string, boolean, number) also have a `value` which you can read and assign directly to.
 
 ```js
-const obs = observable({ text: '', num: 10 })
+const obs = observable({ text: '' })
 
-obs.text = 'hi'
-// obs == { text: 'hi', num: 10 }
+// Use the set function anywhere
+obs.text.set('hi')
 
-obs.text.set('hello')
-// obs == { text: 'hello', num: 10 }
+// Easily modify the previous value
+obs.text.set(text => text + ' there')
 
+// On primitives you can set value directly
+obs.text.value = 'hello'
+
+// Assign to update objects
 obs.assign({ text: 'hello there' })
-// obs == { text: 'hello there', num: 10 }
 ```
 
 [Read more](./observable#set)
@@ -141,12 +177,18 @@ obs.settings.theme.onEquals('dark', (theme) => console.log('Theme is dark'))
 obs.settings.onChange((settings) => console.log('Settings changed to', settings))
 ```
 
-Or use `observe` to track accessed observables automatically.
+Use `observe` to track accessed observables automatically.
 
 ```js
 observe(() => {
     console.log('Theme is', obs.settings.theme)
 })
+```
+
+Use `when` to wait for a value to become truthy.
+
+```js
+await when(() => obs.settings.theme === 'dark')
 ```
 
 [Read more](./reactivity)
@@ -159,7 +201,8 @@ Legend-State's React integration automatically listens to the accessed observabl
 const obs = observable({ text: 'hello', num: 10, other: {} as LargeObject })
 
 function Component() {
-    // This will only re-render on changes to text or num
+    // This component will never re-render.
+    // The two text elements will re-render themselves on changes to text or num
     return <div>{obs.text} {obs.num}</div>
 }
 ```
@@ -170,7 +213,7 @@ function Component() {
 
 Use the `Computed` and `Memo` components to isolate children so that they re-render from their own observables without needing to re-render the parent. This is a very easy way to optimize large components to render less often.
 
-Or just render an observable directly to give it its own tracking context
+Or just render an observable directly to give it its own tracking context.
 
 <Example name="Easy">
 ```jsx
@@ -185,9 +228,9 @@ function MemoExample() {
     return (
         <div>
             <div>Renders: {renderCount}</div>
-            <div>Count: {state.count.obs()}</div>
+            <div>Count: {state.count}</div>
             <Memo>
-                <div>Count: {state.count}</div>
+                <div>Count: {state.count.get()}</div>
             </Memo>
         </div>
     )
@@ -216,12 +259,14 @@ obs.profile.get() === profile // ✅ true. The raw data is exactly what was set.
 
 `computed` automatically tracks the observables accessed while computing, so you can just return a computed value based on multiple observables, and it will update whenever one of them changes.
 
+`computed` is lazy so it won't run the compute function until you `get()` the value the first time.
+
 ```js
 const obs = observable({ first: 'Hi', last: 'there' })
-const computed = computed(() => obs.first + ' ' + obs.last)
+const computed = computed(() => obs.first.get() + ' ' + obs.last.get())
 // computed.get() === 'Hi there'
 
-obs.first = 'Hello'
+obs.first.set('Hello')
 // computed.get() === 'Hello there'
 ```
 
@@ -230,19 +275,18 @@ obs.first = 'Hello'
 
 ## Observable primitives
 
-`observable` can also be used with primitives. They are wrapped in `{ value }` so that you can always get the latest value of the observable.
+`observable` is also optimized to use many observable primitives instead of one big object. A primitive observable additionally has a `value` that you can read/modify.
 
 ```js
 const theme = observable('dark')
 
+// Get the value with get() or value
+theme.get() === 'dark' // true
 theme.value === 'dark' // true
 
+// Set the value with set() or value
 theme.set('light')
-
-theme.value === 'light' // true
-
-// Or use the get() function
-theme.get() === 'light' // true
+theme.value = 'dark'
 ```
 
 [Read more](./observable#observable-primitives)

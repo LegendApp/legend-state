@@ -1,55 +1,20 @@
-Observables work like regular objects and you can interact with them as you would any other object. Even primitive values in observables work normally.
+You can put any kind of data in observables. Observables don't change the raw data at all, and you can access the raw value at any point with `get()`.
 
 ```js
 import { observable } from "@legendapp/state"
 
 const obs = observable({ text: 'hello' })
 
-console.log(obs)
+console.log(obs.get())
 // { text: 'hello' }
 
-console.log(obs.text, obs.text === 'hello')
+console.log(obs.text.get(), obs.text.get() === 'hello')
 // 'hello', true
 ```
-
-Legend-State overrides the prototype of primitives so you can even use observable functions on numbers, strings, and booleans.
-
-```js
-const obs = observable({ text: 'hello' })
-
-console.log(obs.text)
-// 'hello'
-
-obs.text.set('hi')
-
-console.log(obs.text, obs.text === 'hi')
-// 'hi', true
-```
-
-## Observable primitives
-
-If an observable is itself a primitive, it is wrapped in `{ current }` so that you can always get the latest value of the observable.
-
-```js
-const theme = observable('dark')
-
-theme.current === 'dark' // true
-
-theme.set('light')
-
-theme.current === 'light' // true
-
-// Or use the get() function
-theme.get() === 'light' // true
-```
-
-These functions are on the prototype of the observables.
 
 ## get()
 
 Observables use [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) to expose observable functions and track changes, so an observable is a Proxy pointing to the actual data. You can use `get()` to get the actual value of any observable.
-
-You may want to access the underlying data to modify without notifying, or to check for [strict equality](../advanced#equality).
 
 ```js
 const obs = observable({ profile: { name: '' } })
@@ -71,11 +36,15 @@ const { data } = obs.get()
 processData(data)
 ```
 
+Calling `get()` within a tracking context tracks the observable automatically. You can change that behavior with `false` to not track or `shallow` to track only when keys are added/removed. See [Tracking](../tracking) for more details.
+
+## peek()
+
+`peek()` is the same as `get(false)`, returning the value without tracking it.
+
 ## set()
 
-You can use `set()` instead of directly assigning if an observable is in safe mode, or just to feel safer and avoid accidental bugs, and to be more mindful that using `set` will effect renders.
-
-`set` has two overloads, one to set directly and one to set by key.
+You can use `set()` to modify the observable, at any path within it. You can even `set()` on a node that is currently undefined, and it will fill in the object tree to make it work.
 
 ```js
 const obs = observable({ text: 'hi' })
@@ -83,14 +52,11 @@ const obs = observable({ text: 'hi' })
 // Set directly
 obs.text.set('hello there')
 
-// Set by key
-obs.set('text', 'hello there')
-
-// Add properties by key
-obs.set('otherKey', 'hi')
-
 // Set with a function relative to previous value
 obs.set('text', (prev) => prev + ' there')
+
+// Set will automatically fill out objects that were undefined
+obs.otherKey.otherProp.set('hi')
 ```
 
 ## assign()
@@ -106,58 +72,27 @@ obs.assign({ text: 'hi2' })
 
 ## delete()
 
-Observables provide a `delete` function with two overloads, one to delete from an object by key and one to delete itself.
+Observables provide a `delete` function to delete a key from an object.
 
 ```js
 const obs = observable({ text: 'hi' })
 
-// Delete self
+// Delete text
 obs.text.delete()
-
-// Delete by key
-obs.delete('text')
 ```
 
-## obs()
+## Safety
 
-Because primitives are exposed as their actual value, saving a primitive as a variable is not a stable reference to the observable (see [Usage Tracking](../advanced#usage-tracking)). The `obs` helper provides a stable reference to the observable wrapping primitives. You can use it from the primitive's parent or as a helper function.
-
-`obs(path)` can be used to get a reference to a node that's currently undefined because it would be undefined if accessing it directly.
-
-It's also useful to use this for a stable reference to the `set` function for passing to React event handlers.
-
-```js
-const obs = observable({ text: 'hi' })
-
- // "hi" - string primitive
-const text = obs.text
-
-// observable
-const textObs = obs.obs('text')
-const textObs2 = obs.text.obs()
-
-// A stable reference to the set functions
-const setText = obs.text.obs().set
-
-// Set the text
-setText('hello')
-```
-
-## Safe mode
-
-`observable` has three levels of safety that you can choose from with the second parameter. Safe modes prevent direct assignment, because you might accidentally assign to state without realizing it will cause renders, or you might accidentaly assign huge objects into an observable. Direct assignment is prevent both through TypeScript errors and runtime errors.
-
-1. `false`: Unsafe mode allows direct assignment to everything. This more flexible but potentially danger as you might accidentally assign to state without realizing it will cause renders.
-2. `undefined`: Default mode allows direct assigning to primitives (`number`, `boolean`, `string`) but blocks directly assigning to everything else. This is a compromise between safety and flexibility.
-3. `true`: Safe mode blocks all direct assignment. This is the safest option but may feel more cumbersome.
-
-When you block direct assignment, you can use `set`, `assign`, and `delete` functions instead.
+Observables are safe so that you cannot directly assign to them, which prevents accidentally overwriting state or accidentaly assigning huge objects into an observable. But, primitives (string, number, boolean) have a `value` that you can modify directly.
 
 ```js
 const obs = observable({ text: 'hello', num: 10, obj: {} }, /*safe*/ true)
 
 obs.text = 'hi'
-// ⛔️ Setting a primitive works in default mode but not in safe mode.
+// ❌ Can't set directly
+
+obs.text.value = 'hi'
+// ✅ Setting value works
 
 obs = {}
 // ❌ Error. This would delete the observable.
@@ -176,4 +111,28 @@ obs.assign({ text: 'hello there' })
 
 obs.text.assign({ value: 'hello there' })
 // ❌ Error. Cannot call assign on a primitive.
+```
+
+## undefined
+
+Because observables track nodes by path and not the underlying data, an observable points to a path within an object regardless of its actual value. So it is perfectly fine to access observables when they are currently undefined in the object.
+
+You could to do this to set up a listener to a field whenever it becomes available.
+
+```jsx
+const state = observable({ user: undefined })
+
+when(state.user.uid, () => {
+    // Handle login
+}
+```
+
+Or you could set a value inside an undefined object, and it fill out the object tree to make it work.
+
+```jsx
+const state = observable({ user: undefined })
+
+state.user.profile.name.set('Annyong')
+
+// state == { user: { profile: { name: 'Annyong' } } }
 ```

@@ -16,3 +16,24 @@ mergeIntoObservable(obs, newValue)
 
 obs.store === newValue.store // ✅ true
 ```
+
+## lockObservable
+
+To ensure that observables are only modified within certain actions, you can lock observables so that they cannot be modified, then unlock them temporarily in your actions. This is used under the hood by `computed`.
+
+```js
+import { lockObservable } from '@legendapp/state'
+
+const obs = observable({ state: { ... } })
+lockObservable(obs, true);
+
+function safeAction() {
+    // Unlock it to modify it
+    lockObservable(obs, false)
+    // Modify it
+    obs.set({ state: { ... } })
+    // Lock it back
+    lockObservable(obs, true)
+}
+
+```

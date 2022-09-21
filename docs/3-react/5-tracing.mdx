@@ -13,7 +13,7 @@ function Component(props) {
     traceListeners()
 
     return (
-        <div>{state.count}</div>
+        <div>{state.count.get()}</div>
     )
 
     /* This logs:
@@ -37,7 +37,7 @@ function Component(props) {
     traceUpdates()
 
     return (
-        <div>{state.count}</div>
+        <div>{state.count.get()}</div>
     )
 
     /* This logs:
@@ -50,12 +50,39 @@ function Component(props) {
 }
 ```
 
+## verifyNotTracking()
+
+Call `verifyNotTracking()` anywhere within any React component to console.error if it is tracking anything. This is useful if you are going for fine-grained reactivity and want to make sure parent components are not tracking any observables.
+
+```jsx
+import { verifyNotTracking } from "legendapp/state/trace"
+
+function Component(props) {
+    // Call verifyNotTracking anywhere inside the component
+    verifyNotTracking()
+
+    // This will log an error because get() makes it track
+    return (
+        <div>{state.count.get()}</div>
+    )
+}
+function FineComponent(props) {
+    // Call verifyNotTracking anywhere inside the component
+    verifyNotTracking()
+
+    // This will not log because rendering the observable directly
+    // does not re-render this component
+    return (
+        <div>{state.count}</div>
+    )
+}
+```
+
 ## What to do with this information
 
 - You may want to call `get()` at a higher level in an object to only listen to it, and not every single child.
-- `get(Tracking.shallow)` will only update when keys are added to or removed from the object.
-- If you're passing primitives down to children, call `obs()` on it to get a reference to it without listening to it.
-- You may want to call `get()` to not listen at all.
+- Use a shallow listener with `get(true)` to only update when keys are added to or removed from the object.
+- You may want to call `peek()` to not listen at all.
 
 If you find an observable changing often and you're not sure why, you can put a breakpoint on the console log to catch it. Or add your own listener to the observable to watch every change:
 ```js

@@ -1,17 +1,15 @@
-`observe`, `when`, `computed`, `useComputed`, and React components automatically track accessing primitives through an observable and array looping functions while rendering the component, so you generally don't have to think about it unless you want to specifically optimize. When an observable is tracked, it will re-run on any changes anywhere within the observable and it's children.
+`observe`, `when`, `computed`, and React components automatically track when you call `get()` or use array looping functions, so you generally don't have to think about it unless you want to specifically optimize. When an observable is tracked, it will re-run on any changes anywhere within the observable and it's children.
 
 These operations track:
-1. Accessing a primitive through an observable: `settings.theme === 'dark'`
+1. Call `get()` on an observable: `settings.get()`
 2. Array looping functions (shallow listener): `arr.map(settings.accounts, () => ...)`
 3. Accessing array length (shallow listener): `if (arr.length > 0) ...`
 4. Object.keys (shallow listener): `Object.keys(settings)`
-5. Call `get()` on an observable: `settings.get()`
-6. Call `obs(true)` on an observable: `settings.obs(true)`
 
 These operation do not track:
-1. Accessing an object/array through an observable: `state.settings`
+1. Accessing through an observable: `state.settings`
 2. Call `get(false)` on an observable: `settings.get(false)`
-3. Call `obs()` on an observable: `settings.obs()`
+2. Call `peek()` on an observable: `settings.peek()`
 
 Some examples of the automatic behavior:
 
@@ -29,23 +27,23 @@ const state = observable({
 
 observe(() => {
     // Example 1:
-    const theme = state.settings.theme
-    // Tracking [state.settings.theme] because it's a primitive (string)
+    const theme = state.settings.theme.get()
+    // Tracking [state.settings.theme] because of get()
 
     // Example 2:
     const settings = state.settings
     // Not tracking because it's an object
 
-    const theme = settings.theme
-    // Tracking [state.settings.theme] because it's a primitive
+    const theme = settings.theme.get()
+    // Tracking [state.settings.theme] because of get()
 
     // Example 3:
-    const themeObs = state.settings.theme.obs();
-    // Not tracking because obs() untracks primitive access
+    const themeObs = state.settings.theme
+    // Not tracking with no get()
 
     // Example 4:
     state.chats.messages.map(m => <Message key={m.get().id} message={m} />)
-    // Tracking [state.chats.messages (shallow)]
+    // Tracking [state.chats.messages (shallow)] because of map()
 
     // Example 5:
     Object.keys(state.settings)
@@ -60,8 +58,7 @@ The automatic behavior can be modified with two observable functions:
 | -----------  | ---------- | ------- |
 | `get()`      | raw        | yes     |
 | `get(false)` | raw        | no      |
-| `obs()`      | observable | no      |
-| `obs(true)`  | observable | yes     |
+| `peek()`     | raw        | no      |
 </div>
 
 ### get()
@@ -73,7 +70,6 @@ The automatic behavior can be modified with two observable functions:
 
 `get()` is a tracking operation by default, but you can disable tracking with `get(false)`.
 
-
 ```js
     const theme = state.settings.theme.get()
     // ✅ Tracking [state.settings.theme]
@@ -82,37 +78,20 @@ The automatic behavior can be modified with two observable functions:
     // ❌ Not tracked
 ```
 
-### obs()
+### peek()
 
-`obs` returns an observable without tracking it. You may want to use `obs()` to:
-
-- Get an observable wrapper for a primitive value in state, to pass to a child component
-- Get an observable to a value that may currently be undefined
-
-`obs()` is a non-tracking operation by default, but you can enable tracking with `obs(true)`.
-
-```jsx
-const state = observable({ user: { name: 'Name' }})
-
-function Component() {
-    // Tracking []
-    // The Input component is bound to the name property
-    // Without obs it would just be a string
-    return <MyInput bind={state.user.name.obs()} />
-}
-```
+`peek` returns the raw data of an observable without tracking it. It's the same as `get(false)`.
 
 ### shallow modifier
 
-Both `get()` and `obs()` observe recursively by default, so any child changing will cause an update. You can modify it to be a shallow listener with the `Tracking` helper. This can be useful when a component only needs to re-render if an object's keys or an array's items change.
+`get()` observes recursively by default, so any child changing will cause an update. You can modify it to be a shallow listener by just adding a `true` parameter. This can be useful when a component only needs to re-render if an object's keys or an array's items change.
 
 ```jsx
-import { Tracking } from "@legendapp/state"
 const state = observable({ messages: [] })
 
 observe(() => {
     // Only need this to update when messages added/removed
-    const messages = state.messages.get(Tracking.shallow)
+    const messages = state.messages.get(true)
 
     console.log('Latest message', messages[0])
 })

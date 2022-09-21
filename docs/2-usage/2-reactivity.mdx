@@ -19,8 +19,8 @@ obs.onChange(value => console.log('obs changed to', value))
 
 obs.text.set('hello')
 
-// text changed to "hello"
-// obs changed to { text: "hello" }
+// Log: text changed to "hello"
+// Log: obs changed to { text: "hello" }
 ```
 
 ### Dispose of listeners
@@ -50,7 +50,7 @@ const state = observable({ isOnline: false, toasts: [] })
 
 const dispose = observe(() => {
     // This observe will automatically track state.isOnline for changes
-    if (!state.isOnline) {
+    if (!state.isOnline.get()) {
         // Show an "Offline" toast when offline
         const toast = { id: 'offline', text: 'Offline', color: 'red' }
         state.toasts.push(toast)
@@ -68,16 +68,18 @@ dispose()
 
 `when` runs the given function when the predicate returns a truthy value, and automatically tracks the observables accessed while running the predicate so it will update whenever one of them changes. When the value becomes truthy it will call the function and dispose the listeners. If not given a function it will return a promise that resolves when the predicate returns a truthy value.
 
+The predicate can either be an observable or a function.
+
 ```js
 import { when } from "@legendapp/state"
 
 const obs = observable({ ok: false })
 
 // Option 1: Promise
-await when(() => obs.ok)
+await when(obs.ok)
 
 // Option 2: callback
-const dispose = when(() => obs.ok, () => console.log("Don't worry, it's ok"))
+const dispose = when(() => obs.ok.get(), () => console.log("Don't worry, it's ok"))
 
 // Cancel listening manually
 dispose()
@@ -87,11 +89,13 @@ dispose()
 
 `computed` automatically tracks the observables accessed while computing, so you can  return a computed value based on multiple observables, and it will update whenever one of them changes.
 
+`computed` is lazy so it won't run the compute function until you `get()` the value the first time.
+
 ```js
 import { computed } from "@legendapp/state"
 
 const obs = observable({ test: 10, test2: 20 })
-const computed = computed(() => obs.test + obs.test2)
+const computed = computed(() => obs.test.get() + obs.test2.get())
 // computed.get() === 30
 
 obs.test.set(5)
@@ -107,15 +111,11 @@ import { event } from "@legendapp/state"
 
 const onClosed = event()
 
-const handleClosed = () => {
-    // Do some cleanup when closed
-}
-
 // Simply pass a callback to the `on` function
-onClosed.on(handleClosed)
+onClosed.on(() => { ... })
 
 // Or use it with 'onChange' like other observables
-onClosed.onChange(handleClosed)
+onClosed.onChange(() => { ... }))
 
 // Dispatch the event to call listeners
 onClosed.dispatch()

@@ -1,4 +1,4 @@
-Legend-State is the result of many experiments and rewrites to find the fastest possible state system. The primary reason it's so fast is that it optimizes for the fewest number of renders - components are only re-rendered when the state they truly care about is changed.
+Legend-State is the result of dozens of experiments and rewrites to build the fastest possible state system. The primary reason it's so fast is that it optimizes for the fewest number of renders - components are only re-rendered when the state they truly care about is changed.
 
 It may seem silly to quibble over milliseconds, but state is a hot path of most applications, so it's important that it be as fast as possible to keep your whole application snappy.
 
@@ -10,13 +10,13 @@ We'll show results of the popular [krausest](https://github.com/krausest/js-fram
 
 Legend-State (on the left) optimizes for rendering each row when it changes, but not the entire list, which is reflected in the fast "partial update" and "select row" benchmarks. That typically incurs an extra upfront cost to set up the listeners in each row, but Legend-State is so optimized that even so it's actually still the fastest in the "create many rows" benchmark.
 
-Legend-State really shines in the "swap rows" benchmark. When elements are transposed in an array and no new elements are added, it does not need to re-render the list and only renders the rows that changed. That's super helpful for drag/drop or when items are otherwise moved around in a list.
+Legend-State really shines in the "replace all rows" and "swap rows" benchmarks. When no elements are added or removed, it does not need to re-render the list and renders the individual rows that changed. That brings a beed speed improvement for drag/drop or when items are moved around in a list.
 
 ### Startup metrics
 
 <img src="/img/dev/state/startup.png" style={{ borderRadius: '1rem' }} />
 
-In these benchmarks you can see that Legend-State has the fastest TTI (time to interactive) and lowest CPU cost, because Legend-State doesn't do much processing up front. Creating observables and adding thousands of listeners does very little work.
+In these benchmarks you can see that Legend-State has the fastest TTI (time to interactive) and lowest CPU cost, because Legend-State doesn't do much processing up front. Creating observables and adding thousands of listeners does very little work. Because observables don't have to modify the underlying data at all, creating an observable just creates a tiny amount of metadata.
 
 ### Memory
 
@@ -38,7 +38,7 @@ Each node keeps a `Set` of listeners so that you can listen to changes to any va
 
 ### Granular renders
 
-Extensive care is taken to ensure that components are rendered only when their state truly changes. Legend-State provides [functions](../tracking) to be extra specific about when it tracks changes and [useComputed](../useComputed) to isolate a tracking computation to return one value. The best thing for your app's performance is to ensure that state changes cause minimal component renders.
+Extensive care is taken to ensure that components are rendered only when their state truly changes. Legend-State provides [functions](../tracking) to be extra specific about when it tracks changes and [useSelector](../hooks#useselector) to isolate a tracking computation to return one value. The best thing for your app's performance is to render less, less often.
 
 ### Easy fine-grained reactivity
 
@@ -69,7 +69,7 @@ function MemoExample() {
 
 ### Shallow listeners
 
-[Shallow listeners](../listeners#onChangeShallow) are called on objects only when keys are added or removed, but not when children are changed. This lets the child components manage their own rendering and large parent components don't need to render.
+[Shallow listeners](../tracking#shallow-modifier) are called on objects only when keys are added or removed, but not when children are changed. This lets the child components manage their own rendering and large parent components don't need to render.
 
 ### Array optimizations
 

@@ -8,37 +8,44 @@ Legend-State is the [fastest React state library](../fast), designed to be as ef
 
 ## Feels natural 😌
 
-There's no easier way to read state than just reading it. There are no special hooks, functions, Contexts, or other boilerplate required to work with observables. Observable objects work as you'd expect, and the observable functions are right there on the prototype.
+There are no special hooks, functions, Contexts, or other boilerplate required to work with observables. Observable objects work as you'd expect, and the observable functions are right there on the prototype.
 
-```js
+```jsx
 const obs = observable({ value: 1 })
-obs.value === 1 // true
-obs.value = 2
-```
+obs.value.get()
+obs.value.set(2)
 
+// Components automatically track observables and re-render when they change
+// No HOC or selector needed
+function Component {
+    return <div>Value: {obs.value}</div>
+}
+```
 
 ## Fine-grained reactivity
 
-Render an observable automatically extracts it as a separate memoized component with its own tracking context, so it takes practically no effort to isolate renders to a single text element.
+Rendering an observable automatically extracts it as a separate memoized component with its own tracking context under the hood, so it's easy to isolate renders to a single text element.
 
-<Example name="BasicDirect">
+<Example name="Primitive">
 ```jsx
-import { observable } from "@legendapp/state"
+const count = observable(0)
 
-const state = observable({ count: 0 })
-
-function ComponentDirect() {
-    // Rendering the observable: tracks in an isolated element
-    const renderCount = ++useRef(0).current
+function Normal() {
+    // This re-renders when count changes
     return (
-        <div>Renders: {renderCount}</div>
-        <div>Count: {state.count.obs()}</div>
+        <div>Count: {count.get()}</div>
+    )
+}
+function FineGrained() {
+    // This never re-renders when observable is rendered directly
+    return (
+        <div>Count: {count}</div>
     )
 }
 ```
 </Example>
 
-For isolating a group of elements, Legend-State has [built-in helpers](../fine-grained-reactivity) to easily extract children so that their changes do not affect the parent. This keeps large parent components from rendering often just because their children change.
+For isolating a group of elements or computations, Legend-State has [built-in helpers](../fine-grained-reactivity) to easily extract children so that their changes do not affect the parent. This keeps large parent components from rendering often just because their children change.
 
 <Example name="MemoArray">
 ```jsx
@@ -47,14 +54,15 @@ function MemoExample() {
     const messages = useObservable([])
 
     useInterval(() => {
-        messages.splice(0, 0, `Message ${messages.length + 1}`)
+        messages.splice(0, 0,
+            `Message ${messages.length + 1}`)
     }, 1000)
 
     return (
-        <div className="text-md" style={{ width: 300 }}>
+        <div>
             <div>Renders: {renderCount}</div>
             <Memo>
-                <div className="pt-4 h-[300px] overflow-auto">
+                <div>
                     {messages.map((m, i) => (
                         <div key={i}>{m}</div>
                     ))}
@@ -70,9 +78,9 @@ function MemoExample() {
 
 Some state libraries are for global state while some want state to reside within React. Some enourage individual atoms and others are for large global stores. Some have "actions" and "reducers" and others require immutability. But you can use Legend-State any way you want.
 
-- **In React or external**: Up to you 🤷‍♀️
+- **Global state or local state in React**: Up to you 🤷‍♀️
 - **Individual atoms or one store**: Up to you 🤷‍♀️
-- **Direct use or actions/reducers**: Up to you 🤷‍♀️
+- **Modify directly or in actions/reducers**: Up to you 🤷‍♀️
 
 See [Patterns](../patterns) for more examples of different ways to use Legend-State.
 
@@ -94,4 +102,4 @@ persistObservable(state, { local: 'exampleState' })
 
 ## It's safe from 🔫 footguns
 
-Observables warn when assigning while rendering or when assigning a DOM element. [Safe mode](../observable#safe-mode) can even prevent direct assignment, favoring more purposeful `set` and `assign` functions instead.
+Observables prevent direct assignment, favoring more purposeful `set` and `assign` functions instead. Read more in [safety](../observable#safety).
