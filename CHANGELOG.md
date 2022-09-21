@@ -6,7 +6,7 @@ This is a big one, with mainly a breaking change to how primitives work, so see 
 - Breaking: Removed `obs()` function
 - Breaking: `set()` no longer has a keyed version because it's not needed now that we can dot through undefined nodes
 - Breaking: Renamed `useComputed` to `useSelector`
-- Feature: Because primitives are returned as observables, we can not dot through undefined nodes
+- Feature: Because primitives are returned as observables, we can now dot through undefined nodes
 - Feature: Added `peek()` function, which is the same as `get(false)`
 - Feature: `useComputed` returns a `computed` observable
 - Feature: `useObserve` creates an `observe` context
@@ -19,7 +19,6 @@ This is a big one, with mainly a breaking change to how primitives work, so see 
 - Fix: The new `enableLegendStateReact()` is more stable and works better with nested components
 - Fix: Rendering observables directly is more stable, especially in React Native
 - Fix: Modifying listeners in an `observe` was sometimes causing infinite loops
-
 
 ## 0.16.1
 - Fix: A component going from tracking nodes to not tracking nodes was causing errors
