@@ -32,10 +32,9 @@ export function doNotify(
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
-        let arr = Array.from(listeners);
-        for (let i = 0; i < arr.length; i++) {
-            const listenerFn = arr[i];
-            const { track, noArgs } = listenerFn;
+        let listenerNode = node.listeners;
+        while (listenerNode) {
+            const { track, noArgs } = listenerNode;
 
             const ok = track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
 
@@ -48,9 +47,9 @@ export function doNotify(
                 }
                 batchNotify(
                     noArgs
-                        ? (listenerFn.listener as () => void)
+                        ? (listenerNode.listener as () => void)
                         : {
-                              cb: listenerFn.listener,
+                              cb: listenerNode.listener,
                               value,
                               getPrevious,
                               path,
@@ -60,6 +59,8 @@ export function doNotify(
                           }
                 );
             }
+
+            listenerNode = listenerNode.next;
         }
     }
 }

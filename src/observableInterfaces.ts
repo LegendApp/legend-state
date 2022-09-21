@@ -252,7 +252,7 @@ export interface NodeValue {
     key?: string | number;
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
-    listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
+    listeners?: ListenerNode;
 }
 
 /** @internal */
@@ -260,4 +260,14 @@ export interface TrackingNode {
     node: NodeValue;
     track?: TrackingType;
     num?: number;
+}
+
+/** @internal */
+export interface ListenerNode {
+    track: TrackingType;
+    noArgs?: boolean;
+    listener: ListenerFn;
+    next?: ListenerNode;
+    prev?: ListenerNode;
+    active?: boolean;
 }

@@ -1,4 +1,6 @@
-import { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
+import { ListenerFn, ListenerNode, NodeValue, TrackingType } from './observableInterfaces';
+
+const listenerNodePool: ListenerNode[] = [];
 
 export function onChange(
     node: NodeValue,
@@ -6,14 +8,34 @@ export function onChange(
     track?: TrackingType,
     noArgs?: boolean
 ): () => void {
-    let listeners = node.listeners;
-    if (!listeners) {
-        node.listeners = listeners = new Set();
+    const listenerNode: ListenerNode = listenerNodePool.pop() || ({} as ListenerNode);
+    listenerNode.listener = callback;
+    listenerNode.track = track;
+    listenerNode.noArgs = noArgs;
+
+    if (!node.listeners) {
+        node.listeners = listenerNode;
+    } else {
+        listenerNode.next = node.listeners;
+        node.listeners.prev = listenerNode;
+        node.listeners = listenerNode;
     }
+    listenerNode.active = true;
 
-    const listener = { listener: callback, track: track, noArgs };
-
-    listeners.add(listener);
-
-    return () => listeners.delete(listener);
+    return () => {
+        const { prev, next } = listenerNode;
+        if (node.listeners === listenerNode) {
+            node.listeners = listenerNode.next;
+        }
+        if (prev) {
+            prev.next = next;
+            listenerNode.prev = undefined;
+        }
+        if (next) {
+            next.prev = prev;
+            listenerNode.next = undefined;
+        }
+        listenerNode.active = false;
+        listenerNodePool.push(listenerNode);
+    };
 }
