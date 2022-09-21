@@ -1,3 +1,26 @@
+## 0.17.0
+
+This is a big one, with mainly a breaking change to how primitives work, so see https://legendapp.com/dev/state/migrating for more details. We're aiming for this to be the last major change before aiming towards a 1.0.
+
+- Breaking: Primitives in state are now returned as observable objects like everything else, and you can use `get()` or `.value` to access/modify the value
+- Breaking: Removed `obs()` function
+- Breaking: `set()` no longer has a keyed version because it's not needed now that we can dot through undefined nodes
+- Breaking: Renamed `useComputed` to `useSelector`
+- Feature: Because primitives are returned as observables, we can not dot through undefined nodes
+- Feature: Added `peek()` function, which is the same as `get(false)`
+- Feature: `useComputed` returns a `computed` observable
+- Feature: `useObserve` creates an `observe` context
+- Feature: `computed` is now lazy and won't activate until its value is accessed for the first time
+- Feature: `Show` has a `wrap` prop to wrap children, for example with <AnimatePresence>
+- Feature: Allow observable with no parameters, initialized to undefined
+- Feature: `verifyNotTracking()` to make sure that components never re-render
+- Perf: Observables created as primitives use a class instead of a Proxy, to speed up the scenario of using tons of primitive observables
+- Perf: Listeners that don't care about the value (like observe and React components) skip passing all the parameters to callbacks
+- Fix: The new `enableLegendStateReact()` is more stable and works better with nested components
+- Fix: Rendering observables directly is more stable, especially in React Native
+- Fix: Modifying listeners in an `observe` was sometimes causing infinite loops
+
+
 ## 0.16.1
 - Fix: A component going from tracking nodes to not tracking nodes was causing errors
 
@@ -21,7 +44,7 @@ See https://legendapp.com/dev/state/migrating for more details.
 
 ## 0.15.0
 
-This is a big one with many breaking (but good) changes, so see https://legendapp.com/dev/state/migrating for more details. We're making a lot of breaking changes all once so that we can start to stabilize towards a 1.0.
+This is a big one with many breaking (but good) changes, so see https://legendapp.com/dev/state/migrating for more details. We're making a lot of breaking changes all once so it's not too impactful.
 
 - Breaking: There are now three levels of safety: Unsafe, Default, Safe. "Default" is new and allows direct assignment to primitives but prevents directly assigning to everything else. The previous default behavior was "Unsafe" so you may see errors if you were directly assigning to objects/arrays/etc... Replace those with `.set(...)` or pass in `false` as the second parameter to `observable` to go back to "Unsafe" mode.
 - Breaking: Renamed `ref()` to `obs()`
