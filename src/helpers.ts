@@ -35,7 +35,7 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
         }
         const value = (target as any).peek?.() || target;
         for (const key in source) {
-            if (isObject(source[key] && !isObjectEmpty(source[key]))) {
+            if (isObject(source[key]) && !isObjectEmpty(source[key])) {
                 if (!needsSet && (!value[key] || !isObject(value[key]))) {
                     target[key] = {};
                 }
