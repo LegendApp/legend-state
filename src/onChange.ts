@@ -8,10 +8,21 @@ export function onChange(
     track?: TrackingType,
     noArgs?: boolean
 ): () => void {
-    const listenerNode: ListenerNode = listenerNodePool.pop() || ({} as ListenerNode);
-    listenerNode.listener = callback;
-    listenerNode.track = track;
-    listenerNode.noArgs = noArgs;
+    let listenerNode: ListenerNode = listenerNodePool.pop();
+    if (!listenerNode) {
+        listenerNode = {
+            listener: callback,
+            track: track,
+            noArgs: noArgs,
+            prev: undefined,
+            next: undefined,
+            active: false,
+        };
+    } else {
+        listenerNode.listener = callback;
+        listenerNode.track = track;
+        listenerNode.noArgs = noArgs;
+    }
 
     if (!node.listeners) {
         node.listeners = listenerNode;
