@@ -88,7 +88,7 @@ export function For<
     let out: ReactElement[] = [];
     for (let i = 0; i < v.length; i++) {
         if (v[i]) {
-            const key = v[i][id] as string;
+            const key = v[i][id] ?? i;
 
             out.push(createElement(item, { key: key, item: each[i] }));
         }
