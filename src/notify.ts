@@ -34,30 +34,33 @@ export function doNotify(
         let getPrevious;
         let listenerNode = node.listeners;
         while (listenerNode) {
-            const { track, noArgs } = listenerNode;
+            const { track, noArgs, active } = listenerNode;
 
-            const ok = track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
+            if (active) {
+                const ok =
+                    track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
 
-            // Notify if listener is not shallow or if this is the first level
-            if (ok) {
-                // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
-                // it often, so leave it up to the caller.
-                if (!noArgs && !getPrevious) {
-                    getPrevious = createPreviousHandler(value, path, prevAtPath);
+                // Notify if listener is not shallow or if this is the first level
+                if (ok) {
+                    // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
+                    // it often, so leave it up to the caller.
+                    if (!noArgs && !getPrevious) {
+                        getPrevious = createPreviousHandler(value, path, prevAtPath);
+                    }
+                    batchNotify(
+                        noArgs
+                            ? (listenerNode.listener as () => void)
+                            : {
+                                  cb: listenerNode.listener,
+                                  value,
+                                  getPrevious,
+                                  path,
+                                  valueAtPath,
+                                  prevAtPath,
+                                  node,
+                              }
+                    );
                 }
-                batchNotify(
-                    noArgs
-                        ? (listenerNode.listener as () => void)
-                        : {
-                              cb: listenerNode.listener,
-                              value,
-                              getPrevious,
-                              path,
-                              valueAtPath,
-                              prevAtPath,
-                              node,
-                          }
-                );
             }
 
             listenerNode = listenerNode.next;
