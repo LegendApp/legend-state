@@ -21,7 +21,7 @@ import {
 } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
-import { tracking, untrack, updateTracking } from './tracking';
+import { untrack, updateTracking } from './tracking';
 
 let inSet = false;
 let inAssign = false;
@@ -233,7 +233,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let value = getNodeValue(node);
 
-        if (isPrimitive(value)) {
+        if (value === undefined || value === null || isPrimitive(value)) {
             if (p === 'value') {
                 return get(node);
             } else if (extraPrimitiveProps.size) {

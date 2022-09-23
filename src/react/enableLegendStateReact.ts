@@ -32,7 +32,7 @@ export function enableLegendStateReact() {
             function Text({ data }: { data: NodeValue }) {
                 updateTracking(data);
 
-                return getNodeValue(data);
+                return getNodeValue(data) ?? null;
             },
             () => true
         );
