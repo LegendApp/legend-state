@@ -25,12 +25,16 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
 
 export function observe(run: () => void | (() => void)) {
     let cleanup: () => void;
+    let dispose: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
         if (cleanup && isFunction(cleanup)) {
             cleanup();
             cleanup = undefined;
         }
+
+        const trackingPrev = beginTracking();
+
         cleanup = run() as () => void;
 
         // Do tracing if it was requested
@@ -43,9 +47,11 @@ export function observe(run: () => void | (() => void)) {
             tracking.listeners = undefined;
             tracking.updates = undefined;
         }
-    };
 
-    const trackingPrev = beginTracking();
+        dispose = setupTracking(tracking.nodes, update, /*noArgs*/ true);
+
+        endTracking(trackingPrev);
+    };
 
     update();
 
@@ -57,9 +63,5 @@ export function observe(run: () => void | (() => void)) {
         }
     }
 
-    const ret = setupTracking(tracking.nodes, update, /*noArgs*/ true);
-
-    endTracking(trackingPrev);
-
-    return ret;
+    return () => dispose();
 }
