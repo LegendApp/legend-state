@@ -3,6 +3,7 @@ export * from './src/react/flow';
 export * from './src/react/useComputed';
 export * from './src/react/useObservable';
 export * from './src/react/useObserve';
+export * from './src/react/useSelector';
 
 import type { ReactFragment } from 'react';
 
