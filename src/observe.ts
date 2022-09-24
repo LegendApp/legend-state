@@ -28,10 +28,11 @@ export function observe(run: () => void | (() => void)) {
     let dispose: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
-        if (cleanup && isFunction(cleanup)) {
+        if (isFunction(cleanup)) {
             cleanup();
-            cleanup = undefined;
         }
+
+        dispose?.();
 
         const trackingPrev = beginTracking();
 
