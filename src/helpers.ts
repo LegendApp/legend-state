@@ -41,7 +41,7 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
                 }
                 mergeIntoObservable(target[key], source[key]);
             } else {
-                needsSet && target[key] ? target[key].set(source[key]) : (target[key] = source[key]);
+                needsSet && target[key]?.set ? target[key].set(source[key]) : (target[key] = source[key]);
             }
         }
     }

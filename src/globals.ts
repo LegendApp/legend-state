@@ -7,6 +7,7 @@ export const symbolIsObservable = Symbol('isObservable');
 export const symbolGetNode = Symbol('getNode');
 export const symbolUndef = Symbol('undef');
 
+export const extraPrimitiveActivator = '$$typeof';
 export const extraPrimitiveProps = new Map<string, any>();
 
 export const nextNodeID = { current: 0 };

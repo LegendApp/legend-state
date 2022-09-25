@@ -250,6 +250,7 @@ export interface NodeValue {
     children?: Map<string | number, NodeValue>;
     proxy?: object;
     key?: string | number;
+    isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
     listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
 }
