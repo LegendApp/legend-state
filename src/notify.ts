@@ -32,38 +32,33 @@ export function doNotify(
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
-        let listenerNode = node.listeners;
-        while (listenerNode) {
-            const { track, noArgs, active } = listenerNode;
 
-            if (active) {
-                const ok =
-                    track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
+        for (let listenerNode = node.listeners; listenerNode !== undefined; listenerNode = listenerNode.next) {
+            const { track, noArgs } = listenerNode;
 
-                // Notify if listener is not shallow or if this is the first level
-                if (ok) {
-                    // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
-                    // it often, so leave it up to the caller.
-                    if (!noArgs && !getPrevious) {
-                        getPrevious = createPreviousHandler(value, path, prevAtPath);
-                    }
-                    batchNotify(
-                        noArgs
-                            ? (listenerNode.listener as () => void)
-                            : {
-                                  cb: listenerNode.listener,
-                                  value,
-                                  getPrevious,
-                                  path,
-                                  valueAtPath,
-                                  prevAtPath,
-                                  node,
-                              }
-                    );
+            const ok = track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
+
+            // Notify if listener is not shallow or if this is the first level
+            if (ok) {
+                // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
+                // it often, so leave it up to the caller.
+                if (!noArgs && !getPrevious) {
+                    getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
+                batchNotify(
+                    noArgs
+                        ? (listenerNode.listener as () => void)
+                        : {
+                              cb: listenerNode.listener,
+                              value,
+                              getPrevious,
+                              path,
+                              valueAtPath,
+                              prevAtPath,
+                              node,
+                          }
+                );
             }
-
-            listenerNode = listenerNode.next;
         }
     }
 }

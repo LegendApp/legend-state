@@ -1,43 +1,27 @@
 import { ListenerFn, ListenerNode, NodeValue, TrackingType } from './observableInterfaces';
 
-const listenerNodePool: ListenerNode[] = [];
-
 export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
     track?: TrackingType,
     noArgs?: boolean
 ): () => void {
-    let listenerNode: ListenerNode = listenerNodePool.pop();
-    if (!listenerNode) {
-        listenerNode = {
-            listener: callback,
-            track: track,
-            noArgs: noArgs,
-            prev: undefined,
-            next: undefined,
-            active: false,
-        };
-    } else {
-        listenerNode.listener = callback;
-        listenerNode.track = track;
-        listenerNode.noArgs = noArgs;
+    const listenerNode: ListenerNode = {
+        listener: callback,
+        track: track,
+        noArgs: noArgs,
+        prev: undefined,
+        next: node.listeners,
+    };
+
+    if (node.listeners) {
+        node.listeners.prev = listenerNode;
     }
 
-    if (!node.listeners) {
-        node.listeners = listenerNode;
-    } else {
-        listenerNode.next = node.listeners;
-        node.listeners.prev = listenerNode;
-        node.listeners = listenerNode;
-    }
-    listenerNode.active = true;
+    node.listeners = listenerNode;
 
     return () => {
         const { prev, next } = listenerNode;
-        if (node.listeners === listenerNode) {
-            node.listeners = listenerNode.next;
-        }
         if (prev) {
             prev.next = next;
             listenerNode.prev = undefined;
@@ -46,7 +30,8 @@ export function onChange(
             next.prev = prev;
             listenerNode.next = undefined;
         }
-        listenerNode.active = false;
-        listenerNodePool.push(listenerNode);
+        if (node.listeners === listenerNode) {
+            node.listeners = next;
+        }
     };
 }

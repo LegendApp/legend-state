@@ -269,5 +269,4 @@ export interface ListenerNode {
     listener: ListenerFn;
     next?: ListenerNode;
     prev?: ListenerNode;
-    active?: boolean;
 }
