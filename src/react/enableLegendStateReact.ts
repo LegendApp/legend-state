@@ -103,14 +103,18 @@ export function enableLegendStateReact() {
                                 // This lazily clears out any stale listeners by unmounted components because they will call onChange
                                 // and we dispose the listeners, but calling react skips the forceRender if it's unmounted
                                 // so listeners will not be recreated.
-                                const onChange = () => {
+                                function onChange() {
                                     const prevDispose = mapDisposes.get(forceRender);
                                     if (prevDispose) {
                                         prevDispose();
                                         mapDisposes.delete(forceRender);
                                     }
-                                    forceRender();
-                                };
+                                    if (process.env.NODE_ENV === 'development' && !noArgs) {
+                                        forceRender.apply(this, arguments);
+                                    } else {
+                                        forceRender();
+                                    }
+                                }
 
                                 // Track all of the nodes accessed during the dispatcher
                                 let dispose = setupTracking(tracker.nodes, onChange, /*noArgs*/ noArgs);
