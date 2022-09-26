@@ -67,12 +67,14 @@ export function enableLegendStateReact() {
         let numTracking = 0;
         let prevNodes;
         let lock;
+        const mapDisposes: WeakMap<() => void, () => void> = new WeakMap();
+
         Object.defineProperty(ReactInternals.ReactCurrentDispatcher, 'current', {
             get() {
                 return dispatcher;
             },
             set(newDispatcher) {
-                // Skip this inside a recursive set from our usage of useReducer/useEffect
+                // Skip this inside a recursive set from our usage of useReducer
                 if (newDispatcher && !lock) {
                     lock = true;
                     const useCallback = newDispatcher.useCallback;
@@ -85,6 +87,9 @@ export function enableLegendStateReact() {
                             try {
                                 let forceRender = dispatcher.useReducer(Updater, 0)[1];
 
+                                // Dispose the previous listener if it exists
+                                mapDisposes.get(forceRender)?.();
+
                                 let noArgs = true;
                                 if (process.env.NODE_ENV === 'development') {
                                     tracker.traceListeners?.(tracker.nodes);
@@ -94,29 +99,29 @@ export function enableLegendStateReact() {
                                     }
                                 }
 
+                                // Wrap forceRender in a callback to run dispose before forceRender()
+                                // This lazily clears out any stale listeners by unmounted components because they will call onChange
+                                // and we dispose the listeners, but calling react skips the forceRender if it's unmounted
+                                // so listeners will not be recreated.
+                                const onChange = () => {
+                                    const prevDispose = mapDisposes.get(forceRender);
+                                    if (prevDispose) {
+                                        prevDispose();
+                                        mapDisposes.delete(forceRender);
+                                    }
+                                    forceRender();
+                                };
+
                                 // Track all of the nodes accessed during the dispatcher
-                                let dispose = setupTracking(tracker.nodes, forceRender, /*noArgs*/ noArgs);
+                                let dispose = setupTracking(tracker.nodes, onChange, /*noArgs*/ noArgs);
+
+                                // Set this dispose function into the map to clear before the next run
+                                mapDisposes.set(forceRender, dispose);
 
                                 if (process.env.NODE_ENV === 'development') {
                                     // Clear tracing
                                     tracker.traceListeners = undefined;
                                     tracker.traceUpdates = undefined;
-
-                                    const cachedNodes = tracker.nodes;
-                                    dispatcher.useEffect(() => {
-                                        // Workaround for React 18's double calling useEffect. If this is the
-                                        // second useEffect, set up tracking again.
-                                        if (dispose === undefined) {
-                                            dispose = setupTracking(cachedNodes, forceRender, /*noArgs*/ noArgs);
-                                        }
-                                        return () => {
-                                            dispose();
-                                            dispose = undefined;
-                                        };
-                                    });
-                                } else {
-                                    // Return dispose to cleanup before each render or on unmount
-                                    dispatcher.useEffect(() => dispose);
                                 }
                             } catch (err) {
                                 // This may not ever be an error but since this is new we'll leave this here
@@ -132,7 +137,6 @@ export function enableLegendStateReact() {
                             try {
                                 // Run empty hooks if not tracking nodes, to keep the same number of hooks per render
                                 dispatcher.useReducer(Updater, 0);
-                                dispatcher.useEffect(EmptyEffect);
                             } catch {}
                         }
 
