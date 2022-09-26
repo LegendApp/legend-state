@@ -11,6 +11,7 @@ import {
     symbolGetNode,
     symbolIsObservable,
     symbolUndef,
+    shouldTreatAsOpaque,
 } from './globals';
 import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive } from './is';
 import { doNotify, notify } from './notify';
@@ -72,6 +73,15 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prevValue?: any) {
+    if (shouldTreatAsOpaque(obj)) {
+        const isDiff = obj !== prevValue;
+        if (isDiff) {
+            if (parent.listeners) {
+                doNotify(parent, obj, [], obj, prevValue, 0);
+            }
+        }
+        return isDiff;
+    }
     const isArr = isArray(obj);
 
     let keyMap: Map<string | number, number>;
