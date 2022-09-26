@@ -1,3 +1,4 @@
-export * from './src/trace/traceListeners';
-export * from './src/trace/traceUpdates';
-export * from './src/trace/verifyNotTracking';
+export * from './src/trace/useTraceListeners';
+export * from './src/trace/useTraceUpdates';
+export * from './src/trace/useVerifyNotTracking';
+export * from './src/trace/useVerifyOneRender';

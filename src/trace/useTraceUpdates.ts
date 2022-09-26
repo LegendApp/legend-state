@@ -1,7 +1,7 @@
 import { NodeValue, tracking } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
-export function traceUpdates(name?: string) {
+export function useTraceUpdates(name?: string) {
     if (process.env.NODE_ENV === 'development') {
         tracking.current.traceUpdates = replaceUpdateFn.bind(this, name);
     }
