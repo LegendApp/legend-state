@@ -24,7 +24,7 @@ export function useSelector<T>(selector: Selector<T>): T {
 
         // Workaround for React 18's double calling useEffect - cached the tracking nodes
         if (process.env.NODE_ENV === 'development') {
-            cachedNodes = tracking.nodes;
+            cachedNodes = tracking.current.nodes;
         }
     };
 

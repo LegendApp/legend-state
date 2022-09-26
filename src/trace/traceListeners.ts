@@ -3,13 +3,13 @@ import { getNodePath } from './traceHelpers';
 
 export function traceListeners(name?: string) {
     if (process.env.NODE_ENV === 'development') {
-        tracking.listeners = traceNodes.bind(this, name);
+        tracking.current.traceListeners = traceNodes.bind(this, name);
     }
 }
 
 function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
     if (process.env.NODE_ENV === 'development') {
-        tracking.listeners = undefined;
+        tracking.current.traceListeners = undefined;
         const arr: string[] = [];
         if (nodes) {
             for (let tracked of nodes.values()) {

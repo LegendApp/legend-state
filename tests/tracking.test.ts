@@ -15,46 +15,46 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.get();
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
     });
     test('get(false) does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.get(false);
 
-        expect(tracking.nodes).toEqual(undefined);
+        expect(tracking.current).toEqual(undefined);
     });
     test('peek() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.peek();
 
-        expect(tracking.nodes).toEqual(undefined);
+        expect(tracking.current).toEqual(undefined);
     });
     test('set() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.set('hello');
 
-        expect(tracking.nodes).toEqual(undefined);
+        expect(tracking.current).toEqual(undefined);
     });
     test('primitive access observes', () => {
         const obs = observable({ test: 'hi' });
         obs.test.get();
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
     });
     test('object access does not observe', () => {
         const obs = observable({ test: { text: 'hi' } });
         obs.test;
 
-        expect(tracking.nodes).toEqual(undefined);
+        expect(tracking.current).toEqual(undefined);
     });
     test('get() observes2', () => {
         const obs = observable({ test: { text: 'hi' } });
 
         obs.test.get();
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
         expect(nodes[0].track).toEqual(undefined);
     });
     test('get() shallow', () => {
@@ -62,25 +62,25 @@ describe('Tracking', () => {
 
         obs.test.get(true);
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
         expect(nodes[0].track).toEqual(true);
     });
     test('primitive get access observes', () => {
         const obs = observable({ test: 'hi' });
         obs.test.get();
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
     });
     test('Object.keys(obs) observes shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
 
         Object.keys(obs);
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
         expect(nodes[0].track).toEqual(true);
@@ -90,9 +90,9 @@ describe('Tracking', () => {
 
         Object.entries(obs);
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
         expect(nodes[0].track).toEqual(true);
@@ -102,9 +102,9 @@ describe('Tracking', () => {
 
         obs.test['a'].get();
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
 
         expect(nodes[0].node.key).toEqual('a');
     });
@@ -113,14 +113,14 @@ describe('Tracking', () => {
 
         evt.get();
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
     });
     test('value on a primitive observes', () => {
         const prim = observable(0);
 
         const a = prim.value;
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
         expect(nodes[0].node.key).toEqual(undefined);
     });
     test('Array map observes arary', () => {
@@ -133,9 +133,9 @@ describe('Tracking', () => {
 
         obs.arr.map((it) => it);
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
 
         expect(nodes[0].node.key).toEqual('arr');
     });
@@ -146,9 +146,9 @@ describe('Tracking', () => {
 
         obs.arr.length;
 
-        expect(tracking.nodes.size).toEqual(1);
+        expect(tracking.current.nodes.size).toEqual(1);
 
-        const nodes = [...tracking.nodes.values()];
+        const nodes = [...tracking.current.nodes.values()];
 
         expect(nodes[0].node.key).toEqual('arr');
         expect(nodes[0].track).toEqual(true);

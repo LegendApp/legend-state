@@ -3,7 +3,7 @@ import { getNodePath } from './traceHelpers';
 
 export function traceUpdates(name?: string) {
     if (process.env.NODE_ENV === 'development') {
-        tracking.updates = replaceUpdateFn.bind(this, name);
+        tracking.current.traceUpdates = replaceUpdateFn.bind(this, name);
     }
 }
 

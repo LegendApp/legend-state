@@ -38,31 +38,24 @@ export function observe(run: () => void | (() => void)) {
 
         cleanup = run() as () => void;
 
+        const tracker = tracking.current;
         // Do tracing if it was requested
         if (process.env.NODE_ENV === 'development') {
-            tracking.listeners?.(tracking.nodes);
-            if (tracking.updates) {
-                update = tracking.updates(update);
+            tracker.traceListeners?.(tracker.nodes);
+            if (tracker.traceUpdates) {
+                update = tracker.traceUpdates(update);
             }
             // Clear tracing
-            tracking.listeners = undefined;
-            tracking.updates = undefined;
+            tracker.traceListeners = undefined;
+            tracker.traceUpdates = undefined;
         }
 
-        dispose = setupTracking(tracking.nodes, update, /*noArgs*/ true);
+        dispose = setupTracking(tracker.nodes, update, /*noArgs*/ true);
 
         endTracking(trackingPrev);
     };
 
     update();
-
-    // Do tracing if it was requested
-    if (process.env.NODE_ENV === 'development') {
-        tracking.listeners?.(tracking.nodes);
-        if (tracking.updates) {
-            update = tracking.updates(update);
-        }
-    }
 
     return () => dispose();
 }

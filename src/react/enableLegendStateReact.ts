@@ -80,28 +80,29 @@ export function enableLegendStateReact() {
                     if (dispatcher && numTracking > 0 && useCallback.length < 2) {
                         numTracking--;
                         // If the previous dispatcher tracked nodes then set up hooks
-                        if (tracking.nodes) {
+                        const tracker = tracking.current;
+                        if (tracker) {
                             try {
                                 let forceRender = dispatcher.useReducer(Updater, 0)[1];
 
                                 let noArgs = true;
                                 if (process.env.NODE_ENV === 'development') {
-                                    tracking.listeners?.(tracking.nodes);
-                                    if (tracking.updates) {
+                                    tracker.traceListeners?.(tracker.nodes);
+                                    if (tracker.traceUpdates) {
                                         noArgs = false;
-                                        forceRender = tracking.updates(forceRender);
+                                        forceRender = tracker.traceUpdates(forceRender);
                                     }
                                 }
 
                                 // Track all of the nodes accessed during the dispatcher
-                                let dispose = setupTracking(tracking.nodes, forceRender, /*noArgs*/ noArgs);
+                                let dispose = setupTracking(tracker.nodes, forceRender, /*noArgs*/ noArgs);
 
                                 if (process.env.NODE_ENV === 'development') {
                                     // Clear tracing
-                                    tracking.listeners = undefined;
-                                    tracking.updates = undefined;
+                                    tracker.traceListeners = undefined;
+                                    tracker.traceUpdates = undefined;
 
-                                    const cachedNodes = tracking.nodes;
+                                    const cachedNodes = tracker.nodes;
                                     dispatcher.useEffect(() => {
                                         // Workaround for React 18's double calling useEffect. If this is the
                                         // second useEffect, set up tracking again.

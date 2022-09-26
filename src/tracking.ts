@@ -1,57 +1,64 @@
 import type { NodeValue, TrackingNode, TrackingType } from './observableInterfaces';
 
+interface TrackingState {
+    nodes?: Map<number, TrackingNode>;
+    traceListeners?: (nodes: Map<number, TrackingNode>) => void;
+    traceUpdates?: (fn: () => void) => () => void;
+}
 let lastNode: NodeValue;
 
+let trackCount = 0;
+
 export const tracking = {
-    isTracking: 0,
-    nodes: undefined as Map<number, TrackingNode>,
-    listeners: undefined as (nodes: Map<number, TrackingNode>) => void,
-    updates: undefined as (fn: () => void) => () => void,
+    current: undefined as TrackingState,
 };
 
 export function beginTracking() {
     // Keep a copy of the previous tracking context so it can be restored
     // when this context is complete
-    const prev = tracking.nodes;
-    tracking.isTracking++;
-    tracking.nodes = undefined;
+    const prev = tracking.current;
+    trackCount++;
+    tracking.current = {};
     return prev;
 }
-export function endTracking(prevNodes: Map<number, TrackingNode>) {
+export function endTracking(prevState: TrackingState) {
     // Restore the previous tracking context
-    tracking.isTracking--;
-    if (tracking.isTracking < 0) {
-        tracking.isTracking = 0;
-        if (process.env.NODE_ENV === 'development') {
+    trackCount--;
+    if (trackCount < 0) {
+        trackCount = 0;
+        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
             // Shouldn't be possible, but leave as a sanity check
             debugger;
         }
     }
-    tracking.nodes = prevNodes;
+    tracking.current = prevState;
 }
 
 export function updateTracking(node: NodeValue, track?: TrackingType) {
-    if (tracking.isTracking) {
-        if (!tracking.nodes) {
-            tracking.nodes = new Map();
+    if (trackCount) {
+        const tracker = tracking.current;
+        if (!tracker.nodes) {
+            tracker.nodes = new Map();
         }
+
         lastNode = node;
-        const existing = tracking.nodes.get(node.id);
+        const existing = tracker.nodes.get(node.id);
         if (existing) {
             existing.track = existing.track || track;
             existing.num++;
         } else {
-            tracking.nodes.set(node.id, { node, track, num: 1 });
+            tracker.nodes.set(node.id, { node, track, num: 1 });
         }
     }
 }
 
 export function untrack(node: NodeValue) {
-    if (tracking.nodes) {
-        const tracked = tracking.nodes.get(node.id);
+    const tracker = tracking.current;
+    if (tracker) {
+        const tracked = tracker.nodes.get(node.id);
         if (tracked) {
             if (tracked.num === 1) {
-                tracking.nodes.delete(node.id);
+                tracker.nodes.delete(node.id);
             } else {
                 tracked.num--;
             }
