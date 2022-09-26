@@ -18,7 +18,6 @@ import {
 let isEnabled = false;
 
 const Updater = (s) => s + 1;
-const EmptyEffect = () => {};
 
 export function enableLegendStateReact() {
     if (!isEnabled) {
@@ -41,6 +40,7 @@ export function enableLegendStateReact() {
         const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
 
         // Set extra props for the proxyHandler to return on primitives
+        extraPrimitiveProps.set(Symbol.toPrimitive, (_: any, value: any) => value);
         extraPrimitiveProps.set('$$typeof', ReactTypeofSymbol);
         extraPrimitiveProps.set('type', Text);
         extraPrimitiveProps.set('_store', { validated: true });
@@ -51,6 +51,12 @@ export function enableLegendStateReact() {
         extraPrimitiveProps.set('ref', null);
         // Set extra props for ObservablePrimitive to return on primitives
         Object.defineProperties(ObservablePrimitiveClass.prototype, {
+            [Symbol.toPrimitive]: {
+                configurable: true,
+                get() {
+                    return (this as ObservablePrimitiveClass).peek();
+                },
+            },
             $$typeof: { configurable: true, value: ReactTypeofSymbol },
             type: { configurable: true, value: Text },
             props: {
@@ -100,9 +106,9 @@ export function enableLegendStateReact() {
                                 }
 
                                 // Wrap forceRender in a callback to run dispose before forceRender()
-                                // This lazily clears out any stale listeners by unmounted components because they will call onChange
-                                // and we dispose the listeners, but calling react skips the forceRender if it's unmounted
-                                // so listeners will not be recreated.
+                                // This lazily clears out any stale listeners by unmounted components because
+                                // they will call onChange and dispose the listeners, but since it won't render
+                                // again if it's unmounted, listeners will not be recreated again.
                                 function onChange() {
                                     const prevDispose = mapDisposes.get(forceRender);
                                     if (prevDispose) {

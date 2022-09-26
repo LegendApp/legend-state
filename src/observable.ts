@@ -1,7 +1,7 @@
 import { beginBatch, endBatch } from './batching';
 import {
     ensureNodeValue,
-    extraPrimitiveActivator,
+    extraPrimitiveActivators,
     extraPrimitiveProps,
     get,
     getChildNode,
@@ -251,11 +251,11 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         if (value === undefined || value === null || isValuePrimitive) {
-            if (extraPrimitiveProps.size && (node.isActivatedPrimitive || p === extraPrimitiveActivator)) {
+            if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
                 node.isActivatedPrimitive = true;
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
-                    return vPrim?.__fn?.(node) ?? vPrim;
+                    return vPrim?.__fn?.(node, value) ?? vPrim;
                 }
             }
         }
