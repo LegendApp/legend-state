@@ -1,6 +1,6 @@
-import { isFunction, isObservable, Observable } from '@legendapp/state';
+import { isFunction, isObservable, ObservableReadable } from '@legendapp/state';
 
-export type Selector<T> = Observable<T> | (() => T);
+export type Selector<T> = ObservableReadable<T> | (() => T);
 
 export function computeSelector<T>(selector: Selector<T>) {
     let c = selector as any;
