@@ -75,6 +75,9 @@ export function enableLegendStateReact() {
         let lock;
         const mapDisposes: WeakMap<() => void, () => void> = new WeakMap();
 
+        // Track the component lifecycle using React's internal dispatcher changing. At the beginning of a component's render
+        // we start a new tracking context and then at the end of a render we inject a useReducer and add a listener
+        // to all tracked nodes to force render using the useReducer.
         Object.defineProperty(ReactInternals.ReactCurrentDispatcher, 'current', {
             get() {
                 return dispatcher;
@@ -84,36 +87,49 @@ export function enableLegendStateReact() {
                 if (newDispatcher && !lock) {
                     lock = true;
                     const useCallback = newDispatcher.useCallback;
+                    // 1. Render Start
+                    // Start a new tracking context when entering a new rendering dispatcher
+                    // In development, rendering dispatchers have useCallback named either "mountHookTypes" or "updateHookTypes"
+                    // In production, they just have length = 2
+                    if (!numTracking && useCallback.length === 2) {
+                        numTracking++;
+
+                        // Keep a copy of the previous tracking context
+                        prevNodes = beginTracking();
+                    }
+                    // 2. Render End
                     // When the React render is complete it sets the dispatcher to an object where useCallback has a length of 0
-                    if (dispatcher && numTracking > 0 && useCallback.length < 2) {
+                    else if (dispatcher && numTracking > 0 && useCallback.length < 2) {
                         numTracking--;
                         // If the previous dispatcher tracked nodes then set up hooks
                         const tracker = tracking.current;
                         if (tracker) {
                             try {
-                                let forceRender = dispatcher.useReducer(Updater, 0)[1];
+                                const reducer = dispatcher.useReducer(Updater, 0)[1];
+
+                                let forceRender = reducer;
 
                                 // Dispose the previous listener if it exists
-                                mapDisposes.get(forceRender)?.();
+                                mapDisposes.get(reducer)?.();
 
                                 let noArgs = true;
                                 if (process.env.NODE_ENV === 'development') {
                                     tracker.traceListeners?.(tracker.nodes);
                                     if (tracker.traceUpdates) {
                                         noArgs = false;
-                                        forceRender = tracker.traceUpdates(forceRender);
+                                        forceRender = tracker.traceUpdates(reducer);
                                     }
                                 }
 
                                 // Wrap forceRender in a callback to run dispose before forceRender()
-                                // This lazily clears out any stale listeners by unmounted components because
+                                // This lazily clears out any stale listeners in unmounted components because
                                 // they will call onChange and dispose the listeners, but since it won't render
                                 // again if it's unmounted, listeners will not be recreated again.
                                 function onChange() {
-                                    const prevDispose = mapDisposes.get(forceRender);
+                                    const prevDispose = mapDisposes.get(reducer);
                                     if (prevDispose) {
                                         prevDispose();
-                                        mapDisposes.delete(forceRender);
+                                        mapDisposes.delete(reducer);
                                     }
                                     if (process.env.NODE_ENV === 'development' && !noArgs) {
                                         forceRender.apply(this, arguments);
@@ -122,11 +138,11 @@ export function enableLegendStateReact() {
                                     }
                                 }
 
-                                // Track all of the nodes accessed during the dispatcher
+                                // Track all of the nodes accessed by this component
                                 let dispose = setupTracking(tracker.nodes, onChange, /*noArgs*/ noArgs);
 
                                 // Set this dispose function into the map to clear before the next run
-                                mapDisposes.set(forceRender, dispose);
+                                mapDisposes.set(reducer, dispose);
 
                                 if (process.env.NODE_ENV === 'development') {
                                     // Clear tracing
@@ -154,20 +170,6 @@ export function enableLegendStateReact() {
                         endTracking(prevNodes);
                     }
 
-                    // Start a new tracking context when entering a new rendering dispatcher
-                    // In development, rendering dispatchers have useCallback named either "mountHookTypes" or "updateHookTypes"
-                    // In production, they just have length = 2
-                    if (
-                        !numTracking &&
-                        (process.env.NODE_ENV === 'development'
-                            ? !useCallback.toString().includes('Invalid')
-                            : useCallback.length === 2)
-                    ) {
-                        numTracking++;
-
-                        // Keep a copy of the previous tracking context
-                        prevNodes = beginTracking();
-                    }
                     lock = false;
                 }
 
