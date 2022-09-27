@@ -1,3 +1,4 @@
+import { isPromise } from './is';
 import { getNode, lockObservable } from './helpers';
 import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
@@ -10,13 +11,18 @@ export function computed<T>(compute: () => T): ObservableComputed<T> {
 
     // Lazily activate the observable when get is called
     getNode(obs).root.activate = () => {
+        const set = function (val) {
+            // Update the computed value
+            lockObservable(obs, false);
+            obs.set(val);
+            lockObservable(obs, true);
+        };
         const fn = function () {
-            const val = compute();
-            if (obs) {
-                // Update the computed value
-                lockObservable(obs, false);
-                obs.set(val);
-                lockObservable(obs, true);
+            let val = compute();
+            if (isPromise<T>(val)) {
+                val.then((v) => set(v));
+            } else {
+                set(val);
             }
         };
 

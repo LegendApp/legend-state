@@ -31,7 +31,10 @@ export function isSymbol(obj: unknown): obj is symbol {
 export function isBoolean(obj: unknown): obj is boolean {
     return obj === true || obj === false;
 }
-
+/** @internal */
+export function isPromise<T>(obj: unknown): obj is Promise<T> {
+    return isFunction((obj as any)?.then) && isFunction((obj as any).catch);
+}
 export function isEmpty(obj: object) {
     return obj && Object.keys(obj).length === 0;
 }

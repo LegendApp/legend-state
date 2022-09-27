@@ -1672,6 +1672,20 @@ describe('Computed', () => {
         comp.v.get();
         expect(fn).toHaveBeenCalled();
     });
+    test('Computed with promise', async () => {
+        const obs = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
+        const comp = computed(() => {
+            const value = obs.get();
+            if (value) {
+                return new Promise((resolve) => {
+                    setTimeout(() => resolve('hi there'), 0);
+                });
+            }
+        });
+        expect(comp.get()).toEqual(undefined);
+        await promiseTimeout(10);
+        expect(comp.get()).toEqual('hi there');
+    });
 });
 describe('Event', () => {
     test('Event', () => {

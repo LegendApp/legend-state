@@ -8,12 +8,12 @@ import {
     getNodeValue,
     nextNodeID,
     peek,
+    shouldTreatAsOpaque,
     symbolGetNode,
     symbolIsObservable,
     symbolUndef,
-    shouldTreatAsOpaque,
 } from './globals';
-import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive } from './is';
+import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive, isPromise } from './is';
 import { doNotify, notify } from './notify';
 import {
     NodeValue,
@@ -478,7 +478,7 @@ function deleteFn(node: NodeValue, key?: string | number) {
 }
 
 function createObservable<T>(value, makePrimitive?: boolean) {
-    const promise = (value as any)?.then && (value as unknown as Promise<T>);
+    const promise = isPromise<T>(value) && value;
     if (promise) {
         value = undefined;
     }
