@@ -21,19 +21,20 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.get(false);
 
-        expect(tracking.current).toEqual(undefined);
+        expect(tracking.current?.nodes).toEqual(undefined);
     });
     test('peek() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.peek();
 
-        expect(tracking.current).toEqual(undefined);
+        expect(tracking.current?.nodes).toEqual(undefined);
     });
     test('set() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
+
         obs.test.test2.test3.set('hello');
 
-        expect(tracking.current).toEqual(undefined);
+        expect(tracking.current?.nodes).toEqual(undefined);
     });
     test('primitive access observes', () => {
         const obs = observable({ test: 'hi' });
@@ -45,7 +46,7 @@ describe('Tracking', () => {
         const obs = observable({ test: { text: 'hi' } });
         obs.test;
 
-        expect(tracking.current).toEqual(undefined);
+        expect(tracking.current?.nodes).toEqual(undefined);
     });
     test('get() observes2', () => {
         const obs = observable({ test: { text: 'hi' } });

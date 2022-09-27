@@ -23,7 +23,7 @@ import {
 } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
-import { untrack, updateTracking } from './tracking';
+import { updateTracking } from './tracking';
 
 let inSet = false;
 let inAssign = false;
@@ -391,9 +391,6 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
 
     // Get the child node for updating and notifying
     let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
-
-    // Set operations do not create listeners
-    untrack(childNode);
 
     // Get the value of the parent
     let parentValue = isRoot ? node.root : ensureNodeValue(node);

@@ -51,17 +51,3 @@ export function updateTracking(node: NodeValue, track?: TrackingType) {
         }
     }
 }
-
-export function untrack(node: NodeValue) {
-    const tracker = tracking.current;
-    if (tracker) {
-        const tracked = tracker.nodes.get(node.id);
-        if (tracked) {
-            if (tracked.num === 1) {
-                tracker.nodes.delete(node.id);
-            } else {
-                tracked.num--;
-            }
-        }
-    }
-}
