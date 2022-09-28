@@ -1,3 +1,31 @@
+## 0.18.0
+- Breaking: Renamed tracing functions to `use*` to match hook naming
+- Fix: Improved automatic React hooking into dispatcher to not need a `useEffect` and more dependably cleanup
+- Fix: Better handling JSX and DOM elements in observables
+- Fix: Tracing functions were not always working correctly
+- Fix: Errors building in Next.js
+- Fix: Typing of Show component with Babel plugin enabled
+- Feat: Support `computed` with a Promise
+
+## 0.17.6
+- Fix: React behavior disabled until it's activated by React rendering it
+
+## 0.17.5
+- Fix: Missing export of `useSelector`
+
+## 0.17.4
+- Fix: Improve `observe()` disposing
+
+## 0.17.3
+- Fix: Undefined observables were not rendering directly in React properly
+- Fix: `observe()` was not updating listeners on each run
+
+## 0.17.2
+- Fix: Typo in mergeIntoObservable
+
+## 0.17.1
+- Fix: Wrapped React hook injection in try/catch because it was sometimes causing errors like when hydrating in Next.js
+
 ## 0.17.0
 
 This is a big one, with mainly a breaking change to how primitives work, so see https://legendapp.com/dev/state/migrating for more details. We're aiming for this to be the last major change before aiming towards a 1.0.
