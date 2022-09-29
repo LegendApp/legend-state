@@ -9,7 +9,7 @@ import { useTraceListeners } from "@legendapp/state/trace"
 
 function Component(props) {
 
-    // Call traceListeners anywhere inside the component
+    // Call useTraceListeners anywhere inside the component
     useTraceListeners()
 
     return (
@@ -33,7 +33,7 @@ Call `useTraceUpdates()` anywhere within `observe` or any React component to con
 import { useTraceUpdates } from "@legendapp/state/trace"
 
 function Component(props) {
-    // Call traceUpdates anywhere inside the component
+    // Call useTraceUpdates anywhere inside the component
     useTraceUpdates()
 
     return (
@@ -58,7 +58,7 @@ Call `useVerifyNotTracking()` anywhere within any React component to console.err
 import { useVerifyNotTracking } from "@legendapp/state/trace"
 
 function Component(props) {
-    // Call verifyNotTracking anywhere inside the component
+    // Call useVerifyNotTracking anywhere inside the component
     useVerifyNotTracking()
 
     // This will log an error because get() makes it track
@@ -77,6 +77,36 @@ function FineComponent(props) {
     )
 }
 ```
+
+## useVerifyOneRender()
+
+Call `useVerifyOneRender()` anywhere within any React component to console.error if it renders more than once. This is useful if you and want to make sure components are not rendered more than once.
+
+```jsx
+import { useVerifyOneRender } from "@legendapp/state/trace"
+
+function Component(props) {
+    // Call useVerifyOneRender anywhere inside the component
+    useVerifyOneRender()
+
+    // This will log an error after one render when count is updated
+    return (
+        <div>{state.count.get()}</div>
+    )
+}
+function Component(props) {
+    // Call useVerifyOneRender anywhere inside the component
+    useVerifyOneRender()
+
+    // This will not log because `get(false)` does not track observable
+    // does not re-render this component
+    return (
+        <div>{state.count.get(false)}</div>
+    )
+}
+```
+
+##### Note: All these hooks take name as an argument which can be used to identify which component is logging it
 
 ## What to do with this information
 
