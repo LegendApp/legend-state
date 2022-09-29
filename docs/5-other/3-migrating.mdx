@@ -1,3 +1,11 @@
+## 0.17 to 0.18
+
+The tracing functions are renamed to use* to be inline with hooks:
+- useTraceListeners
+- useTraceUpdates
+- useVerifyNotTracking
+- useVerifyOneRender (new)
+
 ## 0.16 to 0.17
 
 ### Primitives are now returned as observables
@@ -16,7 +24,7 @@ Observables previously tried to be clever by returning primitives directly, whic
 - Pro: Doesn’t need `obs()` or set by key
 - Pro: Easier to use fine-grained features without `obs()` everywhere
 - Pro: Easier to pass as props without needing `obs()`
-- Con: Requires `get()` or `.value` for primitives
+- Con: Requires `get()` for primitives
 
 #### Changes to make:
 

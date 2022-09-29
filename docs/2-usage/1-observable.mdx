@@ -83,7 +83,7 @@ obs.text.delete()
 
 ## Safety
 
-Observables are safe so that you cannot directly assign to them, which prevents accidentally overwriting state or accidentaly assigning huge objects into an observable. But, primitives (string, number, boolean) have a `value` that you can modify directly.
+Observables are safe so that you cannot directly assign to them, which prevents accidentally overwriting state or accidentaly assigning huge objects into an observable.
 
 ```js
 const obs = observable({ text: 'hello', num: 10, obj: {} }, /*safe*/ true)
@@ -91,17 +91,14 @@ const obs = observable({ text: 'hello', num: 10, obj: {} }, /*safe*/ true)
 obs.text = 'hi'
 // ❌ Can't set directly
 
-obs.text.value = 'hi'
-// ✅ Setting value works
+obs.text.set('hi')
+// ✅ Calling set on a primitive works.
 
 obs = {}
 // ❌ Error. This would delete the observable.
 
 obs.obj = {}
 // ❌ Error. Cannot assign to objects directly directly.
-
-obs.text.set('hi')
-// ✅ Calling set on a primitive works.
 
 obs.set({ text: 'hi', num: 20 })
 // ✅ Calling set on an object works.

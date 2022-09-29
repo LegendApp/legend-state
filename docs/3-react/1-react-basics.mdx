@@ -10,9 +10,8 @@ import { enableLegendStateReact } from "@legendapp/state/react"
 enableLegendStateReact()
 ```
 
----
+## Three ways to use observables in React
 
-There are three ways to consume observables in React:
 1. `get()` on observables makes the component automatically track them
 2. Rendering them directly
 3. `useSelector` to get individual values
@@ -89,3 +88,13 @@ const Component = ({ id }) => {
 ```
 
 See [Tracking](../tracking) for details about how Legend-State automatically tracks changes.
+
+## enableLegendStateReact()
+
+`enableLegendStateReact` does two things:
+
+1. It hooks directly into React's dispatcher lifecycle to detect when component rendering begins and ends. At the beginning, it creates a new tracking context. At the end it injects a `useReducer` into the dispatcher, and subscribes any observables accessed within the component to call the reducer to re-render. This solves the same problem as other libraries' `observer` HOC or selector hooks, but is done automatically and is faster.
+
+2. It allows rendering observables directly, by enabling observables to return the correct values that React is looking for (like "$$typeof") and returning a memoized React element that tracks the observable and renders the data.
+
+See [enableLegendStateReact.ts](https://github.com/LegendApp/legend-state/blob/main/src/react/enableLegendStateReact.ts) if you're curious how it works.

@@ -127,9 +127,9 @@ The core is platform agnostic so you can use it in vanilla JS or any framework t
 
 <Install name="@legendapp/state" />
 
-## Create observables
+## Core usage
 
-You can put anything in an observable: primitives, deeply nested objects, arrays, functions, etc... Observables track changes on all nested objects and notify listeners whenever anything changes. Observables work just like normal objects so you can interact with them without any extra complication.
+You can put anything in an observable: primitives, deeply nested objects, arrays, functions, etc... Observables track changes on all nested objects and notify listeners whenever anything changes. Observables work just like normal objects so you can interact with them without any extra complication. Just call `get()` to get the value and `set(...)` to modify it.
 
 ```js
 import { observable } from "@legendapp/state"
@@ -138,48 +138,27 @@ const obs = observable({ text: 'hello', obj: { value: 10 } })
 
 obs.text.get() === 'hello' // true
 obs.obj.value.get() === 10 // true
-```
-
-[Read more](./observable)
-
-## Modify observables
-
-Observables have safe modification functions: `set`, `assign`, and `delete`. You can use observable functions on any object, array, or primitive in your state.
-
-Primitives (string, boolean, number) also have a `value` which you can read and assign directly to.
-
-```js
-const obs = observable({ text: '' })
 
 // Use the set function anywhere
 obs.text.set('hi')
 
 // Easily modify the previous value
 obs.text.set(text => text + ' there')
-
-// On primitives you can set value directly
-obs.text.value = 'hello'
-
-// Assign to update objects
-obs.assign({ text: 'hello there' })
 ```
 
-[Read more](./observable#set)
+[Read more](./observable)
 
-## Listen for changes anywhere
+## Observe changes
 
-`observable` makes every value anywhere within the state object observable, so you can listen to changes anywhere within the object tree.
+`observable` makes every value anywhere within the state object observable, so you can listen to changes anywhere within the object tree. You can listen for changes on a specific observable or use `observe` to automatically track any observables accessed.
 
 ```js
 const obs = observable({ settings: { theme: 'light' }, array: [{text: 'hi'}] })
 
-obs.settings.theme.onEquals('dark', (theme) => console.log('Theme is dark'))
-obs.settings.onChange((settings) => console.log('Settings changed to', settings))
-```
+// Listen to observable directly
+obs.settings.theme.onChange((theme) => console.log('Theme is', theme))
 
-Use `observe` to track accessed observables automatically.
-
-```js
+// Or observe
 observe(() => {
     console.log('Theme is', obs.settings.theme)
 })
@@ -193,11 +172,15 @@ await when(() => obs.settings.theme === 'dark')
 
 [Read more](./reactivity)
 
-## Minimizes React renders
+## React usage
 
 Legend-State's React integration automatically listens to the accessed observables for changes while rendering. Components will re-render only when these observables change, so it's ideal to be as specific as possible to minimize renders. See [Performance](./performance) for more optimization tips.
 
 ```jsx
+import { enableLegendStateReact } from "@legendapp/state/react"
+
+enableLegendStateReact()
+
 const obs = observable({ text: 'hello', num: 10, other: {} as LargeObject })
 
 function Component() {
@@ -280,13 +263,11 @@ obs.first.set('Hello')
 ```js
 const theme = observable('dark')
 
-// Get the value with get() or value
+// Get the value with get()
 theme.get() === 'dark' // true
-theme.value === 'dark' // true
 
-// Set the value with set() or value
+// Set the value with set()
 theme.set('light')
-theme.value = 'dark'
 ```
 
 [Read more](./observable#observable-primitives)
