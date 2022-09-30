@@ -72,7 +72,7 @@ export function enableLegendStateReact() {
             },
             $$typeof: config(ReactTypeofSymbol),
             type: config(Text),
-            _store: config(true),
+            _store: config({ validated: true }),
             ref: config(null),
             alternate: config(null),
             _owner: config(null),
