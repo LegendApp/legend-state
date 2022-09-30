@@ -38,7 +38,7 @@ const Binder = function <
                     bind.set(e.target.value as any);
                     onChange?.(e);
                 },
-                [onChange]
+                [onChange, bind]
             );
 
             // Get the bound value
