@@ -52,6 +52,10 @@ export function enableLegendStateReact() {
             __fn: (obs) => ({ data: obs }),
         });
         extraPrimitiveProps.set('ref', null);
+        extraPrimitiveProps.set('alternate', null);
+        extraPrimitiveProps.set('_owner', null);
+        extraPrimitiveProps.set('_source', null);
+        const config = (value) => ({ configurable: true, value });
         // Set extra props for ObservablePrimitive to return on primitives
         Object.defineProperties(ObservablePrimitiveClass.prototype, {
             [Symbol.toPrimitive]: {
@@ -60,15 +64,19 @@ export function enableLegendStateReact() {
                     return (this as ObservablePrimitiveClass).peek();
                 },
             },
-            $$typeof: { configurable: true, value: ReactTypeofSymbol },
-            type: { configurable: true, value: Text },
             props: {
                 configurable: true,
                 get() {
                     return { data: (this as ObservablePrimitiveClass).getNode() };
                 },
             },
-            ref: { configurable: true, value: null },
+            $$typeof: config(ReactTypeofSymbol),
+            type: config(Text),
+            _store: config(true),
+            ref: config(null),
+            alternate: config(null),
+            _owner: config(null),
+            _source: config(null),
         });
 
         // 2. Override dispatcher access to hook up tracking
