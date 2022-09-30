@@ -31,6 +31,12 @@ export function enableLegendStateReact() {
             function Text({ data }: { data: NodeValue }) {
                 updateTracking(data);
 
+                const root = data.root;
+                if (root.activate) {
+                    root.activate();
+                    root.activate = undefined;
+                }
+
                 return getNodeValue(data) ?? null;
             },
             () => true
