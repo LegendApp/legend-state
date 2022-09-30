@@ -17,6 +17,7 @@ import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive, isPromis
 import { doNotify, notify } from './notify';
 import {
     NodeValue,
+    Observable,
     ObservableObjectOrArray,
     ObservablePrimitive,
     ObservableWrapper as ObservableRoot,
@@ -508,13 +509,8 @@ function createObservable<T>(value, makePrimitive?: boolean) {
     return obs;
 }
 
-export function observable(value: boolean | Promise<boolean>): ObservablePrimitive<boolean>;
-export function observable(value: string | Promise<string>): ObservablePrimitive<string>;
-export function observable(value: number | Promise<number>): ObservablePrimitive<number>;
-export function observable<T extends object>(value?: T | Promise<T>): ObservableObjectOrArray<T>;
-export function observable<T extends unknown>(value?: T | Promise<T>): ObservableObjectOrArray<unknown>;
-export function observable<T>(value?: T | Promise<T>): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
-    return createObservable(value);
+export function observable<T>(value?: T | Promise<T>): Observable<T> {
+    return createObservable(value) as any;
 }
 
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
