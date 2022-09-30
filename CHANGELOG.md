@@ -1,3 +1,10 @@
+## 0.18.2
+- Fix: Rendering directly to JSX was not activating computeds
+- Types: Improved typing of observable and useObservable to more correctly narrow down complex types
+
+## 0.18.1
+- Fix: Crash in Switch component in development
+
 ## 0.18.0
 - Breaking: Renamed tracing functions to `use*` to match hook naming
 - Fix: Improved automatic React hooking into dispatcher to not need a `useEffect` and more dependably cleanup
