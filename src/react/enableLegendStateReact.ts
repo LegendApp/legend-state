@@ -27,20 +27,17 @@ export function enableLegendStateReact() {
 
         // 1. Add the extra primitive props so that observables can render directly
         // Memoized component to wrap the observable value
-        const Text = memo(
-            function Text({ data }: { data: NodeValue }) {
-                updateTracking(data);
+        const Text = memo(function Text({ data }: { data: NodeValue }) {
+            updateTracking(data);
 
-                const root = data.root;
-                if (root.activate) {
-                    root.activate();
-                    root.activate = undefined;
-                }
+            const root = data.root;
+            if (root.activate) {
+                root.activate();
+                root.activate = undefined;
+            }
 
-                return getNodeValue(data) ?? null;
-            },
-            () => true
-        );
+            return getNodeValue(data) ?? null;
+        });
 
         const hasSymbol = typeof Symbol === 'function' && Symbol.for;
         const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
