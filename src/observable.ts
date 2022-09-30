@@ -134,7 +134,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
         }
     }
 
-    if (obj) {
+    if (obj && !isPrimitive(obj)) {
         const length = keys.length;
 
         let hasADiff = !isArr || obj?.length !== prevValue?.length;
@@ -424,7 +424,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     let hasADiff = isPrim;
     let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree
-    if (!isPrim || !isPrimitive(prevValue)) {
+    if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
         hasADiff = updateNodes(childNode, newValue, prevValue);
         if (isArray(newValue)) {
             whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
