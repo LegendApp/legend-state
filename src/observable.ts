@@ -387,7 +387,6 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         }
     }
 
-    inSet = true;
     const isRoot = (key as any) === symbolUndef || (!node.parent && key === 'value' && isPrimitive(newValue));
 
     // Get the child node for updating and notifying
@@ -411,12 +410,14 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
             ? newValue.get()
             : newValue;
 
+    inSet = true;
     // Save the new value
     if (isDelete) {
         delete parentValue[key];
     } else {
         parentValue[key] = newValue;
     }
+    inSet = false;
 
     // Make sure we don't call too many listeners for ever property set
     beginBatch();
@@ -443,8 +444,6 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     }
 
     endBatch();
-
-    inSet = false;
 
     return isRoot ? getProxy(node) : getProxy(node, key);
 }
