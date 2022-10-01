@@ -82,7 +82,6 @@ export function enableLegendStateReact() {
         // 2. Override dispatcher access to hook up tracking
         let dispatcher;
         let numTracking = 0;
-        let prevNodes;
         let lock;
         const mapDisposes: WeakMap<() => void, () => void> = new WeakMap();
 
@@ -106,7 +105,7 @@ export function enableLegendStateReact() {
                         numTracking++;
 
                         // Keep a copy of the previous tracking context
-                        prevNodes = beginTracking();
+                        beginTracking();
                     }
                     // 2. Render End
                     // When the React render is complete it sets the dispatcher to an object where useCallback has a length of 0
@@ -178,7 +177,7 @@ export function enableLegendStateReact() {
                         }
 
                         // Restore the previous tracking context
-                        endTracking(prevNodes);
+                        endTracking();
                     }
 
                     lock = false;

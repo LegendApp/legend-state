@@ -8,6 +8,7 @@ interface TrackingState {
 let lastNode: NodeValue;
 
 let trackCount = 0;
+const trackingQueue: TrackingState[] = [];
 
 export const tracking = {
     current: undefined as TrackingState,
@@ -16,12 +17,11 @@ export const tracking = {
 export function beginTracking() {
     // Keep a copy of the previous tracking context so it can be restored
     // when this context is complete
-    const prev = tracking.current;
+    trackingQueue.push(tracking.current);
     trackCount++;
     tracking.current = {};
-    return prev;
 }
-export function endTracking(prevState: TrackingState) {
+export function endTracking() {
     // Restore the previous tracking context
     trackCount--;
     if (trackCount < 0) {
@@ -31,7 +31,7 @@ export function endTracking(prevState: TrackingState) {
             debugger;
         }
     }
-    tracking.current = prevState;
+    tracking.current = trackingQueue.pop();
 }
 
 export function updateTracking(node: NodeValue, track?: TrackingType) {

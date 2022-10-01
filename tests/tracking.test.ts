@@ -2,12 +2,11 @@ import { event } from '../src/event';
 import { observable } from '../src/observable';
 import { beginTracking, endTracking, tracking } from '../src/tracking';
 
-let prevTracking = undefined;
 beforeEach(() => {
-    prevTracking = beginTracking();
+    beginTracking();
 });
 afterEach(() => {
-    endTracking(prevTracking);
+    endTracking();
 });
 
 describe('Tracking', () => {

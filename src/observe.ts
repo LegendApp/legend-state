@@ -34,7 +34,7 @@ export function observe(run: () => void | (() => void)) {
 
         dispose?.();
 
-        const trackingPrev = beginTracking();
+        beginTracking();
 
         cleanup = run() as () => void;
 
@@ -52,7 +52,7 @@ export function observe(run: () => void | (() => void)) {
 
         dispose = setupTracking(tracker.nodes, update, /*noArgs*/ true);
 
-        endTracking(trackingPrev);
+        endTracking();
     };
 
     update();
