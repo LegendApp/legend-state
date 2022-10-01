@@ -1,3 +1,4 @@
+import { beginBatch, endBatch } from './batching';
 import { isFunction } from './is';
 import { TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
@@ -34,6 +35,9 @@ export function observe(run: () => void | (() => void)) {
 
         dispose?.();
 
+        // Wrap run() in a batch so changes don't happen until we're done tracking here
+        beginBatch();
+
         beginTracking();
 
         cleanup = run() as () => void;
@@ -53,6 +57,8 @@ export function observe(run: () => void | (() => void)) {
         dispose = setupTracking(tracker.nodes, update, /*noArgs*/ true);
 
         endTracking();
+
+        endBatch();
     };
 
     update();
