@@ -10,21 +10,25 @@ export function useSelector<T>(selector: Selector<T>): T {
     let ret: T = symbolUndef as unknown as T;
     let cachedNodes;
 
+    let didFr = false;
     const fr = useReducer(Update, 0)[1];
 
     const update = function () {
-        // If running, call selector and re-render if changed
-        let cur = computeSelector(selector);
-        // Re-render if not currently rendering and value has changed
-        if (!inRun && cur !== ret) {
-            fr();
-        }
-        ret = cur;
-        inRun = false;
+        if (!didFr) {
+            // If running, call selector and re-render if changed
+            let cur = computeSelector(selector);
+            // Re-render if not currently rendering and value has changed
+            if (!inRun && cur !== ret) {
+                didFr = true;
+                fr();
+            }
+            ret = cur;
+            inRun = false;
 
-        // Workaround for React 18's double calling useEffect - cached the tracking nodes
-        if (process.env.NODE_ENV === 'development') {
-            cachedNodes = tracking.current?.nodes;
+            // Workaround for React 18's double calling useEffect - cached the tracking nodes
+            if (process.env.NODE_ENV === 'development') {
+                cachedNodes = tracking.current?.nodes;
+            }
         }
     };
 

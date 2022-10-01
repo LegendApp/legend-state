@@ -63,5 +63,5 @@ export function observe(run: () => void | (() => void)) {
 
     update();
 
-    return () => dispose();
+    return dispose;
 }
