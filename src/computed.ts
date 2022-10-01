@@ -3,6 +3,7 @@ import { getNode, lockObservable } from './helpers';
 import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
 import { observe } from './observe';
+import { tracking } from './tracking';
 
 export function computed<T>(compute: () => T): ObservableComputed<T> {
     // Create an observable for this computed variable
@@ -12,10 +13,12 @@ export function computed<T>(compute: () => T): ObservableComputed<T> {
     // Lazily activate the observable when get is called
     getNode(obs).root.activate = () => {
         const set = function (val) {
+            const tracker = tracking.current;
             // Update the computed value
             lockObservable(obs, false);
             obs.set(val);
             lockObservable(obs, true);
+            tracking.current = tracker;
         };
         const fn = function () {
             let val = compute();
