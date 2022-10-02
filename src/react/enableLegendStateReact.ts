@@ -19,7 +19,12 @@ let isEnabled = false;
 
 const Updater = (s) => s + 1;
 
-export function enableLegendStateReact() {
+/**
+ * Enable automatic observing and rendering observables directly
+ *
+ * @param {Object} options - { observeOnlyIfTracking } - Only adding observability if component is tracking observables. This is a good optimization but it will cause errors if components listen to observables conditionally.
+ */
+export function enableLegendStateReact(options: { observeOnlyIfTracking?: boolean } = {}) {
     if (!isEnabled) {
         isEnabled = true;
 
@@ -113,7 +118,7 @@ export function enableLegendStateReact() {
                         numTracking--;
                         // If the previous dispatcher tracked nodes then set up hooks
                         const tracker = tracking.current;
-                        if (tracker) {
+                        if (tracker?.nodes) {
                             try {
                                 const reducer = dispatcher.useReducer(Updater, 0)[1];
 
@@ -167,7 +172,7 @@ export function enableLegendStateReact() {
                                     throw new Error('[legend-state] error creating hooks');
                                 }
                             }
-                        } else {
+                        } else if (!options.observeOnlyIfTracking) {
                             // Wrap in try/catch because this can sometimes cause errors,
                             // like when hydrating in Next.js
                             try {
