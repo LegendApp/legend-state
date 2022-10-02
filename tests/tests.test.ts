@@ -1526,6 +1526,16 @@ describe('on functions', () => {
         obs.val.set(true);
         expect(handler).toHaveBeenCalled();
     });
+    test('when disposes itself', () => {
+        const obs = observable({ val: false } as any);
+        const handler = jest.fn();
+        when(obs.val, handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs.val.set(true);
+        expect(handler).toHaveBeenCalledTimes(1);
+        obs.val.set(10);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
 });
 describe('Shallow', () => {
     test('Shallow set primitive', () => {

@@ -1,9 +1,8 @@
-import { isPromise } from './is';
 import { getNode, lockObservable } from './helpers';
+import { isPromise } from './is';
 import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
 import { observe } from './observe';
-import { tracking } from './tracking';
 
 export function computed<T>(compute: () => T): ObservableComputed<T> {
     // Create an observable for this computed variable

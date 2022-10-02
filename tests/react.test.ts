@@ -86,4 +86,33 @@ describe('useSelector', () => {
         expect(num).toEqual(7);
         expect(result.current).toEqual('hello z there');
     });
+    test('useSelector cleaned up', () => {
+        const obs = observable('hi');
+        let num = 0;
+        const { result, unmount } = renderHook(() => {
+            return useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+        });
+
+        expect(num).toEqual(1);
+        expect(result.current).toEqual('hi there');
+
+        unmount();
+
+        act(() => {
+            obs.set('a');
+        });
+        // Set after unmounted triggers the observe but since it does not
+        // re-render it does not run again
+        expect(num).toEqual(2);
+        expect(result.current).toEqual('hi there');
+
+        act(() => {
+            obs.set('b');
+        });
+
+        expect(num).toEqual(2);
+    });
 });

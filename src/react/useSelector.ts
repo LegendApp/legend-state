@@ -1,55 +1,31 @@
-import { observe, setupTracking, symbolUndef, tracking } from '@legendapp/state';
-import { useEffect, useReducer } from 'react';
+import { observe, symbolUndef } from '@legendapp/state';
+import { useReducer } from 'react';
 import { computeSelector, Selector } from './reactHelpers';
 
 const Update = (s) => s + 1;
 
 export function useSelector<T>(selector: Selector<T>): T {
     let inRun = true;
-
     let ret: T = symbolUndef as unknown as T;
-    let cachedNodes;
-
-    let didFr = false;
     const fr = useReducer(Update, 0)[1];
 
-    const update = function () {
-        if (!didFr) {
-            // If running, call selector and re-render if changed
-            let cur = computeSelector(selector);
-            // Re-render if not currently rendering and value has changed
-            if (!inRun && cur !== ret) {
-                didFr = true;
-                fr();
-            }
-            ret = cur;
-            inRun = false;
-
-            // Workaround for React 18's double calling useEffect - cached the tracking nodes
-            if (process.env.NODE_ENV === 'development') {
-                cachedNodes = tracking.current?.nodes;
-            }
+    observe(function update() {
+        // If running, call selector and re-render if changed
+        let cur = computeSelector(selector);
+        // Re-render if not currently rendering and value has changed
+        if (!inRun && cur !== ret) {
+            fr();
+            // Return false so that observe does not track
+            return false;
         }
-    };
+        ret = cur;
+        inRun = false;
+    });
 
-    let dispose = observe(update);
-
-    if (process.env.NODE_ENV === 'development') {
-        useEffect(() => {
-            // Workaround for React 18's double calling useEffect. If this is the
-            // second useEffect, set up tracking again.
-            if (dispose === undefined) {
-                dispose = setupTracking(cachedNodes, update, /*noArgs*/ true);
-            }
-            return () => {
-                dispose();
-                dispose = undefined;
-            };
-        });
-    } else {
-        // Return dispose to cleanup before each render or on unmount
-        useEffect(() => dispose);
-    }
+    // Note: This does not have a useEffect to cleanup listeners because it is ok
+    // to call useReducer after unmounting. So it will lazily cleanup after unmount
+    // because it will call fr() and return false to not track. Then since fr() does
+    // not trigger re-render since it's unmounted, it does not set up tracking again.
 
     return ret;
 }

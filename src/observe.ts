@@ -24,15 +24,10 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
     };
 }
 
-export function observe(run: () => void | (() => void)) {
-    let cleanup: () => void;
+export function observe(run: () => void | boolean) {
     let dispose: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
-        if (isFunction(cleanup)) {
-            cleanup();
-        }
-
         dispose?.();
 
         // Wrap run() in a batch so changes don't happen until we're done tracking here
@@ -40,21 +35,23 @@ export function observe(run: () => void | (() => void)) {
 
         beginTracking();
 
-        cleanup = run() as () => void;
+        let shouldTrack = run();
 
-        const tracker = tracking.current;
-        // Do tracing if it was requested
-        if (process.env.NODE_ENV === 'development') {
-            tracker.traceListeners?.(tracker.nodes);
-            if (tracker.traceUpdates) {
-                update = tracker.traceUpdates(update);
+        if (shouldTrack !== false) {
+            const tracker = tracking.current;
+            // Do tracing if it was requested
+            if (process.env.NODE_ENV === 'development') {
+                tracker.traceListeners?.(tracker.nodes);
+                if (tracker.traceUpdates) {
+                    update = tracker.traceUpdates(update);
+                }
+                // Clear tracing
+                tracker.traceListeners = undefined;
+                tracker.traceUpdates = undefined;
             }
-            // Clear tracing
-            tracker.traceListeners = undefined;
-            tracker.traceUpdates = undefined;
-        }
 
-        dispose = setupTracking(tracker.nodes, update, /*noArgs*/ true);
+            dispose = setupTracking(tracker.nodes, update, /*noArgs*/ true);
+        }
 
         endTracking();
 

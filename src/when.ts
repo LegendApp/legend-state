@@ -6,9 +6,6 @@ import { observe } from './observe';
 export function when<T>(predicate: Observable<T> | (() => T)): Promise<T>;
 export function when<T>(predicate: Observable<T> | (() => T), effect: (T) => any | (() => any)): () => void;
 export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => any | (() => any)) {
-    let cleanup: () => void;
-    let isDone = false;
-
     // Create a wrapping fn that calls the effect if predicate returns true
     function run() {
         let ret = predicate as any;
@@ -20,10 +17,11 @@ export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => an
             ret = ret.get();
         }
         if (ret) {
-            // If value is truthy then run the effect and cleanup
-            isDone = true;
+            // If value is truthy then run the effect
             effect(ret);
-            cleanup?.();
+
+            // Return false so that observe does not track
+            return false;
         }
     }
 
@@ -35,12 +33,7 @@ export function when<T>(predicate: Observable<T> | (() => T), effect?: (T) => an
         });
 
     // Create an effect for the fn
-    cleanup = observe(run);
+    const dispose = observe(run);
 
-    // If it's already cleanup
-    if (isDone) {
-        cleanup();
-    }
-
-    return promise || cleanup;
+    return promise || dispose;
 }
