@@ -1,6 +1,5 @@
-import { observe, symbolUndef } from '@legendapp/state';
+import { observe, symbolUndef, Selector, computeSelector } from '@legendapp/state';
 import { useReducer } from 'react';
-import { computeSelector, Selector } from './reactHelpers';
 
 const Update = (s) => s + 1;
 

@@ -1,7 +1,6 @@
 import { isFunction } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import { Selector } from './reactHelpers';
-import type { ObservableObject } from '../observableInterfaces';
+import type { ObservableObject, Selector } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {

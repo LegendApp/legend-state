@@ -18,7 +18,7 @@ export { tracking, beginTracking, endTracking, updateTracking } from './src/trac
 /** @internal */
 export { symbolDateModified, symbolIsObservable, extraPrimitiveProps, getNodeValue, symbolUndef } from './src/globals';
 /** @internal */
-export { getNode } from './src/helpers';
+export { getNode, computeSelector } from './src/helpers';
 /** @internal */
 export { setupTracking } from './src/observe';
 /** @internal */

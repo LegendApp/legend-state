@@ -197,10 +197,7 @@ type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
     ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
     : SameShapeWithStringsRecord<T>;
 
-export interface OnReturnValue<T> {
-    promise: Promise<T>;
-    dispose: ObservableListenerDispose;
-}
+export type Selector<T> = ObservableReadable<T> | (() => T);
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
