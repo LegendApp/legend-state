@@ -24,10 +24,12 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
     };
 }
 
-export function observe(run: () => void | boolean) {
+export function observe(run: () => void | boolean | (() => void)) {
+    let cleanupPrevious: () => void;
     let dispose: () => void;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
+        cleanupPrevious?.();
         dispose?.();
 
         // Wrap run() in a batch so changes don't happen until we're done tracking here
@@ -35,9 +37,12 @@ export function observe(run: () => void | boolean) {
 
         beginTracking();
 
-        let shouldTrack = run();
+        let ret = run();
 
-        if (shouldTrack !== false) {
+        if (ret !== false) {
+            if (isFunction(ret)) {
+                cleanupPrevious = ret;
+            }
             const tracker = tracking.current;
             // Do tracing if it was requested
             if (process.env.NODE_ENV === 'development') {
