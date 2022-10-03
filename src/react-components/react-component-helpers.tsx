@@ -1,4 +1,4 @@
-import { isFunction, isString, isObservable } from '@legendapp/state';
+import { isEmpty, isFunction, isString, isObservable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
 import { ChangeEvent, createElement, FC, forwardRef, memo, useCallback, useReducer } from 'react';
 import type { Observable, Selector } from '../observableInterfaces';
@@ -11,7 +11,7 @@ const ReactForwardRefSymbol = hasSymbol
 
 const Update = (s) => s + 1;
 
-export type ShapeWith$<T> = T & {
+export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
 
@@ -20,7 +20,7 @@ function createReactiveComponent<P>(
     observe: boolean,
     reactive?: boolean,
     bindOptions?: { keyValue: keyof P; keyChange?: keyof P; getValue: (e) => any }
-): FC<P & ShapeWith$<P>> {
+) {
     const isStr = isString(component);
     // Unwrap forwardRef on the component
     let useForwardRef: boolean;
@@ -35,7 +35,11 @@ function createReactiveComponent<P>(
 
     let ret = function ReactiveComponent(props: P, ref) {
         const fr = useReducer(Update, 0)[1];
-        const propsOut = { ref } as P;
+        const propsOut = {} as P & { ref: any };
+
+        if (ref && !isEmpty(ref)) {
+            propsOut.ref = ref;
+        }
         if (reactive) {
             const keys = Object.keys(props);
             for (let i = 0; i < keys.length; i++) {
@@ -91,13 +95,13 @@ export function observer<P>(component: FC<P>): FC<P> {
 export function reactive<P>(
     component: FC<P> | string,
     bindOptions?: { keyValue: keyof P; keyChange?: keyof P; getValue: (e) => any }
-): FC<P & ShapeWith$<P>> {
-    return createReactiveComponent(component, false, true, bindOptions);
+) {
+    return createReactiveComponent(component, false, true, bindOptions) as FC<ShapeWith$<P>>;
 }
 
 export function reactiveObserver<P>(
     component: FC<P> | string,
     bindOptions?: { keyValue: keyof P; keyChange?: keyof P; getValue: (e) => any }
-): FC<P & ShapeWith$<P>> {
-    return createReactiveComponent(component, true, true, bindOptions);
+) {
+    return createReactiveComponent(component, true, true, bindOptions) as FC<ShapeWith$<P>>;
 }
