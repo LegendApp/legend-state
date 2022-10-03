@@ -9,10 +9,6 @@ import { observable } from '../src/observable';
 import { useSelector } from '../src/react/useSelector';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
-
 describe('useSelector', () => {
     test('useSelector basics', () => {
         const obs = observable('hi');
@@ -154,9 +150,9 @@ describe('For', () => {
         enableLegendStateReact();
         const obs = observable({
             items: [
-                { id: 0, label: '0' },
-                { id: 1, label: '1' },
-            ] as Array<{ id: number; label: string }>,
+                { id: 'B', label: 'B' },
+                { id: 'A', label: 'A' },
+            ] as Array<{ id: string; label: string }>,
         });
         function Item({ item }) {
             return createElement('li', { id: item.id.get() }, item.label.get());
@@ -170,14 +166,24 @@ describe('For', () => {
         expect(items.length).toEqual(2);
 
         act(() => {
-            // debugger;
-            obs.items.splice(1, 0, { id: 2, label: '2' });
+            obs.items.splice(0, 0, { id: 'C', label: 'C' });
         });
 
         items = container.querySelectorAll('li');
         expect(items.length).toEqual(3);
-        expect(items[0].id).toEqual('0');
-        expect(items[1].id).toEqual('2');
-        expect(items[2].id).toEqual('1');
+        expect(items[0].id).toEqual('C');
+        expect(items[1].id).toEqual('B');
+        expect(items[2].id).toEqual('A');
+
+        act(() => {
+            obs.items.splice(0, 0, { id: 'D', label: 'D' });
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(4);
+        expect(items[0].id).toEqual('D');
+        expect(items[1].id).toEqual('C');
+        expect(items[2].id).toEqual('B');
+        expect(items[3].id).toEqual('A');
     });
 });

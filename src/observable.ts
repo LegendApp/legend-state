@@ -85,7 +85,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
     }
     const isArr = isArray(obj);
 
-    let keyMap: Map<string | number, number>;
+    let prevChildrenById: Map<string | number, NodeValue>;
     let moved: [string, NodeValue][];
 
     // If array it's faster to just use the array
@@ -102,12 +102,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                     p.id !== undefined ? 'id' : p._id !== undefined ? '_id' : p.__id !== undefined ? '__id' : undefined;
 
                 if (idField) {
-                    keyMap = new Map();
+                    prevChildrenById = new Map();
                     moved = [];
                     for (let i = 0; i < prevValue.length; i++) {
                         const p = prevValue[i];
                         if (p) {
-                            keyMap.set(p[idField], i);
+                            prevChildrenById.set(p[idField], parent.children.get(i));
                         }
                     }
                 }
@@ -154,26 +154,29 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
-                if (isArr && prev && id !== undefined) {
+                if (isArr && id !== undefined) {
                     // Find the previous position of this element in the array
-                    const keyChild = id !== undefined ? keyMap?.get(id) : undefined;
-                    if (keyChild !== undefined) {
-                        if (keyChild !== key) {
-                            // If array length changed then move the original node to the current position.
-                            // That should be faster than notifying every single element that
-                            // it's in a new position.
-                            if (isArrDiff) {
-                                child = getChildNode(parent, keyChild);
-                                child.key = key;
-                                moved.push([key, child]);
-                            }
-
-                            didMove = true;
-
-                            // And check for diff against the previous value in the previous position
-                            const prevOfNode = prevValue[keyChild];
-                            isDiff = prevOfNode !== value;
+                    const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
+                    if (!prevChild) {
+                        // This id was not in the array before so it does not need to notify children
+                        isDiff = false;
+                    } else if (prevChild !== undefined && prevChild.key !== key) {
+                        // If array length changed then move the original node to the current position.
+                        // That should be faster than notifying every single element that
+                        // it's in a new position.
+                        if (isArrDiff) {
+                            child = prevChild;
+                            if (!child) debugger;
+                            parent.children.delete(child.key);
+                            child.key = key;
+                            moved.push([key, child]);
                         }
+
+                        didMove = true;
+
+                        // And check for diff against the previous value in the previous position
+                        const prevOfNode = prevChild;
+                        isDiff = prevOfNode !== value;
                     }
                 }
 
