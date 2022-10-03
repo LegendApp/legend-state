@@ -154,7 +154,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
 
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
-                if (isArr && id !== undefined) {
+                if (isArr && prev && id !== undefined) {
                     // Find the previous position of this element in the array
                     const keyChild = id !== undefined ? keyMap?.get(id) : undefined;
                     if (keyChild !== undefined) {

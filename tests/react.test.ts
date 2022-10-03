@@ -2,9 +2,16 @@
  * @jest-environment jsdom
  */
 import '@testing-library/jest-dom';
-import { act, renderHook } from '@testing-library/react';
+import { act, render, renderHook } from '@testing-library/react';
+import { createElement, useReducer } from 'react';
+import { For } from '../src/react/flow';
 import { observable } from '../src/observable';
 import { useSelector } from '../src/react/useSelector';
+import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
+
+function promiseTimeout(time?: number) {
+    return new Promise((resolve) => setTimeout(resolve, time || 0));
+}
 
 describe('useSelector', () => {
     test('useSelector basics', () => {
@@ -114,5 +121,63 @@ describe('useSelector', () => {
         });
 
         expect(num).toEqual(2);
+    });
+});
+
+describe('For', () => {
+    test('Array insert has stable reference', () => {
+        enableLegendStateReact();
+        const obs = observable({
+            items: [{ id: 0, label: '0' }] as Array<{ id: number; label: string }>,
+        });
+        function Item({ item }) {
+            return createElement('li', { id: item.id.get() }, item.label.get());
+        }
+        function Test() {
+            return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('li');
+        expect(items.length).toEqual(1);
+
+        act(() => {
+            // debugger;
+            obs.items.splice(0, 0, { id: 1, label: '1' });
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('1');
+    });
+    test('Array insert has stable reference 2', () => {
+        enableLegendStateReact();
+        const obs = observable({
+            items: [
+                { id: 0, label: '0' },
+                { id: 1, label: '1' },
+            ] as Array<{ id: number; label: string }>,
+        });
+        function Item({ item }) {
+            return createElement('li', { id: item.id.get() }, item.label.get());
+        }
+        function Test() {
+            return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+
+        act(() => {
+            // debugger;
+            obs.items.splice(1, 0, { id: 2, label: '2' });
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(3);
+        expect(items[0].id).toEqual('0');
+        expect(items[1].id).toEqual('2');
+        expect(items[2].id).toEqual('1');
     });
 });
