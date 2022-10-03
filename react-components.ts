@@ -1,2 +1,2 @@
-export { observer, reactive, reactiveObserver } from './src/react-components/react-component-helpers';
+export { observer, reactive, reactiveObserver } from '@legendapp/state/react';
 export * from './src/react-components/react-components';

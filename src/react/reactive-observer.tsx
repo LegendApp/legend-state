@@ -11,6 +11,7 @@ const ReactForwardRefSymbol = hasSymbol
 
 const Update = (s) => s + 1;
 
+/** @internal */
 export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };

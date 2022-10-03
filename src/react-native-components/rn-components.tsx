@@ -1,6 +1,6 @@
 import { isFunction } from '@legendapp/state';
 import { createElement, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
-import { reactive } from '../react-components/react-component-helpers';
+import { reactive } from '@legendapp/state/react';
 import RN, {
     NativeSyntheticEvent,
     StyleProp,
