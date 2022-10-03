@@ -118,6 +118,49 @@ describe('useSelector', () => {
 
         expect(num).toEqual(2);
     });
+    test('useSelector with forceRender', () => {
+        const obs = observable('hi');
+        let num = 0;
+        let numSelects = 0;
+        let fr;
+        function Test() {
+            fr = useReducer((s) => s + 1, 0)[1];
+            const val = useSelector(() => {
+                numSelects++;
+                return obs.get() + ' there';
+            });
+            num++;
+
+            return createElement('div', { children: val });
+        }
+        render(createElement(Test));
+
+        act(() => {
+            fr();
+            fr();
+            obs.set('hello1');
+            obs.set('hello2');
+            obs.set('hello');
+            fr();
+            fr();
+        });
+
+        expect(num).toEqual(2);
+        expect(numSelects).toEqual(3);
+
+        act(() => {
+            fr();
+            fr();
+            obs.set('hello2');
+            obs.set('hello3');
+            obs.set('hello4');
+            fr();
+            fr();
+        });
+
+        expect(num).toEqual(3);
+        expect(numSelects).toEqual(5);
+    });
 });
 
 describe('For', () => {
