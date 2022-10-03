@@ -72,7 +72,10 @@ function createReactiveComponent<P>(
         }
 
         return observe
-            ? useSelector(() => createElement(component, propsOut), { forceRender: fr, shouldRender: true })
+            ? useSelector(() => (isStr ? createElement(component, propsOut) : (component as FC)(propsOut, ref)), {
+                  forceRender: fr,
+                  skipCompare: true,
+              })
             : createElement(component, propsOut);
     };
 

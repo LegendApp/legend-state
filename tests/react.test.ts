@@ -33,6 +33,13 @@ describe('useSelector', () => {
         expect(num).toEqual(5);
         expect(result.current).toEqual('z there');
     });
+    test('useSelector undefined', () => {
+        const { result } = renderHook(() => {
+            return useSelector(undefined);
+        });
+
+        expect(result.current).toEqual(undefined);
+    });
     test('useSelector setting twice', () => {
         const obs = observable('hi');
         let num = 0;
@@ -164,13 +171,13 @@ describe('useSelector', () => {
 });
 
 describe('For', () => {
-    test('Array insert has stable reference', () => {
-        enableLegendStateReact();
+    test('Array insert has stable reference', async () => {
         const obs = observable({
             items: [{ id: 0, label: '0' }] as Array<{ id: number; label: string }>,
         });
         function Item({ item }) {
-            return createElement('li', { id: item.id.get() }, item.label.get());
+            const data = useSelector(item);
+            return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
             return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
@@ -181,7 +188,6 @@ describe('For', () => {
         expect(items.length).toEqual(1);
 
         act(() => {
-            // debugger;
             obs.items.splice(0, 0, { id: 1, label: '1' });
         });
 
@@ -198,7 +204,8 @@ describe('For', () => {
             ] as Array<{ id: string; label: string }>,
         });
         function Item({ item }) {
-            return createElement('li', { id: item.id.get() }, item.label.get());
+            const data = useSelector(item);
+            return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
             return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
