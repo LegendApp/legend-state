@@ -38,7 +38,7 @@ function createReactiveComponent<P>(
         const fr = useReducer(Update, 0)[1];
         const propsOut = {} as P & { ref: any };
 
-        if (ref && !isEmpty(ref)) {
+        if (isStr && ref && !isEmpty(ref)) {
             propsOut.ref = ref;
         }
         if (reactive) {
@@ -48,11 +48,9 @@ function createReactiveComponent<P>(
                 const p = props[key];
                 if (key.endsWith('$') && (isFunction(p) || isObservable(p))) {
                     const k = key.slice(0, -1);
-                    // eslint-disable-next-line react-hooks/rules-of-hooks
                     propsOut[k] = useSelector(p, { forceRender: fr });
 
                     if (bindOptions && k === bindOptions.keyValue) {
-                        propsOut[bindOptions.keyValue] = useSelector(p as Observable, { forceRender: fr });
                         (propsOut[bindOptions.keyChange] as any) = useCallback(
                             (e: ChangeEvent) => {
                                 p.set(bindOptions.getValue(e));
