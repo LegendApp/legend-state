@@ -4,12 +4,12 @@ import type { ObservableObject, Selector } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {
-    return children() as ReactElement;
+    return useSelector(children, { skipCompare: true }) as ReactElement;
 }
 
 export const Memo = memo(
     function Memo({ children }: { children: () => ReactNode }): ReactElement {
-        return children() as ReactElement;
+        return useSelector(children, { skipCompare: true }) as ReactElement;
     },
     () => true
 );
@@ -67,7 +67,7 @@ export function For<
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = (each as ObservableObject).get(optimized ? 'optimize' : true);
+    const v = useSelector(() => (each as ObservableObject).get(optimized ? 'optimize' : true), { skipCompare: true });
 
     if (!v) return null;
 

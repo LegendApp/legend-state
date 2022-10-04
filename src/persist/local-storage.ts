@@ -27,6 +27,11 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         if (typeof localStorage === 'undefined') return;
 
         const v = this.data[id];
-        localStorage.setItem(id, JSON.stringify(v));
+
+        if (v !== undefined && v !== null) {
+            localStorage.setItem(id, JSON.stringify(v));
+        } else {
+            localStorage.removeItem(id);
+        }
     }
 }

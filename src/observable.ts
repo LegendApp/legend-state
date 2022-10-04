@@ -259,7 +259,7 @@ const proxyHandler: ProxyHandler<any> = {
                 node.isActivatedPrimitive = true;
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
-                    return vPrim?.__fn?.(node, value) ?? vPrim;
+                    return vPrim?.__fn?.(getProxy(node)) ?? vPrim;
                 }
             }
         }

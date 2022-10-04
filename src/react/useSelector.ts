@@ -1,19 +1,23 @@
-import { observe, symbolUndef, Selector, computeSelector } from '@legendapp/state';
+import { computeSelector, observe, Selector, symbolUndef, isPrimitive } from '@legendapp/state';
 import { useReducer } from 'react';
 
 const Update = (s) => s + 1;
 
-export function useSelector<T>(selector: Selector<T>): T {
+export function useSelector<T>(
+    selector: Selector<T>,
+    options?: { forceRender?: () => void; skipCompare?: boolean }
+): T {
     let inRun = true;
     let ret: T = symbolUndef as unknown as T;
-    const fr = useReducer(Update, 0)[1];
+    const forceRender = options?.forceRender || useReducer(Update, 0)[1];
+    const skipCompare = options?.skipCompare;
 
     observe(function update() {
         // If running, call selector and re-render if changed
-        let cur = computeSelector(selector);
+        let cur = (inRun || !skipCompare) && computeSelector(selector);
         // Re-render if not currently rendering and value has changed
-        if (!inRun && cur !== ret) {
-            fr();
+        if (!inRun && (skipCompare || cur !== ret || !isPrimitive(cur))) {
+            forceRender();
             // Return false so that observe does not track
             return false;
         }
