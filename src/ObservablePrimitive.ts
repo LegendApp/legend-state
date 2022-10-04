@@ -19,11 +19,6 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
         this.set = this.set.bind(this);
     }
     // Getters
-    get value() {
-        const node = this.#node;
-        updateTracking(node);
-        return this.peek();
-    }
     peek(): T {
         const root = this.#node.root;
         if (root.activate) {
@@ -33,10 +28,17 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
         return root._;
     }
     get(track?: boolean | 'optimize'): T {
-        return track !== false ? this.value : this.peek();
+        if (track !== false) {
+            const node = this.#node;
+            updateTracking(node);
+        }
+        return this.peek();
     }
     // Setters
-    set value(value: T) {
+    set(value: T | ((prev: T) => T)): ObservableChild<T> {
+        if (isFunction(value)) {
+            value = value(this.#node.root._);
+        }
         if (this.#node.root.locked) {
             throw new Error(
                 process.env.NODE_ENV === 'development'
@@ -48,12 +50,6 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
         const prev = root._;
         root._ = value;
         doNotify(this.#node, value, [], value, prev, 0);
-    }
-    set(value: T | ((prev: T) => T)): ObservableChild<T> {
-        if (isFunction(value)) {
-            value = value(this.#node.root._);
-        }
-        this.value = value;
         return this as unknown as ObservableChild<T>;
     }
     // Listener

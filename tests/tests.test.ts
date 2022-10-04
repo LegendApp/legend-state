@@ -1835,19 +1835,11 @@ describe('Assigning functions', () => {
 describe('Primitive root', () => {
     test('observable root can be primitive', () => {
         const obs = observable(10);
-        expect(obs.value).toEqual(10);
+        expect(obs.get()).toEqual(10);
         obs.set(20);
-        expect(obs.value).toEqual(20);
+        expect(obs.get()).toEqual(20);
     });
-    test('set value on observable notifies', () => {
-        const obs = observable(10);
-        expect(obs.value).toEqual(10);
-        const handler = expectChangeHandler(obs);
-        obs.value = 20;
-        expect(obs.value).toEqual(20);
-        expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
-    });
-    test('Primitive callback does not have value', () => {
+    test('Primitive callback', () => {
         const obs = observable(10);
         const handler = expectChangeHandler(obs);
         obs.onChange(handler);

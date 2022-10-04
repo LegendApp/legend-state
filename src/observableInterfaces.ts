@@ -18,9 +18,7 @@ export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
 }
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 
-export interface ObservablePrimitive<T> extends Required<ObservablePrimitiveFns<T>> {
-    value: T;
-}
+export type ObservablePrimitive<T> = ObservablePrimitiveFns<T>;
 
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {

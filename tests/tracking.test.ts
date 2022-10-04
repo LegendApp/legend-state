@@ -115,14 +115,6 @@ describe('Tracking', () => {
 
         expect(tracking.current.nodes.size).toEqual(1);
     });
-    test('value on a primitive observes', () => {
-        const prim = observable(0);
-
-        const a = prim.value;
-
-        const nodes = [...tracking.current.nodes.values()];
-        expect(nodes[0].node.key).toEqual(undefined);
-    });
     test('Array map observes arary', () => {
         const obs = observable({
             arr: [
