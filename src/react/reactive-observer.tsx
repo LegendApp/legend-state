@@ -38,7 +38,7 @@ function createReactiveComponent<P>(
         const fr = useReducer(Update, 0)[1];
         const propsOut = {} as P & { ref: any };
 
-        if (isStr && ref && !isEmpty(ref)) {
+        if (isStr && ref && (isFunction(ref) || !isEmpty(ref))) {
             propsOut.ref = ref;
         }
         if (reactive) {
