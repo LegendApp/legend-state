@@ -713,20 +713,11 @@ describe('Primitives', () => {
         expect(obs.test).not.toEqual('hi');
         expect(obs.test.get()).toEqual('hi');
     });
-    test('Primitive has "value"', () => {
-        const obs = observable({ test: 'hi' });
-        expect(obs.test.value).toEqual('hi');
-    });
     test('Primitive set', () => {
         const obs = observable({ test: { text: 't' } });
         expect(obs.test.text.get()).toEqual('t');
         obs.test.text.set('t2');
         expect(obs.test.text.get()).toEqual('t2');
-    });
-    test('Primitive direct assign value', () => {
-        const obs = observable({ test: 'hi' });
-        obs.test.value = 'hello';
-        expect(obs.test.value).toEqual('hello');
     });
     test('Deep primitive access', () => {
         const obs = observable({ val: { val2: { val3: 10 } } });
@@ -1656,7 +1647,7 @@ describe('Computed', () => {
         expect(comp.value.get()).toEqual(30);
         const handler = expectChangeHandler(comp.value);
 
-        obs.test.value = 5;
+        obs.test.set(5);
 
         expect(handler).toHaveBeenCalledWith(25, 30, [], 25, 30);
     });
@@ -1804,7 +1795,7 @@ describe('Locking', () => {
         const obs = observable({ text: 'hi' });
         lockObservable(obs, true);
         expect(() => obs.text.set('hello')).toThrowError();
-        expect(() => (obs.text.value = 'hello')).toThrowError();
+        expect(() => obs.text.set('hello')).toThrowError();
         expect(() => obs.set({ text: 'hello' })).toThrowError();
         expect(obs.get()).toEqual({ text: 'hi' });
         lockObservable(obs, false);

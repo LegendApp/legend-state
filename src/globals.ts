@@ -80,8 +80,12 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
 export function ensureNodeValue(node: NodeValue) {
     let value = getNodeValue(node);
     if (!value) {
-        const parent = ensureNodeValue(node.parent);
-        value = parent[node.key] = {};
+        if (node.parent) {
+            const parent = ensureNodeValue(node.parent);
+            value = parent[node.key] = {};
+        } else {
+            value = node.root._ = {};
+        }
     }
     return value;
 }

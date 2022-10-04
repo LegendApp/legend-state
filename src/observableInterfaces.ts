@@ -216,7 +216,7 @@ export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
     ObservableArrayOverride<ObservableObject<T[number]>>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChildFns<T> : ObservableObject<T>;
-export type ObservablePrimitiveChild<T = any> = ObservablePrimitive<T> & ObservablePrimitiveChildFns<T>;
+export type ObservablePrimitiveChild<T = any> = ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
 
@@ -225,8 +225,12 @@ export type ObservableComputed<T = any> = ObservableBaseFns<T> &
     ([T] extends [Primitive] ? { readonly value: T } : T);
 export declare type Observable<T = any> = [T] extends [object] ? ObservableObjectOrArray<T> : ObservablePrimitive<T>;
 
-export type ObservableReadable<T = any> = ObservableObject<T> | ObservableComputed<T> | ObservablePrimitiveChild<T>;
-export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T>;
+export type ObservableReadable<T = any> =
+    | ObservableObject<T>
+    | ObservableComputed<T>
+    | ObservablePrimitiveChild<T>
+    | ObservablePrimitive<T>;
+export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T> | ObservablePrimitive<T>;
 
 export interface NodeValue {
     id: number;

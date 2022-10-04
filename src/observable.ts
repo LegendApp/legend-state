@@ -250,10 +250,6 @@ const proxyHandler: ProxyHandler<any> = {
 
         const isValuePrimitive = isPrimitive(value);
 
-        if (p === 'value' && isValuePrimitive) {
-            return get(node);
-        }
-
         if (value === undefined || value === null || isValuePrimitive) {
             if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
                 node.isActivatedPrimitive = true;
@@ -334,7 +330,7 @@ const proxyHandler: ProxyHandler<any> = {
             return Reflect.set(node, prop, value);
         }
 
-        if (!inAssign && prop !== 'value') {
+        if (!inAssign) {
             return false;
         }
 
@@ -383,14 +379,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
 
     const isPrim = isPrimitive(newValue);
 
-    if (isPrim) {
-        if (key === 'value' && isPrimitive(getNodeValue(node))) {
-            key = node.key;
-            node = node.parent;
-        }
-    }
-
-    const isRoot = (key as any) === symbolUndef || (!node.parent && key === 'value' && isPrimitive(newValue));
+    const isRoot = (key as any) === symbolUndef;
 
     // Get the child node for updating and notifying
     let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
@@ -462,8 +451,11 @@ function assign(node: NodeValue, value: any) {
 
     // Set inAssign to allow setting on safe observables
     inAssign = true;
-    Object.assign(proxy, value);
-    inAssign = false;
+    try {
+        Object.assign(proxy, value);
+    } finally {
+        inAssign = false;
+    }
 
     endBatch();
 

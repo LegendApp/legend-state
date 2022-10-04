@@ -90,8 +90,8 @@ function onChangeRemote(localState: LocalState, cb: () => void) {
     localState.tempDisableSaveRemote = false;
 }
 
-async function loadLocal(
-    obs: ObservableReadable,
+async function loadLocal<T>(
+    obs: ObservableReadable<T>,
     persistOptions: PersistOptions,
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState
