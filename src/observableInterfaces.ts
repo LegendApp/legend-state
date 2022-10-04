@@ -1,20 +1,20 @@
 export type TrackingType = boolean | 'optimize'; // true === shallow
 
 export interface ObservableBaseFns<T> {
-    peek?(): T;
-    get?(track?: TrackingType): T;
-    onChange?(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
+    peek(): T;
+    get(track?: TrackingType): T;
+    onChange(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
-    set?(value: T | ((prev: T) => T)): ObservableChild<T>;
+    set(value: T | ((prev: T) => T)): ObservableChild<T>;
 }
 export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFns<T> {
-    delete?(): ObservableChild<T>;
+    delete(): ObservableChild<T>;
 }
 export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
-    set?(value: T | ((prev: T) => T)): ObservableChild<T>;
-    assign?(value: T | Partial<T>): ObservableChild<T>;
-    delete?(): ObservableChild<T>;
+    set(value: T | ((prev: T) => T)): ObservableChild<T>;
+    assign(value: T | Partial<T>): ObservableChild<T>;
+    delete(): ObservableChild<T>;
 }
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 
@@ -216,7 +216,6 @@ export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
     ObservableArrayOverride<ObservableObject<T[number]>>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChildFns<T> : ObservableObject<T>;
-export type ObservableRef<T = any> = [T] extends [Primitive] ? ObservablePrimitiveFns<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = ObservablePrimitive<T> & ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
@@ -226,12 +225,8 @@ export type ObservableComputed<T = any> = ObservableBaseFns<T> &
     ([T] extends [Primitive] ? { readonly value: T } : T);
 export declare type Observable<T = any> = [T] extends [object] ? ObservableObjectOrArray<T> : ObservablePrimitive<T>;
 
-export type ObservableReadable<T = any> =
-    | ObservableObject<T>
-    | ObservableComputed<T>
-    | ObservablePrimitiveChild<T>
-    | ObservableRef<T>;
-export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T> | ObservableRef<T>;
+export type ObservableReadable<T = any> = ObservableObject<T> | ObservableComputed<T> | ObservablePrimitiveChild<T>;
+export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T>;
 
 export interface NodeValue {
     id: number;

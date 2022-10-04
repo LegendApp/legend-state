@@ -3,7 +3,7 @@ import { computed } from '../src/computed';
 import { event } from '../src/event';
 import { isObservable, lockObservable } from '../src/helpers';
 import { observable } from '../src/observable';
-import { Observable } from '../src/observableInterfaces';
+import { Observable, ObservableReadable } from '../src/observableInterfaces';
 import { when } from '../src/when';
 
 function promiseTimeout(time?: number) {
@@ -19,7 +19,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: Observable, track?: boolean | 'optimize') {
+function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: boolean | 'optimize') {
     const ret = jest.fn();
 
     function handler(value, getPrev: () => any, path: string[], valueAtPath: any, prevAtPath: any) {

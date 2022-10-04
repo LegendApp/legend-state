@@ -1,6 +1,6 @@
 import { symbolDateModified, symbolGetNode, symbolIsObservable } from './globals';
 import { isFunction, isObject, isObjectEmpty } from './is';
-import type { NodeValue, ObservableObject, ObservableRef, Selector } from './observableInterfaces';
+import type { NodeValue, ObservableObject, ObservableReadable, Selector } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 
 export function isObservable(obs: any): obs is ObservableObject {
@@ -16,11 +16,11 @@ export function computeSelector<T>(selector: Selector<T>) {
     return isObservable(c) ? c.get() : c;
 }
 
-export function getNode(obs: ObservableRef): NodeValue {
+export function getNode(obs: ObservableReadable): NodeValue {
     return obs instanceof ObservablePrimitiveClass ? obs.getNode() : obs[symbolGetNode];
 }
 
-export function lockObservable(obs: ObservableRef, value: boolean) {
+export function lockObservable(obs: ObservableReadable, value: boolean) {
     const root = getNode(obs)?.root;
     if (root) {
         root.locked = value;
