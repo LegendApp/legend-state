@@ -9,10 +9,10 @@ export interface ObservableBaseFns<T> {
     onChange(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
-    set(value: T | ((prev: T) => T)): ObservableChild<T>;
+    set(value: T | ((prev: T) => T)): ObservablePrimitiveChild<T>;
 }
 export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFns<T> {
-    delete(): ObservableChild<T>;
+    delete(): ObservablePrimitiveChild<T>;
 }
 export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
     set(value: T | ((prev: T) => T)): ObservableChild<T>;
