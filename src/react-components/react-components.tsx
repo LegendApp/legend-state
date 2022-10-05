@@ -13,8 +13,8 @@ import {
     TextareaHTMLAttributes,
     useCallback,
 } from 'react';
-import type { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
-import { reactive, ShapeWith$ } from '@legendapp/state/react';
+import type { NotPrimitive, ObservableFns, Primitive, Selector } from '../observableInterfaces';
+import { reactive } from '@legendapp/state/react';
 
 type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     className?: string | ((value: TValue) => string);
@@ -87,6 +87,9 @@ export namespace Bindable {
     >('select');
 }
 
+type ShapeWith$<T> = Partial<T> & {
+    [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
+};
 type FCReactive<P> = FC<P & ShapeWith$<P>>;
 
 const bindables = new Set(['input', 'textarea', 'select']);

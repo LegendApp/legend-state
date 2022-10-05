@@ -1,7 +1,6 @@
-import { isEmpty, isFunction, isString, isObservable } from '@legendapp/state';
+import { isEmpty, isFunction, isObservable, isString, Selector } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
 import { ChangeEvent, createElement, FC, forwardRef, memo, useCallback, useReducer } from 'react';
-import type { Observable, Selector } from '../observableInterfaces';
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 const hasSymbol = typeof Symbol === 'function' && Symbol.for;
@@ -11,8 +10,7 @@ const ReactForwardRefSymbol = hasSymbol
 
 const Update = (s) => s + 1;
 
-/** @internal */
-export type ShapeWith$<T> = Partial<T> & {
+type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
 
