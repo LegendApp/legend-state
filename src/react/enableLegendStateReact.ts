@@ -52,7 +52,7 @@ export function enableLegendStateReact(options: { autoTrackingDEPRECATED?: boole
         extraPrimitiveProps.set('$$typeof', ReactTypeofSymbol);
         extraPrimitiveProps.set('type', Text);
         extraPrimitiveProps.set('_store', { validated: true });
-        extraPrimitiveProps.set('key', '');
+        extraPrimitiveProps.set('key', null);
         extraPrimitiveProps.set('props', {
             __fn: (obs) => ({ data: obs }),
         });
