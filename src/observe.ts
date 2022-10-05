@@ -45,9 +45,11 @@ export function observe(run: () => void | boolean | (() => void)) {
             }
             const tracker = tracking.current;
             // Do tracing if it was requested
+            let noArgs = true;
             if (process.env.NODE_ENV === 'development') {
                 tracker.traceListeners?.(tracker.nodes);
                 if (tracker.traceUpdates) {
+                    noArgs = false;
                     update = tracker.traceUpdates(update);
                 }
                 // Clear tracing
@@ -55,7 +57,7 @@ export function observe(run: () => void | boolean | (() => void)) {
                 tracker.traceUpdates = undefined;
             }
 
-            dispose = setupTracking(tracker.nodes, update, /*noArgs*/ true);
+            dispose = setupTracking(tracker.nodes, update, noArgs);
         }
 
         endTracking();
