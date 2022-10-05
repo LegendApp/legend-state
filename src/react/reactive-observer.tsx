@@ -48,7 +48,7 @@ function createReactiveComponent<P>(
                     const k = key.slice(0, -1);
                     propsOut[k] = useSelector(p, { forceRender: fr });
 
-                    if (bindOptions && k === bindOptions.keyValue) {
+                    if (bindOptions && k === bindOptions.keyValue && isObservable(p)) {
                         (propsOut[bindOptions.keyChange] as any) = useCallback(
                             (e: ChangeEvent) => {
                                 p.set(bindOptions.getValue(e));
@@ -71,7 +71,7 @@ function createReactiveComponent<P>(
         return observe
             ? useSelector(() => (isStr ? createElement(component, propsOut) : (component as FC)(propsOut, ref)), {
                   forceRender: fr,
-                  skipCompare: true,
+                  shouldRender: true,
               })
             : createElement(component, propsOut);
     };

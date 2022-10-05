@@ -5,18 +5,21 @@ const Update = (s) => s + 1;
 
 export function useSelector<T>(
     selector: Selector<T>,
-    options?: { forceRender?: () => void; skipCompare?: boolean }
+    options?: { forceRender?: () => void; shouldRender?: boolean | ((current: T, previous: T) => boolean) }
 ): T {
     let inRun = true;
     let ret: T = symbolUndef as unknown as T;
     const forceRender = options?.forceRender || useReducer(Update, 0)[1];
-    const skipCompare = options?.skipCompare;
+    const shouldRender = options?.shouldRender;
 
     observe(function update() {
         // If running, call selector and re-render if changed
-        let cur = (inRun || !skipCompare) && computeSelector(selector);
+        let cur = (inRun || shouldRender !== true) && computeSelector(selector);
         // Re-render if not currently rendering and value has changed
-        if (!inRun && (skipCompare || cur !== ret || !isPrimitive(cur))) {
+        if (
+            !inRun &&
+            (shouldRender === true || (shouldRender ? shouldRender(cur, ret) : cur !== ret || !isPrimitive(cur)))
+        ) {
             forceRender();
             // Return false so that observe does not track
             return false;
