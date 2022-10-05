@@ -1,4 +1,4 @@
-export type TrackingType = boolean | 'optimize'; // true === shallow
+export type TrackingType = true | 'optimize'; // true === shallow
 
 export interface ObservableBaseFns<T> {
     peek(): T;

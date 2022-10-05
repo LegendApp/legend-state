@@ -16,12 +16,6 @@ describe('Tracking', () => {
 
         expect(tracking.current.nodes.size).toEqual(1);
     });
-    test('get(false) does not observe', () => {
-        const obs = observable({ test: { test2: { test3: 'hi' } } });
-        obs.test.test2.test3.get(false);
-
-        expect(tracking.current?.nodes).toEqual(undefined);
-    });
     test('peek() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.peek();

@@ -16,10 +16,8 @@ export const extraPrimitiveProps = new Map<string | Symbol, any>();
 export const nextNodeID = { current: 0 };
 
 export function get(node: NodeValue, track?: TrackingType) {
-    if (track !== false) {
-        // Track by default
-        updateTracking(node, track);
-    }
+    // Track by default
+    updateTracking(node, track);
 
     return peek(node);
 }

@@ -6,6 +6,7 @@ import {
     ObservableChild,
     ObservableListenerDispose,
     ObservablePrimitiveFns,
+    TrackingType,
 } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
@@ -27,11 +28,10 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
         }
         return root._;
     }
-    get(track?: boolean | 'optimize'): T {
-        if (track !== false) {
-            const node = this.#node;
-            updateTracking(node);
-        }
+    get(): T {
+        const node = this.#node;
+        updateTracking(node);
+
         return this.peek();
     }
     // Setters
@@ -53,7 +53,7 @@ export class ObservablePrimitiveClass<T = any> implements ObservablePrimitiveFns
         return this as unknown as ObservableChild<T>;
     }
     // Listener
-    onChange(cb: ListenerFn<T>, track?: boolean | 'optimize', noArgs?: boolean): ObservableListenerDispose {
+    onChange(cb: ListenerFn<T>, track?: TrackingType, noArgs?: boolean): ObservableListenerDispose {
         return onChange(this.#node, cb, track, noArgs);
     }
     /** @internal */
