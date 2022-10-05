@@ -67,7 +67,7 @@ export function For<
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = useSelector(() => (each as unknown as ObservableObject).get(optimized ? 'optimize' : true), {
+    const v = useSelector(() => (each as unknown as ObservableObject).get(optimized ? 'optimize' : (true as any)), {
         skipCompare: true,
     });
 
