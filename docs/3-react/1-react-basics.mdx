@@ -24,7 +24,7 @@ function Component() {
 
 See [fine-grained reactivity](../fine-grained-reactivity/#1-render-an-observable-directly) for more details.
 
-## observer()
+## observer
 
 The `observer` HOC makes the component automatically track the accessed observables for changes. See [Tracking](../tracking) for more about when it tracks.
 
@@ -75,5 +75,5 @@ See [Tracking](../tracking) for details about how Legend-State automatically tra
 For the most part you should just use whatever feels the most comfortable to you. But if you really want to get into optimizing, there are some considerations. They will likely not affect your app's performance in any meaningful way, but at large scale they can have a small impact.
 
 - The `observer` HOC creates a memoized wrapping component which can add a small amount of overhead, so you may want to avoid it on hot path components that are used thousands of times, like items in a long list. Otherwise it's likely not noticeable.
-- Rendering an observable directly creates a memoized auto-tracking component for its contents. This can be an optimization so the parent doesn't need to re-render when it changes, but if the parent component is already tracking that observable anyway, it's wasteful so you should render the value rather than the observable.
-- `useSelector` is the most efficient option so if a component only needs one value from observables it's the optimal way to go. If it's consuming multiple observables then reusing the `forceRender` helps, and the benefit over `observer` becomes less significant.
+- Rendering an observable directly creates a memoized auto-tracking component for its contents. This is normally an optimization so the parent doesn't need to re-render when it changes, but it's wasteful if the parent component would re-render anyway, so you should render the raw value rather than the observable.
+- `useSelector` is the most efficient option so if a component only needs one value from observables it's the optimal way to go. If it's consuming multiple observables then reusing the `forceRender` helps, and also the efficiency over `observer` becomes less significant.

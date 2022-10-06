@@ -102,7 +102,7 @@ function Component() {
 
 You can wrap external components in `reactive` to add reactive versions of all of their props.
 
-In this example we make a [Framer Motion](https://www.framer.com/motion/) component reactive so that we can update its animations based on observables without needing to re-render the parent component or the motion.div's children.
+In this example we make a [Framer Motion](https://www.framer.com/motion/) component reactive so that we can update its animations based on observables without needing to re-render the parent component or its children.
 
 ```js
 import { reactive } from "@legendapp/state/react"
@@ -133,8 +133,10 @@ You can just wrap your components in `reactive` if you'd like, but it's also eas
 ```jsx
 import { useSelector } from "@legendapp/state/react"
 
-function MyComponent({ prop$ }) {
-    const prop = useSelector(prop$)
+function MyComponent({ prop, prop$ }) {
+    // Get the observable value if it exists or
+    // otherwise get the normal prop value
+    prop = useSelector(prop$ ?? prop)
 
     ...
 }
