@@ -146,7 +146,7 @@ function ComputedExample() {
 
 ## Memo
 
-Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly indepdendent from the parent component. This is equivalent to extracting it as a separate function.
+Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly independent from the parent component. This is equivalent to extracting it as a separate function.
 
 The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
 
