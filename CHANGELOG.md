@@ -1,3 +1,36 @@
+## 0.19.0
+
+This is a big one, with a breaking change to stop observing all React components automatically. See https://legendapp.com/dev/state/migrating for more details.
+
+- Breaking: No longer observing all React components automatically. Please use `observer` or `useSelector` for observable tracking.
+- Breaking: Primitives no longer have `value` - use the standard `get()` or `set()` instead
+- Breaking: Removed `get(false)` in favor of `peek()`
+- Deprecated: Bindable components will be phased out in favor of new reactive components. Import `{ legend }` on web or `{ Legend }` on react-native instead of Bindable.
+- Feat: Added `observer` HOC component
+- Feat: `reactive` components that let you pass an observable or selector to any prop [reactive-props](https://legendapp.com/dev/state/reactive-props)
+- Feat: `useSelector` has options to control how often it renders and to reuse forceRender functions
+- Fix: Improved types for TypeScript strict mode
+- Fix: Local storage persistence removes item if undefined
+- Fix: Rendering multiple obseravbles inside one element had key collision issues
+
+## 0.18.8
+- Fix: Array move detection further improved
+
+## 0.18.7
+- Feat: `observe` function can return false to prevent tracking
+- Fix: Tracking was sometimes getting out of order with nested components and computed
+- Fix: useSelector was triggering renders multiple times
+- Fix: Array move detection was incorrect on inserts
+
+## 0.18.6
+- Fix: React-specific props were creating proxies unnecessarily
+
+## 0.18.4
+- Fix: Fast refresh issues with bindable components
+
+## 0.18.3
+- Fix: Fast refresh issues with direct rendering
+
 ## 0.18.2
 - Fix: Rendering directly to JSX was not activating computeds
 - Types: Improved typing of observable and useObservable to more correctly narrow down complex types
@@ -35,7 +68,7 @@
 
 ## 0.17.0
 
-This is a big one, with mainly a breaking change to how primitives work, so see https://legendapp.com/dev/state/migrating for more details. We're aiming for this to be the last major change before aiming towards a 1.0.
+This is a big one, with mainly a breaking change to how primitives work, so see https://legendapp.com/dev/state/migrating for more details.
 
 - Breaking: Primitives in state are now returned as observable objects like everything else, and you can use `get()` or `.value` to access/modify the value
 - Breaking: Removed `obs()` function
