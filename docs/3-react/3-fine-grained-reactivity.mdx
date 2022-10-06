@@ -2,61 +2,60 @@ To get the best performance with React it's ideal to make components as small as
 
 If you pass state changes down the component tree as props, each component along the way has to re-render. Legend-State helps you make sure that each change causes only the smallest and fewest renders.
 
-## ❌ The slow normal React way
+## ⚡️ Optimized by default
 
-In this example of what can be slow, the component re-renders when any state changes. With huge components and lots of state, you'll get lots of re-renders which can slow your app down.
+A major goal of Legend-State is to minimize the number of renders to make your apps faster. This example shows normal React components vs. doing the same thing in Legend-State.
 
+<Example name="Tree" title="Normal React" title2="Legend-State">
 ```jsx
-const BigComponent = function BigComponent() {
-    const [count, setCount] = useState(0)
-    const [message, setMessage] = useState('')
-    const [showModal, setShowModal] = useState(false)
-    // Re-renders when count, message, or showModal changes
-    return (
-        <div>
-            {/* ... tons of other components */}
-            <div>{count}</div>
-            <div>{message}</div>
-            {showModal && <Modal />}
-        </div>
-    )
+function TreeLeaf({ count }) {
+  return <div>Count: {count}</div>
+}
+function TreeLeft({ count }) {
+  return <TreeLeaf count={count} />
+}
+function TreeRight() {
+  return <div>Unrelated element</div>
+}
+function Tree() {
+  const [count, setCount] = useState(1)
+
+  useInterval(() => {
+    setCount(v => v + 1)
+  }, 600)
+
+  return (<>
+    <div>Count: {count}</div>
+    <TreeLeft count={count} />
+    <TreeRight />
+  </>)
 }
 ```
-
-## ⚡️ The fast fine-grained way
-
-But if we go for fine-grained reactivity with observables, each component listens to only the state it cares about, and you get targeted small re-renders.
-
 ```jsx
-const state = observable({ message: '', count: 0, showModal: false })
+function TreeLeaf({ count }) {
+  return <div>Count: {count}</div>
+}
+function TreeLeft({ count }) {
+  return <TreeLeaf count={count} />
+}
+function TreeRight() {
+  return <div>Unrelated element</div>
+}
+function Tree() {
+  const count = useObservable(1)
 
-function Counter() {
-    // Only re-renders when count changes
-    return <div>{state.count.get()}</div>
-}
-function Message() {
-    // Only re-renders when message changes
-    return <div>{state.message.get()}</div>
-}
-function App() {
-    // Never re-renders
-    return (
-        <div>
-            <Counter />
-            <Message />
-            <Show if={state.showModal}>
-                <Modal />
-            </Modal>
-        </div>
-    )
+  useInterval(() => {
+    count.set(v => v + 1)
+  }, 600)
+
+  return (<>
+    <div>Count: {count}</div>
+    <TreeLeft count={count} />
+    <TreeRight />
+  </>)
 }
 ```
-
-Extracting small components is a great strategy, but it can get confusing and annoying to have to extract every little thing into a sub-component, especially when it has no other logic than just tracking observables and rendering. So Legend-State includes ways to easily isolate pieces of a component from affecting everything, to get the performance benefits of fine-grained reactivity without the overhead of manually extracting every little thing.
-
-There is a tradeoff - creating extra elements does have a performance cost. So keep in mind:
-- If a child doesn't re-render itself often, it may not be worth the extra component for it.
-- If a parent renders every time a child renders anyway, there's no point in isolating the child.
+</Example>
 
 ## Render an observable directly
 
@@ -88,6 +87,9 @@ function FineGrained() {
 }
 ```
 </Example>
+
+See [enableLegendStateReact.ts](https://github.com/LegendApp/legend-state/blob/main/src/react/enableLegendStateReact.ts) if you're curious how it works.
+
 
 ## Computed
 

@@ -15,11 +15,10 @@ const obs = observable({ value: 1 })
 obs.value.get()
 obs.value.set(2)
 
-// Components automatically track observables and re-render when they change
-// No HOC or selector needed
-function Component {
-    return <div>Value: {obs.value}</div>
-}
+// Tracks automatically and runs on every change
+observe(() => {
+    console.log(obs.value.get())
+})
 ```
 
 ## Fine-grained reactivity
@@ -28,16 +27,16 @@ Rendering an observable automatically extracts it as a separate memoized compone
 
 <Example name="Primitive">
 ```jsx
-const count = observable(0)
-
 function Normal() {
+    const [count, setCount] = useState(0);
     // This re-renders when count changes
     return (
-        <div>Count: {count.get()}</div>
+        <div>Count: {count}</div>
     )
 }
 function FineGrained() {
-    // This never re-renders when observable is rendered directly
+    const count = useObservable(0)
+    // The text updates itself so the component doesn't re-render
     return (
         <div>Count: {count}</div>
     )

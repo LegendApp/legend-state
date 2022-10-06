@@ -36,11 +36,15 @@ const { data } = obs.get()
 processData(data)
 ```
 
-Calling `get()` within a tracking context tracks the observable automatically. You can change that behavior with `false` to not track or `shallow` to track only when keys are added/removed. See [Tracking](../tracking) for more details.
+Calling `get()` within a tracking context tracks the observable automatically. You can change that behavior with a parameter `true` to track only when keys are added/removed. See [Tracking](../tracking) for more details.
+
+```js
+obs.get(true) // Create a shallow listener
+```
 
 ## peek()
 
-`peek()` is the same as `get(false)`, returning the value without tracking it.
+`peek()` returns the raw value in the same way as `get()`, but it does not automatically track it. Use this when you don't want the component/observing context to update when the value changes.
 
 ## set()
 
@@ -119,7 +123,7 @@ You could to do this to set up a listener to a field whenever it becomes availab
 ```jsx
 const state = observable({ user: undefined })
 
-when(state.user.uid, () => {
+when(state.user.uid, (uid) => {
     // Handle login
 }
 ```

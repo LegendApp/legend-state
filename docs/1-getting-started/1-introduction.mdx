@@ -6,16 +6,16 @@ Legend-State lets you make your renders super fine-grained, making your apps muc
 
 <Example name="Primitive">
 ```jsx
-const count = observable(0)
-
 function Normal() {
+    const [count, setCount] = useState(0);
     // This re-renders when count changes
     return (
-        <div>Count: {count.get()}</div>
+        <div>Count: {count}</div>
     )
 }
 function FineGrained() {
-    // This never re-renders when observable is rendered directly
+    const count = useObservable(0)
+    // The text updates itself so the component doesn't re-render
     return (
         <div>Count: {count}</div>
     )
@@ -42,13 +42,12 @@ observe(() => {
     console.log(state.settings.theme.get())
 })
 
-// Components automatically track observables and re-render when they change
-// No HOC or selector needed
-function Component {
+// Observer components automatically track observables and re-render when they change
+const Component = observer(function Component() => {
     const theme = state.settings.theme.get()
 
     return <div>Theme: {theme}</div>
-}
+})
 ```
 
 ### 3. <span className="text-lg">⚡️</span> The fastest React state library
@@ -83,7 +82,7 @@ persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
 // This is the code for the example on your right ----->
-function Component() {
+const Component = observer(function Component() => {
     const theme = state.settings.theme.get()
     // state.settings.theme is automatically tracked for changes
 
@@ -177,17 +176,19 @@ await when(() => obs.settings.theme === 'dark')
 Legend-State's React integration automatically listens to the accessed observables for changes while rendering. Components will re-render only when these observables change, so it's ideal to be as specific as possible to minimize renders. See [Performance](./performance) for more optimization tips.
 
 ```jsx
-import { enableLegendStateReact } from "@legendapp/state/react"
+import { enableLegendStateReact, observer } from "@legendapp/state/react"
 
+// Enable direct rendering of observables
 enableLegendStateReact()
 
 const obs = observable({ text: 'hello', num: 10, other: {} as LargeObject })
 
-function Component() {
+// Wrap component in observer to make it automatically track observable changes
+const Component = observer(function Component() {
     // This component will never re-render.
     // The two text elements will re-render themselves on changes to text or num
     return <div>{obs.text} {obs.num}</div>
-}
+})
 ```
 
 [Read more](./react-basics)
@@ -258,7 +259,7 @@ obs.first.set('Hello')
 
 ## Observable primitives
 
-`observable` is also optimized to use many observable primitives instead of one big object. A primitive observable additionally has a `value` that you can read/modify.
+`observable` is also optimized to be able to use many observable primitives instead of one big object, if you prefer.
 
 ```js
 const theme = observable('dark')

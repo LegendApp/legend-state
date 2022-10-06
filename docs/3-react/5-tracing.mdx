@@ -7,7 +7,7 @@ Call `useTraceListeners()` anywhere within `observe` or any React component to c
 ```jsx
 import { useTraceListeners } from "@legendapp/state/trace"
 
-function Component(props) {
+const Component = observer(function Component(props) {
 
     // Call useTraceListeners anywhere inside the component
     useTraceListeners()
@@ -22,7 +22,7 @@ function Component(props) {
     1: count
 
     */
-}
+})
 ```
 
 ## useTraceUpdates()
@@ -32,7 +32,7 @@ Call `useTraceUpdates()` anywhere within `observe` or any React component to con
 ```jsx
 import { useTraceUpdates } from "@legendapp/state/trace"
 
-function Component(props) {
+const Component = observer(function Component(props) {
     // Call useTraceUpdates anywhere inside the component
     useTraceUpdates()
 
@@ -47,7 +47,7 @@ function Component(props) {
     to: 1
 
     */
-}
+})
 ```
 
 ## useVerifyNotTracking()
@@ -57,7 +57,7 @@ Call `useVerifyNotTracking()` anywhere within any React component to console.err
 ```jsx
 import { useVerifyNotTracking } from "@legendapp/state/trace"
 
-function Component(props) {
+const Component = observer(function Component(props) {
     // Call useVerifyNotTracking anywhere inside the component
     useVerifyNotTracking()
 
@@ -65,8 +65,8 @@ function Component(props) {
     return (
         <div>{state.count.get()}</div>
     )
-}
-function FineComponent(props) {
+})
+const FineComponent = observer(function FineComponent(props) {
     // Call useVerifyNotTracking anywhere inside the component
     useVerifyNotTracking()
 
@@ -75,7 +75,7 @@ function FineComponent(props) {
     return (
         <div>{state.count}</div>
     )
-}
+})
 ```
 
 ## useVerifyOneRender()
@@ -85,7 +85,7 @@ Call `useVerifyOneRender()` anywhere within any React component to console.error
 ```jsx
 import { useVerifyOneRender } from "@legendapp/state/trace"
 
-function Component(props) {
+const Component = observer(function Component(props) {
     // Call useVerifyOneRender anywhere inside the component
     useVerifyOneRender()
 
@@ -93,8 +93,8 @@ function Component(props) {
     return (
         <div>{state.count.get()}</div>
     )
-}
-function Component(props) {
+})
+const Component = observer(function Component(props) {
     // Call useVerifyOneRender anywhere inside the component
     useVerifyOneRender()
 
@@ -103,7 +103,7 @@ function Component(props) {
     return (
         <div>{state.count.get(false)}</div>
     )
-}
+})
 ```
 
 ##### Note: All these hooks take name as an argument which can be used to identify which component is logging it

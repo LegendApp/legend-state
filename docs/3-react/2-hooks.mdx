@@ -90,6 +90,7 @@ function Component() {
 
 ```jsx
 import { useObserve } from "@legendapp/state/react"
+import { legend } from "@legendapp/state/react-components"
 
 function ProfilePage() {
     // This component never re-renders
@@ -104,7 +105,7 @@ function ProfilePage() {
     return (
         <div>
             <span>Name:</span>
-            <Bindable.input bind={profile.name} />
+            <legend.input value$={profile.name} />
         </div>
     )
 }
@@ -115,18 +116,24 @@ function ProfilePage() {
 `useSelector` computes a value and automatically listen to any observables accessed while running, and only re-renders if the computed value changes.
 
 Props:
-- `selector`: Computation function that listens to observables accessed while running
+- `selector`: Observable or computation function that listens to observables accessed while running
+- `options`:
+    - `forceRender`: If you already have a forceRender function or are using multiple useSelectors, you can reuse the same hook
+    - `shouldRender`: `true` or `(current, previous) => boolean` to determine if the new value should trigger a render. `true` can be an optimization to run the selector only once.
 
 ```jsx
 import { observable } from "@legendapp/state"
 import { useSelector } from "@legendapp/state/react"
 
-const state = observable({ selected: 1 })
+const state = observable({ selected: 1, theme })
 
 const Component = ({ id }) => {
-    const isSelected = useSelector(() => id === state.selected.get())
     // Only re-renders if the return value changes
+    const isSelected = useSelector(() => id === state.selected.get())
 
-    return <div>Selected: {isSelected}</div>
+    // Get the raw value of an observable and listen to it
+    const theme = useSelector(state.theme)
+
+    ...
 }
 ```

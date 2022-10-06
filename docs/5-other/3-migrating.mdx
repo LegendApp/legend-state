@@ -1,3 +1,78 @@
+## 0.18 to 0.19
+
+### Deprecating automatic observing
+
+We are deprecating the automatic observing that depended on hooking into React's internals. Components will no longer track observables automatically, but you can easily it per component in a few ways:
+
+- Wrap components in `observer` to make them track automatically
+- Wrap observable access in `useSelector` to return a value and track automatically.
+- Render observables directly into JSX.
+
+So tracking observables in React can look like this now:
+
+```jsx
+import { observer } from "@legendapp/state/react"
+
+const Component = observer(function Component() {
+    const value = observable.get();
+    // This tracks because it's inside an observer
+})
+```
+
+or
+
+```jsx
+import { useSelector } from "@legendapp/state/react"
+
+function Component() {
+    // Track the value of an observable
+    const value = useSelector(observable)
+
+    // Track the return value of a function
+    const isSelected = useSelector(() => id === state.selected.get())
+}
+```
+
+See [the React guide](../react-basics) for how we suggest setting up your components now.
+
+Rendering observables directly still works though, and `enableLegendStateReact()` still enables that.
+
+You can still enable the previous behavior for now with `enableLegendStateReact({ autoTrackingDEPRECATED: true })` while you migrate to using `observer` or `useSelector`. That option will be removed before we reach 1.0.
+
+#### Why
+
+- It doesn't actually work. We thought this method would be safe to use because it was inspired by Preact Signals, but as we've integrated Legend-State into more environments we found significant edge cases that seem to be unfixable and suggest that the whole concept is just unworkable.
+- The React team has asked us not to do it and made it clear that it is likely to break in a future version of React.
+- As Legend-State has evolved, the ideal way of using it has shifted towards fine-grained reactivity where components render minimally or only once, and we were actually specifically opting out of auto-tracking more often than not. So in the interest of pursuing the render-once ideal, we think it's actually generally better to use the [reactivity components](../fine-grained-reactivity) or opt-in to tracking.
+- We don't want to distract from the core mission of Legend-State with an unreliable and unstable core.
+
+### Bindable components deprecated
+
+We now have a more general purpose way of making reactive props that can also be used for two-way binding for inputs. So change:
+
+```jsx
+<Bindable.input bind={observable} />
+```
+
+to
+
+```jsx
+import { legend } from "@legendapp/state/react-components"
+
+<legend.input value$={observable} />
+```
+
+See [reactive props](../reactive-props) for more detauls.
+
+### `value` is no longer exposed
+
+Primitives no longer have a `value` that you could access and modify. We had previously removed that from the documentation and it is now removed from the code. You can just `get()` and `set()` as you would any other observable. It turned out to cause more bugs than it was worth and made the TypeScript types overly complex.
+
+### Removed get(false)
+
+Use `peek()` instead.
+
+
 ## 0.17 to 0.18
 
 The tracing functions are renamed to use* to be inline with hooks:

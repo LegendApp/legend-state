@@ -1,0 +1,143 @@
+Legend-State makes it easy to bind props directly to an observable or selector. This makes the component re-render itself whenever the observable or selector changes without needing to re-render the parent or children.
+
+Legend-State provides reactive versions of all intrinsic components. For every prop it adds another one ending with `$` that accepts a selector - an observable or a function returning a value, and it automatically tracks it for changes and re-renders it.
+
+This makes the props themselves reactive but does not require the parent component to re-render.
+
+## React
+
+```jsx
+import { legend } from "@legendapp/state/react-components"
+
+function Component() {
+    const state = useObservable({ name: '', age: 18 })
+
+    return (
+        <div>
+            // Reactive styling
+            <legend.div
+                style$={() => ({
+                    color: state.age > 5 ? 'green' : 'red'
+                })}
+                className={() => state.age > 5 ? 'kid' : 'baby'}
+            />
+            // Reactive children
+            <legend.div children$={() => (
+                <div>{state.age > 5 ? <Kid /> : <Baby />}
+            )} />
+
+            // Two-way bind to inputs
+            <legend.textarea value$={state.name} />
+            <legend.select value$={state.age}>...</legend.select>
+            <legend.input
+                value$={state.name}
+                className$={(value) => !value && "border-red-500"}
+                style$={(value) => !value && { borderWidth: 1 }}
+            />
+        </div>
+    )
+}
+```
+
+## React Native
+
+```jsx
+import { Legend } from "@legendapp/state/react-native-components"
+
+function Component() {
+    const state = useObservable({ name: '', enabled: false })
+
+    return (
+        <div>
+            // Reactive styling
+            <Legend.Text
+                style$={() => ({
+                    color: state.age > 5 ? 'green' : 'red'
+                })}
+            >
+                {state.name}
+            </Legend.Text>
+
+            // Two-way bind to inputs
+            <Legend.Switch value$={state.enabled} />
+            <Legend.TextInput
+                value$={state.name}
+                style$={(value) => !value && { borderColor: "red" }}
+            />
+        </div>
+    )
+}
+```
+
+## Two-Way Binding to Inputs
+
+If you pass an observable to the `value$` prop of an input component, it sets up a two way binding that updates the observable automatically, so you don't have to worry about managing refs or onChange handlers.
+
+<Example name="Input">
+```jsx
+import { legend } from "@legendapp/state/react-components"
+
+function Component() {
+    const state = useObservable({ name: 'Legend' })
+
+    return (
+        <div>
+            <div>{state.name}</div>
+            <legend.input
+                value$={state.name}
+                className$={() =>
+                    state.name.get() === 'Legend' ?
+                        'text-white' :
+                        'text-red-500'
+                }
+            />
+        </div>
+    )
+}
+```
+</Example>
+
+
+## Make external components reactive
+
+You can wrap external components in `reactive` to add reactive versions of all of their props.
+
+In this example we make a [Framer Motion](https://www.framer.com/motion/) component reactive so that we can update its animations based on observables without needing to re-render the parent component or the motion.div's children.
+
+```js
+import { reactive } from "@legendapp/state/react"
+import { motion } from "framer-motion"
+
+const ReactiveMotionDiv = reactive(motion.div);
+
+function Component() {
+    const width = useObservable(100)
+
+    return (
+        <ReactiveMotionDiv
+            animate$={() => ({
+                x: width
+            })}
+        >
+            ...
+        </ReactiveMotionDiv>
+    )
+}
+
+```
+
+## Make your own
+
+You can just wrap your components in `reactive` if you'd like, but it's also easy to make specific parameters reactive. All it needs is a `useSelector` to make the prop reactive and get the raw value.
+
+```jsx
+import { useSelector } from "@legendapp/state/react"
+
+function MyComponent({ prop$ }) {
+    const prop = useSelector(prop$)
+
+    ...
+}
+```
+
+ See [react-components on GitHub](https://github.com/LegendApp/legend-state/blob/main/src/react-components/react-components.tsx) for the latest full source.

@@ -15,6 +15,7 @@ You can use it in two ways, providing an `item` component or a function as a chi
 An `optimized` prop adds additional optimizations, but in an unusual way by re-using React nodes. See [Optimized rendering](#optimized-rendering) for more details.
 
 ```jsx
+import { observable } from "@legendapp/state"
 import { For } from "@legendapp/state/react"
 
 const obs = observable({ arr: [{ id: 1, text: 'hi' }]})
@@ -45,6 +46,7 @@ In this more complex example you can see that as elements are added to and updat
 
 <Example name="Todos">
 ```jsx
+import { observable } from "@legendapp/state"
 import { For } from "@legendapp/state/react"
 
 function Item({ item }) {
@@ -92,6 +94,7 @@ The `map` function automatically sets up a shallow listener, so it will only re-
 Make sure that you don't access any observable properties while mapping, like accessing the id for the key, so use `peek()` to prevent tracking.
 
 ```jsx
+import { observable } from "@legendapp/state"
 import { For } from "@legendapp/state/react"
 
 const obs = observable({ arr: [{ id: 1, text: 'hi' }]})
