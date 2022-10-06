@@ -14,12 +14,12 @@ import {
     useCallback,
 } from 'react';
 import type { NotPrimitive, ObservableFns, Primitive, Selector } from '../observableInterfaces';
-import { reactive } from '@legendapp/state/react';
+import { reactive, useSelector } from '@legendapp/state/react';
 
 type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     className?: string | ((value: TValue) => string);
     style?: CSSProperties | ((value: TValue) => CSSProperties);
-    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
+    bind?: ObservableFns<TValue>;
 };
 
 let didWarnBindable = false;
@@ -52,7 +52,7 @@ const Binder = function <
             );
 
             // Get the bound value
-            const value = (props.value = bind.get());
+            const value = (props.value = useSelector(bind));
 
             // Call className if it's a function
             if (isFunction(className)) {

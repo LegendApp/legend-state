@@ -1,6 +1,6 @@
 import { isFunction } from '@legendapp/state';
 import { createElement, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
-import { reactive } from '@legendapp/state/react';
+import { reactive, useSelector } from '@legendapp/state/react';
 import RN, {
     NativeSyntheticEvent,
     StyleProp,
@@ -16,7 +16,7 @@ import RN, {
 import type { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
 
 type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
-    bind?: ObservableFns<TValue> & NotPrimitive<TBind>;
+    bind?: ObservableFns<TValue>;
     style?: StyleProp<TStyle> | ((value: TValue) => StyleProp<TStyle>);
 };
 
@@ -52,7 +52,7 @@ const Binder = function <
             );
 
             // Get the bound value
-            const value = (props.value = bind.get());
+            const value = (props.value = useSelector(bind.get() as any));
 
             // Call style if it's a function
             if (isFunction(style)) {
