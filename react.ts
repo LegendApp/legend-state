@@ -5,6 +5,7 @@ export * from './src/react/useObservable';
 export * from './src/react/useObserve';
 export * from './src/react/useSelector';
 export * from './src/react/reactive-observer';
+export * from './src/react/createObservableHook';
 
 import type { ReactFragment } from 'react';
 
