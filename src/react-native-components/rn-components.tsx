@@ -1,6 +1,6 @@
 import { isFunction } from '@legendapp/state';
+import { BindKeys, reactive, useSelector } from '@legendapp/state/react';
 import { createElement, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
-import { reactive, useSelector } from '@legendapp/state/react';
 import RN, {
     NativeSyntheticEvent,
     StyleProp,
@@ -13,7 +13,7 @@ import RN, {
     TextStyle,
     ViewStyle,
 } from 'react-native';
-import type { NotPrimitive, ObservableFns, Primitive } from '../observableInterfaces';
+import type { ObservableFns, Primitive } from '../observableInterfaces';
 
 type Props<TValue, TStyle, TProps, TBind> = Omit<TProps, 'style'> & {
     bind?: ObservableFns<TValue>;
@@ -88,7 +88,7 @@ export const Legend = new Proxy(
             if (!target[p]) {
                 target[p] = reactive(
                     RN[p],
-                    bindables.has(p) && { keyValue: 'value', keyChange: 'onChange', getValue: bindables.get(p) }
+                    bindables.has(p) && ({ value: { handler: 'onChange', getValue: bindables.get(p) } } as BindKeys)
                 );
             }
             return target[p];

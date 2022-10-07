@@ -10,15 +10,17 @@ const ReactForwardRefSymbol = hasSymbol
 
 const Update = (s) => s + 1;
 
-type ShapeWith$<T> = Partial<T> & {
+export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
+
+export type BindKeys<P = any> = Record<keyof P, { handler?: keyof P; getValue: (e) => any }>;
 
 function createReactiveComponent<P>(
     component: FC<P> | string,
     observe: boolean,
     reactive?: boolean,
-    bindOptions?: { keyValue: keyof P; keyChange?: keyof P; getValue: (e) => any }
+    bindKeys?: BindKeys<P>
 ) {
     const isStr = isString(component);
     // Unwrap forwardRef on the component
@@ -48,14 +50,15 @@ function createReactiveComponent<P>(
                     const k = key.slice(0, -1);
                     propsOut[k] = useSelector(p, { forceRender: fr });
 
-                    if (bindOptions && k === bindOptions.keyValue && isObservable(p)) {
-                        (propsOut[bindOptions.keyChange] as any) = useCallback(
+                    const bind = bindKeys?.[k as keyof P];
+                    if (bind && isObservable(p)) {
+                        (propsOut[bind.handler] as any) = useCallback(
                             (e: ChangeEvent) => {
-                                p.set(bindOptions.getValue(e));
+                                p.set(bind.getValue(e));
                                 // @ts-ignore
-                                props.onChange?.(e);
+                                props[bind.handler]?.(e);
                             },
-                            [(props as any).onChange, bindOptions]
+                            [props[bind.handler], bindKeys]
                         );
                     }
 
@@ -92,16 +95,10 @@ export function observer<P>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<P>(
-    component: FC<P> | string,
-    bindOptions?: { keyValue: keyof P; keyChange?: keyof P; getValue: (e) => any }
-) {
-    return createReactiveComponent(component, false, true, bindOptions) as FC<ShapeWith$<P>>;
+export function reactive<P>(component: FC<P> | string, bindKeys?: BindKeys<P>) {
+    return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P>>;
 }
 
-export function reactiveObserver<P>(
-    component: FC<P> | string,
-    bindOptions?: { keyValue: keyof P; keyChange?: keyof P; getValue: (e) => any }
-) {
-    return createReactiveComponent(component, true, true, bindOptions) as FC<ShapeWith$<P>>;
+export function reactiveObserver<P>(component: FC<P> | string, bindKeys?: BindKeys<P>) {
+    return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
 }

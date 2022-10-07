@@ -1,4 +1,5 @@
 import { isFunction } from '@legendapp/state';
+import { BindKeys, reactive, useSelector, ShapeWith$ } from '@legendapp/state/react';
 import {
     ChangeEvent,
     createElement,
@@ -13,8 +14,7 @@ import {
     TextareaHTMLAttributes,
     useCallback,
 } from 'react';
-import type { NotPrimitive, ObservableFns, Primitive, Selector } from '../observableInterfaces';
-import { reactive, useSelector } from '@legendapp/state/react';
+import type { ObservableFns, Primitive } from '../observableInterfaces';
 
 type Props<TValue, TProps, TBind> = Omit<TProps, 'className' | 'style'> & {
     className?: string | ((value: TValue) => string);
@@ -87,20 +87,22 @@ export namespace Bindable {
     >('select');
 }
 
-type ShapeWith$<T> = Partial<T> & {
-    [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
-};
 type FCReactive<P> = FC<P & ShapeWith$<P>>;
 
 const bindables = new Set(['input', 'textarea', 'select']);
 
-const bindInfo = { keyValue: 'value', keyChange: 'onChange', getValue: (e) => e.target.value };
+const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value } };
+const bindInfoInput: BindKeys = Object.assign(
+    { checked: { handler: 'onChange', getValue: (e) => e.target.checked } },
+    bindInfo
+);
+
 export const legend = new Proxy(
     {},
     {
         get(target, p: string) {
             if (!target[p]) {
-                target[p] = reactive(p, bindables.has(p) && bindInfo);
+                target[p] = reactive(p, bindables.has(p) && (p === 'input' ? bindInfoInput : bindInfo));
             }
             return target[p];
         },
