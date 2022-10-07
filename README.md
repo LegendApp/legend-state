@@ -18,11 +18,12 @@ observe(() => {
     console.log(state.settings.theme)
 })
 
-// Components automatically track observables and re-render when state changes
-// No HOC or selector needed
-function Component {
-    return <div>Theme: {state.settings.theme}</div>
-}
+// Observer components automatically track observables and re-render when they change
+const Component = observer(function Component() => {
+    const theme = state.settings.theme.get()
+
+    return <div>Theme: {theme}</div>
+})
 ```
 
 ### 2. <span className="text-xl">⚡️</span> The fastest React state library
@@ -33,7 +34,7 @@ Legend-State beats every other state library on just about every metric and is s
     <img src="https://www.legendapp.com/img/dev/state/times.png" />
 </p>
 
-See [the documentation](https://www.legendapp.com/dev/state) for more details.
+See [the documentation](https://www.legendapp.com/open-source/state) for more details.
 
 ## Install
 
@@ -63,7 +64,7 @@ state.settings.theme.set('light')
 persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
-function Component() {
+const Component = observer(function Component() {
     const toggle = () => {
         state.settings.theme.set(theme => theme === 'dark' ? 'light' : 'dark')
     }
@@ -89,11 +90,11 @@ function Component() {
 - ✨ Persistence plugins for automatically saving/loading from storage
 - ✨ State can be global or within components
 
-[Read more](https://www.legendapp.com/dev/state/why/) about why Legend-State might be right for you.
+[Read more](https://www.legendapp.com/open-source/state/why/) about why Legend-State might be right for you.
 
 ## Documentation
 
-See [the documentation site](https://www.legendapp.com/dev/state/).
+See [the documentation site](https://www.legendapp.com/open-source/state/).
 
 ## Todo
 
