@@ -67,5 +67,6 @@ export function observe(run: () => void | boolean | (() => void)) {
 
     update();
 
-    return dispose;
+    // Return function calling dispose because dispose may be changed in update()
+    return () => dispose();
 }
