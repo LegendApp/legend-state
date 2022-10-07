@@ -71,8 +71,6 @@ export function For<
         shouldRender: true,
     });
 
-    if (!v) return null;
-
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
         // Update the ref so the generated component uses the latest function
@@ -81,6 +79,8 @@ export function For<
 
         item = useMemo(() => memo(({ item }) => refChildren.current(item)), []);
     }
+
+    if (!v) return null;
 
     // Get the appropriate id field
     const id = v.length > 0 ? (v[0].id ? 'id' : v[0]._id ? '_id' : v[0].__id ? '__id' : undefined) : undefined;
