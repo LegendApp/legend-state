@@ -8,7 +8,7 @@ const ReactForwardRefSymbol = hasSymbol
     ? Symbol.for('react.forward_ref')
     : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
-const Update = (s) => s + 1;
+const Update = (s: number) => s + 1;
 
 export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
