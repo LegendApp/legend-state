@@ -56,7 +56,7 @@ We will create a local persistence plugin for IndexedDB on web soon. For React N
 
 ## Roll your own plugin
 
-Local persistence plugins are very simple - all you need is `get`, `set`, and `delete`. See [ObservablePersistLocalStorage](https://github.com/LegendApp/legend-state/blob/main/src/ObservablePersistLocalStorage.ts) for an example of what it looks like. Then you can just pass your provider into `configureObservable`.
+Local persistence plugins are very simple - all you need is `get`, `set`, and `delete`. See [ObservablePersistLocalStorage]([https://github.com/LegendApp/legend-state/blob/main/src/ObservablePersistLocalStorage.ts](https://github.com/LegendApp/legend-state/blob/main/src/persist/local-storage.ts#L3)) for an example of what it looks like. Then you can just pass your provider into `configureObservable`.
 
 Remote persistence plugins are more complex, and we have not quite locked down the API as we're finishing the Firebase and Firestore plugins and building them into our apps. If you'd like to build your own please [post a GitHub issue](https://github.com/LegendApp/legend-state/issues) and we'll work with you on it.
 
