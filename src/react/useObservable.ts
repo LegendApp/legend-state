@@ -8,7 +8,7 @@ import { useMemo } from 'react';
  *
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
-export function useObservable<T>(initialValue?: T | (() => T)): Observable<T> {
+export function useObservable<T>(initialValue?: T | (() => T) | (() => Promise<T>)): Observable<T> {
     // Create the observable from the default value
     return useMemo(
         () => observable(isFunction(initialValue as () => T) ? (initialValue as () => T)() : (initialValue as T)),
