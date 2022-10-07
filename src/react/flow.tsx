@@ -1,6 +1,6 @@
 import { isFunction } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import type { ObservableObject, Selector } from '../observableInterfaces';
+import type { ObservableArray, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {
@@ -50,18 +50,16 @@ export function Switch<T>({
     return (children[useSelector(value)]?.() ?? children['default']?.() ?? null) as ReactElement;
 }
 
-export function For<
-    T extends ObservableObject<{ id: string | number } | { _id: string | number } | { __id: string | number }>
->({
+export function For<T extends { id: string | number } | { _id: string | number } | { __id: string | number }>({
     each,
     optimized,
     item,
     children,
 }: {
-    each?: T[];
+    each?: ObservableReadable<T[]>;
     optimized?: boolean;
-    item?: (props: { item: T }) => ReactElement;
-    children?: (value: T) => ReactElement;
+    item?: (props: { item: ObservableReadable<T> }) => ReactElement;
+    children?: (value: ObservableReadable<T>) => ReactElement;
 }): ReactElement {
     if (!each) return null;
 
@@ -74,7 +72,7 @@ export function For<
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
         // Update the ref so the generated component uses the latest function
-        const refChildren = useRef<(value: T) => ReactElement>();
+        const refChildren = useRef<(value: ObservableReadable<T>) => ReactElement>();
         refChildren.current = children;
 
         item = useMemo(() => memo(({ item }) => refChildren.current(item)), []);
