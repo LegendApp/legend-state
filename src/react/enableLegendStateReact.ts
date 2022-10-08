@@ -66,13 +66,13 @@ export function enableLegendStateReact(options: { autoTrackingDEPRECATED?: boole
             [Symbol.toPrimitive]: {
                 configurable: true,
                 get() {
-                    return (this as ObservablePrimitiveClass).peek();
+                    return this.peek();
                 },
             },
             props: {
                 configurable: true,
                 get() {
-                    return { data: this as ObservablePrimitiveClass };
+                    return { data: this };
                 },
             },
             $$typeof: config(ReactTypeofSymbol),

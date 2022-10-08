@@ -45,9 +45,10 @@ describe('Set', () => {
         obs.test.text.set('t2');
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
-    test('Set prop', () => {
+    test('Set is bound', () => {
         const obs = observable({ test: { text: 't' } });
-        obs.test.text.set('t2');
+        const setter = obs.test.text.set;
+        setter('t2');
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Set child', () => {

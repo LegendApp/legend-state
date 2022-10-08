@@ -488,7 +488,7 @@ function createObservable<T>(value, makePrimitive?: boolean) {
 
     const obs =
         makePrimitive || isActualPrimitive(value)
-            ? (new ObservablePrimitiveClass<T>(node) as unknown as ObservablePrimitive<T>)
+            ? (new ObservablePrimitiveClass(node) as unknown as ObservablePrimitive<T>)
             : (getProxy(node) as ObservableObjectOrArray<T>);
 
     if (promise) {

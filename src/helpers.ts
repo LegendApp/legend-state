@@ -17,7 +17,7 @@ export function computeSelector<T>(selector: Selector<T>) {
 }
 
 export function getNode(obs: ObservableReadable): NodeValue {
-    return obs instanceof ObservablePrimitiveClass ? obs.getNode() : obs[symbolGetNode];
+    return obs[symbolGetNode];
 }
 
 export function lockObservable(obs: ObservableReadable, value: boolean) {
