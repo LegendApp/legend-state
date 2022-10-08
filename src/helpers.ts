@@ -53,6 +53,8 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
                 needsSet && target[key]?.set ? target[key].set(source[key]) : (target[key] = source[key]);
             }
         }
+    } else if (needsSet) {
+        target.set(source);
     }
     return mergeIntoObservable(target, ...sources);
 }

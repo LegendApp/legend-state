@@ -171,3 +171,28 @@ describe('Persist local', () => {
     //     });
     // });
 });
+
+describe('Persist primitives', () => {
+    test('Primitive saves to local', () => {
+        const obs = observable('');
+
+        persistObservable(obs, {
+            local: 'jestlocal',
+        });
+
+        obs.set('hello');
+
+        const localValue = global.localStorage.getItem('jestlocal');
+
+        // Should have saved to local storage
+        expect(localValue).toBe('"hello"');
+
+        // obs2 should load with the same value it was just saved as
+        const obs2 = observable('');
+        persistObservable(obs2, {
+            local: 'jestlocal',
+        });
+
+        expect(obs2.get()).toEqual('hello');
+    });
+});
