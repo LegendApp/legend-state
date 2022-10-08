@@ -4,11 +4,11 @@
 
 ## 0.19.4
 
-- Feat: Added `useObservableReducer` hook, which is the same as `useReducer` but it updates an observable rather than triggering a render
+- Feat: Added `useObservableReducer` hook, which is the same as `useReducer` but it updates an observable rather than triggering a render https://github.com/LegendApp/legend-state/issues/20
 
 ## 0.19.3
 
-- Fix: Fast Refresh not disposing `observe()` correctly
+- Fix: Fast Refresh not disposing `observe()` correctly https://github.com/LegendApp/legend-state/issues/25
 - Fix: React hooks error in Show when toggling if it has a children function
 - Types: Improved types of For to handle computed observables better
 - Types: Improved types of useObservable to support Promises
