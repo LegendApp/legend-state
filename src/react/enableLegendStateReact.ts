@@ -47,19 +47,20 @@ export function enableLegendStateReact(options: { autoTrackingDEPRECATED?: boole
         const hasSymbol = typeof Symbol === 'function' && Symbol.for;
         const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
 
+        const s = extraPrimitiveProps;
         // Set extra props for the proxyHandler to return on primitives
-        extraPrimitiveProps.set(Symbol.toPrimitive, (_: any, value: any) => value);
-        extraPrimitiveProps.set('$$typeof', ReactTypeofSymbol);
-        extraPrimitiveProps.set('type', Text);
-        extraPrimitiveProps.set('_store', { validated: true });
-        extraPrimitiveProps.set('key', null);
-        extraPrimitiveProps.set('props', {
+        s.set(Symbol.toPrimitive, (_: any, value: any) => value);
+        s.set('props', {
             __fn: (obs) => ({ data: obs }),
         });
-        extraPrimitiveProps.set('ref', null);
-        extraPrimitiveProps.set('alternate', null);
-        extraPrimitiveProps.set('_owner', null);
-        extraPrimitiveProps.set('_source', null);
+        s.set('$$typeof', ReactTypeofSymbol);
+        s.set('type', Text);
+        s.set('_store', { validated: true });
+        s.set('key', null);
+        s.set('ref', null);
+        s.set('alternate', null);
+        s.set('_owner', null);
+        s.set('_source', null);
         const config = (value) => ({ configurable: true, value });
         // Set extra props for ObservablePrimitive to return on primitives
         Object.defineProperties(ObservablePrimitiveClass.prototype, {
