@@ -23,14 +23,14 @@
 
 ## 0.19.0
 
-This is a big one, with a breaking change to stop observing all React components automatically. See https://legendapp.com/dev/state/migrating for more details.
+This is a big one, with a breaking change to stop observing all React components automatically. See https://legendapp.com/open-source/state/migrating for more details.
 
 - Breaking: No longer observing all React components automatically. Please use `observer` or `useSelector` for observable tracking.
 - Breaking: Primitives no longer have `value` - use the standard `get()` or `set()` instead
 - Breaking: Removed `get(false)` in favor of `peek()`
 - Deprecated: Bindable components will be phased out in favor of new reactive components. Import `{ legend }` on web or `{ Legend }` on react-native instead of Bindable.
 - Feat: Added `observer` HOC component
-- Feat: `reactive` components that let you pass an observable or selector to any prop [reactive-props](https://legendapp.com/dev/state/reactive-props)
+- Feat: `reactive` components that let you pass an observable or selector to any prop [reactive-props](https://legendapp.com/open-source/state/reactive-props)
 - Feat: `useSelector` has options to control how often it renders and to reuse forceRender functions
 - Fix: Improved types for TypeScript strict mode
 - Fix: Local storage persistence removes item if undefined
@@ -91,7 +91,7 @@ This is a big one, with a breaking change to stop observing all React components
 
 ## 0.17.0
 
-This is a big one, with mainly a breaking change to how primitives work, so see https://legendapp.com/dev/state/migrating for more details.
+This is a big one, with mainly a breaking change to how primitives work, so see https://legendapp.com/open-source/state/migrating for more details.
 
 - Breaking: Primitives in state are now returned as observable objects like everything else, and you can use `get()` or `.value` to access/modify the value
 - Breaking: Removed `obs()` function
@@ -116,7 +116,7 @@ This is a big one, with mainly a breaking change to how primitives work, so see 
 
 ## 0.16.0
 
-See https://legendapp.com/dev/state/migrating for more details.
+See https://legendapp.com/open-source/state/migrating for more details.
 
 - Breaking: Removed `observer` HOC
 - Feat: No longer need `observer` HOC - Call `enableLegendStateReact()` at the beginning of your app, and then all components automatically observe any accessed state
@@ -134,7 +134,7 @@ See https://legendapp.com/dev/state/migrating for more details.
 
 ## 0.15.0
 
-This is a big one with many breaking (but good) changes, so see https://legendapp.com/dev/state/migrating for more details. We're making a lot of breaking changes all once so it's not too impactful.
+This is a big one with many breaking (but good) changes, so see https://legendapp.com/open-source/state/migrating for more details. We're making a lot of breaking changes all once so it's not too impactful.
 
 - Breaking: There are now three levels of safety: Unsafe, Default, Safe. "Default" is new and allows direct assignment to primitives but prevents directly assigning to everything else. The previous default behavior was "Unsafe" so you may see errors if you were directly assigning to objects/arrays/etc... Replace those with `.set(...)` or pass in `false` as the second parameter to `observable` to go back to "Unsafe" mode.
 - Breaking: Renamed `ref()` to `obs()`
