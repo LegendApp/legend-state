@@ -1,3 +1,22 @@
+## 0.19.4
+
+- Feat: Added `useObservableReducer` hook, which is the same as `useReducer` but it updates an observable rather than triggering a render
+
+## 0.19.3
+
+- Fix: Fast Refresh not disposing `observe()` correctly
+- Fix: React hooks error in Show when toggling if it has a children function
+- Types: Improved types of For to handle computed observables better
+- Types: Improved types of useObservable to support Promises
+
+## 0.19.2
+
+- Feat: `createObservableHook` for converting other hooks that use `useState` to return an observable
+
+## 0.19.1
+
+- Feat: Support two-way binding multiple props, starting with checked$ on input
+
 ## 0.19.0
 
 This is a big one, with a breaking change to stop observing all React components automatically. See https://legendapp.com/dev/state/migrating for more details.
