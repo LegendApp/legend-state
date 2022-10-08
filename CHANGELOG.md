@@ -1,3 +1,7 @@
+## 0.19.5
+
+- Fix: Persisting primitives
+
 ## 0.19.4
 
 - Feat: Added `useObservableReducer` hook, which is the same as `useReducer` but it updates an observable rather than triggering a render
