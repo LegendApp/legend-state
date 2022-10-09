@@ -58,8 +58,8 @@ export function For<T extends { id: string | number } | { _id: string | number }
 }: {
     each?: ObservableReadable<T[]>;
     optimized?: boolean;
-    item?: (props: { item: Observable<T> }) => ReactElement;
-    children?: (value: Observable<T>) => ReactElement;
+    item?: (props: { item: ObservableReadable<T> }) => ReactElement;
+    children?: (value: ObservableReadable<T>) => ReactElement;
 }): ReactElement {
     if (!each) return null;
 

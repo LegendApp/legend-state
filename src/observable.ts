@@ -13,7 +13,7 @@ import {
     symbolIsObservable,
     symbolUndef,
 } from './globals';
-import { isActualPrimitive, isArray, isFunction, isObject, isPrimitive, isPromise } from './is';
+import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isPromise } from './is';
 import { doNotify, notify } from './notify';
 import {
     NodeValue,
@@ -50,6 +50,7 @@ const objectFns = new Map<string, Function>([
     ['onChange', onChange],
     ['assign', assign],
     ['delete', deleteFn],
+    ['toggle', toggle],
 ]);
 
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
@@ -356,6 +357,15 @@ function set(node: NodeValue, newValue?: any) {
         return setKey(node, symbolUndef as any, newValue);
     } else {
         return setKey(node.parent, node.key, newValue);
+    }
+}
+function toggle(node: NodeValue) {
+    const value = getNodeValue(node);
+    if (isBoolean(value)) {
+        set(node, !value);
+        return !value;
+    } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        throw new Error('[legend-state] Cannot toggle a non-boolean value');
     }
 }
 

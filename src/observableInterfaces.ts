@@ -8,13 +8,21 @@ export interface ObservableBaseFns<T> {
     get(track?: TrackingType): T;
     onChange(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
 }
-export interface ObservablePrimitiveFns<T> extends ObservableBaseFns<T> {
+interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
     set(value: T | ((prev: T) => T)): ObservablePrimitiveChild<T>;
 }
-export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFns<T> {
+interface ObservablePrimitiveFnsBoolean<T> {
+    toggle(): T;
+}
+
+export type ObservablePrimitiveFns<T> = [T] extends [boolean]
+    ? ObservablePrimitiveFnsBase<T> & ObservablePrimitiveFnsBoolean<T>
+    : ObservablePrimitiveFnsBase<T>;
+
+export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFnsBase<T> {
     delete(): ObservablePrimitiveChild<T>;
 }
-export interface ObservableObjectFns<T> extends ObservablePrimitiveFns<T> {
+export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
     set(value: T | ((prev: T) => T)): ObservableChild<T>;
     assign(value: T | Partial<T>): ObservableChild<T>;
     delete(): ObservableChild<T>;
@@ -198,7 +206,7 @@ type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
     ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
     : SameShapeWithStringsRecord<T>;
 
-export type Selector<T> = ObservableReadable<T> | (() => T);
+export type Selector<T> = ObservableReadable<T> | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
@@ -216,22 +224,27 @@ export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
     ObservableObjectFns<T> &
     ObservableArrayOverride<ObservableObject<T[number]>>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
-export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChildFns<T> : ObservableObject<T>;
-export type ObservablePrimitiveChild<T = any> = ObservablePrimitiveChildFns<T>;
+export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
+export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
+    ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveFnsBoolean<T>
+    : ObservablePrimitiveChildFns<T>;
+
+// ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
 
-export type ObservableComputed<T = any> = ObservableBaseFns<T> &
-    ObservableComputedFnsRecursive<T> &
-    ([T] extends [Primitive] ? { readonly value: T } : T);
+export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
 export declare type Observable<T = any> = [T] extends [object] ? ObservableObjectOrArray<T> : ObservablePrimitive<T>;
 
 export type ObservableReadable<T = any> =
-    | ObservableObject<T>
-    | ObservableComputed<T>
-    | ObservablePrimitiveChild<T>
-    | ObservablePrimitive<T>;
-export type ObservableWriteable<T = any> = ObservableObject<T> | ObservablePrimitiveChild<T> | ObservablePrimitive<T>;
+    | ObservableBaseFns<T>
+    | ObservablePrimitiveFnsBase<T>
+    | ObservablePrimitiveChildFns<T>
+    | ObservableObjectFns<T>;
+export type ObservableWriteable<T = any> =
+    | ObservablePrimitiveFnsBase<T>
+    | ObservablePrimitiveChildFns<T>
+    | ObservableObjectFns<T>;
 
 export interface NodeValue {
     id: number;

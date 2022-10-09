@@ -1848,3 +1848,33 @@ describe('Primitive root', () => {
         expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
     });
 });
+describe('Primitive boolean', () => {
+    test('toggle observable primitive boolean', () => {
+        const obs = observable(false);
+        obs.toggle();
+        expect(obs.get()).toEqual(true);
+    });
+    test('toggle observable boolean', () => {
+        const obs = observable({ value: false });
+        obs.value.toggle();
+        expect(obs.get().value).toEqual(true);
+    });
+    test('observable primitive not boolean has no toggle', () => {
+        const obs = observable(0);
+        expect(() => {
+            // @ts-expect-error
+            obs.toggle();
+        }).toThrow();
+        expect(obs.get()).toEqual(0);
+    });
+    test('observable not boolean has no toggle', () => {
+        const obs = observable({ value: 0 });
+        expect(() => {
+            // @ts-expect-error
+            obs.value.toggle();
+            // @ts-expect-error
+            obs.toggle();
+        }).toThrow();
+        expect(obs.get().value).toEqual(0);
+    });
+});
