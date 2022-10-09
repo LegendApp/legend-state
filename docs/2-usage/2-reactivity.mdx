@@ -40,7 +40,7 @@ dispose()
 
 ## observe
 
-`observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes. You can optionally return a cleanup function to run before it re-eveluates.
+`observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes. You can optionally return a cleanup function to run before it re-evaluates.
 
 This can be useful to use multiple observables at once, for the benefit of cleanup effects, or if you just like it more than [onChange](#onchange) 😎.
 
