@@ -1,6 +1,6 @@
 import { isFunction } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import type { ObservableArray, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
+import type { Observable, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
 export function Computed({ children }: { children: () => ReactNode }): ReactElement {
@@ -58,8 +58,8 @@ export function For<T extends { id: string | number } | { _id: string | number }
 }: {
     each?: ObservableReadable<T[]>;
     optimized?: boolean;
-    item?: (props: { item: ObservableReadable<T> }) => ReactElement;
-    children?: (value: ObservableReadable<T>) => ReactElement;
+    item?: (props: { item: Observable<T> }) => ReactElement;
+    children?: (value: Observable<T>) => ReactElement;
 }): ReactElement {
     if (!each) return null;
 
