@@ -58,8 +58,8 @@ export function For<T extends { id: string | number } | { _id: string | number }
 }: {
     each?: ObservableReadable<T[]>;
     optimized?: boolean;
-    item?: (props: { item: ObservableReadable<T> }) => ReactElement;
-    children?: (value: ObservableReadable<T>) => ReactElement;
+    item?: (props: { item: Observable<T> }) => ReactElement;
+    children?: (value: Observable<T>) => ReactElement;
 }): ReactElement {
     if (!each) return null;
 
@@ -72,7 +72,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
         // Update the ref so the generated component uses the latest function
-        const refChildren = useRef<(value: ObservableReadable<T>) => ReactElement>();
+        const refChildren = useRef<(value: Observable<T>) => ReactElement>();
         refChildren.current = children;
 
         item = useMemo(() => memo(({ item }) => refChildren.current(item)), []);

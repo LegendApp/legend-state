@@ -8,6 +8,7 @@ import { For } from '../src/react/flow';
 import { observable } from '../src/observable';
 import { useSelector } from '../src/react/useSelector';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
+import { Observable, ObservableReadable } from 'src/observableInterfaces';
 
 describe('useSelector', () => {
     test('useSelector basics', () => {
@@ -203,7 +204,14 @@ describe('For', () => {
                 { id: 'A', label: 'A' },
             ] as Array<{ id: string; label: string }>,
         });
-        function Item({ item }) {
+        function Item({
+            item,
+        }: {
+            item: Observable<{
+                id: number;
+                label: string;
+            }>;
+        }) {
             const data = useSelector(item);
             return createElement('li', { id: data.id }, data.label);
         }
