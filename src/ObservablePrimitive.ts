@@ -17,9 +17,12 @@ export function ObservablePrimitiveClass(node: NodeValue) {
     this.toggle = this.toggle.bind(this);
 }
 // Getters
-ObservablePrimitiveClass.prototype[symbolGetNode] = function () {
-    return this._node;
-};
+Object.defineProperty(ObservablePrimitiveClass.prototype, symbolGetNode, {
+    configurable: true,
+    get() {
+        return this._node;
+    },
+});
 ObservablePrimitiveClass.prototype.peek = function () {
     const root = this._node.root;
     if (root.activate) {

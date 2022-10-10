@@ -1,3 +1,4 @@
+import { symbolGetNode } from '../src/globals';
 import { beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { event } from '../src/event';
@@ -1846,6 +1847,11 @@ describe('Primitive root', () => {
         obs.onChange(handler);
         obs.set(20);
         expect(handler).toHaveBeenCalledWith(20, 10, [], 20, 10);
+    });
+    test('observable root can be primitive', () => {
+        const obs = observable(1);
+        const node = obs[symbolGetNode];
+        expect(node.root._).toEqual(1);
     });
 });
 describe('Primitive boolean', () => {
