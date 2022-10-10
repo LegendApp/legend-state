@@ -50,15 +50,17 @@ export function Switch<T>({
     return (children[useSelector(value)]?.() ?? children['default']?.() ?? null) as ReactElement;
 }
 
-export function For<T extends { id: string | number } | { _id: string | number } | { __id: string | number }>({
+export function For<T extends { id: string | number } | { _id: string | number } | { __id: string | number }, TProps>({
     each,
     optimized,
     item,
+    itemProps,
     children,
 }: {
     each?: ObservableReadable<T[]>;
     optimized?: boolean;
-    item?: (props: { item: Observable<T> }) => ReactElement;
+    item?: (props: { item: Observable<T> } & TProps) => ReactElement;
+    itemProps?: TProps;
     children?: (value: Observable<T>) => ReactElement;
 }): ReactElement {
     if (!each) return null;
@@ -89,7 +91,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
         if (v[i]) {
             const key = v[i][id] ?? i;
 
-            out.push(createElement(item, { key: key, item: each[i] }));
+            out.push(createElement(item, Object.assign({ key: key, item: each[i] }, itemProps)));
         }
     }
 
