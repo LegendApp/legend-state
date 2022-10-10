@@ -13,6 +13,8 @@ import { updateTracking } from './tracking';
 
 export function ObservablePrimitiveClass(node: NodeValue) {
     this._node = node;
+    this.set = this.set.bind(this);
+    this.toggle = this.toggle.bind(this);
 }
 // Getters
 ObservablePrimitiveClass.prototype[symbolGetNode] = function () {
