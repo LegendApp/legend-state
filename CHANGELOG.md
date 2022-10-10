@@ -1,3 +1,9 @@
+## 0.19.7
+
+- Feat: Added `itemProps` to `For` component to pass extra props to items
+- Fix: Setter functions on primitives are auto-bound so you can pass them to event handlers
+- Fix: Directly rendering primitive observables was erroring in getNode sometimes
+
 ## 0.19.6
 
 - Feat: Observable booleans have a `toggle()` function
