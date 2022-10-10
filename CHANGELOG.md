@@ -1,3 +1,9 @@
+## 0.19.6
+
+- Feat: Observable booleans have a `toggle()` function
+- Perf: Observable primities are a simple function instead of a class, reducing code size and should be a bit faster
+- Types: Improved typings of For component
+
 ## 0.19.5
 
 - Fix: Persisting primitives
