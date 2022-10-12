@@ -1,16 +1,38 @@
-import { isFunction } from '@legendapp/state';
-import { BindKeys, reactive, useSelector } from '@legendapp/state/react';
-import { createElement, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
-import RN, {
+import { isFunction, observable } from '@legendapp/state';
+import { BindKeys, reactive, useSelector, ShapeWith$ } from '@legendapp/state/react';
+import { createElement, FC, forwardRef, LegacyRef, ReactElement, useCallback } from 'react';
+import {
+    ActivityIndicator,
+    ActivityIndicatorProps,
+    Button,
+    ButtonProps,
+    FlatList,
+    FlatListProps,
+    Image,
+    ImageProps,
     NativeSyntheticEvent,
+    Pressable,
+    PressableProps,
+    ScrollView,
+    ScrollViewProps,
+    SectionList,
+    SectionListProps,
     StyleProp,
     Switch as RNSwitch,
+    Switch,
     SwitchChangeEvent,
     SwitchProps,
+    Text,
     TextInput as RNTextInput,
+    TextInput,
     TextInputChangeEventData,
     TextInputProps,
+    TextProps,
     TextStyle,
+    TouchableWithoutFeedback,
+    TouchableWithoutFeedbackProps,
+    View,
+    ViewProps,
     ViewStyle,
 } from 'react-native';
 import type { ObservableFns, Primitive } from '../observableInterfaces';
@@ -76,35 +98,52 @@ export namespace Bindable {
     );
 }
 
-const bindables = new Map([
-    ['TextInput', (e) => e.nativeEvent.text],
-    ['Switch', (e) => e.value],
-]);
+type FCReactive<P, P2> = P & FC<ShapeWith$<P2>>;
+
+const bindables = {
+    TextInput: (e) => e.nativeEvent.text,
+    Switch: (e) => e.value,
+};
+
+const Components = {
+    ActivityIndicator: ActivityIndicator,
+    Button: Button,
+    FlatList: FlatList,
+    Image: Image,
+    Pressable: Pressable,
+    ScrollView: ScrollView,
+    SectionList: SectionList,
+    Switch: Switch,
+    Text: Text,
+    TextInput: TextInput,
+    TouchableWithoutFeedback: TouchableWithoutFeedback,
+    View: View,
+};
 
 export const Legend = new Proxy(
     {},
     {
         get(target, p: string) {
-            if (!target[p]) {
+            if (!target[p] && Components[p]) {
                 target[p] = reactive(
-                    RN[p],
-                    bindables.has(p) && ({ value: { handler: 'onChange', getValue: bindables.get(p) } } as BindKeys)
+                    Components[p],
+                    bindables[p] && ({ value: { handler: 'onChange', getValue: bindables[p] } } as BindKeys)
                 );
             }
             return target[p];
         },
     }
 ) as {
-    ActivityIndicator: typeof RN.ActivityIndicator;
-    Button: typeof RN.Button;
-    FlatList: typeof RN.FlatList;
-    Image: typeof RN.Image;
-    Pressable: typeof RN.Pressable;
-    ScrollView: typeof RN.ScrollView;
-    SectionList: typeof RN.SectionList;
-    Switch: typeof RN.Switch;
-    Text: typeof RN.Text;
-    TextInput: typeof RN.TextInput;
-    TouchableWithoutFeedback: typeof RN.TouchableWithoutFeedback;
-    View: typeof RN.View;
+    ActivityIndicator: FCReactive<typeof ActivityIndicator, ActivityIndicatorProps>;
+    Button: FCReactive<typeof Button, ButtonProps>;
+    FlatList: FCReactive<typeof FlatList, FlatListProps<any>>;
+    Image: FCReactive<typeof Image, ImageProps>;
+    Pressable: FCReactive<typeof Pressable, PressableProps>;
+    ScrollView: FCReactive<typeof ScrollView, ScrollViewProps>;
+    SectionList: FCReactive<typeof SectionList, SectionListProps<any>>;
+    Switch: FCReactive<typeof Switch, SwitchProps>;
+    Text: FCReactive<typeof Text, TextProps>;
+    TextInput: FCReactive<TextInput, TextInputProps>;
+    TouchableWithoutFeedback: FCReactive<typeof TouchableWithoutFeedback, TouchableWithoutFeedbackProps>;
+    View: FCReactive<typeof View, ViewProps>;
 };

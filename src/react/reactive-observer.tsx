@@ -23,16 +23,19 @@ function createReactiveComponent<P>(
     bindKeys?: BindKeys<P>
 ) {
     const isStr = isString(component);
+    let render = component;
+
+    const componentName = !isStr && ((component as FC<P>).displayName || (component as FC<P>).name);
+
     // Unwrap forwardRef on the component
     let useForwardRef: boolean;
     if (!isStr && ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
         useForwardRef = true;
-        component = component['render'];
-        if (process.env.NODE_ENV === 'development' && typeof component !== 'function') {
+        render = component['render'];
+        if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
             throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
         }
     }
-    const componentName = !isStr && ((component as FC<P>).displayName || (component as FC<P>).name);
 
     let ret = function ReactiveComponent(props: P, ref) {
         const fr = useReducer(Update, 0)[1];
@@ -72,11 +75,13 @@ function createReactiveComponent<P>(
         }
 
         return observe
-            ? useSelector(() => (isStr ? createElement(component, propsOut) : (component as FC)(propsOut, ref)), {
+            ? useSelector(() => (isStr ? createElement(render, propsOut) : (render as FC)(propsOut, ref)), {
                   forceRender: fr,
                   shouldRender: true,
               })
-            : createElement(component, propsOut);
+            : isStr
+            ? createElement(render, propsOut)
+            : (render as FC)(propsOut, ref);
     };
 
     if (componentName) {
