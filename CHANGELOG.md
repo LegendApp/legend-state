@@ -1,3 +1,7 @@
+## 0.19.8
+
+- Fix: Reactive components were sometimes not working in React Native https://github.com/LegendApp/legend-state/issues/32
+
 ## 0.19.7
 
 - Feat: Added `itemProps` to `For` component to pass extra props to items
