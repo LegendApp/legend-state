@@ -14,7 +14,7 @@ export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
 
-export type BindKeys<P = any> = Record<keyof P, { handler?: keyof P; getValue: (e) => any }>;
+export type BindKeys<P = any> = Record<keyof P, { handler?: keyof P; getValue: (e) => any; defaultValue?: any }>;
 
 function createReactiveComponent<P>(
     component: FC<P> | string,
@@ -55,6 +55,9 @@ function createReactiveComponent<P>(
 
                     const bind = bindKeys?.[k as keyof P];
                     if (bind && isObservable(p)) {
+                        if (bind.defaultValue !== undefined && propsOut[k] === undefined) {
+                            propsOut[k] = bind.defaultValue;
+                        }
                         (propsOut[bind.handler] as any) = useCallback(
                             (e: ChangeEvent) => {
                                 p.set(bind.getValue(e));

@@ -30,8 +30,11 @@ import {
 type FCReactive<P, P2> = P & FC<ShapeWith$<P2>>;
 
 const bindables = {
-    TextInput: (e) => e.nativeEvent.text,
-    Switch: (e) => e.value,
+    TextInput: {
+        getValue: (e) => e.nativeEvent.text,
+        defaultValue: '',
+    },
+    Switch: { getValue: (e) => e.value, defaultValue: false },
 };
 
 const Components = {
@@ -56,7 +59,10 @@ export const Legend = new Proxy(
             if (!target[p] && Components[p]) {
                 target[p] = reactive(
                     Components[p],
-                    bindables[p] && ({ value: { handler: 'onChange', getValue: bindables[p] } } as BindKeys)
+                    bindables[p] &&
+                        ({
+                            value: { handler: 'onChange', ...bindables[p] },
+                        } as BindKeys)
                 );
             }
             return target[p];

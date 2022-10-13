@@ -5,7 +5,7 @@ type FCReactive<P> = FC<P & ShapeWith$<P>>;
 
 const bindables = new Set(['input', 'textarea', 'select']);
 
-const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value } };
+const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value, defaultValue: '' } };
 const bindInfoInput: BindKeys = Object.assign(
     { checked: { handler: 'onChange', getValue: (e) => e.target.checked } },
     bindInfo
