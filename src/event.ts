@@ -1,3 +1,4 @@
+import { symbolIsObservable } from './globals';
 import { observable } from './observable';
 import type { ObservableEvent } from './observableInterfaces';
 
@@ -14,5 +15,7 @@ export function event(): ObservableEvent {
             return obs.onChange(cb);
         },
         get: () => obs.get(),
+        // @ts-ignore
+        [symbolIsObservable]: true,
     };
 }

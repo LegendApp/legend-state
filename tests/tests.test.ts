@@ -1703,6 +1703,10 @@ describe('Event', () => {
         evt.dispatch();
         expect(handler).toHaveBeenCalledTimes(4);
     });
+    test('Event is observable', () => {
+        const evt = event();
+        expect(isObservable(evt)).toEqual(true);
+    });
 });
 describe('Promise values', () => {
     test('Promise value', async () => {

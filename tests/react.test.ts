@@ -4,11 +4,11 @@
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, useReducer } from 'react';
-import { For } from '../src/react/flow';
+import { Observable } from 'src/observableInterfaces';
 import { observable } from '../src/observable';
-import { useSelector } from '../src/react/useSelector';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
-import { Observable, ObservableReadable } from 'src/observableInterfaces';
+import { For } from '../src/react/flow';
+import { useSelector } from '../src/react/useSelector';
 
 describe('useSelector', () => {
     test('useSelector basics', () => {
