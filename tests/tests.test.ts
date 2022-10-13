@@ -1696,11 +1696,11 @@ describe('Event', () => {
         const handler = jest.fn();
         evt.on(handler);
         expect(handler).not.toHaveBeenCalled();
-        evt.dispatch();
+        evt.fire();
         expect(handler).toHaveBeenCalledTimes(1);
-        evt.dispatch();
-        evt.dispatch();
-        evt.dispatch();
+        evt.fire();
+        evt.fire();
+        evt.fire();
         expect(handler).toHaveBeenCalledTimes(4);
     });
     test('Event is observable', () => {
