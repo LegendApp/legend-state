@@ -4,7 +4,7 @@ import { observable } from './observable';
 import { ObservableComputed } from './observableInterfaces';
 import { observe } from './observe';
 
-export function computed<T>(compute: () => T): ObservableComputed<T> {
+export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T> {
     // Create an observable for this computed variable
     let obs = observable<T>();
     lockObservable(obs, true);
