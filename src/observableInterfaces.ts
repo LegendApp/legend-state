@@ -269,3 +269,10 @@ export interface ObserveEvent<T> {
     cancel?: boolean;
     onCleanup?: () => void;
 }
+export interface ObserveEventCallback<T> {
+    num: number;
+    previous?: T | void;
+    value?: T | void;
+    cancel?: boolean;
+    onCleanup?: () => void;
+}
