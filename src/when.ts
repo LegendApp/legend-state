@@ -1,27 +1,27 @@
 import { computeSelector } from './helpers';
-import type { Selector } from './observableInterfaces';
+import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
 export function when<T>(predicate: Selector<T>): Promise<T>;
-export function when<T>(predicate: Selector<T>, effect: (T) => any | (() => any)): () => void;
-export function when<T>(predicate: Selector<T>, effect?: (T) => any | (() => any)) {
+export function when<T>(predicate: Selector<T>, effect: (value: T) => any | (() => any)): () => void;
+export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any)) {
     // Create a wrapping fn that calls the effect if predicate returns true
-    function run() {
+    function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
 
         if (ret) {
             // If value is truthy then run the effect
             effect(ret);
 
-            // Return false so that observe does not track
-            return false;
+            // Set cancel so that observe does not track
+            e.cancel = true;
         }
     }
 
     // If no effect parameter return a promise
     const promise =
         !effect &&
-        new Promise<void>((resolve) => {
+        new Promise<T>((resolve) => {
             effect = resolve;
         });
 

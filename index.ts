@@ -27,6 +27,4 @@ export {
 /** @internal */
 export { getNode, computeSelector } from './src/helpers';
 /** @internal */
-export { setupTracking } from './src/observe';
-/** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';

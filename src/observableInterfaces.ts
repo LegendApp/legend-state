@@ -263,3 +263,9 @@ export interface TrackingNode {
     track?: TrackingType;
     num?: number;
 }
+export interface ObserveEvent<T> {
+    num: number;
+    previous?: T | void;
+    cancel?: boolean;
+    onCleanup?: () => void;
+}

@@ -12,7 +12,7 @@ export function useSelector<T>(
     const forceRender = options?.forceRender || useReducer(Update, 0)[1];
     const shouldRender = options?.shouldRender;
 
-    observe(function update() {
+    observe(function update(e) {
         // If running, call selector and re-render if changed
         let cur = (inRun || shouldRender !== true) && computeSelector(selector);
         // Re-render if not currently rendering and value has changed
@@ -21,8 +21,8 @@ export function useSelector<T>(
             (shouldRender === true || (shouldRender ? shouldRender(cur, ret) : cur !== ret || !isPrimitive(cur)))
         ) {
             forceRender();
-            // Return false so that observe does not track
-            return false;
+            // Set cancel so that observe does not track
+            e.cancel = true;
         }
         ret = cur;
         inRun = false;

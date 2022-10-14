@@ -1,15 +1,15 @@
 import { symbolDateModified, symbolGetNode, symbolIsObservable } from './globals';
 import { isFunction, isObject, isObjectEmpty } from './is';
-import type { NodeValue, ObservableObject, ObservableReadable, Selector } from './observableInterfaces';
+import type { NodeValue, ObservableObject, ObservableReadable, ObserveEvent, Selector } from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
     return obs && !!obs[symbolIsObservable as any];
 }
 
-export function computeSelector<T>(selector: Selector<T>) {
+export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>) {
     let c = selector as any;
     if (isFunction(c)) {
-        c = c();
+        c = e ? c(e) : c();
     }
 
     return isObservable(c) ? c.get() : c;

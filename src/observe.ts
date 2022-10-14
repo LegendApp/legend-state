@@ -1,10 +1,9 @@
 import { beginBatch, endBatch } from './batching';
-import { isFunction } from './is';
-import { TrackingNode } from './observableInterfaces';
+import { ObserveEvent, TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { beginTracking, endTracking, tracking } from './tracking';
 
-export function setupTracking(nodes: Map<number, TrackingNode>, update: () => void, noArgs?: boolean) {
+function setupTracking(nodes: Map<number, TrackingNode>, update: () => void, noArgs?: boolean) {
     let listeners = [];
     // Listen to tracked nodes
     if (nodes) {
@@ -24,25 +23,33 @@ export function setupTracking(nodes: Map<number, TrackingNode>, update: () => vo
     };
 }
 
-export function observe(run: () => void | boolean | (() => void)) {
-    let cleanupPrevious: () => void;
+export function observe<T>(run: (e: ObserveEvent<T>) => T | void) {
     let dispose: () => void;
+    const e: ObserveEvent<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
-        cleanupPrevious?.();
+        // @ts-ignore
+        if (e.onCleanup) {
+            e.onCleanup();
+            e.onCleanup = undefined;
+        }
+
+        // Dispose listeners from previous run
         dispose?.();
 
-        // Wrap run() in a batch so changes don't happen until we're done tracking here
+        // Run in a batch so changes don't happen until we're done tracking here
         beginBatch();
 
+        // Begin tracking observables accessed while running
         beginTracking();
 
-        let ret = run();
+        // Run the function
+        e.previous = run(e);
 
-        if (ret !== false) {
-            if (isFunction(ret)) {
-                cleanupPrevious = ret;
-            }
+        // Increment the counter
+        e.num++;
+
+        if (!e.cancel) {
             const tracker = tracking.current;
             // Do tracing if it was requested
             let noArgs = true;
@@ -57,6 +64,7 @@ export function observe(run: () => void | boolean | (() => void)) {
                 tracker.traceUpdates = undefined;
             }
 
+            // Setup tracking with the nodes that were accessed
             dispose = setupTracking(tracker.nodes, update, noArgs);
         }
 
