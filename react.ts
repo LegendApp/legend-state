@@ -7,6 +7,7 @@ export * from './src/react/useObservable';
 export * from './src/react/useObservableReducer';
 export * from './src/react/useObserve';
 export * from './src/react/useSelector';
+export * from './src/react/lifecycle';
 
 import type { ReactFragment } from 'react';
 import { enableLegendStateReact } from './src/react/enableLegendStateReact';
