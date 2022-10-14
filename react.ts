@@ -10,9 +10,6 @@ export * from './src/react/useSelector';
 export * from './src/react/lifecycle';
 
 import type { ReactFragment } from 'react';
-import { enableLegendStateReact } from './src/react/enableLegendStateReact';
-
-enableLegendStateReact();
 
 declare module '@legendapp/state' {
     export interface ObservableBaseFns<T> extends ReactFragment {}
