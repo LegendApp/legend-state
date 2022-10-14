@@ -1,4 +1,4 @@
-import { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
+import type { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
 
 export function onChange(
     node: NodeValue,

@@ -96,8 +96,24 @@ function createReactiveComponent<P>(
         ret = forwardRef(ret) as any;
     }
 
-    return observe ? memo(ret) : ret;
+    ret = observe ? memo(ret) : ret;
+
+    Object.keys(component).forEach((key) => {
+        if (!hoistBlackList[key]) {
+            Object.defineProperty(ret, key, Object.getOwnPropertyDescriptor(component, key)!);
+        }
+    });
+
+    return ret;
 }
+
+const hoistBlackList: any = {
+    $$typeof: true,
+    render: true,
+    compare: true,
+    type: true,
+    displayName: true,
+};
 
 export function observer<P>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
