@@ -1,12 +1,6 @@
 import { isEmpty, isFunction, isObservable, isString, Selector } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
-import { ChangeEvent, createElement, FC, forwardRef, memo, useCallback, useReducer } from 'react';
-
-// Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
-const hasSymbol = typeof Symbol === 'function' && Symbol.for;
-const ReactForwardRefSymbol = hasSymbol
-    ? Symbol.for('react.forward_ref')
-    : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
+import { ChangeEvent, createElement, FC, forwardRef, useCallback, useReducer } from 'react';
 
 const Update = (s: number) => s + 1;
 
@@ -16,104 +10,114 @@ export type ShapeWith$<T> = Partial<T> & {
 
 export type BindKeys<P = any> = Record<keyof P, { handler?: keyof P; getValue: (e) => any; defaultValue?: any }>;
 
+// Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
+const hasSymbol = typeof Symbol === 'function' && Symbol.for;
+const ReactForwardRefSymbol = hasSymbol
+    ? Symbol.for('react.forward_ref')
+    : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
+
 function createReactiveComponent<P>(
     component: FC<P> | string,
     observe: boolean,
     reactive?: boolean,
     bindKeys?: BindKeys<P>
 ) {
-    const isStr = isString(component);
-    let render = component;
+    // If this component is already reactive bail out early
+    // This can happen with Fast Refresh.
+    if (component['__legend_proxied']) return component;
 
-    const componentName = !isStr && ((component as FC<P>).displayName || (component as FC<P>).name);
-
-    // Unwrap forwardRef on the component
     let useForwardRef: boolean;
-    if (!isStr && ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
-        useForwardRef = true;
-        render = component['render'];
-        if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
-            throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
+    let render = component;
+    if (isString(component)) {
+        const base = component;
+        // If this is a builtin create a wrapper around it so we can proxy it
+        render = component = (props, ref) => {
+            const propsOut = { ...props } as any;
+            if (ref && (isFunction(ref) || !isEmpty(ref))) {
+                propsOut.ref = ref;
+            }
+            return createElement(base, propsOut);
+        };
+    } else {
+        // Unwrap forwardRef on the component
+        if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
+            useForwardRef = true;
+            render = component['render'];
+            if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
+                throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
+            }
         }
     }
 
-    let ret = function ReactiveComponent(props: P, ref) {
-        const fr = useReducer(Update, 0)[1];
-        const propsOut = {} as P & { ref: any };
+    const proxyHandler: ProxyHandler<any> = {
+        apply(target, thisArg, argArray) {
+            const fr = useReducer(Update, 0)[1];
 
-        if (isStr && ref && (isFunction(ref) || !isEmpty(ref))) {
-            propsOut.ref = ref;
-        }
-        if (reactive) {
-            const keys = Object.keys(props);
-            for (let i = 0; i < keys.length; i++) {
-                const key = keys[i];
-                const p = props[key];
-                if (key.endsWith('$') && (isFunction(p) || isObservable(p))) {
-                    const k = key.slice(0, -1);
-                    propsOut[k] = useSelector(p, { forceRender: fr });
+            // If this is a reactive component, convert all props ending in $
+            // to regular props and set up a useSelector listener
+            if (reactive) {
+                const props = argArray[0];
+                const propsOut = {} as P & { ref: any };
+                const keys = Object.keys(props);
+                for (let i = 0; i < keys.length; i++) {
+                    const key = keys[i];
+                    const p = props[key];
 
-                    const bind = bindKeys?.[k as keyof P];
-                    if (bind && isObservable(p)) {
-                        if (bind.defaultValue !== undefined && propsOut[k] === undefined) {
-                            propsOut[k] = bind.defaultValue;
+                    // Convert reactive props
+                    if (key.endsWith('$')) {
+                        const k = key.slice(0, -1);
+                        // Return raw value and Listen to the selector for changes
+                        propsOut[k] = useSelector(p, { forceRender: fr });
+
+                        // If this key is one of the bind keys set up a two-way binding
+                        const bind = bindKeys?.[k as keyof P];
+                        if (bind && isObservable(p)) {
+                            // Use the bind's defaultValue if value is undefined
+                            if (bind.defaultValue !== undefined && propsOut[k] === undefined) {
+                                propsOut[k] = bind.defaultValue;
+                            }
+                            // Hook up the change lander
+                            (propsOut[bind.handler] as any) = useCallback(
+                                (e: ChangeEvent) => {
+                                    p.set(bind.getValue(e));
+                                    // @ts-ignore
+                                    props[bind.handler]?.(e);
+                                },
+                                [props[bind.handler], bindKeys]
+                            );
                         }
-                        (propsOut[bind.handler] as any) = useCallback(
-                            (e: ChangeEvent) => {
-                                p.set(bind.getValue(e));
-                                // @ts-ignore
-                                props[bind.handler]?.(e);
-                            },
-                            [props[bind.handler], bindKeys]
-                        );
+
+                        // Delete the reactive key
+                        delete propsOut[key];
+                    } else if (propsOut[key] === undefined) {
+                        propsOut[key] = p;
                     }
-
-                    delete propsOut[key];
-                } else if (propsOut[key] === undefined) {
-                    propsOut[key] = p;
                 }
+                argArray[0] = propsOut;
             }
-        } else {
-            Object.assign(propsOut, props);
-        }
 
-        return observe
-            ? useSelector(() => (isStr ? createElement(render, propsOut) : (render as FC)(propsOut, ref)), {
-                  forceRender: fr,
-                  shouldRender: true,
-              })
-            : isStr
-            ? createElement(render, propsOut)
-            : (render as FC)(propsOut, ref);
+            // If observing wrap the whole render in a useSelector to listen to it
+            if (observe && fr) {
+                return useSelector(() => Reflect.apply(target, thisArg, argArray), {
+                    forceRender: fr,
+                    shouldRender: true,
+                });
+            } else {
+                return Reflect.apply(target, thisArg, argArray);
+            }
+        },
     };
 
-    if (componentName) {
-        (ret as FC).displayName = componentName;
+    const proxy = new Proxy(render, proxyHandler);
+
+    if (useForwardRef) {
+        component['render'] = proxy;
+        component['__legend_proxied'] = proxy;
+        return component;
+    } else {
+        return proxy;
     }
-
-    // Wrap back in forwardRef if necessary
-    if (isStr || useForwardRef) {
-        ret = forwardRef(ret) as any;
-    }
-
-    ret = observe ? memo(ret) : ret;
-
-    Object.keys(component).forEach((key) => {
-        if (!hoistBlackList[key]) {
-            Object.defineProperty(ret, key, Object.getOwnPropertyDescriptor(component, key)!);
-        }
-    });
-
-    return ret;
 }
-
-const hoistBlackList: any = {
-    $$typeof: true,
-    render: true,
-    compare: true,
-    type: true,
-    displayName: true,
-};
 
 export function observer<P>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
