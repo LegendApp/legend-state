@@ -1,3 +1,17 @@
+## 0.20.0
+
+- Breaking: Changed behavior of `observe` and `useObserve` so that it has a callback parameter, useful for observing an event and doing something only when it changes. If you were returning false to cancel observing, you can now use `e.cancel = true`. And if you were returning a cleanup function you can use `e.onCleanup = () => ...`. It also adds a `num` param to know how many times it's run and a `previous` param to compare to the previous value.
+- Breaking: Renamed event `dispatch` to `fire`
+- Breaking: Removed deprecated hooking into internal dispatcher
+- Breaking: Removed deprecated Bindable components
+- Feat: Added a callback parameter to useObserve, useful for observing an event and doing something only when it changes
+- Feat: Added useMount and useUnmount lifecycle hooks to encourage getting away from useEffect
+- Feat: `useObserve` has a second callback parameter which will run after the selector. This can be useful for passing an `observable` or `event` as the first parameter.
+- Fix: `reactive` and `observe` components were sometimes not retaining their static properties (like id). They now use a Proxy wrapper instead of an HOC, which reduces component tree depth and avoids any other bugs from wrapping components and forwarding refs.
+- Fix: `event` was not working correctly in selectors
+- Fix: The two-way binding components are always controlled, even if the `value$` is undefined
+- Types: Improved types of `computed` and `useComponent` to accept a Promise
+
 ## 0.19.8
 
 - Fix: Reactive components were sometimes not working in React Native https://github.com/LegendApp/legend-state/issues/32
