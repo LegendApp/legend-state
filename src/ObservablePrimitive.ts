@@ -1,4 +1,4 @@
-import { symbolGetNode } from './globals';
+import { symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
 import { isBoolean, isFunction } from './is';
 import { doNotify } from './notify';
 import {
@@ -22,6 +22,14 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolGetNode, {
     get() {
         return this._node;
     },
+});
+Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsObservable, {
+    configurable: true,
+    value: true,
+});
+Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsEvent, {
+    configurable: true,
+    value: false,
 });
 ObservablePrimitiveClass.prototype.peek = function () {
     const root = this._node.root;

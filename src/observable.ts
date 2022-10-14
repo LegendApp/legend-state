@@ -10,6 +10,7 @@ import {
     peek,
     shouldTreatAsOpaque,
     symbolGetNode,
+    symbolIsEvent,
     symbolIsObservable,
     symbolUndef,
 } from './globals';
@@ -230,6 +231,9 @@ const proxyHandler: ProxyHandler<any> = {
         // Return true is called by isObservable()
         if (p === symbolIsObservable) {
             return true;
+        }
+        if (p === symbolIsEvent) {
+            return false;
         }
         if (p === symbolGetNode) {
             return node;

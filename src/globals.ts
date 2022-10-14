@@ -4,6 +4,7 @@ import { updateTracking } from './tracking';
 
 export const symbolDateModified = Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
+export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolUndef = Symbol('undef');
 

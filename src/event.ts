@@ -1,4 +1,4 @@
-import { symbolIsObservable } from './globals';
+import { symbolIsEvent, symbolIsObservable } from './globals';
 import { observable } from './observable';
 import type { ObservableEvent } from './observableInterfaces';
 
@@ -17,5 +17,6 @@ export function event(): ObservableEvent {
         get: () => obs.get(),
         // @ts-ignore
         [symbolIsObservable]: true,
+        [symbolIsEvent]: true,
     };
 }
