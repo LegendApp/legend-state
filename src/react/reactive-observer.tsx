@@ -1,6 +1,6 @@
 import { isEmpty, isFunction, isObservable, isString, Selector } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
-import { ChangeEvent, createElement, FC, forwardRef, useCallback, useReducer } from 'react';
+import { ChangeEvent, createElement, FC, forwardRef, memo, useCallback, useReducer } from 'react';
 
 const Update = (s: number) => s + 1;
 
@@ -110,13 +110,17 @@ function createReactiveComponent<P>(
 
     const proxy = new Proxy(render, proxyHandler);
 
+    let ret;
+
     if (useForwardRef) {
-        component['render'] = proxy;
-        component['__legend_proxied'] = proxy;
-        return component;
+        ret = component;
+        ret['render'] = proxy;
+        ret['__legend_proxied'] = proxy;
     } else {
-        return proxy;
+        ret = proxy;
     }
+
+    return observe ? memo(ret) : ret;
 }
 
 export function observer<P>(component: FC<P>): FC<P> {
