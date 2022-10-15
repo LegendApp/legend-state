@@ -88,9 +88,14 @@ function Component() {
 
 `useObserve` creates an [observe](../reactivity#observe) which you can use to take actions when observables change. This is like `useEffect` for observables which runs only when observables change and not because of rendering.
 
+`useObserve` has an optional second callback parameter which will run after the selector. This can be useful for observing an `event` or a single `observable`.
+
 ```jsx
+import { useObserve, event } from "@legendapp/state"
 import { useObserve } from "@legendapp/state/react"
 import { legend } from "@legendapp/state/react-components"
+
+const eventUpdateTitle = event()
 
 function ProfilePage() {
     // This component never re-renders
@@ -99,6 +104,16 @@ function ProfilePage() {
 
     // This runs whenever profile changes
     useObserve(() => {
+        document.title = `${profile.name.get()} - Profile`
+    })
+
+    // Observe a single observable
+    useObserve(profile.name, (e) => {
+        document.title = `${e.value} - Profile`
+    })
+
+    // Observe an event
+    useObserve(eventUpdateTitle, (e) => {
         document.title = `${profile.name.get()} - Profile`
     })
 

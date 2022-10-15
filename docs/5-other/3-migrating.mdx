@@ -1,6 +1,35 @@
+## 0.19 to 0.20
+
+### Removed deprecated automatic observing
+
+The automatic observing from 0.18 was deprecated in 0.19 and is now removed. See [Deprecated automatic observing](#deprecated-automatic-observing).
+
+### observe and useObserve
+
+As `observe` has gotten more and more powerful, it outgrew modifying behavior based on the return value, so it now has an event parameter to control canceling listening and a cleanup function.
+
+- If you were returning false to cancel observing, you can now use `e.cancel = true`.
+- If you were returning a cleanup function you can use `e.onCleanup = () => ...`.
+- It also adds a `num` param to know how many times it's run and a `previous` param to compare to the previous value.
+
+```js
+observe((e) => {
+    // Cancel observing any future changes
+    e.cancel = true
+
+    // A cleanup function
+    e.cleanup = () => ...
+})
+```
+
+### Renamed event `dispatch` to `fire`
+
+Just change `evt.dispatch()` to `evt.fire()` and all is good 👍.
+
+
 ## 0.18 to 0.19
 
-### Deprecating automatic observing
+### Deprecated automatic observing
 
 We are deprecating the automatic observing that depended on hooking into React's internals. Components will no longer track observables automatically, but you can easily it per component in a few ways:
 

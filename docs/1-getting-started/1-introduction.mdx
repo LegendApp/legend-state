@@ -82,7 +82,7 @@ persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
 // This is the code for the example on your right ----->
-const Component = observer(function Component() => {
+const Component = observer(function Component() {
     const theme = state.settings.theme.get()
     // state.settings.theme is automatically tracked for changes
 
@@ -206,13 +206,15 @@ function MemoExample() {
     const state = useObservable({ count: 0 })
 
     useInterval(() => {
-        state.count ++
+        state.count.set(v => v + 1)
     }, 500)
 
     return (
         <div>
             <div>Renders: {renderCount}</div>
+            // Render observable directly
             <div>Count: {state.count}</div>
+            // Memo creates separate tracking context
             <Memo>
                 <div>Count: {state.count.get()}</div>
             </Memo>

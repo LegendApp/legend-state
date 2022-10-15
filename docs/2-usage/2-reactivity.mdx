@@ -40,15 +40,21 @@ dispose()
 
 ## observe
 
-`observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes. You can optionally return a cleanup function to run before it re-evaluates.
+`observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes.
 
 This can be useful to use multiple observables at once, for the benefit of cleanup effects, or if you just like it more than [onChange](#onchange) 😎.
+
+The callback param has some useful properties:
+- `num`: How many times it's run. Use this to do something only the first time or not the first time.
+- `previous`: The previous value, which will be undefined on the first run and set to the return value
+- `cancel`: Set to `true` to not track the observables
+- `onCleanup`: A function to call before running the selector again
 
 ```js
 import { observe, observable } from "@legendapp/state"
 const state = observable({ isOnline: false, toasts: [] })
 
-const dispose = observe(() => {
+const dispose = observe((e) => {
     // This observe will automatically track state.isOnline for changes
     if (!state.isOnline.get()) {
         // Show an "Offline" toast when offline
@@ -56,7 +62,7 @@ const dispose = observe(() => {
         state.toasts.push(toast)
 
         // Remove the toast when the observe is re-run, which will be when isOnline becomes true
-        return () => state.toasts.splice(state.toasts.indexOf(toast), 1)
+        e.cleanup = () => state.toasts.splice(state.toasts.indexOf(toast), 1)
     }
 })
 
@@ -118,5 +124,5 @@ onClosed.on(() => { ... })
 onClosed.onChange(() => { ... }))
 
 // Dispatch the event to call listeners
-onClosed.dispatch()
+onClosed.fire()
 ```
