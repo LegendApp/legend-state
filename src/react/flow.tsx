@@ -1,5 +1,6 @@
 import { isFunction } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
+import { observer } from 'react-components';
 import type { Observable, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
@@ -77,7 +78,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
         const refChildren = useRef<(value: Observable<T>) => ReactElement>();
         refChildren.current = children;
 
-        item = useMemo(() => memo(({ item }) => refChildren.current(item)), []);
+        item = useMemo(() => observer(({ item }) => refChildren.current(item)), []);
     }
 
     if (!v) return null;
