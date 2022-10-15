@@ -1,3 +1,12 @@
+## 0.20.2
+
+- Fix: mergeIntoObservable was overwriting object children with undefined values
+
+## 0.20.1
+
+- Fix: `observer` was not auto-memoizing after the rewrite in 0.20.0
+- Fix: `For` which a child function auto-observes
+
 ## 0.20.0
 
 - Breaking: Changed behavior of `observe` and `useObserve` so that they have a callback parameter, useful for observing an event and doing something only when it changes. It also has a new `previous` parameter to compare to the previous run which depends on a return value, so the previous behavior using the return value is moved into the callback parameter. If you were returning false to cancel observing, you can now use `e.cancel = true`. And if you were returning a cleanup function you can use `e.onCleanup = () => ...`. It also adds a `num` param to know how many times it's run.
