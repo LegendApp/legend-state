@@ -31,21 +31,21 @@ function createReactiveComponent<P>(
     if (isString(component)) {
         const base = component;
         // If this is a builtin create a wrapper around it so we can proxy it
-        render = component = (props, ref) => {
+        render = component = forwardRef((props, ref) => {
             const propsOut = { ...props } as any;
             if (ref && (isFunction(ref) || !isEmpty(ref))) {
                 propsOut.ref = ref;
             }
             return createElement(base, propsOut);
-        };
-    } else {
-        // Unwrap forwardRef on the component
-        if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
-            useForwardRef = true;
-            render = component['render'];
-            if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
-                throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
-            }
+        }) as FC<P>;
+    }
+
+    // Unwrap forwardRef on the component
+    if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
+        useForwardRef = true;
+        render = component['render'];
+        if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
+            throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
         }
     }
 
