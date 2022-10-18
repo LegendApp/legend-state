@@ -2,7 +2,7 @@ import { NodeValue, tracking } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
 export function useTraceUpdates(name?: string) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && tracking.current) {
         tracking.current.traceUpdates = replaceUpdateFn.bind(this, name);
     }
 }

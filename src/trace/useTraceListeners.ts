@@ -1,15 +1,15 @@
 import { tracking, TrackingNode } from '@legendapp/state';
-import { getNodePath } from './traceHelpers';
 import type { TrackingTypeInternal } from '../observableInterfaces';
+import { getNodePath } from './traceHelpers';
 
 export function useTraceListeners(name?: string) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && tracking.current) {
         tracking.current.traceListeners = traceNodes.bind(this, name);
     }
 }
 
 function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && tracking.current) {
         tracking.current.traceListeners = undefined;
         const arr: string[] = [];
         if (nodes) {
