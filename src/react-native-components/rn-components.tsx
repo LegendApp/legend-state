@@ -1,5 +1,5 @@
 import { BindKeys, reactive, ShapeWith$ } from '@legendapp/state/react';
-import { FC } from 'react';
+import { FC, LegacyRef } from 'react';
 import {
     ActivityIndicator,
     ActivityIndicatorProps,
@@ -27,7 +27,12 @@ import {
     ViewProps,
 } from 'react-native';
 
-type FCReactive<P, P2> = P & FC<ShapeWith$<P2>>;
+type FCReactive<P, P2> = P &
+    FC<
+        ShapeWith$<P2> & {
+            ref?: LegacyRef<P> | undefined;
+        }
+    >;
 
 const bindables = {
     TextInput: {
@@ -69,16 +74,16 @@ export const Legend = new Proxy(
         },
     }
 ) as {
-    ActivityIndicator: FCReactive<typeof ActivityIndicator, ActivityIndicatorProps>;
-    Button: FCReactive<typeof Button, ButtonProps>;
-    FlatList: FCReactive<typeof FlatList, FlatListProps<any>>;
-    Image: FCReactive<typeof Image, ImageProps>;
+    ActivityIndicator: FCReactive<ActivityIndicator, ActivityIndicatorProps>;
+    Button: FCReactive<Button, ButtonProps>;
+    FlatList: FCReactive<FlatList, FlatListProps<any>>;
+    Image: FCReactive<Image, ImageProps>;
     Pressable: FCReactive<typeof Pressable, PressableProps>;
-    ScrollView: FCReactive<typeof ScrollView, ScrollViewProps>;
-    SectionList: FCReactive<typeof SectionList, SectionListProps<any>>;
-    Switch: FCReactive<typeof Switch, SwitchProps>;
-    Text: FCReactive<typeof Text, TextProps>;
+    ScrollView: FCReactive<ScrollView, ScrollViewProps>;
+    SectionList: FCReactive<SectionList, SectionListProps<any>>;
+    Switch: FCReactive<Switch, SwitchProps>;
+    Text: FCReactive<Text, TextProps>;
     TextInput: FCReactive<TextInput, TextInputProps>;
-    TouchableWithoutFeedback: FCReactive<typeof TouchableWithoutFeedback, TouchableWithoutFeedbackProps>;
-    View: FCReactive<typeof View, ViewProps>;
+    TouchableWithoutFeedback: FCReactive<TouchableWithoutFeedback, TouchableWithoutFeedbackProps>;
+    View: FCReactive<View, ViewProps>;
 };
