@@ -1,3 +1,12 @@
+## 0.20.5
+- Fix: Types of React Native components were not supporting refs properly
+
+## 0.20.4
+- Fix: Reactive components not forwarding refs properly
+
+## 0.20.3
+- Fix: Tracing functions crashing if component is not an observer
+
 ## 0.20.2
 
 - Fix: mergeIntoObservable was overwriting object children with undefined values
