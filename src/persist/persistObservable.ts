@@ -1,4 +1,4 @@
-import { when, mergeIntoObservable, observable, symbolDateModified, batch } from '@legendapp/state';
+import { batch, isEmpty, mergeIntoObservable, observable, symbolDateModified, when } from '@legendapp/state';
 import type {
     ObservableObject,
     ObservablePersistLocal,
@@ -14,6 +14,7 @@ import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 export const mapPersistences: WeakMap<any, any> = new WeakMap();
 const usedNames = new Map<string, true>();
 const dateModifiedKey = '@';
+const PendingKey = '__legend_pending';
 
 const platformDefaultPersistence =
     typeof window !== 'undefined' && typeof window.localStorage !== undefined
@@ -24,6 +25,7 @@ interface LocalState {
     tempDisableSaveRemote: boolean;
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemote;
+    pendingChanges?: Record<string, { p: any; v?: any }>;
 }
 
 async function onObsChange<T>(
@@ -36,12 +38,16 @@ async function onObsChange<T>(
     valueAtPath: any,
     prevAtPath: any
 ) {
+    if (path[path.length - 1] === (symbolDateModified as any)) return;
+
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
+
+    const pathStr = path.join('');
 
     const local = persistOptions.local;
     const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
     if (local) {
-        if (!obsState.isLoadedLocal) {
+        if (!obsState.isLoadedLocal.peek()) {
             console.error(
                 '[legend-state]: WARNING: An observable was changed before being loaded from persistence',
                 local
@@ -51,9 +57,28 @@ async function onObsChange<T>(
 
         // If saving remotely convert symbolDateModified to dateModifiedKey before saving locally
         // as peristing may not include symbols correctly
-        const localValue = persistOptions.remote
-            ? replaceKeyInObject(value as unknown as object, symbolDateModified, dateModifiedKey, /*clone*/ true)
-            : value;
+        let localValue = value;
+        if (persistOptions.remote) {
+            localValue = replaceKeyInObject(
+                value as unknown as object,
+                symbolDateModified,
+                dateModifiedKey,
+                /*clone*/ true
+            );
+            if (!localState.pendingChanges) {
+                localState.pendingChanges = {};
+            }
+            // The value saved in pending should be the previous state before changes,
+            // so don't overwrite it if it already exists
+            if (!localState.pendingChanges[pathStr]) {
+                localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
+            }
+            localState.pendingChanges[pathStr].v = valueAtPath;
+
+            if (localState.pendingChanges) {
+                localValue[PendingKey] = localState.pendingChanges;
+            }
+        }
 
         // Save to local persistence
         persistenceLocal.set(local, localValue);
@@ -63,9 +88,21 @@ async function onObsChange<T>(
         // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
         // server value different than the saved value (like Firebase has server timestamps for dateModified)
         const saved = await persistenceRemote.save(persistOptions, value, getPrevious, path, valueAtPath, prevAtPath);
-        if (saved) {
-            if (local) {
-                const cur = persistenceLocal.get(local);
+        if (local) {
+            let toSave = persistenceLocal.get(local);
+            let didDelete = false;
+            if (toSave[PendingKey]?.[pathStr]) {
+                didDelete = true;
+                // Remove pending from the saved object
+                delete toSave[PendingKey][pathStr];
+                if (isEmpty(toSave[PendingKey])) {
+                    delete toSave[PendingKey];
+                }
+                // Remove pending from local state
+                delete localState.pendingChanges[pathStr];
+            }
+            // Only the latest save will return a value so that it saves back to local persistence once
+            if (saved !== undefined) {
                 // Replace the dateModifiedKey and remove null/undefined before saving
                 const replaced = replaceKeyInObject(
                     removeNullUndefined(saved as object),
@@ -73,8 +110,9 @@ async function onObsChange<T>(
                     dateModifiedKey,
                     /*clone*/ false
                 );
-                const toSave = cur ? mergeIntoObservable(cur, replaced) : replaced;
-
+                toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
+            }
+            if (saved !== undefined || didDelete) {
                 persistenceLocal.set(local, toSave);
             }
         }
@@ -101,6 +139,14 @@ async function loadLocal<T>(
         persistOptions.persistLocal || observablePersistConfiguration.persistLocal || platformDefaultPersistence;
 
     if (local) {
+        // Warn on duplicate usage of local names
+        if (process.env.NODE_ENV === 'development') {
+            if (usedNames.has(local)) {
+                console.error(`[legend-state]: Called persist with the same local name multiple times: ${local}`);
+            }
+            usedNames.set(local, true);
+        }
+
         if (!localPersistence) {
             throw new Error('Local persistence is not configured');
         }
@@ -120,12 +166,12 @@ async function loadLocal<T>(
         // Get the value from state
         let value = persistenceLocal.get(local);
 
-        // Warn on duplicate usage of local names
-        if (process.env.NODE_ENV === 'development') {
-            if (usedNames.has(local)) {
-                console.error(`[legend-state]: Called persist with the same local name multiple times: ${local}`);
+        if (value !== undefined) {
+            const pending = value[PendingKey];
+            if (pending !== undefined) {
+                delete value[PendingKey];
+                localState.pendingChanges = pending;
             }
-            usedNames.set(local, true);
         }
 
         // Merge the data from local persistence into the default state
@@ -146,7 +192,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         isLoadedLocal: false,
         isLoadedRemote: false,
         clearLocal: undefined,
-        sync: () => Promise.resolve(true),
+        sync: () => Promise.resolve(),
     });
 
     const { remote } = persistOptions;
@@ -166,7 +212,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
 
         let isSynced = false;
-        const sync = () => {
+        const sync = async () => {
             if (!isSynced) {
                 isSynced = true;
                 localState.persistenceRemote.listen(
@@ -178,7 +224,17 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                     onChangeRemote.bind(this, localState)
                 );
 
-                return when(obsState.isLoadedRemote);
+                await when(obsState.isLoadedRemote);
+
+                const pending = localState.pendingChanges;
+                if (pending) {
+                    Object.keys(pending).forEach((key) => {
+                        const path = key.split('/');
+                        const { p, v } = pending[key];
+                        // TODO getPrevious if any remote persistence layers need it
+                        onObsChange(obsState, localState, persistOptions, obs.peek(), () => undefined, path, v, p);
+                    });
+                }
             }
         };
 
@@ -187,8 +243,6 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         } else {
             when(obsState.isLoadedLocal, sync);
         }
-    } else {
-        obsState.assign({ sync: () => Promise.resolve(true) });
     }
 
     obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));

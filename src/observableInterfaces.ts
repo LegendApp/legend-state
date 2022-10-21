@@ -160,7 +160,7 @@ export interface ObservablePersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
     clearLocal: () => Promise<void>;
-    sync: () => Promise<boolean>;
+    sync: () => Promise<void>;
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
