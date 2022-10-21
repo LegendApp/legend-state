@@ -7,6 +7,7 @@ export const symbolIsObservable = Symbol('isObservable');
 export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolUndef = Symbol('undef');
+export const symbolDelete = Symbol('delete');
 
 export const extraPrimitiveActivators = new Map<string | Symbol, boolean>([
     ['$$typeof', true],

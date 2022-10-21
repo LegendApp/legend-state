@@ -23,6 +23,7 @@ export {
     extraPrimitiveProps,
     getNodeValue,
     symbolUndef,
+    symbolDelete,
 } from './src/globals';
 /** @internal */
 export { getNode, computeSelector } from './src/helpers';
