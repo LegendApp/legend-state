@@ -31,11 +31,11 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
     const source = sources.shift();
 
     const needsSet = isObservable(target);
+    const targetValue = needsSet ? target.peek() : target;
 
-    const isTargetObj = isObject(target);
+    const isTargetObj = isObject(targetValue);
 
     if (isTargetObj && isObject(source)) {
-        const value = isObservable(target) ? target.peek() : target;
         const keys: (Symbol | string)[] = Object.keys(source);
         if (source[symbolDateModified as any]) {
             keys.push(symbolDateModified);
@@ -44,7 +44,7 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
             const key = keys[i] as string;
             const sourceValue = source[key];
             if (isObject(sourceValue) && !isObjectEmpty(sourceValue)) {
-                if (!needsSet && (!value[key] || !isObject(value[key]))) {
+                if (!needsSet && (!targetValue[key] || !isObject(targetValue[key]))) {
                     target[key] = {};
                 }
                 mergeIntoObservable(target[key], sourceValue);
