@@ -42,7 +42,7 @@ async function onObsChange<T>(
 
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
 
-    const pathStr = path.join('');
+    const pathStr = path.join('/');
 
     const local = persistOptions.local;
     const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
@@ -65,18 +65,20 @@ async function onObsChange<T>(
                 dateModifiedKey,
                 /*clone*/ true
             );
-            if (!localState.pendingChanges) {
-                localState.pendingChanges = {};
-            }
-            // The value saved in pending should be the previous state before changes,
-            // so don't overwrite it if it already exists
-            if (!localState.pendingChanges[pathStr]) {
-                localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
-            }
-            localState.pendingChanges[pathStr].v = valueAtPath;
+            if (saveRemote) {
+                if (!localState.pendingChanges) {
+                    localState.pendingChanges = {};
+                }
+                // The value saved in pending should be the previous state before changes,
+                // so don't overwrite it if it already exists
+                if (!localState.pendingChanges[pathStr]) {
+                    localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
+                }
+                localState.pendingChanges[pathStr].v = valueAtPath;
 
-            if (localState.pendingChanges) {
-                localValue[PendingKey] = localState.pendingChanges;
+                if (localState.pendingChanges) {
+                    localValue[PendingKey] = localState.pendingChanges;
+                }
             }
         }
 
