@@ -1,4 +1,4 @@
-import { batch, isEmpty, mergeIntoObservable, observable, symbolDateModified, when } from '@legendapp/state';
+import { batch, isEmpty, mergeIntoObservable, observable, symbolDateModified, tracking, when } from '@legendapp/state';
 import type {
     ObservableObject,
     ObservablePersistLocal,
@@ -22,7 +22,6 @@ const platformDefaultPersistence =
         : undefined;
 
 interface LocalState {
-    tempDisableSaveRemote: boolean;
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemote;
     pendingChanges?: Record<string, { p: any; v?: any }>;
@@ -40,9 +39,10 @@ async function onObsChange<T>(
         prevAtPath: any;
     }[]
 ) {
-    const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
+    const { persistenceLocal, persistenceRemote } = localState;
 
     const local = persistOptions.local;
+    const tempDisableSaveRemote = tracking.inRemoteChange;
     const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
     if (local) {
         if (!obsState.isLoadedLocal.peek()) {
@@ -132,13 +132,15 @@ async function onObsChange<T>(
     }
 }
 
-function onChangeRemote(localState: LocalState, cb: () => void) {
+function onChangeRemote(cb: () => void) {
     // Remote changes should only update local state
-    localState.tempDisableSaveRemote = true;
+    tracking.inRemoteChange = true;
 
-    batch(cb);
-
-    localState.tempDisableSaveRemote = false;
+    try {
+        batch(cb);
+    } finally {
+        tracking.inRemoteChange = false;
+    }
 }
 
 async function loadLocal<T>(
@@ -208,11 +210,13 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         sync: () => Promise.resolve(),
     });
 
-    const { remote } = persistOptions;
+    const { remote, local } = persistOptions;
     const remotePersistence = persistOptions.persistRemote || observablePersistConfiguration?.persistRemote;
-    const localState: LocalState = { tempDisableSaveRemote: false };
+    const localState: LocalState = {};
 
-    loadLocal(obs, persistOptions, obsState, localState);
+    if (local) {
+        loadLocal(obs, persistOptions, obsState, localState);
+    }
 
     if (remote) {
         if (!remotePersistence) {
@@ -234,7 +238,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                     () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChangeRemote.bind(this, localState)
+                    onChangeRemote
                 );
 
                 await when(obsState.isLoadedRemote);

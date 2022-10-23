@@ -154,7 +154,7 @@ export interface ObservablePersistRemote {
         obs: ObservableReadable<T>,
         options: PersistOptions<T>,
         onLoad: () => void,
-        onChange: (obs: ObservableReadable<T>, value: any) => void
+        onChange: (cb: () => void) => void
     );
 }
 
