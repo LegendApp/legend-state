@@ -11,7 +11,7 @@ const bindInfoInput: BindKeys = Object.assign(
     bindInfo
 );
 
-export const legend = new Proxy(
+export const Legend = new Proxy(
     {},
     {
         get(target, p: string) {
