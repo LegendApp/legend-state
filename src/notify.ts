@@ -53,9 +53,13 @@ export function doNotify(
                               cb: listenerFn.listener,
                               value,
                               getPrevious,
-                              path,
-                              valueAtPath,
-                              prevAtPath,
+                              changes: [
+                                  {
+                                      path,
+                                      valueAtPath,
+                                      prevAtPath,
+                                  },
+                              ],
                               node,
                           }
                 );

@@ -5,9 +5,11 @@ interface BatchItem {
     cb: ListenerFn<any>;
     value: any;
     getPrevious?: () => any;
-    path?: (string | number)[];
-    valueAtPath?: any;
-    prevAtPath?: any;
+    changes: {
+        path: (string | number)[];
+        valueAtPath: any;
+        prevAtPath: any;
+    }[];
     node?: NodeValue;
 }
 let timeout;
@@ -35,13 +37,16 @@ export function batchNotify(b: BatchItem | (() => void)) {
         const it = isFunc ? true : b;
         // If this callback already exists, make sure it has the latest value but do not add it
         if (existing) {
-            _batchMap.set(cb, it);
+            if (!isFunc) {
+                (existing as BatchItem).value = b.value;
+                (existing as BatchItem).changes.push(...b.changes);
+            }
         } else {
             _batch.push(b);
             _batchMap.set(cb, it);
         }
     } else {
-        isFunc ? b() : b.cb(b.value, b.getPrevious, b.path, b.valueAtPath, b.prevAtPath, b.node);
+        isFunc ? b() : b.cb(b.value, b.getPrevious, b.changes, b.node);
     }
 }
 
@@ -70,8 +75,8 @@ export function endBatch(force?: boolean) {
             if (isFunction(b)) {
                 b();
             } else {
-                const { cb, value, getPrevious: prev, path, valueAtPath, prevAtPath, node } = b;
-                cb(value, prev, path, valueAtPath, prevAtPath, node);
+                const { cb, value, getPrevious: prev, changes, node } = b;
+                cb(value, prev, changes, node);
             }
         }
     }

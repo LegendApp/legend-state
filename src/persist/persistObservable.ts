@@ -34,15 +34,13 @@ async function onObsChange<T>(
     persistOptions: PersistOptions<T>,
     value: T,
     getPrevious: () => T,
-    path: (string | number)[],
-    valueAtPath: any,
-    prevAtPath: any
+    changes: {
+        path: (string | number)[];
+        valueAtPath: any;
+        prevAtPath: any;
+    }[]
 ) {
-    if (path[path.length - 1] === (symbolDateModified as any)) return;
-
     const { persistenceLocal, persistenceRemote, tempDisableSaveRemote } = localState;
-
-    const pathStr = path.join('/');
 
     const local = persistOptions.local;
     const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
@@ -66,18 +64,24 @@ async function onObsChange<T>(
                 /*clone*/ true
             );
             if (saveRemote) {
-                if (!localState.pendingChanges) {
-                    localState.pendingChanges = {};
-                }
-                // The value saved in pending should be the previous state before changes,
-                // so don't overwrite it if it already exists
-                if (!localState.pendingChanges[pathStr]) {
-                    localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
-                }
-                localState.pendingChanges[pathStr].v = valueAtPath;
+                for (let i = 0; i < changes.length; i++) {
+                    const { path, valueAtPath, prevAtPath } = changes[i];
+                    if (path[path.length - 1] === (symbolDateModified as any)) continue;
+                    const pathStr = path.join('/');
 
-                if (localState.pendingChanges) {
-                    localValue[PendingKey] = localState.pendingChanges;
+                    if (!localState.pendingChanges) {
+                        localState.pendingChanges = {};
+                    }
+                    // The value saved in pending should be the previous state before changes,
+                    // so don't overwrite it if it already exists
+                    if (!localState.pendingChanges[pathStr]) {
+                        localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
+                    }
+                    localState.pendingChanges[pathStr].v = valueAtPath;
+
+                    if (localState.pendingChanges) {
+                        localValue[PendingKey] = localState.pendingChanges;
+                    }
                 }
             }
         }
@@ -87,36 +91,43 @@ async function onObsChange<T>(
     }
 
     if (saveRemote) {
-        // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
-        // server value different than the saved value (like Firebase has server timestamps for dateModified)
-        const saved = await persistenceRemote.save(persistOptions, value, getPrevious, path, valueAtPath, prevAtPath);
-        if (local) {
-            let toSave = persistenceLocal.get(local);
-            let didDelete = false;
-            if (toSave[PendingKey]?.[pathStr]) {
-                didDelete = true;
-                // Remove pending from the saved object
-                delete toSave[PendingKey][pathStr];
-                if (isEmpty(toSave[PendingKey])) {
-                    delete toSave[PendingKey];
+        for (let i = 0; i < changes.length; i++) {
+            const { path, valueAtPath, prevAtPath } = changes[i];
+            if (path[path.length - 1] === (symbolDateModified as any)) continue;
+            const pathStr = path.join('/');
+
+            // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
+            // server value different than the saved value (like Firebase has server timestamps for dateModified)
+            persistenceRemote.save(persistOptions, value, getPrevious, path, valueAtPath, prevAtPath).then((saved) => {
+                if (local) {
+                    let toSave = persistenceLocal.get(local);
+                    let didDelete = false;
+                    if (toSave[PendingKey]?.[pathStr]) {
+                        didDelete = true;
+                        // Remove pending from the saved object
+                        delete toSave[PendingKey][pathStr];
+                        if (isEmpty(toSave[PendingKey])) {
+                            delete toSave[PendingKey];
+                        }
+                        // Remove pending from local state
+                        delete localState.pendingChanges[pathStr];
+                    }
+                    // Only the latest save will return a value so that it saves back to local persistence once
+                    if (saved !== undefined) {
+                        // Replace the dateModifiedKey and remove null/undefined before saving
+                        const replaced = replaceKeyInObject(
+                            removeNullUndefined(saved as object),
+                            symbolDateModified,
+                            dateModifiedKey,
+                            /*clone*/ false
+                        );
+                        toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
+                    }
+                    if (saved !== undefined || didDelete) {
+                        persistenceLocal.set(local, toSave);
+                    }
                 }
-                // Remove pending from local state
-                delete localState.pendingChanges[pathStr];
-            }
-            // Only the latest save will return a value so that it saves back to local persistence once
-            if (saved !== undefined) {
-                // Replace the dateModifiedKey and remove null/undefined before saving
-                const replaced = replaceKeyInObject(
-                    removeNullUndefined(saved as object),
-                    symbolDateModified,
-                    dateModifiedKey,
-                    /*clone*/ false
-                );
-                toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
-            }
-            if (saved !== undefined || didDelete) {
-                persistenceLocal.set(local, toSave);
-            }
+            });
         }
     }
 }
@@ -234,7 +245,9 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                         const path = key.split('/');
                         const { p, v } = pending[key];
                         // TODO getPrevious if any remote persistence layers need it
-                        onObsChange(obsState, localState, persistOptions, obs.peek(), () => undefined, path, v, p);
+                        onObsChange(obsState, localState, persistOptions, obs.peek(), () => undefined, [
+                            { path, valueAtPath: v, prevAtPath: p },
+                        ]);
                     });
                 }
             }

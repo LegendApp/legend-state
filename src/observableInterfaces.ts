@@ -50,9 +50,11 @@ export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | '
 export type ListenerFn<T = any> = (
     value: T,
     getPrevious: () => T,
-    path: (string | number)[],
-    valueAtPath: any,
-    prevAtPath: any,
+    changes: {
+        path: (string | number)[];
+        valueAtPath: any;
+        prevAtPath: any;
+    }[],
     node: NodeValue
 ) => void;
 
