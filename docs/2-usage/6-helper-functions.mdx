@@ -51,7 +51,7 @@ An optional second parameter lets you use an existing observable for storing the
 import { observable } from '@legendapp/state'
 import { trackHistory } from '@legendapp/state/history'
 
-const state = observable({ profile: { name: 'Hello '}})
+const state = observable({ profile: { name: 'Hello' }})
 
 // Track all changes to state
 const history = trackHistory(state)
