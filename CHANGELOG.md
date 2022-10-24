@@ -1,10 +1,23 @@
+## 0.21.0
+
+See https://legendapp.com/open-source/state/migrating for more details.
+
+- Breaking: Changed observable `onChange` callback to take an array of changes rather than a single changed value because batched changes were only showing the most recently changed child value.
+- Breaking: Rename react-components export from legend to Legend
+- Feat: `trackHistory` creates an observable that tracks a version history of a target observable
+- Feat: persistObservable caches pending changes offline so if they're not successfully saved remotely, it attempts to sync them after remote persistence is loaded
+- Feat: Allow mergeIntoObservables to delete by using a symbol
+
 ## 0.20.5
+
 - Fix: Types of React Native components were not supporting refs properly
 
 ## 0.20.4
+
 - Fix: Reactive components not forwarding refs properly
 
 ## 0.20.3
+
 - Fix: Tracing functions crashing if component is not an observer
 
 ## 0.20.2

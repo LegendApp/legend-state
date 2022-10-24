@@ -1,13 +1,14 @@
-Legend-State makes it easy to bind props directly to an observable or selector. This makes the component re-render itself whenever the observable or selector changes without needing to re-render the parent or children.
+Legend-State makes it easy to bind props directly to an observable or selector, so the component re-renders itself whenever the observable or selector changes without needing to re-render the parent or children.
 
-Legend-State provides reactive versions of all intrinsic components. For every prop it adds another one ending with `$` that accepts a selector - an observable or a function returning a value, and it automatically tracks it for changes and re-renders it.
+Legend-State provides reactive versions of all intrinsic components. For every prop it adds another one ending with `$` that accepts a selector (an observable or a function returning a value based on observables), and it automatically tracks it for changes and re-renders it.
 
-This makes the props themselves reactive but does not require the parent component to re-render.
+Note: The reactive components are created on-demand because the Legend object is a Proxy, so you don't need to worry about a performance hit of creating every wrapped component upfront.
 
 ## React
 
 ```jsx
-import { legend } from "@legendapp/state/react-components"
+import { useObservable } from "@legendapp/state/react"
+import { Legend } from "@legendapp/state/react-components"
 
 function Component() {
     const state = useObservable({ name: '', age: 18 })
@@ -15,21 +16,21 @@ function Component() {
     return (
         <div>
             // Reactive styling
-            <legend.div
+            <Legend.div
                 style$={() => ({
                     color: state.age > 5 ? 'green' : 'red'
                 })}
                 className={() => state.age > 5 ? 'kid' : 'baby'}
             />
             // Reactive children
-            <legend.div children$={() => (
+            <Legend.div children$={() => (
                 <div>{state.age > 5 ? <Kid /> : <Baby />}
             )} />
 
             // Two-way bind to inputs
-            <legend.textarea value$={state.name} />
-            <legend.select value$={state.age}>...</legend.select>
-            <legend.input
+            <Legend.textarea value$={state.name} />
+            <Legend.select value$={state.age}>...</Legend.select>
+            <Legend.input
                 value$={state.name}
                 className$={(value) => !value && "border-red-500"}
                 style$={(value) => !value && { borderWidth: 1 }}
@@ -42,13 +43,15 @@ function Component() {
 ## React Native
 
 ```jsx
+import { View } from "react-native"
+import { useObservable } from "@legendapp/state/react"
 import { Legend } from "@legendapp/state/react-native-components"
 
 function Component() {
     const state = useObservable({ name: '', enabled: false })
 
     return (
-        <div>
+        <View>
             // Reactive styling
             <Legend.Text
                 style$={() => ({
@@ -64,7 +67,7 @@ function Component() {
                 value$={state.name}
                 style$={(value) => !value && { borderColor: "red" }}
             />
-        </div>
+        </View>
     )
 }
 ```

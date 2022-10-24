@@ -3,6 +3,7 @@
 If you want to mergeIntoObservable a deep object into an observable, `mergeIntoObservable` can do that and retain all of the existing observables and listeners on the way, and fire listeners as values change. This is used by `persistObservable` under the hood.
 
 ```js
+import { observable } from '@legendapp/state'
 import { mergeIntoObservable } from '@legendapp/state'
 
 const obs = observable({ store: { text: 'hello', other: 'hello there' } })
@@ -22,10 +23,11 @@ obs.store === newValue.store // ✅ true
 To ensure that observables are only modified within certain actions, you can lock observables so that they cannot be modified, then unlock them temporarily in your actions. This is used under the hood by `computed`.
 
 ```js
+import { observable } from '@legendapp/state'
 import { lockObservable } from '@legendapp/state'
 
 const obs = observable({ state: { ... } })
-lockObservable(obs, true);
+lockObservable(obs, true)
 
 function safeAction() {
     // Unlock it to modify it
@@ -35,5 +37,36 @@ function safeAction() {
     // Lock it back
     lockObservable(obs, true)
 }
+```
 
+## trackHistory
+
+`trackHistory` creates an observable that tracks all changes in the target observable, with the previous value at the time it was changed.
+
+Since the history is an observable you can observe it or persist it like any other observable. This can be useful for saving a version history for a text editor or creating an undo stack.
+
+An optional second parameter lets you use an existing observable for storing the history, which can be useful to save history into an existing state object.
+
+```js
+import { observable } from '@legendapp/state'
+import { trackHistory } from '@legendapp/state/history'
+
+const state = observable({ profile: { name: 'Hello '}})
+
+// Track all changes to state
+const history = trackHistory(state)
+
+// Change something in state
+state.profile.name.set('Annyong')
+
+// History shows the previous value when it changed:
+{
+    1666593133018: {
+        info: {
+            profile: {
+                name: 'Hello'
+            }
+        }
+    }
+}
 ```

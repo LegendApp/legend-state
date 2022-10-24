@@ -1,3 +1,14 @@
+## 0.20 to 0.21
+
+### Changed `onChange` callback
+
+The extra paremeters in the `onChange` callback have changed to include an array of of the changes, fixing a bug where it was only showing the latest child's change when changing multiple children while batching. This likely won't affect many of you as it's mostly intended for internal use and persistence plugins.
+
+## Renamed React components from `legend` to `Legend`
+
+We had originally used lower casing to match html elements, but in practice it did not autocomplete well and felt wrong. So just rename to uppercase, for example from `<legend.div />` to `<Legend.div />`.
+
+
 ## 0.19 to 0.20
 
 ### Removed deprecated automatic observing
