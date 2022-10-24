@@ -151,4 +151,65 @@ export const Legend = new Proxy(
     video: FCReactive<React.DetailedHTMLProps<React.VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement>>;
     wbr: FCReactive<React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>>;
     webview: FCReactive<React.DetailedHTMLProps<React.WebViewHTMLAttributes<HTMLWebViewElement>, HTMLWebViewElement>>;
+
+    // SVG
+    svg: FCReactive<React.SVGProps<SVGSVGElement>>;
+
+    animate: FCReactive<React.SVGProps<SVGElement>>; // TODO: It is SVGAnimateElement but is not in TypeScript's lib.dom.d.ts for now.
+    animateMotion: FCReactive<React.SVGProps<SVGElement>>;
+    animateTransform: FCReactive<React.SVGProps<SVGElement>>; // TODO: It is SVGAnimateTransformElement but is not in TypeScript's lib.dom.d.ts for now.
+    circle: FCReactive<React.SVGProps<SVGCircleElement>>;
+    clipPath: FCReactive<React.SVGProps<SVGClipPathElement>>;
+    defs: FCReactive<React.SVGProps<SVGDefsElement>>;
+    desc: FCReactive<React.SVGProps<SVGDescElement>>;
+    ellipse: FCReactive<React.SVGProps<SVGEllipseElement>>;
+    feBlend: FCReactive<React.SVGProps<SVGFEBlendElement>>;
+    feColorMatrix: FCReactive<React.SVGProps<SVGFEColorMatrixElement>>;
+    feComponentTransfer: FCReactive<React.SVGProps<SVGFEComponentTransferElement>>;
+    feComposite: FCReactive<React.SVGProps<SVGFECompositeElement>>;
+    feConvolveMatrix: FCReactive<React.SVGProps<SVGFEConvolveMatrixElement>>;
+    feDiffuseLighting: FCReactive<React.SVGProps<SVGFEDiffuseLightingElement>>;
+    feDisplacementMap: FCReactive<React.SVGProps<SVGFEDisplacementMapElement>>;
+    feDistantLight: FCReactive<React.SVGProps<SVGFEDistantLightElement>>;
+    feDropShadow: FCReactive<React.SVGProps<SVGFEDropShadowElement>>;
+    feFlood: FCReactive<React.SVGProps<SVGFEFloodElement>>;
+    feFuncA: FCReactive<React.SVGProps<SVGFEFuncAElement>>;
+    feFuncB: FCReactive<React.SVGProps<SVGFEFuncBElement>>;
+    feFuncG: FCReactive<React.SVGProps<SVGFEFuncGElement>>;
+    feFuncR: FCReactive<React.SVGProps<SVGFEFuncRElement>>;
+    feGaussianBlur: FCReactive<React.SVGProps<SVGFEGaussianBlurElement>>;
+    feImage: FCReactive<React.SVGProps<SVGFEImageElement>>;
+    feMerge: FCReactive<React.SVGProps<SVGFEMergeElement>>;
+    feMergeNode: FCReactive<React.SVGProps<SVGFEMergeNodeElement>>;
+    feMorphology: FCReactive<React.SVGProps<SVGFEMorphologyElement>>;
+    feOffset: FCReactive<React.SVGProps<SVGFEOffsetElement>>;
+    fePointLight: FCReactive<React.SVGProps<SVGFEPointLightElement>>;
+    feSpecularLighting: FCReactive<React.SVGProps<SVGFESpecularLightingElement>>;
+    feSpotLight: FCReactive<React.SVGProps<SVGFESpotLightElement>>;
+    feTile: FCReactive<React.SVGProps<SVGFETileElement>>;
+    feTurbulence: FCReactive<React.SVGProps<SVGFETurbulenceElement>>;
+    filter: FCReactive<React.SVGProps<SVGFilterElement>>;
+    foreignObject: FCReactive<React.SVGProps<SVGForeignObjectElement>>;
+    g: FCReactive<React.SVGProps<SVGGElement>>;
+    image: FCReactive<React.SVGProps<SVGImageElement>>;
+    line: FCReactive<React.SVGProps<SVGLineElement>>;
+    linearGradient: FCReactive<React.SVGProps<SVGLinearGradientElement>>;
+    marker: FCReactive<React.SVGProps<SVGMarkerElement>>;
+    mask: FCReactive<React.SVGProps<SVGMaskElement>>;
+    metadata: FCReactive<React.SVGProps<SVGMetadataElement>>;
+    mpath: FCReactive<React.SVGProps<SVGElement>>;
+    path: FCReactive<React.SVGProps<SVGPathElement>>;
+    pattern: FCReactive<React.SVGProps<SVGPatternElement>>;
+    polygon: FCReactive<React.SVGProps<SVGPolygonElement>>;
+    polyline: FCReactive<React.SVGProps<SVGPolylineElement>>;
+    radialGradient: FCReactive<React.SVGProps<SVGRadialGradientElement>>;
+    rect: FCReactive<React.SVGProps<SVGRectElement>>;
+    stop: FCReactive<React.SVGProps<SVGStopElement>>;
+    switch: FCReactive<React.SVGProps<SVGSwitchElement>>;
+    symbol: FCReactive<React.SVGProps<SVGSymbolElement>>;
+    text: FCReactive<React.SVGProps<SVGTextElement>>;
+    textPath: FCReactive<React.SVGProps<SVGTextPathElement>>;
+    tspan: FCReactive<React.SVGProps<SVGTSpanElement>>;
+    use: FCReactive<React.SVGProps<SVGUseElement>>;
+    view: FCReactive<React.SVGProps<SVGViewElement>>;
 };
