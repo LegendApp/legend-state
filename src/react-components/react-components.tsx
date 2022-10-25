@@ -1,5 +1,7 @@
+import { isEmpty, isFunction } from '@legendapp/state';
 import { BindKeys, reactive, ShapeWith$ } from '@legendapp/state/react';
 import { FC } from 'react';
+import { createElement, FC, forwardRef } from 'react';
 
 type FCReactive<P> = FC<P & ShapeWith$<P>>;
 
@@ -16,7 +18,16 @@ export const Legend = new Proxy(
     {
         get(target, p: string) {
             if (!target[p]) {
-                target[p] = reactive(p, bindables.has(p) && (p === 'input' ? bindInfoInput : bindInfo));
+                // Create a wrapper around createElement with the string so we can proxy it
+                const render = forwardRef((props, ref) => {
+                    const propsOut = { ...props } as any;
+                    if (ref && (isFunction(ref) || !isEmpty(ref))) {
+                        propsOut.ref = ref;
+                    }
+                    return createElement(p, propsOut);
+                });
+
+                target[p] = reactive(render, bindables.has(p) && (p === 'input' ? bindInfoInput : bindInfo));
             }
             return target[p];
         },

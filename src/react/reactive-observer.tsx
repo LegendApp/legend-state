@@ -1,6 +1,6 @@
-import { isEmpty, isFunction, isObservable, isString, Selector } from '@legendapp/state';
+import { isObservable, Selector } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
-import { ChangeEvent, createElement, FC, forwardRef, memo, useCallback, useReducer } from 'react';
+import { ChangeEvent, FC, forwardRef, memo, useCallback, useReducer } from 'react';
 
 const Update = (s: number) => s + 1;
 
@@ -16,29 +16,13 @@ const ReactForwardRefSymbol = hasSymbol
     ? Symbol.for('react.forward_ref')
     : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
-function createReactiveComponent<P>(
-    component: FC<P> | string,
-    observe: boolean,
-    reactive?: boolean,
-    bindKeys?: BindKeys<P>
-) {
+function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive?: boolean, bindKeys?: BindKeys<P>) {
     // If this component is already reactive bail out early
     // This can happen with Fast Refresh.
     if (component['__legend_proxied']) return component;
 
     let useForwardRef: boolean;
     let render = component;
-    if (isString(component)) {
-        const base = component;
-        // If this is a builtin create a wrapper around it so we can proxy it
-        render = component = forwardRef((props, ref) => {
-            const propsOut = { ...props } as any;
-            if (ref && (isFunction(ref) || !isEmpty(ref))) {
-                propsOut.ref = ref;
-            }
-            return createElement(base, propsOut);
-        }) as FC<P>;
-    }
 
     // Unwrap forwardRef on the component
     if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
@@ -127,10 +111,10 @@ export function observer<P>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<P>(component: FC<P> | string, bindKeys?: BindKeys<P>) {
+export function reactive<P>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P>>;
 }
 
-export function reactiveObserver<P>(component: FC<P> | string, bindKeys?: BindKeys<P>) {
+export function reactiveObserver<P>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
 }
