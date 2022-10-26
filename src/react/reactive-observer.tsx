@@ -97,8 +97,7 @@ function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive
     let ret;
 
     if (useForwardRef) {
-        ret = component;
-        ret['render'] = proxy;
+        ret = forwardRef(proxy);
         ret['__legend_proxied'] = proxy;
     } else {
         ret = proxy;
