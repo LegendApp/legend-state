@@ -106,10 +106,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any>, prev
                 if (idField) {
                     prevChildrenById = new Map();
                     moved = [];
-                    for (let i = 0; i < prevValue.length; i++) {
-                        const p = prevValue[i];
-                        if (p) {
-                            prevChildrenById.set(p[idField], parent.children.get(i));
+                    if (parent.children) {
+                        for (let i = 0; i < prevValue.length; i++) {
+                            const p = prevValue[i];
+                            if (p) {
+                                prevChildrenById.set(p[idField], parent.children.get(i));
+                            }
                         }
                     }
                 }

@@ -761,6 +761,22 @@ describe('Array', () => {
         obs.arr.set([1, 2, 3]);
         expect(obs.arr.get()).toEqual([1, 2, 3]);
     });
+    test('Push to pre-filled array', () => {
+        const obs = observable({ arr: [{ id: 'test1', data: 'test1' }] });
+        obs.arr.push({ id: 'test2', data: 'test2' });
+        expect(obs.arr.get()).toEqual([
+            { id: 'test1', data: 'test1' },
+            { id: 'test2', data: 'test2' },
+        ]);
+    });
+    test('Push to pre-filled array at root', () => {
+        const obs = observable([{ id: 'test1', data: 'test1' }]);
+        obs.push({ id: 'test2', data: 'test2' });
+        expect(obs.get()).toEqual([
+            { id: 'test1', data: 'test1' },
+            { id: 'test2', data: 'test2' },
+        ]);
+    });
     test('Array at root', () => {
         const obs = observable([]);
         expect(obs.get()).toEqual([]);
