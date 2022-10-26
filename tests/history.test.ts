@@ -22,7 +22,7 @@ describe('History', () => {
         const history = trackHistory(obs);
 
         obs.set({ test: 'hello' });
-        await promiseTimeout();
+        await promiseTimeout(100);
         obs.set({ test: 'hello2' });
 
         const historyKeys = Object.keys(history);
@@ -78,5 +78,15 @@ describe('History', () => {
         const historyKeys = Object.keys(history);
 
         expect(history.get()[historyKeys[0]]).toEqual({ test: 'hi', test2: 'a' });
+    });
+    test('Adding to empty object', () => {
+        const obs = observable({} as any);
+        const history = trackHistory(obs);
+
+        obs.test.set('hello');
+
+        const historyKeys = Object.keys(history);
+
+        expect(history.get()[historyKeys[0]]).toEqual({ test: undefined });
     });
 });

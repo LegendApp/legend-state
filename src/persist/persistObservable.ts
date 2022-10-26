@@ -79,7 +79,7 @@ async function onObsChange<T>(
                     }
                     localState.pendingChanges[pathStr].v = valueAtPath;
 
-                    if (localState.pendingChanges) {
+                    if (localState.pendingChanges && localValue) {
                         localValue[PendingKey] = localState.pendingChanges;
                     }
                 }
@@ -102,7 +102,7 @@ async function onObsChange<T>(
                 if (local) {
                     let toSave = persistenceLocal.get(local);
                     let didDelete = false;
-                    if (toSave[PendingKey]?.[pathStr]) {
+                    if (toSave?.[PendingKey]?.[pathStr]) {
                         didDelete = true;
                         // Remove pending from the saved object
                         delete toSave[PendingKey][pathStr];

@@ -40,10 +40,8 @@ export function trackHistory<T>(
                 const { path, prevAtPath } = changes[i];
                 if (path[path.length - 1] === (symbolDateModified as any)) continue;
 
-                if (prevAtPath !== undefined && prevAtPath !== null) {
-                    const obj = constructObject(path, prevAtPath);
-                    mergeIntoObservable(history[time], obj);
-                }
+                const obj = constructObject(path, prevAtPath);
+                mergeIntoObservable(history[time], obj);
             }
         }
     });
