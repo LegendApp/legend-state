@@ -34,12 +34,13 @@ type FCReactive<P, P2> = P &
         }
     >;
 
-const bindables = {
+const bindables: BindKeys = {
     TextInput: {
+        handler: 'onChange',
         getValue: (e) => e.nativeEvent.text,
         defaultValue: '',
     },
-    Switch: { getValue: (e) => e.value, defaultValue: false },
+    Switch: { handler: 'onValueChange', getValue: (e) => e, defaultValue: false },
 };
 
 const Components = {
@@ -66,7 +67,7 @@ export const Legend = new Proxy(
                     Components[p],
                     bindables[p] &&
                         ({
-                            value: { handler: 'onChange', ...bindables[p] },
+                            value: bindables[p],
                         } as BindKeys)
                 );
             }
