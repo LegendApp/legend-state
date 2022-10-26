@@ -1,4 +1,5 @@
 import type { Observable } from '@legendapp/state';
+import { isFunction } from '@legendapp/state';
 import type {
     Dispatch,
     DispatchWithoutAction,
@@ -8,7 +9,7 @@ import type {
     ReducerStateWithoutAction,
     ReducerWithoutAction,
 } from 'react';
-import { useObservable } from 'src/react/useObservable';
+import { useObservable } from './useObservable';
 
 export function useObservableReducer<R extends ReducerWithoutAction<any>, I>(
     reducer: R,
@@ -40,7 +41,9 @@ export function useObservableReducer<R extends Reducer<any, any>, I>(
     initializerArg: I & ReducerState<R>,
     initializer: (arg: I & ReducerState<R>) => ReducerState<R>
 ): [Observable<ReducerState<R>>, Dispatch<ReducerAction<R>>] {
-    const obs = useObservable(initializerArg !== undefined ? initializer(initializerArg) : initializerArg);
+    const obs = useObservable(() =>
+        initializerArg !== undefined && isFunction(initializerArg) ? initializer(initializerArg) : initializerArg
+    );
     const dispatch = (action) => {
         obs.set(reducer(obs.get(), action));
     };

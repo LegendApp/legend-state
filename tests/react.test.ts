@@ -4,10 +4,11 @@
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, useReducer } from 'react';
-import { Observable } from 'src/observableInterfaces';
 import { observable } from '../src/observable';
+import { Observable } from '../src/observableInterfaces';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { For } from '../src/react/flow';
+import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useSelector } from '../src/react/useSelector';
 
 describe('useSelector', () => {
@@ -243,5 +244,69 @@ describe('For', () => {
         expect(items[1].id).toEqual('C');
         expect(items[2].id).toEqual('B');
         expect(items[3].id).toEqual('A');
+    });
+});
+
+describe('useObservableReducer', () => {
+    test('useObservableReducer test1', () => {
+        let nextId = 3;
+        const initialTasks = [
+            { id: 0, text: 'Visit Kafka Museum', done: true },
+            { id: 1, text: 'Watch a puppet show', done: false },
+            { id: 2, text: 'Lennon Wall pic', done: false },
+        ];
+
+        function tasksReducer(tasks, action) {
+            switch (action.type) {
+                case 'added': {
+                    return [
+                        ...tasks,
+                        {
+                            id: action.id,
+                            text: action.text,
+                            done: false,
+                        },
+                    ];
+                }
+                case 'changed': {
+                    return tasks.map((t) => {
+                        if (t.id === action.task.id) {
+                            return action.task;
+                        } else {
+                            return t;
+                        }
+                    });
+                }
+                case 'deleted': {
+                    return tasks.filter((t) => t.id !== action.id);
+                }
+                default: {
+                    throw Error('Unknown action: ' + action.type);
+                }
+            }
+        }
+        const { result } = renderHook(() => {
+            return useObservableReducer(tasksReducer, initialTasks);
+        });
+        const [observableTasks, dispatch] = result.current;
+
+        expect(observableTasks.get()).toEqual([
+            { id: 0, text: 'Visit Kafka Museum', done: true },
+            { id: 1, text: 'Watch a puppet show', done: false },
+            { id: 2, text: 'Lennon Wall pic', done: false },
+        ]);
+
+        dispatch({
+            type: 'added',
+            id: nextId++,
+            text: 'test',
+        });
+
+        expect(observableTasks.get()).toEqual([
+            { id: 0, text: 'Visit Kafka Museum', done: true },
+            { id: 1, text: 'Watch a puppet show', done: false },
+            { id: 2, text: 'Lennon Wall pic', done: false },
+            { id: 3, text: 'test', done: false },
+        ]);
     });
 });
