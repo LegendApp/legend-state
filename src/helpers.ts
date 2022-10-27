@@ -19,6 +19,11 @@ export function getNode(obs: ObservableReadable): NodeValue {
     return obs[symbolGetNode];
 }
 
+export function getObservableIndex(obs: ObservableReadable): number {
+    const node = getNode(obs);
+    return +node?.key;
+}
+
 export function lockObservable(obs: ObservableReadable, value: boolean) {
     const root = getNode(obs)?.root;
     if (root) {

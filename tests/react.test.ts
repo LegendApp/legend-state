@@ -4,6 +4,7 @@
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, useReducer } from 'react';
+import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
@@ -244,6 +245,34 @@ describe('For', () => {
         expect(items[1].id).toEqual('C');
         expect(items[2].id).toEqual('B');
         expect(items[3].id).toEqual('A');
+    });
+    test('For getObservableIndex', () => {
+        const obs = observable({
+            items: [
+                { id: 'B', label: 'B' },
+                { id: 'A', label: 'A' },
+            ] as Array<{ id: string; label: string }>,
+        });
+        function Item({
+            item,
+        }: {
+            item: Observable<{
+                id: number;
+                label: string;
+            }>;
+        }) {
+            const data = useSelector(item);
+            return createElement('li', { id: getObservableIndex(item) }, data.label);
+        }
+        function Test() {
+            return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
+        }
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('0');
+        expect(items[1].id).toEqual('1');
     });
 });
 
