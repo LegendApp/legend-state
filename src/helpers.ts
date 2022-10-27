@@ -1,6 +1,13 @@
-import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable } from './globals';
+import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
 import { isFunction, isObject, isObjectEmpty } from './is';
-import type { NodeValue, ObservableObject, ObservableReadable, ObserveEvent, Selector } from './observableInterfaces';
+import type {
+    NodeValue,
+    ObservableObject,
+    ObservableReadable,
+    ObserveEvent,
+    OpaqueObject,
+    Selector,
+} from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
     return obs && !!obs[symbolIsObservable as any];
@@ -22,6 +29,11 @@ export function getNode(obs: ObservableReadable): NodeValue {
 export function getObservableIndex(obs: ObservableReadable): number {
     const node = getNode(obs);
     return +node?.key;
+}
+
+export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
+    value[symbolOpaque] = true;
+    return value as OpaqueObject<T>;
 }
 
 export function lockObservable(obs: ObservableReadable, value: boolean) {

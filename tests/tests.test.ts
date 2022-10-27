@@ -2,7 +2,7 @@ import { beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
-import { isObservable, lockObservable } from '../src/helpers';
+import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
 import { observable } from '../src/observable';
 import { ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { when } from '../src/when';
@@ -1846,5 +1846,31 @@ describe('Primitive boolean', () => {
             obs.toggle();
         }).toThrow();
         expect(obs.get().value).toEqual(0);
+    });
+});
+describe('Opaque object', () => {
+    test('Opaque object does not create proxy', () => {
+        const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
+        const opaque = obs.test.opaque;
+        expect(isObservable(opaque)).toBe(true);
+        // @ts-expect-error
+        opaque.assign;
+
+        const opaqueValue = obs.test.opaque.value;
+        expect(isObservable(opaqueValue)).toBe(false);
+        expect(opaqueValue.subvalue).toBe(true);
+    });
+    test('Opaque object does not fire listeners', () => {
+        const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
+        const handler = expectChangeHandler(obs);
+        const opaque = obs.test.opaque.get();
+        opaque.value.subvalue = false;
+        expect(handler).not.toHaveBeenCalled();
+    });
+    test('Opaque object does not fire listeners 2', () => {
+        const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
+        const handler = expectChangeHandler(obs);
+        obs.test.opaque.value.subvalue = false;
+        expect(handler).not.toHaveBeenCalled();
     });
 });

@@ -1,3 +1,5 @@
+import type { symbolOpaque } from './globals';
+
 export type TrackingType = undefined | true; // true === shallow
 
 /** @internal */
@@ -30,6 +32,8 @@ export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 
 export type ObservablePrimitive<T> = ObservablePrimitiveFns<T>;
+
+export type OpaqueObject<T> = T & { [symbolOpaque]: true };
 
 type ArrayOverrideFnNames = 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | 'map'> {
@@ -69,6 +73,8 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends
     | WeakSet<any>
     | Promise<any>
     ? T[K]
+    : T[K] extends OpaqueObject<T[K]>
+    ? T[K] & ObservablePrimitiveChild<T[K]>
     : T[K] extends Primitive
     ? ObservablePrimitiveChild<T[K]>
     : T[K] extends Array<any>

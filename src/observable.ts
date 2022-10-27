@@ -269,6 +269,10 @@ const proxyHandler: ProxyHandler<any> = {
 
         const vProp = value?.[p];
 
+        if (shouldTreatAsOpaque(value)) {
+            return vProp;
+        }
+
         // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {

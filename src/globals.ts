@@ -8,6 +8,7 @@ export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolUndef = Symbol('undef');
 export const symbolDelete = Symbol('delete');
+export const symbolOpaque = Symbol('opaque');
 
 export const extraPrimitiveActivators = new Map<string | Symbol, boolean>([
     ['$$typeof', true],
@@ -95,6 +96,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 export function shouldTreatAsOpaque(value: any) {
     if (isObject(value)) {
+        // It's been manually marked as opaque
+        if (value[symbolOpaque as any]) return true;
+
         // It's a DOM element
         if (typeof value.nodeType === 'number' && typeof value.nodeName === 'string') {
             if (process.env.NODE_ENV === 'development' && !hasLogged.dom) {
@@ -103,6 +107,7 @@ export function shouldTreatAsOpaque(value: any) {
             }
             return true;
         }
+
         // It's a React JSX element
         if (value.$$typeof) {
             if (process.env.NODE_ENV === 'development' && !hasLogged.jsx) {
