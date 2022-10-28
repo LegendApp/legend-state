@@ -1,3 +1,32 @@
+## 0.21.6
+
+- Feat: Added `opaqueObject` to make an element in an observable act as a primitive, not proxying its properties or notifying for changes.
+- Feat: Added some helpers: `observableFetch`, `currentTime`, `currentDay`
+- Feat: Added some hooks: `useFetch`, `useHash`, `useHover`, `useIsMounted`, `useMeasure`
+
+## 0.21.5
+
+- Feat: Add `getObservableIndex` function to use with the observable argument to `For`
+
+## 0.21.4
+
+- Fix: `reactive` was overriding the given function, causing problems if wrapping an external component and conditionally rendering the original component
+- Fix: `useObservableReducer` was not working with non-function arguments
+
+## 0.21.3
+
+- Fix: History not saving the initial object creation
+- Fix: Crash when modifying an array was that included as initial value to an observable
+
+## 0.21.2
+
+- Fix: React Native Switch was not two-way binding properly
+
+## 0.21.1
+
+- Feat: Added a deps array to useComputed so it can be updated if dependencies change
+- Feat: Added reactive types for SVGs
+
 ## 0.21.0
 
 See https://legendapp.com/open-source/state/migrating for more details.
