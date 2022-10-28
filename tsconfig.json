@@ -40,6 +40,9 @@
             "@legendapp/state/react": [
                 "react"
             ],
+            "@legendapp/state/helpers/fetch": [
+                "src/helpers/fetch"
+            ],
         },
         "resolveJsonModule": true,
         "noEmit": true

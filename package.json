@@ -14,6 +14,7 @@
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
         "build": "rollup -c rollup.config.ts && cp package.json dist/package.json && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts && json -I -f dist/package.json -e \"this.private=false; this.devDependencies=undefined; this.scripts=undefined\"",
+        "postbuild": "node postbuild.mjs",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
@@ -79,6 +80,16 @@
             "import": "./history.mjs",
             "require": "./history.js",
             "types": "./history.d.ts"
+        },
+        "./helpers/*": {
+            "import": "./helpers/*.mjs",
+            "require": "./helpers/*.js",
+            "types": "./helpers/*.d.ts"
+        },
+        "./react-hooks/*": {
+            "import": "./react-hooks/*.mjs",
+            "require": "./react-hooks/*.js",
+            "types": "./react-hooks/*.d.ts"
         },
         "./types": {
             "types": "./types.d.ts"

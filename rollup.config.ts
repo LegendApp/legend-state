@@ -1,12 +1,14 @@
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
+import fs from 'node:fs';
+import path from 'node:path';
 // @ts-ignore
 import pkg from './package.json';
 
 export default Object.keys(pkg.exports)
     .filter((exp) => exp !== './types')
-    .map((exp) => {
+    .flatMap((exp) => {
         if (exp.endsWith('json')) return;
 
         let f = exp.slice(2);
@@ -18,47 +20,65 @@ export default Object.keys(pkg.exports)
             '@legendapp/state',
             '@legendapp/state/persist',
             '@legendapp/state/react',
+            '@legendapp/state/helpers/fetch',
         ];
 
         if (!f) f = 'index';
 
-        const output = [
-            {
-                file: './dist/' + f + '.js',
-                format: 'cjs',
-                sourcemap: true,
-            },
-        ];
+        const create = (file, outName) => {
+            const output = [
+                {
+                    file: './dist/' + outName + '.js',
+                    format: 'cjs',
+                    sourcemap: true,
+                },
+            ];
 
-        if (exp === './babel') {
-            // @ts-ignore
-            output[0].exports = 'default';
-        } else {
-            output.push({
-                file: './dist/' + f + '.mjs',
-                format: 'es',
-                sourcemap: true,
-            });
-        }
+            if (exp === './babel') {
+                // @ts-ignore
+                output[0].exports = 'default';
+            } else {
+                output.push({
+                    file: './dist/' + outName + '.mjs',
+                    format: 'es',
+                    sourcemap: true,
+                });
+            }
 
-        return {
-            input: './' + f + '.ts',
-            output,
-            external: external,
-            plugins: [
-                resolve(),
-                commonjs(),
-                typescript({
-                    outputToFilesystem: true,
-                    paths: {
-                        react: ['node_modules/react'],
-                        'react-native': ['node_modules/react-native'],
-                        '@legendapp/state': ['./index'],
-                        '@legendapp/state/persist': ['./persist'],
-                        '@legendapp/state/react': ['./react'],
-                    },
-                }),
-            ],
+            return {
+                input: './' + file + '.ts',
+                output,
+                external: external,
+                plugins: [
+                    resolve(),
+                    commonjs(),
+                    typescript({
+                        outputToFilesystem: true,
+                        paths: {
+                            react: ['node_modules/react'],
+                            'react-native': ['node_modules/react-native'],
+                            '@legendapp/state': ['./index'],
+                            '@legendapp/state/persist': ['./persist'],
+                            '@legendapp/state/react': ['./react'],
+                            '@legendapp/state/helpers/*': ['./src/helpers/*'],
+                        },
+                    }),
+                ],
+            };
         };
+
+        if (exp.endsWith('/*')) {
+            const expPath = exp.replace('/*', '');
+            const files = fs.readdirSync(path.join(__dirname, 'src', expPath));
+            const mapped = files.map((file) =>
+                create(
+                    path.join('./src', expPath, file.replace(/\.ts$/, '')),
+                    path.join(expPath, 'temp', file.replace(/\.ts$/, ''))
+                )
+            );
+            return mapped;
+        } else {
+            return create(f, f);
+        }
     })
     .filter((a) => a);
