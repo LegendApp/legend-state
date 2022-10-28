@@ -7,6 +7,7 @@ import {
     get,
     getChildNode,
     getNodeValue,
+    IDKey,
     nextNodeID,
     peek,
     shouldTreatAsOpaque,
@@ -14,9 +15,17 @@ import {
     symbolIsEvent,
     symbolIsObservable,
     symbolUndef,
-    IDKey,
 } from './globals';
-import { isActualPrimitive, isArray, isBoolean, isFunction, isObject, isPrimitive, isPromise, isNodeValueWithParent } from './is';
+import {
+    isActualPrimitive,
+    isArray,
+    isBoolean,
+    isFunction,
+    isNodeValueWithParent,
+    isObject,
+    isPrimitive,
+    isPromise,
+} from './is';
 import { doNotify, notify } from './notify';
 import {
     NodeValue,
@@ -420,8 +429,8 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         !inAssign && isFunction(newValue)
             ? newValue(prevValue)
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
-                ? newValue.get()
-                : newValue;
+            ? newValue.get()
+            : newValue;
 
     inSet = true;
     // Save the new value
@@ -494,7 +503,10 @@ function deleteFn(node: NodeValue, key?: string | number) {
 }
 
 function createObservable<T>(value: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
-function createObservable<T>(value: T | Promise<T>, makePrimitive?: boolean): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
+function createObservable<T>(
+    value: T | Promise<T>,
+    makePrimitive?: boolean
+): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const valueIsPromise = isPromise<T>(value);
     const root: ObservableRoot = {
         _: valueIsPromise ? undefined : value,
