@@ -1,3 +1,8 @@
+## 0.21.7
+
+- Feat: Added another way to use the `Switch` component, with multiple `Show` children, that renders the first `Show` that matches
+- Types: Improved types for strict mode https://github.com/LegendApp/legend-state/pull/52
+
 ## 0.21.6
 
 - Feat: Added `opaqueObject` to make an element in an observable act as a primitive, not proxying its properties or notifying for changes.
