@@ -171,7 +171,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         // it's in a new position.
                         if (isArrDiff) {
                             child = prevChild;
-                            if (!child || !moved) debugger;
                             parent.children.delete(child.key);
                             child.key = key;
                             moved.push([key, child]);
