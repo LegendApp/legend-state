@@ -236,7 +236,7 @@ export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
-export declare type Observable<T = any> = [T] extends [object] ? ObservableObjectOrArray<T> : ObservablePrimitive<T>;
+export type Observable<T = any> = [T] extends [object] ? ObservableObjectOrArray<T> : ObservablePrimitive<T>;
 
 export type ObservableReadable<T = any> =
     | ObservableBaseFns<T>
@@ -258,6 +258,9 @@ export interface NodeValue {
     root: ObservableWrapper;
     listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
 }
+
+export type NodeValueWithParent = NodeValue & Required<Pick<NodeValue, 'parent' | 'key'>>;
+export type NodeValueWithoutParent = NodeValue & Omit<NodeValue, 'parent' | 'key'>;
 
 /** @internal */
 export interface TrackingNode {

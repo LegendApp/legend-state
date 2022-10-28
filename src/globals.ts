@@ -1,4 +1,4 @@
-import { isObject, isString } from './is';
+import { isObject, isString, isNodeValueWithParent } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
@@ -35,8 +35,8 @@ export function peek(node: NodeValue) {
 
 export function getNodeValue(node: NodeValue): any {
     const arr: (string | number)[] = [];
-    let n = node;
-    while (n?.key !== undefined) {
+    let n: NodeValue = node;
+    while (isNodeValueWithParent(n)) {
         arr.push(n.key);
         n = n.parent;
     }
@@ -80,7 +80,7 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
 export function ensureNodeValue(node: NodeValue) {
     let value = getNodeValue(node);
     if (!value) {
-        if (node.parent) {
+        if (isNodeValueWithParent(node)) {
             const parent = ensureNodeValue(node.parent);
             value = parent[node.key] = {};
         } else {
@@ -114,4 +114,19 @@ export function shouldTreatAsOpaque(value: any) {
             return true;
         }
     }
+}
+
+export type IDKey = 'id' | '_id' | '__id';
+export type IDValue = string | number;
+
+export function findIDKey(obj: unknown | undefined): IDKey | undefined {
+    return isObject(obj)
+        ? 'id' in obj
+            ? 'id'
+            : '_id' in obj
+                ? '_id'
+                : '__id' in obj
+                    ? '__id'
+                    : undefined
+        : undefined;
 }

@@ -1,3 +1,5 @@
+import type { NodeValueWithParent, NodeValueWithoutParent } from './observableInterfaces';
+
 /** @internal */
 export function isArray(obj: unknown): obj is Array<any> {
     return Array.isArray(obj);
@@ -8,16 +10,16 @@ export function isString(obj: unknown): obj is string {
 }
 /** @internal */
 export function isObject(obj: unknown): obj is Record<any, any> {
-    return obj && typeof obj === 'object' && !isArray(obj);
+    return !!obj && typeof obj === 'object' && !isArray(obj);
 }
 /** @internal */
 export function isFunction(obj: unknown): obj is Function {
     return typeof obj === 'function';
 }
 /** @internal */
-export function isPrimitive(arg) {
-    var type = typeof arg;
-    return arg !== undefined && arg !== null && type != 'object' && type != 'function';
+export function isPrimitive(arg: unknown): arg is string | number | bigint | boolean | symbol {
+    const type = typeof arg;
+    return arg !== undefined && type !== 'object' && type !== 'function';
 }
 /** @internal */
 export function isObjectEmpty(obj: object) {
@@ -29,21 +31,25 @@ export function isSymbol(obj: unknown): obj is symbol {
 }
 /** @internal */
 export function isBoolean(obj: unknown): obj is boolean {
-    return obj === true || obj === false;
+    return typeof obj === 'boolean';
 }
 /** @internal */
 export function isPromise<T>(obj: unknown): obj is Promise<T> {
-    return isFunction((obj as any)?.then) && isFunction((obj as any).catch);
+    return obj instanceof Promise;
 }
-export function isEmpty(obj: object) {
+export function isEmpty(obj: object): boolean {
     return obj && Object.keys(obj).length === 0;
 }
-const mapPrimitives = new Map([
-    ['boolean', true],
-    ['string', true],
-    ['number', true],
+const setPrimitives = new Set([
+    'boolean',
+    'string',
+    'number',
 ]);
 /** @internal */
-export function isActualPrimitive(arg) {
-    return mapPrimitives.has(typeof arg);
+export function isActualPrimitive(arg: unknown): arg is boolean | string | number {
+    return setPrimitives.has(typeof arg);
+}
+/** @internal */
+export function isNodeValueWithParent(node: NodeValueWithParent | NodeValueWithoutParent): node is NodeValueWithParent {
+    return !!node.parent;
 }

@@ -132,7 +132,7 @@ describe('useSelector', () => {
         const obs = observable('hi');
         let num = 0;
         let numSelects = 0;
-        let fr;
+        let fr: () => void;
         function Test() {
             fr = useReducer((s) => s + 1, 0)[1];
             const val = useSelector(() => {
@@ -175,10 +175,11 @@ describe('useSelector', () => {
 
 describe('For', () => {
     test('Array insert has stable reference', async () => {
+        type TestObject = { id: number; label: string; };
         const obs = observable({
-            items: [{ id: 0, label: '0' }] as Array<{ id: number; label: string }>,
+            items: [{ id: 0, label: '0' }] as TestObject[],
         });
-        function Item({ item }) {
+        function Item({ item }: { item: Observable<TestObject>; }) {
             const data = useSelector(item);
             return createElement('li', { id: data.id }, data.label);
         }
@@ -200,19 +201,17 @@ describe('For', () => {
     });
     test('Array insert has stable reference 2', () => {
         enableLegendStateReact();
+        type TestObject = { id: string; label: string; };
         const obs = observable({
             items: [
                 { id: 'B', label: 'B' },
                 { id: 'A', label: 'A' },
-            ] as Array<{ id: string; label: string }>,
+            ] as TestObject[],
         });
         function Item({
             item,
         }: {
-            item: Observable<{
-                id: number;
-                label: string;
-            }>;
+            item: Observable<TestObject>;
         }) {
             const data = useSelector(item);
             return createElement('li', { id: data.id }, data.label);
@@ -226,7 +225,7 @@ describe('For', () => {
         expect(items.length).toEqual(2);
 
         act(() => {
-            obs.items.splice(0, 0, { id: 'C', label: 'C' });
+            obs.items.splice(0, 0, { id: 'C', label: 'C' } as TestObject);
         });
 
         items = container.querySelectorAll('li');
