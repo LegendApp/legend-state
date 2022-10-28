@@ -8,17 +8,19 @@ export function observableFetch<T extends unknown>(
     const obs = observable<{
         data?: T;
         error?: any;
+        errorStr?: string;
         loading: boolean;
     }>({
         data: undefined,
         error: undefined,
+        errorStr: undefined,
         loading: true,
     });
 
     fetch(input, init)
         .then((response) => response[valueType || 'json']())
         .then((value) => obs.set({ data: value as T, loading: false }))
-        .catch((reason) => obs.set({ error: reason, loading: false }));
+        .catch((error) => obs.set({ loading: false, error, errorStr: error?.toString?.() }));
 
     return obs;
 }
