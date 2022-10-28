@@ -161,7 +161,7 @@ export interface ObservablePersistRemote {
         options: PersistOptions<T>,
         onLoad: () => void,
         onChange: (cb: () => void) => void
-    );
+    ): void;
 }
 
 export interface ObservablePersistState {
