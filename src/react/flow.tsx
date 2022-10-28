@@ -1,6 +1,6 @@
-import { isFunction } from '@legendapp/state';
+import { computeSelector, isFunction } from '@legendapp/state';
 import { observer } from '@legendapp/state/react';
-import { createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
+import { Children, createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { Observable, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
 import { useSelector } from './useSelector';
 
@@ -41,14 +41,36 @@ export function Show<T>({
     return wrap ? createElement(wrap, undefined, child) : child;
 }
 
+export function Switch<T>(props: {
+    value: Selector<T>;
+    children: Record<any, () => ReactNode>;
+    default?: ReactNode;
+}): ReactElement;
+export function Switch<T>(props: { children: ReactNode[]; default?: ReactNode }): ReactElement;
 export function Switch<T>({
     value,
     children,
+    default: fallback,
 }: {
-    value: Selector<T>;
-    children?: Record<any, () => ReactNode>;
-}): ReactElement {
-    return (children[useSelector(value)]?.() ?? children['default']?.() ?? null) as ReactElement;
+    value?: Selector<T>;
+    children: ReactNode[] | Record<any, () => ReactNode>;
+    default?: ReactNode;
+}): ReactNode {
+    if (value !== undefined) {
+        // If value then this is selecting from an object of cases
+        return ((children as Record<any, () => ReactNode>)[useSelector(value)]?.() ??
+            children['default']?.() ??
+            null) as ReactElement;
+    } else {
+        // If no value then render the first Show child with a matching if prop
+        const arr = Children.toArray(children as ReactNode[]);
+        const index = useSelector(() => {
+            for (let i = 0; i < arr.length; i++) {
+                if (computeSelector((arr[i] as any).props.if)) return i;
+            }
+        });
+        return index >= 0 ? arr[index] : fallback ?? null;
+    }
 }
 
 export function For<T extends { id: string | number } | { _id: string | number } | { __id: string | number }, TProps>({
