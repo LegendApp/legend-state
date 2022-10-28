@@ -1,7 +1,7 @@
 import { computeSelector, observe, Selector, symbolUndef, isPrimitive } from '@legendapp/state';
 import { useReducer } from 'react';
 
-const Update = (s) => s + 1;
+const Update = (s: number) => s + 1;
 
 export function useSelector<T>(
     selector: Selector<T>,
