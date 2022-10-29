@@ -12,7 +12,7 @@ interface BatchItem {
     }[];
     node?: NodeValue;
 }
-let timeout;
+let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
 let _batch: (BatchItem | (() => void))[] = [];
 // Use a Map of callbacks for fast lookups to update the BatchItem
