@@ -23,17 +23,20 @@ function constructObject(path: (string | number)[], value: any): object {
     return out;
 }
 
+// This type is purely for documentation.
+type TimestampAsString = string;
+
 export function trackHistory<T>(
     obs: ObservableReadable<T>,
-    targetObservable?: ObservableWriteable<Record<number, Partial<T>>>
+    targetObservable?: ObservableWriteable<Record<TimestampAsString, Partial<T>>>
 ) {
-    const history = targetObservable ?? observable<Record<number, Partial<T>>>();
+    const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
     obs.onChange((_, __, changes) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
         if (!tracking.inRemoteChange) {
-            const time = Date.now();
+            const time: TimestampAsString = Date.now().toString();
 
             // Save to history observable by date, with the previous value
             for (let i = 0; i < changes.length; i++) {

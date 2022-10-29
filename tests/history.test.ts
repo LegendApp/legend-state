@@ -14,8 +14,10 @@ describe('History', () => {
         obs.set({ test: 'hello' });
 
         const historyKeys = Object.keys(history);
-
-        expect(history.get()[historyKeys[0]]).toEqual({ test: 'hi' });
+        const firstKey = historyKeys[0]; // '1667050028427' (string)
+        const historyObj = history.get(); // { '1667050028427': { test: 'hi' } }
+        const firstEntry = historyObj[firstKey]; // { test: 'hi' }
+        expect(firstEntry).toEqual({ test: 'hi' });
     });
     test('Two in history', async () => {
         const obs = observable({ test: 'hi' });
