@@ -348,9 +348,11 @@ describe('Listeners', () => {
     test('Deep object set undefined', () => {
         interface Data {
             test: {
-                test2: {
-                    test3: string;
-                } | undefined; // TODO: Make it work as an optional property
+                test2:
+                    | {
+                          test3: string;
+                      }
+                    | undefined; // TODO: Make it work as an optional property
             };
         }
         const obs = observable<Data>({ test: { test2: { test3: 'hi' } } });
@@ -449,7 +451,7 @@ describe('Listeners', () => {
         interface Data {
             obj: {
                 test: string | undefined;
-            }
+            };
         }
         const obs = observable<Data>({ obj: { test: 'hi' } });
         const handler = expectChangeHandler(obs.obj.test);
@@ -571,7 +573,7 @@ describe('undefined', () => {
             test?: {
                 test2?: {
                     test3?: string;
-                }
+                };
             };
         }
         const obs = observable<Data>({ test: undefined });
@@ -582,7 +584,7 @@ describe('undefined', () => {
             test?: {
                 test2?: {
                     test3?: string;
-                }
+                };
             };
         }
         const obs = observable<Data>({ test: undefined });
@@ -901,7 +903,7 @@ describe('Array', () => {
     });
     test('Array set', () => {
         interface Data {
-            test: Array<{ id: number; }>;
+            test: Array<{ id: number }>;
         }
         const obs = observable<Data>({ test: [] });
         const arr = [];
@@ -1080,7 +1082,7 @@ describe('Array', () => {
     });
     test('Array forEach returns observables', () => {
         interface Data {
-            arr: Array<{ text: string; }>
+            arr: Array<{ text: string }>;
         }
         const obs = observable<Data>({ arr: [{ text: 'hi' }] });
         const arr: unknown[] = [];
@@ -1100,7 +1102,7 @@ describe('Array', () => {
     });
     test('Array has stable reference', () => {
         interface Data {
-            arr: Array<{ id: string, text: string; }>;
+            arr: Array<{ id: string; text: string }>;
         }
         const obs = observable<Data>({ arr: [] });
         obs.arr.set([
@@ -1153,7 +1155,7 @@ describe('Array', () => {
     });
     test('Array has stable references 3', () => {
         interface Data {
-            arr: Array<{ id: string, text: string; }>;
+            arr: Array<{ id: string; text: string }>;
         }
         const obs = observable<Data>({ arr: [] });
         obs.arr.set([
@@ -1448,6 +1450,73 @@ describe('Deep changes keep listeners', () => {
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
         expect(Object.keys(obs.test.test2)).toEqual(['a6']);
     });
+    test('Array numbers getPrevious', () => {
+        interface Data {
+            arr: number[];
+        }
+        const obs = observable<Data>({ arr: [0, 1, 2] });
+        const handler = expectChangeHandler(obs.arr);
+        const handler2 = expectChangeHandler(obs);
+        obs.arr.set([1, 2, 3]);
+        expect(handler).toHaveBeenCalledWith(
+            [1, 2, 3],
+            [0, 1, 2],
+            [{ path: [], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] }]
+        );
+        expect(handler2).toHaveBeenCalledWith({ arr: [1, 2, 3] }, { arr: [0, 1, 2] }, [
+            { path: ['arr'], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] },
+        ]);
+    });
+    test('Array objects getPrevious', () => {
+        interface Data {
+            arr: { _id: number }[];
+        }
+        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] });
+        const handler = expectChangeHandler(obs.arr);
+        const handler2 = expectChangeHandler(obs);
+        obs.arr.set([{ _id: 1 }, { _id: 2 }, { _id: 3 }]);
+        expect(handler).toHaveBeenCalledWith(
+            [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
+            [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+            [
+                {
+                    path: [],
+                    valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
+                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                },
+            ]
+        );
+        expect(handler2).toHaveBeenCalledWith(
+            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }] },
+            { arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] },
+            [
+                {
+                    path: ['arr'],
+                    valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
+                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                },
+            ]
+        );
+    });
+    test('Array objects push getPrevious', () => {
+        interface Data {
+            arr: { _id: number }[];
+        }
+        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] });
+        const handler = expectChangeHandler(obs.arr);
+        obs.arr.push({ _id: 3 });
+        expect(handler).toHaveBeenCalledWith(
+            [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
+            [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+            [
+                {
+                    path: [],
+                    valueAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
+                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                },
+            ]
+        );
+    });
 });
 describe('Delete', () => {
     test('Delete key', () => {
@@ -1580,7 +1649,7 @@ describe('Shallow', () => {
     });
     test('Shallow array', () => {
         interface Data {
-            data: Array<{ text: number; }>;
+            data: Array<{ text: number }>;
             selected: number;
         }
         const obs = observable<Data>({ data: [], selected: 0 });
@@ -1594,7 +1663,7 @@ describe('Shallow', () => {
     });
     test('Key delete notifies shallow', () => {
         interface Data {
-            test: Record<string, { text: string; } | undefined>;
+            test: Record<string, { text: string } | undefined>;
         }
         const obs = observable<Data>({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
         const handler = jest.fn();
@@ -1636,9 +1705,11 @@ describe('Shallow', () => {
     });
     test('Shallow tracks object getting set to undefined', () => {
         interface Data {
-            test: undefined | {
-                text: string;
-            };
+            test:
+                | undefined
+                | {
+                      text: string;
+                  };
         }
         const obs = observable<Data>({ test: { text: 'hi' } });
         const handler = jest.fn();
