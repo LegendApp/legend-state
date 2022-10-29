@@ -10,12 +10,13 @@ There is no boilerplate and there are no actions, reducers, selectors, dispatche
 // Create an observable object
 const state = observable({ settings: { theme: 'dark' } })
 
-// Observables work like any other object
-state.settings.theme === 'dark' // true
+// Just get and set
+state.settings.theme.get() === 'dark'
+state.settings.theme.set('light')
 
-// observe re-runs when any observables change
+// observe re-runs when accessed observables change
 observe(() => {
-    console.log(state.settings.theme)
+    console.log(state.settings.theme.get())
 })
 
 // Observer components automatically track observables and re-render when they change
@@ -43,34 +44,42 @@ See [the documentation](https://www.legendapp.com/open-source/state) for more de
 ## Example
 
 ```jsx
+import { observable } from "@legendapp/state"
+
 // Create an observable object
 const state = observable({ settings: { theme: 'dark' } })
 
-// Observables work like any other object
-state.settings.theme === 'dark'   // true
-
-// Listen anywhere for changes
-state.settings.theme.onChange((theme) => { ... })
+// get() returns the raw data
+state.settings.theme.get() === 'dark'
 
 // observe re-runs when any observables change
 observe(() => {
-    console.log(state.settings.theme)
+    console.log(state.settings.theme.get())
 })
 
-// Modify with simple set functions
+// Assign to state with set
 state.settings.theme.set('light')
 
-// Automatically persist state
+// Automatically persist state. Refresh this page to try it.
 persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
+// This is the code for the example on your right ----->
 const Component = observer(function Component() {
+    const theme = state.settings.theme.get()
+    // state.settings.theme is automatically tracked for changes
+
     const toggle = () => {
-        state.settings.theme.set(theme => theme === 'dark' ? 'light' : 'dark')
+        state.settings.theme.set(theme =>
+            theme === 'dark' ? 'light' : 'dark'
+        )
     }
+
     return (
-        <div>
-            <div>Theme: {state.settings.theme}</div>
+        <div
+            className={theme === 'dark' ? 'theme-dark' : 'theme-light'}
+        >
+            <div>Theme: {theme}</div>
             <Button onClick={toggle}>
                 Toggle theme
             </Button>
