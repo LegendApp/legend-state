@@ -1,6 +1,6 @@
 import { isFunction, observable, Observable, PersistOptions } from '@legendapp/state';
+import { persistObservable } from '@legendapp/state/persist';
 import { useMemo } from 'react';
-import { persistObservable } from 'src/persist/persistObservable';
 
 /**
  * A React hook that creates a new observable and can optionally listen or persist its state.
@@ -23,5 +23,6 @@ export function useObservable<T>(
                 persistObservable<T>(obs as Observable<T>, options.persist);
             }
         }
+        return obs;
     }, []) as any;
 }

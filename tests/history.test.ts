@@ -35,7 +35,7 @@ describe('History', () => {
         const history = trackHistory(obs);
 
         obs.assign({ test: 'hello' });
-        await promiseTimeout();
+        await promiseTimeout(100);
         obs.assign({ test2: 'b' });
 
         const historyKeys = Object.keys(history);
