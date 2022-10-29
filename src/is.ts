@@ -1,4 +1,4 @@
-import type { NodeValueWithParent, NodeValueWithoutParent } from './observableInterfaces';
+import type { NodeValue, RootNodeValue, ChildNodeValue } from './observableInterfaces';
 
 /** @internal */
 export function isArray(obj: unknown): obj is Array<any> {
@@ -50,6 +50,6 @@ export function isActualPrimitive(arg: unknown): arg is boolean | string | numbe
     return setPrimitives.has(typeof arg);
 }
 /** @internal */
-export function isNodeValueWithParent(node: NodeValueWithParent | NodeValueWithoutParent): node is NodeValueWithParent {
+export function isChildNodeValue(node: NodeValue): node is ChildNodeValue {
     return !!node.parent;
 }
