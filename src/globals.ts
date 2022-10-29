@@ -1,4 +1,4 @@
-import { isObject, isString, isNodeValueWithParent } from './is';
+import { isObject, isString, isChildNodeValue } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
@@ -37,7 +37,7 @@ export function peek(node: NodeValue) {
 export function getNodeValue(node: NodeValue): any {
     const arr: (string | number)[] = [];
     let n: NodeValue = node;
-    while (isNodeValueWithParent(n)) {
+    while (isChildNodeValue(n)) {
         arr.push(n.key);
         n = n.parent;
     }
@@ -81,7 +81,7 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
 export function ensureNodeValue(node: NodeValue) {
     let value = getNodeValue(node);
     if (!value) {
-        if (isNodeValueWithParent(node)) {
+        if (isChildNodeValue(node)) {
             const parent = ensureNodeValue(node.parent);
             value = parent[node.key] = {};
         } else {

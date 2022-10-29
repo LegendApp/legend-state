@@ -21,14 +21,16 @@ import {
     isArray,
     isBoolean,
     isFunction,
-    isNodeValueWithParent,
+    isChildNodeValue,
     isObject,
     isPrimitive,
     isPromise,
 } from './is';
 import { doNotify, notify } from './notify';
-import {
+import type {
     NodeValue,
+    RootNodeValue,
+    ChildNodeValue,
     Observable,
     ObservableObjectOrArray,
     ObservablePrimitive,
@@ -71,7 +73,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {
-        const hasParent = isNodeValueWithParent(node);
+        const hasParent = isChildNodeValue(node);
         const key: string | number = hasParent ? node.key : '_';
         const parentValue = hasParent ? getNodeValue(node.parent) : node.root;
 
@@ -98,8 +100,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     }
     const isArr = isArray(obj);
 
-    let prevChildrenById: Map<string | number, NodeValue> | undefined;
-    let moved: [string, NodeValue][] | undefined;
+    let prevChildrenById: Map<string | number, ChildNodeValue> | undefined;
+    let moved: [string, ChildNodeValue][] | undefined;
 
     // If array it's faster to just use the array
     const keys = isArr ? obj : obj ? Object.keys(obj) : [];
@@ -429,8 +431,8 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         !inAssign && isFunction(newValue)
             ? newValue(prevValue)
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
-            ? newValue.get()
-            : newValue;
+                ? newValue.get()
+                : newValue;
 
     inSet = true;
     // Save the new value
@@ -494,7 +496,7 @@ function assign(node: NodeValue, value: any) {
 
 function deleteFn(node: NodeValue, key?: string | number) {
     // If called without a key, delete by key from the parent node
-    if (key === undefined && isNodeValueWithParent(node)) {
+    if (key === undefined && isChildNodeValue(node)) {
         key = node.key;
         node = node.parent;
     }

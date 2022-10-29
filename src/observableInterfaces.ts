@@ -254,19 +254,32 @@ export type ObservableWriteable<T = any> =
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
 
-export interface NodeValue {
-    id: number;
-    parent?: NodeValue;
-    children?: Map<string | number, NodeValue>;
-    proxy?: object;
-    key?: string | number;
-    isActivatedPrimitive?: boolean;
-    root: ObservableWrapper;
-    listeners?: Set<{ track: TrackingType; noArgs?: boolean; listener: ListenerFn }>;
+interface NodeValueListener {
+    track: TrackingType;
+    noArgs?: boolean;
+    listener: ListenerFn;
 }
 
-export type NodeValueWithParent = NodeValue & Required<Pick<NodeValue, 'parent' | 'key'>>;
-export type NodeValueWithoutParent = NodeValue & Omit<NodeValue, 'parent' | 'key'>;
+interface BaseNodeValue {
+    id: number;
+    children?: Map<string | number, ChildNodeValue>;
+    proxy?: object;
+    isActivatedPrimitive?: boolean;
+    root: ObservableWrapper;
+    listeners?: Set<NodeValueListener>;
+}
+
+export interface RootNodeValue extends BaseNodeValue {
+    parent?: undefined;
+    key?: undefined;
+}
+
+export interface ChildNodeValue extends BaseNodeValue {
+    parent: NodeValue;
+    key: string | number;
+}
+
+export type NodeValue = RootNodeValue | ChildNodeValue;
 
 /** @internal */
 export interface TrackingNode {
