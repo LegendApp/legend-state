@@ -1,5 +1,5 @@
-import { computeSelector, observe, Selector, symbolUndef, isPrimitive } from '@legendapp/state';
-import { useReducer } from 'react';
+import { computeSelector, isPrimitive, observe, Selector, symbolUndef } from '@legendapp/state';
+import { useReducer, useRef } from 'react';
 
 const Update = (s: number) => s + 1;
 
@@ -11,8 +11,11 @@ export function useSelector<T>(
     let ret: T = symbolUndef as unknown as T;
     const forceRender = options?.forceRender || useReducer(Update, 0)[1];
     const shouldRender = options?.shouldRender;
+    const refDispose = useRef<() => void>();
 
-    observe(function update(e) {
+    refDispose.current?.();
+
+    refDispose.current = observe(function update(e) {
         // If running, call selector and re-render if changed
         let cur = (inRun || shouldRender !== true) && computeSelector(selector);
         // Re-render if not currently rendering and value has changed
@@ -30,7 +33,7 @@ export function useSelector<T>(
 
     // Note: This does not have a useEffect to cleanup listeners because it is ok
     // to call useReducer after unmounting. So it will lazily cleanup after unmount
-    // because it will call fr() and return false to not track. Then since fr() does
+    // because it will call forceRender() and return false to not track. Then since forceRender() does
     // not trigger re-render since it's unmounted, it does not set up tracking again.
 
     return ret;
