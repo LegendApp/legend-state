@@ -7,8 +7,8 @@ export type TrackingTypeInternal = undefined | true | 'optimize'; // true === sh
 
 export interface ObservableBaseFns<T> {
     peek(): T;
-    get(track?: TrackingType): T;
-    onChange(cb: ListenerFn<T>, track?: TrackingType): ObservableListenerDispose;
+    get(trackingType?: TrackingType): T;
+    onChange(cb: ListenerFn<T>, trackingType?: TrackingType): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
     set(value: T | ((prev: T) => T)): ObservablePrimitiveChild<T>;
