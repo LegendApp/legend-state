@@ -45,6 +45,7 @@ See [the documentation](https://www.legendapp.com/open-source/state) for more de
 
 ```jsx
 import { observable } from "@legendapp/state"
+import { observer } from "@legendapp/state/react";
 
 // Create an observable object
 const state = observable({ settings: { theme: 'dark' } })
@@ -85,7 +86,7 @@ const Component = observer(function Component() {
             </Button>
         </div>
     )
-}
+})
 ```
 
 ## Highlights
