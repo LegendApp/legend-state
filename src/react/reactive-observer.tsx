@@ -1,6 +1,6 @@
 import { isObservable, Selector } from '@legendapp/state';
-import { useSelector } from '@legendapp/state/react';
 import { ChangeEvent, FC, forwardRef, memo, useCallback, useReducer } from 'react';
+import { useSelector } from './useSelector';
 
 const Update = (s: number) => s + 1;
 
