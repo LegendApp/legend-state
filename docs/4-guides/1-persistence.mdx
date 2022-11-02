@@ -34,6 +34,8 @@ configureObservablePersistence({
 Then call `persistObservable` for each observable you want to persist.
 
 ```js
+import { persistObservable } from '@legendapp/state/persist'
+
 const obs = observable({ store: { bigObject: { ... } } })
 
 // Persist this observable

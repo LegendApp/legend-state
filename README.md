@@ -46,6 +46,7 @@ See [the documentation](https://www.legendapp.com/open-source/state) for more de
 ```jsx
 import { observable } from "@legendapp/state"
 import { observer } from "@legendapp/state/react";
+import { persistObservable } from "@legendapp/state/persist";
 
 // Create an observable object
 const state = observable({ settings: { theme: 'dark' } })
