@@ -66,7 +66,6 @@ state.settings.theme.set('light')
 persistObservable(state, { local: 'exampleState' })
 
 // Components re-render only when accessed observables change
-// This is the code for the example on your right ----->
 const Component = observer(function Component() {
     const theme = state.settings.theme.get()
     // state.settings.theme is automatically tracked for changes
