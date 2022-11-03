@@ -107,10 +107,16 @@ const Component = observer(function Component() {
 
 See [the documentation site](https://www.legendapp.com/open-source/state/).
 
-## Todo
+## Road to 1.0
 
-- [ ] Remote persistence to Firebase
-- [ ] Conflict resolution for remote persistence
+- [ ] Improve documentation
+- [ ] An examples page
+- [ ] Fix types for TypeScript strict mode
+
+## Also in progress
+
+- [ ] IndexedDB persistence plugin
+- [ ] Remote persistence plugin for Firebase Realtime Database
 
 ## 👩‍⚖️ License
 
