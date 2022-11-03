@@ -20,17 +20,16 @@ import {
     isActualPrimitive,
     isArray,
     isBoolean,
-    isFunction,
     isChildNodeValue,
+    isFunction,
     isObject,
     isPrimitive,
     isPromise,
 } from './is';
 import { doNotify, notify } from './notify';
 import type {
-    NodeValue,
-    RootNodeValue,
     ChildNodeValue,
+    NodeValue,
     Observable,
     ObservableObjectOrArray,
     ObservablePrimitive,
@@ -153,7 +152,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     if (obj && !isPrimitive(obj)) {
         const length = keys.length;
 
-        let hasADiff = !isArr || obj?.length !== prevValue?.length;
+        let hasADiff = obj?.length !== prevValue?.length;
         const isArrDiff = hasADiff;
         let didMove = false;
 
@@ -431,8 +430,8 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         !inAssign && isFunction(newValue)
             ? newValue(prevValue)
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
-                ? newValue.get()
-                : newValue;
+            ? newValue.get()
+            : newValue;
 
     inSet = true;
     // Save the new value
@@ -457,7 +456,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     }
 
     // Notify for this element if it's an object or it's changed
-    if (!isPrim || newValue !== prevValue) {
+    if ((!isPrim && hasADiff && newValue !== undefined && newValue !== null) || newValue !== prevValue) {
         notify(
             isPrim && isRoot ? node : childNode,
             newValue,

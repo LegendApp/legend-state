@@ -686,23 +686,21 @@ describe('Equality', () => {
         expect(obs.val.get() === v).toEqual(true);
         expect(obs.val.get() == v).toEqual(true);
     });
-    test('Set with same object still notifies', () => {
+    test('Set with same object does not notify', () => {
         const obs = observable({ test: { text: 'hi' } });
         const handler = expectChangeHandler(obs.test);
         const test = obs.test.get();
         obs.test.set(obs.test.get());
         expect(obs.test.get()).toBe(test);
-        expect(handler).toHaveBeenCalledWith({ text: 'hi' }, { text: 'hi' }, [
-            { path: [], valueAtPath: { text: 'hi' }, prevAtPath: { text: 'hi' } },
-        ]);
+        expect(handler).not.toHaveBeenCalled();
     });
-    test('Set with same array notifies', () => {
+    test('Set with same array does not notify', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
         const handler = expectChangeHandler(obs.arr);
         const arr = obs.arr.get();
         obs.arr.set(obs.arr.get());
         expect(obs.arr.get()).toBe(arr);
-        expect(handler).toHaveBeenCalled();
+        expect(handler).not.toHaveBeenCalled();
     });
     test('isObservable on null', () => {
         const obs = observable({ arr: null });
