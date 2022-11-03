@@ -1,19 +1,25 @@
-import { Observable, observable } from '@legendapp/state';
+import { isFunction, Observable, observable } from '@legendapp/state';
 import React from 'react';
 
 export function createObservableHook<TArgs extends any[], TRet>(
     fn: (...args: TArgs) => TRet
 ): (...args: TArgs) => Observable<TRet> {
+    const _useState = React.useState;
+
     return function (...args) {
         const refObs = React.useRef<Observable<TRet>>();
-        const useState = React.useState;
         // @ts-ignore
-        React.useState = function <S>(initialState: S | (() => S)): [S, Dispatch<SetStateAction<S>>] {
-            const obs = refObs.current ?? (refObs.current = observable(initialState) as Observable<TRet>);
-            return [obs.get() as S, obs.set] as [S, React.Dispatch<React.SetStateAction<S>>];
+        React.useState = function useState(initialState: TRet | (() => TRet)): [TRet, Dispatch<SetStateAction<TRet>>] {
+            const obs =
+                refObs.current ??
+                (refObs.current = observable(
+                    isFunction(initialState) ? initialState() : initialState
+                ) as Observable<TRet>);
+            return [obs.get() as TRet, obs.set] as [TRet, React.Dispatch<React.SetStateAction<TRet>>];
         };
+
         fn(...args);
-        React.useState = useState;
+        React.useState = _useState;
 
         return refObs.current;
     };
