@@ -1,5 +1,42 @@
 import type { symbolOpaque } from './globals';
 
+// Copied from import { MMKVConfiguration } from 'react-native-mmkv';
+// so we don't have to import it
+interface MMKVConfiguration {
+    /**
+     * The MMKV instance's ID. If you want to use multiple instances, make sure to use different IDs!
+     *
+     * @example
+     * ```ts
+     * const userStorage = new MMKV({ id: `user-${userId}-storage` })
+     * const globalStorage = new MMKV({ id: 'global-app-storage' })
+     * ```
+     *
+     * @default 'mmkv.default'
+     */
+    id: string;
+    /**
+     * The MMKV instance's root path. By default, MMKV stores file inside `$(Documents)/mmkv/`. You can customize MMKV's root directory on MMKV initialization:
+     *
+     * @example
+     * ```ts
+     * const temporaryStorage = new MMKV({ path: '/tmp/' })
+     * ```
+     */
+    path?: string;
+    /**
+     * The MMKV instance's encryption/decryption key. By default, MMKV stores all key-values in plain text on file, relying on iOS's sandbox to make sure the file is encrypted. Should you worry about information leaking, you can choose to encrypt MMKV.
+     *
+     * Encryption keys can have a maximum length of 16 bytes.
+     *
+     * @example
+     * ```ts
+     * const secureStorage = new MMKV({ encryptionKey: 'my-encryption-key!' })
+     * ```
+     */
+    encryptionKey?: string;
+}
+
 export type TrackingType = undefined | true; // true === shallow
 
 /** @internal */
@@ -113,6 +150,10 @@ export type QueryByModified<T> =
           [K in keyof T]?: QueryByModified<T[K]>;
       };
 
+export interface PersistOptionsLocal {
+    name: string;
+    mmkv?: MMKVConfiguration;
+}
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
     once?: boolean;
@@ -131,7 +172,7 @@ export interface PersistOptionsRemote<T = any> {
     };
 }
 export interface PersistOptions<T = any> {
-    local?: string;
+    local?: string | PersistOptionsLocal;
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemote>;
@@ -139,10 +180,10 @@ export interface PersistOptions<T = any> {
 }
 
 export interface ObservablePersistLocal {
-    get<T = any>(path: string): T;
-    set(path: string, value: any): Promise<void>;
-    delete(path: string): Promise<void>;
-    load?(path: string): Promise<void>;
+    get<T = any>(id: string, config: PersistOptionsLocal | undefined): T;
+    set(id: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
+    delete(id: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    load?(id: string, config: PersistOptionsLocal | undefined): Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
