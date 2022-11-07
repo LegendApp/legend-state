@@ -208,6 +208,8 @@ export interface ObservablePersistRemote {
 export interface ObservablePersistState {
     isLoadedLocal: boolean;
     isLoadedRemote: boolean;
+    isEnabledLocal: boolean;
+    isEnabledRemote: boolean;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
 }

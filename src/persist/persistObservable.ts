@@ -58,8 +58,13 @@ async function onObsChange<T>(
     const local = persistOptions.local;
     const { id, config } = parseLocalConfig(local);
     const tempDisableSaveRemote = tracking.inRemoteChange;
-    const saveRemote = !tempDisableSaveRemote && persistOptions.remote && !persistOptions.remote.readonly;
-    if (local) {
+    const saveRemote =
+        !tempDisableSaveRemote &&
+        persistOptions.remote &&
+        !persistOptions.remote.readonly &&
+        obsState.isEnabledRemote.peek();
+
+    if (local && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
             console.error(
                 '[legend-state]: WARNING: An observable was changed before being loaded from persistence',
@@ -222,6 +227,8 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
     const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,
+        isEnabledLocal: true,
+        isEnabledRemote: true,
         clearLocal: undefined,
         sync: () => Promise.resolve(),
     });
@@ -276,7 +283,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         if (remote.manual) {
             obsState.assign({ sync });
         } else {
-            when(obsState.isLoadedLocal, sync);
+            when(() => !local || obsState.isLoadedLocal.get(), sync);
         }
     }
 
