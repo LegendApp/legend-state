@@ -15,6 +15,8 @@ export function useSelector<T>(
 
     refDispose.current?.();
 
+    if (!selector) return selector as T;
+
     refDispose.current = observe(function update(e) {
         // If running, call selector and re-render if changed
         let cur = (inRun || shouldRender !== true) && computeSelector(selector);
