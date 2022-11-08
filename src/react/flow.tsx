@@ -1,4 +1,4 @@
-import { computeSelector, isFunction } from '@legendapp/state';
+import { computeSelector } from '@legendapp/state';
 import { Children, createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
 import type { Observable, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
 import { observer } from './reactive-observer';
@@ -34,9 +34,7 @@ export function Show<T>({
 }): ReactElement {
     const value = useSelector<T>(if_);
 
-    const child = (
-        value ? (isFunction(children) ? children() : children) : else_ ? (isFunction(else_) ? else_() : else_) : null
-    ) as ReactElement;
+    const child = useSelector(value ? children : else_ ? else_ : null, { shouldRender: true }) as ReactElement;
 
     return wrap ? createElement(wrap, undefined, child) : child;
 }
