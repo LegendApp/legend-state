@@ -1,13 +1,6 @@
-import {
-    computeSelector,
-    observe,
-    Selector,
-    ObservableReadable,
-    symbolIsEvent,
-    ObserveEvent,
-    ObserveEventCallback,
-} from '@legendapp/state';
-import { useEffect, useRef } from 'react';
+import { ObservableReadable, observe, ObserveEvent, ObserveEventCallback, Selector } from '@legendapp/state';
+import { useRef } from 'react';
+import { useUnmount } from './lifecycle';
 
 export function useObserve<T>(
     selector: ObservableReadable<T>,
@@ -15,19 +8,11 @@ export function useObserve<T>(
 ): void;
 export function useObserve<T>(selector: (e: ObserveEvent<T>) => T | void): void;
 export function useObserve<T>(selector: Selector<T>, callback?: (e: ObserveEventCallback<T>) => T | void): void {
-    const ref = useRef<{ selector: Selector<T>; callback: (e: ObserveEventCallback<T>) => T | void }>();
-    ref.current = { selector, callback };
+    const refDispose = useRef<() => void>();
 
-    useEffect(() => {
-        return observe<T>((e: ObserveEventCallback<T>) => {
-            const { selector, callback } = ref.current;
-            delete e.value;
-            computeSelector(selector, e);
-            // Don't run callback the first time if it's an event
-            if (callback && (e.num > 0 || !selector[symbolIsEvent])) {
-                e.value = e.previous;
-                callback(e);
-            }
-        });
-    }, []);
+    refDispose.current?.();
+
+    refDispose.current = observe(selector, callback);
+
+    useUnmount(refDispose.current);
 }
