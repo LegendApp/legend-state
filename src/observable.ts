@@ -100,10 +100,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     const isArr = isArray(obj);
 
     let prevChildrenById: Map<string | number, ChildNodeValue> | undefined;
-    let moved: [string, ChildNodeValue][] | undefined;
+    let moved: [string | number, ChildNodeValue][] | undefined;
 
     // If array it's faster to just use the array
-    const keys = isArr ? obj : obj ? Object.keys(obj) : [];
+    const keys: string[] = isArr ? obj : obj ? Object.keys(obj) : [];
 
     let idField: IDKey | undefined;
 
@@ -161,12 +161,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
         for (let i = 0; i < length; i++) {
             const key = isArr ? i : keys[i];
-            const value = obj[key];
+            const value = (obj as any)[key];
             const prev = prevValue?.[key];
 
             let isDiff = value !== prev;
             if (isDiff) {
-                const id = value?.[idField];
+                const id = value?.[idField as IDKey];
 
                 let child = getChildNode(parent, key);
 
@@ -503,12 +503,12 @@ function deleteFn(node: NodeValue, key?: string | number) {
         node = node.parent;
     }
     // delete sets to undefined first to notify
-    setKey(node, key, symbolUndef, /*level*/ -1);
+    setKey(node, key as string | number, symbolUndef, /*level*/ -1);
 }
 
-function createObservable<T>(value: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
+function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
 function createObservable<T>(
-    value: T | Promise<T>,
+    value?: T | Promise<T>,
     makePrimitive?: boolean
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const valueIsPromise = isPromise<T>(value);
@@ -523,7 +523,7 @@ function createObservable<T>(
 
     const obs =
         makePrimitive || isActualPrimitive(value)
-            ? (new ObservablePrimitiveClass(node) as unknown as ObservablePrimitive<T>)
+            ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
             : (getProxy(node) as ObservableObjectOrArray<T>);
 
     if (valueIsPromise) {
@@ -543,5 +543,5 @@ export function observable<T>(value?: T | Promise<T>): Observable<T> {
 }
 
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
-    return createObservable(value, /*makePrimitive*/ true);
+    return createObservable<T>(value, /*makePrimitive*/ true);
 }

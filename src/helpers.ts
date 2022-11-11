@@ -23,16 +23,16 @@ export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>) {
 }
 
 export function getNode(obs: ObservableReadable): NodeValue {
-    return obs[symbolGetNode];
+    return (obs as any)[symbolGetNode];
 }
 
 export function getObservableIndex(obs: ObservableReadable): number {
     const node = getNode(obs);
-    return +node?.key;
+    return node.key ? +node.key : -1;
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
-    value[symbolOpaque] = true;
+    (value as OpaqueObject<T>)[symbolOpaque] = true;
     return value as OpaqueObject<T>;
 }
 
@@ -42,7 +42,7 @@ export function lockObservable(obs: ObservableReadable, value: boolean) {
         root.locked = value;
     }
 }
-export function mergeIntoObservable(target: ObservableObject | object, ...sources: any[]) {
+export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     if (!sources.length) return target;
 
     const source = sources.shift();
@@ -62,13 +62,15 @@ export function mergeIntoObservable(target: ObservableObject | object, ...source
             const sourceValue = source[key];
             if (isObject(sourceValue) && !isObjectEmpty(sourceValue)) {
                 if (!needsSet && (!targetValue[key] || !isObject(targetValue[key]))) {
-                    target[key] = {};
+                    (target as Record<string, any>)[key] = {};
                 }
-                mergeIntoObservable(target[key], sourceValue);
+                mergeIntoObservable((target as Record<string, any>)[key], sourceValue);
             } else if (sourceValue === symbolDelete) {
-                needsSet && target[key]?.delete ? target[key].delete() : delete target[key];
+                needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
             } else {
-                needsSet && target[key]?.set ? target[key].set(sourceValue) : (target[key] = sourceValue);
+                needsSet && target[key]?.set
+                    ? target[key].set(sourceValue)
+                    : ((target as Record<string, any>)[key] = sourceValue);
             }
         }
     } else if (needsSet && !(isTargetObj && source === undefined)) {

@@ -11,7 +11,7 @@ export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T
 
     // Lazily activate the observable when get is called
     getNode(obs).root.activate = () => {
-        const set = function (val) {
+        const set = function (val: any) {
             // Update the computed value
             lockObservable(obs, false);
             obs.set(val);
