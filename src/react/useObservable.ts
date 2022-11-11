@@ -2,7 +2,7 @@ import { isFunction, observable, Observable } from '@legendapp/state';
 import { useMemo } from 'react';
 
 /**
- * A React hook that creates a new observable and can optionally listen or persist its state.
+ * A React hook that creates a new observable
  *
  * @param initialValue The initial value of the observable or a function that returns the initial value
  *
