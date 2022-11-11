@@ -3,15 +3,15 @@ import type { NodeValue, TrackingNode, TrackingType } from './observableInterfac
 interface TrackingState {
     nodes?: Map<number, TrackingNode>;
     traceListeners?: (nodes: Map<number, TrackingNode>) => void;
-    traceUpdates?: (fn: () => void) => () => void;
+    traceUpdates?: (fn: Function) => Function;
 }
 let lastNode: NodeValue;
 
 let trackCount = 0;
-const trackingQueue: TrackingState[] = [];
+const trackingQueue: (TrackingState | undefined)[] = [];
 
 export const tracking = {
-    current: undefined as TrackingState,
+    current: undefined as TrackingState | undefined,
     inRemoteChange: false,
 };
 
@@ -38,17 +38,19 @@ export function endTracking() {
 export function updateTracking(node: NodeValue, track?: TrackingType) {
     if (trackCount) {
         const tracker = tracking.current;
-        if (!tracker.nodes) {
-            tracker.nodes = new Map();
-        }
+        if (tracker) {
+            if (!tracker.nodes) {
+                tracker.nodes = new Map();
+            }
 
-        lastNode = node;
-        const existing = tracker.nodes.get(node.id);
-        if (existing) {
-            existing.track = existing.track || track;
-            existing.num++;
-        } else {
-            tracker.nodes.set(node.id, { node, track, num: 1 });
+            lastNode = node;
+            const existing = tracker.nodes.get(node.id);
+            if (existing) {
+                existing.track = existing.track || track;
+                existing.num++;
+            } else {
+                tracker.nodes.set(node.id, { node, track, num: 1 });
+            }
         }
     }
 }

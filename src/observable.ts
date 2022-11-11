@@ -121,7 +121,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         for (let i = 0; i < prevValue.length; i++) {
                             const p = prevValue[i];
                             if (p) {
-                                prevChildrenById.set(p[idField], parent.children.get(i));
+                                const child = parent.children.get(i);
+                                if (child) {
+                                    prevChildrenById.set(p[idField], child);
+                                }
                             }
                         }
                     }
@@ -181,9 +184,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         // it's in a new position.
                         if (isArrDiff) {
                             child = prevChild;
-                            parent.children.delete(child.key);
+                            parent.children!.delete(child.key);
                             child.key = key;
-                            moved.push([key, child]);
+                            moved!.push([key, child]);
                         }
 
                         didMove = true;
@@ -217,7 +220,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         if (moved) {
             for (let i = 0; i < moved.length; i++) {
                 const [key, child] = moved[i];
-                parent.children.set(key, child);
+                parent.children!.set(key, child);
             }
         }
 
@@ -289,13 +292,13 @@ const proxyHandler: ProxyHandler<any> = {
             if (isArray(value)) {
                 if (ArrayModifiers.has(p)) {
                     // Call the wrapped modifier function
-                    return (...args) => collectionSetter(node, value, p, ...args);
+                    return (...args: any[]) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
                     // Update that this node was accessed for observers
                     // Listen to the array shallowly
                     updateTracking(node, true);
-                    return function (cbOrig, thisArg) {
-                        function cb(_, index: number, array: any[]) {
+                    return function (cbOrig: any, thisArg: any) {
+                        function cb(_: any, index: number, array: any[]) {
                             return cbOrig(getProxy(node, index), index, array);
                         }
                         return value[p](cb, thisArg);

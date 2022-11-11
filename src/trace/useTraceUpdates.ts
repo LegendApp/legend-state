@@ -3,17 +3,17 @@ import { getNodePath } from './traceHelpers';
 
 export function useTraceUpdates(name?: string) {
     if (process.env.NODE_ENV === 'development' && tracking.current) {
-        tracking.current.traceUpdates = replaceUpdateFn.bind(this, name);
+        tracking.current.traceUpdates = replaceUpdateFn.bind(undefined, name);
     }
 }
 
-function replaceUpdateFn(name: string, updateFn: () => void) {
-    return onChange.bind(this, name, updateFn);
+function replaceUpdateFn(name: string | undefined, updateFn: Function) {
+    return onChange.bind(undefined, name, updateFn);
 }
 
 function onChange(
-    name: string,
-    updateFn: () => void,
+    name: string | undefined,
+    updateFn: Function,
     value: any,
     getPrevious: () => any,
     path: (string | number)[],

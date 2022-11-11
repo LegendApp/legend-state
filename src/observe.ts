@@ -3,8 +3,8 @@ import { ObserveEvent, TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { beginTracking, endTracking, tracking } from './tracking';
 
-function setupTracking(nodes: Map<number, TrackingNode>, update: () => void, noArgs?: boolean) {
-    let listeners = [];
+function setupTracking(nodes: Map<number, TrackingNode> | undefined, update: () => void, noArgs?: boolean) {
+    let listeners: (() => void)[] | undefined = [];
     // Listen to tracked nodes
     if (nodes) {
         for (let tracked of nodes.values()) {
@@ -53,19 +53,21 @@ export function observe<T>(run: (e: ObserveEvent<T>) => T | void) {
             const tracker = tracking.current;
             // Do tracing if it was requested
             let noArgs = true;
-            if (process.env.NODE_ENV === 'development') {
-                tracker.traceListeners?.(tracker.nodes);
-                if (tracker.traceUpdates) {
-                    noArgs = false;
-                    update = tracker.traceUpdates(update);
+            if (tracker) {
+                if (process.env.NODE_ENV === 'development' && tracker.nodes) {
+                    tracker.traceListeners?.(tracker.nodes);
+                    if (tracker.traceUpdates) {
+                        noArgs = false;
+                        update = tracker.traceUpdates(update) as () => void;
+                    }
+                    // Clear tracing
+                    tracker.traceListeners = undefined;
+                    tracker.traceUpdates = undefined;
                 }
-                // Clear tracing
-                tracker.traceListeners = undefined;
-                tracker.traceUpdates = undefined;
-            }
 
-            // Setup tracking with the nodes that were accessed
-            dispose = setupTracking(tracker.nodes, update, noArgs);
+                // Setup tracking with the nodes that were accessed
+                dispose = setupTracking(tracker.nodes, update, noArgs);
+            }
         }
 
         endTracking();

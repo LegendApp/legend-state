@@ -327,8 +327,8 @@ export type NodeValue = RootNodeValue | ChildNodeValue;
 /** @internal */
 export interface TrackingNode {
     node: NodeValue;
-    track?: TrackingType;
-    num?: number;
+    track: TrackingType;
+    num: number;
 }
 export interface ObserveEvent<T> {
     num: number;
