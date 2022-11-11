@@ -1,3 +1,35 @@
+## 0.21.13
+
+- Feat: Added a `usePersistedObservable` hook
+- Feat: Added an optional second parameter to observe for an untracked callback function
+- Feat: Added helpers: `pageHash` and `pageHashParams` (replaces `useHash`)
+- Fix: `useObservableQuery` was sometimes not working because it was not loading the correct Context
+- Types: Improved types for strict mode
+
+## 0.21.12
+
+- Feat: For remote persistence plugins: Add options to disable local or remote sync, support loading remote even if there's no local
+
+## 0.21.11
+
+- Feat: Added useObservableQuery hook
+- Feat: Added local persistence options, starting with mmkv configuration
+- Change: Removed persist option from useObservable. It was a bad idea - it imported the whole /persist export. A better solution will come in an update soon.
+
+## 0.21.10
+
+- Fix: `createObservableHook` was not working with initialState as a function
+- Perf: Reduce number of renders by not notifying if setting with an unchanged object or array
+
+## 0.21.9
+
+- Fix: A circular import warning in the react export
+
+## 0.21.8
+
+- Fix: `useSelector` was not cleaning up when components when components re-rendered from a source other than observables
+- Types: Improved types for strict mode https://github.com/LegendApp/legend-state/pull/56
+
 ## 0.21.7
 
 - Feat: Added another way to use the `Switch` component, with multiple `Show` children, that renders the first `Show` that matches
