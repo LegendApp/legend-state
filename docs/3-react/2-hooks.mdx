@@ -29,7 +29,7 @@ function Component() {
 
 ### Using with Context
 
-You may prefer passing state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from child component. The observable itself is a stable object so changing the data inside the observable will not cause a re-render like Context normally does.
+You may prefer passing state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from child component. The observable itself is a stable object so changing the value of an observable will not cause a re-render.
 
 ```jsx
 import { useObservable } from "@legendapp/state/react"
@@ -88,7 +88,7 @@ function Component() {
 
 `useObserve` creates an [observe](../reactivity#observe) which you can use to take actions when observables change. This is like `useEffect` for observables which runs only when observables change and not because of rendering.
 
-`useObserve` has an optional second callback parameter which will run after the selector. This can be useful for observing an `event` or a single `observable`.
+Like `observe`, `useObserve` has an optional second callback parameter which will run after the selector, and does not track changes. This can be useful for observing an `event` or a single `observable`.
 
 ```jsx
 import { useObserve, event } from "@legendapp/state"

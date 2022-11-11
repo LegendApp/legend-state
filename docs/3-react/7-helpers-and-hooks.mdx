@@ -1,0 +1,302 @@
+Legend-State includes some helpful observables and hooks for common tasks. These are available at their own import paths so they don't increase the size of your bundle unless you use them.
+
+## Helper observables
+
+
+
+### observableFetch
+
+`observableFetch` creates an observable from the results of a `fetch` call, populating these values through the lifecycle of the `fetch`.
+
+```ts
+{
+    loading: boolean;
+    data?: T;
+    error?: any;
+    errorStr?: string;
+}
+```
+
+You can use it just like you would use fetch:
+
+```js
+import { observableFetch } from "@legendapp/state/helpers/fetch"
+
+const obsData = observableFetch(url)
+
+observe(() => {
+    const { loading, data, error, errorStr } = obsData.get()
+    if (loading) console.log('Loading...')
+    else if (error) console.log('Error: ', errorStr)
+    else console.log('Data:', data)
+})
+```
+
+See also [useFetch](#useFetch) for the React hook version.
+
+### currentDate
+
+`currentDate` is an observable containing the current date (with no time) that changes automatically at midnight.
+
+```js
+import { currentDate } from "@legendapp/state/helpers/time"
+
+observe(() => {
+    console.log('Today is': currentDate.get())
+})
+```
+
+### currentTime
+
+`currentTime` is an observable containing the current time that changes automatically every minute.
+
+```js
+import { currentTime } from "@legendapp/state/helpers/time"
+
+observe(() => {
+    console.log('The time is is': currentTime.get())
+})
+```
+
+### pageHash (web)
+
+`pageHash` is an observable that updates with the page hash, and changes the page hash when the observable is changed. Use `configurePageHash` to control how it sets the page hash, with `pushState | replaceState | location.hash`
+
+```jsx
+import { pageHash, configurePageHash } from '@legendapp/state/helpers/pageHash'
+
+configurePageHash({ setter: 'pushState' })
+
+observe(() => {
+    console.log('hash changed to': pageHash.get())
+})
+
+pageHash.set('value=test')
+// location.hash == "#value=test"
+```
+
+### pageHashParams (web)
+
+`pageHashParams` is an observable that updates with the page hash, and changes the page hash when the observable is changed. Use `configurePageHashParams` to control how it sets the page hash, with `pushState | replaceState | location.hash`
+
+```jsx
+import { pageHashParams, configurePageHash } from '@legendapp/state/helpers/pageHashParams'
+
+observe(() => {
+    console.log('userid param changed to': pageHashParams.userid.get())
+})
+
+pageHashParams.userid.set('newuser')
+// location.hash == "#userid=newuser"
+```
+
+## Hooks
+
+### useFetch
+
+`useFetch` returns an [observableFetch](#observablefetch) populated with the results of a fetch call.
+
+This example uses a [Switch](../fine-grained-reactivity#switch) to render the first `Show` component whose `if` has a value, but you can just use `get()` as you would with any other observable.
+
+```jsx
+import { Show, Switch } from "@legendapp/state/react"
+import { useFetch } from "@legendapp/state/react-hooks/useFetch"
+
+function Component() {
+    const obsData = useFetch(url)
+
+    return (
+        <Switch>
+            <Show if={obsData.data}>{obsData.data.text}</Show>
+            <Show if={obsData.errorStr}>{obsData.errorStr}</Show>
+            <Show if={obsData.loading}>
+                <div>Loading...</div>
+            </Show>
+        </Switch>
+    )
+}
+```
+
+### useHover (web)
+
+`useHover` returns an observable whose value is `true | false` based on whether the target element is hovered. This can be useful for using fine-grained reactivity features to update without re-rendering the component, or to pass the observable around to other components for them to consume it.
+
+```jsx
+import { Show } from "@legendapp/state/react"
+import { useHover } from "@legendapp/state/react-hooks/useHover"
+import { useRef } from "react"
+
+function ButtonWithTooltip() {
+    const refButton = useRef()
+    const isHovered = useHover(refButton)
+
+    return (
+        <div>
+            <button ref={refButton}>Click me</button>
+            <Show if={isHovered}>
+                {() => <Tooltip text="Tooltip!" target={refButton} />}
+            </Show>
+        </div>
+    )
+}
+```
+
+### useIsMounted
+
+`useIsMounted` returns an observable whose value is `true | false` based on whether the component is mounted. This can be useful in delayed or asynchronous functions to make sure it's running an a component that's still mounted.
+
+```jsx
+import { useIsMounted } from "@legendapp/state/react-hooks/useIsMounted"
+
+function Component() {
+    const isMounted = useIsMounted()
+
+    const onClick = () => {
+        setTimeout(() => {
+            if (isMounted.get()) {
+                console.log('Debounced click')
+            }
+        }, 100)
+    }
+
+    return (
+        <button onClick={onClick}>Click me</button>
+    )
+}
+```
+
+### useMeasure (web)
+
+`useMeasure` returns an observable whose value is the size (`{ width: number, height: number }`) of the target element. It starts with undefined values that get set after initial mount, and whenever the element resizes.
+
+```jsx
+import { useMeasure } from "@legendapp/state/react-hooks/useMeasure"
+import { useRef } from "react"
+
+function Component() {
+    const ref = useRef()
+    const { width, height } = useMeasure(ref)
+
+    return (
+        <div ref={ref}>
+            Width: {width}, Height: {height}
+        </div>
+    )
+}
+```
+
+One example of where this could be useful is to drive animations. This example measures the size of an inner element to animate a bottom sheet from the bottom to its height. It uses [framer-motion](https://www.framer.com/motion) and [reactive](../reactive-props#make-your-own) to be able to drive animations with observable values.
+
+```jsx
+import { reactive } from "@legendapp/state/react"
+import { useMeasure } from "@legendapp/state/react-hooks/useMeasure"
+import { motion } from "framer-motion"
+import { useRef } from "react"
+
+const MotionDiv$ = reactive(motion.div);
+
+function BottomSheet({ children }) {
+    const refInner = useRef()
+    const { width, height } = useMeasure(refInner)
+
+    return (
+        <MotionDiv$
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}
+            animate$={() => ({ y: -height.get() })}
+        >
+            <div ref={refInner}>
+                {children}
+            </div>
+        </MotionDiv$>
+    )
+}
+```
+
+### useObservableQuery
+
+`useObservableQuery` is an observable wrapper around [TanStack Query](https://tanstack.com/query/v4/?from=reactQueryV3&original=https://react-query-v3.tanstack.com/), which is used in the exact same way as `useQuery` but it returns an observable and does not re-render on changes.
+
+```jsx
+import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
+
+function Component() {
+    const obs = useObservableQuery({
+        queryKey: ['key'],
+        queryFn: () => axios.get(url).then((res) => res.data)
+    });
+
+    const { isLoading, error, data, isFetching } = obs.get()
+
+    if (isLoading) return <div>Loading...</div>
+
+    if (error) return <div>An error has occurred: {error.message}</div>
+
+    return (
+        <div>
+            <h2>{data.name}</h2>
+            <div>{isFetching ? 'Updating...' : ''}</div>
+        </div>
+    )
+}
+```
+
+Additionally it can automatically mutate when the observable is changed. The second parameter takes the options you would pass to `useMutation`.
+
+```jsx
+import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
+
+function Component() {
+    const mutateResult = useObservable('')
+    const obs = useObservableQuery(
+        {
+            queryKey: ['mutatingData'],
+            queryFn: () => axios.get(url).then((res) => res.data.data)
+        },
+        {
+            mutationFn: (newData) =>
+                axios
+                    .post(url, newData)
+                    .then((res) => mutateResult.set(`Mutated: ${JSON.stringify(res, null, 4)}`))
+        }
+    )
+
+    const { isLoading, error, data, isFetching } = obs.get()
+
+    if (isLoading) return <div>Loading...</div>
+
+    if (error) return <div>An error has occurred: {error.message}</div>
+
+    return (
+        <div>
+            <h2>{data.email}</h2>
+            <div>{isFetching ? 'Updating...' : ''}</div>
+            <button onClick={() => obs.data.email.set('testemail')}>Change email</button>
+            <pre>{mutateResult.get()}</pre>
+        </div>
+    )
+}
+```
+
+See [CodeSandbox](https://codesandbox.io/s/legend-state-useobservablequery-0w1yil?file=/src/basic.tsx) for an interactive example.
+
+### usePersistedObservable
+
+`usePersistedObservable` returns an observable like [useObservable](../hooks/useObservable) with options to automatically persist it, the same as [persistObservable](../persistence).
+
+```jsx
+import { usePersistedObservable } from "@legendapp/state/react-hooks/usePersistedObservable"
+
+function Component() {
+    const state = usePersistedObservable({
+        title: 'Title',
+    }, {
+        local: 'storeName'
+    })
+
+    return (
+        <div>
+            <div>{state.title}</div>
+        </div>
+    )
+}
+```

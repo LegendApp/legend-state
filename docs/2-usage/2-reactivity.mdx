@@ -1,11 +1,4 @@
-Listening for changes is the core purpose of observables, so Legend-State provides many options. You can use these listening functions anywhere within an observable object.
-
-```js
-const obs = observable({ text: 'hi' })
-
-// Use onChange directly on the observable
-obs.text.onChange(() => ...)
-```
+Listening for changes is the core purpose of observables, so Legend-State provides many options.
 
 ## onChange
 
@@ -44,11 +37,13 @@ dispose()
 
 This can be useful to use multiple observables at once, for the benefit of cleanup effects, or if you just like it more than [onChange](#onchange) 😎.
 
-The callback param has some useful properties:
+The callback parameter has some useful properties:
 - `num`: How many times it's run. Use this to do something only the first time or not the first time.
 - `previous`: The previous value, which will be undefined on the first run and set to the return value
 - `cancel`: Set to `true` to not track the observables
 - `onCleanup`: A function to call before running the selector again
+
+`observe` has an optional second `reaction` parameter which will run after the selector, and does not track changes. This can be useful for observing an `event` or a single `observable`.
 
 ```js
 import { observe, observable } from "@legendapp/state"
@@ -62,7 +57,7 @@ const dispose = observe((e) => {
         state.toasts.push(toast)
 
         // Remove the toast when the observe is re-run, which will be when isOnline becomes true
-        e.cleanup = () => state.toasts.splice(state.toasts.indexOf(toast), 1)
+        e.onCleanup = () => state.toasts.splice(state.toasts.indexOf(toast), 1)
     }
 })
 
@@ -70,9 +65,22 @@ const dispose = observe((e) => {
 dispose()
 ```
 
+Or use the second parameter to run a reaction when a selector changes. It has an additional `value` parameter, which contains the value of the selector.
+
+```js
+// Observe the return value of a selector and observe all accessed observables
+observe(state.isOnline, (e) => {
+    console.log('Online status', e.value)
+})
+// Observe the return value of a selector and observe all accessed observables
+observe(() => state.isOnline.get() && state.user.get(), (e) => {
+    console.log('Signed in status', e.value)
+})
+```
+
 ## when
 
-`when` runs the given function when the predicate returns a truthy value, and automatically tracks the observables accessed while running the predicate so it will update whenever one of them changes. When the value becomes truthy it will call the function and dispose the listeners. If not given a function it will return a promise that resolves when the predicate returns a truthy value.
+`when` runs the given function **only once** when the predicate returns a truthy value, and automatically tracks the observables accessed while running the predicate so it will update whenever one of them changes. When the value becomes truthy it will call the function and dispose the listeners. If not given a function it will return a promise that resolves when the predicate returns a truthy value.
 
 The predicate can either be an observable or a function.
 
