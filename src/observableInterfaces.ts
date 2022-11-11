@@ -342,4 +342,5 @@ export interface ObserveEventCallback<T> {
     value?: T;
     cancel?: boolean;
     onCleanup?: () => void;
+    onCleanupReaction?: () => void;
 }

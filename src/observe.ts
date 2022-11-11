@@ -35,7 +35,6 @@ export function observe<T>(
     const e: ObserveEventCallback<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
-        // @ts-ignore
         if (e.onCleanup) {
             e.onCleanup();
             e.onCleanup = undefined;
@@ -78,6 +77,10 @@ export function observe<T>(
 
         endTracking();
 
+        if (e.onCleanupReaction) {
+            e.onCleanupReaction();
+            e.onCleanupReaction = undefined;
+        }
         if (reaction && (e.num > 0 || !(selectorOrRun as any)[symbolIsEvent]) && previous !== e.previous) {
             e.value = e.previous;
             reaction(e);
@@ -92,5 +95,11 @@ export function observe<T>(
     update();
 
     // Return function calling dispose because dispose may be changed in update()
-    return () => dispose();
+    return () => {
+        e.onCleanup?.();
+        e.onCleanup = undefined;
+        e.onCleanupReaction?.();
+        e.onCleanupReaction = undefined;
+        dispose();
+    };
 }
