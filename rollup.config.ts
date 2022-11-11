@@ -4,7 +4,7 @@ import typescript from '@rollup/plugin-typescript';
 import fs from 'node:fs';
 import path from 'node:path';
 // @ts-ignore
-import pkg from './package.json';
+import pkg from './package.json' assert { type: 'json' };
 
 export default Object.keys(pkg.exports)
     .filter((exp) => exp !== './types')
@@ -71,7 +71,7 @@ export default Object.keys(pkg.exports)
 
         if (exp.endsWith('/*')) {
             const expPath = exp.replace('/*', '');
-            const files = fs.readdirSync(path.join(__dirname, 'src', expPath));
+            const files = fs.readdirSync(path.join('src', expPath));
             const mapped = files.map((file) =>
                 create(
                     path.join('./src', expPath, file.replace(/\.ts$/, '')),
