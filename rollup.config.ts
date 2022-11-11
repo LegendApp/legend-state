@@ -17,6 +17,8 @@ export default Object.keys(pkg.exports)
             'react',
             'react-native',
             'react-native-mmkv',
+            '@tanstack/react-query',
+            '@tanstack/query-core',
             '@legendapp/state',
             '@legendapp/state/persist',
             '@legendapp/state/react',

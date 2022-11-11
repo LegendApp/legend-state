@@ -31,6 +31,12 @@
             "react-native": [
                 "node_modules/react-native"
             ],
+            "react-native-mmkv": [
+                "node_modules/react-native-mmkv"
+            ],
+            "@tanstack/react-query": [
+                "node_modules/@tanstack/react-query"
+            ],
             "@legendapp/state": [
                 "index"
             ],
