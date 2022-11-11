@@ -1,5 +1,7 @@
 import { beginBatch, endBatch } from './batching';
-import { ObserveEvent, TrackingNode } from './observableInterfaces';
+import { symbolIsEvent } from './globals';
+import { computeSelector } from './helpers';
+import { ObserveEvent, ObserveEventCallback, Selector, TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { beginTracking, endTracking, tracking } from './tracking';
 
@@ -23,9 +25,14 @@ function setupTracking(nodes: Map<number, TrackingNode> | undefined, update: () 
     };
 }
 
-export function observe<T>(run: (e: ObserveEvent<T>) => T | void) {
+export function observe<T>(run: (e: ObserveEvent<T>) => T | void);
+export function observe<T>(selector: Selector<T>, reaction: (e: ObserveEventCallback<T>) => T | void);
+export function observe<T>(
+    selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => T | void),
+    reaction?: (e: ObserveEventCallback<T>) => T | void
+) {
     let dispose: () => void;
-    const e: ObserveEvent<T> = { num: 0 };
+    const e: ObserveEventCallback<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
     let update = function () {
         // @ts-ignore
@@ -43,11 +50,10 @@ export function observe<T>(run: (e: ObserveEvent<T>) => T | void) {
         // Begin tracking observables accessed while running
         beginTracking();
 
-        // Run the function
-        e.previous = run(e);
-
-        // Increment the counter
-        e.num++;
+        // Run the function/selector
+        delete e.value;
+        const previous = e.previous;
+        e.previous = computeSelector(selectorOrRun, e);
 
         if (!e.cancel) {
             const tracker = tracking.current;
@@ -71,6 +77,14 @@ export function observe<T>(run: (e: ObserveEvent<T>) => T | void) {
         }
 
         endTracking();
+
+        if (reaction && (e.num > 0 || !selectorOrRun[symbolIsEvent]) && previous !== e.previous) {
+            e.value = e.previous;
+            reaction(e);
+        }
+
+        // Increment the counter
+        e.num++;
 
         endBatch();
     };

@@ -5,6 +5,7 @@ import { symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
 import { observable } from '../src/observable';
 import { ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { observe } from '../src/observe';
 import { when } from '../src/when';
 
 function promiseTimeout(time?: number) {
@@ -2031,5 +2032,46 @@ describe('Opaque object', () => {
         const handler = expectChangeHandler(obs);
         obs.test.opaque.value.subvalue = false;
         expect(handler).not.toHaveBeenCalled();
+    });
+});
+describe('Observe', () => {
+    test('Observe basic', () => {
+        const obs = observable(0);
+        let count = 0;
+        observe(() => (count = obs.get()));
+        obs.set(1);
+        expect(count).toEqual(1);
+        obs.set(2);
+        expect(count).toEqual(2);
+    });
+    test('Observe with reaction', () => {
+        const obs = observable(0);
+        let count = 0;
+        observe<number>(
+            () => obs.get(),
+            (e) => (count = e.value)
+        );
+        obs.set(1);
+        expect(count).toEqual(1);
+        obs.set(2);
+        expect(count).toEqual(2);
+    });
+    test('Observe with reaction does not track', () => {
+        const obs = observable(0);
+        const obsOther = observable(0);
+        let count = 0;
+        let callCount = 0;
+        observe<number>(
+            () => obs.get(),
+            (e) => {
+                callCount++;
+                count = e.value;
+                obsOther.get();
+            }
+        );
+        obs.set(1);
+        expect(count).toEqual(1);
+        obsOther.set(1);
+        expect(count).toEqual(1);
     });
 });

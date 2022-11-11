@@ -332,14 +332,14 @@ export interface TrackingNode {
 }
 export interface ObserveEvent<T> {
     num: number;
-    previous?: T | void;
+    previous?: T | undefined;
     cancel?: boolean;
     onCleanup?: () => void;
 }
 export interface ObserveEventCallback<T> {
     num: number;
-    previous?: T | void;
-    value?: T | void;
+    previous?: T | undefined;
+    value?: T;
     cancel?: boolean;
     onCleanup?: () => void;
 }
