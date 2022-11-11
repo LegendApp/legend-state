@@ -25,8 +25,8 @@ function setupTracking(nodes: Map<number, TrackingNode> | undefined, update: () 
     };
 }
 
-export function observe<T>(run: (e: ObserveEvent<T>) => T | void);
-export function observe<T>(selector: Selector<T>, reaction: (e: ObserveEventCallback<T>) => T | void);
+export function observe<T>(run: (e: ObserveEvent<T>) => T | void): () => void;
+export function observe<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): () => void;
 export function observe<T>(
     selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => T | void),
     reaction?: (e: ObserveEventCallback<T>) => T | void
@@ -78,7 +78,7 @@ export function observe<T>(
 
         endTracking();
 
-        if (reaction && (e.num > 0 || !selectorOrRun[symbolIsEvent]) && previous !== e.previous) {
+        if (reaction && (e.num > 0 || !(selectorOrRun as any)[symbolIsEvent]) && previous !== e.previous) {
             e.value = e.previous;
             reaction(e);
         }

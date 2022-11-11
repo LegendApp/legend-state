@@ -11,7 +11,7 @@ export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (()
 
         if (ret) {
             // If value is truthy then run the effect
-            effect(ret);
+            effect!(ret);
 
             // Set cancel so that observe does not track
             e.cancel = true;
