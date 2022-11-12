@@ -8,7 +8,7 @@ export function Computed({ children }: { children: () => ReactNode }): ReactElem
     return useSelector(children, { shouldRender: true }) as ReactElement;
 }
 
-export const Memo = memo(
+export const Memo = /*#__PURE__*/ memo(
     function Memo({ children }: { children: () => ReactNode }): ReactElement {
         return useSelector(children, { shouldRender: true }) as ReactElement;
     },

@@ -11,12 +11,13 @@ export type ShapeWith$<T> = Partial<T> & {
 export type BindKeys<P = any> = Record<keyof P, { handler?: keyof P; getValue: (e) => any; defaultValue?: any }>;
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
-const hasSymbol = typeof Symbol === 'function' && Symbol.for;
-const ReactForwardRefSymbol = hasSymbol
-    ? Symbol.for('react.forward_ref')
-    : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
+export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
 function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive?: boolean, bindKeys?: BindKeys<P>) {
+    const ReactForwardRefSymbol = hasSymbol
+        ? Symbol.for('react.forward_ref')
+        : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
+
     // If this component is already reactive bail out early
     // This can happen with Fast Refresh.
     if (component['__legend_proxied']) return component;

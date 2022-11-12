@@ -1,6 +1,7 @@
 import { extraPrimitiveProps, getNode, ObservablePrimitiveClass, ObservableReadable } from '@legendapp/state';
 import { createElement, memo } from 'react';
 import { useSelector } from './useSelector';
+import { hasSymbol } from './reactive-observer';
 let isEnabled = false;
 
 export function enableLegendStateReact() {
@@ -22,7 +23,6 @@ export function enableLegendStateReact() {
             return value;
         });
 
-        const hasSymbol = typeof Symbol === 'function' && Symbol.for;
         const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
 
         const s = extraPrimitiveProps;

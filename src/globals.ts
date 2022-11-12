@@ -1,13 +1,13 @@
-import { isObject, isString, isChildNodeValue } from './is';
+import { isChildNodeValue, isObject, isString } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
-export const symbolDateModified = Symbol('dateModified');
+export const symbolDateModified = /* @__PURE__ */ Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolUndef = Symbol('undef');
-export const symbolDelete = Symbol('delete');
+export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 
 export const extraPrimitiveActivators = new Map<string | Symbol, boolean>([
@@ -125,13 +125,5 @@ export type IDKey = 'id' | '_id' | '__id';
 export type IDValue = string | number;
 
 export function findIDKey(obj: unknown | undefined): IDKey | undefined {
-    return isObject(obj)
-        ? 'id' in obj
-            ? 'id'
-            : '_id' in obj
-                ? '_id'
-                : '__id' in obj
-                    ? '__id'
-                    : undefined
-        : undefined;
+    return isObject(obj) ? ('id' in obj ? 'id' : '_id' in obj ? '_id' : '__id' in obj ? '__id' : undefined) : undefined;
 }
