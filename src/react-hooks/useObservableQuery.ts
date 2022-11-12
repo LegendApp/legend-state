@@ -3,8 +3,7 @@
 // 2. Return an observable that subscribes to the query observer
 // 3. If there is a mutator observe the observable for changes and call mutate
 
-import { observable, Observable, observe } from '@legendapp/state';
-import { useUnmount } from '@legendapp/state/react';
+import { observable, observe } from '@legendapp/state';
 import {
     DefaultedQueryObserverOptions,
     notifyManager,
@@ -162,8 +161,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
         mutator = useMutation(mutationOptions) as UseMutationResult;
     }
 
-    const refObs = React.useRef<{ obs: Observable; unsubscribe: () => void }>();
-    if (!refObs.current) {
+    const [obs] = React.useState(() => {
         const obs = observable<any>(observer.getCurrentResult());
 
         let isSetting = false;
@@ -179,7 +177,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
             });
         }
 
-        const unsubscribe = observer.subscribe((result) => {
+        observer.subscribe((result) => {
             isSetting = true;
 
             try {
@@ -191,15 +189,9 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
             }
         });
 
-        refObs.current = { obs, unsubscribe };
-    }
-
-    // Unsubscribe from the query observer on unmount
-    useUnmount(() => {
-        refObs.current?.unsubscribe();
-        refObs.current = undefined;
+        return obs;
     });
 
     // Return the observable
-    return refObs.current.obs;
+    return obs;
 }
