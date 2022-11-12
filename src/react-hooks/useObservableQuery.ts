@@ -3,12 +3,13 @@
 // 2. Return an observable that subscribes to the query observer
 // 3. If there is a mutator observe the observable for changes and call mutate
 
-import { observable, observe } from '@legendapp/state';
+import { observable, Observable, observe } from '@legendapp/state';
 import { useUnmount } from '@legendapp/state/react';
 import {
     DefaultedQueryObserverOptions,
     notifyManager,
     Query,
+    QueryClient,
     QueryKey,
     QueryObserver,
     QueryObserverResult,
@@ -76,11 +77,11 @@ const getHasError = <TData, TError, TQueryFnData, TQueryData, TQueryKey extends 
 };
 
 export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey, TContext>(
-    options: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
+    options: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> & { queryClient?: QueryClient },
     mutationOptions?: UseMutationOptions<TData, TError, void, TContext>
 ) {
     const Observer = QueryObserver;
-    const queryClient = useQueryClient({ context: options.context });
+    const queryClient = options?.queryClient || useQueryClient({ context: options.context });
     const isRestoring = useIsRestoring();
     const errorResetBoundary = useQueryErrorResetBoundary();
     const defaultedOptions = queryClient.defaultQueryOptions(options);
@@ -161,7 +162,8 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
         mutator = useMutation(mutationOptions) as UseMutationResult;
     }
 
-    const [{ obs, unsubscribe }] = React.useState(() => {
+    const refObs = React.useRef<{ obs: Observable; unsubscribe: () => void }>();
+    if (!refObs.current) {
         const obs = observable<any>(observer.getCurrentResult());
 
         let isSetting = false;
@@ -189,12 +191,15 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
             }
         });
 
-        return { obs, unsubscribe };
-    });
+        refObs.current = { obs, unsubscribe };
+    }
 
     // Unsubscribe from the query observer on unmount
-    useUnmount(unsubscribe);
+    useUnmount(() => {
+        refObs.current?.unsubscribe();
+        refObs.current = undefined;
+    });
 
     // Return the observable
-    return obs;
+    return refObs.current.obs;
 }
