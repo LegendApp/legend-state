@@ -161,7 +161,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
         mutator = useMutation(mutationOptions) as UseMutationResult;
     }
 
-    const { obs, unsubscribe } = React.useMemo(() => {
+    const [{ obs, unsubscribe }] = React.useState(() => {
         const obs = observable<any>(observer.getCurrentResult());
 
         let isSetting = false;
@@ -190,7 +190,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
         });
 
         return { obs, unsubscribe };
-    }, []);
+    });
 
     // Unsubscribe from the query observer on unmount
     useUnmount(unsubscribe);
