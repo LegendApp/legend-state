@@ -6,6 +6,7 @@
 import { observable, observe } from '@legendapp/state';
 import {
     DefaultedQueryObserverOptions,
+    MutationObserver,
     notifyManager,
     Query,
     QueryClient,
@@ -17,9 +18,7 @@ import {
 import {
     UseBaseQueryOptions,
     useIsRestoring,
-    useMutation,
     UseMutationOptions,
-    UseMutationResult,
     useQueryClient,
     useQueryErrorResetBoundary,
 } from '@tanstack/react-query';
@@ -155,10 +154,10 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
     }
 
     // Legend-State changes from here down
-    let mutator: UseMutationResult;
+    let mutator: MutationObserver;
     if (mutationOptions) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        mutator = useMutation(mutationOptions) as UseMutationResult;
+        [mutator] = React.useState(() => new MutationObserver(queryClient, mutationOptions));
     }
 
     const [obs] = React.useState(() => {
@@ -167,7 +166,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
         let isSetting = false;
 
         // If there is a mutator watch for changes as long as they don't come from the the query observer
-        if (mutator) {
+        if (mutationOptions) {
             observe(() => {
                 const data = obs.data.get();
                 // Don't want to call mutate if there's no data or this coming from the query changing
