@@ -28,7 +28,8 @@ export function getNode(obs: ObservableReadable): NodeValue {
 
 export function getObservableIndex(obs: ObservableReadable): number {
     const node = getNode(obs);
-    return node.key ? +node.key : -1;
+    const n = +node.key as number;
+    return n - n < 1 ? +n : -1;
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
