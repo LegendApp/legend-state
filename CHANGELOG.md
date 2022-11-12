@@ -1,3 +1,20 @@
+## 0.21.17
+
+- Fix: `useObservableQuery` was causing re-renders when using mutation
+
+## 0.21.16
+
+- Fix: `useObservableQuery` still not working right in StrictMode
+
+## 0.21.15
+
+- Fix: `useObservableQuery` not working in StrictMode
+
+## 0.21.14
+
+- Feat: Added `useObserveEffect`
+- Fix: Added useReducer overriding to `createObservableHook`
+
 ## 0.21.13
 
 - Feat: Added a `usePersistedObservable` hook
