@@ -68,3 +68,15 @@ state.profile.name.set('Annyong')
     }
 }
 ```
+
+## opaqueObject
+
+`opaqueObject` marks an object in an observable as opaque so that it will be treated as a primitive, so that properties inside the opaque object will not be observable.
+
+This is useful for storing DOM or React elements or other large objects in an observable when you don't care about tracking its properties changing.
+
+```js
+import { observable. opaqueObject } from '@legendapp/state'
+
+const obs = observable({ text: 'hi', body: opaqueObject(document.body) })
+```

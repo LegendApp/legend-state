@@ -1,0 +1,265 @@
+The examples on this page use [Tailwind CSS](https://tailwindcss.com) for styling and [Framer Motion](https://www.framer.com/motion) for animations.
+
+## Auto-saving Form
+
+This example uses the [useObservableQuery](../helpers-and-hooks#useobservablequery) hook to create an observable using [TanStack Query](https://tanstack.com/query/) that automatically sends mutations back to the server whenever the observable changes.
+
+It then uses the `Legend` [two-way binding components](../reactive-props#react) to bind those observable directly to the inputs.
+
+So in effect this binds the inputs directly to your server data.
+
+<Sandbox height={680} width={70} options={{ showTabs: true }} deps={{ '@tanstack/react-query': '4.15.0', 'axios': '1.1.3' }} files={{
+    '/debounce.js': `
+let timeout = 0
+export function debounce(fn, time) {
+    clearTimeout(timeout)
+    timeout = setTimeout(fn, time)
+}
+`,
+'/App.js': `
+import axios from 'axios'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { enableLegendStateReact, useObservable } from '@legendapp/state/react'
+import { Legend } from "@legendapp/state/react-components"
+import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
+import { debounce } from './debounce'
+
+enableLegendStateReact()
+
+const queryClient = new QueryClient()
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Example />
+    </QueryClientProvider>
+  )
+}
+
+function Example() {
+    const { data } = useObservableQuery(
+        {
+            queryKey: ["data"],
+            queryFn: () =>
+                axios.get("https://reqres.in/api/users/1")
+                    .then((res) => res.data.data),
+        },
+        {
+            mutationFn: (newData) => {
+                // Uncomment to actually save
+                /*
+                debounce(() => {
+                    axios
+                        .post("https://reqres.in/api/users/1", newData)
+                        .then((res) =>
+                            lastSaved.set(Date.now())
+                        )
+                }, 1000)
+                */
+                lastSaved.set(Date.now())
+            }
+        }
+    )
+    const lastSaved = useObservable(0)
+
+    return (
+        <div className="p-4">
+            <div>Name:</div>
+            <Legend.input
+                className={classNameInput}
+                value$={data.first_name}
+            />
+            <div>Email:</div>
+            <Legend.input
+                className={classNameInput}
+                value$={data.email}
+            />
+            <div>
+                Last saved: {lastSaved}
+            </div>
+        </div>
+    )
+}
+
+const classNameInput = "border rounded border-gray-300 px-2 py-1 mt-2 mb-4"
+`}} />
+
+
+## Animations with reactive props
+
+This example uses [reactive](../reactive-props#make-your-own) to make a version of `motion.div` with [reactive props](../reactive-props) that can animate using observable values. Animating with reactive props is faster than re-rendering the whole component because when the tracked observable changes it triggers a render of only the `motion.div`, so it doesn't need to re-render the parent or children.
+
+This example also creates a [computed observable](../reactivity#computed) text value from the boolean and renders it directly in JSX, which (under the hood) creates a reactive text element that re-renders itself when it changes.
+
+<Sandbox height={580} width={75} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
+'/App.js': `
+import { observable } from '@legendapp/state'
+import { enableLegendStateReact, useComputed } from '@legendapp/state/react'
+import { Legend } from "@legendapp/state/react-components"
+import { useRef } from 'react'
+import { Toggle } from './Toggle'
+
+enableLegendStateReact()
+
+const settings = observable({ enabled: false })
+
+export default function App() {
+    const renderCount = ++useRef(0).current
+
+    // Computed text value
+    const text = useComputed(() =>
+        settings.enabled.get() ? 'Yes' : 'No'
+    )
+
+    return (
+        <div className="absolute inset-0 p-4">
+            <div className="text-gray-500 text-sm">
+                Renders: {renderCount}
+            </div>
+            <div className="pt-8 pb-4">
+                Enabled: {text}
+            </div>
+            <Toggle value={settings.enabled} />
+        </div>
+    )
+}
+`,
+'/Toggle.js': { active: true, code: `
+import { reactive } from '@legendapp/state/react'
+import { motion } from "framer-motion"
+
+const MotionDiv$ = reactive(motion.div)
+
+export function Toggle({ value }) {
+    return (
+        <MotionDiv$
+            className="border border-gray-200 rounded-full select-none"
+            animate$={() => ({
+                backgroundColor: value.get() ? '#6ACB6C' : '#C4D1E3'
+            })}
+            style={{ width: 64, height: 32 }}
+            onClick={value.toggle}
+        >
+            <MotionDiv$
+                className="bg-white rounded-full shadow"
+                style={{ width: 24, height: 24, marginTop: 3 }}
+                animate$={() => ({
+                    x: value.get() ? 32 : 6
+                })}
+            />
+        </MotionDiv$>
+    )
+}
+`}}} />
+
+## Show a modal with multiple pages
+
+This example uses [Show](../fine-grained-reactivity#show) to show/hide a modal based on an observable value, and [Switch](../fine-grained-reactivity#switch) to render the active page in the modal.
+
+<Sandbox height={680} width={64} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
+'/App.js': `
+import { observable } from '@legendapp/state'
+import { Show, useComputed, useObservable } from '@legendapp/state/react'
+import { Legend } from "@legendapp/state/react-components"
+import { AnimatePresence } from "framer-motion"
+import { useRef } from 'react'
+import { Modal } from './Modal'
+
+export default function App() {
+    const renderCount = ++useRef(0).current
+
+    const showModal = useObservable(false)
+
+    return (
+        <div className="absolute inset-0 p-4">
+            <div className="text-gray-500 text-sm pb-4">
+                Renders: {renderCount}
+            </div>
+            <button
+                className="bg-gray-300 rounded-lg px-4 py-2"
+                onClick={showModal.toggle}
+            >
+                Show modal
+            </button>
+            <Show if={showModal} wrap={AnimatePresence}>
+                {() => <Modal show={showModal} />}
+            </Show>
+        </div>
+    )
+}
+`,
+'/Modal.js': `
+import { reactive, useObservable, Switch } from '@legendapp/state/react'
+import { Legend } from '@legendapp/state/react-components'
+import { motion } from "framer-motion"
+import { useRef } from 'react'
+
+const MotionDiv$ = reactive(motion.div)
+const MotionButton$ = reactive(motion.button)
+
+const TransitionBounce = {
+    type: 'spring',
+    duration: 0.4,
+    bounce: 0.3,
+}
+
+export function Modal({ show }) {
+    const renderCount = ++useRef(0).current
+    const page = useObservable(0)
+
+    return (
+        <motion.div
+            className="absolute inset-0 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+        >
+            <div
+                className="absolute inset-0 bg-black/60"
+                onClick={() => show.set(false)}
+            />
+            <motion.div
+                className="relative bg-white rounded-xl flex flex-col p-4"
+                initial={{ opacity: 0, scale: 0.7, translateY: 40 }}
+                animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                exit={{ scale: 0.7, opacity: 0 }}
+                style={{ width: 240, height: 320 }}
+                transition={TransitionBounce}
+            >
+                <div className="text-gray-500 text-sm">
+                    Renders: {renderCount}
+                </div>
+                <div className="flex-1 flex justify-center items-center">
+                    <Switch value={page}>
+                        {{
+                            0: () => <div>First Page</div>,
+                            1: () => <div>Second Page</div>,
+                            2: () => <div>Third Page</div>
+                        }}
+                    </Switch>
+                </div>
+                <div className="flex justify-center gap-6">
+                    <MotionButton$
+                        className="bg-gray-300 rounded-lg px-6 py-2"
+                        animate={() => ({ opacity: page.get() === 0 ? 0.5 : 1 })}
+                        disabled$={() => page.get() === 0}
+                        onClick={() => page.set(p => p - 1)}
+                        transition={{ duration: 0.15 }}
+                    >
+                        Prev
+                    </MotionButton$>
+                    <MotionButton$
+                        className="bg-gray-300 rounded-lg px-6 py-2"
+                        animate={() => ({ opacity: page.get() === 2 ? 0.5 : 1 })}
+                        disabled$={() => page.get() === 2}
+                        onClick={() => page.set(p => p + 1)}
+                        transition={{ duration: 0.15 }}
+                    >
+                        Next
+                    </MotionButton$>
+                </div>
+            </motion.div>
+        </motion.div>
+    )
+}
+`}} />

@@ -177,6 +177,8 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
             });
         }
 
+        // Note: Don't need to worry about unsubscribing because the query observer itself
+        // is scoped to this component
         observer.subscribe((result) => {
             isSetting = true;
 

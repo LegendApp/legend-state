@@ -32,7 +32,7 @@ observe(() => {
 })
 ```
 
-See also [useFetch](#useFetch) for the React hook version.
+See also [useFetch](#usefetch) for the React hook version.
 
 ### currentDate
 
@@ -146,7 +146,7 @@ function ButtonWithTooltip() {
 `useIsMounted` returns an observable whose value is `true | false` based on whether the component is mounted. This can be useful in delayed or asynchronous functions to make sure it's running an a component that's still mounted.
 
 ```jsx
-import { useIsMounted } from "@legendapp/state/react-hooks/useIsMounted"
+import { useIsMounted } from "@legendapp/state/react/useIsMounted"
 
 function Component() {
     const isMounted = useIsMounted()
@@ -214,7 +214,7 @@ function BottomSheet({ children }) {
 
 ### useObservableQuery
 
-`useObservableQuery` is an observable wrapper around [TanStack Query](https://tanstack.com/query/v4/?from=reactQueryV3&original=https://react-query-v3.tanstack.com/), which is used in the exact same way as `useQuery` but it returns an observable and does not re-render on changes.
+`useObservableQuery` is an observable wrapper around [TanStack Query](https://tanstack.com/query/), which is used in the exact same way as `useQuery` but it returns an observable and does not re-render on changes.
 
 ```jsx
 import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
@@ -277,11 +277,11 @@ function Component() {
 }
 ```
 
-See [CodeSandbox](https://codesandbox.io/s/legend-state-useobservablequery-0w1yil?file=/src/basic.tsx) for an interactive example.
+See [an interactive CodeSandbox](https://codesandbox.io/s/legend-state-useobservablequery-0w1yil?file=/src/basic.tsx) for an example.
 
 ### usePersistedObservable
 
-`usePersistedObservable` returns an observable like [useObservable](../hooks/useObservable) with options to automatically persist it, the same as [persistObservable](../persistence).
+`usePersistedObservable` returns an observable like [useObservable](../hooks#useobservable) with options to automatically persist it, the same as [persistObservable](../persistence).
 
 ```jsx
 import { usePersistedObservable } from "@legendapp/state/react-hooks/usePersistedObservable"
@@ -300,3 +300,18 @@ function Component() {
     )
 }
 ```
+
+### createObservableHook
+
+`createObservableHook` is a helper to convert an existing hook to return an observable. It works by overriding `useState` and `useReducer` in the hopes of catching and converting them into observable sets. So it may work for some hooks and it may not. Please let us know on [GitHub](https://github.com/LegendApp/legend-state/issues) if it's not working for some hooks.
+
+```js
+
+import { createObservableHook } from "@legendapp/state/react-hooks/createObservableHook"
+
+const useMyHookObservable = createObservableHook(useMyHook)
+
+function Component() {
+    const obs = useMyHookObservable()
+    ...
+}

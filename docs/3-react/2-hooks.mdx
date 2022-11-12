@@ -93,7 +93,7 @@ Like `observe`, `useObserve` has an optional second callback parameter which wil
 ```jsx
 import { useObserve, event } from "@legendapp/state"
 import { useObserve } from "@legendapp/state/react"
-import { legend } from "@legendapp/state/react-components"
+import { Legend } from "@legendapp/state/react-components"
 
 const eventUpdateTitle = event()
 
@@ -120,11 +120,15 @@ function ProfilePage() {
     return (
         <div>
             <span>Name:</span>
-            <legend.input value$={profile.name} />
+            <Legend.input value$={profile.name} />
         </div>
     )
 }
 ```
+
+## useObserveEffect
+
+`useObserveEffect` is the same as [useObserve](#useObserve) except that it doesn't run until the component is mounted.
 
 ## useSelector
 
@@ -148,6 +152,24 @@ const Component = ({ id }) => {
 
     // Get the raw value of an observable and listen to it
     const theme = useSelector(state.theme)
+
+    ...
+}
+```
+
+## useObservableReducer
+
+`useObservableReducer` works the same way as `useReducer` but sets an observable rather than trigger a render.
+
+```jsx
+import { useObservableReducer } from "@legendapp/state/react"
+
+const Component = () => {
+    // Only re-renders if the return value changes
+    const isSelected = useObservableReducer()
+
+    // Get the value of the reducer
+    const theme = isSelected.get()
 
     ...
 }
