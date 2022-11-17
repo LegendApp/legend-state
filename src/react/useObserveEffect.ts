@@ -1,7 +1,12 @@
-import { ObservableReadable, observe, ObserveEvent, ObserveEventCallback, Selector, when } from '@legendapp/state';
-import { useRef } from 'react';
-import { useUnmount } from './lifecycle';
-import { useIsMounted } from './useIsMounted';
+import {
+    isFunction,
+    ObservableReadable,
+    observe,
+    ObserveEvent,
+    ObserveEventCallback,
+    Selector,
+} from '@legendapp/state';
+import { useEffect, useRef } from 'react';
 
 export function useObserveEffect<T>(
     selector: ObservableReadable<T>,
@@ -10,14 +15,21 @@ export function useObserveEffect<T>(
 export function useObserveEffect<T>(selector: (e: ObserveEvent<T>) => T | void): void;
 export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): void;
 export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): void {
-    const refDispose = useRef<() => void>();
-    const isMounted = useIsMounted();
+    const ref = useRef<{
+        selector: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
+        reaction?: (e: ObserveEventCallback<T>) => T | void;
+    }>({ selector });
+    ref.current = { selector, reaction };
 
-    refDispose.current?.();
-
-    when(isMounted, () => {
-        refDispose.current = observe(selector, reaction);
-    });
-
-    useUnmount(refDispose.current);
+    useEffect(
+        () =>
+            observe<T>(
+                ((e: ObserveEventCallback<T>) => {
+                    const { selector } = ref.current as { selector: (e: ObserveEvent<T>) => T | void };
+                    return isFunction(selector) ? selector(e) : selector;
+                }) as any,
+                (e) => ref.current.reaction?.(e)
+            ),
+        []
+    );
 }
