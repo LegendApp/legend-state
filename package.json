@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "0.21.17",
+    "version": "0.21.18-next.0",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
