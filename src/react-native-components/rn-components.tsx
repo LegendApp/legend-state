@@ -61,10 +61,10 @@ const Components = {
 export const Legend = new Proxy(
     {},
     {
-        get(target, p: string) {
+        get(target: Record<string, FC>, p: keyof typeof Components) {
             if (!target[p] && Components[p]) {
                 target[p] = reactive(
-                    Components[p],
+                    Components[p] as FC,
                     bindables[p] &&
                         ({
                             value: bindables[p],

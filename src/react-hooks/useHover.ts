@@ -2,14 +2,14 @@ import type { Observable } from '@legendapp/state';
 import { useObservable } from '@legendapp/state/react';
 import { useEffect } from 'react';
 
-export function useHover<T extends HTMLElement>(ref?: React.MutableRefObject<T>): Observable<boolean> {
+export function useHover<T extends HTMLElement>(ref: React.MutableRefObject<T>): Observable<boolean> {
     const obs = useObservable(false);
 
     useEffect(() => {
         const handleMouseOver = () => obs.set(true);
         const handleMouseOut = (e: MouseEvent) => {
             if (obs.peek() === true) {
-                let parent = (e as any).toElement as HTMLElement;
+                let parent = (e as any).toElement as HTMLElement | null;
                 let foundRef = false;
                 while (parent && !foundRef) {
                     if (parent === ref.current) {

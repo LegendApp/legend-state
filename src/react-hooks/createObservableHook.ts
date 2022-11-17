@@ -1,7 +1,7 @@
 import { isFunction, Observable, observable } from '@legendapp/state';
-import React, { MutableRefObject, ReducerState } from 'react';
+import React, { MutableRefObject, Reducer, ReducerState } from 'react';
 
-function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet>>) {
+function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefined>) {
     // @ts-ignore
     React.useState = function useState(initialState: TRet | (() => TRet)) {
         const obs =
@@ -22,7 +22,7 @@ function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet>>) {
                     ? initializer(initializerArg)
                     : initializerArg
             ) as Observable<TRet>);
-        const dispatch = (action) => {
+        const dispatch = (action: any) => {
             obs.set(reducer(obs.get(), action));
         };
         return [obs, dispatch];
@@ -48,6 +48,6 @@ export function createObservableHook<TArgs extends any[], TRet>(
         React.useState = _useState;
         React.useReducer = _useReducer;
 
-        return refObs.current;
+        return refObs.current as Observable<TRet>;
     };
 }

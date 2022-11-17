@@ -2,18 +2,23 @@ import { useObservable } from '@legendapp/state/react';
 import { RefObject, useLayoutEffect } from 'react';
 import type { ObservableObject } from '../observableInterfaces';
 
-function getSize(el: HTMLElement): { width: number; height: number } {
-    return {
-        width: el?.offsetWidth,
-        height: el?.offsetHeight,
-    };
+function getSize(el: HTMLElement): { width: number; height: number } | undefined {
+    return el
+        ? {
+              width: el.offsetWidth,
+              height: el.offsetHeight,
+          }
+        : undefined;
 }
 
 export function useMeasure(ref: RefObject<HTMLElement>): ObservableObject<{
-    width: number;
-    height: number;
+    width: number | undefined;
+    height: number | undefined;
 }> {
-    const obs = useObservable({ width: undefined, height: undefined });
+    const obs = useObservable<{ width: number | undefined; height: number | undefined }>({
+        width: undefined,
+        height: undefined,
+    });
 
     useLayoutEffect(() => {
         const el = ref.current;
@@ -34,7 +39,7 @@ export function useMeasure(ref: RefObject<HTMLElement>): ObservableObject<{
 
             return () => {
                 resizeObserver.disconnect();
-                resizeObserver = undefined;
+                (resizeObserver as any) = undefined;
             };
         }
     }, [ref.current]);

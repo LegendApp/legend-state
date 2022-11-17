@@ -1,7 +1,7 @@
 import { extraPrimitiveProps, getNode, ObservablePrimitiveClass, ObservableReadable } from '@legendapp/state';
 import { createElement, memo } from 'react';
-import { useSelector } from './useSelector';
 import { hasSymbol } from './reactive-observer';
+import { useSelector } from './useSelector';
 let isEnabled = false;
 
 export function enableLegendStateReact() {
@@ -29,7 +29,7 @@ export function enableLegendStateReact() {
         // Set extra props for the proxyHandler to return on primitives
         s.set(Symbol.toPrimitive, (_: any, value: any) => value);
         s.set('props', {
-            __fn: (obs) => ({ data: obs }),
+            __fn: (obs: any) => ({ data: obs }),
         });
         s.set('$$typeof', ReactTypeofSymbol);
         s.set('type', Text);
@@ -39,7 +39,7 @@ export function enableLegendStateReact() {
         s.set('alternate', null);
         s.set('_owner', null);
         s.set('_source', null);
-        const config = (value) => ({ configurable: true, value });
+        const config = (value: any) => ({ configurable: true, value });
         // Set extra props for ObservablePrimitive to return on primitives
         Object.defineProperties(ObservablePrimitiveClass.prototype, {
             [Symbol.toPrimitive]: {

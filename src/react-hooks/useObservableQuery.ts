@@ -154,7 +154,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
     }
 
     // Legend-State changes from here down
-    let mutator: MutationObserver;
+    let mutator: MutationObserver<TData, TError, void, TContext>;
     if (mutationOptions) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         [mutator] = React.useState(() => new MutationObserver(queryClient, mutationOptions));

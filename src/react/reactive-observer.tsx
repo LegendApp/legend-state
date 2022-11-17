@@ -8,27 +8,32 @@ export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
 
-export type BindKeys<P = any> = Record<keyof P, { handler?: keyof P; getValue: (e) => any; defaultValue?: any }>;
+export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
-function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive?: boolean, bindKeys?: BindKeys<P>) {
+function createReactiveComponent<P = {}>(
+    component: FC<P>,
+    observe: boolean,
+    reactive?: boolean,
+    bindKeys?: BindKeys<P>
+) {
     const ReactForwardRefSymbol = hasSymbol
         ? Symbol.for('react.forward_ref')
         : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
     // If this component is already reactive bail out early
     // This can happen with Fast Refresh.
-    if (component['__legend_proxied']) return component;
+    if ((component as any)['__legend_proxied']) return component;
 
-    let useForwardRef: boolean;
+    let useForwardRef = false;
     let render = component;
 
     // Unwrap forwardRef on the component
-    if (ReactForwardRefSymbol && component['$$typeof'] === ReactForwardRefSymbol) {
+    if (ReactForwardRefSymbol && (component as any)['$$typeof'] === ReactForwardRefSymbol) {
         useForwardRef = true;
-        render = component['render'];
+        render = (component as any)['render'];
         if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
             throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
         }
@@ -42,7 +47,7 @@ function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive
             // to regular props and set up a useSelector listener
             if (reactive) {
                 const props = argArray[0];
-                const propsOut = {} as P & { ref: any };
+                const propsOut = {} as Record<string, any>;
                 const keys = Object.keys(props);
                 for (let i = 0; i < keys.length; i++) {
                     const key = keys[i];
@@ -62,7 +67,7 @@ function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive
                                 propsOut[k] = bind.defaultValue;
                             }
                             // Hook up the change lander
-                            (propsOut[bind.handler] as any) = useCallback(
+                            (propsOut[bind.handler as string] as any) = useCallback(
                                 (e: ChangeEvent) => {
                                     p.set(bind.getValue(e));
                                     // @ts-ignore
@@ -99,7 +104,7 @@ function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive
 
     if (useForwardRef) {
         ret = forwardRef(proxy);
-        ret['__legend_proxied'] = true;
+        (ret as any)['__legend_proxied'] = true;
     } else {
         ret = proxy;
     }
@@ -107,14 +112,14 @@ function createReactiveComponent<P>(component: FC<P>, observe: boolean, reactive
     return observe ? memo(ret) : ret;
 }
 
-export function observer<P>(component: FC<P>): FC<P> {
+export function observer<P = {}>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<P>(component: FC<P>, bindKeys?: BindKeys<P>) {
+export function reactive<P = {}>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P>>;
 }
 
-export function reactiveObserver<P>(component: FC<P>, bindKeys?: BindKeys<P>) {
+export function reactiveObserver<P = {}>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
 }

@@ -28,7 +28,7 @@ export function getNode(obs: ObservableReadable): NodeValue {
 
 export function getObservableIndex(obs: ObservableReadable): number {
     const node = getNode(obs);
-    const n = +node.key as number;
+    const n = +node.key! as number;
     return n - n < 1 ? +n : -1;
 }
 
