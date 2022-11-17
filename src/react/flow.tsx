@@ -1,6 +1,6 @@
 import { computeSelector } from '@legendapp/state';
 import { Children, createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import type { Observable, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
+import type { Observable, ObservableArray, ObservableObject, Selector } from '../observableInterfaces';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
 
@@ -57,7 +57,7 @@ export function Switch<T>({
     if (value !== undefined) {
         // If value then this is selecting from an object of cases
         return ((children as Record<any, () => ReactNode>)[useSelector(value)]?.() ??
-            children['default']?.() ??
+            (children as Record<any, () => ReactNode>)['default']?.() ??
             null) as ReactElement;
     } else {
         // If no value then render the first Show child with a matching if prop
@@ -66,6 +66,7 @@ export function Switch<T>({
             for (let i = 0; i < arr.length; i++) {
                 if (computeSelector((arr[i] as any).props.if)) return i;
             }
+            return -1;
         });
         return index >= 0 ? arr[index] : fallback ?? null;
     }
@@ -78,12 +79,12 @@ export function For<T extends { id: string | number } | { _id: string | number }
     itemProps,
     children,
 }: {
-    each?: ObservableReadable<T[]>;
+    each?: ObservableArray<T[]>;
     optimized?: boolean;
-    item?: (props: { item: Observable<T> } & TProps) => ReactElement;
+    item?: FC<{ item: Observable<T> } & TProps>;
     itemProps?: TProps;
     children?: (value: Observable<T>) => ReactElement;
-}): ReactElement {
+}): ReactElement | null {
     if (!each) return null;
 
     // Get the raw value with a shallow listener so this list only re-renders
@@ -98,7 +99,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
         const refChildren = useRef<(value: Observable<T>) => ReactElement>();
         refChildren.current = children;
 
-        item = useMemo(() => observer(({ item }) => refChildren.current(item)), []);
+        item = useMemo(() => observer(({ item }) => refChildren.current!(item)), []);
     }
 
     if (!v) return null;
@@ -110,9 +111,9 @@ export function For<T extends { id: string | number } | { _id: string | number }
     let out: ReactElement[] = [];
     for (let i = 0; i < v.length; i++) {
         if (v[i]) {
-            const key = v[i][id] ?? i;
+            const key = v[i][id as string] ?? i;
 
-            out.push(createElement(item, Object.assign({ key: key, item: each[i] }, itemProps)));
+            out.push(createElement(item as FC, Object.assign({ key: key, item: each[i] }, itemProps)));
         }
     }
 
