@@ -1,4 +1,4 @@
-The examples on this page use [Tailwind CSS](https://tailwindcss.com) for styling and [Framer Motion](https://www.framer.com/motion) for animations.
+The examples on this page use [Tailwind CSS](https://tailwindcss.com) for styling and [Framer Motion](https://www.framer.com/motion) for animations. These examples all use the [fine-grained-reactivity](../fine-grained-reactivity) components so that the parent component renders only once and all renders are optimized to be as small as possible.
 
 ## Persisted global state
 
@@ -39,7 +39,7 @@ export default function App() {
 
   const animPosition = () => ({
     width: State.settings.showSidebar.get() ? 96 : 0
-})
+  })
 
   return (
     <div className="flex absolute inset-0">

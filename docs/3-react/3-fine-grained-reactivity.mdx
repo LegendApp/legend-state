@@ -1,92 +1,27 @@
-To get the best performance with React it's ideal to make components as small as possible so that state changes re-render the minimum number of components.
+To get the best performance with React it's ideal to make components as small as possible so that state changes re-render the minimum number of components. The methods and components described on this page help you make sure that each change causes only the smallest and fewest renders.
 
-If you pass state changes down the component tree as props, each component along the way has to re-render. Legend-State helps you make sure that each change causes only the smallest and fewest renders.
-
-## ⚡️ Optimized by default
-
-A major goal of Legend-State is to minimize the number of renders to make your apps faster. This example shows normal React components vs. doing the same thing in Legend-State.
-
-<Example name="Tree" title="Normal React" title2="Legend-State">
-```jsx
-function TreeLeaf({ count }) {
-  return <div>Count: {count}</div>
-}
-function TreeLeft({ count }) {
-  return <TreeLeaf count={count} />
-}
-function TreeRight() {
-  return <div>Unrelated element</div>
-}
-function Tree() {
-  const [count, setCount] = useState(1)
-
-  useInterval(() => {
-    setCount(v => v + 1)
-  }, 600)
-
-  return (<>
-    <div>Count: {count}</div>
-    <TreeLeft count={count} />
-    <TreeRight />
-  </>)
-}
-```
-```jsx
-function TreeLeaf({ count }) {
-  return <div>Count: {count}</div>
-}
-function TreeLeft({ count }) {
-  return <TreeLeaf count={count} />
-}
-function TreeRight() {
-  return <div>Unrelated element</div>
-}
-function Tree() {
-  const count = useObservable(1)
-
-  useInterval(() => {
-    count.set(v => v + 1)
-  }, 600)
-
-  return (<>
-    <div>Count: {count}</div>
-    <TreeLeft count={count} />
-    <TreeRight />
-  </>)
-}
-```
-</Example>
+See [React Examples](../react-examples) for real-world examples of using these components.
 
 ## Render an observable directly
 
-The easiest way to isolate your renders is to pass an observable `string` or `number` straight into React, and it will automatically be extracted as a separate memoized component with its own tracking context. This works out of the box - you don't need to do anything special to enable it.
+Render an observable `string` or `number` straight into React and it will automatically be extracted as a separate memoized component with its own tracking context. This does not need the component to be an `observer`.
+
+You just need to call `enableLegendStateReact()` once at the beginning of your application to enable it.
 
 ```jsx
-<div>Count: {state.count}</div>
-```
+import { enableLegendStateReact } from "@legendapp/state/react"
 
-### Example
-
-<Example name="Primitive">
-```jsx
-import { observable } from "@legendapp/state"
+enableLegendStateReact()
 
 const count = observable(0)
 
-function Normal() {
-    // This re-renders when count changes
-    return (
-        <div>Count: {count.get()}</div>
-    )
-}
-function FineGrained() {
+function Optimized() {
     // This never re-renders when observable is rendered directly
     return (
         <div>Count: {count}</div>
     )
 }
 ```
-</Example>
 
 See [enableLegendStateReact.ts](https://github.com/LegendApp/legend-state/blob/main/src/react/enableLegendStateReact.ts) if you're curious how it works.
 

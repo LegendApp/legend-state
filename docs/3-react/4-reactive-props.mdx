@@ -20,7 +20,7 @@ function Component() {
                 style$={() => ({
                     color: state.age > 5 ? 'green' : 'red'
                 })}
-                className={() => state.age > 5 ? 'kid' : 'baby'}
+                className$={() => state.age > 5 ? 'kid' : 'baby'}
             />
             // Reactive children
             <Legend.div children$={() => (
