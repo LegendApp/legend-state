@@ -9,7 +9,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
         const { databaseName, version, tableNames } = config.indexedDB;
-        let openRequest = indexedDB.open(databaseName, version);
+        const openRequest = indexedDB.open(databaseName, version);
 
         openRequest.onerror = () => {
             console.error('Error', openRequest.error);
@@ -29,9 +29,15 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             openRequest.onsuccess = async () => {
                 this.db = openRequest.result;
 
-                const transaction = this.db.transaction(tableNames, 'readonly');
+                const preload = (window as any).__legend_state_preload as { data: any; dataPromise: Promise<any> };
 
-                await Promise.all(tableNames.map((table) => this.loadTable(table, transaction)));
+                if (preload) {
+                    this.tableData = preload.data || (await preload.dataPromise);
+                } else {
+                    const transaction = this.db.transaction(tableNames, 'readonly');
+
+                    await Promise.all(tableNames.map((table) => this.initTable(table, transaction)));
+                }
 
                 resolve();
             };
@@ -86,7 +92,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
     }
     // Private
-    private loadTable(table: string, transaction: IDBTransaction): Promise<void> {
+    private initTable(table: string, transaction: IDBTransaction): Promise<void> {
+        // If changing this, change it in the preloader too
         const store = transaction.objectStore(table);
         const allRequest = store.getAll();
 
