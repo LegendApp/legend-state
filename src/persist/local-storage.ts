@@ -1,37 +1,41 @@
 import type { ObservablePersistLocal } from '../observableInterfaces';
 
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
-    private data: Record<string, any> = {};
+    private tableData: Record<string, any> = {};
 
-    public get(id: string) {
+    public getTable(table: string) {
         if (typeof localStorage === 'undefined') return undefined;
-        if (this.data[id] === undefined) {
+        if (this.tableData[table] === undefined) {
             try {
-                const value = localStorage.getItem(id);
+                const value = localStorage.getItem(table);
                 return value ? JSON.parse(value) : undefined;
             } catch {
-                console.error('[legend-state]: ObservablePersistLocalStorage failed to parse', id);
+                console.error('[legend-state]: ObservablePersistLocalStorage failed to parse', table);
             }
         }
-        return this.data[id];
+        return this.tableData[table];
     }
-    public async set(id: string, value: any) {
-        this.data[id] = value;
-        this.save(id);
+    public get(table: string, id: string) {
+        const tableData = this.getTable(table);
+        return tableData?.[id];
     }
-    public async delete(id: string) {
-        delete this.data[id];
-        localStorage.removeItem(id);
+    public async setTable(table: string, value: any) {
+        this.tableData[table] = value;
+        this.save(table);
     }
-    private save(id: string) {
+    public async deleteTable(table: string): Promise<void> {
+        delete this.tableData[table];
+        localStorage.removeItem(table);
+    }
+    private save(table: string) {
         if (typeof localStorage === 'undefined') return;
 
-        const v = this.data[id];
+        const v = this.tableData[table];
 
         if (v !== undefined && v !== null) {
-            localStorage.setItem(id, JSON.stringify(v));
+            localStorage.setItem(table, JSON.stringify(v));
         } else {
-            localStorage.removeItem(id);
+            localStorage.removeItem(table);
         }
     }
 }

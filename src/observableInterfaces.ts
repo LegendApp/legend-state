@@ -180,10 +180,12 @@ export interface PersistOptions<T = any> {
 }
 
 export interface ObservablePersistLocal {
-    get<T = any>(id: string, config: PersistOptionsLocal | undefined): T;
-    set(id: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
-    delete(id: string, config: PersistOptionsLocal | undefined): Promise<void>;
-    load?(id: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
+    getTable<T = any>(table: string, config: PersistOptionsLocal | undefined): T;
+    setTable(table: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
+    set?(table: string, id: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
+    deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    load?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
@@ -192,7 +194,6 @@ export interface ObservablePersistRemote {
     save<T>(
         options: PersistOptions<T>,
         value: T,
-        getPrevious: () => T,
         path: (string | number)[],
         valueAtPath: any,
         prevAtPath: any
@@ -343,4 +344,17 @@ export interface ObserveEventCallback<T> {
     cancel?: boolean;
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
+}
+export interface ObservablePersistenceConfig {
+    persistLocal?: ClassConstructor<ObservablePersistLocal>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    persistLocalOptions?: {
+        indexedDB?: {
+            databaseName: string;
+            version: number;
+            tableNames: string[];
+        };
+    };
+    saveTimeout?: number;
+    dateModifiedKey?: string;
 }

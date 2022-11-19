@@ -9,6 +9,7 @@ import {
     when,
 } from '@legendapp/state';
 import type {
+    ClassConstructor,
     ObservableObject,
     ObservablePersistLocal,
     ObservablePersistRemote,
@@ -21,7 +22,10 @@ import { observablePersistConfiguration } from './configureObservablePersistence
 import { ObservablePersistLocalStorage } from './local-storage';
 import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
-export const mapPersistences: WeakMap<any, any> = new WeakMap();
+export const mapPersistences: WeakMap<
+    ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
+    ObservablePersistLocal | ObservablePersistRemote
+> = new WeakMap();
 const usedNames = new Map<string, true>();
 const dateModifiedKey = '@';
 const PendingKey = '__legend_pending';
@@ -37,8 +41,8 @@ interface LocalState {
     pendingChanges?: Record<string, { p: any; v?: any }>;
 }
 
-function parseLocalConfig(config: string | PersistOptionsLocal): { id: string; config?: PersistOptionsLocal } {
-    return isString(config) ? { id: config } : { id: config.name, config };
+function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config?: PersistOptionsLocal } {
+    return isString(config) ? { table: config } : { table: config.name, config };
 }
 
 async function onObsChange<T>(
@@ -56,7 +60,7 @@ async function onObsChange<T>(
     const { persistenceLocal, persistenceRemote } = localState;
 
     const local = persistOptions.local;
-    const { id, config } = parseLocalConfig(local);
+    const { table, config } = parseLocalConfig(local);
     const tempDisableSaveRemote = tracking.inRemoteChange;
     const saveRemote =
         !tempDisableSaveRemote &&
@@ -98,16 +102,24 @@ async function onObsChange<T>(
                         localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
                     }
                     localState.pendingChanges[pathStr].v = valueAtPath;
+                }
 
-                    if (localState.pendingChanges && localValue) {
-                        localValue[PendingKey] = localState.pendingChanges;
-                    }
+                if (localState.pendingChanges && localValue) {
+                    localValue[PendingKey] = localState.pendingChanges;
                 }
             }
         }
 
-        // Save to local persistence
-        persistenceLocal.set(id, localValue, config);
+        if (persistenceLocal.set && !changes.find((change) => change.path.length === 0)) {
+            // Save to local persistence
+            for (let i = 0; i < changes.length; i++) {
+                const { path, valueAtPath, prevAtPath } = changes[i];
+                const key = path[0] as string;
+                persistenceLocal.set(table, key, localValue[key], config);
+            }
+        } else {
+            persistenceLocal.setTable(table, localValue, config);
+        }
     }
 
     if (saveRemote) {
@@ -118,9 +130,9 @@ async function onObsChange<T>(
 
             // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
             // server value different than the saved value (like Firebase has server timestamps for dateModified)
-            persistenceRemote.save(persistOptions, value, getPrevious, path, valueAtPath, prevAtPath).then((saved) => {
+            persistenceRemote.save(persistOptions, value, path, valueAtPath, prevAtPath).then((saved) => {
                 if (local) {
-                    let toSave = persistenceLocal.get(id, config);
+                    let toSave = persistenceLocal.getTable(table, config);
                     let didDelete = false;
                     if (toSave?.[PendingKey]?.[pathStr]) {
                         didDelete = true;
@@ -144,7 +156,12 @@ async function onObsChange<T>(
                         toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
                     }
                     if (saved !== undefined || didDelete) {
-                        persistenceLocal.set(id, config, toSave);
+                        const key = path[0] as string;
+                        if (path.length && persistenceLocal.set) {
+                            persistenceLocal.set(table, key, toSave[key], config);
+                        } else {
+                            persistenceLocal.setTable(table, toSave, config);
+                        }
                     }
                 }
             });
@@ -170,17 +187,17 @@ async function loadLocal<T>(
     localState: LocalState
 ) {
     const { local, remote } = persistOptions;
-    const localPersistence =
+    const localPersistence: ClassConstructor<ObservablePersistLocal> =
         persistOptions.persistLocal || observablePersistConfiguration.persistLocal || platformDefaultPersistence;
 
     if (local) {
-        const { id, config } = parseLocalConfig(local);
+        const { table, config } = parseLocalConfig(local);
         // Warn on duplicate usage of local names
         if (process.env.NODE_ENV === 'development') {
-            if (usedNames.has(id)) {
-                console.error(`[legend-state]: Called persist with the same local name multiple times: ${id}`);
+            if (usedNames.has(table)) {
+                console.error(`[legend-state]: Called persist with the same local name multiple times: ${table}`);
             }
-            usedNames.set(id, true);
+            usedNames.set(table, true);
         }
 
         if (!localPersistence) {
@@ -188,7 +205,11 @@ async function loadLocal<T>(
         }
         // Ensure there's only one instance of the persistence plugin
         if (!mapPersistences.has(localPersistence)) {
-            mapPersistences.set(localPersistence, new localPersistence());
+            const persistenceLocal = new localPersistence();
+            if (persistenceLocal.initialize) {
+                await persistenceLocal.initialize?.(observablePersistConfiguration.persistLocalOptions);
+            }
+            mapPersistences.set(localPersistence, persistenceLocal);
         }
         const persistenceLocal = (localState.persistenceLocal = mapPersistences.get(
             localPersistence
@@ -196,11 +217,11 @@ async function loadLocal<T>(
 
         // If persistence has an asynchronous load, wait for it
         if (persistenceLocal.load) {
-            await persistenceLocal.load(id, config);
+            await persistenceLocal.load(table, config);
         }
 
         // Get the value from state
-        let value = persistenceLocal.get(id, config);
+        let value = persistenceLocal.getTable(table, config);
 
         if (value !== undefined) {
             const pending = value[PendingKey];
@@ -218,7 +239,7 @@ async function loadLocal<T>(
             mergeIntoObservable(obs, value);
         }
 
-        obsState.get().clearLocal = () => persistenceLocal.delete(id, config);
+        obsState.get().clearLocal = () => persistenceLocal.deleteTable(table, config);
     }
     obsState.isLoadedLocal.set(true);
 }
