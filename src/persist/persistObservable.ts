@@ -236,7 +236,7 @@ async function loadLocal<T>(
             if (remote) {
                 replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
             }
-            mergeIntoObservable(obs, value);
+            batch(() => mergeIntoObservable(obs, value));
         }
 
         obsState.get().clearLocal = () => persistenceLocal.deleteTable(table, config);
