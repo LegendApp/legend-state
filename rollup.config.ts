@@ -6,6 +6,8 @@ import path from 'node:path';
 // @ts-ignore
 import pkg from './package.json' assert { type: 'json' };
 
+const Exclude = new Set(['.DS_Store']);
+
 export default Object.keys(pkg.exports)
     .filter((exp) => exp !== './types')
     .flatMap((exp) => {
@@ -71,12 +73,15 @@ export default Object.keys(pkg.exports)
 
         if (exp.endsWith('/*')) {
             const expPath = exp.replace('/*', '');
+
             const files = fs.readdirSync(path.join('src', expPath));
-            const mapped = files.map((file) =>
-                create(
-                    path.join('./src', expPath, file.replace(/\.ts$/, '')),
-                    path.join(expPath, 'temp', file.replace(/\.ts$/, ''))
-                )
+            const mapped = files.map(
+                (file) =>
+                    !Exclude.has(file) &&
+                    create(
+                        path.join('./src', expPath, file.replace(/\.ts$/, '')),
+                        path.join(expPath, 'temp', file.replace(/\.ts$/, ''))
+                    )
             );
             return mapped;
         } else {

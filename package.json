@@ -41,16 +41,6 @@
             "require": "./internal.js",
             "types": "./internal.d.ts"
         },
-        "./local-storage": {
-            "import": "./local-storage.mjs",
-            "require": "./local-storage.js",
-            "types": "./local-storage.d.ts"
-        },
-        "./mmkv": {
-            "import": "./mmkv.mjs",
-            "require": "./mmkv.js",
-            "types": "./mmkv.d.ts"
-        },
         "./persist": {
             "import": "./persist.mjs",
             "require": "./persist.js",
@@ -85,6 +75,11 @@
             "import": "./helpers/*.mjs",
             "require": "./helpers/*.js",
             "types": "./helpers/*.d.ts"
+        },
+        "./persist-plugins/*": {
+            "import": "./persist-plugins/*.mjs",
+            "require": "./persist-plugins/*.js",
+            "types": "./persist-plugins/*.d.ts"
         },
         "./react-hooks/*": {
             "import": "./react-hooks/*.mjs",

@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import type { ObservablePersistLocal } from '../src/observableInterfaces';
+import { ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
-import { ObservablePersistIndexedDB } from '../src/persist/indexeddb';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 import { when } from '../src/when';
 

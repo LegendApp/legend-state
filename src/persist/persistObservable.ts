@@ -18,8 +18,8 @@ import type {
     PersistOptions,
     PersistOptionsLocal,
 } from '../observableInterfaces';
+import { ObservablePersistLocalStorage } from '../persist-plugins/local-storage';
 import { observablePersistConfiguration } from './configureObservablePersistence';
-import { ObservablePersistLocalStorage } from './local-storage';
 import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
