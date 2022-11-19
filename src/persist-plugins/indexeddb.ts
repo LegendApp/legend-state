@@ -67,20 +67,22 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
     }
     public async set(table: string, id: string, value: any) {
-        if (value.id === undefined) {
-            value = Object.assign({ id, __legend_id: true }, value);
-        }
+        if (value) {
+            if (value.id === undefined) {
+                value = Object.assign({ id, __legend_id: true }, value);
+            }
 
-        if (!this.tableData[table]) {
-            this.tableData[table] = {};
-        }
-        this.tableData[table][id] = value;
+            if (!this.tableData[table]) {
+                this.tableData[table] = {};
+            }
+            this.tableData[table][id] = value;
 
-        const store = this.transactionStore(table);
-        return new Promise<void>((resolve) => {
-            const putRequest = store.put(value);
-            putRequest.onsuccess = () => resolve();
-        });
+            const store = this.transactionStore(table);
+            return new Promise<void>((resolve) => {
+                const putRequest = store.put(value);
+                putRequest.onsuccess = () => resolve();
+            });
+        }
     }
     public async deleteTable(table: string): Promise<void> {
         const store = this.transactionStore(table);
