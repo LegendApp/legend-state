@@ -1,3 +1,4 @@
+import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import type { ObservablePersistLocal } from '../src/observableInterfaces';
@@ -76,5 +77,35 @@ describe('Persist IDB', () => {
         await when(state.isLoadedLocal);
 
         expect(obs.get()).toEqual({ test: { id: 'test', text: 'hi' } });
+    });
+    test('Persist IDB with no id', async () => {
+        indexedDB = new IDBFactory();
+
+        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+
+        await persist.initialize(persistLocalOptions);
+
+        const obs = observable<Record<string, any>>({});
+
+        const state = persistObservable(obs, {
+            local: TableName,
+        });
+
+        await when(state.isLoadedLocal);
+
+        obs['test2'].set({ text: 'hi' });
+
+        expectIDB([{ id: 'test2', text: 'hi', __legend_id: true }]);
+
+        await persist.initialize(persistLocalOptions);
+
+        const obs2 = observable<Record<string, any>>({});
+        const state2 = persistObservable(obs2, {
+            local: TableName,
+        });
+
+        await when(state2.isLoadedLocal);
+
+        expect(obs2.get()).toEqual({ test2: { text: 'hi' } });
     });
 });

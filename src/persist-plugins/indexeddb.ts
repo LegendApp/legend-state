@@ -48,13 +48,23 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             const keys = Object.keys(value);
             const requests: IDBRequest[] = [];
             for (let i = 0; i < keys.length; i++) {
-                const request = store.put(value[keys[i]]);
+                const key = keys[i];
+                let val = value[key];
+                if (val.id === undefined) {
+                    val = Object.assign({ id: key, __legend_id: true }, val);
+                }
+
+                const request = store.put(val);
                 requests.push(request);
             }
             requests[requests.length - 1].onsuccess = () => resolve();
         });
     }
     public async set(table: string, id: string, value: any) {
+        if (value.id === undefined) {
+            value = Object.assign({ id, __legend_id: true }, value);
+        }
+
         if (!this.tableData[table]) {
             this.tableData[table] = {};
         }
@@ -87,6 +97,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
                     obj[val.id] = val;
+                    if (val.__legend_id) {
+                        delete val.__legend_id;
+                        delete val.id;
+                    }
                 }
                 this.tableData[table] = obj;
                 resolve();
