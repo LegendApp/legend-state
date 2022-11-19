@@ -185,7 +185,7 @@ export interface ObservablePersistLocal {
     setTable(table: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
     set?(table: string, id: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
     deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
-    load?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    loadTable?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;

@@ -216,8 +216,8 @@ async function loadLocal<T>(
         ) as ObservablePersistLocal);
 
         // If persistence has an asynchronous load, wait for it
-        if (persistenceLocal.load) {
-            await persistenceLocal.load(table, config);
+        if (persistenceLocal.loadTable) {
+            await persistenceLocal.loadTable(table, config);
         }
 
         // Get the value from state
