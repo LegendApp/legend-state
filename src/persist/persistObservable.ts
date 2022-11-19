@@ -71,14 +71,14 @@ async function onObsChange<T>(
     if (local && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
             console.error(
-                '[legend-state]: WARNING: An observable was changed before being loaded from persistence',
+                '[legend-state] WARNING: An observable was changed before being loaded from persistence',
                 local
             );
             return;
         }
 
         // If saving remotely convert symbolDateModified to dateModifiedKey before saving locally
-        // as peristing may not include symbols correctly
+        // as persisting may not include symbols correctly
         let localValue = value;
         if (persistOptions.remote) {
             localValue = replaceKeyInObject(
@@ -195,7 +195,7 @@ async function loadLocal<T>(
         // Warn on duplicate usage of local names
         if (process.env.NODE_ENV === 'development') {
             if (usedNames.has(table)) {
-                console.error(`[legend-state]: Called persist with the same local name multiple times: ${table}`);
+                console.error(`[legend-state] Called persist with the same local name multiple times: ${table}`);
             }
             usedNames.set(table, true);
         }

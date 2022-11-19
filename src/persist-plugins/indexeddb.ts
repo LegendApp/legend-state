@@ -6,7 +6,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
     public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
         if (process.env.NODE_ENV === 'development' && !config) {
-            console.error('[legend-state]: Must configure ObservablePersistIndexedDB');
+            console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
         const { databaseName, version, tableNames } = config.indexedDB;
         let openRequest = indexedDB.open(databaseName, version);
