@@ -110,10 +110,10 @@ async function onObsChange<T>(
             }
         }
 
+        // Save to local persistence
         if (persistenceLocal.set && !changes.find((change) => change.path.length === 0)) {
-            // Save to local persistence
             for (let i = 0; i < changes.length; i++) {
-                const { path, valueAtPath, prevAtPath } = changes[i];
+                const { path } = changes[i];
                 const key = path[0] as string;
                 persistenceLocal.set(table, key, localValue[key], config);
             }
@@ -308,7 +308,9 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
         }
     }
 
-    obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));
+    when(obsState.isLoadedLocal, () => {
+        obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));
+    });
 
     return obsState;
 }
