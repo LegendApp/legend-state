@@ -10,7 +10,7 @@ export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (()
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
 
-        if (ret && (!(isObject(ret) && isEmpty(ret)) || (isArray(ret) && ret.length === 0))) {
+        if (ret && !((isObject(ret) && isEmpty(ret)) || (isArray(ret) && ret.length === 0))) {
             // If value is truthy then run the effect
             effect!(ret);
 
