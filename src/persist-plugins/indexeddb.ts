@@ -29,7 +29,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             openRequest.onsuccess = async () => {
                 this.db = openRequest.result;
 
-                const preload = (window as any).__legend_state_preload as { data: any; dataPromise: Promise<any> };
+                const preload =
+                    typeof window !== 'undefined' &&
+                    ((window as any).__legend_state_preload as { data: any; dataPromise: Promise<any> });
 
                 if (preload) {
                     this.tableData = preload.data || (await preload.dataPromise);
