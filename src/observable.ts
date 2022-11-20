@@ -11,6 +11,7 @@ import {
     nextNodeID,
     peek,
     shouldTreatAsOpaque,
+    symbolDateModified,
     symbolGetNode,
     symbolIsEvent,
     symbolIsObservable,
@@ -55,7 +56,7 @@ const ArrayModifiers = new Set([
     'unshift',
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
-
+const ExcludeNotifications = new Set<string | symbol>([symbolDateModified]);
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
@@ -459,7 +460,10 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     }
 
     // Notify for this element if it's an object or it's changed
-    if ((!isPrim && hasADiff && newValue !== undefined && newValue !== null) || newValue !== prevValue) {
+    if (
+        !ExcludeNotifications.has(key as string | symbol) &&
+        ((!isPrim && hasADiff && newValue !== undefined && newValue !== null) || newValue !== prevValue)
+    ) {
         notify(
             isPrim && isRoot ? node : childNode,
             newValue,
