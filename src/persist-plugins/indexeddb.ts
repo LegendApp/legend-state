@@ -1,7 +1,14 @@
-import type { ObservablePersistenceConfig, ObservablePersistLocal } from '../observableInterfaces';
+import { dateModifiedKey, PendingKey, symbolDateModified } from '@legendapp/state';
+import type {
+    Change,
+    ObservablePersistenceConfig,
+    ObservablePersistLocal,
+    PersistMetadata,
+} from '../observableInterfaces';
 
 export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private tableData: Record<string, any> = {};
+    private tableMetadata: Record<string, any> = {};
     private db: IDBDatabase;
 
     public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
@@ -41,6 +48,22 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     await Promise.all(tableNames.map((table) => this.initTable(table, transaction)));
                 }
 
+                if (this.tableData) {
+                    Object.keys(this.tableData).forEach((key) => {
+                        const metadata = this.tableData[key]['__legend_metadata'] as PersistMetadata;
+                        if (metadata) {
+                            if (metadata.modified) {
+                                this.tableData[key][symbolDateModified] = metadata.modified;
+                            }
+                            if (metadata.pending) {
+                                this.tableData[key][PendingKey] = metadata.pending;
+                            }
+                            this.tableMetadata[key] = metadata;
+                            delete this.tableData[key]['__legend_metadata'];
+                        }
+                    });
+                }
+
                 resolve();
             };
         });
@@ -48,42 +71,37 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public getTable(table: string) {
         return this.tableData[table];
     }
-    public async setTable(table: string, value: any) {
-        this.tableData[table] = value;
+    public async set(table: string, tableValue: any, changes: Change[]) {
+        this.tableData[table] = tableValue;
 
+        const metadata: PersistMetadata = this.tableMetadata[table] || {};
+        const pending = tableValue[PendingKey];
+        const modified = tableValue[symbolDateModified] || tableValue[dateModifiedKey];
         const store = this.transactionStore(table);
-        return new Promise<void>((resolve) => {
-            const keys = Object.keys(value);
-            const requests: IDBRequest[] = [];
-            for (let i = 0; i < keys.length; i++) {
-                const key = keys[i];
-                let val = value[key];
-                if (val.id === undefined) {
-                    val = Object.assign({ id: key, __legend_id: true }, val);
+        let lastPut: IDBRequest;
+        for (let i = 0; i < changes.length; i++) {
+            const { path, valueAtPath } = changes[i];
+            const key = path[0] as string;
+            let value = tableValue[key];
+            if ((key as any) === symbolDateModified) {
+                metadata.modified = valueAtPath;
+            } else {
+                if (value.id === undefined) {
+                    value = Object.assign({ id: key, __legend_id: true }, value);
                 }
 
-                const request = store.put(val);
-                requests.push(request);
+                lastPut = store.put(value);
             }
-            requests[requests.length - 1].onsuccess = () => resolve();
-        });
-    }
-    public async set(table: string, id: string, value: any) {
-        if (value) {
-            if (value.id === undefined) {
-                value = Object.assign({ id, __legend_id: true }, value);
+        }
+        if (pending || modified) {
+            metadata.id = '__legend_metadata';
+            if (pending) {
+                metadata.pending = pending;
             }
-
-            if (!this.tableData[table]) {
-                this.tableData[table] = {};
+            if (modified) {
+                metadata.modified = modified;
             }
-            this.tableData[table][id] = value;
-
-            const store = this.transactionStore(table);
-            return new Promise<void>((resolve) => {
-                const putRequest = store.put(value);
-                putRequest.onsuccess = () => resolve();
-            });
+            lastPut = store.put(metadata);
         }
     }
     public async deleteTable(table: string): Promise<void> {

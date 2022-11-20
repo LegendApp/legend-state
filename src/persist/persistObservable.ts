@@ -1,15 +1,19 @@
 import {
     batch,
+    dateModifiedKey,
     isEmpty,
     isString,
     mergeIntoObservable,
     observable,
+    PendingKey,
     symbolDateModified,
     tracking,
     when,
 } from '@legendapp/state';
 import type {
+    Change,
     ClassConstructor,
+    Observable,
     ObservableObject,
     ObservablePersistLocal,
     ObservablePersistRemote,
@@ -27,8 +31,6 @@ export const mapPersistences: WeakMap<
     ObservablePersistLocal | ObservablePersistRemote
 > = new WeakMap();
 const usedNames = new Map<string, true>();
-const dateModifiedKey = '@';
-const PendingKey = '__legend_pending';
 
 const platformDefaultPersistence =
     typeof window !== 'undefined' && typeof window.localStorage !== undefined
@@ -46,16 +48,13 @@ function parseLocalConfig(config: string | PersistOptionsLocal): { table: string
 }
 
 async function onObsChange<T>(
+    obs: Observable<T>,
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
     value: T,
     getPrevious: () => T,
-    changes: {
-        path: (string | number)[];
-        valueAtPath: any;
-        prevAtPath: any;
-    }[]
+    changes: Change[]
 ) {
     const { persistenceLocal, persistenceRemote } = localState;
 
@@ -110,16 +109,7 @@ async function onObsChange<T>(
             }
         }
 
-        // Save to local persistence
-        if (persistenceLocal.set && !changes.find((change) => change.path.length === 0)) {
-            for (let i = 0; i < changes.length; i++) {
-                const { path } = changes[i];
-                const key = path[0] as string;
-                persistenceLocal.set(table, key, localValue[key], config);
-            }
-        } else {
-            persistenceLocal.setTable(table, localValue, config);
-        }
+        persistenceLocal.set(table, localValue, changes, config);
     }
 
     if (saveRemote) {
@@ -146,6 +136,10 @@ async function onObsChange<T>(
                     }
                     // Only the latest save will return a value so that it saves back to local persistence once
                     if (saved !== undefined) {
+                        onChangeRemote(() => {
+                            mergeIntoObservable(obs, saved);
+                        });
+
                         // Replace the dateModifiedKey and remove null/undefined before saving
                         const replaced = replaceKeyInObject(
                             removeNullUndefined(saved as object),
@@ -156,12 +150,7 @@ async function onObsChange<T>(
                         toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
                     }
                     if (saved !== undefined || didDelete) {
-                        const key = path[0] as string;
-                        if (path.length && persistenceLocal.set) {
-                            persistenceLocal.set(table, key, toSave[key], config);
-                        } else {
-                            persistenceLocal.setTable(table, toSave, config);
-                        }
+                        persistenceLocal.set(table, toSave, [changes[i]], config);
                     }
                 }
             });
@@ -293,9 +282,15 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                         const path = key.split('/');
                         const { p, v } = pending[key];
                         // TODO getPrevious if any remote persistence layers need it
-                        onObsChange(obsState, localState, persistOptions, obs.peek(), () => undefined, [
-                            { path, valueAtPath: v, prevAtPath: p },
-                        ]);
+                        onObsChange(
+                            obs as Observable,
+                            obsState,
+                            localState,
+                            persistOptions,
+                            obs.peek(),
+                            () => undefined,
+                            [{ path, valueAtPath: v, prevAtPath: p }]
+                        );
                     });
                 }
             }
@@ -309,7 +304,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
     }
 
     when(obsState.isLoadedLocal, () => {
-        obs.onChange(onObsChange.bind(this, obsState, localState, persistOptions));
+        obs.onChange(onObsChange.bind(this, obs, obsState, localState, persistOptions));
     });
 
     return obsState;

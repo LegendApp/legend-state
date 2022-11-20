@@ -150,6 +150,12 @@ export type QueryByModified<T> =
           [K in keyof T]?: QueryByModified<T[K]>;
       };
 
+export interface Change {
+    path: (string | number)[];
+    valueAtPath: any;
+    prevAtPath: any;
+}
+
 export interface PersistOptionsLocal {
     name: string;
     mmkv?: MMKVConfiguration;
@@ -179,11 +185,16 @@ export interface PersistOptions<T = any> {
     dateModifiedKey?: string;
 }
 
+export interface PersistMetadata {
+    id: '__legend_metadata';
+    modified?: number;
+    pending?: any;
+}
+
 export interface ObservablePersistLocal {
     initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
     getTable<T = any>(table: string, config: PersistOptionsLocal | undefined): T;
-    setTable(table: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
-    set?(table: string, id: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
+    set(table: string, value: any, changes: Change[], config: PersistOptionsLocal | undefined): Promise<void>;
     deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
 }

@@ -24,6 +24,8 @@ export {
     getNodeValue,
     symbolUndef,
     symbolDelete,
+    PendingKey,
+    dateModifiedKey
 } from './src/globals';
 /** @internal */
 export { getNode, computeSelector } from './src/helpers';

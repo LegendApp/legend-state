@@ -19,7 +19,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         const tableData = this.getTable(table);
         return tableData?.[id];
     }
-    public async setTable(table: string, value: any) {
+    public async set(table: string, value: any) {
         this.tableData[table] = value;
         this.save(table);
     }
