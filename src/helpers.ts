@@ -67,11 +67,6 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                     (target as Record<string, any>)[key] = {};
                 }
                 mergeIntoObservable((target as Record<string, any>)[key], sourceValue);
-            } else if (isArray(sourceValue)) {
-                if (!needsSet && (!targetValue[key] || !isArray(targetValue[key]))) {
-                    (target as Record<string, any>)[key] = [];
-                }
-                mergeIntoObservable((target as any[])[key], sourceValue);
             } else if (sourceValue === symbolDelete) {
                 needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
             } else {
