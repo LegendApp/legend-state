@@ -12,9 +12,11 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private db: IDBDatabase;
 
     public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
+        if (typeof indexedDB === 'undefined') return;
         if (process.env.NODE_ENV === 'development' && !config) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
+
         const { databaseName, version, tableNames } = config.indexedDB;
         const openRequest = indexedDB.open(databaseName, version);
 
@@ -74,6 +76,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public async set(table: string, tableValue: any, changes: Change[]) {
         this.tableData[table] = tableValue;
 
+        if (typeof indexedDB === 'undefined') return;
+
         const metadata: PersistMetadata = this.tableMetadata[table] || {};
         const pending = tableValue[PendingKey];
         const modified = tableValue[symbolDateModified] || tableValue[dateModifiedKey];
@@ -105,6 +109,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         }
     }
     public async deleteTable(table: string): Promise<void> {
+        delete this.tableData[table];
+
+        if (typeof indexedDB === 'undefined') return;
+
         const store = this.transactionStore(table);
         const clear = store.clear();
         return new Promise((resolve) => {

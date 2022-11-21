@@ -3,7 +3,7 @@ export function preloadIndexedDB(databaseName: string, tableNames: string[], ver
         const tableData: Record<string, any> = {};
         let db: IDBDatabase;
 
-        self.onmessage = function (e) {
+        self.onmessage = function onmessage(e) {
             const [databaseName, tableNames, version] = e.data as [string, string[], number];
 
             let openRequest = indexedDB.open(databaseName, version);
