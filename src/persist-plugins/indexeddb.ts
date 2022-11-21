@@ -94,6 +94,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             let value = tableValue[key];
             if ((key as any) === symbolDateModified) {
                 metadata.modified = valueAtPath;
+            } else if (!value) {
+                lastPut = store.delete(key);
             } else {
                 if (value.id === undefined) {
                     value = Object.assign({ id: key, __legend_id: true }, value);
