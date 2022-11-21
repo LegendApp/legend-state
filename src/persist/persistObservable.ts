@@ -1,6 +1,8 @@
 import {
     batch,
+    beginBatch,
     dateModifiedKey,
+    endBatch,
     isEmpty,
     isString,
     mergeIntoObservable,
@@ -31,6 +33,8 @@ export const mapPersistences: WeakMap<
     ObservablePersistLocal | ObservablePersistRemote
 > = new WeakMap();
 const usedNames = new Map<string, true>();
+
+export const persistState = observable({ inRemoteSync: false });
 
 const platformDefaultPersistence =
     typeof window !== 'undefined' && typeof window.localStorage !== undefined
@@ -160,6 +164,7 @@ async function onObsChange<T>(
 
 function onChangeRemote(cb: () => void) {
     // Remote changes should only update local state
+    persistState.inRemoteSync.set(true);
     tracking.inRemoteChange = true;
 
     try {
@@ -168,6 +173,7 @@ function onChangeRemote(cb: () => void) {
     } finally {
         endBatch();
         tracking.inRemoteChange = false;
+        persistState.inRemoteSync.set(false);
     }
 }
 
