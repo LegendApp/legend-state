@@ -163,8 +163,10 @@ function onChangeRemote(cb: () => void) {
     tracking.inRemoteChange = true;
 
     try {
-        batch(cb);
+        beginBatch();
+        cb();
     } finally {
+        endBatch();
         tracking.inRemoteChange = false;
     }
 }
