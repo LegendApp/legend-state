@@ -1,22 +1,41 @@
-export function preloadIndexedDB(databaseName: string, tableNames: string[], version: number) {
-    function workerCode() {
-        const tableData: Record<string, any> = {};
-        let db: IDBDatabase;
+export function preloadIndexedDB({
+    databaseName,
+    tableNames,
+    version,
+}: {
+    databaseName: string;
+    tableNames: string[];
+    version: number;
+}) {
+    const code = `
+        const tableData = {};
+        let db;
 
         self.onmessage = function onmessage(e) {
-            const [databaseName, tableNames, version] = e.data as [string, string[], number];
+            const [databaseName, tableNames, version] = e.data;
 
             let openRequest = indexedDB.open(databaseName, version);
             openRequest.onsuccess = async () => {
                 db = openRequest.result;
 
-                const transaction = db.transaction(tableNames, 'readonly');
+                const tables = tableNames.filter(table => db.objectStoreNames.contains(table));
 
-                await Promise.all(tableNames.map((table) => initTable(table, transaction)));
+                if (tables.length > 0) {
+                    try {
+                        const transaction = db.transaction(tables, 'readonly');
 
-                postMessage(tableData);
+                        await Promise.all(tables.map((table) => initTable(table, transaction)));
+
+                        postMessage(tableData);
+                    } catch {
+                        postMessage({});
+                    }
+                } else {
+                    postMessage({});
+                }
             };
-            function initTable(table: string, transaction: IDBTransaction): Promise<void> {
+            openRequest.onerror = () => postMessage({});
+            function initTable(table, transaction) {
                 const store = transaction.objectStore(table);
                 const allRequest = store.getAll();
 
@@ -38,9 +57,7 @@ export function preloadIndexedDB(databaseName: string, tableNames: string[], ver
                 });
             }
         };
-    }
-
-    const code = workerCode.toString().replace(/^function .+\{?|\}$/g, '');
+    `;
 
     const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
     const worker = new Worker(url);

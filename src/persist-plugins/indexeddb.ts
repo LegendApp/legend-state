@@ -45,9 +45,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 if (preload) {
                     this.tableData = preload.data || (await preload.dataPromise);
                 } else {
-                    const transaction = this.db.transaction(tableNames, 'readonly');
+                    const tables = tableNames.filter((table) => this.db.objectStoreNames.contains(table));
+                    try {
+                        const transaction = this.db.transaction(tables, 'readonly');
 
-                    await Promise.all(tableNames.map((table) => this.initTable(table, transaction)));
+                        await Promise.all(tables.map((table) => this.initTable(table, transaction)));
+                    } catch (err) {
+                        console.error('[legend-state] Error loading IndexedDB', err);
+                    }
                 }
 
                 if (this.tableData) {
