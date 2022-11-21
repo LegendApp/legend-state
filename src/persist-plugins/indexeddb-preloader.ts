@@ -2,23 +2,33 @@ export function preloadIndexedDB({
     databaseName,
     tableNames,
     version,
+    loadTables,
 }: {
     databaseName: string;
     tableNames: string[];
     version: number;
+    loadTables?: string[];
 }) {
-    const code = `
-        const tableData = {};
-        let db;
+    function workerCode() {
+        const tableData: Record<string, any> = {};
+        let db: IDBDatabase;
 
-        self.onmessage = function onmessage(e) {
-            const [databaseName, tableNames, version] = e.data;
+        self.onmessage = function onmessage(e: MessageEvent<[string, string[], string[], number]>) {
+            const [databaseName, tableNames, loadTables, version] = e.data;
 
             let openRequest = indexedDB.open(databaseName, version);
+            openRequest.onupgradeneeded = () => {
+                const db = openRequest.result;
+                tableNames.forEach((table) => {
+                    db.createObjectStore(table, {
+                        keyPath: 'id',
+                    });
+                });
+            };
             openRequest.onsuccess = async () => {
                 db = openRequest.result;
 
-                const tables = tableNames.filter(table => db.objectStoreNames.contains(table));
+                const tables = (loadTables || tableNames).filter((table) => db.objectStoreNames.contains(table));
 
                 if (tables.length > 0) {
                     try {
@@ -35,11 +45,11 @@ export function preloadIndexedDB({
                 }
             };
             openRequest.onerror = () => postMessage({});
-            function initTable(table, transaction) {
+            function initTable(table: string, transaction: IDBTransaction) {
                 const store = transaction.objectStore(table);
                 const allRequest = store.getAll();
 
-                return new Promise((resolve) => {
+                return new Promise<void>((resolve) => {
                     allRequest.onsuccess = () => {
                         const arr = allRequest.result;
                         const obj = {};
@@ -57,11 +67,13 @@ export function preloadIndexedDB({
                 });
             }
         };
-    `;
+    }
+
+    const code = workerCode.toString().replace(/^function .+\{?|\}$/g, '');
 
     const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
     const worker = new Worker(url);
-    worker.postMessage([databaseName, tableNames, version]);
+    worker.postMessage([databaseName, tableNames, loadTables, version]);
 
     const promise = new Promise((resolve) => {
         worker.onmessage = (e) => {
