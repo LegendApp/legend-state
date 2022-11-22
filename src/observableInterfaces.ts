@@ -231,7 +231,7 @@ export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
 export type SameShapeWithStringsRecord<T> = {
-    [K in keyof Omit<T, '_id' | 'id'>]-?: string | T[K] extends Record<string, Record<string, any>>
+    [K in keyof T]-?: string | T[K] extends Record<string, Record<string, any>>
         ?
               | {
                     _: string;
