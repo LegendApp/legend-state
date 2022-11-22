@@ -221,9 +221,9 @@ import { Switch } from "@legendapp/state/react"
 
 function SwitchExample() {
     const renderCount = ++useRef(0).current
-    const index = useObservable(0)
+    const tabIndex = useObservable(0)
 
-    const onClick = () => index.set(v => v > 2 ? 0 : v + 1)
+    const onClick = () => tabIndex.set(v => v > 2 ? 0 : v + 1)
 
     return (
         <div>
