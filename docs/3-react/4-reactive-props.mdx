@@ -7,8 +7,10 @@ Note: The reactive components are created on-demand because the Legend object is
 ## React
 
 ```jsx
-import { useObservable } from "@legendapp/state/react"
+import { enableLegendStateReact, useObservable } from "@legendapp/state/react"
 import { Legend } from "@legendapp/state/react-components"
+
+enableLegendStateReact();
 
 function Component() {
     const state = useObservable({ name: '', age: 18 })
@@ -18,13 +20,13 @@ function Component() {
             // Reactive styling
             <Legend.div
                 style$={() => ({
-                    color: state.age > 5 ? 'green' : 'red'
+                    color: state.age.get() > 5 ? 'green' : 'red'
                 })}
-                className$={() => state.age > 5 ? 'kid' : 'baby'}
+                className$={() => state.age.get() > 5 ? 'kid' : 'baby'}
             />
             // Reactive children
             <Legend.div children$={() => (
-                <div>{state.age > 5 ? <Kid /> : <Baby />}
+                <div>{state.age.get() > 5 ? <Kid /> : <Baby />}
             )} />
 
             // Two-way bind to inputs
@@ -44,8 +46,10 @@ function Component() {
 
 ```jsx
 import { View } from "react-native"
-import { useObservable } from "@legendapp/state/react"
+import { enableLegendStateReact, useObservable } from "@legendapp/state/react"
 import { Legend } from "@legendapp/state/react-native-components"
+
+enableLegendStateReact();
 
 function Component() {
     const state = useObservable({ name: '', enabled: false })
@@ -55,7 +59,7 @@ function Component() {
             // Reactive styling
             <Legend.Text
                 style$={() => ({
-                    color: state.age > 5 ? 'green' : 'red'
+                    color: state.enabled.get() ? 'green' : 'red'
                 })}
             >
                 {state.name}
@@ -65,7 +69,7 @@ function Component() {
             <Legend.Switch value$={state.enabled} />
             <Legend.TextInput
                 value$={state.name}
-                style$={(value) => !value && { borderColor: "red" }}
+                style$={() => (state.name.get() === 'Legend' && { backgroundColor: 'green' })}
             />
         </View>
     )
@@ -78,7 +82,10 @@ If you pass an observable to the `value$` prop of an input component, it sets up
 
 <Example name="Input">
 ```jsx
-import { legend } from "@legendapp/state/react-components"
+import { enableLegendStateReact, useObservable } from "@legendapp/state/react"
+import { Legend } from "@legendapp/state/react-components"
+
+enableLegendStateReact();
 
 function Component() {
     const state = useObservable({ name: 'Legend' })
@@ -86,7 +93,7 @@ function Component() {
     return (
         <div>
             <div>{state.name}</div>
-            <legend.input
+            <Legend.input
                 value$={state.name}
                 className$={() =>
                     state.name.get() === 'Legend' ?
