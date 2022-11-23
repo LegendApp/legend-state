@@ -189,6 +189,7 @@ export interface PersistMetadata {
     id: '__legend_metadata';
     modified?: number;
     pending?: any;
+    array?: boolean;
 }
 
 export interface ObservablePersistLocal {

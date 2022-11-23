@@ -1,3 +1,5 @@
+import type { PersistMetadata } from '../observableInterfaces';
+
 export function preloadIndexedDB({
     databaseName,
     tableNames,
@@ -11,6 +13,7 @@ export function preloadIndexedDB({
 }) {
     function workerCode() {
         const tableData: Record<string, any> = {};
+        const tableMetadata: Record<string, any> = {};
         let db: IDBDatabase;
 
         self.onmessage = function onmessage(e: MessageEvent<[string, string[], string[], number]>) {
@@ -36,7 +39,7 @@ export function preloadIndexedDB({
 
                         await Promise.all(tables.map((table) => initTable(table, transaction)));
 
-                        postMessage(tableData);
+                        postMessage({ tableData, tableMetadata });
                     } catch {
                         postMessage({});
                     }
@@ -52,20 +55,34 @@ export function preloadIndexedDB({
                 return new Promise<void>((resolve) => {
                     allRequest.onsuccess = () => {
                         const arr = allRequest.result;
-                        let obj = {};
+                        let obj: Record<string, any> | any[] = {};
+                        let metadata: PersistMetadata;
+                        let isArray = false;
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
-                            if (val.id === '__legend_obj') {
+                            if (val.id === '__legend_metadata') {
+                                delete val.id;
+                                metadata = val;
+                                if (metadata.array) {
+                                    obj = [];
+                                    isArray = true;
+                                }
+                            } else if (val.id === '__legend_obj') {
                                 obj = val.value;
                             } else {
-                                obj[val.id] = val;
-                                if (val.__legend_id) {
-                                    delete val.__legend_id;
-                                    delete val.id;
+                                if (isArray) {
+                                    (obj as any[]).push(val);
+                                } else {
+                                    obj[val.id] = val;
+                                    if (val.__legend_id) {
+                                        delete val.__legend_id;
+                                        delete val.id;
+                                    }
                                 }
                             }
                         }
                         tableData[table] = obj;
+                        tableMetadata[table] = metadata;
                         resolve();
                     };
                 });
@@ -81,7 +98,8 @@ export function preloadIndexedDB({
 
     const promise = new Promise((resolve) => {
         worker.onmessage = (e) => {
-            (window as any).__legend_state_preload.data = e.data;
+            Object.assign((window as any).__legend_state_preload, e.data);
+
             resolve(e.data);
         };
     });

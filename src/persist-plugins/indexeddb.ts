@@ -1,4 +1,4 @@
-import { dateModifiedKey, isArray, isObject, PendingKey, symbolDateModified } from '@legendapp/state';
+import { dateModifiedKey, isArray, isEmpty, isObject, PendingKey, symbolDateModified } from '@legendapp/state';
 import type {
     Change,
     ObservablePersistenceConfig,
@@ -40,10 +40,15 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
                 const preload =
                     typeof window !== 'undefined' &&
-                    ((window as any).__legend_state_preload as { data: any; dataPromise: Promise<any> });
+                    ((window as any).__legend_state_preload as {
+                        tableData: any;
+                        tableMetadata: any;
+                        dataPromise: Promise<any>;
+                    });
 
                 if (preload) {
-                    this.tableData = preload.data || (await preload.dataPromise);
+                    this.tableData = preload.tableData || (await preload.dataPromise);
+                    this.tableMetadata = preload.tableMetadata;
                 } else {
                     const tables = tableNames.filter((table) => this.db.objectStoreNames.contains(table));
                     try {
@@ -65,8 +70,6 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                             if (metadata.pending) {
                                 this.tableData[key][PendingKey] = metadata.pending;
                             }
-                            this.tableMetadata[key] = metadata;
-                            delete this.tableData[key]['__legend_metadata'];
                         }
                     });
                 }
@@ -102,14 +105,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 lastPut = this._setTable(prev, valueAtPath, store, metadata);
             }
         }
-        if (pending || modified) {
+        if (pending) {
+            metadata.pending = pending;
+        }
+        if (modified) {
+            metadata.modified = modified;
+        }
+        if (!isEmpty(metadata)) {
             metadata.id = '__legend_metadata';
-            if (pending) {
-                metadata.pending = pending;
-            }
-            if (modified) {
-                metadata.modified = modified;
-            }
             lastPut = store.put(metadata);
         }
 
@@ -137,20 +140,34 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         return new Promise((resolve) => {
             allRequest.onsuccess = () => {
                 const arr = allRequest.result;
-                let obj = {};
+                let obj: Record<string, any> | any[] = {};
+                let metadata: PersistMetadata;
+                let isArray = false;
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
-                    if (val.id === '__legend_obj') {
+                    if (val.id === '__legend_metadata') {
+                        delete val.id;
+                        metadata = val;
+                        if (metadata.array) {
+                            obj = [];
+                            isArray = true;
+                        }
+                    } else if (val.id === '__legend_obj') {
                         obj = val.value;
                     } else {
-                        obj[val.id] = val;
-                        if (val.__legend_id) {
-                            delete val.__legend_id;
-                            delete val.id;
+                        if (isArray) {
+                            (obj as any[]).push(val);
+                        } else {
+                            obj[val.id] = val;
+                            if (val.__legend_id) {
+                                delete val.__legend_id;
+                                delete val.id;
+                            }
                         }
                     }
                 }
                 this.tableData[table] = obj;
+                this.tableMetadata[table] = obj;
                 resolve();
             };
         });
@@ -173,6 +190,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         }
     }
     private _setTable(prev: object, value: object, store: IDBObjectStore, metadata: PersistMetadata) {
+        if (isArray(value)) {
+            metadata.array = isArray(value);
+        }
         const keys = Object.keys(value);
         let isBasic = false;
         for (let i = 0; i < keys.length; i++) {
