@@ -3,7 +3,6 @@ import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
 export const dateModifiedKey = '@';
-export const PendingKey = '__legend_pending';
 export const symbolDateModified = /* @__PURE__ */ Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolIsEvent = Symbol('isEvent');

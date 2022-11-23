@@ -3,11 +3,9 @@ import {
     beginBatch,
     dateModifiedKey,
     endBatch,
-    isEmpty,
     isString,
     mergeIntoObservable,
     observable,
-    PendingKey,
     symbolDateModified,
     tracking,
     when,
@@ -106,14 +104,14 @@ async function onObsChange<T>(
                     }
                     localState.pendingChanges[pathStr].v = valueAtPath;
                 }
-
-                if (localState.pendingChanges && localValue) {
-                    localValue[PendingKey] = localState.pendingChanges;
-                }
             }
         }
 
         persistenceLocal.set(table, localValue, changes, config);
+
+        if (localState.pendingChanges !== undefined) {
+            persistenceLocal.setMetadata(table, { pending: localState.pendingChanges }, config);
+        }
     }
 
     if (saveRemote) {
@@ -127,14 +125,13 @@ async function onObsChange<T>(
             persistenceRemote.save(persistOptions, value, path, valueAtPath, prevAtPath).then((saved) => {
                 if (local) {
                     let toSave = persistenceLocal.getTable(table, config);
+                    const pending = persistenceLocal.getMetadata(table, config)?.pending;
+                    let dateModified;
                     let didDelete = false;
-                    if (toSave?.[PendingKey]?.[pathStr]) {
+                    if (pending?.[pathStr]) {
                         didDelete = true;
                         // Remove pending from the saved object
-                        delete toSave[PendingKey][pathStr];
-                        if (isEmpty(toSave[PendingKey])) {
-                            delete toSave[PendingKey];
-                        }
+                        delete pending[pathStr];
                         // Remove pending from local state
                         delete localState.pendingChanges[pathStr];
                     }
@@ -143,7 +140,7 @@ async function onObsChange<T>(
                         onChangeRemote(() => {
                             mergeIntoObservable(obs, saved);
                         });
-
+                        dateModified = saved[symbolDateModified];
                         // Replace the dateModifiedKey and remove null/undefined before saving
                         const replaced = replaceKeyInObject(
                             removeNullUndefined(saved as object),
@@ -155,6 +152,7 @@ async function onObsChange<T>(
                     }
                     if (saved !== undefined || didDelete) {
                         persistenceLocal.set(table, toSave, [changes[i]], config);
+                        persistenceLocal.setMetadata(table, { pending, modified: dateModified }, config);
                     }
                 }
             });
@@ -219,19 +217,20 @@ async function loadLocal<T>(
 
         // Get the value from state
         let value = persistenceLocal.getTable(table, config);
+        const metadata = persistenceLocal.getMetadata(table, config);
 
-        if (value !== undefined) {
-            const pending = value[PendingKey];
-            if (pending !== undefined) {
-                delete value[PendingKey];
-                localState.pendingChanges = pending;
-            }
+        if (metadata) {
+            const pending = metadata.pending;
+            localState.pendingChanges = pending;
         }
 
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
             if (remote) {
                 replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
+            }
+            if (metadata?.modified) {
+                value[symbolDateModified] = metadata.modified;
             }
             batch(() => mergeIntoObservable(obs, value));
         }

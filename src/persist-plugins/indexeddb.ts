@@ -1,4 +1,4 @@
-import { dateModifiedKey, isArray, isEmpty, isObject, PendingKey, symbolDateModified } from '@legendapp/state';
+import { isArray, isObject } from '@legendapp/state';
 import type {
     Change,
     ObservablePersistenceConfig,
@@ -60,26 +60,21 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     }
                 }
 
-                if (this.tableData) {
-                    Object.keys(this.tableData).forEach((key) => {
-                        const metadata = this.tableData[key]['__legend_metadata'] as PersistMetadata;
-                        if (metadata) {
-                            if (metadata.modified) {
-                                this.tableData[key][symbolDateModified] = metadata.modified;
-                            }
-                            if (metadata.pending) {
-                                this.tableData[key][PendingKey] = metadata.pending;
-                            }
-                        }
-                    });
-                }
-
                 resolve();
             };
         });
     }
     public getTable(table: string) {
         return this.tableData[table];
+    }
+    public getMetadata(table: string) {
+        return this.tableMetadata[table];
+    }
+    public async setMetadata(table: string, metadata: PersistMetadata) {
+        metadata = Object.assign(this.tableMetadata[table] || {}, metadata, { id: '__legend_metadata' });
+        this.tableMetadata[table] = metadata;
+        const store = this.transactionStore(table);
+        return this._setItem('__legend_metadata', metadata, store);
     }
     public async set(table: string, tableValue: Record<string, any>, changes: Change[]) {
         const prev = this.tableData[table];
@@ -91,31 +86,20 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             console.warn('[legend-state] IndexedDB persistence can only save objects or arrays');
         }
 
-        const metadata: PersistMetadata = this.tableMetadata[table] || {};
-        const pending = tableValue[PendingKey];
-        const modified = tableValue[symbolDateModified as any] || tableValue[dateModifiedKey];
         const store = this.transactionStore(table);
         let lastPut: IDBRequest;
         for (let i = 0; i < changes.length; i++) {
             const { path, valueAtPath } = changes[i];
             if (path.length > 0) {
                 const key = path[0] as string;
-                lastPut = this._setItem(key, valueAtPath, store, metadata);
+                lastPut = this._setItem(key, valueAtPath, store);
             } else {
-                lastPut = this._setTable(prev, valueAtPath, store, metadata);
+                if (isArray(valueAtPath)) {
+                    this.setMetadata(table, { array: true });
+                }
+                lastPut = this._setTable(prev, valueAtPath, store);
             }
         }
-        if (pending) {
-            metadata.pending = pending;
-        }
-        if (modified) {
-            metadata.modified = modified;
-        }
-        if (!isEmpty(metadata)) {
-            metadata.id = '__legend_metadata';
-            lastPut = store.put(metadata);
-        }
-
         return new Promise<void>((resolve) => (lastPut.onsuccess = () => resolve()));
     }
     public async deleteTable(table: string): Promise<void> {
@@ -176,10 +160,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const transaction = this.db.transaction(table, 'readwrite');
         return transaction.objectStore(table);
     }
-    private _setItem(key: string, value: any, store: IDBObjectStore, metadata: PersistMetadata) {
-        if ((key as any) === symbolDateModified) {
-            metadata.modified = value;
-        } else if (!value) {
+    private _setItem(key: string, value: any, store: IDBObjectStore) {
+        if (!value) {
             return store.delete(key);
         } else {
             if (value.id === undefined) {
@@ -189,10 +171,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             return store.put(value);
         }
     }
-    private _setTable(prev: object, value: object, store: IDBObjectStore, metadata: PersistMetadata) {
-        if (isArray(value)) {
-            metadata.array = isArray(value);
-        }
+    private _setTable(prev: object, value: object, store: IDBObjectStore) {
         const keys = Object.keys(value);
         let isBasic = false;
         for (let i = 0; i < keys.length; i++) {
@@ -208,14 +187,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 const val = value[key];
-                lastSet = this._setItem(key, val, store, metadata);
+                lastSet = this._setItem(key, val, store);
             }
             if (prev) {
                 const keysOld = Object.keys(prev);
                 for (let i = 0; i < keysOld.length; i++) {
                     const key = keysOld[i];
                     if (value[key] === undefined) {
-                        lastSet = this._setItem(key, null, store, metadata);
+                        lastSet = this._setItem(key, null, store);
                     }
                 }
             }

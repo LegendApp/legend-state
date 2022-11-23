@@ -1,4 +1,4 @@
-import type { ObservablePersistLocal } from '../observableInterfaces';
+import type { ObservablePersistLocal, PersistMetadata } from '../observableInterfaces';
 
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     private tableData: Record<string, any> = {};
@@ -15,6 +15,9 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         }
         return this.tableData[table];
     }
+    public getMetadata(table: string): PersistMetadata {
+        return this.getTable(table + '__m');
+    }
     public get(table: string, id: string) {
         const tableData = this.getTable(table);
         return tableData?.[id];
@@ -22,6 +25,9 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     public async set(table: string, value: any) {
         this.tableData[table] = value;
         this.save(table);
+    }
+    public setMetadata(table: string, metadata: PersistMetadata) {
+        return this.set(table + '__m', metadata);
     }
     public async deleteTable(table: string): Promise<void> {
         delete this.tableData[table];

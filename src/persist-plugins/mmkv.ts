@@ -1,5 +1,5 @@
 import { MMKV } from 'react-native-mmkv';
-import type { Change, ObservablePersistLocal, PersistOptionsLocal } from '../observableInterfaces';
+import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '../observableInterfaces';
 
 const symbolDefault = Symbol();
 
@@ -39,9 +39,15 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         }
         return this.data[table];
     }
+    public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
+        return this.getTable(table + '__m', config);
+    }
     public async set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void> {
         this.data[table] = value;
         this.save(table, config);
+    }
+    public async setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
+        return this.set(table + '__m', metadata, undefined, config);
     }
     public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
         const storage = this.getStorage(config);

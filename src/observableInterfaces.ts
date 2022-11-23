@@ -186,7 +186,7 @@ export interface PersistOptions<T = any> {
 }
 
 export interface PersistMetadata {
-    id: '__legend_metadata';
+    id?: '__legend_metadata';
     modified?: number;
     pending?: any;
     array?: boolean;
@@ -195,7 +195,9 @@ export interface PersistMetadata {
 export interface ObservablePersistLocal {
     initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
     getTable<T = any>(table: string, config: PersistOptionsLocal | undefined): T;
-    set(table: string, value: any, changes: Change[], config: PersistOptionsLocal | undefined): Promise<void>;
+    getMetadata(table: string, config: PersistOptionsLocal | undefined): PersistMetadata;
+    set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void>;
+    setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal | undefined);
     deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
 }
