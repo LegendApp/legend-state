@@ -1,6 +1,6 @@
 import { computeSelector } from '@legendapp/state';
 import { Children, createElement, FC, memo, ReactElement, ReactNode, useMemo, useRef } from 'react';
-import type { Observable, ObservableArray, ObservableObject, Selector } from '../observableInterfaces';
+import type { Observable, ObservableObject, ObservableReadable, Selector } from '../observableInterfaces';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
 
@@ -79,7 +79,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
     itemProps,
     children,
 }: {
-    each?: ObservableArray<T[]>;
+    each?: ObservableReadable<T[]>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T> } & TProps>;
     itemProps?: TProps;
