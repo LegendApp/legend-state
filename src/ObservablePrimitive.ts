@@ -6,12 +6,18 @@ import {
     NodeValue,
     ObservableChild,
     ObservableListenerDispose,
+    ObservablePrimitive,
     TrackingType,
 } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
-export function ObservablePrimitiveClass(node: NodeValue) {
+interface ObservablePrimitiveState {
+    _node: NodeValue;
+    toggle: () => void;
+}
+
+export function ObservablePrimitiveClass<T>(this: ObservablePrimitive<T> & ObservablePrimitiveState, node: NodeValue) {
     this._node = node;
     this.set = this.set.bind(this);
     this.toggle = this.toggle.bind(this);
