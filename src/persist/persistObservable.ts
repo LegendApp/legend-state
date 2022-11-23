@@ -22,7 +22,6 @@ import type {
     PersistOptions,
     PersistOptionsLocal,
 } from '../observableInterfaces';
-import { ObservablePersistLocalStorage } from '../persist-plugins/local-storage';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
@@ -33,11 +32,6 @@ export const mapPersistences: WeakMap<
 const usedNames = new Map<string, true>();
 
 export const persistState = observable({ inRemoteSync: false });
-
-const platformDefaultPersistence =
-    typeof window !== 'undefined' && typeof window.localStorage !== undefined
-        ? ObservablePersistLocalStorage
-        : undefined;
 
 interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
@@ -183,7 +177,7 @@ async function loadLocal<T>(
 ) {
     const { local, remote } = persistOptions;
     const localPersistence: ClassConstructor<ObservablePersistLocal> =
-        persistOptions.persistLocal || observablePersistConfiguration.persistLocal || platformDefaultPersistence;
+        persistOptions.persistLocal || observablePersistConfiguration.persistLocal;
 
     if (local) {
         const { table, config } = parseLocalConfig(local);
