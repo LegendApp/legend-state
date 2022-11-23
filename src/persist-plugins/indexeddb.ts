@@ -70,11 +70,12 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public getMetadata(table: string) {
         return this.tableMetadata[table];
     }
-    public async setMetadata(table: string, metadata: PersistMetadata) {
+    public async setMetadata(table: string, metadata: PersistMetadata): Promise<void> {
         metadata = Object.assign(this.tableMetadata[table] || {}, metadata, { id: '__legend_metadata' });
         this.tableMetadata[table] = metadata;
         const store = this.transactionStore(table);
-        return this._setItem('__legend_metadata', metadata, store);
+        const set = this._setItem('__legend_metadata', metadata, store);
+        return new Promise<void>((resolve) => (set.onsuccess = () => resolve()));
     }
     public async set(table: string, tableValue: Record<string, any>, changes: Change[]) {
         const prev = this.tableData[table];
