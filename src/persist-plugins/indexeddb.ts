@@ -1,4 +1,4 @@
-import { dateModifiedKey, PendingKey, symbolDateModified } from '@legendapp/state';
+import { dateModifiedKey, isArray, isObject, PendingKey, symbolDateModified } from '@legendapp/state';
 import type {
     Change,
     ObservablePersistenceConfig,
@@ -78,30 +78,28 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public getTable(table: string) {
         return this.tableData[table];
     }
-    public async set(table: string, tableValue: any, changes: Change[]) {
+    public async set(table: string, tableValue: Record<string, any>, changes: Change[]) {
+        const prev = this.tableData[table];
         this.tableData[table] = tableValue;
 
         if (typeof indexedDB === 'undefined') return;
 
+        if (process.env.NODE_ENV === 'development' && (!isObject(tableValue) || !isArray(tableValue))) {
+            console.warn('[legend-state] IndexedDB persistence can only save objects or arrays');
+        }
+
         const metadata: PersistMetadata = this.tableMetadata[table] || {};
         const pending = tableValue[PendingKey];
-        const modified = tableValue[symbolDateModified] || tableValue[dateModifiedKey];
+        const modified = tableValue[symbolDateModified as any] || tableValue[dateModifiedKey];
         const store = this.transactionStore(table);
         let lastPut: IDBRequest;
         for (let i = 0; i < changes.length; i++) {
             const { path, valueAtPath } = changes[i];
-            const key = path[0] as string;
-            let value = tableValue[key];
-            if ((key as any) === symbolDateModified) {
-                metadata.modified = valueAtPath;
-            } else if (!value) {
-                lastPut = store.delete(key);
+            if (path.length > 0) {
+                const key = path[0] as string;
+                lastPut = this._setItem(key, valueAtPath, store, metadata);
             } else {
-                if (value.id === undefined) {
-                    value = Object.assign({ id: key, __legend_id: true }, value);
-                }
-
-                lastPut = store.put(value);
+                lastPut = this._setTable(prev, valueAtPath, store, metadata);
             }
         }
         if (pending || modified) {
@@ -114,6 +112,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             }
             lastPut = store.put(metadata);
         }
+
+        return new Promise<void>((resolve) => (lastPut.onsuccess = () => resolve()));
     }
     public async deleteTable(table: string): Promise<void> {
         delete this.tableData[table];
@@ -137,13 +137,17 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         return new Promise((resolve) => {
             allRequest.onsuccess = () => {
                 const arr = allRequest.result;
-                const obj = {};
+                let obj = {};
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
-                    obj[val.id] = val;
-                    if (val.__legend_id) {
-                        delete val.__legend_id;
-                        delete val.id;
+                    if (val.id === '__legend_obj') {
+                        obj = val.value;
+                    } else {
+                        obj[val.id] = val;
+                        if (val.__legend_id) {
+                            delete val.__legend_id;
+                            delete val.id;
+                        }
                     }
                 }
                 this.tableData[table] = obj;
@@ -154,5 +158,48 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private transactionStore(table: string) {
         const transaction = this.db.transaction(table, 'readwrite');
         return transaction.objectStore(table);
+    }
+    private _setItem(key: string, value: any, store: IDBObjectStore, metadata: PersistMetadata) {
+        if ((key as any) === symbolDateModified) {
+            metadata.modified = value;
+        } else if (!value) {
+            return store.delete(key);
+        } else {
+            if (value.id === undefined) {
+                value = Object.assign({ id: key, __legend_id: true }, value);
+            }
+
+            return store.put(value);
+        }
+    }
+    private _setTable(prev: object, value: object, store: IDBObjectStore, metadata: PersistMetadata) {
+        const keys = Object.keys(value);
+        let isBasic = false;
+        for (let i = 0; i < keys.length; i++) {
+            if (!isObject(value[keys[i]])) {
+                isBasic = true;
+                break;
+            }
+        }
+        let lastSet: IDBRequest;
+        if (isBasic) {
+            lastSet = store.put({ id: '__legend_obj', value });
+        } else {
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const val = value[key];
+                lastSet = this._setItem(key, val, store, metadata);
+            }
+            if (prev) {
+                const keysOld = Object.keys(prev);
+                for (let i = 0; i < keysOld.length; i++) {
+                    const key = keysOld[i];
+                    if (value[key] === undefined) {
+                        lastSet = this._setItem(key, null, store, metadata);
+                    }
+                }
+            }
+        }
+        return lastSet;
     }
 }

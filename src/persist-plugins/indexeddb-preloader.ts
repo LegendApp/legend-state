@@ -52,13 +52,17 @@ export function preloadIndexedDB({
                 return new Promise<void>((resolve) => {
                     allRequest.onsuccess = () => {
                         const arr = allRequest.result;
-                        const obj = {};
+                        let obj = {};
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
-                            obj[val.id] = val;
-                            if (val.__legend_id) {
-                                delete val.__legend_id;
-                                delete val.id;
+                            if (val.id === '__legend_obj') {
+                                obj = val.value;
+                            } else {
+                                obj[val.id] = val;
+                                if (val.__legend_id) {
+                                    delete val.__legend_id;
+                                    delete val.id;
+                                }
                             }
                         }
                         tableData[table] = obj;

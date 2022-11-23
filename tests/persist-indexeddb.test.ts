@@ -19,6 +19,15 @@ configureObservablePersistence({
     persistLocal: ObservablePersistIndexedDB,
     persistLocalOptions,
 });
+async function reset() {
+    indexedDB = new IDBFactory();
+
+    const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+
+    if (persist) {
+        await persist.initialize(persistLocalOptions);
+    }
+}
 async function expectIDB(value: any) {
     const out = await new Promise((resolve) => {
         const request = indexedDB.open(
@@ -38,6 +47,7 @@ async function expectIDB(value: any) {
     });
     expect(out).toEqual(value);
 }
+beforeEach(() => reset());
 describe('Persist IDB', () => {
     test('Persist IDB save', async () => {
         const obs = observable<Record<string, any>>({});
@@ -52,7 +62,7 @@ describe('Persist IDB', () => {
 
         return expectIDB([{ id: 'test', text: 'hi' }]);
     });
-    test('Persist IDB get', async () => {
+    test('Persist IDB get after save', async () => {
         const obs = observable<Record<string, any>>({});
 
         const state = persistObservable(obs, {
@@ -61,13 +71,22 @@ describe('Persist IDB', () => {
 
         await when(state.isLoadedLocal);
 
-        expect(obs.get()).toEqual({ test: { id: 'test', text: 'hi' } });
-    });
-    test('Persist IDB initialize', async () => {
-        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+        obs['test'].set({ id: 'test', text: 'hi' });
 
+        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
         await persist.initialize(persistLocalOptions);
 
+        const obs2 = observable<Record<string, any>>({});
+
+        const state2 = persistObservable(obs2, {
+            local: TableName,
+        });
+
+        await when(state2.isLoadedLocal);
+
+        expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
+    });
+    test('Persist IDB save root', async () => {
         const obs = observable<Record<string, any>>({});
 
         const state = persistObservable(obs, {
@@ -76,14 +95,24 @@ describe('Persist IDB', () => {
 
         await when(state.isLoadedLocal);
 
-        expect(obs.get()).toEqual({ test: { id: 'test', text: 'hi' } });
+        obs.set({ test: { id: 'test', text: 'hi' } });
+
+        expectIDB([{ id: 'test', text: 'hi' }]);
+
+        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+        await persist.initialize(persistLocalOptions);
+
+        const obs2 = observable<Record<string, any>>({});
+        const state2 = persistObservable(obs2, {
+            local: TableName,
+        });
+
+        await when(state2.isLoadedLocal);
+
+        expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
     });
     test('Persist IDB with no id', async () => {
-        indexedDB = new IDBFactory();
-
         const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
-
-        await persist.initialize(persistLocalOptions);
 
         const obs = observable<Record<string, any>>({});
 
@@ -107,5 +136,30 @@ describe('Persist IDB', () => {
         await when(state2.isLoadedLocal);
 
         expect(obs2.get()).toEqual({ test2: { text: 'hi' } });
+    });
+    test('Persist IDB save root object', async () => {
+        const obs = observable<Record<string, any>>({});
+
+        const state = persistObservable(obs, {
+            local: TableName,
+        });
+
+        await when(state.isLoadedLocal);
+
+        obs.set({ test: 'hi' });
+
+        expectIDB([{ id: '__legend_obj', value: { test: 'hi' } }]);
+
+        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+        await persist.initialize(persistLocalOptions);
+
+        const obs2 = observable<Record<string, any>>({});
+        const state2 = persistObservable(obs2, {
+            local: TableName,
+        });
+
+        await when(state2.isLoadedLocal);
+
+        expect(obs2.get()).toEqual({ test: 'hi' });
     });
 });
