@@ -104,7 +104,7 @@ async function onObsChange<T>(
         persistenceLocal.set(table, localValue, changes, config);
 
         if (localState.pendingChanges !== undefined) {
-            persistenceLocal.setMetadata(table, { pending: localState.pendingChanges }, config);
+            persistenceLocal.updateMetadata(table, { pending: localState.pendingChanges }, config);
         }
     }
 
@@ -146,7 +146,7 @@ async function onObsChange<T>(
                     }
                     if (saved !== undefined || didDelete) {
                         persistenceLocal.set(table, toSave, [changes[i]], config);
-                        persistenceLocal.setMetadata(table, { pending, modified: dateModified }, config);
+                        persistenceLocal.updateMetadata(table, { pending, modified: dateModified }, config);
                     }
                 }
             });

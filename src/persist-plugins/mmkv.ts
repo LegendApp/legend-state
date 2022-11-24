@@ -46,7 +46,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         this.data[table] = value;
         this.save(table, config);
     }
-    public async setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
+    public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
         return this.set(table + '__m', metadata, undefined, config);
     }
     public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {

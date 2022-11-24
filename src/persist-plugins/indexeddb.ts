@@ -70,7 +70,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public getMetadata(table: string) {
         return this.tableMetadata[table];
     }
-    public async setMetadata(table: string, metadata: PersistMetadata): Promise<void> {
+    public async updateMetadata(table: string, metadata: PersistMetadata): Promise<void> {
         metadata = Object.assign(this.tableMetadata[table] || {}, metadata, { id: '__legend_metadata' });
         this.tableMetadata[table] = metadata;
         const store = this.transactionStore(table);
@@ -96,7 +96,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 lastPut = this._setItem(key, valueAtPath, store);
             } else {
                 if (isArray(valueAtPath)) {
-                    this.setMetadata(table, { array: true });
+                    this.updateMetadata(table, { array: true });
                 }
                 lastPut = this._setTable(prev, valueAtPath, store);
             }

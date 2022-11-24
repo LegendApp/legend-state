@@ -26,7 +26,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         this.tableData[table] = value;
         this.save(table);
     }
-    public setMetadata(table: string, metadata: PersistMetadata) {
+    public updateMetadata(table: string, metadata: PersistMetadata) {
         return this.set(table + '__m', metadata);
     }
     public async deleteTable(table: string): Promise<void> {
