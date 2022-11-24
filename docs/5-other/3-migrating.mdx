@@ -1,3 +1,36 @@
+## 0.21 to 0.22
+
+### Local Storage is no longer the default persistence
+
+This was changed to reduce build size for those who don't use it. If you want to use Local Storage, configure it at the beginning of your app:
+
+```js
+import { configureObservablePersistence } from '@legendapp/state/persist'
+import { ObservablePersistLocalStorage } from '@legendapp/state/local-storage'
+
+configureObservablePersistence({
+    persistLocal: ObservablePersistLocalStorage
+})
+```
+
+### Moved persist plugins to `/persist-plugins`
+
+Update your import paths:
+
+```js
+import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
+import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv'
+```
+
+### `when` is not triggered by empty {} or []
+
+If you wanted `when` to be triggered by those, you can update it to use a selector to return a boolean like:
+
+```js
+const obs = {}
+when(() => !!obs, () => {...})
+```
+
 ## 0.20 to 0.21
 
 ### Changed `onChange` callback
