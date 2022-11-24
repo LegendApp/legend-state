@@ -49,6 +49,7 @@ export function preloadIndexedDB({
             };
             openRequest.onerror = () => postMessage({});
             function initTable(table: string, transaction: IDBTransaction) {
+                // If changing this, change it in indexddb.ts too
                 const store = transaction.objectStore(table);
                 const allRequest = store.getAll();
 
