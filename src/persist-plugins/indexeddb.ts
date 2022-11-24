@@ -134,7 +134,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                         delete val.id;
                         metadata = val;
                         if (metadata.array) {
-                            obj = [];
+                            obj = isEmpty(obj) ? [] : Object.keys(obj).map((key) => obj[key]);
                             isArray = true;
                         }
                     } else if (val.id === '__legend_obj') {
@@ -144,10 +144,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                             (obj as any[]).push(val);
                         } else {
                             obj[val.id] = val;
-                            if (val.__legend_id) {
-                                delete val.__legend_id;
-                                delete val.id;
-                            }
+                        }
+                        if (val.__legend_id) {
+                            delete val.__legend_id;
+                            delete val.id;
                         }
                     }
                 }
