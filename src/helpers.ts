@@ -1,5 +1,5 @@
 import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
-import { isFunction, isObject, isObjectEmpty } from './is';
+import { isArray, isFunction, isObject, isObjectEmpty } from './is';
 import type {
     NodeValue,
     ObservableObject,
@@ -52,14 +52,15 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     const targetValue = needsSet ? target.peek() : target;
 
     const isTargetObj = isObject(targetValue);
+    const isTargetArr = isArray(targetValue);
 
-    if (isTargetObj && isObject(source)) {
-        const keys: (Symbol | string)[] = Object.keys(source);
+    if ((isTargetObj && isObject(source)) || (isTargetArr && isArray(source))) {
+        const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
         if (source[symbolDateModified as any]) {
             keys.push(symbolDateModified);
         }
         for (let i = 0; i < keys.length; i++) {
-            const key = keys[i] as string;
+            const key = isTargetArr ? i : (keys[i] as string);
             const sourceValue = source[key];
             if (isObject(sourceValue) && !isObjectEmpty(sourceValue)) {
                 if (!needsSet && (!targetValue[key] || !isObject(targetValue[key]))) {

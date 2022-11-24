@@ -24,6 +24,7 @@ export {
     getNodeValue,
     symbolUndef,
     symbolDelete,
+    dateModifiedKey
 } from './src/globals';
 /** @internal */
 export { getNode, computeSelector } from './src/helpers';

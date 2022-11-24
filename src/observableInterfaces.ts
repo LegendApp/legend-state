@@ -150,6 +150,12 @@ export type QueryByModified<T> =
           [K in keyof T]?: QueryByModified<T[K]>;
       };
 
+export interface Change {
+    path: (string | number)[];
+    valueAtPath: any;
+    prevAtPath: any;
+}
+
 export interface PersistOptionsLocal {
     name: string;
     mmkv?: MMKVConfiguration;
@@ -179,11 +185,21 @@ export interface PersistOptions<T = any> {
     dateModifiedKey?: string;
 }
 
+export interface PersistMetadata {
+    id?: '__legend_metadata';
+    modified?: number;
+    pending?: any;
+    array?: boolean;
+}
+
 export interface ObservablePersistLocal {
-    get<T = any>(id: string, config: PersistOptionsLocal | undefined): T;
-    set(id: string, value: any, config: PersistOptionsLocal | undefined): Promise<void>;
-    delete(id: string, config: PersistOptionsLocal | undefined): Promise<void>;
-    load?(id: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
+    getTable<T = any>(table: string, config: PersistOptionsLocal | undefined): T;
+    getMetadata(table: string, config: PersistOptionsLocal | undefined): PersistMetadata;
+    set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void>;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal | undefined): Promise<void>;
+    deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    loadTable?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
@@ -192,7 +208,6 @@ export interface ObservablePersistRemote {
     save<T>(
         options: PersistOptions<T>,
         value: T,
-        getPrevious: () => T,
         path: (string | number)[],
         valueAtPath: any,
         prevAtPath: any
@@ -218,8 +233,8 @@ export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
-type SameShapeWithStringsRecord<T> = {
-    [K in keyof Omit<T, '_id' | 'id'>]-?: string | T[K] extends Record<string, Record<string, any>>
+export type SameShapeWithStringsRecord<T> = {
+    [K in keyof T]-?: string | T[K] extends Record<string, Record<string, any>>
         ?
               | {
                     _: string;
@@ -253,7 +268,7 @@ type SameShapeWithStringsRecord<T> = {
               | string
         : string | { _: string; __val: Record<string, string> };
 };
-type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
+export type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
     ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
     : SameShapeWithStringsRecord<T>;
 
@@ -343,4 +358,17 @@ export interface ObserveEventCallback<T> {
     cancel?: boolean;
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
+}
+export interface ObservablePersistenceConfig {
+    persistLocal?: ClassConstructor<ObservablePersistLocal>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    persistLocalOptions?: {
+        indexedDB?: {
+            databaseName: string;
+            version: number;
+            tableNames: string[];
+        };
+    };
+    saveTimeout?: number;
+    dateModifiedKey?: string;
 }
