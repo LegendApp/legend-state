@@ -1,3 +1,18 @@
+## 0.22.0
+
+- Breaking: Local Storage is no longer used as default persistence (to reduce build size for those not using it). Please configure persistence at the beginning of your application: https://legendapp.com/open-source/state/persistence/
+- Breaking: Moved persist plugins to /persist-plugins export path
+- Breaking: Internals of persistence plugins were changed to better support async loading and metadata. If you had made your own persistence plugin the changes should be straightforward, or create an Issue and we'll help migrate it.
+- Breaking: `when` behavior tweaked to not be triggered by empty objects or empty arrays
+- Feature: `ObservablePersistIndexedDB` for persisting to IndexedDB
+- Fix: `useObserveEffect` not working right in React StrictMode
+- Types: Improved typing of `For`
+
+## 0.21.18
+
+- Fix: `getObservableIndex` not working on index 0
+- Fix: `useObserve` not working properly in StrictMode in React 18
+
 ## 0.21.17
 
 - Fix: `useObservableQuery` was causing re-renders when using mutation

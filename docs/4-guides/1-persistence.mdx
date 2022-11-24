@@ -2,7 +2,7 @@ A primary goal of Legend-State is to make automatic persistence easy. We use Leg
 
 Persistence plugins listen for all changes within an object and write them to local or remote storage.
 
-Legend-State currently ships with local plugins for Local Storage on web and `react-native-mmkv` in React Native, and remote plugins for Firebase and Firestore are coming soon.
+Legend-State currently ships with local plugins for Local Storage and IndexedDB on web and `react-native-mmkv` in React Native, and remote plugins for Firebase and Firestore are coming soon.
 
 ## persistObservable
 
@@ -19,6 +19,7 @@ First you most likely want to set a global configuration for which plugins to us
 import { configureObservablePersistence } from '@legendapp/state/persist'
 // Web
 import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
+import { ObservablePersistLocalIndexedDB } from '@legendapp/state/persist-plugins/indexeddb'
 // React Native
 import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv'
 
@@ -26,6 +27,8 @@ import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv'
 configureObservablePersistence({
     // Use Local Storage on web
     persistLocal: ObservablePersistLocalStorage
+    // Or IndexedDB on web
+    persistLocal: ObservablePersistLocalIndexedDB
     // Use react-native-mmkv in React Native
     persistLocal: ObservablePersistMMKV
 })
@@ -42,6 +45,72 @@ const obs = observable({ store: { bigObject: { ... } } })
 persistObservable(obs, {
     local: 'store' // Unique name
 })
+```
+
+### IndexedDB
+
+The IndexedDB plugin has some constraints:
+
+1. It cannot work with primitives, only objects or arrays
+2. Each element in an array or at the root level of an object will be saved as a row in the table.
+3. It uses the element's `id` as the key so make sure that is unique. In objects where elements have no `id` key it will store it by its key name in the object.
+
+It requires some extra configuration for the database name, the table names, and the version.
+
+IndexedDB requires changing the version whenever the tables change, so you can start with version 1 and increment the version whenever you add/change tables.
+
+```js
+import { persistObservable } from '@legendapp/state/persist'
+import { ObservablePersistLocalIndexedDB } from '@legendapp/state/persist-plugins/indexeddb'
+
+configureObservablePersistence({
+    persistLocal: ObservablePersistIndexedDB,
+    persistLocalOptions: {
+        indexedDB: {
+            databaseName: 'Legend',
+            version: 1,
+            tableNames: [
+                'documents',
+                'settings',
+            ],
+        },
+    },
+});
+
+const obs = observable({
+    obj1: { text: '...' },
+    obj2: { id: 'obj2', text: '...' },
+ })
+
+// Persist this observable
+persistObservable(obs, {
+    local: 'store' // Unique name
+})
+```
+
+### Preloading
+
+Because loading from IndexedDB is asynchronous, the fastest way to load is to begin loading in a Web Worker as soon as possible. Then when your app is finished loading the data is ready. You can use `preloadIndexedDB` to start a Worker to load the data.
+
+```js
+import { preloadIndexedDB } from '@legendapp/state/persist-plugins/indexeddb-preloader';
+
+// The preload configuration needs to match the options used in configureObservablePersistence
+preloadIndexedDB({
+    databaseName: 'Legend',
+    version: 1,
+    tableNames: [
+        'documents',
+        'settings',
+    ],
+})
+```
+
+It's easiest to simply start the preload at the very beginning of your app. But it's ideal to run it as a separate script from your HTML so that it runs immediately, before parsing and running the app code. That could looks something like this:
+
+```html
+<script src="js/preload.js"></script>
+<script src="js/app.js" async></script>
 ```
 
 ### React Native
