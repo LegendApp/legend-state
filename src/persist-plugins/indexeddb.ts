@@ -165,7 +165,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     }
                 }
                 this.tableData[table] = obj;
-                this.tableMetadata[table] = obj;
+                this.tableMetadata[table] = metadata;
                 resolve();
             };
         });

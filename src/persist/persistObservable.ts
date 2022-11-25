@@ -3,6 +3,7 @@ import {
     beginBatch,
     dateModifiedKey,
     endBatch,
+    isEmpty,
     isString,
     mergeIntoObservable,
     observable,
@@ -19,6 +20,7 @@ import type {
     ObservablePersistRemote,
     ObservablePersistState,
     ObservableReadable,
+    PersistMetadata,
     PersistOptions,
     PersistOptionsLocal,
 } from '../observableInterfaces';
@@ -56,12 +58,9 @@ async function onObsChange<T>(
 
     const local = persistOptions.local;
     const { table, config } = parseLocalConfig(local);
-    const tempDisableSaveRemote = tracking.inRemoteChange;
+    const inRemoteChange = tracking.inRemoteChange;
     const saveRemote =
-        !tempDisableSaveRemote &&
-        persistOptions.remote &&
-        !persistOptions.remote.readonly &&
-        obsState.isEnabledRemote.peek();
+        !inRemoteChange && persistOptions.remote && !persistOptions.remote.readonly && obsState.isEnabledRemote.peek();
 
     if (local && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
@@ -103,8 +102,21 @@ async function onObsChange<T>(
 
         persistenceLocal.set(table, localValue, changes, config);
 
+        const metadata: PersistMetadata = {};
+
+        if (inRemoteChange) {
+            const dateModified = value[symbolDateModified];
+            if (dateModified) {
+                metadata.modified = dateModified;
+            }
+        }
+
         if (localState.pendingChanges !== undefined) {
-            persistenceLocal.updateMetadata(table, { pending: localState.pendingChanges }, config);
+            metadata.pending = localState.pendingChanges;
+        }
+
+        if (!isEmpty(metadata)) {
+            persistenceLocal.updateMetadata(table, metadata, config);
         }
     }
 
