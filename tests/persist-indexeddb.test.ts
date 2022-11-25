@@ -62,6 +62,19 @@ describe('Persist IDB', () => {
 
         return expectIDB([{ id: 'test', text: 'hi' }]);
     });
+    test('Persist IDB save deep', async () => {
+        const obs = observable<Record<string, any>>({});
+
+        const state = persistObservable(obs, {
+            local: TableName,
+        });
+
+        await when(state.isLoadedLocal);
+
+        obs.test.test2.set({ text: 'hi' });
+
+        return expectIDB([{ test2: { text: 'hi' }, id: 'test', __legend_id: true }]);
+    });
     test('Persist IDB get after save', async () => {
         const obs = observable<Record<string, any>>({});
 

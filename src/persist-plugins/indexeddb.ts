@@ -98,7 +98,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             if (path.length > 0) {
                 // If change is deep in an object save it to IDB by the first key
                 const key = path[0] as string;
-                lastPut = this._setItem(key, valueAtPath, store);
+                lastPut = this._setItem(key, tableValue[key], store);
             } else {
                 // If change is the full object
                 if (isArray(valueAtPath)) {
