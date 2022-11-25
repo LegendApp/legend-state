@@ -1324,6 +1324,50 @@ describe('Array', () => {
         ]);
         expect(handlerShallow).not.toHaveBeenCalled();
     });
+    test('Array set with different ids shallow', () => {
+        const obs = observable({
+            test: [{ id: 1, text: 1 }],
+        });
+        const handler = expectChangeHandler(obs.test, true);
+
+        obs.test.set([{ id: 2, text: 2 }]);
+
+        expect(obs.test.get()).toEqual([{ id: 2, text: 2 }]);
+
+        expect(handler).toHaveBeenCalledWith(
+            [{ id: 2, text: 2 }],
+            [{ id: 1, text: 1 }],
+            [
+                {
+                    path: [],
+                    valueAtPath: [{ id: 2, text: 2 }],
+                    prevAtPath: [{ id: 1, text: 1 }],
+                },
+            ]
+        );
+    });
+    test('Array set with no ids shallow', () => {
+        const obs = observable({
+            test: [{ text: 1 }],
+        });
+        const handler = expectChangeHandler(obs.test, true);
+
+        obs.test.set([{ text: 2 }]);
+
+        expect(obs.test.get()).toEqual([{ text: 2 }]);
+
+        expect(handler).toHaveBeenCalledWith(
+            [{ text: 2 }],
+            [{ text: 1 }],
+            [
+                {
+                    path: [],
+                    valueAtPath: [{ text: 2 }],
+                    prevAtPath: [{ text: 1 }],
+                },
+            ]
+        );
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {

@@ -179,6 +179,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     if (!prevChild) {
                         // This id was not in the array before so it does not need to notify children
                         isDiff = false;
+                        hasADiff = true;
                     } else if (prevChild !== undefined && prevChild.key !== key) {
                         // If array length changed then move the original node to the current position.
                         // That should be faster than notifying every single element that
