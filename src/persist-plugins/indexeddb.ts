@@ -49,7 +49,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
                 if (preload) {
                     // Load from preload or wait for it to finish, if it exists
-                    this.tableData = preload.tableData || (await preload.dataPromise);
+                    if (!preload.tableData && preload.dataPromise) {
+                        await preload.dataPromise;
+                    }
+                    this.tableData = preload.tableData;
                     this.tableMetadata = preload.tableMetadata;
                 } else {
                     // Load each table
