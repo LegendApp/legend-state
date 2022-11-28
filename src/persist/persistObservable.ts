@@ -31,7 +31,6 @@ export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
     ObservablePersistLocal | ObservablePersistRemote
 > = new WeakMap();
-const usedNames = new Map<string, true>();
 
 export const persistState = observable({ inRemoteSync: false });
 
@@ -193,14 +192,6 @@ async function loadLocal<T>(
 
     if (local) {
         const { table, config } = parseLocalConfig(local);
-        // Warn on duplicate usage of local names
-        if (process.env.NODE_ENV === 'development') {
-            if (usedNames.has(table)) {
-                console.error(`[legend-state] Called persist with the same local name multiple times: ${table}`);
-            }
-            usedNames.set(table, true);
-        }
-
         if (!localPersistence) {
             throw new Error('Local persistence is not configured');
         }
