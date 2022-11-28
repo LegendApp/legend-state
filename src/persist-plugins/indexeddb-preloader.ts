@@ -56,33 +56,28 @@ export function preloadIndexedDB({
                 return new Promise<void>((resolve) => {
                     allRequest.onsuccess = () => {
                         const arr = allRequest.result;
-                        let obj: Record<string, any> | any[] = {};
                         let metadata: PersistMetadata;
-                        let isArray = false;
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
                             if (val.id === '__legend_metadata') {
+                                // Save this as metadata
                                 delete val.id;
                                 metadata = val;
-                                if (metadata.array) {
-                                    obj = [];
-                                    isArray = true;
-                                }
-                            } else if (val.id === '__legend_obj') {
-                                obj = val.value;
                             } else {
-                                if (isArray) {
-                                    (obj as any[]).push(val);
-                                } else {
-                                    obj[val.id] = val;
-                                    if (val.__legend_id) {
-                                        delete val.__legend_id;
-                                        delete val.id;
-                                    }
+                                let tableName = table;
+
+                                if (val.id.includes('/')) {
+                                    const [prefix, id] = val.id.split('/');
+                                    tableName += prefix;
+                                    val.id = id;
                                 }
+
+                                if (!this.tableData[tableName]) {
+                                    this.tableData[tableName] = {};
+                                }
+                                this.tableData[tableName][val.id] = val;
                             }
                         }
-                        tableData[table] = obj;
                         tableMetadata[table] = metadata;
                         resolve();
                     };

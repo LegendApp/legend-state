@@ -158,7 +158,15 @@ export interface Change {
 
 export interface PersistOptionsLocal {
     name: string;
+    adjustData?: {
+        load: (value: any) => Promise<any>;
+        save: (value: any) => Promise<any>;
+    };
     mmkv?: MMKVConfiguration;
+    indexedDB?: {
+        prefixID?: string;
+        itemID?: string;
+    };
 }
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
@@ -189,17 +197,16 @@ export interface PersistMetadata {
     id?: '__legend_metadata';
     modified?: number;
     pending?: any;
-    array?: boolean;
 }
 
 export interface ObservablePersistLocal {
     initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
-    getTable<T = any>(table: string, config: PersistOptionsLocal | undefined): T;
-    getMetadata(table: string, config: PersistOptionsLocal | undefined): PersistMetadata;
+    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
+    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
     set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void>;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal | undefined): Promise<void>;
-    deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
-    loadTable?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void>;
+    deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
+    loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;

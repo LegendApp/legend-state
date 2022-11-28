@@ -40,8 +40,8 @@ interface LocalState {
     pendingChanges?: Record<string, { p: any; v?: any }>;
 }
 
-function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config?: PersistOptionsLocal } {
-    return isString(config) ? { table: config } : { table: config.name, config };
+function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config: PersistOptionsLocal } {
+    return isString(config) ? { table: config, config: { name: config } } : { table: config.name, config };
 }
 
 async function onObsChange<T>(
@@ -209,7 +209,10 @@ async function loadLocal<T>(
 
         // If persistence has an asynchronous load, wait for it
         if (persistenceLocal.loadTable) {
-            await persistenceLocal.loadTable(table, config);
+            const promise = persistenceLocal.loadTable(table, config);
+            if (promise) {
+                await promise;
+            }
         }
 
         // Get the value from state
@@ -232,7 +235,7 @@ async function loadLocal<T>(
             batch(() => mergeIntoObservable(obs, value));
         }
 
-        obsState.get().clearLocal = () => persistenceLocal.deleteTable(table, config);
+        obsState.peek().clearLocal = () => persistenceLocal.deleteTable(table, config);
     }
     obsState.isLoadedLocal.set(true);
 }

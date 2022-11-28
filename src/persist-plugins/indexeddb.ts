@@ -1,14 +1,17 @@
-import { isArray, isEmpty, isObject } from '@legendapp/state';
+import { isArray, isObject, isPromise, observable, when } from '@legendapp/state';
 import type {
     Change,
+    Observable,
     ObservablePersistenceConfig,
     ObservablePersistLocal,
     PersistMetadata,
+    PersistOptionsLocal,
 } from '../observableInterfaces';
 
 export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private tableData: Record<string, any> = {};
     private tableMetadata: Record<string, any> = {};
+    private tablesAdjusted: Map<string, Observable<boolean>> = new Map();
     private db: IDBDatabase;
 
     public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
@@ -70,8 +73,57 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             };
         });
     }
-    public getTable(table: string) {
-        return this.tableData[table];
+    public loadTable(table: string, config: PersistOptionsLocal): void | Promise<void> {
+        const { adjustData } = config;
+        if (adjustData || config.indexedDB?.prefixID) {
+            if (this.tablesAdjusted.has(table)) {
+                const promise = when(this.tablesAdjusted.get(table));
+                if (isPromise(promise)) {
+                    return promise as unknown as Promise<void>;
+                }
+            } else {
+                const obsLoaded = observable(false);
+                this.tablesAdjusted.set(table, obsLoaded);
+                const data = this.getTable(table, config);
+                if (data) {
+                    const keys = Object.keys(data);
+                    let hasPromise = false;
+                    const promises = keys.map((key) => {
+                        let value = data[key];
+
+                        if (adjustData) {
+                            value = adjustData.load(value);
+                        }
+                        if (isPromise(value)) {
+                            hasPromise = true;
+                            return value.then((v) => {
+                                data[key] = value;
+                            });
+                        } else {
+                            data[key] = value;
+                        }
+                    });
+
+                    if (hasPromise) {
+                        return Promise.all(promises).then(() => {
+                            obsLoaded.set(true);
+                        });
+                    } else {
+                        obsLoaded.set(true);
+                    }
+                }
+            }
+        }
+    }
+    public getTable(table: string, config: PersistOptionsLocal) {
+        const configIDB = config.indexedDB;
+        const prefix = configIDB?.prefixID;
+        const data = this.tableData[prefix ? table + prefix : table];
+        if (data && configIDB?.itemID) {
+            return data[configIDB.itemID];
+        } else {
+            return data;
+        }
     }
     public getMetadata(table: string) {
         return this.tableMetadata[table];
@@ -81,13 +133,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         metadata = Object.assign(this.tableMetadata[table] || {}, metadata, { id: '__legend_metadata' });
         this.tableMetadata[table] = metadata;
         const store = this.transactionStore(table);
-        const set = this._setItem('__legend_metadata', metadata, store);
+        const set = store.put(Object.assign(metadata, { id: '__legend_metadata' }));
         return new Promise<void>((resolve) => (set.onsuccess = () => resolve()));
     }
-    public async set(table: string, tableValue: Record<string, any>, changes: Change[]) {
-        const prev = this.tableData[table];
-        this.tableData[table] = tableValue;
-
+    public async set(table: string, tableValue: Record<string, any>, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
 
         if (process.env.NODE_ENV === 'development' && (!isObject(tableValue) || !isArray(tableValue))) {
@@ -95,23 +144,34 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         }
 
         const store = this.transactionStore(table);
-        let lastPut: IDBRequest;
-        for (let i = 0; i < changes.length; i++) {
-            const { path, valueAtPath } = changes[i];
-            if (path.length > 0) {
-                // If change is deep in an object save it to IDB by the first key
-                const key = path[0] as string;
-                lastPut = this._setItem(key, tableValue[key], store);
-            } else {
-                // If change is the full object
-                if (isArray(valueAtPath)) {
-                    // If it's an array set that in the metadata so it loads as an array
-                    this.updateMetadata(table, { array: true });
-                }
-                // Set the whole table
-                lastPut = this._setTable(prev, valueAtPath, store);
-            }
+
+        const prefixID = config.indexedDB?.prefixID;
+        if (prefixID) {
+            table += prefixID;
         }
+        const prev = this.tableData[table];
+
+        const itemID = config.indexedDB?.itemID;
+        if (itemID) {
+            tableValue = { [itemID]: tableValue };
+        }
+        const puts = await Promise.all(
+            changes.map(({ path, valueAtPath }) => {
+                const itemID = config.indexedDB?.itemID;
+                if (itemID) {
+                    path = [itemID].concat(path as string[]);
+                }
+                if (path.length > 0) {
+                    // If change is deep in an object save it to IDB by the first key
+                    const key = path[0] as string;
+                    return this._setItem(table, key, tableValue[key], store, config);
+                } else {
+                    // Set the whole table
+                    return this._setTable(table, prev, valueAtPath, store, config);
+                }
+            })
+        );
+        const lastPut = puts[puts.length - 1];
         return new Promise<void>((resolve) => (lastPut.onsuccess = () => resolve()));
     }
     public async deleteTable(table: string): Promise<void> {
@@ -137,37 +197,28 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         return new Promise((resolve) => {
             allRequest.onsuccess = () => {
                 const arr = allRequest.result;
-                let obj: Record<string, any> | any[] = {};
                 let metadata: PersistMetadata;
-                let isArray = false;
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
                     if (val.id === '__legend_metadata') {
                         // Save this as metadata
                         delete val.id;
                         metadata = val;
-                        if (metadata.array) {
-                            // Load the data as an array instead of an object
-                            obj = isEmpty(obj) ? [] : Object.keys(obj).map((key) => obj[key]);
-                            isArray = true;
-                        }
-                    } else if (val.id === '__legend_obj') {
-                        // Data is a basic object so load the value
-                        obj = val.value;
                     } else {
-                        if (isArray) {
-                            (obj as any[]).push(val);
-                        } else {
-                            obj[val.id] = val;
+                        let tableName = table;
+
+                        if (val.id.includes('/')) {
+                            const [prefix, id] = val.id.split('/');
+                            tableName += prefix;
+                            val.id = id;
                         }
-                        // If it had __legend_id the source object should not have an id key
-                        if (val.__legend_id) {
-                            delete val.__legend_id;
-                            delete val.id;
+
+                        if (!this.tableData[tableName]) {
+                            this.tableData[tableName] = {};
                         }
+                        this.tableData[tableName][val.id] = val;
                     }
                 }
-                this.tableData[table] = obj;
                 this.tableMetadata[table] = metadata;
                 resolve();
             };
@@ -177,51 +228,74 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const transaction = this.db.transaction(table, 'readwrite');
         return transaction.objectStore(table);
     }
-    private _setItem(key: string, value: any, store: IDBObjectStore) {
+    private async _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptionsLocal) {
         if (!value) {
+            if (this.tableData[table]) {
+                delete this.tableData[table][key];
+            }
             return store.delete(key);
         } else {
             if (value.id === undefined) {
                 // If value does not have its own ID, assign it the key from the Record
-                // with __legend_id meaning it should get removed on load
-                value = Object.assign({ id: key, __legend_id: true }, value);
+                value.id = key;
+            }
+
+            if (config) {
+                if (!this.tableData[table]) {
+                    this.tableData[table] = {};
+                }
+                this.tableData[table][key] = value;
+
+                let didClone = false;
+
+                if (config.adjustData) {
+                    didClone = true;
+                    value = await config.adjustData.save(JSON.parse(JSON.stringify(value)));
+                }
+                const prefixID = config.indexedDB?.prefixID;
+                if (prefixID) {
+                    if (didClone) {
+                        value.id = prefixID + '/' + value.id;
+                    } else {
+                        value = Object.assign({}, value, {
+                            id: prefixID + '/' + value.id,
+                        });
+                    }
+                }
             }
 
             return store.put(value);
         }
     }
-    private _setTable(prev: object, value: object, store: IDBObjectStore) {
+    private async _setTable(
+        table: string,
+        prev: object,
+        value: object,
+        store: IDBObjectStore,
+        config: PersistOptionsLocal
+    ) {
         const keys = Object.keys(value);
-        let isBasic = false;
-        // If any direct child is not an object then this has to be saved as a basic object
-        for (let i = 0; i < keys.length; i++) {
-            if (!isObject(value[keys[i]])) {
-                isBasic = true;
-                break;
-            }
-        }
         let lastSet: IDBRequest;
-        if (isBasic) {
-            // Save basic object
-            lastSet = store.put({ id: '__legend_obj', value });
-        } else {
-            // Do a set for each key in the object
-            for (let i = 0; i < keys.length; i++) {
-                const key = keys[i];
+        // Do a set for each key in the object
+        const sets = await Promise.all(
+            keys.map((key) => {
                 const val = value[key];
-                lastSet = this._setItem(key, val, store);
-            }
+                return this._setItem(table, key, val, store, config);
+            })
+        );
+        lastSet = sets[sets.length - 1];
 
-            // Delete keys that are no longer in the object
-            if (prev) {
-                const keysOld = Object.keys(prev);
-                for (let i = 0; i < keysOld.length; i++) {
-                    const key = keysOld[i];
+        // Delete keys that are no longer in the object
+        if (prev) {
+            const keysOld = Object.keys(prev);
+            const deletes = await Promise.all(
+                keysOld.map((key) => {
                     if (value[key] === undefined) {
-                        lastSet = this._setItem(key, null, store);
+                        return this._setItem(table, key, null, store, config);
                     }
-                }
-            }
+                })
+            );
+            lastSet = deletes[deletes.length - 1];
         }
         return lastSet;
     }
