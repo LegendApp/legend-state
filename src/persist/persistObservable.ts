@@ -11,6 +11,7 @@ import {
     tracking,
     when,
 } from '@legendapp/state';
+import { invertMap, transformObject } from 'src/persist/fieldTransformer';
 import type {
     Change,
     ClassConstructor,
@@ -97,6 +98,10 @@ async function onObsChange<T>(
                     localState.pendingChanges[pathStr].v = valueAtPath;
                 }
             }
+        }
+
+        if (config.fieldTransforms) {
+            localValue = transformObject(localValue, config.fieldTransforms) as T;
         }
 
         persistenceLocal.set(table, localValue, changes, config);
@@ -218,6 +223,11 @@ async function loadLocal<T>(
         // Get the value from state
         let value = persistenceLocal.getTable(table, config);
         const metadata = persistenceLocal.getMetadata(table, config);
+
+        if (config.fieldTransforms) {
+            const inverted = invertMap(config.fieldTransforms);
+            value = transformObject(value, inverted);
+        }
 
         if (metadata) {
             const pending = metadata.pending;
