@@ -1,5 +1,3 @@
-import { isArray, isObject, isString, symbolDateModified } from '@legendapp/state';
-
 export function transformPath(
     path: string[],
     map: Record<string, any>,
@@ -27,6 +25,7 @@ export function transformObject(
     ignoreKeys?: Set<string>,
     passThroughKeys?: Set<string>
 ) {
+    // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
     if (dataIn) {
         ret = {};
@@ -54,15 +53,14 @@ export function transformObject(
                         ret[key] = v;
                     }
                 } else {
-                    const isObj = isObject(v);
-                    if (isObj && map[key + '_obj']) {
+                    if (map[key + '_obj']) {
                         v = transformObject(v, map[key + '_obj'], ignoreKeys, passThroughKeys);
-                    } else if (isObj && map[key + '_dict']) {
+                    } else if (map[key + '_dict']) {
                         const mapChild = map[key + '_dict'];
                         Object.keys(v).forEach((keyChild) => {
                             v[keyChild] = transformObject(v[keyChild], mapChild, ignoreKeys, passThroughKeys);
                         });
-                    } else if (isArray(v) && map[key + '_arr']) {
+                    } else if (map[key + '_arr']) {
                         const mapChild = map[key + '_arr'];
                         v = v.map((vChild) => transformObject(vChild, mapChild, ignoreKeys, passThroughKeys));
                     }
@@ -71,11 +69,6 @@ export function transformObject(
             }
             if (process.env.NODE_ENV === 'development' && ret['[object Object]']) debugger;
         });
-
-        const d = dataIn[symbolDateModified as any];
-        if (d) {
-            ret[symbolDateModified as any] = d;
-        }
     }
 
     if (process.env.NODE_ENV === 'development' && ret && ret['[object Object]']) debugger;
@@ -86,32 +79,27 @@ export function transformObject(
 const invertedMaps = new WeakMap();
 
 export function invertMap(obj: Record<string, any>) {
-    if (isString(obj)) return obj;
-
+    // Note: If changing this, change it in IndexedDB preloader
     const existing = invertedMaps.get(obj);
     if (existing) return existing;
 
     const target: Record<string, any> = {} as any;
 
-    if (obj) {
-        Object.keys(obj).forEach((key) => {
-            const val = obj[key];
-            if (process.env.NODE_ENV === 'development' && target[val]) debugger;
-            if (key === '_dict') {
-                target[key] = invertMap(val);
-            } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
-                const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
-                const suffix = key.match(/_obj|_dict|_arr$/)[0];
-                target[keyMapped + suffix] = invertMap(val);
-            } else if (typeof val === 'string') {
-                target[val] = key;
-            }
-        });
-        if (process.env.NODE_ENV === 'development' && target['[object Object]']) debugger;
-        invertedMaps.set(obj, target);
-    } else {
-        debugger;
-    }
+    Object.keys(obj).forEach((key) => {
+        const val = obj[key];
+        if (process.env.NODE_ENV === 'development' && target[val]) debugger;
+        if (key === '_dict') {
+            target[key] = invertMap(val);
+        } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
+            const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
+            const suffix = key.match(/_obj|_dict|_arr$/)[0];
+            target[keyMapped + suffix] = invertMap(val);
+        } else if (typeof val === 'string') {
+            target[val] = key;
+        }
+    });
+    if (process.env.NODE_ENV === 'development' && target['[object Object]']) debugger;
+    invertedMaps.set(obj, target);
 
     return target;
 }

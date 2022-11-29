@@ -74,10 +74,16 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
     }
     public loadTable(table: string, config: PersistOptionsLocal): void | Promise<void> {
+        if (!this.tableData[table]) {
+            const transaction = this.db.transaction(table, 'readonly');
+
+            return this.initTable(table, transaction).then(() => this.loadTable(table, config));
+        }
+
         const { adjustData } = config;
         const prefix = config.indexedDB?.prefixID;
         if (adjustData || prefix) {
-            const tableName = prefix ? table + prefix : table;
+            const tableName = prefix ? table + '/' + prefix : table;
 
             if (this.tablesAdjusted.has(tableName)) {
                 const promise = when(this.tablesAdjusted.get(tableName));
@@ -121,7 +127,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public getTable(table: string, config: PersistOptionsLocal) {
         const configIDB = config.indexedDB;
         const prefix = configIDB?.prefixID;
-        const data = this.tableData[prefix ? table + prefix : table];
+        const data = this.tableData[prefix ? table + '/' + prefix : table];
         if (data && configIDB?.itemID) {
             return data[configIDB.itemID];
         } else {
@@ -150,7 +156,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
         const prefixID = config.indexedDB?.prefixID;
         if (prefixID) {
-            table += prefixID;
+            table += '/' + prefixID;
         }
         const prev = this.tableData[table];
 
@@ -197,6 +203,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const store = transaction.objectStore(table);
         const allRequest = store.getAll();
 
+        if (!this.tableData[table]) {
+            this.tableData[table] = {};
+        }
         return new Promise((resolve) => {
             allRequest.onsuccess = () => {
                 const arr = allRequest.result;
@@ -212,7 +221,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
                         if (val.id.includes('/')) {
                             const [prefix, id] = val.id.split('/');
-                            tableName += prefix;
+                            tableName += '/' + prefix;
                             val.id = id;
                         }
 

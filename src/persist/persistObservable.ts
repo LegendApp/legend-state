@@ -152,12 +152,15 @@ async function onObsChange<T>(
                         });
                         dateModified = saved[symbolDateModified];
                         // Replace the dateModifiedKey and remove null/undefined before saving
-                        const replaced = replaceKeyInObject(
+                        let replaced = replaceKeyInObject(
                             removeNullUndefined(saved as object),
                             symbolDateModified,
                             dateModifiedKey,
                             /*clone*/ false
                         );
+                        if (config.fieldTransforms) {
+                            replaced = transformObject(replaced, config.fieldTransforms) as T;
+                        }
                         toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
                     }
                     if (saved !== undefined || didDelete) {
@@ -225,8 +228,14 @@ async function loadLocal<T>(
         const metadata = persistenceLocal.getMetadata(table, config);
 
         if (config.fieldTransforms) {
-            const inverted = invertMap(config.fieldTransforms);
-            value = transformObject(value, inverted);
+            // Get preloaded translated if available
+            let valueLoaded = persistenceLocal.getTable(table + '_transformed', config);
+            if (valueLoaded) {
+                value = valueLoaded;
+            } else {
+                const inverted = invertMap(config.fieldTransforms);
+                value = transformObject(value, inverted);
+            }
         }
 
         if (metadata) {
