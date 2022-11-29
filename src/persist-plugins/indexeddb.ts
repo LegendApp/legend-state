@@ -75,20 +75,24 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     }
     public loadTable(table: string, config: PersistOptionsLocal): void | Promise<void> {
         const { adjustData } = config;
-        if (adjustData || config.indexedDB?.prefixID) {
-            if (this.tablesAdjusted.has(table)) {
-                const promise = when(this.tablesAdjusted.get(table));
+        const prefix = config.indexedDB?.prefixID;
+        if (adjustData || prefix) {
+            const tableName = prefix ? table + prefix : table;
+
+            if (this.tablesAdjusted.has(tableName)) {
+                const promise = when(this.tablesAdjusted.get(tableName));
                 if (isPromise(promise)) {
                     return promise as unknown as Promise<void>;
                 }
             } else {
                 const obsLoaded = observable(false);
-                this.tablesAdjusted.set(table, obsLoaded);
+                this.tablesAdjusted.set(tableName, obsLoaded);
                 const data = this.getTable(table, config);
+                let hasPromise = false;
+                let promises: Promise<any>[];
                 if (data) {
                     const keys = Object.keys(data);
-                    let hasPromise = false;
-                    const promises = keys.map((key) => {
+                    promises = keys.map((key) => {
                         let value = data[key];
 
                         if (adjustData) {
@@ -103,14 +107,13 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                             data[key] = value;
                         }
                     });
-
-                    if (hasPromise) {
-                        return Promise.all(promises).then(() => {
-                            obsLoaded.set(true);
-                        });
-                    } else {
+                }
+                if (hasPromise) {
+                    return Promise.all(promises).then(() => {
                         obsLoaded.set(true);
-                    }
+                    });
+                } else {
+                    obsLoaded.set(true);
                 }
             }
         }
