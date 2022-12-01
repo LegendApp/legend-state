@@ -1,5 +1,5 @@
 import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
-import { isArray, isFunction, isObject, isObjectEmpty } from './is';
+import { isArray, isFunction, isObject } from './is';
 import type {
     NodeValue,
     ObservableObject,
@@ -62,7 +62,7 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
         for (let i = 0; i < keys.length; i++) {
             const key = isTargetArr ? i : (keys[i] as string);
             const sourceValue = source[key];
-            if (isObject(sourceValue) && !isObjectEmpty(sourceValue)) {
+            if (isObject(sourceValue)) {
                 if (!needsSet && (!targetValue[key] || !isObject(targetValue[key]))) {
                     (target as Record<string, any>)[key] = {};
                 }
