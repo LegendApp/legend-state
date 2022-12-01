@@ -148,7 +148,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public async set(table: string, tableValue: Record<string, any>, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
 
-        if (process.env.NODE_ENV === 'development' && (!isObject(tableValue) || !isArray(tableValue))) {
+        if (process.env.NODE_ENV === 'development' && !(isObject(tableValue) || isArray(tableValue))) {
             console.warn('[legend-state] IndexedDB persistence can only save objects or arrays');
         }
 
