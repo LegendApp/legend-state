@@ -1,7 +1,7 @@
 import {
     batch,
     beginBatch,
-    dateModifiedKey,
+    dateModifiedKey as _dateModifiedKey,
     endBatch,
     isEmpty,
     isString,
@@ -61,6 +61,7 @@ async function onObsChange<T>(
     const inRemoteChange = tracking.inRemoteChange;
     const saveRemote =
         !inRemoteChange && persistOptions.remote && !persistOptions.remote.readonly && obsState.isEnabledRemote.peek();
+    const dateModifiedKey = persistOptions.dateModifiedKey || _dateModifiedKey;
 
     if (local && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
@@ -246,6 +247,7 @@ async function loadLocal<T>(
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
             if (remote) {
+                const dateModifiedKey = persistOptions.dateModifiedKey || _dateModifiedKey;
                 replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
             }
             if (metadata?.modified) {
