@@ -52,17 +52,19 @@ export function transformObject(
                         // debugger;
                         ret[key] = v;
                     }
-                } else {
-                    if (map[key + '_obj']) {
-                        v = transformObject(v, map[key + '_obj'], ignoreKeys, passThroughKeys);
-                    } else if (map[key + '_dict']) {
-                        const mapChild = map[key + '_dict'];
-                        Object.keys(v).forEach((keyChild) => {
-                            v[keyChild] = transformObject(v[keyChild], mapChild, ignoreKeys, passThroughKeys);
-                        });
-                    } else if (map[key + '_arr']) {
-                        const mapChild = map[key + '_arr'];
-                        v = v.map((vChild) => transformObject(vChild, mapChild, ignoreKeys, passThroughKeys));
+                } else if (mapped !== null) {
+                    if (v !== undefined && v !== null) {
+                        if (map[key + '_obj']) {
+                            v = transformObject(v, map[key + '_obj'], ignoreKeys, passThroughKeys);
+                        } else if (map[key + '_dict']) {
+                            const mapChild = map[key + '_dict'];
+                            Object.keys(v).forEach((keyChild) => {
+                                v[keyChild] = transformObject(v[keyChild], mapChild, ignoreKeys, passThroughKeys);
+                            });
+                        } else if (map[key + '_arr']) {
+                            const mapChild = map[key + '_arr'];
+                            v = v.map((vChild) => transformObject(vChild, mapChild, ignoreKeys, passThroughKeys));
+                        }
                     }
                     ret[mapped] = v;
                 }
