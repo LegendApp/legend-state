@@ -58,12 +58,15 @@ export function batch(fn: () => void) {
 export function beginBatch() {
     numInBatch++;
     // Set a timeout to call end() in case end() is never called or there's an uncaught error
-    timeout = setTimeout(onActionTimeout, 0);
+    if (!timeout) {
+        timeout = setTimeout(onActionTimeout, 0);
+    }
 }
 export function endBatch(force?: boolean) {
     numInBatch--;
     if (numInBatch <= 0 || force) {
         clearTimeout(timeout);
+        timeout = undefined;
         numInBatch = 0;
         // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
         // This can happen with observableComputed for example.
