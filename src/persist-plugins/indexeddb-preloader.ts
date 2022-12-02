@@ -163,6 +163,9 @@ export function preloadIndexedDB({
                     allRequest.onsuccess = () => {
                         const arr = allRequest.result;
                         let metadata: PersistMetadata;
+                        if (!tableData[table]) {
+                            tableData[table] = {};
+                        }
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
                             if (val.id === '__legend_metadata') {

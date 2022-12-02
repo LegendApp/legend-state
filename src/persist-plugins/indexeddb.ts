@@ -220,6 +220,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             allRequest.onsuccess = () => {
                 const arr = allRequest.result;
                 let metadata: PersistMetadata;
+                if (!this.tableData[table]) {
+                    this.tableData[table] = {};
+                }
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
                     if (val.id === '__legend_metadata') {
