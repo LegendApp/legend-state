@@ -157,8 +157,8 @@ export interface Change {
 export interface PersistOptionsLocal<T = any> {
     name: string;
     adjustData?: {
-        load: (value: T) => Promise<T>;
-        save: (value: T) => Promise<T>;
+        load: (value: T) => T | Promise<T>;
+        save: (value: T) => T | Promise<T>;
     };
     fieldTransforms?: FieldTransforms<T>;
     mmkv?: MMKVConfiguration;
@@ -181,7 +181,7 @@ export interface PersistOptionsRemote<T = any> {
         syncPath: (uid: string) => `/${string}/`;
         fieldTransforms?: FieldTransforms<T>;
         queryByModified?: QueryByModified<T>;
-        ignoreKeys?: Set<string>;
+        ignoreKeys?: string[];
     };
 }
 export interface PersistOptions<T = any> {

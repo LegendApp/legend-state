@@ -62,8 +62,8 @@ export function preloadIndexedDB({
                 function transformObject(
                     dataIn: Record<string, any>,
                     map: Record<string, any>,
-                    ignoreKeys?: Set<string>,
-                    passThroughKeys?: Set<string>
+                    ignoreKeys?: string[],
+                    passThroughKeys?: string[]
                 ) {
                     let ret = dataIn;
                     if (dataIn) {
@@ -72,11 +72,11 @@ export function preloadIndexedDB({
                         const dict = Object.keys(map).length === 1 && map['_dict'];
 
                         Object.keys(dataIn).forEach((key) => {
-                            if (ret[key] !== undefined || ignoreKeys?.has(key)) return;
+                            if (ret[key] !== undefined || ignoreKeys?.includes(key)) return;
 
                             let v = dataIn[key];
 
-                            if (passThroughKeys?.has(key)) {
+                            if (passThroughKeys?.includes(key)) {
                                 ret[key] = v;
                             } else if (dict) {
                                 ret[key] = transformObject(v, dict, ignoreKeys, passThroughKeys);

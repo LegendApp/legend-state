@@ -82,9 +82,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
         const { adjustData } = config;
         const prefix = config.indexedDB?.prefixID;
+
         if (adjustData || prefix) {
             const tableName = prefix ? table + '/' + prefix : table;
-
             if (this.tablesAdjusted.has(tableName)) {
                 const promise = when(this.tablesAdjusted.get(tableName));
                 if (isPromise(promise)) {

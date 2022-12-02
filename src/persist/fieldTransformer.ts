@@ -1,8 +1,8 @@
 export function transformPath(
     path: string[],
     map: Record<string, any>,
-    ignoreKeys: Set<string>,
-    passThroughKeys: Set<string>
+    ignoreKeys: string[],
+    passThroughKeys: string[]
 ): string[] {
     const data: Record<string, any> = {};
     let d = data;
@@ -22,8 +22,8 @@ export function transformPath(
 export function transformObject(
     dataIn: Record<string, any>,
     map: Record<string, any>,
-    ignoreKeys?: Set<string>,
-    passThroughKeys?: Set<string>
+    ignoreKeys?: string[],
+    passThroughKeys?: string[]
 ) {
     // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
@@ -33,7 +33,7 @@ export function transformObject(
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
         Object.keys(dataIn).forEach((key) => {
-            if (ret[key] !== undefined || ignoreKeys?.has(key)) return;
+            if (ret[key] !== undefined || ignoreKeys?.includes(key)) return;
 
             let v = dataIn[key];
 
@@ -42,7 +42,7 @@ export function transformObject(
             } else {
                 const mapped = map[key];
                 if (mapped === undefined) {
-                    if (passThroughKeys?.has(key)) {
+                    if (passThroughKeys?.includes(key)) {
                         ret[key] = v;
                     } else if (
                         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
