@@ -134,6 +134,16 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             return data;
         }
     }
+    public getTableTransformed<T = any>(table: string, config: PersistOptionsLocal<any>): T {
+        const configIDB = config.indexedDB;
+        const prefix = configIDB?.prefixID;
+        const data = this.tableData[(prefix ? table + '/' + prefix : table) + '_transformed'];
+        if (data && configIDB?.itemID) {
+            return data[configIDB.itemID];
+        } else {
+            return data;
+        }
+    }
     public getMetadata(table: string) {
         return this.tableMetadata[table];
     }

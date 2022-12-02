@@ -230,7 +230,7 @@ async function loadLocal<T>(
 
         if (config.fieldTransforms) {
             // Get preloaded translated if available
-            let valueLoaded = persistenceLocal.getTable(table + '_transformed', config);
+            let valueLoaded = persistenceLocal.getTableTransformed(table, config);
             if (valueLoaded) {
                 value = valueLoaded;
             } else {

@@ -189,10 +189,17 @@ export function preloadIndexedDB({
 
                         if (fieldTransforms) {
                             Object.keys(fieldTransforms).forEach((table) => {
-                                const data = tableData[table];
-                                if (data) {
-                                    tableData[table + '_transformed'] = transformObject(data, fieldTransforms[table]);
-                                }
+                                Object.keys(tableData).forEach((tableName) => {
+                                    if (tableName === table || tableName.startsWith(table + '/')) {
+                                        const data = tableData[tableName];
+                                        if (data) {
+                                            tableData[tableName + '_transformed'] = transformObject(
+                                                data,
+                                                fieldTransforms[table]
+                                            );
+                                        }
+                                    }
+                                });
                             });
                         }
                         resolve();
