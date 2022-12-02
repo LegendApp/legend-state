@@ -37,14 +37,14 @@ export function transformObject(
 
             let v = dataIn[key];
 
-            if (passThroughKeys?.has(key)) {
-                ret[key] = v;
-            } else if (dict) {
+            if (dict) {
                 ret[key] = transformObject(v, dict, ignoreKeys, passThroughKeys);
             } else {
                 const mapped = map[key];
                 if (mapped === undefined) {
-                    if (
+                    if (passThroughKeys?.has(key)) {
+                        ret[key] = v;
+                    } else if (
                         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
                         map[key] === undefined
                     ) {
