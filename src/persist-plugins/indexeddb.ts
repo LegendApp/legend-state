@@ -50,6 +50,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                         dataPromise: Promise<any>;
                     });
 
+                let didPreload;
                 if (preload) {
                     // Load from preload or wait for it to finish, if it exists
                     if (!preload.tableData && preload.dataPromise) {
@@ -57,7 +58,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     }
                     this.tableData = preload.tableData;
                     this.tableMetadata = preload.tableMetadata;
-                } else {
+                    didPreload = !!preload.tableData;
+                }
+                if (!didPreload) {
                     // Load each table
                     const tables = tableNames.filter((table) => this.db.objectStoreNames.contains(table));
                     try {

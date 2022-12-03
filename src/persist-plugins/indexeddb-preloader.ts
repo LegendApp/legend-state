@@ -152,8 +152,9 @@ export function preloadIndexedDB({
                         }
 
                         postMessage({ tableData, tableMetadata });
-                    } catch {
-                        postMessage({});
+                    } catch (e) {
+                        console.error(e);
+                        postMessage({ error: e });
                     }
                 } else {
                     postMessage({});
