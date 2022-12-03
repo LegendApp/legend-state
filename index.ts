@@ -25,6 +25,6 @@ export {
     dateModifiedKey
 } from './src/globals';
 /** @internal */
-export { getNode, computeSelector, constructObject } from './src/helpers';
+export { getNode, computeSelector, constructObject, clone, deconstructObject } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';

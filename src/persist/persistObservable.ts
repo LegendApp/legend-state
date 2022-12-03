@@ -1,8 +1,10 @@
 import {
     batch,
     beginBatch,
+    clone,
     constructObject,
     dateModifiedKey as _dateModifiedKey,
+    deconstructObject,
     endBatch,
     isEmpty,
     isString,
@@ -12,8 +14,6 @@ import {
     tracking,
     when,
 } from '@legendapp/state';
-import { deconstructObject } from 'src/helpers';
-import { invertMap, transformObject, transformPath } from 'src/persist/fieldTransformer';
 import type {
     Change,
     ClassConstructor,
@@ -28,6 +28,7 @@ import type {
     PersistOptionsLocal,
 } from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
+import { invertMap, transformObject, transformPath } from './fieldTransformer';
 import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
@@ -104,10 +105,11 @@ async function onObsChange<T>(
             }
         }
 
+        let changesLocal = changes;
         if (config.fieldTransforms) {
             localValue = transformObject(localValue, config.fieldTransforms) as T;
-            changes = changes.map(({ path, prevAtPath, valueAtPath }) => {
-                let transformed = constructObject(path, valueAtPath);
+            changesLocal = changesLocal.map(({ path, prevAtPath, valueAtPath }) => {
+                let transformed = constructObject(path, clone(valueAtPath));
                 transformed = transformObject(transformed, config.fieldTransforms);
                 const transformedPath = transformPath(path as string[], config.fieldTransforms);
                 const toSave = deconstructObject(transformedPath, transformed);
@@ -115,7 +117,7 @@ async function onObsChange<T>(
             });
         }
 
-        persistenceLocal.set(table, localValue, changes, config);
+        persistenceLocal.set(table, localValue, changesLocal, config);
 
         const metadata: PersistMetadata = {};
 
@@ -317,7 +319,7 @@ export function persistObservable<T>(obs: ObservableReadable<T>, persistOptions:
                 const pending = localState.pendingChanges;
                 if (pending) {
                     Object.keys(pending).forEach((key) => {
-                        const path = key.split('/');
+                        const path = key.split('/').filter((p) => p !== '');
                         const { p, v } = pending[key];
                         // TODO getPrevious if any remote persistence layers need it
                         onObsChange(

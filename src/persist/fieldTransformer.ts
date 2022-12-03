@@ -48,8 +48,7 @@ export function transformObject(
                         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
                         map[key] === undefined
                     ) {
-                        console.error('A fatal field transformation error has occurred', key, map);
-                        // debugger;
+                        console.error('A fatal field transformation error has occurred', key, dataIn, map);
                         ret[key] = v;
                     }
                 } else if (mapped !== null) {

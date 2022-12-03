@@ -105,3 +105,6 @@ export function deconstructObject(path: (string | number)[], value: any): object
 
     return o;
 }
+export function clone(obj: any) {
+    return JSON.parse(JSON.stringify(obj));
+}
