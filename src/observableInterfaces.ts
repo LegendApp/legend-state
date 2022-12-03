@@ -157,8 +157,8 @@ export interface Change {
 export interface PersistOptionsLocal<T = any> {
     name: string;
     adjustData?: {
-        load: (value: T) => T | Promise<T>;
-        save: (value: T) => T | Promise<T>;
+        load?: (value: T) => T | Promise<T>;
+        save?: (value: T) => T | Promise<T>;
     };
     fieldTransforms?: FieldTransforms<T>;
     mmkv?: MMKVConfiguration;
@@ -174,8 +174,8 @@ export interface PersistOptionsRemote<T = any> {
     saveTimeout?: number;
     manual?: boolean;
     adjustData?: {
-        load: (value: any, basePath: string) => Promise<any>;
-        save: (value: any, basePath: string, path: string[]) => Promise<any>;
+        load?: (value: T, basePath: string) => T | Promise<T>;
+        save?: (value: T, basePath: string, path: string[]) => T | Promise<T>;
     };
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;

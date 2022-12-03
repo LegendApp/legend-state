@@ -1,8 +1,8 @@
 export function transformPath(
     path: string[],
     map: Record<string, any>,
-    ignoreKeys: string[],
-    passThroughKeys: string[]
+    ignoreKeys?: string[],
+    passThroughKeys?: string[]
 ): string[] {
     const data: Record<string, any> = {};
     let d = data;
