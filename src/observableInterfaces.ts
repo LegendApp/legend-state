@@ -172,6 +172,8 @@ export interface PersistOptionsRemote<T = any> {
     once?: boolean;
     requireAuth?: boolean;
     saveTimeout?: number;
+    waitForLoad?: Promise<any>;
+    waitForSave?: Promise<any> | ((value: T) => Promise<any>);
     manual?: boolean;
     adjustData?: {
         load?: (value: T, basePath: string) => T | Promise<T>;
