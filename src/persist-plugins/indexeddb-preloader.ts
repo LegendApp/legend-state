@@ -87,7 +87,13 @@ export function preloadIndexedDB({
                                         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
                                         map[key] === undefined
                                     ) {
-                                        console.error('A fatal field transformation error has occurred', key, map);
+                                        console.error(
+                                            'A fatal field transformation error has occurred',
+                                            key,
+                                            dataIn,
+                                            map
+                                        );
+                                        debugger;
                                         ret[key] = v;
                                     }
                                 } else {
@@ -168,27 +174,27 @@ export function preloadIndexedDB({
                         }
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
+
+                            let tableName = table;
+
+                            if (val.id.includes('/')) {
+                                const [prefix, id] = val.id.split('/');
+                                tableName += '/' + prefix;
+                                val.id = id;
+                            }
+
                             if (val.id === '__legend_metadata') {
                                 // Save this as metadata
                                 delete val.id;
                                 metadata = val;
+                                tableMetadata[tableName] = metadata;
                             } else {
-                                let tableName = table;
-
-                                if (val.id.includes('/')) {
-                                    const [prefix, id] = val.id.split('/');
-                                    tableName += '/' + prefix;
-                                    val.id = id;
-                                }
-
                                 if (!tableData[tableName]) {
                                     tableData[tableName] = {};
                                 }
                                 tableData[tableName][val.id] = val;
                             }
                         }
-
-                        tableMetadata[table] = metadata;
 
                         if (fieldTransforms) {
                             Object.keys(fieldTransforms).forEach((table) => {

@@ -144,15 +144,22 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             return data;
         }
     }
-    public getMetadata(table: string) {
-        return this.tableMetadata[table];
+    public getMetadata(table: string, config: PersistOptionsLocal) {
+        const configIDB = config.indexedDB;
+        const prefix = configIDB?.prefixID;
+        return this.tableMetadata[prefix ? table + '/' + prefix : table];
     }
-    public async updateMetadata(table: string, metadata: PersistMetadata): Promise<void> {
+    public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
+        const configIDB = config.indexedDB;
+        const prefix = configIDB?.prefixID;
+        const tableName = prefix ? table + '/' + prefix : table;
         // Assign new metadata into the table, and make sure it has the id
-        metadata = Object.assign(this.tableMetadata[table] || {}, metadata, { id: '__legend_metadata' });
-        this.tableMetadata[table] = metadata;
+        metadata = Object.assign(this.tableMetadata[tableName] || {}, metadata, {
+            id: (prefix ? prefix + '/' : '') + '__legend_metadata',
+        });
+        this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
-        const set = store.put(Object.assign(metadata, { id: '__legend_metadata' }));
+        const set = store.put(metadata);
         return new Promise<void>((resolve) => (set.onsuccess = () => resolve()));
     }
     public async set(table: string, tableValue: Record<string, any>, changes: Change[], config: PersistOptionsLocal) {
@@ -225,26 +232,27 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 }
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
+
+                    let tableName = table;
+
+                    if (val.id.includes('/')) {
+                        const [prefix, id] = val.id.split('/');
+                        tableName += '/' + prefix;
+                        val.id = id;
+                    }
+
                     if (val.id === '__legend_metadata') {
                         // Save this as metadata
                         delete val.id;
                         metadata = val;
+                        this.tableMetadata[tableName] = metadata;
                     } else {
-                        let tableName = table;
-
-                        if (val.id.includes('/')) {
-                            const [prefix, id] = val.id.split('/');
-                            tableName += '/' + prefix;
-                            val.id = id;
-                        }
-
                         if (!this.tableData[tableName]) {
                             this.tableData[tableName] = {};
                         }
                         this.tableData[tableName][val.id] = val;
                     }
                 }
-                this.tableMetadata[table] = metadata;
                 resolve();
             };
         });
