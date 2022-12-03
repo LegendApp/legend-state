@@ -80,3 +80,28 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     }
     return mergeIntoObservable(target, ...sources);
 }
+
+export function constructObject(path: (string | number)[], value: any): object {
+    let out;
+    if (path.length > 0) {
+        let o = (out = {});
+        for (let i = 0; i < path.length; i++) {
+            const p = path[i];
+            o[p] = i === path.length - 1 ? value : {};
+            o = o[p];
+        }
+    } else {
+        out = value;
+    }
+
+    return out;
+}
+export function deconstructObject(path: (string | number)[], value: any): object {
+    let o = value;
+    for (let i = 0; i < path.length; i++) {
+        const p = path[i];
+        o = o[p];
+    }
+
+    return o;
+}

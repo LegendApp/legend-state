@@ -101,7 +101,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     promises = keys.map((key) => {
                         let value = data[key];
 
-                        if (adjustData) {
+                        if (adjustData?.load) {
                             value = adjustData.load(value);
                         }
                         if (isPromise(value)) {
@@ -273,7 +273,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
                 let didClone = false;
 
-                if (config.adjustData) {
+                if (config.adjustData?.save) {
                     didClone = true;
                     value = await config.adjustData.save(JSON.parse(JSON.stringify(value)));
                 }

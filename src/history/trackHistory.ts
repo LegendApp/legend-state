@@ -1,4 +1,5 @@
 import {
+    constructObject,
     mergeIntoObservable,
     observable,
     ObservableReadable,
@@ -6,22 +7,6 @@ import {
     symbolDateModified,
     tracking,
 } from '@legendapp/state';
-
-function constructObject(path: (string | number)[], value: any): object {
-    let out;
-    if (path.length > 0) {
-        let o = (out = {});
-        for (let i = 0; i < path.length; i++) {
-            const p = path[i];
-            o[p] = i === path.length - 1 ? value : {};
-            o = o[p];
-        }
-    } else {
-        out = value;
-    }
-
-    return out;
-}
 
 // This type is purely for documentation.
 type TimestampAsString = string;

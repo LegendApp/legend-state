@@ -1,6 +1,7 @@
 import {
     batch,
     beginBatch,
+    constructObject,
     dateModifiedKey as _dateModifiedKey,
     endBatch,
     isEmpty,
@@ -11,7 +12,8 @@ import {
     tracking,
     when,
 } from '@legendapp/state';
-import { invertMap, transformObject } from 'src/persist/fieldTransformer';
+import { deconstructObject } from 'src/helpers';
+import { invertMap, transformObject, transformPath } from 'src/persist/fieldTransformer';
 import type {
     Change,
     ClassConstructor,
@@ -96,6 +98,7 @@ async function onObsChange<T>(
                     if (!localState.pendingChanges[pathStr]) {
                         localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
                     }
+
                     localState.pendingChanges[pathStr].v = valueAtPath;
                 }
             }
@@ -103,6 +106,13 @@ async function onObsChange<T>(
 
         if (config.fieldTransforms) {
             localValue = transformObject(localValue, config.fieldTransforms) as T;
+            changes = changes.map(({ path, prevAtPath, valueAtPath }) => {
+                let transformed = constructObject(path, valueAtPath);
+                transformed = transformObject(transformed, config.fieldTransforms);
+                const transformedPath = transformPath(path as string[], config.fieldTransforms);
+                const toSave = deconstructObject(transformedPath, transformed);
+                return { path, prevAtPath, valueAtPath: toSave };
+            });
         }
 
         persistenceLocal.set(table, localValue, changes, config);
