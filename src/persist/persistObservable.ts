@@ -138,6 +138,8 @@ async function onObsChange<T>(
     }
 
     if (saveRemote) {
+        await when(obsState.isLoadedRemote);
+
         for (let i = 0; i < changes.length; i++) {
             const { path, valueAtPath, prevAtPath } = changes[i];
             if (path[path.length - 1] === (symbolDateModified as any)) continue;
