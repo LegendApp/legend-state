@@ -62,8 +62,8 @@ export function preloadIndexedDB({
                 function transformObject(
                     dataIn: Record<string, any>,
                     map: Record<string, any>,
-                    ignoreKeys?: string[],
-                    passThroughKeys?: string[]
+                    passThroughKeys: string[],
+                    ignoreKeys?: string[]
                 ) {
                     let ret = dataIn;
                     if (dataIn) {
@@ -79,7 +79,7 @@ export function preloadIndexedDB({
                             if (passThroughKeys?.includes(key)) {
                                 ret[key] = v;
                             } else if (dict) {
-                                ret[key] = transformObject(v, dict, ignoreKeys, passThroughKeys);
+                                ret[key] = transformObject(v, dict, passThroughKeys, ignoreKeys);
                             } else {
                                 const mapped = map[key];
                                 if (mapped === undefined) {
@@ -98,21 +98,21 @@ export function preloadIndexedDB({
                                     }
                                 } else {
                                     if (map[key + '_obj']) {
-                                        v = transformObject(v, map[key + '_obj'], ignoreKeys, passThroughKeys);
+                                        v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
                                     } else if (map[key + '_dict']) {
                                         const mapChild = map[key + '_dict'];
                                         Object.keys(v).forEach((keyChild) => {
                                             v[keyChild] = transformObject(
                                                 v[keyChild],
                                                 mapChild,
-                                                ignoreKeys,
-                                                passThroughKeys
+                                                passThroughKeys,
+                                                ignoreKeys
                                             );
                                         });
                                     } else if (map[key + '_arr']) {
                                         const mapChild = map[key + '_arr'];
                                         v = v.map((vChild) =>
-                                            transformObject(vChild, mapChild, ignoreKeys, passThroughKeys)
+                                            transformObject(vChild, mapChild, passThroughKeys, ignoreKeys)
                                         );
                                     }
                                     ret[mapped] = v;
@@ -205,7 +205,8 @@ export function preloadIndexedDB({
                                         if (data) {
                                             tableData[tableName + '_transformed'] = transformObject(
                                                 data,
-                                                fieldTransforms[table]
+                                                fieldTransforms[table],
+                                                ['@']
                                             );
                                         }
                                     }

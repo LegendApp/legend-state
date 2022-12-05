@@ -1,15 +1,15 @@
 export function transformPath(
     path: string[],
     map: Record<string, any>,
-    ignoreKeys?: string[],
-    passThroughKeys?: string[]
+    passThroughKeys: string[],
+    ignoreKeys?: string[]
 ): string[] {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
         d = d[path[i]] = i === path.length - 1 ? null : {};
     }
-    let value = transformObject(data, map, ignoreKeys, passThroughKeys);
+    let value = transformObject(data, map, passThroughKeys, ignoreKeys);
     const pathOut = [];
     for (let i = 0; i < path.length; i++) {
         const key = Object.keys(value)[0];
@@ -22,8 +22,8 @@ export function transformPath(
 export function transformObject(
     dataIn: Record<string, any>,
     map: Record<string, any>,
-    ignoreKeys?: string[],
-    passThroughKeys?: string[]
+    passThroughKeys: string[],
+    ignoreKeys?: string[]
 ) {
     // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
@@ -38,7 +38,7 @@ export function transformObject(
             let v = dataIn[key];
 
             if (dict) {
-                ret[key] = transformObject(v, dict, ignoreKeys, passThroughKeys);
+                ret[key] = transformObject(v, dict, passThroughKeys, ignoreKeys);
             } else {
                 const mapped = map[key];
                 if (mapped === undefined) {
@@ -54,15 +54,15 @@ export function transformObject(
                 } else if (mapped !== null) {
                     if (v !== undefined && v !== null) {
                         if (map[key + '_obj']) {
-                            v = transformObject(v, map[key + '_obj'], ignoreKeys, passThroughKeys);
+                            v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
                             Object.keys(v).forEach((keyChild) => {
-                                v[keyChild] = transformObject(v[keyChild], mapChild, ignoreKeys, passThroughKeys);
+                                v[keyChild] = transformObject(v[keyChild], mapChild, passThroughKeys, ignoreKeys);
                             });
                         } else if (map[key + '_arr']) {
                             const mapChild = map[key + '_arr'];
-                            v = v.map((vChild) => transformObject(vChild, mapChild, ignoreKeys, passThroughKeys));
+                            v = v.map((vChild) => transformObject(vChild, mapChild, passThroughKeys, ignoreKeys));
                         }
                     }
                     ret[mapped] = v;
