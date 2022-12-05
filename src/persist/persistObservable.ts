@@ -3,7 +3,7 @@ import {
     beginBatch,
     clone,
     constructObject,
-    dateModifiedKey as _dateModifiedKey,
+    dateModifiedKey,
     deconstructObject,
     endBatch,
     isEmpty,
@@ -64,7 +64,6 @@ async function onObsChange<T>(
     const inRemoteChange = tracking.inRemoteChange;
     const saveRemote =
         !inRemoteChange && persistOptions.remote && !persistOptions.remote.readonly && obsState.isEnabledRemote.peek();
-    const dateModifiedKey = persistOptions.dateModifiedKey || _dateModifiedKey;
 
     if (local && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
@@ -79,12 +78,6 @@ async function onObsChange<T>(
         // as persisting may not include symbols correctly
         let localValue = value;
         if (persistOptions.remote) {
-            localValue = replaceKeyInObject(
-                value as unknown as object,
-                symbolDateModified,
-                dateModifiedKey,
-                /*clone*/ true
-            );
             if (saveRemote) {
                 for (let i = 0; i < changes.length; i++) {
                     const { path, valueAtPath, prevAtPath } = changes[i];
@@ -107,15 +100,22 @@ async function onObsChange<T>(
 
         let changesLocal = changes;
         if (config.fieldTransforms) {
-            localValue = transformObject(localValue, config.fieldTransforms) as T;
+            localValue = transformObject(localValue, config.fieldTransforms, [dateModifiedKey]) as T;
             changesLocal = changesLocal.map(({ path, prevAtPath, valueAtPath }) => {
                 let transformed = constructObject(path, clone(valueAtPath));
-                transformed = transformObject(transformed, config.fieldTransforms);
-                const transformedPath = transformPath(path as string[], config.fieldTransforms);
+                transformed = transformObject(transformed, config.fieldTransforms, [dateModifiedKey]);
+                const transformedPath = transformPath(path as string[], config.fieldTransforms, [dateModifiedKey]);
                 const toSave = deconstructObject(transformedPath, transformed);
                 return { path, prevAtPath, valueAtPath: toSave };
             });
         }
+
+        localValue = replaceKeyInObject(
+            value as unknown as object,
+            symbolDateModified,
+            dateModifiedKey,
+            /*clone*/ true
+        );
 
         persistenceLocal.set(table, localValue, changesLocal, config);
 
@@ -167,16 +167,16 @@ async function onObsChange<T>(
                         });
                         dateModified = saved[symbolDateModified];
                         // Replace the dateModifiedKey and remove null/undefined before saving
-                        let replaced = replaceKeyInObject(
+                        if (config.fieldTransforms) {
+                            saved = transformObject(saved, config.fieldTransforms, [dateModifiedKey]) as T;
+                        }
+                        saved = replaceKeyInObject(
                             removeNullUndefined(saved as object),
                             symbolDateModified,
                             dateModifiedKey,
                             /*clone*/ false
                         );
-                        if (config.fieldTransforms) {
-                            replaced = transformObject(replaced, config.fieldTransforms) as T;
-                        }
-                        toSave = toSave ? mergeIntoObservable(toSave, replaced) : replaced;
+                        toSave = toSave ? mergeIntoObservable(toSave, saved) : saved;
                     }
                     if (saved !== undefined || didDelete) {
                         persistenceLocal.set(table, toSave, [changes[i]], config);
@@ -249,7 +249,7 @@ async function loadLocal<T>(
                 value = valueLoaded;
             } else {
                 const inverted = invertMap(config.fieldTransforms);
-                value = transformObject(value, inverted);
+                value = transformObject(value, inverted, [dateModifiedKey]);
             }
         }
 
@@ -261,7 +261,6 @@ async function loadLocal<T>(
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
             if (remote) {
-                const dateModifiedKey = persistOptions.dateModifiedKey || _dateModifiedKey;
                 replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
             }
             if (metadata?.modified) {
