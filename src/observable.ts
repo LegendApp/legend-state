@@ -56,7 +56,7 @@ const ArrayModifiers = new Set([
     'unshift',
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
-const ExcludeNotifications = new Set<string | symbol>([symbolDateModified]);
+const NotifySpecifically = new Set<string | symbol>([symbolDateModified]);
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
@@ -460,11 +460,11 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         }
     }
 
-    // Notify for this element if it's an object or it's changed
-    if (
-        !ExcludeNotifications.has(key as string | symbol) &&
-        ((!isPrim && hasADiff && newValue !== undefined && newValue !== null) || newValue !== prevValue)
-    ) {
+    if (NotifySpecifically.has(key as any)) {
+        // Notify specifically at the child, not through children or parents
+        doNotify(childNode, newValue, [], newValue, prevValue, 0);
+    } else if ((!isPrim && hasADiff && newValue !== undefined && newValue !== null) || newValue !== prevValue) {
+        // Notify for this element if it's an object or it's changed
         notify(
             isPrim && isRoot ? node : childNode,
             newValue,
