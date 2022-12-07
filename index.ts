@@ -1,4 +1,4 @@
-export { opaqueObject, isObservable, mergeIntoObservable, getObservableIndex } from './src/helpers';
+export { opaqueObject, isObservable, mergeIntoObservable, getObservableIndex, computeSelector } from './src/helpers';
 export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
@@ -25,6 +25,6 @@ export {
     dateModifiedKey
 } from './src/globals';
 /** @internal */
-export { getNode, computeSelector, constructObject, clone, deconstructObject } from './src/helpers';
+export { getNode, constructObject, clone, deconstructObject } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';

@@ -695,6 +695,16 @@ describe('Equality', () => {
         expect(obs.test.get()).toBe(test);
         expect(handler).not.toHaveBeenCalled();
     });
+    test('Set with equivalent object does not notify', () => {
+        const obs = observable({ test: { text: 'hi' } });
+        const handler = expectChangeHandler(obs.test);
+        const test = obs.test.get();
+        const cloned = JSON.parse(JSON.stringify(test));
+        obs.test.set(cloned);
+        expect(obs.test.get()).not.toBe(test);
+        expect(obs.test.get()).toBe(cloned);
+        expect(handler).not.toHaveBeenCalled();
+    });
     test('Set with same array does not notify', () => {
         const obs = observable({ arr: [{ text: 'hi' }] });
         const handler = expectChangeHandler(obs.arr);

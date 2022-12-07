@@ -1,5 +1,6 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
+import { ObservablePersistLocal } from '../src/observableInterfaces';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
@@ -20,6 +21,14 @@ class LocalStorageMock {
     }
     removeItem(key) {
         delete this.store[key];
+    }
+}
+
+function reset() {
+    global.localStorage.clear();
+    const persist = mapPersistences.get(ObservablePersistLocalStorage) as ObservablePersistLocal;
+    if (persist) {
+        persist.deleteTable('jestlocal', undefined);
     }
 }
 
@@ -67,15 +76,12 @@ configureObservablePersistence({
 // jest.setTimeout(10000);
 
 beforeEach(() => {
-    global.localStorage.clear();
-    const local = mapPersistences.get(ObservablePersistLocalStorage) as ObservablePersistLocalStorage;
-    if (local) {
-        local['data'] = {};
-    }
+    reset();
 });
 
 describe('Persist local', () => {
     test('Saves to local', () => {
+        reset();
         const obs = observable({ test: '' });
 
         persistObservable(obs, {
@@ -97,7 +103,8 @@ describe('Persist local', () => {
 
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
-    test('Saves empty root object to local', () => {
+    test('Saves empty root object to local overwriting complex', () => {
+        reset();
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
         persistObservable(obs, {
@@ -120,6 +127,7 @@ describe('Persist local', () => {
         expect(obs2.get()).toEqual({ test: {} });
     });
     test('Saves empty root object to local', () => {
+        reset();
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
         persistObservable(obs, {
