@@ -111,7 +111,7 @@ async function onObsChange<T>(
         }
 
         localValue = replaceKeyInObject(
-            value as unknown as object,
+            localValue as unknown as object,
             symbolDateModified,
             dateModifiedKey,
             /*clone*/ true
