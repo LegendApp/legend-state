@@ -144,8 +144,6 @@ export interface ObservableEvent {
 
 export type QueryByModified<T> =
     | boolean
-    | '*'
-    | { '*': '*' | true }
     | {
           [K in keyof T]?: QueryByModified<T[K]>;
       };
@@ -156,29 +154,40 @@ export interface Change {
     prevAtPath: any;
 }
 
-export interface PersistOptionsLocal {
+export interface PersistOptionsLocal<T = any> {
     name: string;
+    adjustData?: {
+        load?: (value: T) => T | Promise<T>;
+        save?: (value: T) => T | Promise<T>;
+    };
+    fieldTransforms?: FieldTransforms<T>;
     mmkv?: MMKVConfiguration;
+    indexedDB?: {
+        prefixID?: string;
+        itemID?: string;
+    };
 }
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
     saveTimeout?: number;
+    waitForLoad?: Promise<any>;
+    waitForSave?: Promise<any> | ((value: T) => Promise<any>);
     manual?: boolean;
     adjustData?: {
-        load: (value: any, basePath: string) => Promise<any>;
-        save: (value: any, basePath: string, path: string[]) => Promise<any>;
+        load?: (value: T, basePath: string) => T | Promise<T>;
+        save?: (value: T, basePath: string, path: string[]) => T | Promise<T>;
     };
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
-        fieldTransforms?: SameShapeWithStrings<T>;
+        fieldTransforms?: FieldTransforms<T>;
         queryByModified?: QueryByModified<T>;
-        ignoreKeys?: Record<string, true>;
+        ignoreKeys?: string[];
     };
 }
 export interface PersistOptions<T = any> {
-    local?: string | PersistOptionsLocal;
+    local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemote>;
@@ -189,17 +198,17 @@ export interface PersistMetadata {
     id?: '__legend_metadata';
     modified?: number;
     pending?: any;
-    array?: boolean;
 }
 
 export interface ObservablePersistLocal {
     initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
-    getTable<T = any>(table: string, config: PersistOptionsLocal | undefined): T;
-    getMetadata(table: string, config: PersistOptionsLocal | undefined): PersistMetadata;
+    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
+    getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
+    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
     set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void>;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal | undefined): Promise<void>;
-    deleteTable(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
-    loadTable?(table: string, config: PersistOptionsLocal | undefined): Promise<void>;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void>;
+    deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
+    loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
@@ -233,44 +242,45 @@ export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
-export type SameShapeWithStringsRecord<T> = {
-    [K in keyof T]-?: string | T[K] extends Record<string, Record<string, any>>
-        ?
-              | {
-                    _: string;
-                    __obj: SameShapeWithStrings<RecordValue<T[K]>> | SameShapeWithStrings<T[K]>;
-                }
-              | {
-                    _: string;
-                    __dict: SameShapeWithStrings<RecordValue<T[K]>>;
-                }
-              | SameShapeWithStrings<T[K]>
-        : T[K] extends Array<infer t>
-        ?
-              | {
-                    _: string;
-                    __arr: SameShapeWithStrings<t> | Record<string, string>;
-                }
-              | string
-        : T[K] extends Record<string, object>
-        ?
-              | (
-                    | {
-                          _: string;
-                          __obj: SameShapeWithStrings<RecordValue<T[K]>> | SameShapeWithStrings<T[K]>;
-                      }
-                    | { _: string; __dict: SameShapeWithStrings<RecordValue<T[K]>> }
-                )
-              | string
-        : T[K] extends Record<string, any>
-        ?
-              | ({ _: string; __obj: SameShapeWithStrings<T[K]> } | { _: string; __dict: SameShapeWithStrings<T[K]> })
-              | string
-        : string | { _: string; __val: Record<string, string> };
-};
-export type SameShapeWithStrings<T> = T extends Record<string, Record<string, any>>
-    ? { __dict: SameShapeWithStrings<RecordValue<T>> } | SameShapeWithStringsRecord<T>
-    : SameShapeWithStringsRecord<T>;
+declare type ObjectKeys<T> = Pick<
+    T,
+    {
+        [K in keyof T]-?: K extends string
+            ? T[K] extends Record<string, any>
+                ? T[K] extends any[]
+                    ? never
+                    : K
+                : never
+            : never;
+    }[keyof T]
+>;
+declare type DictKeys<T> = Pick<
+    T,
+    {
+        [K in keyof T]-?: K extends string ? (T[K] extends Record<string, Record<string, any>> ? K : never) : never;
+    }[keyof T]
+>;
+declare type ArrayKeys<T> = Pick<
+    T,
+    {
+        [K in keyof T]-?: K extends string | number ? (T[K] extends any[] ? K : never) : never;
+    }[keyof T]
+>;
+export declare type FieldTransforms<T> =
+    | (T extends Record<string, Record<string, any>> ? { _dict: FieldTransformsInner<RecordValue<T>> } : never)
+    | FieldTransformsInner<T>;
+export declare type FieldTransformsInner<T> = {
+    [K in keyof T]: string;
+} & (
+    | {
+          [K in keyof ObjectKeys<T> as `${K}_obj`]?: FieldTransforms<T[K]>;
+      }
+    | {
+          [K in keyof DictKeys<T> as `${K}_dict`]?: FieldTransforms<RecordValue<T[K]>>;
+      }
+) & {
+        [K in keyof ArrayKeys<T> as `${K}_arr`]?: FieldTransforms<ArrayValue<T[K]>>;
+    };
 
 export type Selector<T> = ObservableReadable<T> | (() => T) | T;
 

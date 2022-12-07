@@ -1,3 +1,32 @@
+## 0.22 to 0.23
+
+### Setting an observable object to the same value no longer notifies
+
+Setting an object to itself was triggering notifications, which is not great for performance and is undesirable in most cases. It is now more targeted and will only notify on elements that actually changed. It's unlikely that will affect you, but it may be a breaking change for you if you depended on things re-computing/re-rendering even if nothing changed.
+
+### Not automatically treating DOM nodes and React elements as opaque objects
+
+It was adding most likely unnecessary extra code and is easily solved in a more generic way. If you're storing those in observables, wrap them in `opaqueObject(...)`.
+
+### IndexedDB plugin support for non-dictionaries removed
+
+For flexibility of multiple observables persisting to the same IndexedDB table, it now has an `itemID` option to save non-dictionaries. So the IndexedDB persistence plugin can be used in two ways:
+
+1. Persisting a dictionary where each value has an `id` field, and each value will create a row in the table
+2. Persisting multiple observables to their own rows in the table with the `itemID` option
+
+```js
+const settings = observable({ theme: 'light' })
+persistObservable(settings, {
+    local: {
+        name: 'store',
+        indexedDB: {
+            itemID: 'settings',
+        },
+    }
+})
+```
+
 ## 0.21 to 0.22
 
 ### Local Storage is no longer the default persistence

@@ -49,11 +49,12 @@ persistObservable(obs, {
 
 ### IndexedDB
 
-The IndexedDB plugin has some constraints:
+Note: The IndexedDB plugin is still experimental and it's possible the API may change before version 1.0. If you're using it (or want to use it) please [share your thoughts](https://github.com/LegendApp/legend-state/issues/) so we can make sure it's flexible enough for your usage.
 
-1. It cannot work with primitives, only objects or arrays
-2. Each element in an array or at the root level of an object will be saved as a row in the table.
-3. It uses the element's `id` as the key so make sure that is unique. In objects where elements have no `id` key it will store it by its key name in the object.
+The IndexedDB plugin can be used in two ways:
+
+1. Persisting a dictionary where each value has an `id` field, and each value will create a row in the table
+2. Persisting multiple observables to their own rows in the table with the `itemID` option
 
 It requires some extra configuration for the database name, the table names, and the version.
 
@@ -71,20 +72,32 @@ configureObservablePersistence({
             version: 1,
             tableNames: [
                 'documents',
-                'settings',
+                'store',
             ],
         },
     },
 });
 
+// Mode 1: Persist a dictionary
 const obs = observable({
-    obj1: { text: '...' },
+    obj1: { id: 'obj1', text: '...' },
     obj2: { id: 'obj2', text: '...' },
  })
 
-// Persist this observable
 persistObservable(obs, {
-    local: 'store' // Unique name
+    local: 'store' // IndexedDB table name
+})
+
+// Mode 2: Persist an object with itemId
+const settings = observable({ theme: 'light' })
+
+persistObservable(settings, {
+    local: {
+        name: 'store', // IndexedDB table name
+        indexedDB: {
+            itemID: 'settings',
+        },
+    }
 })
 ```
 
@@ -101,7 +114,7 @@ preloadIndexedDB({
     version: 1,
     tableNames: [
         'documents',
-        'settings',
+        'store'
     ],
 })
 ```

@@ -13,9 +13,9 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
             }),
         ],
     ]);
-    private getStorage(config: PersistOptionsLocal | undefined): MMKV {
-        if (config) {
-            const { mmkv } = config;
+    private getStorage(config: PersistOptionsLocal): MMKV {
+        const { mmkv } = config;
+        if (mmkv) {
             const key = JSON.stringify(mmkv);
             let storage = this.storages.get(key);
             if (!storage) {
