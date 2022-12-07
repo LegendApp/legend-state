@@ -107,6 +107,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     const keys: string[] = isArr ? obj : obj ? Object.keys(obj) : [];
 
     let idField: IDKey | undefined;
+    let hasADiff = false;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
@@ -139,6 +140,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         for (let i = 0; i < lengthPrev; i++) {
             const key = keysPrev[i];
             if (!keys.includes(key)) {
+                hasADiff = true;
                 let child = getChildNode(parent, key);
 
                 const prev = prevValue[key];
@@ -156,7 +158,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     if (obj && !isPrimitive(obj)) {
         const length = keys.length;
 
-        let hasADiff = obj?.length !== prevValue?.length;
+        hasADiff = hasADiff || obj?.length !== prevValue?.length;
         const isArrDiff = hasADiff;
         let didMove = false;
 
@@ -463,8 +465,8 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     if (NotifySpecifically.has(key as any)) {
         // Notify specifically at the child, not through children or parents
         doNotify(childNode, newValue, [], newValue, prevValue, 0);
-    } else if ((!isPrim && hasADiff && newValue !== undefined && newValue !== null) || newValue !== prevValue) {
-        // Notify for this element if it's an object or it's changed
+    } else if (isPrim ? newValue !== prevValue : hasADiff) {
+        // Notify for this element if something inside it has changed
         notify(
             isPrim && isRoot ? node : childNode,
             newValue,
