@@ -324,14 +324,18 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         // Delete keys that are no longer in the object
         if (prev) {
             const keysOld = Object.keys(prev);
-            const deletes = await Promise.all(
-                keysOld.map((key) => {
-                    if (value[key] === undefined) {
-                        return this._setItem(table, key, null, store, config);
-                    }
-                })
-            );
-            lastSet = deletes[deletes.length - 1];
+            const deletes = (
+                await Promise.all(
+                    keysOld.map((key) => {
+                        if (value[key] === undefined) {
+                            return this._setItem(table, key, null, store, config);
+                        }
+                    })
+                )
+            ).filter((a) => !!a);
+            if (deletes.length > 0) {
+                lastSet = deletes[deletes.length - 1];
+            }
         }
         return lastSet;
     }
