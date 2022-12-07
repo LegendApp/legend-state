@@ -1,3 +1,44 @@
+## 0.23.0
+
+- Breaking: Improved the criteria of when to notify up parents for changes on objects to run only when something inside it has changed, so setting/assigning the same object onto itself will not notify. It's unlikely but possible that may be a breaking change for you if you depended on things re-computing/re-rendering even if nothing changed.
+- Breaking: Removed automatically treating DOM nodes and React elements as opaque objects - it added most likely unnecessary extra code and is easily solved in a more generic way. If you're storing those in observables, wrap them in `opaqueObject(...)`.
+- Feature: Added `is*` functions to export
+- Perf: Batching was never clearing its safety timeouts, so thousands of changes at once could have been slow
+
+### Persistence
+- Breaking: Changed ignoreKeys to be an array to be easier to use
+- Breaking: Remove the flexibility for saving arrays and basic objects (can do that with itemID now).
+- Feature: IndexedDB supports adjustData, prefixID, itemID, fieldTransforms
+- Fix: IndexedDB `loadTable` not being considered loaded if no data was available
+- Fix: Tons of miscellaneous IndexedDB fixes
+
+## 0.22.5
+
+### Persistence
+- Fix: There was no way to subscribe to updates of dateModified
+
+## 0.22.4
+
+- Change: When returns the value directly, rather than a Promise, if it's already resolved on the first run
+
+### Persistence
+- Fix: mergeIntoObservable not working if source object has only symbol keys
+
+## 0.22.3
+
+- Fix: Not notifying on array change with the same length but ids added or removed
+
+## 0.22.2
+
+### Persistence
+- Fix: IndexedDB preloader not loading correctly if it has to await the promise
+
+## 0.22.1
+
+### Persistence
+- Fix: Changes deep in an object were not saving to IndexedDB correctly
+- Fix: Metadata not saving properly from remote changes
+
 ## 0.22.0
 
 - Breaking: Local Storage is no longer used as default persistence (to reduce build size for those not using it). Please configure persistence at the beginning of your application: https://legendapp.com/open-source/state/persistence/
