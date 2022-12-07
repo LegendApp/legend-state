@@ -10,11 +10,11 @@ import {
     IDKey,
     nextNodeID,
     peek,
-    shouldTreatAsOpaque,
     symbolDateModified,
     symbolGetNode,
     symbolIsEvent,
     symbolIsObservable,
+    symbolOpaque,
     symbolUndef,
 } from './globals';
 import {
@@ -89,7 +89,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue?: any): boolean {
-    if (shouldTreatAsOpaque(obj)) {
+    if (isObject(obj) && obj[symbolOpaque as any]) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners) {
@@ -287,7 +287,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         const vProp = value?.[p];
 
-        if (shouldTreatAsOpaque(value)) {
+        if (isObject(value) && value[symbolOpaque as any]) {
             return vProp;
         }
 

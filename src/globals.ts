@@ -92,36 +92,6 @@ export function ensureNodeValue(node: NodeValue) {
     return value;
 }
 
-if (process.env.NODE_ENV === 'development') {
-    var hasLogged: Record<string, true> = {};
-}
-export function shouldTreatAsOpaque(value: any) {
-    if (isObject(value)) {
-        // It's been manually marked as opaque
-        if (value[symbolOpaque as any]) return true;
-
-        // It's a DOM element
-        if (typeof value.nodeType === 'number' && typeof value.nodeName === 'string') {
-            if (process.env.NODE_ENV === 'development' && !hasLogged.dom) {
-                console.warn('[legend-state] Detected DOM element in an observable which is likely an error');
-                hasLogged.dom = true;
-            }
-            return true;
-        }
-
-        // It's a React JSX element
-        if (value.$$typeof) {
-            if (process.env.NODE_ENV === 'development' && !hasLogged.jsx) {
-                console.warn(
-                    `[legend-state] Detected a React element in an observable which is likely an error. It's more effective to put small data objects in observables which React elements use to render.`
-                );
-                hasLogged.jsx = true;
-            }
-            return true;
-        }
-    }
-}
-
 export type IDKey = 'id' | '_id' | '__id';
 export type IDValue = string | number;
 
