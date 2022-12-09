@@ -28,7 +28,7 @@ import type {
     PersistOptionsLocal,
 } from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
-import { invertMap, transformObject, transformPath } from './fieldTransformer';
+import { invertFieldMap, transformObject, transformPath } from './fieldTransformer';
 import { removeNullUndefined, replaceKeyInObject } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
@@ -248,7 +248,7 @@ async function loadLocal<T>(
             if (valueLoaded) {
                 value = valueLoaded;
             } else {
-                const inverted = invertMap(config.fieldTransforms);
+                const inverted = invertFieldMap(config.fieldTransforms);
                 value = transformObject(value, inverted, [dateModifiedKey]);
             }
         }
