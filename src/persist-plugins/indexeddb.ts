@@ -184,22 +184,32 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         if (itemID) {
             tableValue = { [itemID]: tableValue };
         }
+
+        // Combine changes into a minimal set of saves
+        const savesItems: Record<string, any> = {};
+        const savesTables: Record<string, any> = {};
+        for (let i = 0; i < changes.length; i++) {
+            let { path, valueAtPath } = changes[i];
+            if (itemID) {
+                path = [itemID].concat(path as string[]);
+            }
+            if (path.length > 0) {
+                // If change is deep in an object save it to IDB by the first key
+                const key = path[0] as string;
+                savesItems[key] = tableValue[key];
+            } else {
+                // Set the whole table
+                savesTables[table] = valueAtPath;
+            }
+        }
         const puts = await Promise.all(
-            changes.map(({ path, valueAtPath }) => {
-                const itemID = config.indexedDB?.itemID;
-                if (itemID) {
-                    path = [itemID].concat(path as string[]);
-                }
-                if (path.length > 0) {
-                    // If change is deep in an object save it to IDB by the first key
-                    const key = path[0] as string;
-                    return this._setItem(table, key, tableValue[key], store, config);
-                } else {
-                    // Set the whole table
-                    return this._setTable(table, prev, valueAtPath, store, config);
-                }
-            })
+            Object.keys(savesItems)
+                .map((key) => this._setItem(table, key, tableValue[key], store, config))
+                .concat(
+                    Object.keys(savesTables).map((key) => this._setTable(table, prev, savesItems[key], store, config))
+                )
         );
+
         const lastPut = puts[puts.length - 1];
         return new Promise<void>((resolve) => (lastPut.onsuccess = () => resolve()));
     }
