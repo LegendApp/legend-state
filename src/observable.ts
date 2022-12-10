@@ -415,7 +415,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     const isDelete = newValue === symbolUndef;
     if (isDelete) newValue = undefined;
 
-    const isPrim = isPrimitive(newValue);
+    const isPrim = isPrimitive(newValue) || newValue instanceof Date;
 
     const isRoot = (key as any) === symbolUndef;
 
