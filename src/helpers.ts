@@ -49,10 +49,13 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     const source = sources.shift();
 
     const needsSet = isObservable(target);
-    const targetValue = needsSet ? target.peek() : target;
+    let targetValue = needsSet ? target.peek() : target;
 
     const isTargetArr = isArray(targetValue);
     const isTargetObj = !isTargetArr && isObject(targetValue);
+
+    const isSourceArr = isArray(source);
+    const isSourceObj = !isSourceArr && isObject(source);
 
     if (isPrimitive(source)) {
         if (needsSet) {
@@ -60,7 +63,15 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
         } else {
             return source as unknown as T;
         }
-    } else if ((isTargetObj && isObject(source)) || (isTargetArr && isArray(source))) {
+    } else if (isSourceObj || isSourceArr) {
+        if (!needsSet) {
+            if (isSourceArr && !isTargetArr) {
+                (target as any) = targetValue = [];
+            }
+            if (isSourceObj && !isTargetObj) {
+                (target as any) = targetValue = {};
+            }
+        }
         const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
         let dateModified = source[symbolDateModified as any];
         for (let i = 0; i < keys.length; i++) {
@@ -85,8 +96,8 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                 ? target[symbolDateModified as any].set(dateModified)
                 : (target[symbolDateModified] = dateModified);
         }
-    } else if (needsSet && !(isTargetObj && source === undefined)) {
-        target.set(source);
+    } else if (!(isTargetObj && source === undefined)) {
+        needsSet ? target.set(source) : ((target as any) = source);
     }
 
     return mergeIntoObservable(target, ...sources);
