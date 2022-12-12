@@ -190,7 +190,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 // If change is deep in an object save it to IDB by the first key
                 const key = path[0] as string;
                 const constructed = constructObjectWithPath(path, valueAtPath);
-                mergeIntoObservable(this.tableData[table], constructed);
+                this.tableData[table] = mergeIntoObservable(this.tableData[table], constructed);
                 savesItems[key] = this.tableData[table][key];
             } else {
                 // Set the whole table
