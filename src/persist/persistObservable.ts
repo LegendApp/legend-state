@@ -93,17 +93,34 @@ async function onObsChange<T>(
         }
 
         // Save changes locally
-        const changesLocal = changes.map(({ path, prevAtPath, valueAtPath }) => {
-            let cloned = saveRemote
-                ? replaceKeyInObject(valueAtPath, symbolDateModified, dateModifiedKey, /*clone*/ true)
-                : valueAtPath;
-            if (config.fieldTransforms) {
-                const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, config.fieldTransforms);
-                cloned = obj;
-                path = pathTransformed;
+        const changesLocal: Change[] = [];
+        const changesPaths = new Set<string>();
+        for (let i = changes.length - 1; i >= 0; i--) {
+            let { path, prevAtPath, valueAtPath } = changes[i];
+
+            const pathStr = path.join('/');
+
+            // Optimization to only save the latest update at each path. We might have multiple changes at the same path
+            // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
+            // already processed
+            if (!changesPaths.has(pathStr)) {
+                changesPaths.add(pathStr);
+
+                let cloned = saveRemote
+                    ? replaceKeyInObject(valueAtPath, symbolDateModified, dateModifiedKey, /*clone*/ true)
+                    : valueAtPath;
+                if (config.fieldTransforms) {
+                    const { obj, path: pathTransformed } = transformObjectWithPath(
+                        cloned,
+                        path,
+                        config.fieldTransforms
+                    );
+                    cloned = obj;
+                    path = pathTransformed;
+                }
+                changesLocal.push({ path, prevAtPath, valueAtPath: cloned });
             }
-            return { path, prevAtPath, valueAtPath: cloned };
-        });
+        }
 
         persistenceLocal.set(table, changesLocal, config);
 
