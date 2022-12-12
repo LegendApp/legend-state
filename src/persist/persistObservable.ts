@@ -98,7 +98,9 @@ async function onObsChange<T>(
                 ? replaceKeyInObject(valueAtPath, symbolDateModified, dateModifiedKey, /*clone*/ true)
                 : valueAtPath;
             if (config.fieldTransforms) {
-                cloned = transformObjectWithPath(cloned, path, config.fieldTransforms);
+                const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, config.fieldTransforms);
+                cloned = obj;
+                path = pathTransformed;
             }
             return { path, prevAtPath, valueAtPath: cloned };
         });
