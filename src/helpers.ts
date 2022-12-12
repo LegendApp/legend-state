@@ -62,17 +62,16 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
         }
     } else if ((isTargetObj && isObject(source)) || (isTargetArr && isArray(source))) {
         const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
-        if (source[symbolDateModified as any]) {
-            keys.push(symbolDateModified);
-        }
+        let dateModified = source[symbolDateModified as any];
         for (let i = 0; i < keys.length; i++) {
             const key = isTargetArr ? i : (keys[i] as string);
             const sourceValue = source[key];
             if (isObject(sourceValue)) {
                 if (!needsSet && (!targetValue[key] || !isObject(targetValue[key]))) {
-                    (target as Record<string, any>)[key] = {};
+                    target[key] = {};
                 }
-                mergeIntoObservable((target as Record<string, any>)[key], sourceValue);
+                mergeIntoObservable(target[key], sourceValue);
+                dateModified = Math.max(dateModified || 0, sourceValue[symbolDateModified as any] || 0);
             } else if (sourceValue === symbolDelete) {
                 needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
             } else {
@@ -81,9 +80,15 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                     : ((target as Record<string, any>)[key] = sourceValue);
             }
         }
+        if (dateModified) {
+            needsSet
+                ? target[symbolDateModified as any].set(dateModified)
+                : (target[symbolDateModified] = dateModified);
+        }
     } else if (needsSet && !(isTargetObj && source === undefined)) {
         target.set(source);
     }
+
     return mergeIntoObservable(target, ...sources);
 }
 
