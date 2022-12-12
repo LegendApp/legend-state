@@ -1,5 +1,5 @@
 import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
-import { isArray, isFunction, isObject, isPrimitive } from './is';
+import { isArray, isFunction, isObject } from './is';
 import type {
     NodeValue,
     ObservableObject,
@@ -54,41 +54,22 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     const isTargetArr = isArray(targetValue);
     const isTargetObj = !isTargetArr && isObject(targetValue);
 
-    const isSourceArr = isArray(source);
-    const isSourceObj = !isSourceArr && isObject(source);
-
-    if (isPrimitive(source)) {
-        if (needsSet) {
-            target.set(source);
-        } else {
-            return source as unknown as T;
-        }
-    } else if (isSourceObj || isSourceArr) {
-        if (!needsSet) {
-            if (isSourceArr && !isTargetArr) {
-                (target as any) = targetValue = [];
-            }
-            if (isSourceObj && !isTargetObj) {
-                (target as any) = targetValue = {};
-            }
-        }
+    if ((isTargetObj && isObject(source)) || (isTargetArr && isArray(source))) {
         const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
         let dateModified = source[symbolDateModified as any];
         for (let i = 0; i < keys.length; i++) {
             const key = isTargetArr ? i : (keys[i] as string);
             const sourceValue = source[key];
-            if (isObject(sourceValue)) {
-                if (!needsSet && (!targetValue[key] || !isObject(targetValue[key]))) {
+            if (sourceValue === symbolDelete) {
+                needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
+            } else if (isObject(sourceValue)) {
+                if (!needsSet && (!target[key] || !isObject(target[key]))) {
                     target[key] = {};
                 }
                 mergeIntoObservable(target[key], sourceValue);
                 dateModified = Math.max(dateModified || 0, sourceValue[symbolDateModified as any] || 0);
-            } else if (sourceValue === symbolDelete) {
-                needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
             } else {
-                needsSet && target[key]?.set
-                    ? target[key].set(sourceValue)
-                    : ((target as Record<string, any>)[key] = sourceValue);
+                needsSet ? target[key].set(sourceValue) : ((target[key] as any) = sourceValue);
             }
         }
         if (dateModified) {
@@ -96,11 +77,11 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                 ? target[symbolDateModified as any].set(dateModified)
                 : (target[symbolDateModified] = dateModified);
         }
-    } else if (!(isTargetObj && source === undefined)) {
+    } else {
         needsSet ? target.set(source) : ((target as any) = source);
     }
 
-    return mergeIntoObservable(target, ...sources);
+    return sources.length ? mergeIntoObservable(target, ...sources) : target;
 }
 
 export function constructObjectWithPath(path: (string | number)[], value: any): object {

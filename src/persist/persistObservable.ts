@@ -202,7 +202,7 @@ async function loadLocal<T>(
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState
 ) {
-    const { local, remote } = persistOptions;
+    const { local } = persistOptions;
     const localPersistence: ClassConstructor<ObservablePersistLocal> =
         persistOptions.persistLocal || observablePersistConfiguration.persistLocal;
 
