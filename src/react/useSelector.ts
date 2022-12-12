@@ -1,4 +1,4 @@
-import { computeSelector, isPrimitive, observe, Selector, symbolUndef } from '@legendapp/state';
+import { computeSelector, isPrimitive, observe, Selector } from '@legendapp/state';
 import { useReducer, useRef } from 'react';
 
 const Update = (s: number) => s + 1;
@@ -8,7 +8,7 @@ export function useSelector<T>(
     options?: { forceRender?: () => void; shouldRender?: boolean | ((current: T, previous: T) => boolean) }
 ): T {
     let inRun = true;
-    let ret: T = symbolUndef as unknown as T;
+    let ret: T;
     const forceRender = options?.forceRender || useReducer(Update, 0)[1];
     const shouldRender = options?.shouldRender;
     const refDispose = useRef<() => void>();

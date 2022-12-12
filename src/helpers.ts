@@ -1,5 +1,5 @@
 import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
-import { isArray, isFunction, isObject } from './is';
+import { isArray, isFunction, isObject, isPrimitive } from './is';
 import type {
     NodeValue,
     ObservableObject,
@@ -51,10 +51,16 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     const needsSet = isObservable(target);
     const targetValue = needsSet ? target.peek() : target;
 
-    const isTargetObj = isObject(targetValue);
     const isTargetArr = isArray(targetValue);
+    const isTargetObj = !isTargetArr && isObject(targetValue);
 
-    if ((isTargetObj && isObject(source)) || (isTargetArr && isArray(source))) {
+    if (isPrimitive(source)) {
+        if (needsSet) {
+            target.set(source);
+        } else {
+            return source as unknown as T;
+        }
+    } else if ((isTargetObj && isObject(source)) || (isTargetArr && isArray(source))) {
         const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
         if (source[symbolDateModified as any]) {
             keys.push(symbolDateModified);
@@ -81,7 +87,7 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     return mergeIntoObservable(target, ...sources);
 }
 
-export function constructObject(path: (string | number)[], value: any): object {
+export function constructObjectWithPath(path: (string | number)[], value: any): object {
     let out;
     if (path.length > 0) {
         let o = (out = {});
@@ -96,7 +102,7 @@ export function constructObject(path: (string | number)[], value: any): object {
 
     return out;
 }
-export function deconstructObject(path: (string | number)[], value: any): object {
+export function deconstructObjectWithPath(path: (string | number)[], value: any): object {
     let o = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
@@ -104,7 +110,4 @@ export function deconstructObject(path: (string | number)[], value: any): object
     }
 
     return o;
-}
-export function clone(obj: any) {
-    return JSON.parse(JSON.stringify(obj));
 }

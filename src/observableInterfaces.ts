@@ -173,15 +173,15 @@ export interface PersistOptionsRemote<T = any> {
     requireAuth?: boolean;
     saveTimeout?: number;
     waitForLoad?: Promise<any>;
-    waitForSave?: Promise<any> | ((value: T) => Promise<any>);
+    waitForSave?: Promise<any> | ((value: any, path: string[]) => Promise<any>);
     manual?: boolean;
+    fieldTransforms?: FieldTransforms<T>;
     adjustData?: {
         load?: (value: T, basePath: string) => T | Promise<T>;
-        save?: (value: T, basePath: string, path: string[]) => T | Promise<T>;
+        save?: (value: T, basePath: string) => T | Promise<T>;
     };
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
-        fieldTransforms?: FieldTransforms<T>;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
     };
@@ -205,7 +205,7 @@ export interface ObservablePersistLocal {
     getTable<T = any>(table: string, config: PersistOptionsLocal): T;
     getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void>;
+    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void>;
     updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void>;
     deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
@@ -214,13 +214,7 @@ export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T>(
-        options: PersistOptions<T>,
-        value: T,
-        path: (string | number)[],
-        valueAtPath: any,
-        prevAtPath: any
-    ): Promise<T>;
+    save<T, T2>(options: PersistOptions<T>, path: (string | number)[], valueAtPath: T2, prevAtPath: any): Promise<T2>;
     listen<T>(
         obs: ObservableReadable<T>,
         options: PersistOptions<T>,
@@ -318,6 +312,7 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
 export type ObservableWriteable<T = any> =
+    | ObservableBaseFns<T>
     | ObservablePrimitiveFnsBase<T>
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;

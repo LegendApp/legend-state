@@ -1,5 +1,5 @@
+import { isArray, isObject, ObservableWriteable, symbolDateModified } from '@legendapp/state';
 import { observablePersistConfiguration } from './configureObservablePersistence';
-import { isObject } from '@legendapp/state';
 
 export function removeNullUndefined<T extends Record<string, any>>(val: T) {
     if (val === undefined) return null;
@@ -34,4 +34,28 @@ export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, 
 
 export function getDateModifiedKey(dateModifiedKey: string) {
     return dateModifiedKey || observablePersistConfiguration.dateModifiedKey || '@';
+}
+
+export function mergeDateModified(obs: ObservableWriteable, source: any) {
+    const isArr = isArray(source);
+    const isObj = !isArr && isObject(source);
+
+    let dateModified = isObj && source[symbolDateModified as any];
+    if (dateModified) {
+        delete source[symbolDateModified];
+    }
+
+    if (isArr || isObj) {
+        const keys: any[] = isArr ? (source as any[]) : Object.keys(source);
+        for (let i = 0; i < keys.length; i++) {
+            const key = isArr ? i : (keys[i] as string);
+            dateModified = Math.max(dateModified, mergeDateModified(obs[key], source[key]));
+        }
+    }
+
+    if (dateModified) {
+        obs[symbolDateModified].set(dateModified);
+    }
+
+    return dateModified || 0;
 }

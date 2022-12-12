@@ -1,4 +1,4 @@
-import { isFunction, observable, Observable, PersistOptions } from '@legendapp/state';
+import { isFunction, observable, Observable, ObservableWriteable, PersistOptions } from '@legendapp/state';
 import { persistObservable } from '@legendapp/state/persist';
 import { useMemo } from 'react';
 
@@ -20,7 +20,7 @@ export function usePersistedObservable<T>(
             isFunction(initialValue as () => T) ? (initialValue as () => T)() : (initialValue as T)
         );
         if (options) {
-            persistObservable<T>(obs as Observable<T>, options);
+            persistObservable<T>(obs as ObservableWriteable<T>, options);
         }
         return obs;
     }, []) as any;

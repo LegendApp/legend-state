@@ -1,3 +1,5 @@
+import { constructObjectWithPath, dateModifiedKey, deconstructObjectWithPath, FieldTransforms } from '@legendapp/state';
+
 export function transformPath(
     path: string[],
     map: Record<string, any>,
@@ -75,6 +77,13 @@ export function transformObject(
     if (process.env.NODE_ENV === 'development' && ret && ret['[object Object]']) debugger;
 
     return ret;
+}
+
+export function transformObjectWithPath(obj: object, path: (string | number)[], fieldTransforms: FieldTransforms<any>) {
+    let constructed = constructObjectWithPath(path, obj);
+    const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
+    const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
+    return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
 }
 
 const invertedMaps = new WeakMap();

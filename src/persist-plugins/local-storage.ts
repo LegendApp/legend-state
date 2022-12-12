@@ -1,11 +1,12 @@
-import type { ObservablePersistLocal, PersistMetadata } from '../observableInterfaces';
+import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
+import type { Change, ObservablePersistLocal, PersistMetadata } from '../observableInterfaces';
 
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
-    private tableData: Record<string, any> = {};
+    private data: Record<string, any> = {};
 
     public getTable(table: string) {
         if (typeof localStorage === 'undefined') return undefined;
-        if (this.tableData[table] === undefined) {
+        if (this.data[table] === undefined) {
             try {
                 const value = localStorage.getItem(table);
                 return value ? JSON.parse(value) : undefined;
@@ -13,7 +14,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
                 console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
             }
         }
-        return this.tableData[table];
+        return this.data[table];
     }
     public getMetadata(table: string): PersistMetadata {
         return this.getTable(table + '__m');
@@ -22,21 +23,32 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         const tableData = this.getTable(table);
         return tableData?.[id];
     }
-    public async set(table: string, value: any) {
-        this.tableData[table] = value;
+    public async set(table: string, changes: Change[]): Promise<void> {
+        if (!this.data[table]) {
+            this.data[table] = {};
+        }
+        this.data[table] = mergeIntoObservable(
+            this.data[table],
+            ...changes.map(({ path, valueAtPath }) => constructObjectWithPath(path, valueAtPath))
+        );
         this.save(table);
     }
     public updateMetadata(table: string, metadata: PersistMetadata) {
-        return this.set(table + '__m', metadata);
+        return this.setValue(table + '__m', metadata);
     }
     public async deleteTable(table: string): Promise<void> {
-        delete this.tableData[table];
+        delete this.data[table];
         localStorage.removeItem(table);
+    }
+    // Private
+    private async setValue(table: string, value: any) {
+        this.data[table] = value;
+        this.save(table);
     }
     private save(table: string) {
         if (typeof localStorage === 'undefined') return;
 
-        const v = this.tableData[table];
+        const v = this.data[table];
 
         if (v !== undefined && v !== null) {
             localStorage.setItem(table, JSON.stringify(v));
