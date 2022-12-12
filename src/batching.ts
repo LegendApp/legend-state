@@ -1,5 +1,5 @@
 import { isFunction } from './is';
-import { ListenerFn, NodeValue } from './observableInterfaces';
+import type { ListenerFn, NodeValue } from './observableInterfaces';
 
 interface BatchItem {
     cb: ListenerFn<any>;

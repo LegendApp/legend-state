@@ -1,4 +1,4 @@
-import { isArray, isObject, isPromise, observable, when } from '@legendapp/state';
+import { constructObjectWithPath, isPromise, mergeIntoObservable, observable, when } from '@legendapp/state';
 import type {
     Change,
     Observable,
@@ -165,12 +165,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const set = store.put(metadata);
         return new Promise<void>((resolve) => (set.onsuccess = () => resolve()));
     }
-    public async set(table: string, tableValue: Record<string, any>, changes: Change[], config: PersistOptionsLocal) {
+    public async set(table: string, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
-
-        if (process.env.NODE_ENV === 'development' && !(isObject(tableValue) || isArray(tableValue))) {
-            console.warn('[legend-state] IndexedDB persistence can only save objects or arrays');
-        }
 
         const store = this.transactionStore(table);
 
@@ -181,13 +177,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const prev = this.tableData[table];
 
         const itemID = config.indexedDB?.itemID;
-        if (itemID) {
-            tableValue = { [itemID]: tableValue };
-        }
 
         // Combine changes into a minimal set of saves
         const savesItems: Record<string, any> = {};
-        const savesTables: Record<string, any> = {};
+        let saveTable: any;
         for (let i = 0; i < changes.length; i++) {
             let { path, valueAtPath } = changes[i];
             if (itemID) {
@@ -196,18 +189,20 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             if (path.length > 0) {
                 // If change is deep in an object save it to IDB by the first key
                 const key = path[0] as string;
-                savesItems[key] = tableValue[key];
+                const constructed = constructObjectWithPath(path, valueAtPath);
+                mergeIntoObservable(this.tableData[table], constructed);
+                savesItems[key] = this.tableData[table][key];
             } else {
                 // Set the whole table
-                savesTables[table] = valueAtPath;
+                saveTable = valueAtPath;
+                break;
             }
         }
+
         const puts = await Promise.all(
-            Object.keys(savesItems)
-                .map((key) => this._setItem(table, key, tableValue[key], store, config))
-                .concat(
-                    Object.keys(savesTables).map((key) => this._setTable(table, prev, savesItems[key], store, config))
-                )
+            saveTable
+                ? [this._setTable(table, prev, saveTable, store, config)]
+                : Object.keys(savesItems).map((key) => this._setItem(table, key, savesItems[key], store, config))
         );
 
         const lastPut = puts[puts.length - 1];

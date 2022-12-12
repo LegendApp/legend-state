@@ -1,3 +1,4 @@
+import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
 import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '../observableInterfaces';
 
@@ -42,17 +43,25 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
     public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
         return this.getTable(table + '__m', config);
     }
-    public async set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void> {
-        this.data[table] = value;
+    public async set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void> {
+        mergeIntoObservable(
+            this.data[table],
+            ...changes.map(({ path, valueAtPath }) => constructObjectWithPath(path, valueAtPath))
+        );
         this.save(table, config);
     }
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
-        return this.set(table + '__m', metadata, undefined, config);
+        return this.setValue(table + '__m', metadata, config);
     }
     public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
         const storage = this.getStorage(config);
         delete this.data[table];
         storage.delete(table);
+    }
+    // Private
+    private async setValue(table: string, value: any, config: PersistOptionsLocal) {
+        this.data[table] = value;
+        this.save(table, config);
     }
     private save(table: string, config: PersistOptionsLocal | undefined) {
         const storage = this.getStorage(config);
