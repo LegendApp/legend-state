@@ -148,17 +148,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         }
     }
     public getMetadata(table: string, config: PersistOptionsLocal) {
-        const configIDB = config.indexedDB;
-        const prefix = configIDB?.prefixID;
-        return this.tableMetadata[prefix ? table + '/' + prefix : table];
+        const tableName = this.getMetadataTableName(config);
+        return this.tableMetadata[table + '/' + tableName];
     }
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
-        const configIDB = config.indexedDB;
-        const prefix = configIDB?.prefixID;
-        const tableName = prefix ? table + '/' + prefix : table;
+        const tableName = this.getMetadataTableName(config);
         // Assign new metadata into the table, and make sure it has the id
-        metadata = Object.assign(this.tableMetadata[tableName] || {}, metadata, {
-            id: (prefix ? prefix + '/' : '') + '__legend_metadata',
+        metadata = Object.assign(this.tableMetadata[table + '/' + tableName] || {}, metadata, {
+            id: tableName + '__legend_metadata',
         });
         this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
@@ -223,6 +220,22 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
     }
     // Private
+    private getMetadataTableName(config: PersistOptionsLocal) {
+        const configIDB = config.indexedDB;
+        let name = '';
+        if (configIDB) {
+            const { prefixID, itemID } = configIDB;
+
+            if (itemID) {
+                name = itemID;
+            }
+            if (prefixID) {
+                name = prefixID + '/' + name;
+            }
+        }
+
+        return name;
+    }
     private initTable(table: string, transaction: IDBTransaction): Promise<void> {
         // If changing this, change it in the preloader too
         const store = transaction.objectStore(table);
@@ -241,20 +254,22 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 for (let i = 0; i < arr.length; i++) {
                     const val = arr[i];
 
-                    let tableName = table;
-
-                    if (val.id.includes('/')) {
-                        const [prefix, id] = val.id.split('/');
-                        tableName += '/' + prefix;
-                        val.id = id;
-                    }
-
-                    if (val.id === '__legend_metadata') {
+                    if (val.id.endsWith('__legend_metadata')) {
+                        const id = val.id.replace('__legend_metadata', '');
                         // Save this as metadata
                         delete val.id;
                         metadata = val;
+                        const tableName = id ? table + '/' + id : table;
                         this.tableMetadata[tableName] = metadata;
                     } else {
+                        let tableName = table;
+
+                        if (val.id.includes('/')) {
+                            const [prefix, id] = val.id.split('/');
+                            tableName += '/' + prefix;
+                            val.id = id;
+                        }
+
                         if (!this.tableData[tableName]) {
                             this.tableData[tableName] = {};
                         }
