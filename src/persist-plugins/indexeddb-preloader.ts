@@ -176,20 +176,22 @@ export function preloadIndexedDB({
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
 
-                            let tableName = table;
-
-                            if (val.id.includes('/')) {
-                                const [prefix, id] = val.id.split('/');
-                                tableName += '/' + prefix;
-                                val.id = id;
-                            }
-
-                            if (val.id === '__legend_metadata') {
+                            if (val.id.endsWith('__legend_metadata')) {
+                                const id = val.id.replace('__legend_metadata', '');
                                 // Save this as metadata
                                 delete val.id;
                                 metadata = val;
+                                const tableName = id ? table + '/' + id : table;
                                 tableMetadata[tableName] = metadata;
                             } else {
+                                let tableName = table;
+
+                                if (val.id.includes('/')) {
+                                    const [prefix, id] = val.id.split('/');
+                                    tableName += '/' + prefix;
+                                    val.id = id;
+                                }
+
                                 if (!tableData[tableName]) {
                                     tableData[tableName] = {};
                                 }
