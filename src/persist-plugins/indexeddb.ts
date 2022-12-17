@@ -50,7 +50,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                         dataPromise: Promise<any>;
                     });
 
-                let didPreload;
+                let didPreload = false;
                 if (preload) {
                     // Load from preload or wait for it to finish, if it exists
                     if (!preload.tableData && preload.dataPromise) {

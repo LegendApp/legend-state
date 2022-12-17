@@ -22,7 +22,7 @@ configureObservablePersistence({
 async function reset() {
     indexedDB = new IDBFactory();
 
-    const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+    const persist = mapPersistences.get(ObservablePersistIndexedDB).persist as ObservablePersistLocal;
 
     if (persist) {
         await persist.deleteTable(TableName, { name: TableName });
@@ -87,7 +87,7 @@ describe('Persist IDB', () => {
 
         obs['test'].set({ id: 'test', text: 'hi' });
 
-        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+        const persist = mapPersistences.get(ObservablePersistIndexedDB).persist as ObservablePersistLocal;
         await persist.initialize(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
@@ -113,7 +113,7 @@ describe('Persist IDB', () => {
 
         expectIDB([{ id: 'test', text: 'hi' }]);
 
-        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+        const persist = mapPersistences.get(ObservablePersistIndexedDB).persist as ObservablePersistLocal;
         await persist.initialize(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
@@ -126,7 +126,7 @@ describe('Persist IDB', () => {
         expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
     });
     test('Persist IDB with no id', async () => {
-        const persist = mapPersistences.get(ObservablePersistIndexedDB) as ObservablePersistLocal;
+        const persist = mapPersistences.get(ObservablePersistIndexedDB).persist as ObservablePersistLocal;
 
         const obs = observable<Record<string, any>>({});
 
