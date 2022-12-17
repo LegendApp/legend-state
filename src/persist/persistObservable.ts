@@ -31,7 +31,10 @@ import { mergeDateModified, replaceKeyInObject } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
-    ObservablePersistLocal | ObservablePersistRemote
+    {
+        persist: ObservablePersistLocal | ObservablePersistRemote;
+        initialized?: Observable<boolean>;
+    }
 > = new WeakMap();
 
 export const persistState = observable({ inRemoteSync: false });
@@ -231,14 +234,24 @@ async function loadLocal<T>(
         // Ensure there's only one instance of the persistence plugin
         if (!mapPersistences.has(localPersistence)) {
             const persistenceLocal = new localPersistence();
+            const mapValue = { persist: persistenceLocal, initialized: observable(false) };
+            mapPersistences.set(localPersistence, mapValue);
             if (persistenceLocal.initialize) {
                 await persistenceLocal.initialize?.(observablePersistConfiguration.persistLocalOptions);
             }
-            mapPersistences.set(localPersistence, persistenceLocal);
+            mapValue.initialized.set(true);
         }
-        const persistenceLocal = (localState.persistenceLocal = mapPersistences.get(
-            localPersistence
-        ) as ObservablePersistLocal);
+
+        const { persist: persistenceLocal, initialized } = mapPersistences.get(localPersistence) as {
+            persist: ObservablePersistLocal;
+            initialized: Observable<boolean>;
+        };
+
+        localState.persistenceLocal = persistenceLocal;
+
+        if (!initialized.get()) {
+            await when(initialized);
+        }
 
         // If persistence has an asynchronous load, wait for it
         if (persistenceLocal.loadTable) {
@@ -263,7 +276,7 @@ async function loadLocal<T>(
 
             if (config.fieldTransforms) {
                 // Get preloaded translated if available
-                let valueLoaded = persistenceLocal.getTableTransformed(table, config);
+                let valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
                 if (valueLoaded) {
                     value = valueLoaded;
                 } else {
@@ -306,9 +319,9 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         }
         // Ensure there's only one instance of the persistence plugin
         if (!mapPersistences.has(remotePersistence)) {
-            mapPersistences.set(remotePersistence, new remotePersistence());
+            mapPersistences.set(remotePersistence, { persist: new remotePersistence() });
         }
-        localState.persistenceRemote = mapPersistences.get(remotePersistence) as ObservablePersistRemote;
+        localState.persistenceRemote = mapPersistences.get(remotePersistence).persist as ObservablePersistRemote;
 
         let isSynced = false;
         const sync = async () => {
