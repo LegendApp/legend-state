@@ -59,9 +59,11 @@ export function transformObject(
                             v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
+                            let out = {};
                             Object.keys(v).forEach((keyChild) => {
-                                v[keyChild] = transformObject(v[keyChild], mapChild, passThroughKeys, ignoreKeys);
+                                out[keyChild] = transformObject(v[keyChild], mapChild, passThroughKeys, ignoreKeys);
                             });
+                            v = out;
                         } else if (map[key + '_arr']) {
                             const mapChild = map[key + '_arr'];
                             v = v.map((vChild) => transformObject(vChild, mapChild, passThroughKeys, ignoreKeys));

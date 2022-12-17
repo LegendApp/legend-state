@@ -259,7 +259,7 @@ async function loadLocal<T>(
 
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
-            value = replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ false);
+            value = replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ true);
 
             if (config.fieldTransforms) {
                 // Get preloaded translated if available
