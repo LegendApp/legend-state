@@ -231,7 +231,7 @@ export interface ObservablePersistRemoteListenParams<T> {
     onChange: (value: T) => void;
 }
 export interface ObservablePersistRemote {
-    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T2>;
+    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T>;
     listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
 }
 
