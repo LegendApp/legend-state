@@ -187,6 +187,7 @@ export interface PersistOptionsRemote<T = any> {
         ignoreKeys?: string[];
         onError?: (error: Error) => void;
     };
+    onSaveRemote?: () => void;
 }
 export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;

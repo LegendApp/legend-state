@@ -46,6 +46,7 @@ interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemote;
     pendingChanges?: Record<string, { p: any; v?: any }>;
+    onSaveRemoteListeners: (() => void)[];
 }
 
 function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config: PersistOptionsLocal } {
@@ -256,6 +257,7 @@ async function onObsChange<T>(
                             });
                         }
                     }
+                    localState.onSaveRemoteListeners.forEach((cb) => cb());
                 });
         });
     }
@@ -360,6 +362,7 @@ async function loadLocal<T>(
 }
 
 export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions: PersistOptions<T>) {
+    const onSaveRemoteListeners: (() => void)[] = [];
     const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,
@@ -371,7 +374,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
 
     const { remote, local } = persistOptions;
     const remotePersistence = persistOptions.persistRemote || observablePersistConfiguration?.persistRemote;
-    const localState: LocalState = {};
+    const localState: LocalState = { onSaveRemoteListeners };
 
     if (local) {
         loadLocal(obs, persistOptions, obsState, localState);
@@ -391,6 +394,10 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         const sync = async () => {
             if (!isSynced) {
                 isSynced = true;
+                const onSaveRemote = persistOptions.remote?.onSaveRemote;
+                if (onSaveRemote) {
+                    onSaveRemoteListeners.push(onSaveRemote);
+                }
                 localState.persistenceRemote.listen({
                     state: obsState,
                     obs,
