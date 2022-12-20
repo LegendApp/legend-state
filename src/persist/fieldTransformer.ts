@@ -1,17 +1,21 @@
-import { constructObjectWithPath, dateModifiedKey, deconstructObjectWithPath, FieldTransforms } from '@legendapp/state';
+import {
+    constructObjectWithPath,
+    dateModifiedKey,
+    deconstructObjectWithPath,
+    FieldTransforms,
+    isObject,
+    isString,
+} from '@legendapp/state';
 
-export function transformPath(
-    path: string[],
-    map: Record<string, any>,
-    passThroughKeys: string[],
-    ignoreKeys?: string[]
-): string[] {
+let validateMap: (map: Record<string, any>) => void;
+
+export function transformPath(path: string[], map: Record<string, any>): string[] {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
         d = d[path[i]] = i === path.length - 1 ? null : {};
     }
-    let value = transformObject(data, map, passThroughKeys, ignoreKeys);
+    let value = transformObject(data, map);
     const pathOut = [];
     for (let i = 0; i < path.length; i++) {
         const key = Object.keys(value)[0];
@@ -24,9 +28,12 @@ export function transformPath(
 export function transformObject(
     dataIn: Record<string, any>,
     map: Record<string, any>,
-    passThroughKeys: string[],
+    passThroughKeys?: string[],
     ignoreKeys?: string[]
 ) {
+    if (process.env.NODE_ENV === 'development') {
+        validateMap(map);
+    }
     // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
     if (dataIn) {
@@ -84,7 +91,7 @@ export function transformObject(
 export function transformObjectWithPath(obj: object, path: (string | number)[], fieldTransforms: FieldTransforms<any>) {
     let constructed = constructObjectWithPath(path, obj);
     const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
-    const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
+    const transformedPath = transformPath(path as string[], fieldTransforms);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
 }
 
@@ -114,4 +121,23 @@ export function invertFieldMap(obj: Record<string, any>) {
     invertedMaps.set(obj, target);
 
     return target;
+}
+
+if (process.env.NODE_ENV === 'development') {
+    validateMap = function (record: Record<string, any>) {
+        const values = Object.values(record).filter((value) => {
+            if (isObject(value)) {
+                validateMap(value);
+            } else {
+                return isString(value);
+            }
+        });
+
+        const uniques = Array.from(new Set(values));
+        if (values.length !== uniques.length) {
+            console.error('Field transform map has duplicate values', record, values.length, uniques.length);
+            debugger;
+        }
+        return record;
+    };
 }

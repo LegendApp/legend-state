@@ -1,10 +1,12 @@
 import {
     batch,
     beginBatch,
+    constructObjectWithPath,
     dateModifiedKey,
     deconstructObjectWithPath,
     endBatch,
     isEmpty,
+    isPromise,
     isString,
     mergeIntoObservable,
     observable,
@@ -15,6 +17,7 @@ import {
 import type {
     Change,
     ClassConstructor,
+    FieldTransforms,
     Observable,
     ObservableObject,
     ObservablePersistLocal,
@@ -47,6 +50,55 @@ interface LocalState {
 
 function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config: PersistOptionsLocal } {
     return isString(config) ? { table: config, config: { name: config } } : { table: config.name, config };
+}
+
+async function adjustSaveData(
+    value: any,
+    path: string[],
+    {
+        adjustData,
+        fieldTransforms,
+    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { save?: (value: any) => any } },
+    replaceKey?: boolean
+): Promise<{ value: any; path: string[] }> {
+    let cloned = replaceKey ? replaceKeyInObject(value, symbolDateModified, dateModifiedKey, /*clone*/ true) : value;
+
+    if (adjustData?.save) {
+        const constructed = constructObjectWithPath(path, cloned);
+        debugger;
+        const adjusted = await adjustData.save(constructed);
+        cloned = deconstructObjectWithPath(path, adjusted);
+    }
+
+    if (fieldTransforms) {
+        const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, fieldTransforms);
+        cloned = obj;
+        path = pathTransformed;
+    }
+
+    return { value: cloned, path };
+}
+
+function adjustLoadData(
+    value: any,
+    {
+        adjustData,
+        fieldTransforms,
+    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { load?: (value: any) => any } },
+    replaceKey?: boolean
+): Promise<any> | any {
+    let cloned = replaceKey ? replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ true) : value;
+
+    if (fieldTransforms) {
+        const inverted = invertFieldMap(fieldTransforms);
+        cloned = transformObject(value, inverted, [dateModifiedKey]);
+    }
+
+    if (adjustData?.load) {
+        cloned = adjustData.load(cloned);
+    }
+
+    return cloned;
 }
 
 async function onObsChange<T>(
@@ -98,32 +150,30 @@ async function onObsChange<T>(
         // Save changes locally
         const changesLocal: Change[] = [];
         const changesPaths = new Set<string>();
-        for (let i = changes.length - 1; i >= 0; i--) {
-            let { path, prevAtPath, valueAtPath } = changes[i];
 
-            const pathStr = path.join('/');
+        await Promise.all(
+            changes.map(async (_, i) => {
+                // Reverse order
+                let { path: pathOriginal, prevAtPath, valueAtPath } = changes[changes.length - 1 - i];
+                const pathStr = pathOriginal.join('/');
 
-            // Optimization to only save the latest update at each path. We might have multiple changes at the same path
-            // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
-            // already processed
-            if (!changesPaths.has(pathStr)) {
-                changesPaths.add(pathStr);
+                // Optimization to only save the latest update at each path. We might have multiple changes at the same path
+                // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
+                // already processed.
+                if (!changesPaths.has(pathStr)) {
+                    changesPaths.add(pathStr);
 
-                let cloned = saveRemote
-                    ? replaceKeyInObject(valueAtPath, symbolDateModified, dateModifiedKey, /*clone*/ true)
-                    : valueAtPath;
-                if (config.fieldTransforms) {
-                    const { obj, path: pathTransformed } = transformObjectWithPath(
-                        cloned,
-                        path,
-                        config.fieldTransforms
+                    const { path, value } = await adjustSaveData(
+                        valueAtPath,
+                        pathOriginal as string[],
+                        config,
+                        saveRemote
                     );
-                    cloned = obj;
-                    path = pathTransformed;
+
+                    changesLocal.push({ path: path, prevAtPath, valueAtPath: value });
                 }
-                changesLocal.push({ path, prevAtPath, valueAtPath: cloned });
-            }
-        }
+            })
+        );
 
         persistenceLocal.set(table, changesLocal, config);
 
@@ -147,57 +197,69 @@ async function onObsChange<T>(
     }
 
     if (saveRemote) {
-        await when(obsState.isLoadedRemote);
+        const configRemote = persistOptions.remote;
+        await when(
+            () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
+        );
 
-        const fieldTransforms = persistOptions.remote.fieldTransforms;
+        const fieldTransforms = configRemote.fieldTransforms;
 
-        for (let i = 0; i < changes.length; i++) {
-            const { path, valueAtPath, prevAtPath } = changes[i];
-            if (path[path.length - 1] === (symbolDateModified as any)) continue;
+        changes.forEach(async (change) => {
+            const { path, valueAtPath, prevAtPath } = change;
+            if (path[path.length - 1] === (symbolDateModified as any)) return;
             const pathStr = path.join('/');
 
-            let pathSave = path;
-            let valueSave = replaceKeyInObject(valueAtPath, symbolDateModified, dateModifiedKey, /*clone*/ true);
-
-            if (fieldTransforms) {
-                const { path: pathTransformed, obj } = transformObjectWithPath(valueAtPath, path, fieldTransforms);
-                pathSave = pathTransformed;
-                valueSave = obj;
-            }
-
-            const invertedMap = fieldTransforms && invertFieldMap(fieldTransforms);
+            const { path: pathSave, value: valueSave } = await adjustSaveData(
+                valueAtPath,
+                path as string[],
+                configRemote,
+                true
+            );
 
             // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
             // server value with server timestamps for dateModified.
-            persistenceRemote.save(persistOptions, pathSave, valueSave, prevAtPath).then((saved) => {
-                if (local) {
-                    const pending = persistenceLocal.getMetadata(table, config)?.pending;
-                    let didDelete = false;
+            persistenceRemote
+                .save({
+                    obs,
+                    state: obsState,
+                    options: persistOptions,
+                    path: pathSave,
+                    valueAtPath: valueSave,
+                    prevAtPath,
+                })
+                .then((saved) => {
+                    if (local) {
+                        const pending = persistenceLocal.getMetadata(table, config)?.pending;
+                        let didDelete = false;
 
-                    // Clear pending for this path
-                    if (pending?.[pathStr]) {
-                        didDelete = true;
-                        // Remove pending from the saved object
-                        delete pending[pathStr];
-                        // Remove pending from local state
-                        delete localState.pendingChanges[pathStr];
-                    }
-                    // Only the latest save will return a value so that it saves back to local persistence once
-                    // It needs to get the dateModified from the save and update that through the observable
-                    // which will fire onObsChange and save it locally.
-                    if (saved !== undefined) {
-                        if (invertedMap) {
-                            saved = transformObjectWithPath(saved, pathSave, invertedMap).obj;
+                        // Clear pending for this path
+                        if (pending?.[pathStr]) {
+                            didDelete = true;
+                            // Remove pending from the saved object
+                            delete pending[pathStr];
+                            // Remove pending from local state
+                            delete localState.pendingChanges[pathStr];
+
+                            persistenceLocal.updateMetadata(table, { pending }, config);
                         }
+                        // Only the latest save will return a value so that it saves back to local persistence once
+                        // It needs to get the dateModified from the save and update that through the observable
+                        // which will fire onObsChange and save it locally.
+                        if (saved !== undefined) {
+                            const invertedMap = fieldTransforms && invertFieldMap(fieldTransforms);
 
-                        onChangeRemote(() => {
-                            const obsChild = deconstructObjectWithPath(path, obs);
-                            mergeDateModified(obsChild as Observable, saved);
-                        });
+                            if (invertedMap) {
+                                saved = transformObjectWithPath(saved, pathSave, invertedMap).obj;
+                            }
+
+                            onChangeRemote(() => {
+                                const obsChild = deconstructObjectWithPath(path, obs);
+                                mergeDateModified(obsChild as Observable, saved);
+                            });
+                        }
                     }
-                }
-            });
-        }
+                });
+        });
     }
 }
 
@@ -222,7 +284,7 @@ async function loadLocal<T>(
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState
 ) {
-    const { local } = persistOptions;
+    const { local, remote } = persistOptions;
     const localPersistence: ClassConstructor<ObservablePersistLocal> =
         persistOptions.persistLocal || observablePersistConfiguration.persistLocal;
 
@@ -272,17 +334,19 @@ async function loadLocal<T>(
 
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
-            value = replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ true);
-
-            if (config.fieldTransforms) {
-                // Get preloaded translated if available
+            let { adjustData, fieldTransforms } = config;
+            if (fieldTransforms) {
                 let valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
                 if (valueLoaded) {
                     value = valueLoaded;
-                } else {
-                    const inverted = invertFieldMap(config.fieldTransforms);
-                    value = transformObject(value, inverted, [dateModifiedKey]);
+                    fieldTransforms = undefined;
                 }
+            }
+
+            value = adjustLoadData(value, { adjustData, fieldTransforms }, !!remote);
+
+            if (isPromise(value)) {
+                value = await value;
             }
 
             batch(() => {
@@ -327,16 +391,29 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         const sync = async () => {
             if (!isSynced) {
                 isSynced = true;
-                localState.persistenceRemote.listen(
+                localState.persistenceRemote.listen({
+                    state: obsState,
                     obs,
-                    persistOptions,
-                    () => {
+                    options: persistOptions,
+                    onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChangeRemote
-                );
+                    onChange: async (value: T) => {
+                        if (value !== undefined) {
+                            value = adjustLoadData(value, remote, true);
+                            if (isPromise(value)) {
+                                value = (await value) as T;
+                            }
+                            onChangeRemote(() => {
+                                mergeIntoObservable(obs, value);
+                            });
+                        }
+                    },
+                });
 
-                await when(obsState.isLoadedRemote);
+                await when(
+                    () => obsState.isLoadedRemote.get() || (remote.allowSaveIfError && obsState.remoteError.get())
+                );
 
                 const pending = localState.pendingChanges;
                 if (pending) {

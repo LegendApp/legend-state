@@ -176,14 +176,16 @@ export interface PersistOptionsRemote<T = any> {
     waitForSave?: Promise<any> | ObservableReadable<any> | ((value: any, path: string[]) => Promise<any>);
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
+    allowSaveIfError?: boolean;
     adjustData?: {
-        load?: (value: T, basePath: string) => T | Promise<T>;
-        save?: (value: T, basePath: string) => T | Promise<T>;
+        load?: (value: T) => T | Promise<T>;
+        save?: (value: T) => T | Promise<T>;
     };
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
+        onError?: (error: Error) => void;
     };
 }
 export interface PersistOptions<T = any> {
@@ -213,14 +215,24 @@ export interface ObservablePersistLocal {
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
+export interface ObservablePersistRemoteSaveParams<T, T2> {
+    state: Observable<ObservablePersistState>;
+    obs: Observable<T>;
+    options: PersistOptions<T>;
+    path: (string | number)[];
+    valueAtPath: T2;
+    prevAtPath: any;
+}
+export interface ObservablePersistRemoteListenParams<T> {
+    state: Observable<ObservablePersistState>;
+    obs: ObservableReadable<T>;
+    options: PersistOptions<T>;
+    onLoad: () => void;
+    onChange: (value: T) => void;
+}
 export interface ObservablePersistRemote {
-    save<T, T2>(options: PersistOptions<T>, path: (string | number)[], valueAtPath: T2, prevAtPath: any): Promise<T2>;
-    listen<T>(
-        obs: ObservableReadable<T>,
-        options: PersistOptions<T>,
-        onLoad: () => void,
-        onChange: (cb: () => void) => void
-    ): void;
+    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T2>;
+    listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
 }
 
 export interface ObservablePersistState {
@@ -228,6 +240,7 @@ export interface ObservablePersistState {
     isLoadedRemote: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
+    remoteError?: Error;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
 }

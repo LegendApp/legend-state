@@ -83,10 +83,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             return this.initTable(table, transaction).then(() => this.loadTable(table, config));
         }
 
-        const { adjustData } = config;
         const prefix = config.indexedDB?.prefixID;
 
-        if (adjustData || prefix) {
+        if (prefix) {
             const tableName = prefix ? table + '/' + prefix : table;
             if (this.tablesAdjusted.has(tableName)) {
                 const promise = when(this.tablesAdjusted.get(tableName));
@@ -104,9 +103,6 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     promises = keys.map((key) => {
                         let value = data[key];
 
-                        if (adjustData?.load) {
-                            value = adjustData.load(value);
-                        }
                         if (isPromise(value)) {
                             hasPromise = true;
                             return value.then((v) => {
@@ -154,7 +150,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
         const tableName = this.getMetadataTableName(config);
         // Assign new metadata into the table, and make sure it has the id
-        metadata = Object.assign(this.tableMetadata[table + '/' + tableName] || {}, metadata, {
+        metadata = mergeIntoObservable(this.tableMetadata[table + '/' + tableName] || {}, metadata, {
             id: tableName + '__legend_metadata',
         });
         this.tableMetadata[tableName] = metadata;
@@ -304,10 +300,6 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
                 let didClone = false;
 
-                if (config.adjustData?.save) {
-                    didClone = true;
-                    value = await config.adjustData.save(JSON.parse(JSON.stringify(value)));
-                }
                 const prefixID = config.indexedDB?.prefixID;
                 if (prefixID) {
                     if (didClone) {
