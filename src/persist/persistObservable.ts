@@ -114,9 +114,11 @@ async function onObsChange<T>(
 
     const local = persistOptions.local;
     const { table, config } = parseLocalConfig(local);
+    const configRemote = persistOptions.remote;
     const inRemoteChange = tracking.inRemoteChange;
-    const saveRemote =
-        !inRemoteChange && persistOptions.remote && !persistOptions.remote.readonly && obsState.isEnabledRemote.peek();
+    const saveRemote = !inRemoteChange && configRemote && !configRemote.readonly && obsState.isEnabledRemote.peek();
+
+    const isQueryingModified = !!configRemote?.firebase?.queryByModified;
 
     if (local && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
@@ -167,7 +169,7 @@ async function onObsChange<T>(
                         valueAtPath,
                         pathOriginal as string[],
                         config,
-                        saveRemote
+                        saveRemote && isQueryingModified
                     );
 
                     changesLocal.push({ path: path, prevAtPath, valueAtPath: value });
@@ -197,7 +199,6 @@ async function onObsChange<T>(
     }
 
     if (saveRemote) {
-        const configRemote = persistOptions.remote;
         await when(
             () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
         );
@@ -213,7 +214,7 @@ async function onObsChange<T>(
                 valueAtPath,
                 path as string[],
                 configRemote,
-                true
+                isQueryingModified
             );
 
             // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
@@ -290,6 +291,8 @@ async function loadLocal<T>(
 
     if (local) {
         const { table, config } = parseLocalConfig(local);
+        const isQueryingModified = !!persistOptions.remote?.firebase?.queryByModified;
+
         if (!localPersistence) {
             throw new Error('Local persistence is not configured');
         }
@@ -343,7 +346,7 @@ async function loadLocal<T>(
                 }
             }
 
-            value = adjustLoadData(value, { adjustData, fieldTransforms }, !!remote);
+            value = adjustLoadData(value, { adjustData, fieldTransforms }, !!remote && isQueryingModified);
 
             if (isPromise(value)) {
                 value = await value;
