@@ -5,6 +5,7 @@ import {
     FieldTransforms,
     isObject,
     isString,
+    symbolDateModified,
 } from '@legendapp/state';
 
 let validateMap: (map: Record<string, any>) => void;
@@ -41,6 +42,10 @@ export function transformObject(
 
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
+        let dateModified = dataIn[symbolDateModified as any];
+        if (dateModified) {
+            ret[symbolDateModified as any] = dateModified;
+        }
         Object.keys(dataIn).forEach((key) => {
             if (ret[key] !== undefined || ignoreKeys?.includes(key)) return;
 
@@ -67,6 +72,10 @@ export function transformObject(
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
                             let out = {};
+                            let dateModifiedChild = dataIn[symbolDateModified as any];
+                            if (dateModifiedChild) {
+                                out[symbolDateModified as any] = dateModifiedChild;
+                            }
                             Object.keys(v).forEach((keyChild) => {
                                 out[keyChild] = transformObject(v[keyChild], mapChild, passThroughKeys, ignoreKeys);
                             });

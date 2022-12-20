@@ -65,7 +65,6 @@ async function adjustSaveData(
 
     if (adjustData?.save) {
         const constructed = constructObjectWithPath(path, cloned);
-        debugger;
         const adjusted = await adjustData.save(constructed);
         cloned = deconstructObjectWithPath(path, adjusted);
     }
@@ -231,11 +230,9 @@ async function onObsChange<T>(
                 .then((saved) => {
                     if (local) {
                         const pending = persistenceLocal.getMetadata(table, config)?.pending;
-                        let didDelete = false;
 
                         // Clear pending for this path
                         if (pending?.[pathStr]) {
-                            didDelete = true;
                             // Remove pending from the saved object
                             delete pending[pathStr];
                             // Remove pending from local state
@@ -246,16 +243,16 @@ async function onObsChange<T>(
                         // Only the latest save will return a value so that it saves back to local persistence once
                         // It needs to get the dateModified from the save and update that through the observable
                         // which will fire onObsChange and save it locally.
-                        if (saved !== undefined) {
+                        if (saved !== undefined && isQueryingModified) {
+                            // Note: Don't need to adjust data because we're just merging dateModified
                             const invertedMap = fieldTransforms && invertFieldMap(fieldTransforms);
 
                             if (invertedMap) {
-                                saved = transformObjectWithPath(saved, pathSave, invertedMap).obj;
+                                saved = transformObject(saved, invertedMap) as T;
                             }
 
                             onChangeRemote(() => {
-                                const obsChild = deconstructObjectWithPath(path, obs);
-                                mergeDateModified(obsChild as Observable, saved);
+                                mergeDateModified(obs, saved);
                             });
                         }
                     }
