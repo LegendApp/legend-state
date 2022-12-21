@@ -59,7 +59,7 @@ async function adjustSaveData(
     {
         adjustData,
         fieldTransforms,
-    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { save?: (value: any) => any } },
+    }: { adjustData?: { save?: (value: any) => any }; fieldTransforms?: FieldTransforms<any> },
     replaceKey?: boolean
 ): Promise<{ value: any; path: string[] }> {
     let cloned = replaceKey ? replaceKeyInObject(value, symbolDateModified, dateModifiedKey, /*clone*/ true) : value;
@@ -91,7 +91,7 @@ function adjustLoadData(
 
     if (fieldTransforms) {
         const inverted = invertFieldMap(fieldTransforms);
-        cloned = transformObject(value, inverted, [dateModifiedKey]);
+        cloned = transformObject(cloned, inverted, [dateModifiedKey]);
     }
 
     if (adjustData?.load) {
@@ -157,6 +157,14 @@ async function onObsChange<T>(
             changes.map(async (_, i) => {
                 // Reverse order
                 let { path: pathOriginal, prevAtPath, valueAtPath } = changes[changes.length - 1 - i];
+
+                if (isQueryingModified) {
+                    if (pathOriginal.length === 1 && (pathOriginal[0] as any) === symbolDateModified) {
+                        return;
+                    }
+
+                    pathOriginal = pathOriginal.map((p) => ((p as any) === symbolDateModified ? dateModifiedKey : p));
+                }
                 const pathStr = pathOriginal.join('/');
 
                 // Optimization to only save the latest update at each path. We might have multiple changes at the same path
@@ -249,7 +257,7 @@ async function onObsChange<T>(
                             const invertedMap = fieldTransforms && invertFieldMap(fieldTransforms);
 
                             if (invertedMap) {
-                                saved = transformObject(saved, invertedMap) as T;
+                                saved = transformObject(saved, invertedMap, [dateModifiedKey]) as T;
                             }
 
                             onChangeRemote(() => {

@@ -10,7 +10,6 @@ import {
     IDKey,
     nextNodeID,
     peek,
-    symbolDateModified,
     symbolGetNode,
     symbolIsEvent,
     symbolIsObservable,
@@ -56,7 +55,6 @@ const ArrayModifiers = new Set([
     'unshift',
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
-const NotifySpecifically = new Set<string | symbol>([symbolDateModified]);
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
@@ -462,10 +460,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         }
     }
 
-    if (NotifySpecifically.has(key as any)) {
-        // Notify specifically at the child, not through children or parents
-        doNotify(childNode, newValue, [], newValue, prevValue, 0);
-    } else if (isPrim ? newValue !== prevValue : hasADiff) {
+    if (isPrim ? newValue !== prevValue : hasADiff) {
         // Notify for this element if something inside it has changed
         notify(
             isPrim && isRoot ? node : childNode,

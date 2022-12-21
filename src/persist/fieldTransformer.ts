@@ -10,13 +10,13 @@ import {
 
 let validateMap: (map: Record<string, any>) => void;
 
-export function transformPath(path: string[], map: Record<string, any>): string[] {
+export function transformPath(path: string[], map: Record<string, any>, passThroughKeys?: string[]): string[] {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
         d = d[path[i]] = i === path.length - 1 ? null : {};
     }
-    let value = transformObject(data, map);
+    let value = transformObject(data, map, passThroughKeys);
     const pathOut = [];
     for (let i = 0; i < path.length; i++) {
         const key = Object.keys(value)[0];
@@ -100,7 +100,7 @@ export function transformObject(
 export function transformObjectWithPath(obj: object, path: (string | number)[], fieldTransforms: FieldTransforms<any>) {
     let constructed = constructObjectWithPath(path, obj);
     const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
-    const transformedPath = transformPath(path as string[], fieldTransforms);
+    const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
 }
 
