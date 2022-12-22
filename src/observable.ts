@@ -201,10 +201,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 if (isDiff) {
                     // Array has a new / modified element
-                    hasADiff = true;
                     // If object iterate through its children
-                    if (!isPrimitive(value)) {
-                        updateNodes(child, value, prev);
+                    if (isPrimitive(value)) {
+                        hasADiff = true;
+                    } else {
+                        hasADiff = hasADiff || updateNodes(child, value, prev);
                     }
                 }
                 if (isDiff || !isArrDiff) {
