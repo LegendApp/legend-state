@@ -53,7 +53,7 @@ function parseLocalConfig(config: string | PersistOptionsLocal): { table: string
     return isString(config) ? { table: config, config: { name: config } } : { table: config.name, config };
 }
 
-async function adjustSaveData(
+function adjustSaveData(
     value: any,
     path: string[],
     {
@@ -61,22 +61,31 @@ async function adjustSaveData(
         fieldTransforms,
     }: { adjustData?: { save?: (value: any) => any }; fieldTransforms?: FieldTransforms<any> },
     replaceKey?: boolean
-): Promise<{ value: any; path: string[] }> {
+): { value: any; path: string[] } | Promise<{ value: any; path: string[] }> {
     let cloned = replaceKey ? replaceKeyInObject(value, symbolDateModified, dateModifiedKey, /*clone*/ true) : value;
 
+    const transform = () => {
+        if (fieldTransforms) {
+            const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, fieldTransforms);
+            cloned = obj;
+            path = pathTransformed;
+        }
+
+        return { value: cloned, path };
+    };
+
+    let promise;
     if (adjustData?.save) {
         const constructed = constructObjectWithPath(path, cloned);
-        const adjusted = await adjustData.save(constructed);
-        cloned = deconstructObjectWithPath(path, adjusted);
+        promise = adjustData.save(constructed);
     }
 
-    if (fieldTransforms) {
-        const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, fieldTransforms);
-        cloned = obj;
-        path = pathTransformed;
-    }
-
-    return { value: cloned, path };
+    return isPromise(promise)
+        ? promise.then((adjusted) => {
+              cloned = deconstructObjectWithPath(path, adjusted);
+              return transform();
+          })
+        : transform();
 }
 
 function adjustLoadData(
@@ -153,37 +162,48 @@ async function onObsChange<T>(
         const changesLocal: Change[] = [];
         const changesPaths = new Set<string>();
 
-        await Promise.all(
-            changes.map(async (_, i) => {
-                // Reverse order
-                let { path: pathOriginal, prevAtPath, valueAtPath } = changes[changes.length - 1 - i];
+        const promises = [];
+        changes.forEach((_, i) => {
+            // Reverse order
+            let { path: pathOriginal, prevAtPath, valueAtPath } = changes[changes.length - 1 - i];
 
-                if (isQueryingModified) {
-                    if (pathOriginal.length === 1 && (pathOriginal[0] as any) === symbolDateModified) {
-                        return;
-                    }
-
-                    pathOriginal = pathOriginal.map((p) => ((p as any) === symbolDateModified ? dateModifiedKey : p));
+            if (isQueryingModified) {
+                if (pathOriginal.length === 1 && (pathOriginal[0] as any) === symbolDateModified) {
+                    return;
                 }
-                const pathStr = pathOriginal.join('/');
 
-                // Optimization to only save the latest update at each path. We might have multiple changes at the same path
-                // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
-                // already processed.
-                if (!changesPaths.has(pathStr)) {
-                    changesPaths.add(pathStr);
+                pathOriginal = pathOriginal.map((p) => ((p as any) === symbolDateModified ? dateModifiedKey : p));
+            }
+            const pathStr = pathOriginal.join('/');
 
-                    const { path, value } = await adjustSaveData(
-                        valueAtPath,
-                        pathOriginal as string[],
-                        config,
-                        saveRemote && isQueryingModified
-                    );
+            // Optimization to only save the latest update at each path. We might have multiple changes at the same path
+            // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
+            // already processed.
+            if (!changesPaths.has(pathStr)) {
+                changesPaths.add(pathStr);
 
+                let promise = adjustSaveData(
+                    valueAtPath,
+                    pathOriginal as string[],
+                    config,
+                    saveRemote && isQueryingModified
+                );
+
+                const push = ({ path, value }) => {
                     changesLocal.push({ path: path, prevAtPath, valueAtPath: value });
+                };
+
+                if (isPromise(promise)) {
+                    promises.push(promise.then(push));
+                } else {
+                    push(promise);
                 }
-            })
-        );
+            }
+        });
+
+        if (promises.length > 0) {
+            await Promise.all(promises);
+        }
 
         persistenceLocal.set(table, changesLocal, config);
 
