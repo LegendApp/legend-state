@@ -182,12 +182,7 @@ async function onObsChange<T>(
             if (!changesPaths.has(pathStr)) {
                 changesPaths.add(pathStr);
 
-                let promise = adjustSaveData(
-                    valueAtPath,
-                    pathOriginal as string[],
-                    config,
-                    saveRemote && isQueryingModified
-                );
+                let promise = adjustSaveData(valueAtPath, pathOriginal as string[], config, isQueryingModified);
 
                 const push = ({ path, value }) => {
                     changesLocal.push({ path: path, prevAtPath, valueAtPath: value });
