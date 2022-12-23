@@ -21,6 +21,9 @@ export function replaceKeyInObject(obj: object, keySource: any, keyTarget: any, 
             target[keyTarget] = obj[keySource];
             delete target[keySource];
         }
+        if (keySource !== symbolDateModified && obj[symbolDateModified as any]) {
+            target[symbolDateModified as any] = obj[symbolDateModified as any];
+        }
         Object.keys(obj).forEach((key) => {
             if (key !== keySource) {
                 target[key] = replaceKeyInObject(obj[key], keySource, keyTarget, clone);
