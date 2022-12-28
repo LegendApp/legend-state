@@ -27,7 +27,9 @@
         "publish:betarelease": "npm version prerelease --preid=beta && cd dist && npm publish",
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
-        "checksize": "npm run checksize:core && npm run checksize:react"
+        "checksize": "npm run checksize:core && npm run checksize:react",
+        "docs:md": "typedoc --plugin typedoc-plugin-markdown --out docs/6-api-reference/ index.ts --gitRemote upstream",
+        "docs:html": "typedoc --plugin none --out docs/7-html-api-reference/ index.ts --gitRemote upstream"
     },
     "exports": {
         "./package.json": "./package.json",
