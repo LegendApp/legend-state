@@ -29,8 +29,11 @@
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react",
         "docs:md": "typedoc --plugin typedoc-plugin-markdown --out docs/6-api-reference/ index.ts --gitRemote upstream",
-        "docs:html": "typedoc --plugin none --out docs/7-html-api-reference/ index.ts --gitRemote upstream",
-        "docs:react": "typedoc --plugin none --out docs/8-react-api-reference/ react.ts --gitRemote upstream"
+        "docs:html": "typedoc --plugin none --out docs/7-html-api-reference/core/ index.ts --gitRemote upstream",
+        "docs:react": "typedoc --plugin none --out docs/7-html-api-reference/react/ react.ts --gitRemote upstream",
+        "docs:trace": "typedoc --plugin none --out docs/7-html-api-reference/trace/ trace.ts --gitRemote upstream",
+        "docs:persist": "typedoc --plugin none --out docs/7-html-api-reference/persist/ persist.ts --gitRemote upstream",
+        "docs:history": "typedoc --plugin none --out docs/7-html-api-reference/history/ history.ts --gitRemote upstream"
     },
     "exports": {
         "./package.json": "./package.json",
