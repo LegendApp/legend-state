@@ -55,7 +55,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:62](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L62)
+[src/observableInterfaces.ts:62](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L62)
 
 ___
 
@@ -79,7 +79,7 @@ ObservablePrimitiveFnsBase.get
 
 #### Defined in
 
-[src/observableInterfaces.ts:47](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L47)
+[src/observableInterfaces.ts:47](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L47)
 
 ___
 
@@ -104,7 +104,7 @@ ObservablePrimitiveFnsBase.onChange
 
 #### Defined in
 
-[src/observableInterfaces.ts:48](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L48)
+[src/observableInterfaces.ts:48](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L48)
 
 ___
 
@@ -122,7 +122,7 @@ ObservablePrimitiveFnsBase.peek
 
 #### Defined in
 
-[src/observableInterfaces.ts:46](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L46)
+[src/observableInterfaces.ts:46](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L46)
 
 ___
 
@@ -146,4 +146,4 @@ ObservablePrimitiveFnsBase.set
 
 #### Defined in
 
-[src/observableInterfaces.ts:51](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L51)
+[src/observableInterfaces.ts:51](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L51)

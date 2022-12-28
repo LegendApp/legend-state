@@ -25,7 +25,7 @@
 
 #### Defined in
 
-[src/observableInterfaces.ts:361](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L361)
+[src/observableInterfaces.ts:361](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L361)
 
 ___
 
@@ -35,7 +35,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:359](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L359)
+[src/observableInterfaces.ts:359](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L359)
 
 ___
 
@@ -53,7 +53,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:362](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L362)
+[src/observableInterfaces.ts:362](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L362)
 
 ___
 
@@ -63,4 +63,4 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:360](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L360)
+[src/observableInterfaces.ts:360](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L360)

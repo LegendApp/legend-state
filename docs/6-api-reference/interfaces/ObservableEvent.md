@@ -22,7 +22,7 @@
 
 #### Defined in
 
-[src/observableInterfaces.ts:139](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L139)
+[src/observableInterfaces.ts:139](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L139)
 
 ___
 
@@ -36,7 +36,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:142](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L142)
+[src/observableInterfaces.ts:142](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L142)
 
 ___
 
@@ -56,7 +56,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:140](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L140)
+[src/observableInterfaces.ts:140](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L140)
 
 ▸ **on**(`eventType`, `cb?`): [`ObservableListenerDispose`](../modules.md#observablelistenerdispose)
 
@@ -73,4 +73,4 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:141](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L141)
+[src/observableInterfaces.ts:141](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L141)

@@ -564,7 +564,7 @@ Performs the specified action for each element in an array.
 
 #### Defined in
 
-[src/observableInterfaces.ts:82](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L82)
+[src/observableInterfaces.ts:82](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L82)
 
 ___
 
@@ -720,7 +720,7 @@ Calls a defined callback function on each element of an array, and returns an ar
 
 #### Defined in
 
-[src/observableInterfaces.ts:88](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L88)
+[src/observableInterfaces.ts:88](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L88)
 
 ___
 

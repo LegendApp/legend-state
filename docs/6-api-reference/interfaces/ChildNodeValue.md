@@ -33,7 +33,7 @@ BaseNodeValue.children
 
 #### Defined in
 
-[src/observableInterfaces.ts:333](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L333)
+[src/observableInterfaces.ts:333](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L333)
 
 ___
 
@@ -47,7 +47,7 @@ BaseNodeValue.id
 
 #### Defined in
 
-[src/observableInterfaces.ts:332](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L332)
+[src/observableInterfaces.ts:332](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L332)
 
 ___
 
@@ -61,7 +61,7 @@ BaseNodeValue.isActivatedPrimitive
 
 #### Defined in
 
-[src/observableInterfaces.ts:335](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L335)
+[src/observableInterfaces.ts:335](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L335)
 
 ___
 
@@ -71,7 +71,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:347](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L347)
+[src/observableInterfaces.ts:347](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L347)
 
 ___
 
@@ -85,7 +85,7 @@ BaseNodeValue.listeners
 
 #### Defined in
 
-[src/observableInterfaces.ts:337](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L337)
+[src/observableInterfaces.ts:337](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L337)
 
 ___
 
@@ -95,7 +95,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:346](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L346)
+[src/observableInterfaces.ts:346](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L346)
 
 ___
 
@@ -109,7 +109,7 @@ BaseNodeValue.proxy
 
 #### Defined in
 
-[src/observableInterfaces.ts:334](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L334)
+[src/observableInterfaces.ts:334](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L334)
 
 ___
 
@@ -123,4 +123,4 @@ BaseNodeValue.root
 
 #### Defined in
 
-[src/observableInterfaces.ts:336](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L336)
+[src/observableInterfaces.ts:336](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L336)

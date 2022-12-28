@@ -118,7 +118,7 @@
 
 #### Defined in
 
-[src/observableInterfaces.ts:241](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L241)
+[src/observableInterfaces.ts:241](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L241)
 
 ___
 
@@ -145,7 +145,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:287](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L287)
+[src/observableInterfaces.ts:287](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L287)
 
 ___
 
@@ -161,7 +161,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:269](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L269)
+[src/observableInterfaces.ts:269](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L269)
 
 ___
 
@@ -177,7 +177,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:272](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L272)
+[src/observableInterfaces.ts:272](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L272)
 
 ___
 
@@ -210,7 +210,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:91](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L91)
+[src/observableInterfaces.ts:91](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L91)
 
 ___
 
@@ -220,7 +220,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:350](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L350)
+[src/observableInterfaces.ts:350](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L350)
 
 ___
 
@@ -236,7 +236,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:297](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L297)
+[src/observableInterfaces.ts:297](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L297)
 
 ___
 
@@ -252,7 +252,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:313](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L313)
+[src/observableInterfaces.ts:313](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L313)
 
 ___
 
@@ -268,7 +268,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:299](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L299)
+[src/observableInterfaces.ts:299](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L299)
 
 ___
 
@@ -284,7 +284,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:303](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L303)
+[src/observableInterfaces.ts:303](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L303)
 
 ___
 
@@ -300,7 +300,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:312](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L312)
+[src/observableInterfaces.ts:312](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L312)
 
 ___
 
@@ -316,7 +316,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:69](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L69)
+[src/observableInterfaces.ts:69](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L69)
 
 ___
 
@@ -334,7 +334,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:288](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L288)
+[src/observableInterfaces.ts:288](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L288)
 
 ___
 
@@ -350,7 +350,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:302](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L302)
+[src/observableInterfaces.ts:302](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L302)
 
 ___
 
@@ -366,7 +366,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:310](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L310)
+[src/observableInterfaces.ts:310](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L310)
 
 ___
 
@@ -382,7 +382,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:71](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L71)
+[src/observableInterfaces.ts:71](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L71)
 
 ___
 
@@ -398,7 +398,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:304](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L304)
+[src/observableInterfaces.ts:304](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L304)
 
 ___
 
@@ -414,7 +414,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:57](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L57)
+[src/observableInterfaces.ts:57](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L57)
 
 ___
 
@@ -430,7 +430,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:315](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L315)
+[src/observableInterfaces.ts:315](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L315)
 
 ___
 
@@ -446,7 +446,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:320](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L320)
+[src/observableInterfaces.ts:320](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L320)
 
 ___
 
@@ -462,7 +462,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:73](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L73)
+[src/observableInterfaces.ts:73](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L73)
 
 ___
 
@@ -472,7 +472,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:296](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L296)
+[src/observableInterfaces.ts:296](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L296)
 
 ___
 
@@ -488,7 +488,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:145](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L145)
+[src/observableInterfaces.ts:145](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L145)
 
 ___
 
@@ -504,7 +504,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:240](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L240)
+[src/observableInterfaces.ts:240](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L240)
 
 ___
 
@@ -520,7 +520,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:285](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L285)
+[src/observableInterfaces.ts:285](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L285)
 
 ___
 
@@ -530,7 +530,7 @@ ___
 
 #### Defined in
 
-[src/observableInterfaces.ts:40](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observableInterfaces.ts#L40)
+[src/observableInterfaces.ts:40](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observableInterfaces.ts#L40)
 
 ## Variables
 
@@ -540,7 +540,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:6](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L6)
+[src/globals.ts:6](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L6)
 
 ___
 
@@ -550,7 +550,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:19](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L19)
+[src/globals.ts:19](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L19)
 
 ___
 
@@ -560,7 +560,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:7](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L7)
+[src/globals.ts:7](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L7)
 
 ___
 
@@ -570,7 +570,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:12](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L12)
+[src/globals.ts:12](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L12)
 
 ___
 
@@ -580,7 +580,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:9](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L9)
+[src/globals.ts:9](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L9)
 
 ___
 
@@ -590,7 +590,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:8](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L8)
+[src/globals.ts:8](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L8)
 
 ___
 
@@ -600,7 +600,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:11](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L11)
+[src/globals.ts:11](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L11)
 
 ___
 
@@ -617,7 +617,7 @@ ___
 
 #### Defined in
 
-[src/tracking.ts:13](https://github.com/matthewmturner/legend-state/blob/69a8199/src/tracking.ts#L13)
+[src/tracking.ts:13](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/tracking.ts#L13)
 
 ## Functions
 
@@ -644,7 +644,7 @@ ___
 
 #### Defined in
 
-[src/ObservablePrimitive.ts:20](https://github.com/matthewmturner/legend-state/blob/69a8199/src/ObservablePrimitive.ts#L20)
+[src/ObservablePrimitive.ts:20](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/ObservablePrimitive.ts#L20)
 
 ___
 
@@ -664,7 +664,7 @@ ___
 
 #### Defined in
 
-[src/batching.ts:53](https://github.com/matthewmturner/legend-state/blob/69a8199/src/batching.ts#L53)
+[src/batching.ts:53](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/batching.ts#L53)
 
 ___
 
@@ -678,7 +678,7 @@ ___
 
 #### Defined in
 
-[src/batching.ts:58](https://github.com/matthewmturner/legend-state/blob/69a8199/src/batching.ts#L58)
+[src/batching.ts:58](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/batching.ts#L58)
 
 ___
 
@@ -692,7 +692,7 @@ ___
 
 #### Defined in
 
-[src/tracking.ts:18](https://github.com/matthewmturner/legend-state/blob/69a8199/src/tracking.ts#L18)
+[src/tracking.ts:18](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/tracking.ts#L18)
 
 ___
 
@@ -712,7 +712,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:108](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L108)
+[src/helpers.ts:108](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L108)
 
 ___
 
@@ -739,7 +739,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:16](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L16)
+[src/helpers.ts:16](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L16)
 
 ___
 
@@ -765,7 +765,7 @@ ___
 
 #### Defined in
 
-[src/computed.ts:7](https://github.com/matthewmturner/legend-state/blob/69a8199/src/computed.ts#L7)
+[src/computed.ts:7](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/computed.ts#L7)
 
 ___
 
@@ -786,7 +786,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:84](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L84)
+[src/helpers.ts:84](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L84)
 
 ___
 
@@ -807,7 +807,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:99](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L99)
+[src/helpers.ts:99](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L99)
 
 ___
 
@@ -827,7 +827,7 @@ ___
 
 #### Defined in
 
-[src/batching.ts:65](https://github.com/matthewmturner/legend-state/blob/69a8199/src/batching.ts#L65)
+[src/batching.ts:65](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/batching.ts#L65)
 
 ___
 
@@ -841,7 +841,7 @@ ___
 
 #### Defined in
 
-[src/tracking.ts:25](https://github.com/matthewmturner/legend-state/blob/69a8199/src/tracking.ts#L25)
+[src/tracking.ts:25](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/tracking.ts#L25)
 
 ___
 
@@ -855,7 +855,7 @@ ___
 
 #### Defined in
 
-[src/event.ts:5](https://github.com/matthewmturner/legend-state/blob/69a8199/src/event.ts#L5)
+[src/event.ts:5](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/event.ts#L5)
 
 ___
 
@@ -875,7 +875,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:25](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L25)
+[src/helpers.ts:25](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L25)
 
 ___
 
@@ -895,7 +895,7 @@ ___
 
 #### Defined in
 
-[src/globals.ts:39](https://github.com/matthewmturner/legend-state/blob/69a8199/src/globals.ts#L39)
+[src/globals.ts:39](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/globals.ts#L39)
 
 ___
 
@@ -915,7 +915,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:29](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L29)
+[src/helpers.ts:29](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L29)
 
 ___
 
@@ -935,7 +935,7 @@ obj is any[]
 
 #### Defined in
 
-[src/is.ts:3](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L3)
+[src/is.ts:3](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L3)
 
 ___
 
@@ -955,7 +955,7 @@ obj is boolean
 
 #### Defined in
 
-[src/is.ts:22](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L22)
+[src/is.ts:22](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L22)
 
 ___
 
@@ -975,7 +975,7 @@ ___
 
 #### Defined in
 
-[src/is.ts:28](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L28)
+[src/is.ts:28](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L28)
 
 ___
 
@@ -995,7 +995,7 @@ obj is Function
 
 #### Defined in
 
-[src/is.ts:12](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L12)
+[src/is.ts:12](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L12)
 
 ___
 
@@ -1015,7 +1015,7 @@ obj is Record<any, any\>
 
 #### Defined in
 
-[src/is.ts:9](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L9)
+[src/is.ts:9](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L9)
 
 ___
 
@@ -1035,7 +1035,7 @@ obs is ObservableObject<any\>
 
 #### Defined in
 
-[src/helpers.ts:12](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L12)
+[src/helpers.ts:12](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L12)
 
 ___
 
@@ -1055,7 +1055,7 @@ arg is string \| number \| bigint \| boolean \| symbol
 
 #### Defined in
 
-[src/is.ts:15](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L15)
+[src/is.ts:15](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L15)
 
 ___
 
@@ -1081,7 +1081,7 @@ obj is Promise<T\>
 
 #### Defined in
 
-[src/is.ts:25](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L25)
+[src/is.ts:25](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L25)
 
 ___
 
@@ -1101,7 +1101,7 @@ obj is string
 
 #### Defined in
 
-[src/is.ts:6](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L6)
+[src/is.ts:6](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L6)
 
 ___
 
@@ -1121,7 +1121,7 @@ obj is symbol
 
 #### Defined in
 
-[src/is.ts:19](https://github.com/matthewmturner/legend-state/blob/69a8199/src/is.ts#L19)
+[src/is.ts:19](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/is.ts#L19)
 
 ___
 
@@ -1142,7 +1142,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:40](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L40)
+[src/helpers.ts:40](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L40)
 
 ___
 
@@ -1169,7 +1169,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:46](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L46)
+[src/helpers.ts:46](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L46)
 
 ___
 
@@ -1195,7 +1195,7 @@ ___
 
 #### Defined in
 
-[src/observable.ts:548](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observable.ts#L548)
+[src/observable.ts:548](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observable.ts#L548)
 
 ___
 
@@ -1221,7 +1221,7 @@ ___
 
 #### Defined in
 
-[src/observable.ts:552](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observable.ts#L552)
+[src/observable.ts:552](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observable.ts#L552)
 
 ___
 
@@ -1253,7 +1253,7 @@ ___
 
 #### Defined in
 
-[src/observe.ts:28](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observe.ts#L28)
+[src/observe.ts:28](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observe.ts#L28)
 
 ▸ **observe**<`T`\>(`selector`, `reaction?`): () => `void`
 
@@ -1282,7 +1282,7 @@ ___
 
 #### Defined in
 
-[src/observe.ts:29](https://github.com/matthewmturner/legend-state/blob/69a8199/src/observe.ts#L29)
+[src/observe.ts:29](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/observe.ts#L29)
 
 ___
 
@@ -1311,7 +1311,7 @@ ___
 
 #### Defined in
 
-[src/onChange.ts:3](https://github.com/matthewmturner/legend-state/blob/69a8199/src/onChange.ts#L3)
+[src/onChange.ts:3](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/onChange.ts#L3)
 
 ___
 
@@ -1337,7 +1337,7 @@ ___
 
 #### Defined in
 
-[src/helpers.ts:35](https://github.com/matthewmturner/legend-state/blob/69a8199/src/helpers.ts#L35)
+[src/helpers.ts:35](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/helpers.ts#L35)
 
 ___
 
@@ -1358,7 +1358,7 @@ ___
 
 #### Defined in
 
-[src/tracking.ts:38](https://github.com/matthewmturner/legend-state/blob/69a8199/src/tracking.ts#L38)
+[src/tracking.ts:38](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/tracking.ts#L38)
 
 ___
 
@@ -1384,7 +1384,7 @@ ___
 
 #### Defined in
 
-[src/when.ts:6](https://github.com/matthewmturner/legend-state/blob/69a8199/src/when.ts#L6)
+[src/when.ts:6](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/when.ts#L6)
 
 ▸ **when**<`T`\>(`predicate`, `effect`): () => `void`
 
@@ -1413,4 +1413,4 @@ ___
 
 #### Defined in
 
-[src/when.ts:7](https://github.com/matthewmturner/legend-state/blob/69a8199/src/when.ts#L7)
+[src/when.ts:7](https://github.com/LegendApp/legend-state/blob/c6d45b4/src/when.ts#L7)
