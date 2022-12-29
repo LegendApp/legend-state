@@ -30,7 +30,7 @@ function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType
         ret(value, prev, changes);
     }
 
-    obs.onChange(handler, track);
+    obs.onChange(handler, { trackingType: track });
 
     return ret;
 }
@@ -1073,7 +1073,7 @@ describe('Array', () => {
             ],
         });
         const handler = jest.fn();
-        obs.test.onChange(handler, true);
+        obs.test.onChange(handler, { trackingType: true });
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
         obs.test[2].onChange(() => {});
@@ -1313,7 +1313,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, 'optimize' as any);
+        obs.test.onChange(handlerShallow, { trackingType: 'optimize' as unknown as TrackingType });
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();
@@ -1689,7 +1689,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ val: false });
         const handler = jest.fn();
-        obs.onChange(handler, true);
+        obs.onChange(handler, { trackingType: true });
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
         obs.val2.set(10);
@@ -1698,7 +1698,7 @@ describe('Shallow', () => {
     test('Shallow deep object', () => {
         const obs = observable({ val: { val2: { val3: 'hi' } } });
         const handler = jest.fn();
-        obs.onChange(handler, true);
+        obs.onChange(handler, { trackingType: true });
         obs.val.val2.val3.set('hello');
         expect(handler).not.toHaveBeenCalled();
     });
@@ -1709,7 +1709,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ data: [], selected: 0 });
         const handler = jest.fn();
-        obs.data.onChange(handler, true);
+        obs.data.onChange(handler, { trackingType: true });
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
         // Setting an index in an array should not notify the array
@@ -1722,7 +1722,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
         const handler = jest.fn();
-        obs.test.onChange(handler, true);
+        obs.test.onChange(handler, { trackingType: true });
 
         obs.test.key2.delete();
 
@@ -1745,7 +1745,7 @@ describe('Shallow', () => {
         const obs = observable<Data>({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        obs.arr.onChange(handler, true);
+        obs.arr.onChange(handler, { trackingType: true });
         obs.arr.onChange(handler2);
 
         obs.arr.splice(1, 1);
@@ -1768,7 +1768,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ test: { text: 'hi' } });
         const handler = jest.fn();
-        obs.test.onChange(handler, true);
+        obs.test.onChange(handler, { trackingType: true });
 
         obs.test.set(undefined);
 

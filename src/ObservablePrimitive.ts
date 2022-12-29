@@ -82,8 +82,8 @@ ObservablePrimitiveClass.prototype.toggle = function (): boolean {
 // Listener
 ObservablePrimitiveClass.prototype.onChange = function <T>(
     cb: ListenerFn<T>,
-    track?: TrackingType,
+    options?: { trackingType?: TrackingType; initial?: boolean },
     noArgs?: boolean
 ): ObservableListenerDispose {
-    return onChange(this._node, cb, track, noArgs);
+    return onChange(this._node, cb, options, noArgs);
 };
