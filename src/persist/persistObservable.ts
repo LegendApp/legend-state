@@ -441,6 +441,16 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             if (isPromise(value)) {
                                 value = (await value) as T;
                             }
+                            const pending = localState.pendingChanges;
+                            if (pending) {
+                                Object.keys(pending).forEach((key) => {
+                                    const path = key.split('/').filter((p) => p !== '');
+                                    const { p, v } = pending[key];
+
+                                    const constructed = constructObjectWithPath(path, v);
+                                    value = mergeIntoObservable(value as any, constructed) as T;
+                                });
+                            }
                             onChangeRemote(() => {
                                 mergeIntoObservable(obs, value);
                             });
