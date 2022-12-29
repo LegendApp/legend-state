@@ -45,7 +45,10 @@ export type TrackingTypeInternal = undefined | true | 'optimize'; // true === sh
 export interface ObservableBaseFns<T> {
     peek(): T;
     get(trackingType?: TrackingType): T;
-    onChange(cb: ListenerFn<T>, trackingType?: TrackingType): ObservableListenerDispose;
+    onChange(
+        cb: ListenerFn<T>,
+        options?: { trackingType?: TrackingType; initial?: boolean }
+    ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
     set(value: T | ((prev: T) => T)): ObservablePrimitiveChild<T>;
@@ -327,10 +330,8 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveFnsBase<T>
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
-export type ObservableWriteable<T = any> =
-    | ObservablePrimitiveFnsBase<T>
-    | ObservablePrimitiveChildFns<T>
-    | ObservableObjectFns<T>;
+
+export type ObservableWriteable<T = any> = ObservableReadable<T> & { set: any };
 
 interface NodeValueListener {
     track: TrackingType;
