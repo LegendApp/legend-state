@@ -392,7 +392,11 @@ async function loadLocal<T>(
 }
 
 export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions: PersistOptions<T>) {
+    const { remote, local } = persistOptions;
+    const remotePersistence = persistOptions.persistRemote || observablePersistConfiguration?.persistRemote;
     const onSaveRemoteListeners: (() => void)[] = [];
+    const localState: LocalState = { onSaveRemoteListeners };
+
     const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,
@@ -400,11 +404,8 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         isEnabledRemote: true,
         clearLocal: undefined,
         sync: () => Promise.resolve(),
+        getPendingChanges: () => localState.pendingChanges,
     });
-
-    const { remote, local } = persistOptions;
-    const remotePersistence = persistOptions.persistRemote || observablePersistConfiguration?.persistRemote;
-    const localState: LocalState = { onSaveRemoteListeners };
 
     if (local) {
         loadLocal(obs, persistOptions, obsState, localState);

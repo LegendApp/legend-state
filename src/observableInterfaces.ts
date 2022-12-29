@@ -248,6 +248,15 @@ export interface ObservablePersistState {
     remoteError?: Error;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
+    getPendingChanges: () =>
+        | Record<
+              string,
+              {
+                  p: any;
+                  v?: any;
+              }
+          >
+        | undefined;
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
