@@ -68,6 +68,11 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                 }
                 mergeIntoObservable(target[key], sourceValue);
                 dateModified = Math.max(dateModified || 0, sourceValue[symbolDateModified as any] || 0);
+            } else if (isArray(sourceValue)) {
+                if (!needsSet && (!target[key] || !isArray(target[key]))) {
+                    target[key] = [];
+                }
+                mergeIntoObservable(target[key], sourceValue);
             } else {
                 needsSet ? target[key].set(sourceValue) : ((target[key] as any) = sourceValue);
             }
