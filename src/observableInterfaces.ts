@@ -161,6 +161,7 @@ export interface PersistOptionsLocal<T = any> {
         save?: (value: T) => T | Promise<T>;
     };
     fieldTransforms?: FieldTransforms<T>;
+    readonly?: boolean;
     mmkv?: MMKVConfiguration;
     indexedDB?: {
         prefixID?: string;
@@ -209,7 +210,7 @@ export interface ObservablePersistLocal {
     getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
     set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void>;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void>;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): void;
     deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
 }
@@ -247,6 +248,7 @@ export interface ObservablePersistState {
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
+export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
@@ -326,7 +328,6 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
 export type ObservableWriteable<T = any> =
-    | ObservableBaseFns<T>
     | ObservablePrimitiveFnsBase<T>
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;

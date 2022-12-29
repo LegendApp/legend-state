@@ -8,6 +8,7 @@ import {
     isEmpty,
     isPromise,
     isString,
+    isSymbol,
     mergeIntoObservable,
     observable,
     symbolDateModified,
@@ -129,7 +130,7 @@ async function onObsChange<T>(
 
     const isQueryingModified = !!configRemote?.firebase?.queryByModified;
 
-    if (local && obsState.isEnabledLocal.peek()) {
+    if (local && !config.readonly && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
             console.error(
                 '[legend-state] WARNING: An observable was changed before being loaded from persistence',
@@ -167,11 +168,10 @@ async function onObsChange<T>(
             // Reverse order
             let { path: pathOriginal, prevAtPath, valueAtPath } = changes[changes.length - 1 - i];
 
+            if (isSymbol(pathOriginal[pathOriginal.length - 1])) {
+                return;
+            }
             if (isQueryingModified) {
-                if (pathOriginal.length === 1 && (pathOriginal[0] as any) === symbolDateModified) {
-                    return;
-                }
-
                 pathOriginal = pathOriginal.map((p) => ((p as any) === symbolDateModified ? dateModifiedKey : p));
             }
             const pathStr = pathOriginal.join('/');
@@ -200,7 +200,9 @@ async function onObsChange<T>(
             await Promise.all(promises);
         }
 
-        persistenceLocal.set(table, changesLocal, config);
+        if (changesLocal.length > 0) {
+            persistenceLocal.set(table, changesLocal, config);
+        }
 
         // Save metadata
         const metadata: PersistMetadata = {};
@@ -276,7 +278,7 @@ async function onObsChange<T>(
                             }
 
                             onChangeRemote(() => {
-                                mergeDateModified(obs, saved);
+                                mergeDateModified(obs as ObservableWriteable, saved);
                             });
                         }
                     }
@@ -324,7 +326,12 @@ async function loadLocal<T>(
             const mapValue = { persist: persistenceLocal, initialized: observable(false) };
             mapPersistences.set(localPersistence, mapValue);
             if (persistenceLocal.initialize) {
-                await persistenceLocal.initialize?.(observablePersistConfiguration.persistLocalOptions);
+                const initializePromise = persistenceLocal.initialize?.(
+                    observablePersistConfiguration.persistLocalOptions
+                );
+                if (isPromise(initializePromise)) {
+                    await initializePromise;
+                }
             }
             mapValue.initialized.set(true);
         }
