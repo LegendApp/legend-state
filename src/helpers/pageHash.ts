@@ -15,7 +15,7 @@ const pageHash: Observable<string> = observable(hasWindow ? window.location.hash
 if (hasWindow) {
     let isSetting = false;
     // Set the page hash when the observable changes
-    pageHash.onChange((value) => {
+    pageHash.onChange(({ value }) => {
         if (!isSetting) {
             const hash = '#' + value;
             const setter = _options?.setter || 'hash';

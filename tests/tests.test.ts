@@ -4,7 +4,7 @@ import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
 import { observable } from '../src/observable';
-import { ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
@@ -24,8 +24,8 @@ afterAll(() => {
 function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
     const ret = jest.fn();
 
-    function handler(value, getPrev: () => any, changes: { path: string[]; valueAtPath: any; prevAtPath: any }[]) {
-        const prev = getPrev();
+    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
+        const prev = getPrevious();
 
         ret(value, prev, changes);
     }

@@ -51,16 +51,17 @@ export function doNotify(
                         ? (listenerFn.listener as () => void)
                         : {
                               cb: listenerFn.listener,
-                              value,
-                              getPrevious,
-                              changes: [
-                                  {
-                                      path,
-                                      valueAtPath,
-                                      prevAtPath,
-                                  },
-                              ],
-                              node,
+                              params: {
+                                  value,
+                                  getPrevious,
+                                  changes: [
+                                      {
+                                          path,
+                                          valueAtPath,
+                                          prevAtPath,
+                                      },
+                                  ],
+                              },
                           }
                 );
             }
