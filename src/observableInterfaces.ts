@@ -90,17 +90,16 @@ export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | '
      */
     map<U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): U[];
 }
-
-export type ListenerFn<T = any> = (
-    value: T,
-    getPrevious: () => T,
+export interface ListenerParams<T = any> {
+    value: T;
+    getPrevious: () => T;
     changes: {
         path: (string | number)[];
         valueAtPath: any;
         prevAtPath: any;
-    }[],
-    node: NodeValue
-) => void;
+    }[];
+}
+export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;

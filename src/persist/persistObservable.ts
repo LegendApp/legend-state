@@ -19,6 +19,7 @@ import type {
     Change,
     ClassConstructor,
     FieldTransforms,
+    ListenerParams,
     Observable,
     ObservableObject,
     ObservablePersistLocal,
@@ -116,9 +117,7 @@ async function onObsChange<T>(
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
-    value: T,
-    getPrevious: () => T,
-    changes: Change[]
+    { value, changes }: ListenerParams
 ) {
     const { persistenceLocal, persistenceRemote } = localState;
 
@@ -446,7 +445,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             if (pending) {
                                 Object.keys(pending).forEach((key) => {
                                     const path = key.split('/').filter((p) => p !== '');
-                                    const { p, v } = pending[key];
+                                    const { v } = pending[key];
 
                                     const constructed = constructObjectWithPath(path, v);
                                     value = mergeIntoObservable(value as any, constructed) as T;
@@ -469,15 +468,11 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                         const path = key.split('/').filter((p) => p !== '');
                         const { p, v } = pending[key];
                         // TODO getPrevious if any remote persistence layers need it
-                        onObsChange(
-                            obs as Observable,
-                            obsState,
-                            localState,
-                            persistOptions,
-                            obs.peek(),
-                            () => undefined,
-                            [{ path, valueAtPath: v, prevAtPath: p }]
-                        );
+                        onObsChange(obs as Observable, obsState, localState, persistOptions, {
+                            value: obs.peek(),
+                            getPrevious: () => undefined,
+                            changes: [{ path, valueAtPath: v, prevAtPath: p }],
+                        });
                     });
                 }
             }

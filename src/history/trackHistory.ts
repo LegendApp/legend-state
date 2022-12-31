@@ -17,7 +17,7 @@ export function trackHistory<T>(
 ) {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
-    obs.onChange((_, __, changes) => {
+    obs.onChange(({ changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
         if (!tracking.inRemoteChange) {
