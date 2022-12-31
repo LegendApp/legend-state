@@ -144,19 +144,15 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         }
     }
     public getMetadata(table: string, config: PersistOptionsLocal) {
-        const tableName = this.getMetadataTableName(config);
-        return this.tableMetadata[tableName ? table + '/' + tableName : table];
+        const { tableName } = this.getMetadataTableName(table, config);
+        return this.tableMetadata[tableName];
     }
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
-        const tableName = this.getMetadataTableName(config);
+        const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
-        metadata = mergeIntoObservable(
-            this.tableMetadata[tableName ? table + '/' + tableName : table] || {},
-            metadata,
-            {
-                id: tableName + '__legend_metadata',
-            }
-        );
+        metadata = mergeIntoObservable(this.tableMetadata[tableName] || {}, metadata, {
+            id: tableNameBase + '__legend_metadata',
+        });
         this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
         const set = store.put(metadata);
@@ -220,7 +216,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
     }
     // Private
-    private getMetadataTableName(config: PersistOptionsLocal) {
+    private getMetadataTableName(table: string, config: PersistOptionsLocal) {
         const configIDB = config.indexedDB;
         let name = '';
         if (configIDB) {
@@ -230,11 +226,11 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 name = itemID;
             }
             if (prefixID) {
-                name = prefixID + '/' + name;
+                name = prefixID + (name ? '/' + name : '');
             }
         }
 
-        return name;
+        return { tableNameBase: name, tableName: name ? table + '/' + name : table };
     }
     private initTable(table: string, transaction: IDBTransaction): Promise<void> {
         // If changing this, change it in the preloader too
