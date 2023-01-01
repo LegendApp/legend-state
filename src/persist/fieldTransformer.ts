@@ -6,6 +6,7 @@ import {
     isObject,
     isString,
     symbolDateModified,
+    TypeAtPath,
 } from '@legendapp/state';
 
 let validateMap: (map: Record<string, any>) => void;
@@ -97,8 +98,13 @@ export function transformObject(
     return ret;
 }
 
-export function transformObjectWithPath(obj: object, path: (string | number)[], fieldTransforms: FieldTransforms<any>) {
-    let constructed = constructObjectWithPath(path, obj);
+export function transformObjectWithPath(
+    obj: object,
+    path: (string | number)[],
+    pathTypes: TypeAtPath[],
+    fieldTransforms: FieldTransforms<any>
+) {
+    let constructed = constructObjectWithPath(path, obj, pathTypes);
     const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
     const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };

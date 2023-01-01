@@ -29,6 +29,7 @@ import type {
     PersistMetadata,
     PersistOptions,
     PersistOptionsLocal,
+    TypeAtPath,
 } from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath } from './fieldTransformer';
@@ -47,7 +48,7 @@ export const persistState = observable({ inRemoteSync: false });
 interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemote;
-    pendingChanges?: Record<string, { p: any; v?: any }>;
+    pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     onSaveRemoteListeners: (() => void)[];
 }
 
@@ -58,6 +59,7 @@ function parseLocalConfig(config: string | PersistOptionsLocal): { table: string
 function adjustSaveData(
     value: any,
     path: string[],
+    pathTypes: TypeAtPath[],
     {
         adjustData,
         fieldTransforms,
@@ -68,7 +70,7 @@ function adjustSaveData(
 
     const transform = () => {
         if (fieldTransforms) {
-            const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, fieldTransforms);
+            const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, pathTypes, fieldTransforms);
             cloned = obj;
             path = pathTransformed;
         }
@@ -78,7 +80,7 @@ function adjustSaveData(
 
     let promise;
     if (adjustData?.save) {
-        const constructed = constructObjectWithPath(path, cloned);
+        const constructed = constructObjectWithPath(path, cloned, pathTypes);
         promise = adjustData.save(constructed);
     }
 
@@ -141,7 +143,7 @@ async function onObsChange<T>(
         // Prepare pending changes
         if (saveRemote) {
             for (let i = 0; i < changes.length; i++) {
-                const { path, valueAtPath, prevAtPath } = changes[i];
+                const { path, valueAtPath, prevAtPath, pathTypes } = changes[i];
                 if (path[path.length - 1] === (symbolDateModified as any)) continue;
                 const pathStr = path.join('/');
 
@@ -151,7 +153,7 @@ async function onObsChange<T>(
                 // The value saved in pending should be the previous state before changes,
                 // so don't overwrite it if it already exists
                 if (!localState.pendingChanges[pathStr]) {
-                    localState.pendingChanges[pathStr] = { p: prevAtPath ?? null };
+                    localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
                 }
 
                 localState.pendingChanges[pathStr].v = valueAtPath;
@@ -165,7 +167,7 @@ async function onObsChange<T>(
         const promises = [];
         changes.forEach((_, i) => {
             // Reverse order
-            let { path: pathOriginal, prevAtPath, valueAtPath } = changes[changes.length - 1 - i];
+            let { path: pathOriginal, prevAtPath, valueAtPath, pathTypes } = changes[changes.length - 1 - i];
 
             if (isSymbol(pathOriginal[pathOriginal.length - 1])) {
                 return;
@@ -181,10 +183,16 @@ async function onObsChange<T>(
             if (!changesPaths.has(pathStr)) {
                 changesPaths.add(pathStr);
 
-                let promise = adjustSaveData(valueAtPath, pathOriginal as string[], config, isQueryingModified);
+                let promise = adjustSaveData(
+                    valueAtPath,
+                    pathOriginal as string[],
+                    pathTypes,
+                    config,
+                    isQueryingModified
+                );
 
                 const push = ({ path, value }) => {
-                    changesLocal.push({ path: path, prevAtPath, valueAtPath: value });
+                    changesLocal.push({ path, pathTypes, prevAtPath, valueAtPath: value });
                 };
 
                 if (isPromise(promise)) {
@@ -230,13 +238,14 @@ async function onObsChange<T>(
         const fieldTransforms = configRemote.fieldTransforms;
 
         changes.forEach(async (change) => {
-            const { path, valueAtPath, prevAtPath } = change;
+            const { path, valueAtPath, prevAtPath, pathTypes } = change;
             if (path[path.length - 1] === (symbolDateModified as any)) return;
             const pathStr = path.join('/');
 
             const { path: pathSave, value: valueSave } = await adjustSaveData(
                 valueAtPath,
                 path as string[],
+                pathTypes,
                 configRemote,
                 isQueryingModified
             );
@@ -445,9 +454,9 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             if (pending) {
                                 Object.keys(pending).forEach((key) => {
                                     const path = key.split('/').filter((p) => p !== '');
-                                    const { v } = pending[key];
+                                    const { v, t } = pending[key];
 
-                                    const constructed = constructObjectWithPath(path, v);
+                                    const constructed = constructObjectWithPath(path, v, t);
                                     value = mergeIntoObservable(value as any, constructed) as T;
                                 });
                             }
@@ -466,12 +475,12 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                 if (pending) {
                     Object.keys(pending).forEach((key) => {
                         const path = key.split('/').filter((p) => p !== '');
-                        const { p, v } = pending[key];
+                        const { p, v, t } = pending[key];
                         // TODO getPrevious if any remote persistence layers need it
                         onObsChange(obs as Observable, obsState, localState, persistOptions, {
                             value: obs.peek(),
                             getPrevious: () => undefined,
-                            changes: [{ path, valueAtPath: v, prevAtPath: p }],
+                            changes: [{ path, valueAtPath: v, prevAtPath: p, pathTypes: t }],
                         });
                     });
                 }

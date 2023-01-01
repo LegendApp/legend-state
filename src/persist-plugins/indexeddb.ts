@@ -8,6 +8,10 @@ import type {
     PersistOptionsLocal,
 } from '../observableInterfaces';
 
+function requestToPromise(request: IDBRequest) {
+    return new Promise<void>((resolve) => (request.onsuccess = () => resolve()));
+}
+
 export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private tableData: Record<string, any> = {};
     private tableMetadata: Record<string, any> = {};
@@ -156,7 +160,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
         const set = store.put(metadata);
-        return new Promise<void>((resolve) => (set.onsuccess = () => resolve()));
+        return requestToPromise(set);
     }
     public async set(table: string, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
@@ -175,14 +179,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const savesItems: Record<string, any> = {};
         let saveTable: any;
         for (let i = 0; i < changes.length; i++) {
-            let { path, valueAtPath } = changes[i];
+            let { path, valueAtPath, pathTypes } = changes[i];
             if (itemID) {
                 path = [itemID].concat(path as string[]);
             }
             if (path.length > 0) {
                 // If change is deep in an object save it to IDB by the first key
                 const key = path[0] as string;
-                const constructed = constructObjectWithPath(path, valueAtPath);
+                const constructed = constructObjectWithPath(path, valueAtPath, pathTypes);
                 this.tableData[table] = mergeIntoObservable(this.tableData[table], constructed);
                 savesItems[key] = this.tableData[table][key];
             } else {
@@ -199,21 +203,43 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         );
 
         const lastPut = puts[puts.length - 1];
-        return new Promise<void>((resolve) => (lastPut.onsuccess = () => resolve()));
+        return requestToPromise(lastPut);
     }
-    public async deleteTable(table: string): Promise<void> {
-        delete this.tableData[table];
+    public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
+        const configIDB = config.indexedDB;
+        const prefixID = configIDB?.prefixID;
+        const tableName = prefixID ? table + '/' + prefixID : table;
+        let data = this.tableData[tableName];
+        const itemID = configIDB?.itemID;
+        if (data && configIDB?.itemID) {
+            data = data[itemID];
+            delete data[itemID];
+        } else {
+            delete this.tableData[tableName];
+            delete this.tableData[tableName + '_transformed'];
+        }
 
         if (typeof indexedDB === 'undefined') return;
 
-        // Clear the table from IDB
-        const store = this.transactionStore(table);
-        const clear = store.clear();
-        return new Promise((resolve) => {
-            clear.onsuccess = () => {
-                resolve();
-            };
-        });
+        if (data) {
+            const store = this.transactionStore(table);
+            let result: Promise<any>;
+            if (!prefixID && !itemID) {
+                result = requestToPromise(store.clear());
+            } else {
+                const keys = Object.keys(data);
+                result = Promise.all(
+                    keys.map((key) => {
+                        if (prefixID) {
+                            key = prefixID + '/' + key;
+                        }
+                        return requestToPromise(store.delete(key));
+                    })
+                );
+            }
+            // Clear the table from IDB
+            return result;
+        }
     }
     // Private
     private getMetadataTableName(table: string, config: PersistOptionsLocal) {

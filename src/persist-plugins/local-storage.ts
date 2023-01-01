@@ -29,7 +29,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         }
         this.data[table] = mergeIntoObservable(
             this.data[table],
-            ...changes.map(({ path, valueAtPath }) => constructObjectWithPath(path, valueAtPath))
+            ...changes.map(({ path, valueAtPath, pathTypes }) => constructObjectWithPath(path, valueAtPath, pathTypes))
         );
         this.save(table);
     }
