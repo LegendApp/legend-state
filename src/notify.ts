@@ -1,6 +1,7 @@
 import { batchNotify } from './batching';
 import { getNodeValue } from './globals';
-import { NodeValue } from './observableInterfaces';
+import { isArray } from './is';
+import { NodeValue, TypeAtPath } from './observableInterfaces';
 
 function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
     // Create a function that clones the current state and injects the previous data at the changed path
@@ -24,6 +25,7 @@ export function doNotify(
     node: NodeValue,
     value: any,
     path: (string | number)[],
+    pathTypes: ('object' | 'array')[],
     valueAtPath: any,
     prevAtPath: any,
     level: number,
@@ -57,6 +59,7 @@ export function doNotify(
                                   changes: [
                                       {
                                           path,
+                                          pathTypes,
                                           valueAtPath,
                                           prevAtPath,
                                       },
@@ -73,13 +76,14 @@ function _notifyParents(
     node: NodeValue,
     value: any,
     path: (string | number)[],
+    pathTypes: TypeAtPath[],
     valueAtPath: any,
     prevAtPath: any,
     level: number,
     whenOptimizedOnlyIf?: boolean
 ) {
     // Do the notify
-    doNotify(node, value, path, valueAtPath, prevAtPath, level, whenOptimizedOnlyIf);
+    doNotify(node, value, path, pathTypes, valueAtPath, prevAtPath, level, whenOptimizedOnlyIf);
     // If not root notify up through parents
     if (node.parent) {
         const parent = node.parent;
@@ -89,6 +93,7 @@ function _notifyParents(
                 parent,
                 parentValue,
                 [node.key].concat(path),
+                [(isArray(value) ? 'array' : 'object') as TypeAtPath].concat(pathTypes),
                 valueAtPath,
                 prevAtPath,
                 level + 1,
@@ -99,5 +104,5 @@ function _notifyParents(
 }
 export function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
     // Notify self and up through parents
-    _notifyParents(node, value, [], value, prev, level, whenOptimizedOnlyIf);
+    _notifyParents(node, value, [], [], value, prev, level, whenOptimizedOnlyIf);
 }

@@ -7,6 +7,7 @@ import type {
     ObserveEvent,
     OpaqueObject,
     Selector,
+    TypeAtPath,
 } from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
@@ -89,13 +90,13 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     return sources.length ? mergeIntoObservable(target, ...sources) : target;
 }
 
-export function constructObjectWithPath(path: (string | number)[], value: any): object {
+export function constructObjectWithPath(path: (string | number)[], value: any, pathTypes: TypeAtPath[]): object {
     let out;
     if (path.length > 0) {
         let o = (out = {});
         for (let i = 0; i < path.length; i++) {
             const p = path[i];
-            o[p] = i === path.length - 1 ? value : {};
+            o[p] = i === path.length - 1 ? value : pathTypes[i] === 'array' ? [] : {};
             o = o[p];
         }
     } else {

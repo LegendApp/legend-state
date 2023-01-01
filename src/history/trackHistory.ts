@@ -25,10 +25,10 @@ export function trackHistory<T>(
 
             // Save to history observable by date, with the previous value
             for (let i = 0; i < changes.length; i++) {
-                const { path, prevAtPath } = changes[i];
+                const { path, prevAtPath, pathTypes } = changes[i];
                 if (path[path.length - 1] === (symbolDateModified as any)) continue;
 
-                const obj = constructObjectWithPath(path, prevAtPath);
+                const obj = constructObjectWithPath(path, prevAtPath, pathTypes);
                 mergeIntoObservable(history[time], obj);
             }
         }

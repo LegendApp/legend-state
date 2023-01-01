@@ -87,11 +87,11 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue?: any): boolean {
-    if (isObject(obj) && obj[symbolOpaque as any]) {
+    if ((isObject(obj) && obj[symbolOpaque as any]) || (isObject(prevValue) && prevValue[symbolOpaque as any])) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners) {
-                doNotify(parent, obj, [], obj, prevValue, 0);
+                doNotify(parent, obj, [], [], obj, prevValue, 0);
             }
         }
         return isDiff;
@@ -147,7 +147,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 }
 
                 if (child.listeners) {
-                    doNotify(child, undefined, [], undefined, prev, 0);
+                    doNotify(child, undefined, [], [], undefined, prev, 0);
                 }
             }
         }
@@ -214,7 +214,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     // But do not notify child if the parent is an array with changing length -
                     // the array's listener will cover it
                     if (child.listeners) {
-                        doNotify(child, value, [], value, prev, 0, !isArrDiff);
+                        doNotify(child, value, [], [], value, prev, 0, !isArrDiff);
                     }
                 }
             }

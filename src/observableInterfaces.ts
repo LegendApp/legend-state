@@ -93,11 +93,7 @@ export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | '
 export interface ListenerParams<T = any> {
     value: T;
     getPrevious: () => T;
-    changes: {
-        path: (string | number)[];
-        valueAtPath: any;
-        prevAtPath: any;
-    }[];
+    changes: Change[];
 }
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
@@ -150,8 +146,11 @@ export type QueryByModified<T> =
           [K in keyof T]?: QueryByModified<T[K]>;
       };
 
+export type TypeAtPath = 'object' | 'array';
+
 export interface Change {
     path: (string | number)[];
+    pathTypes: TypeAtPath[];
     valueAtPath: any;
     prevAtPath: any;
 }

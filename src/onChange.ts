@@ -19,7 +19,7 @@ export function onChange(
 
     if (options?.initial) {
         const value = getNodeValue(node);
-        doNotify(node, value, [], value, value, 0);
+        doNotify(node, value, [], [], value, value, 0);
     }
 
     return () => listeners!.delete(listener);
