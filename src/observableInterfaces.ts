@@ -223,6 +223,7 @@ export interface ObservablePersistRemoteSaveParams<T, T2> {
     obs: Observable<T>;
     options: PersistOptions<T>;
     path: (string | number)[];
+    pathTypes: TypeAtPath[];
     valueAtPath: T2;
     prevAtPath: any;
 }
@@ -231,7 +232,7 @@ export interface ObservablePersistRemoteListenParams<T> {
     obs: ObservableReadable<T>;
     options: PersistOptions<T>;
     onLoad: () => void;
-    onChange: (value: T) => void;
+    onChange: (params: { value: T; path: (string | number)[] }) => void;
 }
 export interface ObservablePersistRemote {
     save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T>;
