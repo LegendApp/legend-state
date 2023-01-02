@@ -4,6 +4,7 @@ import type {
     NodeValue,
     ObservableObject,
     ObservableReadable,
+    ObservableWriteable,
     ObserveEvent,
     OpaqueObject,
     Selector,
@@ -43,6 +44,17 @@ export function lockObservable(obs: ObservableReadable, value: boolean) {
     if (root) {
         root.locked = value;
     }
+}
+export function setAtPath(obs: ObservableWriteable, path: string[], value: any) {
+    let o = obs;
+    let v = value;
+    for (let i = 0; i < path.length; i++) {
+        const p = path[i];
+        o = obs[p];
+        v = value[p];
+    }
+
+    o.set(v);
 }
 export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     if (!sources.length) return target;

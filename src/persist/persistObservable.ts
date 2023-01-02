@@ -11,6 +11,7 @@ import {
     isSymbol,
     mergeIntoObservable,
     observable,
+    setAtPath,
     symbolDateModified,
     tracking,
     when,
@@ -32,7 +33,7 @@ import type {
     TypeAtPath,
 } from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
-import { invertFieldMap, transformObject, transformObjectWithPath } from './fieldTransformer';
+import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { mergeDateModified, replaceKeyInObject } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
@@ -258,6 +259,7 @@ async function onObsChange<T>(
                     state: obsState,
                     options: persistOptions,
                     path: pathSave,
+                    pathTypes,
                     valueAtPath: valueSave,
                     prevAtPath,
                 })
@@ -444,24 +446,29 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChange: async (value: T) => {
+                    onChange: async ({ value, path }) => {
                         if (value !== undefined) {
                             value = adjustLoadData(value, remote, true);
                             if (isPromise(value)) {
-                                value = (await value) as T;
+                                value = await value;
                             }
                             const pending = localState.pendingChanges;
                             if (pending) {
                                 Object.keys(pending).forEach((key) => {
-                                    const path = key.split('/').filter((p) => p !== '');
+                                    const p = key.split('/').filter((p) => p !== '');
                                     const { v, t } = pending[key];
 
-                                    const constructed = constructObjectWithPath(path, v, t);
+                                    const constructed = constructObjectWithPath(p, v, t);
                                     value = mergeIntoObservable(value as any, constructed) as T;
                                 });
                             }
+                            const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
+
+                            if (path.length && invertedMap) {
+                                path = transformPath(path as string[], invertedMap);
+                            }
                             onChangeRemote(() => {
-                                mergeIntoObservable(obs, value);
+                                setAtPath(obs, path as string[], value);
                             });
                         }
                     },
