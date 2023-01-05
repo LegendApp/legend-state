@@ -108,7 +108,7 @@ See [the documentation site](https://www.legendapp.com/open-source/state/).
 
 ## Community
 
-Join us on [Slack](TODO) to get involved with the Legend community.
+Join us on [Slack](https://join.slack.com/t/legendappcommunity/shared_invite/zt-1mfjknpna-vUL2s1qOuNeZL12~t2RruQ) to get involved with the Legend community.
 
 ## Road to 1.0
 
