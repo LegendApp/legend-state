@@ -106,6 +106,10 @@ const Component = observer(function Component() {
 
 See [the documentation site](https://www.legendapp.com/open-source/state/).
 
+## Community
+
+Join us on [Slack](TODO) to get involved with the Legend community.
+
 ## Road to 1.0
 
 - [ ] Improve documentation
