@@ -175,11 +175,11 @@ describe('useSelector', () => {
 
 describe('For', () => {
     test('Array insert has stable reference', async () => {
-        type TestObject = { id: number; label: string; };
+        type TestObject = { id: number; label: string };
         const obs = observable({
             items: [{ id: 0, label: '0' }] as TestObject[],
         });
-        function Item({ item }: { item: Observable<TestObject>; }) {
+        function Item({ item }: { item: Observable<TestObject> }) {
             const data = useSelector(item);
             return createElement('li', { id: data.id }, data.label);
         }
@@ -201,18 +201,14 @@ describe('For', () => {
     });
     test('Array insert has stable reference 2', () => {
         enableLegendStateReact();
-        type TestObject = { id: string; label: string; };
+        type TestObject = { id: string; label: string };
         const obs = observable({
             items: [
                 { id: 'B', label: 'B' },
                 { id: 'A', label: 'A' },
             ] as TestObject[],
         });
-        function Item({
-            item,
-        }: {
-            item: Observable<TestObject>;
-        }) {
+        function Item({ item }: { item: Observable<TestObject> }) {
             const data = useSelector(item);
             return createElement('li', { id: data.id }, data.label);
         }
