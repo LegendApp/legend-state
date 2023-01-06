@@ -27,7 +27,9 @@
         "publish:betarelease": "npm version prerelease --preid=beta && cd dist && npm publish",
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
-        "checksize": "npm run checksize:core && npm run checksize:react"
+        "checksize": "npm run checksize:core && npm run checksize:react",
+        "format:write": "prettier --write \"**/*.{js,jsx,ts,tsx}\"",
+        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx}\""
     },
     "exports": {
         "./package.json": "./package.json",
