@@ -6,7 +6,17 @@ export { event } from './src/event';
 export { observe } from './src/observe';
 export { when } from './src/when';
 export * from './src/observableInterfaces';
-export { isEmpty, isArray, isBoolean, isFunction, isObject, isPrimitive, isPromise, isString, isSymbol } from './src/is';
+export {
+    isEmpty,
+    isArray,
+    isBoolean,
+    isFunction,
+    isObject,
+    isPrimitive,
+    isPromise,
+    isString,
+    isSymbol,
+} from './src/is';
 export { lockObservable } from './src/helpers';
 
 /** @internal */
@@ -22,7 +32,7 @@ export {
     getNodeValue,
     symbolUndef,
     symbolDelete,
-    dateModifiedKey
+    dateModifiedKey,
 } from './src/globals';
 /** @internal */
 export { getNode, constructObject, clone, deconstructObject } from './src/helpers';
