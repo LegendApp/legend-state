@@ -168,6 +168,7 @@ export interface PersistOptionsLocal<T = any> {
         prefixID?: string;
         itemID?: string;
     };
+    options?: any;
 }
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
