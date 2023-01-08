@@ -34,5 +34,5 @@ jobs:
                   node-version: '16'
             - name: Install modules
               run: npm install
-            - name: Check formatting
+            - name: Run linter
               run: npm run lint:check
