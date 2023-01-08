@@ -44,7 +44,10 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         return this.getTable(table + '__m', config);
     }
     public async set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void> {
-        mergeIntoObservable(
+        if (!this.data[table]) {
+            this.data[table] = {};
+        }
+        this.data[table] = mergeIntoObservable(
             this.data[table],
             ...changes.map(({ path, valueAtPath, pathTypes }) => constructObjectWithPath(path, valueAtPath, pathTypes))
         );
