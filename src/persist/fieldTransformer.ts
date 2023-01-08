@@ -68,7 +68,10 @@ export function transformObject(
                     }
                 } else if (mapped !== null) {
                     if (v !== undefined && v !== null) {
-                        if (map[key + '_obj']) {
+                        if (map[key + '_val']) {
+                            const valMap = map[key + '_val'];
+                            v = valMap[key];
+                        } else if (map[key + '_obj']) {
                             v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
