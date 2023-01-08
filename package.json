@@ -10,6 +10,10 @@
     "files": [
         "**"
     ],
+    "engines": {
+        "node": "16.6.0",
+        "npm": "8.11.0"
+    },
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
@@ -29,7 +33,9 @@
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react",
         "format:write": "prettier --write \"**/*.{js,jsx,ts,tsx}\"",
-        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx}\""
+        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx}\"",
+        "lint:write": "eslint . --fix --ext .js,.jsx,.ts,.tsx",
+        "lint:check": "eslint . --ext .js,.jsx,.ts,.tsx"
     },
     "exports": {
         "./package.json": "./package.json",
@@ -107,6 +113,10 @@
         "@types/react": "^18.0.25",
         "@types/react-dom": "^18.0.8",
         "@types/react-native": "^0.70.6",
+        "@typescript-eslint/eslint-plugin": "^5.48.0",
+        "@typescript-eslint/parser": "^5.48.0",
+        "eslint": "^8.31.0",
+        "eslint-plugin-react": "^7.31.11",
         "fake-indexeddb": "^4.0.0",
         "jest": "^29.3.1",
         "jest-environment-jsdom": "^29.3.1",
