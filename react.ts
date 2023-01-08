@@ -13,5 +13,6 @@ export * from './src/react/useSelector';
 import type { ReactFragment } from 'react';
 
 declare module '@legendapp/state' {
-    export type ObservableBaseFns<T> = ReactFragment
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    export interface ObservableBaseFns<T> extends ReactFragment {}
 }
