@@ -1,0 +1,5 @@
+hyperfine --warmup 3 "DATA='../../data/smallNumberArray' node forLoop.js" "DATA='../../data/smallNumberArray' node forEach.js"
+echo ""
+echo ""
+echo ""
+hyperfine --warmup 3 "DATA='../../data/largeNumberArray' node forLoop.js" "DATA='../../data/largeNumberArray' node forEach.js"
