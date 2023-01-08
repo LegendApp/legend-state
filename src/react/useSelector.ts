@@ -19,7 +19,7 @@ export function useSelector<T>(
 
     refDispose.current = observe(function update(e) {
         // If running, call selector and re-render if changed
-        let cur = (inRun || shouldRender !== true) && computeSelector(selector);
+        const cur = (inRun || shouldRender !== true) && computeSelector(selector);
         // Re-render if not currently rendering and value has changed
         if (
             !inRun &&

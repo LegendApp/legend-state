@@ -192,7 +192,7 @@ async function onObsChange<T>(
             if (!changesPaths.has(pathStr)) {
                 changesPaths.add(pathStr);
 
-                let promise = adjustSaveData(
+                const promise = adjustSaveData(
                     valueAtPath,
                     pathOriginal as string[],
                     pathTypes,
@@ -386,7 +386,7 @@ async function loadLocal<T>(
         if (value !== null && value !== undefined) {
             let { adjustData, fieldTransforms } = config;
             if (fieldTransforms) {
-                let valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
+                const valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
                 if (valueLoaded) {
                     value = valueLoaded;
                     fieldTransforms = undefined;

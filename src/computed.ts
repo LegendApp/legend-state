@@ -6,7 +6,7 @@ import { observe } from './observe';
 
 export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T> {
     // Create an observable for this computed variable
-    let obs = observable<T>();
+    const obs = observable<T>();
     lockObservable(obs, true);
 
     // Lazily activate the observable when get is called
@@ -18,7 +18,7 @@ export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T
             lockObservable(obs, true);
         };
         const fn = function () {
-            let val = compute();
+            const val = compute();
             if (isPromise<T>(val)) {
                 val.then((v) => set(v));
             } else {

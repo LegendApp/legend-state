@@ -1076,7 +1076,7 @@ describe('Array', () => {
     });
     test('Array swap with objects', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
-        let arr = obs.test;
+        const arr = obs.test;
         let tmp = arr[1].get();
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
@@ -1100,8 +1100,8 @@ describe('Array', () => {
                 { id: 5, text: 5 },
             ],
         });
-        let arr = obs.test;
-        let tmp = arr[1].get();
+        const arr = obs.test;
+        const tmp = arr[1].get();
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
         obs.test.splice(0, 1);
@@ -1112,21 +1112,21 @@ describe('Array', () => {
             test: Array<unknown>;
         }
         const obs = observable<Data>({ test: [] });
-        let tmp = obs.test[1];
+        const tmp = obs.test[1];
         obs.test[1].set(obs.test[4]);
         expect(obs.test.get()).toEqual([undefined, undefined]);
         obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([undefined, undefined, undefined, undefined, undefined]);
     });
     test('Clear array fires listener once', () => {
-        let obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         const handler = jest.fn();
         obs.arr.onChange(handler);
         obs.arr.set([]);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Array clear if listening', () => {
-        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
         obs.test[2].onChange(() => {});
@@ -1140,7 +1140,7 @@ describe('Array', () => {
         expect(obs.test.map((a) => a)).toEqual([]);
     });
     test('Array splice fire events', () => {
-        let obs = observable({
+        const obs = observable({
             test: [
                 { id: 1, text: 1 },
                 { id: 2, text: 2 },
@@ -1213,7 +1213,7 @@ describe('Array', () => {
         );
     });
     test('Array with listeners clear', () => {
-        let obs = observable({
+        const obs = observable({
             test: [
                 { id: 1, text: 1 },
                 { id: 2, text: 2 },
@@ -1296,7 +1296,7 @@ describe('Array', () => {
         }
 
         const arr = obs.arr.get();
-        let tmp = arr[1];
+        const tmp = arr[1];
         obs.arr[1].set(arr[2]);
         obs.arr[2].set(tmp);
         // This makes second become h3
@@ -1352,8 +1352,8 @@ describe('Array', () => {
         const second = obs.arr[1];
         const handler = expectChangeHandler(second);
 
-        let arr = obs.arr.get();
-        let tmp = arr[1];
+        const arr = obs.arr.get();
+        const tmp = arr[1];
         obs.arr[1].set(arr[2]);
         expect(obs.arr.get()).toEqual([
             { id: 'h1', text: 'h1' },

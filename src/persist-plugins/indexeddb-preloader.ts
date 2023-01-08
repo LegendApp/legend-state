@@ -127,7 +127,7 @@ export function preloadIndexedDB({
                     return ret;
                 };
 
-            let openRequest = indexedDB.open(databaseName, version);
+            const openRequest = indexedDB.open(databaseName, version);
             openRequest.onupgradeneeded = () => {
                 const db = openRequest.result;
                 tableNames.forEach((table) => {

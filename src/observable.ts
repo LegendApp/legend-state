@@ -139,7 +139,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
             const key = keysPrev[i];
             if (!keys.includes(key)) {
                 hasADiff = true;
-                let child = getChildNode(parent, key);
+                const child = getChildNode(parent, key);
 
                 const prev = prevValue[key];
                 if (!isPrimitive(prev)) {
@@ -270,7 +270,7 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
-        let value = peek(node);
+        const value = getNodeValue(node);
 
         const isValuePrimitive = isPrimitive(value);
 
@@ -417,10 +417,10 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     const isRoot = (key as any) === symbolUndef;
 
     // Get the child node for updating and notifying
-    let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
+    const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
     // Get the value of the parent
-    let parentValue = isRoot ? node.root : ensureNodeValue(node);
+    const parentValue = isRoot ? node.root : ensureNodeValue(node);
 
     if (isRoot) {
         key = '_';

@@ -13,5 +13,5 @@ export * from './src/react/useSelector';
 import type { ReactFragment } from 'react';
 
 declare module '@legendapp/state' {
-    export interface ObservableBaseFns<T> extends ReactFragment {}
+    export type ObservableBaseFns<T> = ReactFragment
 }
