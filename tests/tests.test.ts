@@ -289,6 +289,23 @@ describe('Listeners', () => {
         expect(handler).toHaveBeenCalledTimes(2);
         expect(handler2).toHaveBeenCalledTimes(0);
     });
+    test('Shallow listener with string', () => {
+        const obs = observable({ test: { test2: { test3: 'hi' } } });
+
+        const handler = expectChangeHandler(obs.test, 'shallow');
+        const handler2 = expectChangeHandler(obs, 'shallow');
+
+        obs.test.test2.test3.set('hello');
+        expect(handler).not.toHaveBeenCalled();
+        obs.test.set({ test2: { test3: 'hello' } });
+        expect(handler).toHaveBeenCalledTimes(0);
+        obs.test.set({ test5: 'hi' } as any);
+        expect(handler).toHaveBeenCalledTimes(1);
+        // Assign adding a new property does notify
+        obs.test.assign({ test4: 'hello' } as any);
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler2).toHaveBeenCalledTimes(0);
+    });
     test('Listener called for each change', () => {
         const obs = observable({ test: { val: 10 } });
         const handler = expectChangeHandler(obs.test);

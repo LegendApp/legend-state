@@ -39,7 +39,12 @@ export function doNotify(
             const listenerFn = arr[i];
             const { track, noArgs } = listenerFn;
 
-            const ok = track === true ? level <= 0 : track === 'optimize' ? whenOptimizedOnlyIf && level <= 0 : true;
+            const ok =
+                track === true || track === 'shallow'
+                    ? level <= 0
+                    : track === 'optimize'
+                    ? whenOptimizedOnlyIf && level <= 0
+                    : true;
 
             // Notify if listener is not shallow or if this is the first level
             if (ok) {

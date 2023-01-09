@@ -37,10 +37,7 @@ interface MMKVConfiguration {
     encryptionKey?: string;
 }
 
-export type TrackingType = undefined | true; // true === shallow
-
-/** @internal */
-export type TrackingTypeInternal = undefined | true | 'optimize'; // true === shallow
+export type TrackingType = undefined | true | 'shallow' | 'optimize'; // true === shallow
 
 export interface ObservableBaseFns<T> {
     peek(): T;
