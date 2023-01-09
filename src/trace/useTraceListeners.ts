@@ -1,5 +1,4 @@
 import { tracking, TrackingNode } from '@legendapp/state';
-import type { TrackingTypeInternal } from '../observableInterfaces';
 import { getNodePath } from './traceHelpers';
 
 export function useTraceListeners(name?: string) {
@@ -16,7 +15,7 @@ function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
             for (let tracked of nodes.values()) {
                 const { node, track } = tracked;
                 const shallow = track === true;
-                const optimized = (track as TrackingTypeInternal) === 'optimize';
+                const optimized = track === 'optimize';
                 arr.push(
                     `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
                         optimized ? ' (optimized)' : ''
