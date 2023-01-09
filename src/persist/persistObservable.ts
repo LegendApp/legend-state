@@ -298,7 +298,7 @@ async function onObsChange<T>(
     }
 }
 
-function onChangeRemote(cb: () => void) {
+export function onChangeRemote(cb: () => void) {
     // Remote changes should only update local state
     persistState.inRemoteSync.set(true);
     tracking.inRemoteChange = true;
