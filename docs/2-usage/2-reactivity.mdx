@@ -7,13 +7,30 @@ Listening for changes is the core purpose of observables, so Legend-State provid
 ```js
 const obs = observable({ text: 'hi' })
 
-obs.text.onChange(text => console.log('text changed to', text))
-obs.onChange(value => console.log('obs changed to', value))
+obs.text.onChange(({ value }) => console.log('text changed to', value))
+obs.onChange(({ value }) => console.log('obs changed to', value))
 
 obs.text.set('hello')
 
 // Log: text changed to "hello"
 // Log: obs changed to { text: "hello" }
+```
+
+`onChange` has some extra options for more advanced use:
+
+1. `getPrevious`: Function to compare with the previous value. It is a function to prevent the performance cost of cloning objects unnecessarily.
+2. `changes`: Array of all of the changes to this observable in the latest batch. This is mainly for the persistence plugins to know what to sync/update, but it may be good for other uses too.
+3. `trackingType`: Whether to track only shallow changes
+4. `initial`: Whether to run the callback immediately with the current value
+
+```js
+// Full example
+obs.onChange(({ value, getPrevious, changes }) => {
+    const prev = getPrevious();
+    changes.forEach(({ path, valueAtPath, prevAtPath }) => {
+        console.log(valueAtPath, 'changed at', path, 'from', prevAtPath)
+    })
+}, { initial: true, trackingType: true })
 ```
 
 ### Dispose of listeners

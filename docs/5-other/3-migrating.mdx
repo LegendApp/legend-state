@@ -1,3 +1,26 @@
+## 0.23 to 1.0 RC
+
+### onChange changed
+
+1. `onChange` now takes a second object parameter with `trackingType` and `initial` options. If you were using a second parameter (like `true` to track shallowly) before, use `{ trackingType: true }`.
+
+2. The `onChange` callback now receives an object with `value`, `getPrevious`, and `changes` in it, replacing the previous multiple arguments.
+
+These changes allow for more flexibility - it's easier for callers who care about the changes but not the current value or previous values (like persistence plugins), and the new `initial` option lets it behave more like `observe` where it runs immediately instead of waiting for a change.
+
+```js
+// Old
+obs.onChange((value, getPrevious, changes) => {
+    // ...
+}, true)
+
+// New
+obs.onChange(({ value, getPrevious, changes }) => {
+    // ...
+}, { trackingType: true })
+```
+
+
 ## 0.22 to 0.23
 
 ### Setting an observable object to the same value no longer notifies
