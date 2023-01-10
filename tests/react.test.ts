@@ -1,3 +1,4 @@
+/* eslint-disable react/no-children-prop */
 /**
  * @jest-environment jsdom
  */

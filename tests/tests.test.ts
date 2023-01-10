@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { event } from '../src/event';
