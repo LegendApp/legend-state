@@ -1,16 +1,9 @@
 import { isFunction } from './is';
-import { ListenerFn, NodeValue } from './observableInterfaces';
+import type { ListenerFn, ListenerParams } from './observableInterfaces';
 
 interface BatchItem {
     cb: ListenerFn<any>;
-    value: any;
-    getPrevious?: () => any;
-    changes: {
-        path: (string | number)[];
-        valueAtPath: any;
-        prevAtPath: any;
-    }[];
-    node?: NodeValue;
+    params: ListenerParams<any>;
 }
 let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
@@ -38,15 +31,16 @@ export function batchNotify(b: BatchItem | (() => void)) {
         // If this callback already exists, make sure it has the latest value but do not add it
         if (existing) {
             if (!isFunc) {
-                (existing as BatchItem).value = b.value;
-                (existing as BatchItem).changes.push(...b.changes);
+                const params = (existing as BatchItem).params;
+                params.value = b.params.value;
+                params.changes.push(...b.params.changes);
             }
         } else {
             _batch.push(b);
             _batchMap.set(cb, it);
         }
     } else {
-        isFunc ? b() : b.cb(b.value, b.getPrevious, b.changes, b.node);
+        isFunc ? b() : b.cb(b.params);
     }
 }
 
@@ -78,8 +72,8 @@ export function endBatch(force?: boolean) {
             if (isFunction(b)) {
                 b();
             } else {
-                const { cb, value, getPrevious: prev, changes, node } = b;
-                cb(value, prev, changes, node);
+                const { cb } = b;
+                cb(b.params);
             }
         }
     }

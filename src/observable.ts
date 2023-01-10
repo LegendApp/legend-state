@@ -10,7 +10,6 @@ import {
     IDKey,
     nextNodeID,
     peek,
-    symbolDateModified,
     symbolGetNode,
     symbolIsEvent,
     symbolIsObservable,
@@ -56,7 +55,6 @@ const ArrayModifiers = new Set([
     'unshift',
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
-const NotifySpecifically = new Set<string | symbol>([symbolDateModified]);
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
@@ -89,11 +87,11 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue?: any): boolean {
-    if (isObject(obj) && obj[symbolOpaque as any]) {
+    if ((isObject(obj) && obj[symbolOpaque as any]) || (isObject(prevValue) && prevValue[symbolOpaque as any])) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners) {
-                doNotify(parent, obj, [], obj, prevValue, 0);
+                doNotify(parent, obj, [], [], obj, prevValue, 0);
             }
         }
         return isDiff;
@@ -149,7 +147,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 }
 
                 if (child.listeners) {
-                    doNotify(child, undefined, [], undefined, prev, 0);
+                    doNotify(child, undefined, [], [], undefined, prev, 0);
                 }
             }
         }
@@ -203,10 +201,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 if (isDiff) {
                     // Array has a new / modified element
-                    hasADiff = true;
                     // If object iterate through its children
-                    if (!isPrimitive(value)) {
-                        updateNodes(child, value, prev);
+                    if (isPrimitive(value)) {
+                        hasADiff = true;
+                    } else {
+                        hasADiff = hasADiff || updateNodes(child, value, prev);
                     }
                 }
                 if (isDiff || !isArrDiff) {
@@ -215,7 +214,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     // But do not notify child if the parent is an array with changing length -
                     // the array's listener will cover it
                     if (child.listeners) {
-                        doNotify(child, value, [], value, prev, 0, !isArrDiff);
+                        doNotify(child, value, [], [], value, prev, 0, !isArrDiff);
                     }
                 }
             }
@@ -271,7 +270,7 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
-        let value = getNodeValue(node);
+        let value = peek(node);
 
         const isValuePrimitive = isPrimitive(value);
 
@@ -462,10 +461,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         }
     }
 
-    if (NotifySpecifically.has(key as any)) {
-        // Notify specifically at the child, not through children or parents
-        doNotify(childNode, newValue, [], newValue, prevValue, 0);
-    } else if (isPrim ? newValue !== prevValue : hasADiff) {
+    if (isPrim ? newValue !== prevValue : hasADiff) {
         // Notify for this element if something inside it has changed
         notify(
             isPrim && isRoot ? node : childNode,

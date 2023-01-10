@@ -1,5 +1,5 @@
 import {
-    constructObject,
+    constructObjectWithPath,
     mergeIntoObservable,
     observable,
     ObservableReadable,
@@ -17,7 +17,7 @@ export function trackHistory<T>(
 ) {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
-    obs.onChange((_, __, changes) => {
+    obs.onChange(({ changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
         if (!tracking.inRemoteChange) {
@@ -25,10 +25,10 @@ export function trackHistory<T>(
 
             // Save to history observable by date, with the previous value
             for (let i = 0; i < changes.length; i++) {
-                const { path, prevAtPath } = changes[i];
+                const { path, prevAtPath, pathTypes } = changes[i];
                 if (path[path.length - 1] === (symbolDateModified as any)) continue;
 
-                const obj = constructObject(path, prevAtPath);
+                const obj = constructObjectWithPath(path, prevAtPath, pathTypes);
                 mergeIntoObservable(history[time], obj);
             }
         }

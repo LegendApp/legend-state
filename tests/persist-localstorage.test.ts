@@ -26,7 +26,7 @@ class LocalStorageMock {
 
 function reset() {
     global.localStorage.clear();
-    const persist = mapPersistences.get(ObservablePersistLocalStorage) as ObservablePersistLocal;
+    const persist = mapPersistences.get(ObservablePersistLocalStorage)?.persist as ObservablePersistLocal;
     if (persist) {
         persist.deleteTable('jestlocal', undefined);
     }

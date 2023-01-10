@@ -18,7 +18,7 @@ export function preloadIndexedDB({
     if (fieldTransforms) {
         const invertedMaps = new WeakMap();
 
-        function invertMap(obj: Record<string, any>) {
+        function invertFieldMap(obj: Record<string, any>) {
             const existing = invertedMaps.get(obj);
             if (existing) return existing;
 
@@ -28,11 +28,11 @@ export function preloadIndexedDB({
                 const val = obj[key];
                 if (process.env.NODE_ENV === 'development' && target[val]) debugger;
                 if (key === '_dict') {
-                    target[key] = invertMap(val);
+                    target[key] = invertFieldMap(val);
                 } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
                     const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
                     const suffix = key.match(/_obj|_dict|_arr$/)[0];
-                    target[keyMapped + suffix] = invertMap(val);
+                    target[keyMapped + suffix] = invertFieldMap(val);
                 } else if (typeof val === 'string') {
                     target[val] = key;
                 }
@@ -44,7 +44,7 @@ export function preloadIndexedDB({
         }
 
         Object.keys(fieldTransforms).forEach((table) => {
-            fieldTransforms[table] = invertMap(fieldTransforms[table]);
+            fieldTransforms[table] = invertFieldMap(fieldTransforms[table]);
         });
     }
     function workerCode() {
@@ -176,20 +176,22 @@ export function preloadIndexedDB({
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
 
-                            let tableName = table;
-
-                            if (val.id.includes('/')) {
-                                const [prefix, id] = val.id.split('/');
-                                tableName += '/' + prefix;
-                                val.id = id;
-                            }
-
-                            if (val.id === '__legend_metadata') {
+                            if (val.id.endsWith('__legend_metadata')) {
+                                const id = val.id.replace('__legend_metadata', '');
                                 // Save this as metadata
                                 delete val.id;
                                 metadata = val;
+                                const tableName = id ? table + '/' + id : table;
                                 tableMetadata[tableName] = metadata;
                             } else {
+                                let tableName = table;
+
+                                if (val.id.includes('/')) {
+                                    const [prefix, id] = val.id.split('/');
+                                    tableName += '/' + prefix;
+                                    val.id = id;
+                                }
+
                                 if (!tableData[tableName]) {
                                     tableData[tableName] = {};
                                 }

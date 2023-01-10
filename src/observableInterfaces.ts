@@ -37,15 +37,15 @@ interface MMKVConfiguration {
     encryptionKey?: string;
 }
 
-export type TrackingType = undefined | true; // true === shallow
-
-/** @internal */
-export type TrackingTypeInternal = undefined | true | 'optimize'; // true === shallow
+export type TrackingType = undefined | true | 'shallow' | 'optimize'; // true === shallow
 
 export interface ObservableBaseFns<T> {
     peek(): T;
     get(trackingType?: TrackingType): T;
-    onChange(cb: ListenerFn<T>, trackingType?: TrackingType): ObservableListenerDispose;
+    onChange(
+        cb: ListenerFn<T>,
+        options?: { trackingType?: TrackingType; initial?: boolean }
+    ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
     set(value: T | ((prev: T) => T)): ObservablePrimitiveChild<T>;
@@ -87,17 +87,12 @@ export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'forEach' | '
      */
     map<U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): U[];
 }
-
-export type ListenerFn<T = any> = (
-    value: T,
-    getPrevious: () => T,
-    changes: {
-        path: (string | number)[];
-        valueAtPath: any;
-        prevAtPath: any;
-    }[],
-    node: NodeValue
-) => void;
+export interface ListenerParams<T = any> {
+    value: T;
+    getPrevious: () => T;
+    changes: Change[];
+}
+export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
@@ -148,8 +143,11 @@ export type QueryByModified<T> =
           [K in keyof T]?: QueryByModified<T[K]>;
       };
 
+export type TypeAtPath = 'object' | 'array';
+
 export interface Change {
     path: (string | number)[];
+    pathTypes: TypeAtPath[];
     valueAtPath: any;
     prevAtPath: any;
 }
@@ -161,30 +159,35 @@ export interface PersistOptionsLocal<T = any> {
         save?: (value: T) => T | Promise<T>;
     };
     fieldTransforms?: FieldTransforms<T>;
+    readonly?: boolean;
     mmkv?: MMKVConfiguration;
     indexedDB?: {
         prefixID?: string;
         itemID?: string;
     };
+    options?: any;
 }
 export interface PersistOptionsRemote<T = any> {
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
     saveTimeout?: number;
-    waitForLoad?: Promise<any>;
-    waitForSave?: Promise<any> | ((value: T) => Promise<any>);
+    waitForLoad?: Promise<any> | ObservableReadable<any>;
+    waitForSave?: Promise<any> | ObservableReadable<any> | ((value: any, path: string[]) => Promise<any>);
     manual?: boolean;
+    fieldTransforms?: FieldTransforms<T>;
+    allowSaveIfError?: boolean;
     adjustData?: {
-        load?: (value: T, basePath: string) => T | Promise<T>;
-        save?: (value: T, basePath: string, path: string[]) => T | Promise<T>;
+        load?: (value: T) => T | Promise<T>;
+        save?: (value: T) => T | Promise<T>;
     };
     firebase?: {
         syncPath: (uid: string) => `/${string}/`;
-        fieldTransforms?: FieldTransforms<T>;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
+        onError?: (error: Error) => void;
     };
+    onSaveRemote?: () => void;
 }
 export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;
@@ -205,28 +208,33 @@ export interface ObservablePersistLocal {
     getTable<T = any>(table: string, config: PersistOptionsLocal): T;
     getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    set(table: string, value: any, changes: Change[], config: PersistOptionsLocal): Promise<void>;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void>;
+    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void>;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): void;
     deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
 }
+export interface ObservablePersistRemoteSaveParams<T, T2> {
+    state: Observable<ObservablePersistState>;
+    obs: Observable<T>;
+    options: PersistOptions<T>;
+    path: (string | number)[];
+    pathTypes: TypeAtPath[];
+    valueAtPath: T2;
+    prevAtPath: any;
+}
+export interface ObservablePersistRemoteListenParams<T> {
+    state: Observable<ObservablePersistState>;
+    obs: ObservableReadable<T>;
+    options: PersistOptions<T>;
+    onLoad: () => void;
+    onChange: (params: { value: T; path: (string | number)[] }) => void;
+}
 export interface ObservablePersistRemote {
-    save<T>(
-        options: PersistOptions<T>,
-        value: T,
-        path: (string | number)[],
-        valueAtPath: any,
-        prevAtPath: any
-    ): Promise<T>;
-    listen<T>(
-        obs: ObservableReadable<T>,
-        options: PersistOptions<T>,
-        onLoad: () => void,
-        onChange: (cb: () => void) => void
-    ): void;
+    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T>;
+    listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
 }
 
 export interface ObservablePersistState {
@@ -234,11 +242,22 @@ export interface ObservablePersistState {
     isLoadedRemote: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
+    remoteError?: Error;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
+    getPendingChanges: () =>
+        | Record<
+              string,
+              {
+                  p: any;
+                  v?: any;
+              }
+          >
+        | undefined;
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
+export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
@@ -317,10 +336,8 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveFnsBase<T>
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
-export type ObservableWriteable<T = any> =
-    | ObservablePrimitiveFnsBase<T>
-    | ObservablePrimitiveChildFns<T>
-    | ObservableObjectFns<T>;
+
+export type ObservableWriteable<T = any> = ObservableReadable<T> & { set: any };
 
 interface NodeValueListener {
     track: TrackingType;

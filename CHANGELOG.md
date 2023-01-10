@@ -1,3 +1,15 @@
+## 1.0 RC.0
+
+- Breaking: `onChange` function changed to take an options object as a second parameter with a new `initial` option that makes it fire immediately with the current value.
+- Breaking: `onChange` callback receives an object parameter instead of many arguments. This adds more flexibility for callers who care about different values in the change object.
+- Fix: `mergeIntoObservable` was not working correctly in some edge cases.
+- Fix: IndexedDB persistence improved for many edge cases, with some fixes and performance improvements
+- Fix: Persistence layers overall improved with more stability and better performance
+
+## 0.23.1
+
+- Fix: Not notifying on change of dates
+
 ## 0.23.0
 
 - Breaking: Improved the criteria of when to notify up parents for changes on objects to run only when something inside it has changed, so setting/assigning the same object onto itself will not notify. It's unlikely but possible that may be a breaking change for you if you depended on things re-computing/re-rendering even if nothing changed.

@@ -1,6 +1,5 @@
 import { tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
-import type { TrackingTypeInternal } from '../observableInterfaces';
 
 export function useVerifyNotTracking(name?: string) {
     if (process.env.NODE_ENV === 'development') {
@@ -16,7 +15,7 @@ function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
             for (let tracked of nodes.values()) {
                 const { node, track } = tracked;
                 const shallow = track === true;
-                const optimized = (track as TrackingTypeInternal) === 'optimize';
+                const optimized = track === 'optimize';
                 arr.push(
                     `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
                         optimized ? ' (optimized)' : ''
