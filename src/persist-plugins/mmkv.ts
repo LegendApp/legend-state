@@ -14,20 +14,6 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
             }),
         ],
     ]);
-    private getStorage(config: PersistOptionsLocal): MMKV {
-        const { mmkv } = config;
-        if (mmkv) {
-            const key = JSON.stringify(mmkv);
-            let storage = this.storages.get(key);
-            if (!storage) {
-                storage = new MMKV(mmkv);
-                this.storages.set(key, storage);
-            }
-            return storage;
-        } else {
-            return this.storages.get(symbolDefault);
-        }
-    }
     public getTable<T = any>(table: string, config: PersistOptionsLocal): T {
         const storage = this.getStorage(config);
         if (this.data[table] === undefined) {
@@ -62,6 +48,20 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         storage.delete(table);
     }
     // Private
+    private getStorage(config: PersistOptionsLocal): MMKV {
+        const { mmkv } = config;
+        if (mmkv) {
+            const key = JSON.stringify(mmkv);
+            let storage = this.storages.get(key);
+            if (!storage) {
+                storage = new MMKV(mmkv);
+                this.storages.set(key, storage);
+            }
+            return storage;
+        } else {
+            return this.storages.get(symbolDefault);
+        }
+    }
     private async setValue(table: string, value: any, config: PersistOptionsLocal) {
         this.data[table] = value;
         this.save(table, config);
