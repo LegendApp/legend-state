@@ -446,7 +446,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChange: async ({ value, path }) => {
+                    onChange: async ({ value, path, mode }) => {
                         if (value !== undefined) {
                             value = adjustLoadData(value, remote, true);
                             if (isPromise(value)) {
@@ -468,7 +468,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                 path = transformPath(path as string[], invertedMap);
                             }
                             onChangeRemote(() => {
-                                setAtPath(obs, path as string[], value);
+                                setAtPath(obs, path as string[], value, mode);
                             });
                         }
                     },
