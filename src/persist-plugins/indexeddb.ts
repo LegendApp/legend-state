@@ -109,7 +109,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
                         if (isPromise(value)) {
                             hasPromise = true;
-                            return value.then((v) => {
+                            return value.then(() => {
                                 data[key] = value;
                             });
                         } else {
