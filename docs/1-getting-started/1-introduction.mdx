@@ -155,7 +155,7 @@ obs.text.set(text => text + ' there')
 const obs = observable({ settings: { theme: 'light' }, array: [{text: 'hi'}] })
 
 // Listen to observable directly
-obs.settings.theme.onChange((theme) => console.log('Theme is', theme))
+obs.settings.theme.onChange(({ value }) => console.log('Theme is', value))
 
 // Or observe
 observe(() => {

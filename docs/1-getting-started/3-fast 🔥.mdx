@@ -28,7 +28,7 @@ The memory usage is lower than the others because Legend-State does not modify t
 
 Legend-State is optimized in a lot of different ways:
 
-## Proxy to path
+### Proxy to path
 
 Legend-State uses [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy), which is how it exposes the observable functions (get/set/listen etc...) on anything within state. But it differs from other Proxy-based systems by not touching the underlying data all. Each proxy node represents a path within the object tree, and to get the value of any node it traverses the raw data to that path and returns the value. So every node within the state object stores minimal metadata, and never has to modify or clone the underlying data, which keeps object creation to a minimum and memory usage down.
 
