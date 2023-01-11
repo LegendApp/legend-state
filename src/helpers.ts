@@ -2,6 +2,7 @@ import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, sy
 import { isArray, isFunction, isObject } from './is';
 import type {
     NodeValue,
+    ObservableChild,
     ObservableObject,
     ObservableReadable,
     ObservableWriteable,
@@ -54,8 +55,11 @@ export function setAtPath(obs: ObservableWriteable, path: string[], value: any, 
         v = value[p];
     }
 
+    if (v === symbolDelete) {
+        (o as ObservableChild).delete();
+    }
     // Assign if possible, or set otherwise
-    if (mode === 'assign' && (o as ObservableObject).assign) {
+    else if (mode === 'assign' && (o as ObservableObject).assign) {
         (o as ObservableObject).assign(v);
     } else {
         o.set(v);
