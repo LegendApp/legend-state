@@ -3,7 +3,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import fs from 'node:fs';
 import path from 'node:path';
-// @ts-ignore
+// @ts-expect-error
 import pkg from './package.json' assert { type: 'json' };
 
 const Exclude = new Set(['.DS_Store']);
@@ -39,7 +39,7 @@ export default Object.keys(pkg.exports)
             ];
 
             if (exp === './babel') {
-                // @ts-ignore
+                // @ts-expect-error
                 output[0].exports = 'default';
             } else {
                 output.push({

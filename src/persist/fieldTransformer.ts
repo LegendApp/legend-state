@@ -95,11 +95,8 @@ export function transformObject(
                     ret[mapped] = v;
                 }
             }
-            if (process.env.NODE_ENV === 'development' && ret['[object Object]']) debugger;
         });
     }
-
-    if (process.env.NODE_ENV === 'development' && ret && ret['[object Object]']) debugger;
 
     return ret;
 }
@@ -127,7 +124,6 @@ export function invertFieldMap(obj: Record<string, any>) {
 
     Object.keys(obj).forEach((key) => {
         const val = obj[key];
-        if (process.env.NODE_ENV === 'development' && target[val]) debugger;
         if (key === '_dict') {
             target[key] = invertFieldMap(val);
         } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
@@ -138,7 +134,6 @@ export function invertFieldMap(obj: Record<string, any>) {
             target[val] = key;
         }
     });
-    if (process.env.NODE_ENV === 'development' && target['[object Object]']) debugger;
     invertedMaps.set(obj, target);
 
     return target;

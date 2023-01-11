@@ -15,7 +15,7 @@ export function event(): ObservableEvent {
             return obs.onChange(cb);
         },
         get: () => obs.get(),
-        // @ts-ignore
+        // @ts-expect-error
         [symbolIsObservable]: true,
         [symbolIsEvent]: true,
     };

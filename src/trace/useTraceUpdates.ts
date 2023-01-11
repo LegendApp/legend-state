@@ -7,12 +7,14 @@ export function useTraceUpdates(name?: string) {
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 function replaceUpdateFn(name: string | undefined, updateFn: Function) {
     return onChange.bind(undefined, name, updateFn);
 }
 
 function onChange(
     name: string | undefined,
+    // eslint-disable-next-line @typescript-eslint/ban-types
     updateFn: Function,
     value: any,
     getPrevious: () => any,

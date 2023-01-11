@@ -1377,7 +1377,6 @@ describe('Array', () => {
 
         obs.arr[1].text.set('newtext');
 
-        // debugger;
         expect(handler).toBeCalledWith({ id: 'h3', text: 'newtext' }, { id: 'h3', text: 'h3' }, [
             { path: ['text'], pathTypes: ['object'], valueAtPath: 'newtext', prevAtPath: 'h3' },
         ]);

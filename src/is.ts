@@ -9,6 +9,7 @@ export function isString(obj: unknown): obj is string {
 export function isObject(obj: unknown): obj is Record<any, any> {
     return !!obj && typeof obj === 'object' && !isArray(obj);
 }
+// eslint-disable-next-line @typescript-eslint/ban-types
 export function isFunction(obj: unknown): obj is Function {
     return typeof obj === 'function';
 }

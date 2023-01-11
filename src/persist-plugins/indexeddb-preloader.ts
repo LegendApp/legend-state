@@ -15,34 +15,31 @@ export function preloadIndexedDB({
     processTables?: (tableData: Record<string, any>) => void;
     fieldTransforms?: Record<string, FieldTransforms<any>>;
 }) {
+    const invertedMaps = new WeakMap();
+    function invertFieldMap(obj: Record<string, any>) {
+        const existing = invertedMaps.get(obj);
+        if (existing) return existing;
+
+        const target: Record<string, any> = {} as any;
+
+        Object.keys(obj).forEach((key) => {
+            const val = obj[key];
+            if (key === '_dict') {
+                target[key] = invertFieldMap(val);
+            } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
+                const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
+                const suffix = key.match(/_obj|_dict|_arr$/)[0];
+                target[keyMapped + suffix] = invertFieldMap(val);
+            } else if (typeof val === 'string') {
+                target[val] = key;
+            }
+        });
+        invertedMaps.set(obj, target);
+
+        return target;
+    }
+
     if (fieldTransforms) {
-        const invertedMaps = new WeakMap();
-
-        function invertFieldMap(obj: Record<string, any>) {
-            const existing = invertedMaps.get(obj);
-            if (existing) return existing;
-
-            const target: Record<string, any> = {} as any;
-
-            Object.keys(obj).forEach((key) => {
-                const val = obj[key];
-                if (process.env.NODE_ENV === 'development' && target[val]) debugger;
-                if (key === '_dict') {
-                    target[key] = invertFieldMap(val);
-                } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
-                    const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
-                    const suffix = key.match(/_obj|_dict|_arr$/)[0];
-                    target[keyMapped + suffix] = invertFieldMap(val);
-                } else if (typeof val === 'string') {
-                    target[val] = key;
-                }
-            });
-            if (process.env.NODE_ENV === 'development' && target['[object Object]']) debugger;
-            invertedMaps.set(obj, target);
-
-            return target;
-        }
-
         Object.keys(fieldTransforms).forEach((table) => {
             fieldTransforms[table] = invertFieldMap(fieldTransforms[table]);
         });
@@ -93,7 +90,6 @@ export function preloadIndexedDB({
                                             dataIn,
                                             map
                                         );
-                                        debugger;
                                         ret[key] = v;
                                     }
                                 } else {
@@ -118,11 +114,8 @@ export function preloadIndexedDB({
                                     ret[mapped] = v;
                                 }
                             }
-                            if (process.env.NODE_ENV === 'development' && ret['[object Object]']) debugger;
                         });
                     }
-
-                    if (process.env.NODE_ENV === 'development' && ret && ret['[object Object]']) debugger;
 
                     return ret;
                 };

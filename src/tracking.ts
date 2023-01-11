@@ -3,6 +3,7 @@ import type { NodeValue, TrackingNode, TrackingType } from './observableInterfac
 interface TrackingState {
     nodes?: Map<number, TrackingNode>;
     traceListeners?: (nodes: Map<number, TrackingNode>) => void;
+    // eslint-disable-next-line @typescript-eslint/ban-types
     traceUpdates?: (fn: Function) => Function;
 }
 let lastNode: NodeValue;
@@ -29,7 +30,6 @@ export function endTracking() {
         trackCount = 0;
         if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
             // Shouldn't be possible, but leave as a sanity check
-            debugger;
         }
     }
     tracking.current = trackingQueue.pop();

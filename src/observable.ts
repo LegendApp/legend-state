@@ -68,6 +68,7 @@ const objectFns = new Map<string, Function>([
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
 
+    // eslint-disable-next-line @typescript-eslint/ban-types
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {
