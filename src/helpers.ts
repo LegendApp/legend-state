@@ -45,7 +45,7 @@ export function lockObservable(obs: ObservableReadable, value: boolean) {
         root.locked = value;
     }
 }
-export function setAtPath(obs: ObservableWriteable, path: string[], value: any) {
+export function setAtPath(obs: ObservableWriteable, path: string[], value: any, mode: 'assign' | 'set') {
     let o = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
@@ -54,7 +54,12 @@ export function setAtPath(obs: ObservableWriteable, path: string[], value: any) 
         v = value[p];
     }
 
-    o.set(v);
+    // Assign if possible, or set otherwise
+    if (mode === 'assign' && (o as ObservableObject).assign) {
+        (o as ObservableObject).assign(v);
+    } else {
+        o.set(v);
+    }
 }
 export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     if (!sources.length) return target;
