@@ -141,6 +141,25 @@ describe('Set', () => {
         obs.test.num.set((n) => n + 1);
         expect(obs.test.get()).toEqual({ num: 2 });
     });
+    test('Increment from 0', () => {
+        const store = observable({
+            legend: {
+                count: 0,
+            },
+        });
+
+        let seen: number = undefined;
+
+        observe(() => {
+            seen = store.legend.count.get();
+        });
+
+        expect(seen).toEqual(0);
+
+        store.legend.count.set((a) => a + 1);
+
+        expect(seen).toEqual(1);
+    });
     // test("Set with child that's an observable", () => {
     //     const obsOther = observable({ a: { b: 'hi' } });
     //     const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
