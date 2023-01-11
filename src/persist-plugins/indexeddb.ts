@@ -1,4 +1,11 @@
-import { constructObjectWithPath, isPromise, mergeIntoObservable, observable, when } from '@legendapp/state';
+import {
+    constructObjectWithPath,
+    isPrimitive,
+    isPromise,
+    mergeIntoObservable,
+    observable,
+    when,
+} from '@legendapp/state';
 import type {
     Change,
     Observable,
@@ -313,6 +320,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             }
             return store.delete(key);
         } else {
+            if (isPrimitive(value)) return;
+
             if (value.id === undefined) {
                 // If value does not have its own ID, assign it the key from the Record
                 value.id = key;
