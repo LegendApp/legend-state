@@ -6,6 +6,7 @@ import {
     isObject,
     isString,
     symbolDateModified,
+    symbolDelete,
     TypeAtPath,
 } from '@legendapp/state';
 
@@ -39,6 +40,8 @@ export function transformObject(
     // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
     if (dataIn) {
+        if ((dataIn as unknown) === symbolDelete) return dataIn;
+
         ret = {};
 
         const dict = Object.keys(map).length === 1 && map['_dict'];
