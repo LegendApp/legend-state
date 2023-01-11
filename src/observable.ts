@@ -414,8 +414,6 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     const isDelete = newValue === symbolUndef;
     if (isDelete) newValue = undefined;
 
-    const isPrim = isPrimitive(newValue) || newValue instanceof Date;
-
     const isRoot = (key as any) === symbolUndef;
 
     // Get the child node for updating and notifying
@@ -438,6 +436,8 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
             ? newValue.get()
             : newValue;
+
+    const isPrim = isPrimitive(newValue) || newValue instanceof Date;
 
     inSet = true;
     // Save the new value
