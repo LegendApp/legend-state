@@ -8,6 +8,7 @@ interface BatchItem {
 let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
 let _batch: (BatchItem | (() => void))[] = [];
+let _afterBatch: (() => void)[] = [];
 // Use a Map of callbacks for fast lookups to update the BatchItem
 let _batchMap = new Map<ListenerFn, BatchItem | true>();
 
@@ -44,7 +45,10 @@ export function batchNotify(b: BatchItem | (() => void)) {
     }
 }
 
-export function batch(fn: () => void) {
+export function batch(fn: () => void, after?: () => void) {
+    if (after) {
+        _afterBatch.push(after);
+    }
     beginBatch();
     fn();
     endBatch();
@@ -65,8 +69,10 @@ export function endBatch(force?: boolean) {
         // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
         // This can happen with observableComputed for example.
         const batch = _batch;
+        const after = _afterBatch;
         _batch = [];
         _batchMap = new Map();
+        _afterBatch = [];
         for (let i = 0; i < batch.length; i++) {
             const b = batch[i];
             if (isFunction(b)) {
@@ -75,6 +81,9 @@ export function endBatch(force?: boolean) {
                 const { cb } = b;
                 cb(b.params);
             }
+        }
+        for (let i = 0; i < after.length; i++) {
+            after[i]();
         }
     }
 }
