@@ -57,6 +57,8 @@ function parseLocalConfig(config: string | PersistOptionsLocal): { table: string
     return isString(config) ? { table: config, config: { name: config } } : { table: config.name, config };
 }
 
+let isMergingLocalData = false;
+
 function adjustSaveData(
     value: any,
     path: string[],
@@ -128,7 +130,12 @@ async function onObsChange<T>(
     const { table, config } = parseLocalConfig(local);
     const configRemote = persistOptions.remote;
     const inRemoteChange = tracking.inRemoteChange;
-    const saveRemote = !inRemoteChange && configRemote && !configRemote.readonly && obsState.isEnabledRemote.peek();
+    const saveRemote =
+        !isMergingLocalData &&
+        !inRemoteChange &&
+        configRemote &&
+        !configRemote.readonly &&
+        obsState.isEnabledRemote.peek();
 
     const isQueryingModified = !!configRemote?.firebase?.queryByModified;
 
@@ -391,9 +398,17 @@ async function loadLocal<T>(
                 value = await value;
             }
 
-            batch(() => {
-                mergeIntoObservable(obs, value);
-            });
+            batch(
+                () => {
+                    // isMergingLocalData prevents saving remotely when two different persistences
+                    // are set on the same observable
+                    isMergingLocalData = true;
+                    mergeIntoObservable(obs, value);
+                },
+                () => {
+                    isMergingLocalData = false;
+                }
+            );
         }
 
         obsState.peek().clearLocal = () => persistenceLocal.deleteTable(table, config);
