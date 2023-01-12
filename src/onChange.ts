@@ -1,5 +1,4 @@
 import { getNodeValue } from './globals';
-import { doNotify } from './notify';
 import type { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -19,7 +18,18 @@ export function onChange(
 
     if (options?.initial) {
         const value = getNodeValue(node);
-        doNotify(node, value, [], [], value, value, 0);
+        callback({
+            value,
+            changes: [
+                {
+                    path: [],
+                    pathTypes: [],
+                    prevAtPath: value,
+                    valueAtPath: value,
+                },
+            ],
+            getPrevious: () => undefined,
+        });
     }
 
     return () => listeners!.delete(listener);
