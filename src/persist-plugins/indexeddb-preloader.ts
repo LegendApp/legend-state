@@ -176,6 +176,11 @@ export function preloadIndexedDB({
                         for (let i = 0; i < arr.length; i++) {
                             const val = arr[i];
 
+                            // In case id is a number convert it to a string
+                            if (!val.id.includes) {
+                                val.id = val.id + '';
+                            }
+
                             if (val.id.endsWith('__legend_metadata')) {
                                 const id = val.id.replace('__legend_metadata', '');
                                 // Save this as metadata
