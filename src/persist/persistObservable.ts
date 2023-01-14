@@ -11,7 +11,7 @@ import {
     isSymbol,
     mergeIntoObservable,
     observable,
-    setAtPath,
+    setInObservableAtPath,
     symbolDateModified,
     tracking,
     when,
@@ -404,7 +404,12 @@ async function loadLocal<T>(
                     // isMergingLocalData prevents saving remotely when two different persistences
                     // are set on the same observable
                     isMergingLocalData = true;
+                    // We want to merge the local data on top of any initial state the object is created with
                     mergeIntoObservable(obs, value);
+
+                    if (metadata?.modified) {
+                        obs.peek()[symbolDateModified] = metadata.modified;
+                    }
                 },
                 () => {
                     isMergingLocalData = false;
@@ -484,7 +489,8 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                 path = transformPath(path as string[], invertedMap);
                             }
                             onChangeRemote(() => {
-                                setAtPath(obs, path as string[], value, mode);
+                                setInObservableAtPath(obs, path as string[], value, mode);
+                                mergeDateModified(obs, value);
                             });
                         }
                     },
