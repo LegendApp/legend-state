@@ -51,6 +51,7 @@ interface LocalState {
     persistenceRemote?: ObservablePersistRemote;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     onSaveRemoteListeners: (() => void)[];
+    isApplyingPending?: boolean;
 }
 
 function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config: PersistOptionsLocal } {
@@ -124,7 +125,7 @@ async function onObsChange<T>(
     persistOptions: PersistOptions<T>,
     { value, changes }: ListenerParams
 ) {
-    const { persistenceLocal, persistenceRemote } = localState;
+    const { persistenceLocal, persistenceRemote, isApplyingPending } = localState;
 
     const local = persistOptions.local;
     const { table, config } = parseLocalConfig(local);
@@ -139,7 +140,7 @@ async function onObsChange<T>(
 
     const isQueryingModified = !!configRemote?.firebase?.queryByModified;
 
-    if (local && !config.readonly && obsState.isEnabledLocal.peek()) {
+    if (local && !config.readonly && !isApplyingPending && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
             console.error(
                 '[legend-state] WARNING: An observable was changed before being loaded from persistence',
@@ -495,6 +496,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
 
                 const pending = localState.pendingChanges;
                 if (pending) {
+                    localState.isApplyingPending = true;
                     Object.keys(pending).forEach((key) => {
                         const path = key.split('/').filter((p) => p !== '');
                         const { p, v, t } = pending[key];
@@ -505,6 +507,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             changes: [{ path, valueAtPath: v, prevAtPath: p, pathTypes: t }],
                         });
                     });
+                    localState.isApplyingPending = false;
                 }
             }
         };
