@@ -57,7 +57,7 @@ export function mergeDateModified(obs: ObservableWriteable, source: any) {
     }
 
     if (dateModified) {
-        obs[symbolDateModified].set(dateModified);
+        obs.peek()[symbolDateModified] = dateModified;
     }
 
     return dateModified || 0;

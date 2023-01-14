@@ -1,11 +1,4 @@
-import {
-    constructObjectWithPath,
-    isPrimitive,
-    isPromise,
-    mergeIntoObservable,
-    observable,
-    when,
-} from '@legendapp/state';
+import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 import type {
     Change,
     Observable,
@@ -161,13 +154,12 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
-        metadata = mergeIntoObservable(this.tableMetadata[tableName] || {}, metadata, {
+        metadata = Object.assign(this.tableMetadata[tableName] || {}, metadata, {
             id: tableNameBase + '__legend_metadata',
         });
         this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
-        const set = store.put(metadata);
-        return requestToPromise(set);
+        store.put(metadata);
     }
     public async set(table: string, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
@@ -189,12 +181,15 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             let { path, valueAtPath, pathTypes } = changes[i];
             if (itemID) {
                 path = [itemID].concat(path as string[]);
+                pathTypes.splice(0, 0, 'object');
             }
             if (path.length > 0) {
                 // If change is deep in an object save it to IDB by the first key
                 const key = path[0] as string;
-                const constructed = constructObjectWithPath(path, valueAtPath, pathTypes);
-                this.tableData[table] = mergeIntoObservable(this.tableData[table], constructed);
+                if (!this.tableData[table]) {
+                    this.tableData[table] = {};
+                }
+                setAtPath(this.tableData[table], path as string[], pathTypes, valueAtPath);
                 savesItems[key] = this.tableData[table][key];
             } else {
                 // Set the whole table
