@@ -1,4 +1,17 @@
-## 1.0 RC.0
+## 1.0.0-rc.2
+
+- Feature: `batch` has a new `onComplete `batch(callback, onComplete)` parameter to run a function after the batch commits. This can be useful for cleaning up a temporary state while batching.
+- Fix: onChange with `initial` option fires immediately rather than going through batching process
+- Fix: Applying pending changes on load was writing back to local persistence unnecessarily
+- Perf: Improve performance of `mergeIntoObservable` by just doing a `set` if a target property is empty and doesn't need merging logic
+- Perf: Improve persistence overall by using more targeted approaches than `mergeIntoObservable`
+
+## 1.0.0-rc.1
+
+- Fix: Incrementing a value from 0 with a function (`value.set((prev) => prev + 1)`) was not firing a callback the first time
+
+
+## 1.0.0-rc.0
 
 - Breaking: `onChange` function changed to take an options object as a second parameter with a new `initial` option that makes it fire immediately with the current value.
 - Breaking: `onChange` callback receives an object parameter instead of many arguments. This adds more flexibility for callers who care about different values in the change object.
