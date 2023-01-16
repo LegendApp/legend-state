@@ -1784,6 +1784,14 @@ describe('Delete', () => {
         obs.test.text2.delete();
         expect(Object.keys(obs.test)).toEqual(['text']);
     });
+    test('Delete primitive fires parent listener', () => {
+        const obs = observable({ test: '' });
+        const handler = expectChangeHandler(obs);
+        obs.test.delete();
+        expect(handler).toHaveBeenCalledWith({}, { test: '' }, [
+            { path: ['test'], pathTypes: ['object'], valueAtPath: undefined, prevAtPath: '' },
+        ]);
+    });
 });
 describe('on functions', () => {
     test('when equals', () => {
