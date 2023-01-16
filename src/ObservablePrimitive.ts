@@ -71,7 +71,7 @@ ObservablePrimitiveClass.prototype.set = function <T>(value: T | ((prev: T) => T
 };
 ObservablePrimitiveClass.prototype.toggle = function (): boolean {
     const value = this.peek();
-    if (isBoolean(value)) {
+    if (value === undefined || isBoolean(value)) {
         this.set(!value);
     } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
         throw new Error('[legend-state] Cannot toggle a non-boolean value');
