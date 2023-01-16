@@ -15,16 +15,16 @@ describe('mergeIntoObservable', () => {
         const target = observable({ a: 1, b: 2 });
         const source = observable({ b: 3, c: 4 });
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual({ a: 1, b: 3, c: 4 });
+        expect(merged.get()).toEqual({ a: 1, b: 3, c: 4 });
         expect(isObservable(merged)).toBe(true);
     });
 
     it('should merge a plain object and an observable object', () => {
-        const target = { a: 1, b: 2 };
-        const source = observable({ b: 3, c: 4 });
+        const target = observable({ a: 1, b: 2 });
+        const source = { b: 3, c: 4 };
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual({ a: 1, b: 3, c: 4 });
-        expect(isObservable(merged)).toBe(false);
+        expect(merged.get()).toEqual({ a: 1, b: 3, c: 4 });
+        expect(isObservable(merged)).toBe(true);
     });
 
     it('should delete a key marked with symbolDelete', () => {
