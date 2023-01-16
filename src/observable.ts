@@ -388,7 +388,7 @@ function set(node: NodeValue, newValue?: any) {
 }
 function toggle(node: NodeValue) {
     const value = getNodeValue(node);
-    if (isBoolean(value)) {
+    if (value === undefined || isBoolean(value)) {
         set(node, !value);
         return !value;
     } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
