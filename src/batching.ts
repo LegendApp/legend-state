@@ -45,9 +45,9 @@ export function batchNotify(b: BatchItem | (() => void)) {
     }
 }
 
-export function batch(fn: () => void, after?: () => void) {
-    if (after) {
-        _afterBatch.push(after);
+export function batch(fn: () => void, onComplete?: () => void) {
+    if (onComplete) {
+        _afterBatch.push(onComplete);
     }
     beginBatch();
     fn();
