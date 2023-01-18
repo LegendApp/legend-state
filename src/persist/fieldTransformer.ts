@@ -46,7 +46,7 @@ export function transformObject(
 
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
-        let dateModified = dataIn[symbolDateModified as any];
+        const dateModified = dataIn[symbolDateModified as any];
         if (dateModified) {
             ret[symbolDateModified as any] = dateModified;
         }
@@ -78,8 +78,8 @@ export function transformObject(
                             v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
-                            let out = {};
-                            let dateModifiedChild = dataIn[symbolDateModified as any];
+                            const out = {};
+                            const dateModifiedChild = dataIn[symbolDateModified as any];
                             if (dateModifiedChild) {
                                 out[symbolDateModified as any] = dateModifiedChild;
                             }
@@ -107,7 +107,7 @@ export function transformObjectWithPath(
     pathTypes: TypeAtPath[],
     fieldTransforms: FieldTransforms<any>
 ) {
-    let constructed = constructObjectWithPath(path, obj, pathTypes);
+    const constructed = constructObjectWithPath(path, obj, pathTypes);
     const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
     const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
@@ -152,7 +152,6 @@ if (process.env.NODE_ENV === 'development') {
         const uniques = Array.from(new Set(values));
         if (values.length !== uniques.length) {
             console.error('Field transform map has duplicate values', record, values.length, uniques.length);
-            debugger;
         }
         return record;
     };

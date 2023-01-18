@@ -32,10 +32,6 @@ function reset() {
     }
 }
 
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
-
 export async function recursiveReplaceStrings<T extends string | object | number | boolean>(
     value: T,
     replacer: (val: string) => string
@@ -65,6 +61,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
     return value;
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 global.localStorage = new LocalStorageMock();
 
@@ -72,8 +69,6 @@ configureObservablePersistence({
     persistLocal: ObservablePersistLocalStorage,
     saveTimeout: 16,
 });
-
-// jest.setTimeout(10000);
 
 beforeEach(() => {
     reset();

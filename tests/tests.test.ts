@@ -877,15 +877,15 @@ describe('Safety', () => {
     test('Prevent writes on objects', () => {
         const obs = observable({ test: { text: 't' } });
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error: Cannot assign to leaf node
             obs.test.text = 'hello';
         }).toThrow();
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error: Cannot assign to parent node
             obs.test = { text: 'hello' };
         }).toThrow();
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error: Cannot delete a node
             delete obs.test;
         }).toThrow();
     });
@@ -1330,8 +1330,9 @@ describe('Array', () => {
             { id: 'h2', text: 'h2' },
             { id: 'h3', text: 'h3' },
         ]);
-        const [first, second, third] = obs.arr.map((a) => a);
-        const [firstID, secondID, thirdID] = obs.arr.map((a) => a.id);
+        const [, second, third] = obs.arr.map((a) => a);
+        const [, secondID, thirdID] = obs.arr.map((a) => a.id);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const handler = expectChangeHandler(second);
         obs.arr.splice(0, 1);
         const [second2, third2] = obs.arr.map((a) => a);
@@ -2290,6 +2291,7 @@ describe('Observe', () => {
         const obs = observable(0);
         const obsOther = observable(0);
         let count = 0;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let callCount = 0;
         observe<number>(
             () => obs.get(),

@@ -1,4 +1,4 @@
-import { NodeValue, tracking, TrackingNode } from '@legendapp/state';
+import { NodeValue } from '@legendapp/state';
 
 export function getNodePath(node: NodeValue) {
     const arr: (string | number)[] = [];

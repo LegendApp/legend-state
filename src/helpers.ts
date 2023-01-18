@@ -84,7 +84,7 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
         const source = sources[u];
 
         const needsSet = isObservable(target);
-        let targetValue = needsSet ? target.peek() : target;
+        const targetValue = needsSet ? target.peek() : target;
 
         const isTargetArr = isArray(targetValue);
         const isTargetObj = !isTargetArr && isObject(targetValue);

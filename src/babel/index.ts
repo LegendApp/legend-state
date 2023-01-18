@@ -11,7 +11,8 @@ import {
 } from '@babel/types';
 
 export default function () {
-    let root;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let root: any;
     let imported: Record<string, string>;
     return {
         visitor: {
