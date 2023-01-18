@@ -97,8 +97,13 @@ export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
-type Recurse<T, K extends keyof T, TRecurse> = T[K] extends // eslint-disable-next-line @typescript-eslint/ban-types
-Function | Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any> | Promise<any>
+type Recurse<T, K extends keyof T, TRecurse> = T[K] extends  // eslint-disable-next-line @typescript-eslint/ban-types
+    | Function
+    | Map<any, any>
+    | WeakMap<any, any>
+    | Set<any>
+    | WeakSet<any>
+    | Promise<any>
     ? T[K]
     : T[K] extends OpaqueObject<T[K]>
     ? T[K] & ObservablePrimitiveChild<T[K]>
