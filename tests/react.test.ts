@@ -1,7 +1,7 @@
-/* eslint-disable react/no-children-prop */
 /**
  * @jest-environment jsdom
  */
+/* eslint-disable react/no-children-prop */
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, useReducer } from 'react';
