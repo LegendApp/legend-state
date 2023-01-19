@@ -39,9 +39,10 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsEvent, {
 });
 ObservablePrimitiveClass.prototype.peek = function () {
     const root = this._node.root;
-    if (root.activate) {
-        root.activate();
+    const activate = root.activate;
+    if (activate) {
         root.activate = undefined;
+        activate();
     }
     return root._;
 };
