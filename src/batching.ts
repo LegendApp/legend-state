@@ -87,3 +87,6 @@ export function endBatch(force?: boolean) {
         }
     }
 }
+export function afterBatch(fn: () => void) {
+    _afterBatch.push(fn);
+}
