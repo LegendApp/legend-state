@@ -55,6 +55,7 @@ const ArrayModifiers = new Set([
     'unshift',
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
+// eslint-disable-next-line @typescript-eslint/ban-types
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],

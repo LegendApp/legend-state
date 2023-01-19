@@ -21,7 +21,8 @@ function createReactiveComponent<P = object>(
 ) {
     const ReactForwardRefSymbol = hasSymbol
         ? Symbol.for('react.forward_ref')
-        : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
+        : // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
+          typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
     // If this component is already reactive bail out early
     // This can happen with Fast Refresh.
@@ -70,7 +71,7 @@ function createReactiveComponent<P = object>(
                             (propsOut[bind.handler as string] as any) = useCallback(
                                 (e: ChangeEvent) => {
                                     p.set(bind.getValue(e));
-                                    // @ts-ignore
+                                    // @ts-expect-error
                                     props[bind.handler]?.(e);
                                 },
                                 [props[bind.handler], bindKeys]

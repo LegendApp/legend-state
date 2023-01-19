@@ -9,6 +9,7 @@ export function Computed({ children }: { children: () => ReactNode }): ReactElem
 }
 
 export const Memo = /*#__PURE__*/ memo(
+    // eslint-disable-next-line react/prop-types
     function Memo({ children }: { children: () => ReactNode }): ReactElement {
         return useSelector(children, { shouldRender: true }) as ReactElement;
     },
@@ -44,6 +45,7 @@ export function Switch<T>(props: {
     children: Record<any, () => ReactNode>;
     default?: ReactNode;
 }): ReactElement;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Switch<T>(props: { children: ReactNode[]; default?: ReactNode }): ReactElement;
 export function Switch<T>({
     value,

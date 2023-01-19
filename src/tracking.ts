@@ -6,6 +6,7 @@ interface TrackingState {
     // eslint-disable-next-line @typescript-eslint/ban-types
     traceUpdates?: (fn: Function) => Function;
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let lastNode: NodeValue;
 
 let trackCount = 0;

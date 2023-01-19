@@ -29,7 +29,7 @@ export default Object.keys(pkg.exports)
 
         if (!f) f = 'index';
 
-        const create = (file, outName) => {
+        const create = (file: string, outName: string) => {
             const output = [
                 {
                     file: './dist/' + outName + '.js',
