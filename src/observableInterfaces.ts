@@ -324,8 +324,6 @@ export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveFnsBoolean<T>
     : ObservablePrimitiveChildFns<T>;
 
-// ObservablePrimitiveChildFns<T>;
-
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;

@@ -133,6 +133,23 @@ obs.test.set(5)
 // computed.get() === 25
 ```
 
+### Two-way computed
+
+`computed` has an optional `set` parameter to run when setting the value. This lets you pass state changes onto the target observables, so the computed is bound to the targets in both directions. Without a `set` parameter, a one-way computed is read-only.
+
+```js
+const selected = observable([false, false, false])
+const selectedAll = computed(
+    // selectedAll is true when every element is selected
+    () => selected.every(obs => obs.get()),
+    // setting selectedAll sets the value of every element
+    (value) => selected.forEach(obs => obs.set(value))
+)
+
+selectedAll.set(true);
+// selected.get() === [true, true, true]
+```
+
 ## event
 
 `event` works like an observable without a value. You can listen for changes as usual, and dispatch it manually whenever you want. This can be useful for simple events with no value, like onClosed.
