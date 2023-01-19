@@ -34,6 +34,6 @@ export {
     dateModifiedKey,
 } from './src/globals';
 /** @internal */
-export { getNode,  } from './src/helpers';
+export { getNode, isObservableValueReady } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';

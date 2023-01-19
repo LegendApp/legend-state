@@ -1,5 +1,4 @@
-import { computeSelector } from './helpers';
-import { isArray, isEmpty, isObject } from './is';
+import { computeSelector, isObservableValueReady } from './helpers';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
@@ -11,7 +10,7 @@ export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (()
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
 
-        if (ret && !((isObject(ret) && isEmpty(ret)) || (isArray(ret) && ret.length === 0))) {
+        if (isObservableValueReady(ret)) {
             value = ret;
             // If value is truthy then run the effect
             effect?.(ret);
