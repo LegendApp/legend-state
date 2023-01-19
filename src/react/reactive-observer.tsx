@@ -71,7 +71,6 @@ function createReactiveComponent<P = object>(
                             (propsOut[bind.handler as string] as any) = useCallback(
                                 (e: ChangeEvent) => {
                                     p.set(bind.getValue(e));
-                                    // @ts-expect-error
                                     props[bind.handler]?.(e);
                                 },
                                 [props[bind.handler], bindKeys]

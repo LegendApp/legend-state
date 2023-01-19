@@ -1908,7 +1908,6 @@ describe('Shallow', () => {
 
         expect(handler).toHaveBeenCalledTimes(1);
 
-        // @ts-expect-error
         obs.test.key3.set({ text: 'hello3' });
 
         expect(handler).toHaveBeenCalledTimes(2);
