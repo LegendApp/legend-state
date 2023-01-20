@@ -1,3 +1,5 @@
+hermes --commonjs forLoop.js ../data/largeNumberArrayData.json -emit-binary -out=forLoop.hbc
+
 hyperfine --warmup 3 "DATA='../../data/smallNumberArray' node forLoop.js" "DATA='../../data/smallNumberArray' node forEach.js"
 echo ""
 echo ""
