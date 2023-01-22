@@ -3,27 +3,30 @@ import { useMemo, useRef } from 'react';
 
 export function useComputed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
 export function useComputed<T>(compute: () => T | Promise<T>, deps: any[]): ObservableComputed<T>;
-export function useComputed<T>(compute: () => T | Promise<T>, set: (value: T) => void): ObservableComputedTwoWay<T>;
-export function useComputed<T>(
+export function useComputed<T, T2 = T>(
     compute: () => T | Promise<T>,
-    set: (value: T) => void,
+    set: (value: T2) => void
+): ObservableComputedTwoWay<T, T2>;
+export function useComputed<T, T2 = T>(
+    compute: () => T | Promise<T>,
+    set: (value: T2) => void,
     deps: any[]
-): ObservableComputedTwoWay<T>;
-export function useComputed<T>(
+): ObservableComputedTwoWay<T, T2>;
+export function useComputed<T, T2 = T>(
     compute: () => T | Promise<T>,
-    set?: ((value: T) => void) | any[],
+    set?: ((value: T2) => void) | any[],
     deps?: any[]
-): ObservableComputed<T> | ObservableComputedTwoWay<T> {
+): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
     if (!deps && isArray(set)) {
         deps = set;
         set = undefined;
     }
-    const ref = useRef<{ compute?: () => T | Promise<T>; set?: (value: T) => void }>({});
+    const ref = useRef<{ compute?: () => T | Promise<T>; set?: (value: T2) => void }>({});
     ref.current.compute = compute;
-    ref.current.set = set as (value: T) => void;
+    ref.current.set = set as (value: T2) => void;
 
     return useMemo(
-        () => computed(() => ref.current.compute(), set ? (value) => ref.current.set(value) : undefined),
+        () => computed<T, T2>(() => ref.current.compute(), set ? (value) => ref.current.set(value) : undefined),
         deps || []
     );
 }

@@ -6,44 +6,47 @@ import { ObservableComputed, ObservableComputedTwoWay } from './observableInterf
 import { observe } from './observe';
 
 export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
-export function computed<T>(compute: () => T | Promise<T>, set: (value: T) => void): ObservableComputedTwoWay<T>;
-export function computed<T>(
+export function computed<T, T2 = T>(
     compute: () => T | Promise<T>,
-    setBound?: (value: T) => void
-): ObservableComputed<T> | ObservableComputedTwoWay<T> {
+    set: (value: T2) => void
+): ObservableComputedTwoWay<T, T2>;
+export function computed<T, T2 = T>(
+    compute: () => T | Promise<T>,
+    set?: (value: T2) => void
+): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
     // Create an observable for this computed variable
     let obs = observable<T>();
-    if (!setBound) lockObservable(obs, true);
+    if (!set) lockObservable(obs, true);
 
     // Lazily activate the observable when get is called
     getNode(obs).root.activate = () => {
         let setting = false;
-        const set = function (val: any) {
+        const setInner = function (val: any) {
             if (val !== obs.peek()) {
                 // Update the computed value
-                if (setBound) {
+                if (set) {
                     setting = true;
                     afterBatch(() => (setting = false));
                 } else {
                     lockObservable(obs, false);
                 }
                 obs.set(val);
-                if (!setBound) lockObservable(obs, true);
+                if (!set) lockObservable(obs, true);
             }
         };
 
         observe(compute, ({ value }) => {
             if (isPromise<T>(value)) {
-                value.then((v) => set(v));
+                value.then((v) => setInner(v));
             } else {
-                set(value);
+                setInner(value);
             }
         });
 
-        if (setBound) {
+        if (set) {
             obs.onChange(({ value }) => {
                 if (!setting) {
-                    batch(() => setBound(value));
+                    batch(() => set(value));
                 }
                 setting = false;
             });
