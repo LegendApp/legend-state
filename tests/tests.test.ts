@@ -1537,6 +1537,12 @@ describe('Array', () => {
             ]
         );
     });
+    test('Array.filter param is an observable', () => {
+        const obs = observable({
+            test: [{ text: 1 }],
+        });
+        expect(obs.test.filter((a) => isObservable(a))).toHaveLength(1);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
