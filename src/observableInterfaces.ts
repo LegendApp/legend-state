@@ -229,16 +229,17 @@ export interface ObservablePersistRemoteListenParams<T> {
     state: Observable<ObservablePersistState>;
     obs: ObservableReadable<T>;
     options: PersistOptions<T>;
+    dateModified?: number;
     onLoad: () => void;
     onChange: (params: {
         value: T;
         path: (string | number)[];
-        mode: 'assign' | 'set';
+        mode: 'assign' | 'set' | 'dateModified';
         dateModified: number | undefined;
     }) => void;
 }
 export interface ObservablePersistRemote {
-    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T>;
+    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<void>;
     listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
 }
 

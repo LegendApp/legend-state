@@ -11,7 +11,6 @@ import {
     mergeIntoObservable,
     observable,
     setInObservableAtPath,
-    symbolDateModified,
     tracking,
     when,
 } from '@legendapp/state';
@@ -25,6 +24,7 @@ import type {
     ObservablePersistLocal,
     ObservablePersistRemote,
     ObservablePersistState,
+    ObservableReadable,
     ObservableWriteable,
     PersistMetadata,
     PersistOptions,
@@ -33,7 +33,6 @@ import type {
 } from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
-import { mergeDateModified } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
@@ -44,12 +43,13 @@ export const mapPersistences: WeakMap<
 > = new WeakMap();
 
 export const persistState = observable({ inRemoteSync: false });
+const metadatas = new WeakMap<ObservableReadable<any>, PersistMetadata>();
 
 interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemote;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
-    onSaveRemoteListeners: (() => void)[];
+    onSaveRemote?: () => void;
     isApplyingPending?: boolean;
 }
 
@@ -110,12 +110,36 @@ function adjustLoadData(
     return value;
 }
 
+function updateMetadata<T>(
+    obs: ObservableReadable<any>,
+    localState: LocalState,
+    persistOptions: PersistOptions<T>,
+    newMetadata: PersistMetadata
+) {
+    const { persistenceLocal } = localState;
+    const local = persistOptions.local;
+    const { table, config } = parseLocalConfig(local);
+
+    // Save metadata
+    let metadata: PersistMetadata = metadatas.get(obs);
+    if (!metadata) {
+        metadata = {};
+        metadatas.set(obs, metadata);
+    }
+
+    const needsUpdate = newMetadata.modified !== metadata.modified || newMetadata.pending !== metadata.pending;
+
+    if (needsUpdate) {
+        persistenceLocal.updateMetadata(table, metadata, config);
+    }
+}
+
 async function onObsChange<T>(
     obs: Observable<T>,
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
-    { value, changes }: ListenerParams
+    { changes }: ListenerParams
 ) {
     const { persistenceLocal, persistenceRemote, isApplyingPending } = localState;
 
@@ -145,7 +169,6 @@ async function onObsChange<T>(
         if (saveRemote) {
             for (let i = 0; i < changes.length; i++) {
                 const { path, valueAtPath, prevAtPath, pathTypes } = changes[i];
-                if (path[path.length - 1] === (symbolDateModified as any)) continue;
                 const pathStr = path.join('/');
 
                 if (!localState.pendingChanges) {
@@ -204,22 +227,9 @@ async function onObsChange<T>(
         }
 
         // Save metadata
-        const metadata: PersistMetadata = {};
-
-        if (inRemoteChange) {
-            const dateModified = value[symbolDateModified];
-            if (dateModified) {
-                metadata.modified = dateModified;
-            }
-        }
-
-        if (localState.pendingChanges !== undefined) {
-            metadata.pending = localState.pendingChanges;
-        }
-
-        if (!isEmpty(metadata)) {
-            persistenceLocal.updateMetadata(table, metadata, config);
-        }
+        updateMetadata(obs, localState, persistOptions, {
+            pending: localState.pendingChanges,
+        });
     }
 
     if (saveRemote) {
@@ -231,7 +241,6 @@ async function onObsChange<T>(
 
         changes.forEach(async (change) => {
             const { path, valueAtPath, prevAtPath, pathTypes } = change;
-            if (path[path.length - 1] === (symbolDateModified as any)) return;
             const pathStr = path.join('/');
 
             const { path: pathSave, value: valueSave } = await adjustSaveData(
@@ -253,7 +262,7 @@ async function onObsChange<T>(
                     valueAtPath: valueSave,
                     prevAtPath,
                 })
-                .then((saved) => {
+                .then(() => {
                     if (local) {
                         const pending = persistenceLocal.getMetadata(table, config)?.pending;
 
@@ -266,23 +275,8 @@ async function onObsChange<T>(
 
                             persistenceLocal.updateMetadata(table, { pending }, config);
                         }
-                        // Only the latest save will return a value so that it saves back to local persistence once
-                        // It needs to get the dateModified from the save and update that through the observable
-                        // which will fire onObsChange and save it locally.
-                        if (saved !== undefined && isQueryingModified) {
-                            // Note: Don't need to adjust data because we're just merging dateModified
-                            const invertedMap = fieldTransforms && invertFieldMap(fieldTransforms);
-
-                            if (invertedMap) {
-                                saved = transformObject(saved, invertedMap) as T;
-                            }
-
-                            onChangeRemote(() => {
-                                mergeDateModified(obs as ObservableWriteable, saved);
-                            });
-                        }
                     }
-                    localState.onSaveRemoteListeners.forEach((cb) => cb());
+                    localState.onSaveRemote?.();
                 });
         });
     }
@@ -360,8 +354,8 @@ async function loadLocal<T>(
         const metadata = persistenceLocal.getMetadata(table, config);
 
         if (metadata) {
-            const pending = metadata.pending;
-            localState.pendingChanges = pending;
+            metadatas.set(obs, metadata);
+            localState.pendingChanges = metadata.pending;
         }
 
         // Merge the data from local persistence into the default state
@@ -388,10 +382,6 @@ async function loadLocal<T>(
                     isMergingLocalData = true;
                     // We want to merge the local data on top of any initial state the object is created with
                     mergeIntoObservable(obs, value);
-
-                    if (metadata?.modified) {
-                        obs.peek()[symbolDateModified] = metadata.modified;
-                    }
                 },
                 () => {
                     isMergingLocalData = false;
@@ -407,8 +397,7 @@ async function loadLocal<T>(
 export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions: PersistOptions<T>) {
     const { remote, local } = persistOptions;
     const remotePersistence = persistOptions.persistRemote || observablePersistConfiguration?.persistRemote;
-    const onSaveRemoteListeners: (() => void)[] = [];
-    const localState: LocalState = { onSaveRemoteListeners };
+    const localState: LocalState = {};
 
     const obsState = observable<ObservablePersistState>({
         isLoadedLocal: false,
@@ -438,14 +427,13 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         const sync = async () => {
             if (!isSynced) {
                 isSynced = true;
-                const onSaveRemote = persistOptions.remote?.onSaveRemote;
-                if (onSaveRemote) {
-                    onSaveRemoteListeners.push(onSaveRemote);
-                }
+                localState.onSaveRemote = persistOptions.remote?.onSaveRemote;
+                const dateModified = metadatas.get(obs)?.modified;
                 localState.persistenceRemote.listen({
                     state: obsState,
                     obs,
                     options: persistOptions,
+                    dateModified,
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
@@ -455,24 +443,37 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             if (isPromise(value)) {
                                 value = await value;
                             }
-                            const pending = localState.pendingChanges;
-                            if (pending) {
-                                Object.keys(pending).forEach((key) => {
-                                    const p = key.split('/').filter((p) => p !== '');
-                                    const { v, t } = pending[key];
 
-                                    const constructed = constructObjectWithPath(p, v, t);
-                                    value = mergeIntoObservable(value as any, constructed) as T;
+                            if (mode === 'dateModified') {
+                                if (!isEmpty(value as unknown as object)) {
+                                    onChangeRemote(() => {
+                                        setInObservableAtPath(obs, path as string[], value, 'assign');
+                                    });
+                                }
+                            } else {
+                                const pending = localState.pendingChanges;
+                                if (pending) {
+                                    Object.keys(pending).forEach((key) => {
+                                        const p = key.split('/').filter((p) => p !== '');
+                                        const { v, t } = pending[key];
+
+                                        const constructed = constructObjectWithPath(p, v, t);
+                                        value = mergeIntoObservable(value as any, constructed) as T;
+                                    });
+                                }
+                                const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
+
+                                if (path.length && invertedMap) {
+                                    path = transformPath(path as string[], invertedMap);
+                                }
+                                onChangeRemote(() => {
+                                    setInObservableAtPath(obs, path as string[], value, mode);
                                 });
                             }
-                            const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
-
-                            if (path.length && invertedMap) {
-                                path = transformPath(path as string[], invertedMap);
-                            }
-                            onChangeRemote(() => {
-                                setInObservableAtPath(obs, path as string[], value, mode);
-                                obs[symbolDateModified].set(dateModified);
+                        }
+                        if (dateModified) {
+                            updateMetadata(obs, localState, persistOptions, {
+                                modified: dateModified,
                             });
                         }
                     },
