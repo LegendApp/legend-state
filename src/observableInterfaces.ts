@@ -186,6 +186,7 @@ export interface PersistOptionsRemote<T = any> {
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
         onError?: (error: Error) => void;
+        dateModifiedKey?: string;
     };
     onSaveRemote?: () => void;
 }
@@ -194,7 +195,6 @@ export interface PersistOptions<T = any> {
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemote>;
-    dateModifiedKey?: string;
 }
 
 export interface PersistMetadata {
@@ -230,7 +230,12 @@ export interface ObservablePersistRemoteListenParams<T> {
     obs: ObservableReadable<T>;
     options: PersistOptions<T>;
     onLoad: () => void;
-    onChange: (params: { value: T; path: (string | number)[]; mode: 'assign' | 'set' }) => void;
+    onChange: (params: {
+        value: T;
+        path: (string | number)[];
+        mode: 'assign' | 'set';
+        dateModified: number | undefined;
+    }) => void;
 }
 export interface ObservablePersistRemote {
     save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T>;

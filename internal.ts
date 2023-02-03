@@ -1,2 +1,2 @@
-export { getNode, symbolDateModified, symbolDelete } from '@legendapp/state';
-export { getDateModifiedKey, observablePersistConfiguration } from '@legendapp/state/persist';
+export { getNode, setAtPath, symbolDateModified, symbolDelete } from '@legendapp/state';
+export { observablePersistConfiguration } from '@legendapp/state/persist';
