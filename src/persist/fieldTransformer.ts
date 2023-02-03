@@ -1,6 +1,5 @@
 import {
     constructObjectWithPath,
-    dateModifiedKey,
     deconstructObjectWithPath,
     FieldTransforms,
     isObject,
@@ -12,13 +11,13 @@ import {
 
 let validateMap: (map: Record<string, any>) => void;
 
-export function transformPath(path: string[], map: Record<string, any>, passThroughKeys?: string[]): string[] {
+export function transformPath(path: string[], map: Record<string, any>): string[] {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
         d = d[path[i]] = i === path.length - 1 ? null : {};
     }
-    let value = transformObject(data, map, passThroughKeys);
+    let value = transformObject(data, map);
     const pathOut = [];
     for (let i = 0; i < path.length; i++) {
         const key = Object.keys(value)[0];
@@ -28,12 +27,7 @@ export function transformPath(path: string[], map: Record<string, any>, passThro
     return pathOut;
 }
 
-export function transformObject(
-    dataIn: Record<string, any>,
-    map: Record<string, any>,
-    passThroughKeys?: string[],
-    ignoreKeys?: string[]
-) {
+export function transformObject(dataIn: Record<string, any>, map: Record<string, any>) {
     if (process.env.NODE_ENV === 'development') {
         validateMap(map);
     }
@@ -51,18 +45,16 @@ export function transformObject(
             ret[symbolDateModified as any] = dateModified;
         }
         Object.keys(dataIn).forEach((key) => {
-            if (ret[key] !== undefined || ignoreKeys?.includes(key)) return;
+            if (ret[key] !== undefined) return;
 
             let v = dataIn[key];
 
             if (dict) {
-                ret[key] = transformObject(v, dict, passThroughKeys, ignoreKeys);
+                ret[key] = transformObject(v, dict);
             } else {
                 const mapped = map[key];
                 if (mapped === undefined) {
-                    if (passThroughKeys?.includes(key)) {
-                        ret[key] = v;
-                    } else if (
+                    if (
                         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
                         map[key] === undefined
                     ) {
@@ -75,7 +67,7 @@ export function transformObject(
                             const valMap = map[key + '_val'];
                             v = valMap[key];
                         } else if (map[key + '_obj']) {
-                            v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
+                            v = transformObject(v, map[key + '_obj']);
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
                             const out = {};
@@ -84,12 +76,12 @@ export function transformObject(
                                 out[symbolDateModified as any] = dateModifiedChild;
                             }
                             Object.keys(v).forEach((keyChild) => {
-                                out[keyChild] = transformObject(v[keyChild], mapChild, passThroughKeys, ignoreKeys);
+                                out[keyChild] = transformObject(v[keyChild], mapChild);
                             });
                             v = out;
                         } else if (map[key + '_arr']) {
                             const mapChild = map[key + '_arr'];
-                            v = v.map((vChild) => transformObject(vChild, mapChild, passThroughKeys, ignoreKeys));
+                            v = v.map((vChild) => transformObject(vChild, mapChild));
                         }
                     }
                     ret[mapped] = v;
@@ -108,8 +100,8 @@ export function transformObjectWithPath(
     fieldTransforms: FieldTransforms<any>
 ) {
     const constructed = constructObjectWithPath(path, obj, pathTypes);
-    const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
-    const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
+    const transformed = transformObject(constructed, fieldTransforms);
+    const transformedPath = transformPath(path as string[], fieldTransforms);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
 }
 
