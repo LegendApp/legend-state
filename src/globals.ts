@@ -2,7 +2,6 @@ import { isChildNodeValue, isObject, isString } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
-export const symbolDateModified = /* @__PURE__ */ Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
@@ -68,7 +67,6 @@ export function getChildNode(node: NodeValue, key: string | number): NodeValue {
             root: node.root,
             parent: node,
             key,
-            // id,
         };
         if (!node.children) {
             node.children = new Map();
@@ -93,7 +91,6 @@ export function ensureNodeValue(node: NodeValue) {
 }
 
 export type IDKey = 'id' | '_id' | '__id';
-export type IDValue = string | number;
 
 export function findIDKey(obj: unknown | undefined): IDKey | undefined {
     return isObject(obj) ? ('id' in obj ? 'id' : '_id' in obj ? '_id' : '__id' in obj ? '__id' : undefined) : undefined;
