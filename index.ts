@@ -41,7 +41,6 @@ export {
     extraPrimitiveProps,
     getNodeValue,
     symbolDelete,
-    dateModifiedKey,
 } from './src/globals';
 /** @internal */
 export { getNode, isObservableValueReady } from './src/helpers';
