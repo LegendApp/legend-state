@@ -2,7 +2,6 @@ import {
     batch,
     beginBatch,
     constructObjectWithPath,
-    dateModifiedKey,
     deconstructObjectWithPath,
     endBatch,
     isEmpty,
@@ -34,7 +33,7 @@ import type {
 } from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
-import { mergeDateModified, replaceKeyInObject } from './persistHelpers';
+import { mergeDateModified } from './persistHelpers';
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
@@ -67,33 +66,29 @@ function adjustSaveData(
     {
         adjustData,
         fieldTransforms,
-    }: { adjustData?: { save?: (value: any) => any }; fieldTransforms?: FieldTransforms<any> },
-    replaceKey?: boolean
+    }: { adjustData?: { save?: (value: any) => any }; fieldTransforms?: FieldTransforms<any> }
 ): { value: any; path: string[] } | Promise<{ value: any; path: string[] }> {
-    let cloned = replaceKey ? replaceKeyInObject(value, symbolDateModified, dateModifiedKey, /*clone*/ true) : value;
+    let adjusted;
 
     const transform = () => {
+        if (adjusted !== undefined) {
+            value = deconstructObjectWithPath(path, adjusted);
+        }
         if (fieldTransforms) {
-            const { obj, path: pathTransformed } = transformObjectWithPath(cloned, path, pathTypes, fieldTransforms);
-            cloned = obj;
+            const { obj, path: pathTransformed } = transformObjectWithPath(value, path, pathTypes, fieldTransforms);
+            value = obj;
             path = pathTransformed;
         }
 
-        return { value: cloned, path };
+        return { value, path };
     };
 
-    let promise;
     if (adjustData?.save) {
-        const constructed = constructObjectWithPath(path, cloned, pathTypes);
-        promise = adjustData.save(constructed);
+        const constructed = constructObjectWithPath(path, value, pathTypes);
+        adjusted = adjustData.save(constructed);
     }
 
-    return isPromise(promise)
-        ? promise.then((adjusted) => {
-              cloned = deconstructObjectWithPath(path, adjusted);
-              return transform();
-          })
-        : transform();
+    return isPromise(adjusted) ? adjusted.then(transform) : transform();
 }
 
 function adjustLoadData(
@@ -101,21 +96,18 @@ function adjustLoadData(
     {
         adjustData,
         fieldTransforms,
-    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { load?: (value: any) => any } },
-    replaceKey?: boolean
+    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { load?: (value: any) => any } }
 ): Promise<any> | any {
-    let cloned = replaceKey ? replaceKeyInObject(value, dateModifiedKey, symbolDateModified, /*clone*/ true) : value;
-
     if (fieldTransforms) {
         const inverted = invertFieldMap(fieldTransforms);
-        cloned = transformObject(cloned, inverted, [dateModifiedKey]);
+        value = transformObject(value, inverted);
     }
 
     if (adjustData?.load) {
-        cloned = adjustData.load(cloned);
+        value = adjustData.load(value);
     }
 
-    return cloned;
+    return value;
 }
 
 async function onObsChange<T>(
@@ -181,9 +173,6 @@ async function onObsChange<T>(
             if (isSymbol(pathOriginal[pathOriginal.length - 1])) {
                 return;
             }
-            if (isQueryingModified) {
-                pathOriginal = pathOriginal.map((p) => ((p as any) === symbolDateModified ? dateModifiedKey : p));
-            }
             const pathStr = pathOriginal.join('/');
 
             // Optimization to only save the latest update at each path. We might have multiple changes at the same path
@@ -192,13 +181,7 @@ async function onObsChange<T>(
             if (!changesPaths.has(pathStr)) {
                 changesPaths.add(pathStr);
 
-                let promise = adjustSaveData(
-                    valueAtPath,
-                    pathOriginal as string[],
-                    pathTypes,
-                    config,
-                    isQueryingModified
-                );
+                let promise = adjustSaveData(valueAtPath, pathOriginal as string[], pathTypes, config);
 
                 const push = ({ path, value }) => {
                     changesLocal.push({ path, pathTypes, prevAtPath, valueAtPath: value });
@@ -255,8 +238,7 @@ async function onObsChange<T>(
                 valueAtPath,
                 path as string[],
                 pathTypes,
-                configRemote,
-                isQueryingModified
+                configRemote
             );
 
             // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
@@ -292,7 +274,7 @@ async function onObsChange<T>(
                             const invertedMap = fieldTransforms && invertFieldMap(fieldTransforms);
 
                             if (invertedMap) {
-                                saved = transformObject(saved, invertedMap, [dateModifiedKey]) as T;
+                                saved = transformObject(saved, invertedMap) as T;
                             }
 
                             onChangeRemote(() => {
@@ -393,7 +375,7 @@ async function loadLocal<T>(
                 }
             }
 
-            value = adjustLoadData(value, { adjustData, fieldTransforms }, !!remote && isQueryingModified);
+            value = adjustLoadData(value, { adjustData, fieldTransforms });
 
             if (isPromise(value)) {
                 value = await value;
@@ -467,9 +449,9 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChange: async ({ value, path, mode }) => {
+                    onChange: async ({ value, path, mode, dateModified }) => {
                         if (value !== undefined) {
-                            value = adjustLoadData(value, remote, true);
+                            value = adjustLoadData(value, remote);
                             if (isPromise(value)) {
                                 value = await value;
                             }
@@ -490,7 +472,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             }
                             onChangeRemote(() => {
                                 setInObservableAtPath(obs, path as string[], value, mode);
-                                mergeDateModified(obs, value);
+                                obs[symbolDateModified].set(dateModified);
                             });
                         }
                     },
