@@ -35,7 +35,6 @@ export { onChange } from './src/onChange';
 export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
 /** @internal */
 export {
-    symbolDateModified,
     symbolIsObservable,
     symbolIsEvent,
     extraPrimitiveProps,

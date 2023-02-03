@@ -1,4 +1,4 @@
-import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
+import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
@@ -94,7 +94,6 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
             (isTargetArr && isArray(source) && targetValue.length > 0)
         ) {
             const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
-            let dateModified = source[symbolDateModified as any];
             for (let i = 0; i < keys.length; i++) {
                 const key = isTargetArr ? i : (keys[i] as string);
                 const sourceValue = source[key];
@@ -111,16 +110,10 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                             target[key] = isObj ? {} : [];
                         }
                         mergeIntoObservable(target[key], sourceValue);
-                        dateModified = Math.max(dateModified || 0, sourceValue[symbolDateModified as any] || 0);
                     } else {
                         needsSet ? target[key].set(sourceValue) : ((target[key] as any) = sourceValue);
                     }
                 }
-            }
-            if (dateModified) {
-                needsSet
-                    ? target[symbolDateModified as any].set(dateModified)
-                    : (target[symbolDateModified] = dateModified);
             }
         } else {
             needsSet ? target.set(source) : ((target as any) = source);
