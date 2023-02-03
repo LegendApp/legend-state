@@ -10,11 +10,11 @@ import {
     IDKey,
     nextNodeID,
     peek,
+    symbolDelete,
     symbolGetNode,
     symbolIsEvent,
     symbolIsObservable,
     symbolOpaque,
-    symbolUndef,
 } from './globals';
 import {
     isActualPrimitive,
@@ -79,7 +79,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
         parentValue[key] = prevValue;
 
         // Then set with the new value so it notifies with the correct prevValue
-        setKey(node.parent ?? node, hasParent ? key : (symbolUndef as any), target);
+        setKey(node.parent ?? node, hasParent ? key : undefined, target);
     }
 
     // Return the original value
@@ -381,7 +381,7 @@ const proxyHandler: ProxyHandler<any> = {
 
 function set(node: NodeValue, newValue?: any) {
     if (!node.parent) {
-        return setKey(node, symbolUndef as any, newValue);
+        return setKey(node, undefined, newValue);
     } else {
         return setKey(node.parent, node.key, newValue);
     }
@@ -411,20 +411,19 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         );
     }
 
-    const isDelete = newValue === symbolUndef;
+    const isDelete = newValue === symbolDelete;
     if (isDelete) newValue = undefined;
 
-    const isRoot = (key as any) === symbolUndef;
+    const isRoot = !node.parent && !key;
+    if (isRoot) {
+        key = '_';
+    }
 
     // Get the child node for updating and notifying
     let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
     // Get the value of the parent
     let parentValue = isRoot ? node.root : ensureNodeValue(node);
-
-    if (isRoot) {
-        key = '_';
-    }
 
     // Save the previous value first
     const prevValue = parentValue[key];
@@ -506,7 +505,7 @@ function deleteFn(node: NodeValue, key?: string | number) {
         node = node.parent;
     }
     // delete sets to undefined first to notify
-    setKey(node, key as string | number, symbolUndef, /*level*/ -1);
+    setKey(node, key as string | number, symbolDelete, /*level*/ -1);
 }
 
 function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;

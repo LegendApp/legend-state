@@ -6,7 +6,6 @@ export const symbolDateModified = /* @__PURE__ */ Symbol('dateModified');
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
-export const symbolUndef = Symbol('undef');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 
