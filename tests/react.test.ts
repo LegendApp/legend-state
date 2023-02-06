@@ -334,3 +334,29 @@ describe('useObservableReducer', () => {
         ]);
     });
 });
+
+describe('Render direct', () => {
+    enableLegendStateReact();
+    test('Render direct primitive', () => {
+        const obs = observable('hi');
+        function Test() {
+            return createElement('div', { children: obs });
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('div');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi');
+    });
+    test('Render direct object', () => {
+        const obs = observable({ test: 'hi' });
+        function Test() {
+            return createElement('div', { children: obs.test });
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('div');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi');
+    });
+});
