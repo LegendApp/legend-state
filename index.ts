@@ -30,14 +30,13 @@ export {
 export { lockObservable } from './src/helpers';
 
 /** @internal */
-export { onChange } from './src/onChange';
-/** @internal */
 export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
 /** @internal */
 export {
     symbolIsObservable,
     symbolIsEvent,
     extraPrimitiveProps,
+    extraPrimitiveActivators,
     getNodeValue,
     symbolDelete,
 } from './src/globals';
