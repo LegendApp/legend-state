@@ -274,12 +274,14 @@ const proxyHandler: ProxyHandler<any> = {
 
         const isValuePrimitive = isPrimitive(value);
 
+        // If accessing a key that doesn't already exist, and this node has been activated with extra keys
+        // then return the values that were set. This is used by enableLegendStateReact for example.
         if (value === undefined || value === null || isValuePrimitive) {
             if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
                 node.isActivatedPrimitive = true;
                 const vPrim = extraPrimitiveProps.get(p);
                 if (vPrim !== undefined) {
-                    return vPrim?.__fn?.(getProxy(node)) ?? vPrim;
+                    return isFunction(vPrim) ? vPrim(getProxy(node)) : vPrim;
                 }
             }
         }
