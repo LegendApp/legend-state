@@ -89,6 +89,7 @@ export function preloadIndexedDB({
                                             dataIn,
                                             map
                                         );
+                                        debugger;
                                     }
                                 } else {
                                     if (map[key + '_obj']) {

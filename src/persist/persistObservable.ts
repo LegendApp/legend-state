@@ -59,7 +59,7 @@ function parseLocalConfig(config: string | PersistOptionsLocal): { table: string
 
 let isMergingLocalData = false;
 
-function adjustSaveData(
+export function adjustSaveData(
     value: any,
     path: string[],
     pathTypes: TypeAtPath[],
@@ -68,30 +68,33 @@ function adjustSaveData(
         fieldTransforms,
     }: { adjustData?: { save?: (value: any) => any }; fieldTransforms?: FieldTransforms<any> }
 ): { value: any; path: string[] } | Promise<{ value: any; path: string[] }> {
-    let adjusted;
+    if (fieldTransforms || adjustData?.save) {
+        const transform = () => {
+            if (fieldTransforms) {
+                const { obj, path: pathTransformed } = transformObjectWithPath(value, path, pathTypes, fieldTransforms);
+                value = obj;
+                path = pathTransformed;
+            }
 
-    const transform = () => {
-        if (adjusted !== undefined) {
-            value = deconstructObjectWithPath(path, adjusted);
+            return { value, path };
+        };
+
+        if (adjustData?.save) {
+            let constructed = constructObjectWithPath(path, value, pathTypes);
+            const saved = adjustData.save(constructed);
+            const deconstruct = (toDeconstruct) => {
+                value = deconstructObjectWithPath(path, toDeconstruct);
+                return transform();
+            };
+            return isPromise(saved) ? saved.then(deconstruct) : deconstruct(saved);
         }
-        if (fieldTransforms) {
-            const { obj, path: pathTransformed } = transformObjectWithPath(value, path, pathTypes, fieldTransforms);
-            value = obj;
-            path = pathTransformed;
-        }
-
-        return { value, path };
-    };
-
-    if (adjustData?.save) {
-        const constructed = constructObjectWithPath(path, value, pathTypes);
-        adjusted = adjustData.save(constructed);
+        return transform();
     }
 
-    return isPromise(adjusted) ? adjusted.then(transform) : transform();
+    return { value, path };
 }
 
-function adjustLoadData(
+export function adjustLoadData(
     value: any,
     {
         adjustData,
@@ -121,15 +124,14 @@ function updateMetadata<T>(
     const { table, config } = parseLocalConfig(local);
 
     // Save metadata
-    let metadata: PersistMetadata = metadatas.get(obs);
-    if (!metadata) {
-        metadata = {};
-        metadatas.set(obs, metadata);
-    }
+    let oldMetadata: PersistMetadata = metadatas.get(obs);
 
-    const needsUpdate = newMetadata.modified !== metadata.modified || newMetadata.pending !== metadata.pending;
+    const needsUpdate =
+        !oldMetadata || newMetadata.modified !== oldMetadata.modified || newMetadata.pending !== oldMetadata.pending;
 
     if (needsUpdate) {
+        const metadata = Object.assign({}, oldMetadata, newMetadata);
+        metadatas.set(obs, metadata);
         persistenceLocal.updateMetadata(table, metadata, config);
     }
 }

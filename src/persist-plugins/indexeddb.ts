@@ -154,7 +154,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
-        metadata = Object.assign(this.tableMetadata[tableName] || {}, metadata, {
+        this.tableMetadata[tableName] = Object.assign(metadata, {
             id: tableNameBase + '__legend_metadata',
         });
         this.tableMetadata[tableName] = metadata;
