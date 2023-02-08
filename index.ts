@@ -10,7 +10,7 @@ export {
     setInObservableAtPath,
 } from './src/helpers';
 export { observable, observablePrimitive } from './src/observable';
-export { batch, beginBatch, endBatch } from './src/batching';
+export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
 export { observe } from './src/observe';
@@ -44,6 +44,6 @@ export {
     dateModifiedKey,
 } from './src/globals';
 /** @internal */
-export { getNode } from './src/helpers';
+export { getNode, isObservableValueReady } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';

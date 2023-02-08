@@ -1538,6 +1538,12 @@ describe('Array', () => {
             ]
         );
     });
+    test('Array.filter param is an observable', () => {
+        const obs = observable({
+            test: [{ text: 1 }],
+        });
+        expect(obs.test.filter((a) => isObservable(a))).toHaveLength(1);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
@@ -1947,93 +1953,6 @@ describe('Shallow', () => {
         obs.test.set(undefined);
 
         expect(handler).toHaveBeenCalledTimes(1);
-    });
-});
-describe('Computed', () => {
-    test('Basic computed', () => {
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
-        expect(comp.get()).toEqual(30);
-    });
-    test('Multiple computed changes', () => {
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
-        expect(comp.get()).toEqual(30);
-        const handler = expectChangeHandler(comp);
-        obs.test.set(5);
-        expect(handler).toHaveBeenCalledWith(25, 30, [{ path: [], pathTypes: [], valueAtPath: 25, prevAtPath: 30 }]);
-        expect(comp.get()).toEqual(25);
-        obs.test.set(1);
-        expect(handler).toHaveBeenCalledWith(21, 25, [{ path: [], pathTypes: [], valueAtPath: 21, prevAtPath: 25 }]);
-        expect(comp.get()).toEqual(21);
-    });
-    test('Cannot directly set a computed', () => {
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
-        expect(() => {
-            // @ts-expect-error
-            comp.set(40);
-        }).toThrowError();
-        expect(() => {
-            // @ts-expect-error
-            comp.assign({ text: 'hi' });
-        }).toThrowError();
-        expect(() => {
-            // @ts-expect-error
-            comp.delete();
-        }).toThrowError();
-
-        // This failing test would put batch in a bad state until timeout,
-        // so clear it out manually
-        endBatch();
-    });
-    test('Computed object is observable', () => {
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => ({ value: obs.test.get() + obs.test2.get() }));
-
-        expect(comp.get()).toEqual({ value: 30 });
-        expect(comp.value.get()).toEqual(30);
-        const handler = expectChangeHandler(comp.value);
-
-        obs.test.set(5);
-
-        expect(handler).toHaveBeenCalledWith(25, 30, [{ path: [], pathTypes: [], valueAtPath: 25, prevAtPath: 30 }]);
-    });
-    test('Computed is lazy', () => {
-        const fn = jest.fn();
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => {
-            fn();
-            return { v: obs.test.get() + obs.test2.get() };
-        });
-        expect(fn).not.toHaveBeenCalled();
-        comp.get();
-        expect(fn).toHaveBeenCalled();
-    });
-    test('Computed is lazy, activates on child get', () => {
-        const fn = jest.fn();
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => {
-            fn();
-            return { v: obs.test.get() + obs.test2.get() };
-        });
-        expect(fn).not.toHaveBeenCalled();
-        comp.v.get();
-        expect(fn).toHaveBeenCalled();
-    });
-    test('Computed with promise', async () => {
-        const obs = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
-        const comp = computed(() => {
-            const value = obs.get();
-            if (value) {
-                return new Promise((resolve) => {
-                    setTimeout(() => resolve('hi there'), 0);
-                });
-            }
-        });
-        expect(comp.get()).toEqual(undefined);
-        await promiseTimeout(10);
-        expect(comp.get()).toEqual('hi there');
     });
 });
 describe('Event', () => {

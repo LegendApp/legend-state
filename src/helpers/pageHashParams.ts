@@ -18,7 +18,7 @@ function toParams(str: string) {
     return ret;
 }
 function toString(params: Record<string, string>) {
-    return new URLSearchParams(params).toString();
+    return new URLSearchParams(params).toString().replace(/=$/, '');
 }
 
 const hasWindow = typeof window !== 'undefined';

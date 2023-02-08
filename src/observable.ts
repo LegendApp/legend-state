@@ -272,7 +272,7 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
-        const value = getNodeValue(node);
+        const value = peek(node);
 
         const isValuePrimitive = isPrimitive(value);
 

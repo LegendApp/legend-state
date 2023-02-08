@@ -16,9 +16,10 @@ export function enableLegendStateReact() {
             const value = useSelector(data);
 
             const root = getNode(data).root;
-            if (root.activate) {
-                root.activate();
+            const activate = root.activate;
+            if (activate) {
                 root.activate = undefined;
+                activate();
             }
 
             return value;

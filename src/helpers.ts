@@ -129,7 +129,6 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
 
     return target;
 }
-
 export function constructObjectWithPath(path: (string | number)[], value: any, pathTypes: TypeAtPath[]): object {
     let out;
     if (path.length > 0) {
@@ -153,4 +152,7 @@ export function deconstructObjectWithPath(path: (string | number)[], value: any)
     }
 
     return o;
+}
+export function isObservableValueReady(value: any) {
+    return value && !((isObject(value) && isEmpty(value)) || (isArray(value) && value.length === 0));
 }
