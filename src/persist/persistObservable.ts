@@ -238,8 +238,6 @@ async function onObsChange<T>(
             () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
         );
 
-        const fieldTransforms = configRemote.fieldTransforms;
-
         changes.forEach(async (change) => {
             const { path, valueAtPath, prevAtPath, pathTypes } = change;
             const pathStr = path.join('/');
@@ -251,8 +249,7 @@ async function onObsChange<T>(
                 configRemote
             );
 
-            // Save to remote persistence and get the remote value from it. Some providers (like Firebase) will return a
-            // server value with server timestamps for dateModified.
+            // Save to remote persistence
             persistenceRemote
                 .save({
                     obs,
@@ -304,7 +301,7 @@ async function loadLocal<T>(
     obsState: ObservableObject<ObservablePersistState>,
     localState: LocalState
 ) {
-    const { local, remote } = persistOptions;
+    const { local } = persistOptions;
     const localPersistence: ClassConstructor<ObservablePersistLocal> =
         persistOptions.persistLocal || observablePersistConfiguration.persistLocal;
 
