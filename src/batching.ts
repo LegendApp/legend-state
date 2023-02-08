@@ -41,7 +41,15 @@ export function batchNotify(b: BatchItem | (() => void)) {
             _batchMap.set(cb, it);
         }
     } else {
+        // If not batched callback immediately
         isFunc ? b() : b.cb(b.params);
+
+        // Run afterBatch callbacks if this is not batched
+        const after = _afterBatch;
+        _afterBatch = [];
+        for (let i = 0; i < after.length; i++) {
+            after[i]();
+        }
     }
 }
 
