@@ -418,7 +418,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     const isDelete = newValue === symbolDelete;
     if (isDelete) newValue = undefined;
 
-    const isRoot = !node.parent && !key;
+    const isRoot = !node.parent && key === undefined;
     if (isRoot) {
         key = '_';
     }
