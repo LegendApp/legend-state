@@ -127,7 +127,8 @@ function updateMetadata<T>(
     let oldMetadata: PersistMetadata = metadatas.get(obs);
 
     const needsUpdate =
-        !oldMetadata || newMetadata.modified !== oldMetadata.modified || newMetadata.pending !== oldMetadata.pending;
+        (newMetadata.modified || newMetadata.pending) &&
+        (!oldMetadata || newMetadata.modified !== oldMetadata.modified || newMetadata.pending !== oldMetadata.pending);
 
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
