@@ -1,8 +1,8 @@
 import { afterBatch, batch } from './batching';
 import { getNode, lockObservable } from './helpers';
 import { isPromise } from './is';
-import { observable } from './observable';
-import { ObservableComputed, ObservableComputedTwoWay } from './observableInterfaces';
+import { observable, set as setBase } from './observable';
+import { NodeValue, ObservableComputed, ObservableComputedTwoWay } from './observableInterfaces';
 import { observe } from './observe';
 
 export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
@@ -19,7 +19,8 @@ export function computed<T, T2 = T>(
     if (!set) lockObservable(obs, true);
 
     // Lazily activate the observable when get is called
-    getNode(obs).root.activate = () => {
+    const node = getNode(obs);
+    node.root.activate = () => {
         let setting = false;
         const setInner = function (val: any) {
             if (val !== obs.peek()) {
@@ -30,7 +31,7 @@ export function computed<T, T2 = T>(
                 } else {
                     lockObservable(obs, false);
                 }
-                obs.set(val);
+                setBase(node, val);
                 if (!set) lockObservable(obs, true);
             }
         };
@@ -44,12 +45,11 @@ export function computed<T, T2 = T>(
         });
 
         if (set) {
-            obs.onChange(({ value }) => {
-                if (!setting) {
+            node.fns = {
+                set: (_: NodeValue, value: any) => {
                     batch(() => set(value));
-                }
-                setting = false;
-            });
+                },
+            };
         }
     };
 
