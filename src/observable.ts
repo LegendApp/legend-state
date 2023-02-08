@@ -258,7 +258,7 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        const fn = objectFns.get(p);
+        const fn = node.fns?.[p] ?? objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
             return function (a: unknown, b: unknown, c: unknown) {

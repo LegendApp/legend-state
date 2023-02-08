@@ -357,6 +357,7 @@ interface BaseNodeValue {
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
     listeners?: Set<NodeValueListener>;
+    fns?: Record<string, Function>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
