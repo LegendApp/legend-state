@@ -1,7 +1,4 @@
-import { endBatch } from 'src/batching';
-import { computed } from '../src/computed';
-import { observable } from '../src/observable';
-import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { Change, computed, endBatch, observable, ObservableReadable, TrackingType } from '@legendapp/state';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
