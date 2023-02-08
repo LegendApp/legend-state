@@ -66,6 +66,9 @@ const objectFns = new Map<string, Function>([
     ['toggle', toggle],
 ]);
 
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    var __devUpdateNodes = new Set();
+}
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
 
@@ -88,7 +91,17 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     return ret;
 }
 
-function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue?: any): boolean {
+function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+        if (__devUpdateNodes.has(obj)) {
+            console.error(
+                '[legend-state] Circular reference detected in object. You may way to use opaqueObject to stop traversing child nodes.',
+                obj
+            );
+            return false;
+        }
+        __devUpdateNodes.add(obj);
+    }
     if ((isObject(obj) && obj[symbolOpaque as any]) || (isObject(prevValue) && prevValue[symbolOpaque as any])) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
@@ -458,6 +471,9 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree
     if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
+        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+            __devUpdateNodes.clear();
+        }
         hasADiff = updateNodes(childNode, newValue, prevValue);
         if (isArray(newValue)) {
             whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
