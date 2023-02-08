@@ -75,9 +75,12 @@ export function preloadIndexedDB({
                             } else {
                                 const mapped = map[key];
                                 if (mapped === undefined) {
+                                    ret[key] = v;
                                     if (
                                         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                                        map[key] === undefined
+                                        map[key] === undefined &&
+                                        // Run without error if it's the Firebase dateModified key
+                                        key !== '@'
                                     ) {
                                         console.error(
                                             'A fatal field transformation error has occurred',
@@ -85,7 +88,6 @@ export function preloadIndexedDB({
                                             dataIn,
                                             map
                                         );
-                                        ret[key] = v;
                                     }
                                 } else {
                                     if (map[key + '_obj']) {
