@@ -2222,3 +2222,20 @@ describe('Observe', () => {
         expect(count).toEqual(1);
     });
 });
+describe('Error detection', () => {
+    test('Circular objects', () => {
+        const a: any = {};
+        a.c = { a };
+
+        const obs = observable(a);
+
+        const aa: any = {};
+        aa.c = { a: aa };
+
+        expect(console.error).toHaveBeenCalledTimes(0);
+
+        obs.set(aa);
+
+        expect(console.error).toHaveBeenCalledTimes(1);
+    });
+});
