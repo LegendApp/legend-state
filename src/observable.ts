@@ -383,7 +383,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-function set(node: NodeValue, newValue?: any) {
+export function set(node: NodeValue, newValue?: any) {
     if (!node.parent) {
         return setKey(node, undefined, newValue);
     } else {
