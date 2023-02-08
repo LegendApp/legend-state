@@ -179,4 +179,15 @@ describe('Two way Computed', () => {
 
         expect(comp.get()).toEqual(true);
     });
+    test('Computed has set before activation', () => {
+        const obs = observable({ test: false, test2: false });
+        const comp = computed(
+            () => obs.test.get() && obs.test2.get(),
+            (value) => obs.test.set(value) && obs.test2.set(value)
+        );
+
+        comp.set(true);
+
+        expect(obs.test.get()).toEqual(true);
+    });
 });
