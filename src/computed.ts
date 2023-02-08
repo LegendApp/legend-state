@@ -43,15 +43,15 @@ export function computed<T, T2 = T>(
                 setInner(value);
             }
         });
-
-        if (set) {
-            node.fns = {
-                set: (_: NodeValue, value: any) => {
-                    batch(() => set(value));
-                },
-            };
-        }
     };
+
+    if (set) {
+        node.fns = {
+            set: (_: NodeValue, value: any) => {
+                batch(() => set(value));
+            },
+        };
+    }
 
     return obs as ObservableComputed<T>;
 }
