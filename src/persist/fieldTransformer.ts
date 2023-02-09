@@ -2,6 +2,7 @@ import {
     constructObjectWithPath,
     deconstructObjectWithPath,
     FieldTransforms,
+    isArray,
     isObject,
     isString,
     symbolDelete,
@@ -63,18 +64,20 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                         if (map[key + '_val']) {
                             const valMap = map[key + '_val'];
                             v = valMap[key];
-                        } else if (map[key + '_obj']) {
-                            v = transformObject(v, map[key + '_obj']);
-                        } else if (map[key + '_dict']) {
-                            const mapChild = map[key + '_dict'];
-                            const out = {};
-                            Object.keys(v).forEach((keyChild) => {
-                                out[keyChild] = transformObject(v[keyChild], mapChild);
-                            });
-                            v = out;
-                        } else if (map[key + '_arr']) {
+                        } else if (map[key + '_arr'] && isArray(v)) {
                             const mapChild = map[key + '_arr'];
                             v = v.map((vChild) => transformObject(vChild, mapChild));
+                        } else if (isObject(v)) {
+                            if (map[key + '_obj']) {
+                                v = transformObject(v, map[key + '_obj']);
+                            } else if (map[key + '_dict']) {
+                                const mapChild = map[key + '_dict'];
+                                const out = {};
+                                Object.keys(v).forEach((keyChild) => {
+                                    out[keyChild] = transformObject(v[keyChild], mapChild);
+                                });
+                                v = out;
+                            }
                         }
                     }
                     ret[mapped] = v;
