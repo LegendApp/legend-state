@@ -1,5 +1,12 @@
 import type { FieldTransforms, PersistMetadata } from '../observableInterfaces';
 
+function isArray(obj: unknown): obj is Array<any> {
+    return Array.isArray(obj);
+}
+function isObject(obj: unknown): obj is Record<any, any> {
+    return !!obj && typeof obj === 'object' && !isArray(obj);
+}
+
 export function preloadIndexedDB({
     databaseName,
     tableNames,
@@ -88,19 +95,27 @@ export function preloadIndexedDB({
                                             dataIn,
                                             map
                                         );
-                                        debugger;
                                     }
-                                } else {
-                                    if (map[key + '_obj']) {
-                                        v = transformObject(v, map[key + '_obj']);
-                                    } else if (map[key + '_dict']) {
-                                        const mapChild = map[key + '_dict'];
-                                        Object.keys(v).forEach((keyChild) => {
-                                            v[keyChild] = transformObject(v[keyChild], mapChild);
-                                        });
-                                    } else if (map[key + '_arr']) {
-                                        const mapChild = map[key + '_arr'];
-                                        v = v.map((vChild) => transformObject(vChild, mapChild));
+                                } else if (mapped !== null) {
+                                    if (v !== undefined && v !== null) {
+                                        if (map[key + '_val']) {
+                                            const valMap = map[key + '_val'];
+                                            v = valMap[key];
+                                        } else if (map[key + '_arr'] && isArray(v)) {
+                                            const mapChild = map[key + '_arr'];
+                                            v = v.map((vChild) => transformObject(vChild, mapChild));
+                                        } else if (isObject(v)) {
+                                            if (map[key + '_obj']) {
+                                                v = transformObject(v, map[key + '_obj']);
+                                            } else if (map[key + '_dict']) {
+                                                const mapChild = map[key + '_dict'];
+                                                let out = {};
+                                                Object.keys(v).forEach((keyChild) => {
+                                                    out[keyChild] = transformObject(v[keyChild], mapChild);
+                                                });
+                                                v = out;
+                                            }
+                                        }
                                     }
                                     ret[mapped] = v;
                                 }
