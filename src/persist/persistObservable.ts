@@ -279,7 +279,7 @@ async function onObsChange<T>(
                             // Remove pending from local state
                             delete localState.pendingChanges[pathStr];
 
-                            persistenceLocal.updateMetadata(table, { pending }, config);
+                            updateMetadata(obs, localState, obsState, persistOptions, { pending });
                         }
                     }
                     localState.onSaveRemote?.();
@@ -459,7 +459,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             }
 
                             if (mode === 'dateModified') {
-                                if (!isEmpty(value as unknown as object)) {
+                                if (dateModified && !isEmpty(value as unknown as object)) {
                                     onChangeRemote(() => {
                                         setInObservableAtPath(obs, path as string[], value, 'assign');
                                     });

@@ -50,9 +50,12 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
             } else {
                 const mapped = map[key];
                 if (mapped === undefined) {
-                    ret[key] = v;
-                    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-                        console.error('A fatal field transformation error has occurred', key, dataIn, map);
+                    // Don't transform dateModified if user doesn't want it
+                    if (key !== '@') {
+                        ret[key] = v;
+                        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                            console.error('A fatal field transformation error has occurred', key, dataIn, map);
+                        }
                     }
                 } else if (mapped !== null) {
                     if (v !== undefined && v !== null) {
