@@ -51,12 +51,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                 const mapped = map[key];
                 if (mapped === undefined) {
                     ret[key] = v;
-                    if (
-                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                        map[key] === undefined &&
-                        // Run without error if it's the Firebase dateModified key
-                        key !== '@'
-                    ) {
+                    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
                         console.error('A fatal field transformation error has occurred', key, dataIn, map);
                     }
                 } else if (mapped !== null) {
