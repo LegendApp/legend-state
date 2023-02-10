@@ -116,6 +116,7 @@ export function adjustLoadData(
 function updateMetadata<T>(
     obs: ObservableReadable<any>,
     localState: LocalState,
+    obsState: ObservableObject<ObservablePersistState>,
     persistOptions: PersistOptions<T>,
     newMetadata: PersistMetadata
 ) {
@@ -126,14 +127,19 @@ function updateMetadata<T>(
     // Save metadata
     let oldMetadata: PersistMetadata = metadatas.get(obs);
 
+    const { modified, pending } = newMetadata;
+
     const needsUpdate =
-        (newMetadata.modified || newMetadata.pending) &&
-        (!oldMetadata || newMetadata.modified !== oldMetadata.modified || newMetadata.pending !== oldMetadata.pending);
+        (modified || pending) && (!oldMetadata || modified !== oldMetadata.modified || pending !== oldMetadata.pending);
 
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
         metadatas.set(obs, metadata);
         persistenceLocal.updateMetadata(table, metadata, config);
+
+        if (modified) {
+            obsState.dateModified.set(modified);
+        }
     }
 }
 
@@ -231,7 +237,7 @@ async function onObsChange<T>(
         }
 
         // Save metadata
-        updateMetadata(obs, localState, persistOptions, {
+        updateMetadata(obs, localState, obsState, persistOptions, {
             pending: localState.pendingChanges,
         });
     }
@@ -310,7 +316,6 @@ async function loadLocal<T>(
 
     if (local) {
         const { table, config } = parseLocalConfig(local);
-        const isQueryingModified = !!persistOptions.remote?.firebase?.queryByModified;
 
         if (!localPersistence) {
             throw new Error('Local persistence is not configured');
@@ -357,6 +362,7 @@ async function loadLocal<T>(
         if (metadata) {
             metadatas.set(obs, metadata);
             localState.pendingChanges = metadata.pending;
+            obsState.dateModified.set(metadata.modified);
         }
 
         // Merge the data from local persistence into the default state
@@ -474,7 +480,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             }
                         }
                         if (dateModified) {
-                            updateMetadata(obs, localState, persistOptions, {
+                            updateMetadata(obs, localState, obsState, persistOptions, {
                                 modified: dateModified,
                             });
                         }
