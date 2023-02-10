@@ -163,8 +163,6 @@ async function onObsChange<T>(
         !configRemote.readonly &&
         obsState.isEnabledRemote.peek();
 
-    const isQueryingModified = !!configRemote?.firebase?.queryByModified;
-
     if (local && !config.readonly && !isApplyingPending && obsState.isEnabledLocal.peek()) {
         if (!obsState.isLoadedLocal.peek()) {
             console.error(
@@ -461,7 +459,13 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             if (mode === 'dateModified') {
                                 if (dateModified && !isEmpty(value as unknown as object)) {
                                     onChangeRemote(() => {
-                                        setInObservableAtPath(obs, path as string[], value, 'assign');
+                                        setInObservableAtPath(
+                                            obs,
+                                            path as string[],
+                                            value,
+                                            'assign',
+                                            /*failAssignSilently*/ true
+                                        );
                                     });
                                 }
                             } else {
