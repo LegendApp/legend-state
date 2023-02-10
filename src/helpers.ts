@@ -63,8 +63,8 @@ export function setInObservableAtPath(obs: ObservableWriteable, path: string[], 
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
-        o = obs[p];
-        v = value[p];
+        o = o[p];
+        v = v[p];
     }
 
     if (v === symbolDelete) {

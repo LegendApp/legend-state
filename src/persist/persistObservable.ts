@@ -444,10 +444,18 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                         obsState.isLoadedRemote.set(true);
                     },
                     onChange: async ({ value, path, mode, dateModified }) => {
+                        // Note: value is the constructed value, path is used for setInObservableAtPath
+                        // to start the set into the observable from the path
                         if (value !== undefined) {
                             value = adjustLoadData(value, remote);
                             if (isPromise(value)) {
                                 value = await value;
+                            }
+
+                            const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
+
+                            if (path.length && invertedMap) {
+                                path = transformPath(path as string[], invertedMap);
                             }
 
                             if (mode === 'dateModified') {
@@ -467,11 +475,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                         value = mergeIntoObservable(value as any, constructed) as T;
                                     });
                                 }
-                                const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
 
-                                if (path.length && invertedMap) {
-                                    path = transformPath(path as string[], invertedMap);
-                                }
                                 onChangeRemote(() => {
                                     setInObservableAtPath(obs, path as string[], value, mode);
                                 });
