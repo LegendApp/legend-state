@@ -1,12 +1,5 @@
 import type { FieldTransforms, PersistMetadata } from '../observableInterfaces';
 
-function isArray(obj: unknown): obj is Array<any> {
-    return Array.isArray(obj);
-}
-function isObject(obj: unknown): obj is Record<any, any> {
-    return !!obj && typeof obj === 'object' && !isArray(obj);
-}
-
 export function preloadIndexedDB({
     databaseName,
     tableNames,
@@ -58,6 +51,13 @@ export function preloadIndexedDB({
         const tableMetadata: Record<string, any> = {};
         let db: IDBDatabase;
 
+        function isArray(obj: unknown): obj is Array<any> {
+            return Array.isArray(obj);
+        }
+        function isObject(obj: unknown): obj is Record<any, any> {
+            return !!obj && typeof obj === 'object' && !isArray(obj);
+        }
+
         self.onmessage = function onmessage(
             e: MessageEvent<[string, string[], string[], number, Record<string, FieldTransforms<any>>]>
         ) {
@@ -82,19 +82,17 @@ export function preloadIndexedDB({
                             } else {
                                 const mapped = map[key];
                                 if (mapped === undefined) {
-                                    ret[key] = v;
-                                    if (
-                                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                                        map[key] === undefined &&
-                                        // Run without error if it's the Firebase dateModified key
-                                        key !== '@'
-                                    ) {
-                                        console.error(
-                                            'A fatal field transformation error has occurred',
-                                            key,
-                                            dataIn,
-                                            map
-                                        );
+                                    // Don't transform dateModified if user doesn't want it
+                                    if (key !== '@') {
+                                        ret[key] = v;
+                                        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                                            console.error(
+                                                'A fatal field transformation error has occurred',
+                                                key,
+                                                dataIn,
+                                                map
+                                            );
+                                        }
                                     }
                                 } else if (mapped !== null) {
                                     if (v !== undefined && v !== null) {
