@@ -1,4 +1,5 @@
 import {
+    afterBatch,
     batch,
     beginBatch,
     constructObjectWithPath,
@@ -129,8 +130,7 @@ function updateMetadata<T>(
 
     const { modified, pending } = newMetadata;
 
-    const needsUpdate =
-        (modified || pending) && (!oldMetadata || modified !== oldMetadata.modified || pending !== oldMetadata.pending);
+    const needsUpdate = pending || (modified && (!oldMetadata || modified !== oldMetadata.modified));
 
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
@@ -233,14 +233,14 @@ async function onObsChange<T>(
         if (changesLocal.length > 0) {
             persistenceLocal.set(table, changesLocal, config);
         }
+    }
 
+    if (saveRemote) {
         // Save metadata
         updateMetadata(obs, localState, obsState, persistOptions, {
             pending: localState.pendingChanges,
         });
-    }
 
-    if (saveRemote) {
         await when(
             () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
         );
@@ -267,9 +267,11 @@ async function onObsChange<T>(
                     valueAtPath: valueSave,
                     prevAtPath,
                 })
-                .then(() => {
+                .then(({ changes, dateModified }) => {
                     if (local) {
                         const pending = persistenceLocal.getMetadata(table, config)?.pending;
+
+                        const metadata: PersistMetadata = {};
 
                         // Clear pending for this path
                         if (pending?.[pathStr]) {
@@ -277,8 +279,23 @@ async function onObsChange<T>(
                             delete pending[pathStr];
                             // Remove pending from local state
                             delete localState.pendingChanges[pathStr];
+                            metadata.pending = pending;
+                        }
 
-                            updateMetadata(obs, localState, obsState, persistOptions, { pending });
+                        if (dateModified) {
+                            metadata.modified = dateModified;
+                        }
+
+                        if (changes && !isEmpty(changes)) {
+                            onChangeRemote(() => mergeIntoObservable(obs, changes));
+                        }
+
+                        if (!isEmpty(metadata)) {
+                            // Do this after batch to make sure it saves all the changes first before
+                            // saving the metadata
+                            afterBatch(() => {
+                                updateMetadata(obs, localState, obsState, persistOptions, metadata);
+                            });
                         }
                     }
                     localState.onSaveRemote?.();
