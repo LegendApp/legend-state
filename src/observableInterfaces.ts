@@ -239,7 +239,7 @@ export interface ObservablePersistRemoteListenParams<T> {
     }) => void;
 }
 export interface ObservablePersistRemote {
-    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<void>;
+    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<{ changes?: object; dateModified?: number }>;
     listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
 }
 
