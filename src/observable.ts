@@ -448,7 +448,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         !inAssign && isFunction(newValue)
             ? newValue(prevValue)
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
-            ? newValue.get()
+            ? newValue.peek()
             : newValue;
 
     const isPrim = isPrimitive(newValue) || newValue instanceof Date;
