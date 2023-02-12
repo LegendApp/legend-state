@@ -96,5 +96,9 @@ export function endBatch(force?: boolean) {
     }
 }
 export function afterBatch(fn: () => void) {
-    _afterBatch.push(fn);
+    if (numInBatch > 0) {
+        _afterBatch.push(fn);
+    } else {
+        fn();
+    }
 }
