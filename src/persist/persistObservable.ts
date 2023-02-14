@@ -1,3 +1,20 @@
+import type {
+    Change,
+    ClassConstructor,
+    FieldTransforms,
+    ListenerParams,
+    Observable,
+    ObservableObject,
+    ObservablePersistLocal,
+    ObservablePersistRemote,
+    ObservablePersistState,
+    ObservableReadable,
+    ObservableWriteable,
+    PersistMetadata,
+    PersistOptions,
+    PersistOptionsLocal,
+    TypeAtPath,
+} from '@legendapp/state';
 import {
     afterBatch,
     batch,
@@ -15,23 +32,6 @@ import {
     tracking,
     when,
 } from '@legendapp/state';
-import type {
-    Change,
-    ClassConstructor,
-    FieldTransforms,
-    ListenerParams,
-    Observable,
-    ObservableObject,
-    ObservablePersistLocal,
-    ObservablePersistRemote,
-    ObservablePersistState,
-    ObservableReadable,
-    ObservableWriteable,
-    PersistMetadata,
-    PersistOptions,
-    PersistOptionsLocal,
-    TypeAtPath,
-} from '../observableInterfaces';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 
