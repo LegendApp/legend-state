@@ -1,4 +1,3 @@
-import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 import type {
     Change,
     Observable,
@@ -6,7 +5,8 @@ import type {
     ObservablePersistLocal,
     PersistMetadata,
     PersistOptionsLocal,
-} from '../observableInterfaces';
+} from '@legendapp/state';
+import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 
 function requestToPromise(request: IDBRequest) {
     return new Promise<void>((resolve) => (request.onsuccess = () => resolve()));
