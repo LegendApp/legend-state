@@ -13,6 +13,15 @@ export const extraPrimitiveProps = new Map<string | symbol, any>();
 
 export const nextNodeID = { current: 0 };
 
+export function checkActivate(node: NodeValue) {
+    const root = node.root;
+    const activate = root.activate;
+    if (activate) {
+        root.activate = undefined;
+        activate();
+    }
+}
+
 export function get(node: NodeValue, track?: TrackingType) {
     // Track by default
     updateTracking(node, track);
@@ -21,12 +30,7 @@ export function get(node: NodeValue, track?: TrackingType) {
 }
 
 export function peek(node: NodeValue) {
-    const root = node.root;
-    const activate = root.activate;
-    if (activate) {
-        root.activate = undefined;
-        activate();
-    }
+    checkActivate(node);
     return getNodeValue(node);
 }
 
