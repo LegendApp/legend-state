@@ -1,6 +1,6 @@
+import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '@legendapp/state';
 import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
-import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '../observableInterfaces';
 
 const symbolDefault = Symbol();
 

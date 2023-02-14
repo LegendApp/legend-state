@@ -1,4 +1,4 @@
-import type { FieldTransforms, PersistMetadata } from '../observableInterfaces';
+import type { FieldTransforms, PersistMetadata } from '@legendapp/state';
 
 export function preloadIndexedDB({
     databaseName,

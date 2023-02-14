@@ -1,6 +1,6 @@
+import type { Observable } from '@legendapp/state';
 import { useObservable } from '@legendapp/state/react';
 import { useEffect } from 'react';
-import type { Observable } from '../observableInterfaces';
 
 export function useIsMounted(): Observable<boolean> {
     const obs = useObservable(false);
