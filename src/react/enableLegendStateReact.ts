@@ -1,4 +1,5 @@
 import {
+    checkActivate,
     extraPrimitiveActivators,
     extraPrimitiveProps,
     getNode,
@@ -20,12 +21,7 @@ export function enableLegendStateReact() {
         const Text = memo(function Text({ data }: { data: ObservableReadable }) {
             const value = useSelector(data);
 
-            const root = getNode(data).root;
-            const activate = root.activate;
-            if (activate) {
-                root.activate = undefined;
-                activate();
-            }
+            checkActivate(getNode(data));
 
             return value;
         });
