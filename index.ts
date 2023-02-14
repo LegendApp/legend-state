@@ -23,6 +23,7 @@ export { lockObservable } from './src/helpers';
 export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
 /** @internal */
 export {
+    checkActivate,
     symbolIsObservable,
     symbolIsEvent,
     extraPrimitiveProps,
