@@ -1,5 +1,5 @@
+import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
 import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
-import type { Change, ObservablePersistLocal, PersistMetadata } from '../observableInterfaces';
 
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     private data: Record<string, any> = {};
