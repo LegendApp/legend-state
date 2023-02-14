@@ -1,4 +1,4 @@
-import { afterBatch, batch } from './batching';
+import { batch } from './batching';
 import { getNode, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable, set as setBase } from './observable';
@@ -21,14 +21,10 @@ export function computed<T, T2 = T>(
     // Lazily activate the observable when get is called
     const node = getNode(obs);
     node.root.activate = () => {
-        let setting = false;
         const setInner = function (val: any) {
             if (val !== obs.peek()) {
                 // Update the computed value
-                if (set) {
-                    setting = true;
-                    afterBatch(() => (setting = false));
-                } else {
+                if (!set) {
                     lockObservable(obs, false);
                 }
                 setBase(node, val);
