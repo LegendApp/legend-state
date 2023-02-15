@@ -215,8 +215,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         let data = this.tableData[tableName];
         const itemID = configIDB?.itemID;
         if (data && configIDB?.itemID) {
-            data = data[itemID];
+            const dataTemp = data[itemID];
             delete data[itemID];
+            data = dataTemp;
         } else {
             delete this.tableData[tableName];
             delete this.tableData[tableName + '_transformed'];
