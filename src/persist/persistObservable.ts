@@ -412,7 +412,11 @@ async function loadLocal<T>(
             );
         }
 
-        obsState.peek().clearLocal = () => persistenceLocal.deleteTable(table, config);
+        obsState.peek().clearLocal = () =>
+            Promise.all([
+                persistenceLocal.deleteTable(table, config),
+                persistenceLocal.deleteMetadata(table, config),
+            ]) as unknown as Promise<void>;
     }
     obsState.isLoadedLocal.set(true);
 }

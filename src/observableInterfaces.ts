@@ -211,6 +211,7 @@ export interface ObservablePersistLocal {
     set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void>;
     updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): void;
     deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
+    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {

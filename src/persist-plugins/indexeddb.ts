@@ -8,6 +8,8 @@ import type {
 } from '@legendapp/state';
 import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 
+const MetadataSuffix = '__legend_metadata';
+
 function requestToPromise(request: IDBRequest) {
     return new Promise<void>((resolve) => (request.onsuccess = () => resolve()));
 }
@@ -155,11 +157,18 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
         this.tableMetadata[tableName] = Object.assign(metadata, {
-            id: tableNameBase + '__legend_metadata',
+            id: tableNameBase + MetadataSuffix,
         });
         this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
         store.put(metadata);
+    }
+    public async deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void> {
+        const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
+        delete this.tableMetadata[tableName];
+        const store = this.transactionStore(table);
+        const key = tableNameBase + MetadataSuffix;
+        store.delete(key);
     }
     public async set(table: string, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
@@ -224,6 +233,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
         if (typeof indexedDB === 'undefined') return;
 
+        this.deleteMetadata(table, config);
+
         if (data) {
             const store = this.transactionStore(table);
             let result: Promise<any>;
@@ -284,8 +295,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                         val.id = val.id + '';
                     }
 
-                    if (val.id.endsWith('__legend_metadata')) {
-                        const id = val.id.replace('__legend_metadata', '');
+                    if (val.id.endsWith(MetadataSuffix)) {
+                        const id = val.id.replace(MetadataSuffix, '');
                         // Save this as metadata
                         delete val.id;
                         metadata = val;
