@@ -287,7 +287,9 @@ async function onObsChange<T>(
                         }
 
                         if (changes && !isEmpty(changes)) {
-                            onChangeRemote(() => mergeIntoObservable(obs, changes));
+                            const adjustedChanges = adjustLoadData(changes, persistOptions.remote);
+
+                            onChangeRemote(() => mergeIntoObservable(obs, adjustedChanges));
                         }
 
                         if (!isEmpty(metadata)) {
