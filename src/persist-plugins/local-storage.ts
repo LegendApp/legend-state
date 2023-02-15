@@ -1,6 +1,8 @@
 import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
 import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
 
+const MetadataSuffix = '__m';
+
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     private data: Record<string, any> = {};
 
@@ -17,7 +19,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         return this.data[table];
     }
     public getMetadata(table: string): PersistMetadata {
-        return this.getTable(table + '__m');
+        return this.getTable(table + MetadataSuffix);
     }
     public get(table: string, id: string) {
         const tableData = this.getTable(table);
@@ -34,11 +36,14 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         this.save(table);
     }
     public updateMetadata(table: string, metadata: PersistMetadata) {
-        return this.setValue(table + '__m', metadata);
+        this.setValue(table + MetadataSuffix, metadata);
     }
     public async deleteTable(table: string): Promise<void> {
         delete this.data[table];
         localStorage.removeItem(table);
+    }
+    public async deleteMetadata(table: string): Promise<void> {
+        this.deleteTable(table + MetadataSuffix);
     }
     // Private
     private async setValue(table: string, value: any) {
