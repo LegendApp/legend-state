@@ -1,5 +1,5 @@
 import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '@legendapp/state';
-import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
+import { setAtPath } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
 
 const symbolDefault = Symbol();
@@ -34,10 +34,10 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         if (!this.data[table]) {
             this.data[table] = {};
         }
-        this.data[table] = mergeIntoObservable(
-            this.data[table],
-            ...changes.map(({ path, valueAtPath, pathTypes }) => constructObjectWithPath(path, valueAtPath, pathTypes))
-        );
+        for (let i = 0; i < changes.length; i++) {
+            let { path, valueAtPath, pathTypes } = changes[i];
+            this.data[table] = setAtPath(this.data[table], path as string[], pathTypes, valueAtPath);
+        }
         this.save(table, config);
     }
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
