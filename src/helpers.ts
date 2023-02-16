@@ -48,15 +48,21 @@ export function lockObservable(obs: ObservableReadable, value: boolean) {
 }
 export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], value: any) {
     let o = obj;
-    for (let i = 0; i < path.length; i++) {
-        const p = path[i];
-        if (i === path.length - 1) {
-            o[p] = value;
-        } else if (o[p] === undefined) {
-            o[p] = pathTypes[i] === 'array' ? [] : {};
+    if (path.length > 0) {
+        for (let i = 0; i < path.length; i++) {
+            const p = path[i];
+            if (i === path.length - 1) {
+                o[p] = value;
+            } else if (o[p] === undefined) {
+                o[p] = pathTypes[i] === 'array' ? [] : {};
+            }
+            o = o[p];
         }
-        o = o[p];
+    } else {
+        obj = value;
     }
+
+    return obj;
 }
 export function setInObservableAtPath(
     obs: ObservableWriteable,
