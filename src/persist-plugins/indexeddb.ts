@@ -199,7 +199,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 if (!this.tableData[table]) {
                     this.tableData[table] = {};
                 }
-                setAtPath(this.tableData[table], path as string[], pathTypes, valueAtPath);
+                this.tableData[table] = setAtPath(this.tableData[table], path as string[], pathTypes, valueAtPath);
                 savesItems[key] = this.tableData[table][key];
             } else {
                 // Set the whole table
