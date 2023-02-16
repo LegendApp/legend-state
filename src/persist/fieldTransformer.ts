@@ -65,6 +65,13 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                         } else if (map[key + '_arr'] && isArray(v)) {
                             const mapChild = map[key + '_arr'];
                             v = v.map((vChild) => transformObject(vChild, mapChild));
+                        } else if (map[key + '_val']) {
+                            const mapChild = map[key + '_val'];
+                            if (isArray(v)) {
+                                v = v.map((vChild) => mapChild[vChild]);
+                            } else {
+                                v = mapChild[v];
+                            }
                         } else if (isObject(v)) {
                             if (map[key + '_obj']) {
                                 v = transformObject(v, map[key + '_obj']);
@@ -112,9 +119,9 @@ export function invertFieldMap(obj: Record<string, any>) {
         const val = obj[key];
         if (key === '_dict') {
             target[key] = invertFieldMap(val);
-        } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
-            const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
-            const suffix = key.match(/_obj|_dict|_arr$/)[0];
+        } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr') || key.endsWith('_val')) {
+            const keyMapped = obj[key.replace(/_obj|_dict|_arr|_val$/, '')];
+            const suffix = key.match(/_obj|_dict|_arr|_val$/)[0];
             target[keyMapped + suffix] = invertFieldMap(val);
         } else if (typeof val === 'string') {
             target[val] = key;

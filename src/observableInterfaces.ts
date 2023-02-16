@@ -307,6 +307,8 @@ export declare type FieldTransformsInner<T> = {
       }
 ) & {
         [K in keyof ArrayKeys<T> as `${K}_arr`]?: FieldTransforms<ArrayValue<T[K]>>;
+    } & {
+        [K in keyof ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
     };
 
 export type Selector<T> = ObservableReadable<T> | (() => T) | T;
