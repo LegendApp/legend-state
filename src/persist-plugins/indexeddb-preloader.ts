@@ -30,9 +30,14 @@ export function preloadIndexedDB({
                 const val = obj[key];
                 if (key === '_dict') {
                     target[key] = invertFieldMap(val);
-                } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
-                    const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
-                    const suffix = key.match(/_obj|_dict|_arr$/)[0];
+                } else if (
+                    key.endsWith('_obj') ||
+                    key.endsWith('_dict') ||
+                    key.endsWith('_arr') ||
+                    key.endsWith('_val')
+                ) {
+                    const keyMapped = obj[key.replace(/_obj|_dict|_arr|_val$/, '')];
+                    const suffix = key.match(/_obj|_dict|_arr|_val$/)[0];
                     target[keyMapped + suffix] = invertFieldMap(val);
                 } else if (typeof val === 'string') {
                     target[val] = key;
