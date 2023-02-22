@@ -8,7 +8,7 @@ import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
-import { For } from '../src/react/flow';
+import { For } from '../src/react/For';
 import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useSelector } from '../src/react/useSelector';
 
