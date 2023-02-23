@@ -33,8 +33,8 @@
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react",
-        "lint:write": "eslint . --fix --ext .js,.jsx,.ts,.tsx",
-        "lint:check": "eslint . --ext .js,.jsx,.ts,.tsx",
+        "lint:write": "eslint ./src ./tests --fix --ext .ts,.tsx",
+        "lint:check": "eslint ./src ./tests --ext .ts,.tsx",
         "format:write": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
         "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\""
     },
