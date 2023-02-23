@@ -2,14 +2,14 @@ import { isFunction, Observable, observable } from '@legendapp/state';
 import React, { MutableRefObject, Reducer, ReducerState } from 'react';
 
 function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefined>) {
-    // @ts-expect-error
+    // @ts-expect-error Types don't match React's expected types
     React.useState = function useState(initialState: TRet | (() => TRet)) {
         const obs =
             refObs.current ??
             (refObs.current = observable(isFunction(initialState) ? initialState() : initialState) as Observable<TRet>);
         return [obs.get() as TRet, obs.set] as [TRet, React.Dispatch<React.SetStateAction<TRet>>];
     };
-    // @ts-expect-error
+    // @ts-expect-error Types don't match React's expected types
     React.useReducer = function useReducer<R extends Reducer<any, any>>(
         reducer: R,
         initializerArg: ReducerState<R>,

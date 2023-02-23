@@ -3,7 +3,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import fs from 'node:fs';
 import path from 'node:path';
-// @ts-expect-error
+// @ts-expect-error It says import assertions don't work, but they do
 import pkg from './package.json' assert { type: 'json' };
 
 const Exclude = new Set(['.DS_Store']);
@@ -35,11 +35,15 @@ export default Object.keys(pkg.exports)
                     file: './dist/' + outName + '.js',
                     format: 'cjs',
                     sourcemap: true,
+                } as {
+                    file: string;
+                    format: string;
+                    sourcemap: boolean;
+                    exports?: string;
                 },
             ];
 
             if (exp === './babel') {
-                // @ts-expect-error
                 output[0].exports = 'default';
             } else {
                 output.push({

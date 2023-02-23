@@ -81,8 +81,7 @@ describe('Set', () => {
         expect(obs.get()).toEqual({});
     });
     test('Set at root deletes other properties', () => {
-        const obs = observable({ test: { text: 't' }, test2: 'hello' });
-        // @ts-expect-error
+        const obs = observable({ test: { text: 't' }, test2: 'hello' } as { test: { text: string }; test2?: string });
         obs.set({ test: { text: 't2' } });
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
@@ -948,9 +947,9 @@ describe('Primitives', () => {
         const obs = observable({ num1: 10, num2: 20 });
 
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.num1.assign({ test: 'hi' });
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.num1.assign;
         }).toThrow();
 
@@ -2141,7 +2140,7 @@ describe('Primitive boolean', () => {
     test('observable primitive not boolean has no toggle', () => {
         const obs = observable(0);
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.toggle();
         }).toThrow();
         expect(obs.get()).toEqual(0);
@@ -2149,9 +2148,9 @@ describe('Primitive boolean', () => {
     test('observable not boolean has no toggle', () => {
         const obs = observable({ value: 0 });
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.value.toggle();
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.toggle();
         }).toThrow();
         expect(obs.get().value).toEqual(0);
@@ -2162,8 +2161,6 @@ describe('Opaque object', () => {
         const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
         const opaque = obs.test.opaque;
         expect(isObservable(opaque)).toBe(true);
-        // @ts-expect-error
-        opaque.assign;
 
         const opaqueValue = obs.test.opaque.value;
         expect(isObservable(opaqueValue)).toBe(false);

@@ -15,7 +15,7 @@ export function event(): ObservableEvent {
             return obs.onChange(cb);
         },
         get: () => obs.get(),
-        // @ts-expect-error
+        // @ts-expect-error eslint doesn't like adding symbols to the object but this does work
         [symbolIsObservable]: true,
         [symbolIsEvent]: true,
     };
