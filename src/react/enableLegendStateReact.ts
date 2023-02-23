@@ -11,7 +11,6 @@ export function enableLegendStateReact() {
         // Rendering observables directly inspired by Preact Signals: https://github.com/preactjs/signals/blob/main/packages/react/src/index.ts
         // Add the extra primitive props so that observables can render directly
         // Memoized component to wrap the observable value
-        // eslint-disable-next-line react/prop-types
         const Text = memo(function Text({ data }: { data: ObservableReadable }) {
             const value = useSelector(data);
 

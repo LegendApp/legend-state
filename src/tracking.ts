@@ -6,8 +6,6 @@ interface TrackingState {
     // eslint-disable-next-line @typescript-eslint/ban-types
     traceUpdates?: (fn: Function) => Function;
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-let lastNode: NodeValue;
 
 let trackCount = 0;
 const trackingQueue: (TrackingState | undefined)[] = [];
@@ -29,9 +27,6 @@ export function endTracking() {
     trackCount--;
     if (trackCount < 0) {
         trackCount = 0;
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-            // Shouldn't be possible, but leave as a sanity check
-        }
     }
     tracking.current = trackingQueue.pop();
 }
@@ -44,7 +39,6 @@ export function updateTracking(node: NodeValue, track?: TrackingType) {
                 tracker.nodes = new Map();
             }
 
-            lastNode = node;
             const existing = tracker.nodes.get(node.id);
             if (existing) {
                 existing.track = existing.track || track;

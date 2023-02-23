@@ -9,7 +9,6 @@ export function Computed({ children }: { children: () => ReactNode }): ReactElem
 }
 
 export const Memo = /*#__PURE__*/ memo(
-    // eslint-disable-next-line react/prop-types
     function Memo({ children }: { children: () => ReactNode }): ReactElement {
         return useSelector(children, { shouldRender: true }) as ReactElement;
     },

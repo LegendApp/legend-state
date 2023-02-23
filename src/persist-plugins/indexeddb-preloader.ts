@@ -15,31 +15,33 @@ export function preloadIndexedDB({
     processTables?: (tableData: Record<string, any>) => void;
     fieldTransforms?: Record<string, FieldTransforms<any>>;
 }) {
-    const invertedMaps = new WeakMap();
-    function invertFieldMap(obj: Record<string, any>) {
-        const existing = invertedMaps.get(obj);
-        if (existing) return existing;
-
-        const target: Record<string, any> = {} as any;
-
-        Object.keys(obj).forEach((key) => {
-            const val = obj[key];
-            if (key === '_dict') {
-                target[key] = invertFieldMap(val);
-            } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
-                const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
-                const suffix = key.match(/_obj|_dict|_arr$/)[0];
-                target[keyMapped + suffix] = invertFieldMap(val);
-            } else if (typeof val === 'string') {
-                target[val] = key;
-            }
-        });
-        invertedMaps.set(obj, target);
-
-        return target;
-    }
-
     if (fieldTransforms) {
+        const invertedMaps = new WeakMap();
+
+        // Note: eslint warns about this but we can save a little bit of declaration cost by only doing this if using fieldTransforms
+        // eslint-disable-next-line no-inner-declarations
+        function invertFieldMap(obj: Record<string, any>) {
+            const existing = invertedMaps.get(obj);
+            if (existing) return existing;
+
+            const target: Record<string, any> = {} as any;
+
+            Object.keys(obj).forEach((key) => {
+                const val = obj[key];
+                if (key === '_dict') {
+                    target[key] = invertFieldMap(val);
+                } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
+                    const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
+                    const suffix = key.match(/_obj|_dict|_arr$/)[0];
+                    target[keyMapped + suffix] = invertFieldMap(val);
+                } else if (typeof val === 'string') {
+                    target[val] = key;
+                }
+            });
+            invertedMaps.set(obj, target);
+
+            return target;
+        }
         Object.keys(fieldTransforms).forEach((table) => {
             fieldTransforms[table] = invertFieldMap(fieldTransforms[table]);
         });

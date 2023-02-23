@@ -15,5 +15,6 @@ module.exports = {
     rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off', // Since we dont use strictNullChecks
+        'react/prop-types': 'off',
     },
 };
