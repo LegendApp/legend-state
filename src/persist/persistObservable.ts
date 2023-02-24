@@ -16,7 +16,6 @@ import type {
     TypeAtPath,
 } from '@legendapp/state';
 import {
-    afterBatch,
     batch,
     beginBatch,
     constructObjectWithPath,
@@ -52,6 +51,7 @@ interface LocalState {
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     onSaveRemote?: () => void;
     isApplyingPending?: boolean;
+    timeoutSaveMetadata?: any;
 }
 
 function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config: PersistOptionsLocal } {
@@ -293,11 +293,12 @@ async function onObsChange<T>(
                         }
 
                         if (!isEmpty(metadata)) {
-                            // Do this after batch to make sure it saves all the changes first before
-                            // saving the metadata
-                            afterBatch(() => {
+                            // Do this in a timeout to make sure it saves all the changes first before
+                            // saving the metadata, and that it only happens once after multiple saves
+                            clearTimeout(localState.timeoutSaveMetadata);
+                            localState.timeoutSaveMetadata = setTimeout(() => {
                                 updateMetadata(obs, localState, obsState, persistOptions, metadata);
-                            });
+                            }, 30);
                         }
                     }
                     localState.onSaveRemote?.();
