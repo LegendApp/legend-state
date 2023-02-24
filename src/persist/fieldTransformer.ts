@@ -11,11 +11,11 @@ import {
 
 let validateMap: (map: Record<string, any>) => void;
 
-export function transformPath(path: string[], map: Record<string, any>): string[] {
+export function transformPath(path: string[], pathTypes: TypeAtPath[], map: Record<string, any>): string[] {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
-        d = d[path[i]] = i === path.length - 1 ? null : {};
+        d = d[path[i]] = i === path.length - 1 ? null : pathTypes[i] === 'array' ? [] : {};
     }
     let value = transformObject(data, map);
     const pathOut = [];
@@ -102,7 +102,7 @@ export function transformObjectWithPath(
 ) {
     const constructed = constructObjectWithPath(path, obj, pathTypes);
     const transformed = transformObject(constructed, fieldTransforms);
-    const transformedPath = transformPath(path as string[], fieldTransforms);
+    const transformedPath = transformPath(path as string[], pathTypes, fieldTransforms);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
 }
 
