@@ -20,6 +20,7 @@ configureObservablePersistence({
     persistLocalOptions,
 });
 async function reset() {
+    // eslint-disable-next-line no-global-assign
     indexedDB = new IDBFactory();
 
     const persist = mapPersistences.get(ObservablePersistIndexedDB)?.persist as ObservablePersistLocal;

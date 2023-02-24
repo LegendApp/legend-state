@@ -55,6 +55,7 @@ const ArrayModifiers = new Set([
     'unshift',
 ]);
 const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
+// eslint-disable-next-line @typescript-eslint/ban-types
 const objectFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
@@ -68,6 +69,7 @@ const objectFns = new Map<string, Function>([
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
 
+    // eslint-disable-next-line @typescript-eslint/ban-types
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {
@@ -139,7 +141,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
             const key = keysPrev[i];
             if (!keys.includes(key)) {
                 hasADiff = true;
-                let child = getChildNode(parent, key);
+                const child = getChildNode(parent, key);
 
                 const prev = prevValue[key];
                 if (!isPrimitive(prev)) {
@@ -270,7 +272,7 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
-        let value = peek(node);
+        const value = peek(node);
 
         const isValuePrimitive = isPrimitive(value);
 
@@ -417,10 +419,10 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
     const isRoot = (key as any) === symbolUndef;
 
     // Get the child node for updating and notifying
-    let childNode: NodeValue = isRoot ? node : getChildNode(node, key);
+    const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
     // Get the value of the parent
-    let parentValue = isRoot ? node.root : ensureNodeValue(node);
+    const parentValue = isRoot ? node.root : ensureNodeValue(node);
 
     if (isRoot) {
         key = '_';

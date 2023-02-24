@@ -20,6 +20,7 @@ export const Legend = new Proxy(
         get(target: Record<string, FC>, p: string) {
             if (!target[p]) {
                 // Create a wrapper around createElement with the string so we can proxy it
+                // eslint-disable-next-line react/display-name
                 const render = forwardRef((props, ref) => {
                     const propsOut = { ...props } as any;
                     if (ref && (isFunction(ref) || !isEmpty(ref))) {

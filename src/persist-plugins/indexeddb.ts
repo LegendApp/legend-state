@@ -105,11 +105,11 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 if (data) {
                     const keys = Object.keys(data);
                     promises = keys.map((key) => {
-                        let value = data[key];
+                        const value = data[key];
 
                         if (isPromise(value)) {
                             hasPromise = true;
-                            return value.then((v) => {
+                            return value.then(() => {
                                 data[key] = value;
                             });
                         } else {
@@ -178,6 +178,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const savesItems: Record<string, any> = {};
         let saveTable: any;
         for (let i = 0; i < changes.length; i++) {
+            // eslint-disable-next-line prefer-const
             let { path, valueAtPath, pathTypes } = changes[i];
             if (itemID) {
                 path = [itemID].concat(path as string[]);
@@ -333,7 +334,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 }
                 this.tableData[table][key] = value;
 
-                let didClone = false;
+                const didClone = false;
 
                 const prefixID = config.indexedDB?.prefixID;
                 if (prefixID) {

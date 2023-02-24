@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { event } from '../src/event';
@@ -80,8 +81,7 @@ describe('Set', () => {
         expect(obs.get()).toEqual({});
     });
     test('Set at root deletes other properties', () => {
-        const obs = observable({ test: { text: 't' }, test2: 'hello' });
-        // @ts-expect-error
+        const obs = observable({ test: { text: 't' }, test2: 'hello' } as { test: { text: string }; test2?: string });
         obs.set({ test: { text: 't2' } });
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
@@ -876,15 +876,15 @@ describe('Safety', () => {
     test('Prevent writes on objects', () => {
         const obs = observable({ test: { text: 't' } });
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error: Cannot assign to leaf node
             obs.test.text = 'hello';
         }).toThrow();
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error: Cannot assign to parent node
             obs.test = { text: 'hello' };
         }).toThrow();
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error: Cannot delete a node
             delete obs.test;
         }).toThrow();
     });
@@ -947,9 +947,9 @@ describe('Primitives', () => {
         const obs = observable({ num1: 10, num2: 20 });
 
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.num1.assign({ test: 'hi' });
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.num1.assign;
         }).toThrow();
 
@@ -1076,7 +1076,7 @@ describe('Array', () => {
     });
     test('Array swap with objects', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
-        let arr = obs.test;
+        const arr = obs.test;
         let tmp = arr[1].get();
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
@@ -1100,8 +1100,8 @@ describe('Array', () => {
                 { id: 5, text: 5 },
             ],
         });
-        let arr = obs.test;
-        let tmp = arr[1].get();
+        const arr = obs.test;
+        const tmp = arr[1].get();
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
         obs.test.splice(0, 1);
@@ -1112,21 +1112,21 @@ describe('Array', () => {
             test: Array<unknown>;
         }
         const obs = observable<Data>({ test: [] });
-        let tmp = obs.test[1];
+        const tmp = obs.test[1];
         obs.test[1].set(obs.test[4]);
         expect(obs.test.get()).toEqual([undefined, undefined]);
         obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([undefined, undefined, undefined, undefined, undefined]);
     });
     test('Clear array fires listener once', () => {
-        let obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const obs = observable({ arr: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         const handler = jest.fn();
         obs.arr.onChange(handler);
         obs.arr.set([]);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Array clear if listening', () => {
-        let obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
+        const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
         obs.test[2].onChange(() => {});
@@ -1140,7 +1140,7 @@ describe('Array', () => {
         expect(obs.test.map((a) => a)).toEqual([]);
     });
     test('Array splice fire events', () => {
-        let obs = observable({
+        const obs = observable({
             test: [
                 { id: 1, text: 1 },
                 { id: 2, text: 2 },
@@ -1213,7 +1213,7 @@ describe('Array', () => {
         );
     });
     test('Array with listeners clear', () => {
-        let obs = observable({
+        const obs = observable({
             test: [
                 { id: 1, text: 1 },
                 { id: 2, text: 2 },
@@ -1296,7 +1296,7 @@ describe('Array', () => {
         }
 
         const arr = obs.arr.get();
-        let tmp = arr[1];
+        const tmp = arr[1];
         obs.arr[1].set(arr[2]);
         obs.arr[2].set(tmp);
         // This makes second become h3
@@ -1329,8 +1329,9 @@ describe('Array', () => {
             { id: 'h2', text: 'h2' },
             { id: 'h3', text: 'h3' },
         ]);
-        const [first, second, third] = obs.arr.map((a) => a);
-        const [firstID, secondID, thirdID] = obs.arr.map((a) => a.id);
+        const [, second, third] = obs.arr.map((a) => a);
+        const [, secondID, thirdID] = obs.arr.map((a) => a.id);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const handler = expectChangeHandler(second);
         obs.arr.splice(0, 1);
         const [second2, third2] = obs.arr.map((a) => a);
@@ -1352,8 +1353,8 @@ describe('Array', () => {
         const second = obs.arr[1];
         const handler = expectChangeHandler(second);
 
-        let arr = obs.arr.get();
-        let tmp = arr[1];
+        const arr = obs.arr.get();
+        const tmp = arr[1];
         obs.arr[1].set(arr[2]);
         expect(obs.arr.get()).toEqual([
             { id: 'h1', text: 'h1' },
@@ -1376,7 +1377,6 @@ describe('Array', () => {
 
         obs.arr[1].text.set('newtext');
 
-        // debugger;
         expect(handler).toBeCalledWith({ id: 'h3', text: 'newtext' }, { id: 'h3', text: 'h3' }, [
             { path: ['text'], pathTypes: ['object'], valueAtPath: 'newtext', prevAtPath: 'h3' },
         ]);
@@ -1913,7 +1913,6 @@ describe('Shallow', () => {
 
         expect(handler).toHaveBeenCalledTimes(1);
 
-        // @ts-ignore
         obs.test.key3.set({ text: 'hello3' });
 
         expect(handler).toHaveBeenCalledTimes(2);
@@ -2141,7 +2140,7 @@ describe('Primitive boolean', () => {
     test('observable primitive not boolean has no toggle', () => {
         const obs = observable(0);
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.toggle();
         }).toThrow();
         expect(obs.get()).toEqual(0);
@@ -2149,9 +2148,9 @@ describe('Primitive boolean', () => {
     test('observable not boolean has no toggle', () => {
         const obs = observable({ value: 0 });
         expect(() => {
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.value.toggle();
-            // @ts-expect-error
+            // @ts-expect-error Expect this to throw an error
             obs.toggle();
         }).toThrow();
         expect(obs.get().value).toEqual(0);
@@ -2162,8 +2161,6 @@ describe('Opaque object', () => {
         const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
         const opaque = obs.test.opaque;
         expect(isObservable(opaque)).toBe(true);
-        // @ts-expect-error
-        opaque.assign;
 
         const opaqueValue = obs.test.opaque.value;
         expect(isObservable(opaqueValue)).toBe(false);
@@ -2209,6 +2206,7 @@ describe('Observe', () => {
         const obs = observable(0);
         const obsOther = observable(0);
         let count = 0;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let callCount = 0;
         observe<number>(
             () => obs.get(),

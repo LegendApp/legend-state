@@ -46,6 +46,7 @@ export function Switch<T>(props: {
     children: Record<any, () => ReactNode>;
     default?: ReactNode;
 }): ReactElement;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Switch<T>(props: { children: ReactNode[]; default?: ReactNode }): ReactElement;
 export function Switch<T>({
     value,
@@ -110,7 +111,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
     const id = v.length > 0 ? (v[0].id ? 'id' : v[0]._id ? '_id' : v[0].__id ? '__id' : undefined) : undefined;
 
     // Create the child elements
-    let out: ReactElement[] = [];
+    const out: ReactElement[] = [];
     for (let i = 0; i < v.length; i++) {
         if (v[i]) {
             const key = v[i][id as string] ?? i;

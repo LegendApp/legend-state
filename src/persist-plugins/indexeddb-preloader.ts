@@ -18,6 +18,8 @@ export function preloadIndexedDB({
     if (fieldTransforms) {
         const invertedMaps = new WeakMap();
 
+        // Note: eslint warns about this but we can save a little bit of declaration cost by only doing this if using fieldTransforms
+        // eslint-disable-next-line no-inner-declarations
         function invertFieldMap(obj: Record<string, any>) {
             const existing = invertedMaps.get(obj);
             if (existing) return existing;
@@ -26,7 +28,6 @@ export function preloadIndexedDB({
 
             Object.keys(obj).forEach((key) => {
                 const val = obj[key];
-                if (process.env.NODE_ENV === 'development' && target[val]) debugger;
                 if (key === '_dict') {
                     target[key] = invertFieldMap(val);
                 } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
@@ -37,12 +38,10 @@ export function preloadIndexedDB({
                     target[val] = key;
                 }
             });
-            if (process.env.NODE_ENV === 'development' && target['[object Object]']) debugger;
             invertedMaps.set(obj, target);
 
             return target;
         }
-
         Object.keys(fieldTransforms).forEach((table) => {
             fieldTransforms[table] = invertFieldMap(fieldTransforms[table]);
         });
@@ -93,7 +92,6 @@ export function preloadIndexedDB({
                                             dataIn,
                                             map
                                         );
-                                        debugger;
                                         ret[key] = v;
                                     }
                                 } else {
@@ -118,16 +116,13 @@ export function preloadIndexedDB({
                                     ret[mapped] = v;
                                 }
                             }
-                            if (process.env.NODE_ENV === 'development' && ret['[object Object]']) debugger;
                         });
                     }
-
-                    if (process.env.NODE_ENV === 'development' && ret && ret['[object Object]']) debugger;
 
                     return ret;
                 };
 
-            let openRequest = indexedDB.open(databaseName, version);
+            const openRequest = indexedDB.open(databaseName, version);
             openRequest.onupgradeneeded = () => {
                 const db = openRequest.result;
                 tableNames.forEach((table) => {

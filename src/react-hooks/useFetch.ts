@@ -1,7 +1,7 @@
 import { observableFetch } from '@legendapp/state/helpers/fetch';
 import { useMemo } from 'react';
 
-export function useFetch<T extends unknown>(
+export function useFetch<T>(
     input: RequestInfo | URL,
     init?: RequestInit,
     valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text'

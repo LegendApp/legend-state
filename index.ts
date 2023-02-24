@@ -1,4 +1,14 @@
-export { opaqueObject, isObservable, mergeIntoObservable, getObservableIndex, computeSelector, constructObjectWithPath, deconstructObjectWithPath, setAtPath, setInObservableAtPath } from './src/helpers';
+export {
+    opaqueObject,
+    isObservable,
+    mergeIntoObservable,
+    getObservableIndex,
+    computeSelector,
+    constructObjectWithPath,
+    deconstructObjectWithPath,
+    setAtPath,
+    setInObservableAtPath,
+} from './src/helpers';
 export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
 export { computed } from './src/computed';

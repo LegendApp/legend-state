@@ -141,7 +141,7 @@ describe('useSelector', () => {
             });
             num++;
 
-            return createElement('div', { children: val });
+            return createElement('div', undefined, val);
         }
         render(createElement(Test));
 
@@ -184,7 +184,7 @@ describe('For', () => {
             return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
-            return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
+            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
         }
         const { container } = render(createElement(Test));
 
@@ -213,7 +213,7 @@ describe('For', () => {
             return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
-            return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
+            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
         }
         const { container } = render(createElement(Test));
 
@@ -260,7 +260,7 @@ describe('For', () => {
             return createElement('li', { id: getObservableIndex(item) }, data.label);
         }
         function Test() {
-            return createElement('div', { children: createElement(For, { each: obs.items, item: Item }) });
+            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
         }
         const { container } = render(createElement(Test));
 

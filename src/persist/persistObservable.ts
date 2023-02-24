@@ -176,6 +176,7 @@ async function onObsChange<T>(
         const promises = [];
         changes.forEach((_, i) => {
             // Reverse order
+            // eslint-disable-next-line prefer-const
             let { path: pathOriginal, prevAtPath, valueAtPath, pathTypes } = changes[changes.length - 1 - i];
 
             if (isSymbol(pathOriginal[pathOriginal.length - 1])) {
@@ -192,7 +193,7 @@ async function onObsChange<T>(
             if (!changesPaths.has(pathStr)) {
                 changesPaths.add(pathStr);
 
-                let promise = adjustSaveData(
+                const promise = adjustSaveData(
                     valueAtPath,
                     pathOriginal as string[],
                     pathTypes,
@@ -384,9 +385,10 @@ async function loadLocal<T>(
 
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
+            // eslint-disable-next-line prefer-const
             let { adjustData, fieldTransforms } = config;
             if (fieldTransforms) {
-                let valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
+                const valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
                 if (valueLoaded) {
                     value = valueLoaded;
                     fieldTransforms = undefined;

@@ -12,7 +12,7 @@ function traceNodes(name: string, nodes: Map<number, TrackingNode>) {
         tracking.current.traceListeners = undefined;
         const arr: string[] = [];
         if (nodes) {
-            for (let tracked of nodes.values()) {
+            for (const tracked of nodes.values()) {
                 const { node, track } = tracked;
                 const shallow = track === true;
                 const optimized = track === 'optimize';

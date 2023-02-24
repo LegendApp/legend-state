@@ -11,12 +11,10 @@ import {
 } from '@babel/types';
 
 export default function () {
-    let root;
     let imported: Record<string, string>;
     return {
         visitor: {
-            Program(path) {
-                root = path;
+            Program() {
                 imported = {};
             },
             ImportDeclaration: {

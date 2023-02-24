@@ -9,7 +9,7 @@ function setupTracking(nodes: Map<number, TrackingNode> | undefined, update: () 
     let listeners: (() => void)[] | undefined = [];
     // Listen to tracked nodes
     if (nodes) {
-        for (let tracked of nodes.values()) {
+        for (const tracked of nodes.values()) {
             const { node, track } = tracked;
             listeners.push(onChange(node, update, { trackingType: track }, noArgs));
         }

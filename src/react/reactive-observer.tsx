@@ -13,7 +13,7 @@ export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
-function createReactiveComponent<P = {}>(
+function createReactiveComponent<P = object>(
     component: FC<P>,
     observe: boolean,
     reactive?: boolean,
@@ -21,7 +21,8 @@ function createReactiveComponent<P = {}>(
 ) {
     const ReactForwardRefSymbol = hasSymbol
         ? Symbol.for('react.forward_ref')
-        : typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
+        : // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
+          typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
     // If this component is already reactive bail out early
     // This can happen with Fast Refresh.
@@ -70,7 +71,6 @@ function createReactiveComponent<P = {}>(
                             (propsOut[bind.handler as string] as any) = useCallback(
                                 (e: ChangeEvent) => {
                                     p.set(bind.getValue(e));
-                                    // @ts-ignore
                                     props[bind.handler]?.(e);
                                 },
                                 [props[bind.handler], bindKeys]
@@ -112,14 +112,14 @@ function createReactiveComponent<P = {}>(
     return observe ? memo(ret) : ret;
 }
 
-export function observer<P = {}>(component: FC<P>): FC<P> {
+export function observer<P = object>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<P = {}>(component: FC<P>, bindKeys?: BindKeys<P>) {
+export function reactive<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P>>;
 }
 
-export function reactiveObserver<P = {}>(component: FC<P>, bindKeys?: BindKeys<P>) {
+export function reactiveObserver<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
 }

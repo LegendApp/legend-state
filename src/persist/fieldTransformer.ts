@@ -46,7 +46,7 @@ export function transformObject(
 
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
-        let dateModified = dataIn[symbolDateModified as any];
+        const dateModified = dataIn[symbolDateModified as any];
         if (dateModified) {
             ret[symbolDateModified as any] = dateModified;
         }
@@ -78,8 +78,8 @@ export function transformObject(
                             v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
                         } else if (map[key + '_dict']) {
                             const mapChild = map[key + '_dict'];
-                            let out = {};
-                            let dateModifiedChild = dataIn[symbolDateModified as any];
+                            const out = {};
+                            const dateModifiedChild = dataIn[symbolDateModified as any];
                             if (dateModifiedChild) {
                                 out[symbolDateModified as any] = dateModifiedChild;
                             }
@@ -95,11 +95,8 @@ export function transformObject(
                     ret[mapped] = v;
                 }
             }
-            if (process.env.NODE_ENV === 'development' && ret['[object Object]']) debugger;
         });
     }
-
-    if (process.env.NODE_ENV === 'development' && ret && ret['[object Object]']) debugger;
 
     return ret;
 }
@@ -110,7 +107,7 @@ export function transformObjectWithPath(
     pathTypes: TypeAtPath[],
     fieldTransforms: FieldTransforms<any>
 ) {
-    let constructed = constructObjectWithPath(path, obj, pathTypes);
+    const constructed = constructObjectWithPath(path, obj, pathTypes);
     const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
     const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
@@ -127,7 +124,6 @@ export function invertFieldMap(obj: Record<string, any>) {
 
     Object.keys(obj).forEach((key) => {
         const val = obj[key];
-        if (process.env.NODE_ENV === 'development' && target[val]) debugger;
         if (key === '_dict') {
             target[key] = invertFieldMap(val);
         } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
@@ -138,7 +134,6 @@ export function invertFieldMap(obj: Record<string, any>) {
             target[val] = key;
         }
     });
-    if (process.env.NODE_ENV === 'development' && target['[object Object]']) debugger;
     invertedMaps.set(obj, target);
 
     return target;
@@ -157,7 +152,6 @@ if (process.env.NODE_ENV === 'development') {
         const uniques = Array.from(new Set(values));
         if (values.length !== uniques.length) {
             console.error('Field transform map has duplicate values', record, values.length, uniques.length);
-            debugger;
         }
         return record;
     };

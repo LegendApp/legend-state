@@ -1,6 +1,6 @@
 import { observable } from '@legendapp/state';
 
-export function observableFetch<T extends unknown>(
+export function observableFetch<T>(
     input: RequestInfo | URL,
     init?: RequestInit,
     valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text'
@@ -19,7 +19,7 @@ export function observableFetch<T extends unknown>(
 
     fetch(input, init)
         .then((response) => response[valueType || 'json']())
-        .then((value) => obs.set({ data: value as T, loading: false }))
+        .then((value) => obs.set({ data: value, loading: false }))
         .catch((error) => obs.set({ loading: false, error, errorStr: error?.toString?.() }));
 
     return obs;
