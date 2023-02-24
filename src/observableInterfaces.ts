@@ -177,6 +177,8 @@ export interface PersistOptionsRemote<T = any> {
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSaveIfError?: boolean;
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
     adjustData?: {
         load?: (value: T) => T | Promise<T>;
         save?: (value: T) => T | Promise<T>;
@@ -185,7 +187,6 @@ export interface PersistOptionsRemote<T = any> {
         syncPath: (uid: string) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
-        onError?: (error: Error) => void;
         dateModifiedKey?: string;
     };
     onSaveRemote?: () => void;
