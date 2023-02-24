@@ -235,6 +235,7 @@ export interface ObservablePersistRemoteListenParams<T> {
     onChange: (params: {
         value: T;
         path: (string | number)[];
+        pathTypes: TypeAtPath[];
         mode: 'assign' | 'set' | 'dateModified';
         dateModified: number | undefined;
     }) => void;

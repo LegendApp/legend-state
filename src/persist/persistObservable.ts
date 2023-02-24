@@ -467,7 +467,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChange: async ({ value, path, mode, dateModified }) => {
+                    onChange: async ({ value, path, pathTypes, mode, dateModified }) => {
                         // Note: value is the constructed value, path is used for setInObservableAtPath
                         // to start the set into the observable from the path
                         if (value !== undefined) {
@@ -479,7 +479,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
 
                             if (path.length && invertedMap) {
-                                path = transformPath(path as string[], invertedMap);
+                                path = transformPath(path as string[], pathTypes, invertedMap);
                             }
 
                             if (mode === 'dateModified') {
