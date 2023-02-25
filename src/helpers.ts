@@ -36,7 +36,9 @@ export function getObservableIndex(obs: ObservableReadable): number {
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
-    (value as OpaqueObject<T>)[symbolOpaque] = true;
+    if (value) {
+        (value as OpaqueObject<T>)[symbolOpaque] = true;
+    }
     return value as OpaqueObject<T>;
 }
 
