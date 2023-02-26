@@ -56,9 +56,9 @@ export function observe<T>(
 
         if (!e.cancel) {
             const tracker = tracking.current;
-            // Do tracing if it was requested
             let noArgs = true;
             if (tracker) {
+                // Do tracing if it was requested
                 if (process.env.NODE_ENV === 'development' && tracker.nodes) {
                     tracker.traceListeners?.(tracker.nodes);
                     if (tracker.traceUpdates) {
