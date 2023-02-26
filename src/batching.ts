@@ -27,6 +27,11 @@ export function batchNotify(b: BatchItem | (() => void)) {
     const isFunc = isFunction(b);
     const cb = isFunc ? b : b.cb;
     if (numInBatch > 0) {
+        // Set a timeout to call end() in case end() is never called or there's an uncaught error
+        if (!timeout) {
+            timeout = setTimeout(onActionTimeout, 0);
+        }
+
         const existing = _batchMap.get(cb);
         const it = isFunc ? true : b;
         // If this callback already exists, make sure it has the latest value but do not add it
@@ -63,16 +68,14 @@ export function batch(fn: () => void, onComplete?: () => void) {
 }
 export function beginBatch() {
     numInBatch++;
-    // Set a timeout to call end() in case end() is never called or there's an uncaught error
-    if (!timeout) {
-        timeout = setTimeout(onActionTimeout, 0);
-    }
 }
 export function endBatch(force?: boolean) {
     numInBatch--;
     if (numInBatch <= 0 || force) {
-        clearTimeout(timeout);
-        timeout = undefined;
+        if (timeout) {
+            clearTimeout(timeout);
+            timeout = undefined;
+        }
         numInBatch = 0;
         // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
         // This can happen with observableComputed for example.
