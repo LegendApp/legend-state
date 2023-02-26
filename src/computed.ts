@@ -20,18 +20,17 @@ export function computed<T, T2 = T>(
 
     // Lazily activate the observable when get is called
     const node = getNode(obs);
-    node.root.activate = () => {
-        const setInner = function (val: any) {
-            if (val !== obs.peek()) {
-                // Update the computed value
-                if (!set) {
-                    lockObservable(obs, false);
-                }
-                setBase(node, val);
-                if (!set) lockObservable(obs, true);
+    const setInner = function (val: any) {
+        if (val !== obs.peek()) {
+            // Update the computed value
+            if (!set) {
+                lockObservable(obs, false);
             }
-        };
-
+            setBase(node, val);
+            if (!set) lockObservable(obs, true);
+        }
+    };
+    node.root.activate = () => {
         observe(compute, ({ value }) => {
             if (isPromise<T>(value)) {
                 value.then((v) => setInner(v));
@@ -44,6 +43,7 @@ export function computed<T, T2 = T>(
     if (set) {
         node.fns = {
             set: (_: NodeValue, value: any) => {
+                setInner(value);
                 batch(() => set(value));
             },
         };
