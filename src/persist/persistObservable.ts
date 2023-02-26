@@ -526,15 +526,23 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                 const pending = localState.pendingChanges;
                 if (pending) {
                     localState.isApplyingPending = true;
-                    Object.keys(pending).forEach((key) => {
+                    const keys = Object.keys(pending);
+
+                    // Bundle up all the changes from pending
+                    const changes: Change[] = [];
+                    for (let i = 0; i < keys.length; i++) {
+                        const key = keys[i];
                         const path = key.split('/').filter((p) => p !== '');
                         const { p, v, t } = pending[key];
+                        changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
+                    }
+
+                    // Send the changes into onObsChange so that they get persisted remotely
+                    onObsChange(obs as Observable, obsState, localState, persistOptions, {
+                        value: obs.peek(),
                         // TODO getPrevious if any remote persistence layers need it
-                        onObsChange(obs as Observable, obsState, localState, persistOptions, {
-                            value: obs.peek(),
-                            getPrevious: () => undefined,
-                            changes: [{ path, valueAtPath: v, prevAtPath: p, pathTypes: t }],
-                        });
+                        getPrevious: () => undefined,
+                        changes,
                     });
                     localState.isApplyingPending = false;
                 }
