@@ -1,4 +1,4 @@
-import { Change, computed, endBatch, observable, ObservableReadable, TrackingType } from '@legendapp/state';
+import { beginBatch, Change, computed, endBatch, observable, ObservableReadable, TrackingType } from '@legendapp/state';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -189,5 +189,31 @@ describe('Two way Computed', () => {
         comp.set(true);
 
         expect(obs.test.get()).toEqual(true);
+    });
+    test('Two way computed value is set before calling setter', () => {
+        let cur = 0;
+        const obs = observable(0);
+
+        const comp = computed(
+            () => obs.get() + '',
+            (value: string) => obs.set(+value)
+        );
+
+        const increment = (cur: number) => {
+            beginBatch();
+            comp.set(cur + '');
+
+            expect(obs.get()).toEqual(cur);
+            expect(comp.get()).toEqual(cur + '');
+
+            endBatch();
+        };
+
+        // It previously failed with just 2 but let's have a few extra just in case
+        increment(1);
+        increment(2);
+        increment(2);
+        increment(3);
+        increment(4);
     });
 });
