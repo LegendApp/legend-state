@@ -68,13 +68,16 @@ function createReactiveComponent<P = object>(
                                 propsOut[k] = bind.defaultValue;
                             }
                             // Hook up the change lander
-                            (propsOut[bind.handler as string] as any) = useCallback(
-                                (e: ChangeEvent) => {
-                                    p.set(bind.getValue(e));
-                                    props[bind.handler]?.(e);
-                                },
-                                [props[bind.handler], bindKeys]
-                            );
+                            const handlerFn = (e: ChangeEvent) => {
+                                p.set(bind.getValue(e));
+                                props[bind.handler]?.(e);
+                            };
+
+                            (propsOut[bind.handler as string] as any) =
+                                // If in development mode, don't memoize the handler. fix fast refresh bug
+                                process.env.NODE_ENV === 'development'
+                                    ? handlerFn
+                                    : useCallback(handlerFn, [props[bind.handler], bindKeys]);
                         }
 
                         // Delete the reactive key
