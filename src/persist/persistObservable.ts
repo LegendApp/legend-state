@@ -130,7 +130,8 @@ function updateMetadata<T>(
 
     const { modified, pending } = newMetadata;
 
-    const needsUpdate = pending || (modified && (!oldMetadata || modified !== oldMetadata.modified));
+    const needsUpdate =
+        (pending && !isEmpty(pending)) || (modified && (!oldMetadata || modified !== oldMetadata.modified));
 
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
@@ -524,7 +525,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                 );
 
                 const pending = localState.pendingChanges;
-                if (pending) {
+                if (pending && !isEmpty(pending)) {
                     localState.isApplyingPending = true;
                     const keys = Object.keys(pending);
 
