@@ -317,9 +317,13 @@ export function onChangeRemote(cb: () => void) {
         beginBatch();
         cb();
     } finally {
-        endBatch();
-        tracking.inRemoteChange = false;
-        persistState.inRemoteSync.set(false);
+        try {
+            endBatch(true);
+        } finally {
+            // Even if endBatch crashes these need to be reset
+            tracking.inRemoteChange = false;
+            persistState.inRemoteSync.set(false);
+        }
     }
 }
 
