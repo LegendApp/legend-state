@@ -239,7 +239,7 @@ export interface ObservablePersistRemoteListenParams<T> {
         pathTypes: TypeAtPath[];
         mode: 'assign' | 'set' | 'dateModified';
         dateModified: number | undefined;
-    }) => void;
+    }) => void | Promise<void>;
 }
 export interface ObservablePersistRemote {
     save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<{ changes?: object; dateModified?: number }>;
