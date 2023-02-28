@@ -220,7 +220,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     if (isPrimitive(value)) {
                         hasADiff = true;
                     } else {
-                        hasADiff = hasADiff || updateNodes(child, value, prev);
+                        // Always need to updateNodes so we notify through all children
+                        const updatedNodes = updateNodes(child, value, prev);
+                        hasADiff = hasADiff || updatedNodes;
                     }
                 }
                 if (isDiff || !isArrDiff) {
