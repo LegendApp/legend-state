@@ -1,3 +1,4 @@
+import { beginBatch, endBatch } from './batching';
 import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
@@ -94,6 +95,12 @@ export function setInObservableAtPath(
     }
 }
 export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
+    beginBatch();
+    const value = _mergeIntoObservable(target, ...sources);
+    endBatch();
+    return value;
+}
+function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     if (!sources.length) return target;
 
     for (let u = 0; u < sources.length; u++) {
@@ -109,9 +116,9 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
             (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
             (isTargetArr && isArray(source) && targetValue.length > 0)
         ) {
-            const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
+            const keys: any[] = Object.keys(source);
             for (let i = 0; i < keys.length; i++) {
-                const key = isTargetArr ? i : (keys[i] as string);
+                const key = keys[i] as string;
                 const sourceValue = source[key];
                 if (sourceValue === symbolDelete) {
                     needsSet && target[key]?.delete

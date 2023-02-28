@@ -34,4 +34,48 @@ describe('mergeIntoObservable', () => {
         expect(merged).toEqual({ a: 1 });
         expect(isObservable(merged)).toBe(false);
     });
+
+    it('should not merge undefined with sparse array', () => {
+        const target = {
+            id: {
+                panes: [
+                    {
+                        item: 'a',
+                    },
+                    {
+                        item: 'a',
+                    },
+                    {
+                        item: 'a',
+                    },
+                ],
+            },
+        };
+        const panes = [];
+        panes[1] = {
+            item: 'B',
+        };
+        const source = {
+            id: {
+                panes,
+            },
+        };
+
+        mergeIntoObservable(target, source);
+        expect(target).toEqual({
+            id: {
+                panes: [
+                    {
+                        item: 'a',
+                    },
+                    {
+                        item: 'B',
+                    },
+                    {
+                        item: 'a',
+                    },
+                ],
+            },
+        });
+    });
 });
