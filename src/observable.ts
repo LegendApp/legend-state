@@ -116,8 +116,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     let prevChildrenById: Map<string | number, ChildNodeValue> | undefined;
     let moved: [string | number, ChildNodeValue][] | undefined;
 
-    // If array it's faster to just use the array
-    const keys: string[] = isArr ? obj : obj ? Object.keys(obj) : [];
+    const keys = obj ? Object.keys(obj) : [];
 
     let idField: IDKey | undefined;
     let hasADiff = false;
@@ -176,7 +175,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         let didMove = false;
 
         for (let i = 0; i < length; i++) {
-            const key = isArr ? i : keys[i];
+            const key = isArr ? +keys[i] : keys[i];
             const value = (obj as any)[key];
             const prev = prevValue?.[key];
 
