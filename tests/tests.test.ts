@@ -470,6 +470,20 @@ describe('Listeners', () => {
             },
         ]);
     });
+    test('Start 0 set to null', () => {
+        const obs = observable(0);
+        const handler = expectChangeHandler(obs);
+        obs.set(null);
+        expect(handler).toHaveBeenCalledWith(null, 0, [
+            {
+                path: [],
+                pathTypes: [],
+                valueAtPath: null,
+                prevAtPath: 0,
+            },
+        ]);
+        expect(obs.peek()).toEqual(null);
+    });
     test('Start undefined set to something', () => {
         interface Data {
             test: undefined | Record<string, string>;
