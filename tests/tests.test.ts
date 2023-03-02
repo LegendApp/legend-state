@@ -1543,6 +1543,18 @@ describe('Array', () => {
         });
         expect(obs.test.filter((a) => isObservable(a))).toHaveLength(1);
     });
+    test('Notifies on second element', () => {
+        const obs = observable({
+            test: [{ text: 1 }, { text: 2 }],
+        });
+        const handler = expectChangeHandler(obs.test[0].text);
+        const handler2 = expectChangeHandler(obs.test[1].text);
+        obs.set({ test: [{ text: 11 }, { text: 22 }] });
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler2).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith(11, 1, [{ path: [], pathTypes: [], prevAtPath: 1, valueAtPath: 11 }]);
+        expect(handler2).toHaveBeenCalledWith(22, 2, [{ path: [], pathTypes: [], prevAtPath: 2, valueAtPath: 22 }]);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
