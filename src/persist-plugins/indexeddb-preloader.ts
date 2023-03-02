@@ -228,6 +228,13 @@ export function preloadIndexedDB({
         };
     }
 
+    const preloadData: {
+        tableData?: any;
+        tableMetadata?: any;
+        dataPromise?: Promise<any>;
+    } = {};
+    (window as any).__legend_state_preload = preloadData;
+
     let code = workerCode.toString().replace(/^function .+\{?|\}$/g, '');
 
     if (processTables) {
@@ -240,13 +247,12 @@ export function preloadIndexedDB({
 
     const promise = new Promise((resolve) => {
         worker.onmessage = (e) => {
-            Object.assign((window as any).__legend_state_preload, e.data);
+            preloadData.tableData = e.data.tableData;
+            preloadData.tableMetadata = e.data.tableMetadata;
 
             resolve(e.data);
         };
     });
 
-    (window as any).__legend_state_preload = {
-        dataPromise: promise,
-    };
+    preloadData.dataPromise = promise;
 }
