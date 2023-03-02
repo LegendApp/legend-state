@@ -117,6 +117,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     let moved: [string | number, ChildNodeValue][] | undefined;
 
     const keys = obj ? Object.keys(obj) : [];
+    const keysPrev = prevValue ? Object.keys(prevValue) : [];
 
     let idField: IDKey | undefined;
     let hasADiff = false;
@@ -147,7 +148,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
     } else if (prevValue && (!obj || obj.hasOwnProperty)) {
         // For keys that have been removed from object, notify and update children recursively
-        const keysPrev = Object.keys(prevValue);
         const lengthPrev = keysPrev.length;
         for (let i = 0; i < lengthPrev; i++) {
             const key = keysPrev[i];
@@ -170,76 +170,79 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     if (obj && !isPrimitive(obj)) {
         const length = keys.length;
 
-        hasADiff = hasADiff || obj?.length !== prevValue?.length;
+        hasADiff = hasADiff || keys?.length !== keysPrev?.length;
         const isArrDiff = hasADiff;
         let didMove = false;
 
-        for (let i = 0; i < length; i++) {
-            const key = isArr ? +keys[i] : keys[i];
-            const value = (obj as any)[key];
-            const prev = prevValue?.[key];
+        if (parent.descendantHasListener || !hasADiff) {
+            for (let i = 0; i < length; i++) {
+                const key = isArr ? +keys[i] : keys[i];
+                const value = obj[key];
+                const prev = prevValue?.[key];
 
-            let isDiff = value !== prev;
-            if (isDiff) {
-                const id = value?.[idField as IDKey];
-
-                let child = getChildNode(parent, key);
-
-                // Detect moves within an array. Need to move the original proxy to the new position to keep
-                // the proxy stable, so that listeners to this node will be unaffected by the array shift.
-                if (isArr && id !== undefined) {
-                    // Find the previous position of this element in the array
-                    const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
-                    if (!prevChild) {
-                        // This id was not in the array before so it does not need to notify children
-                        isDiff = false;
-                        hasADiff = true;
-                    } else if (prevChild !== undefined && prevChild.key !== key) {
-                        // If array length changed then move the original node to the current position.
-                        // That should be faster than notifying every single element that
-                        // it's in a new position.
-                        if (isArrDiff) {
-                            child = prevChild;
-                            parent.children!.delete(child.key);
-                            child.key = key;
-                            moved!.push([key, child]);
-                        }
-
-                        didMove = true;
-
-                        // And check for diff against the previous value in the previous position
-                        const prevOfNode = prevChild;
-                        isDiff = prevOfNode !== value;
-                    }
-                }
-
+                let isDiff = value !== prev;
                 if (isDiff) {
-                    // Array has a new / modified element
-                    // If object iterate through its children
-                    if (isPrimitive(value)) {
-                        hasADiff = true;
-                    } else {
-                        // Always need to updateNodes so we notify through all children
-                        const updatedNodes = updateNodes(child, value, prev);
-                        hasADiff = hasADiff || updatedNodes;
+                    const id = value?.[idField as IDKey];
+
+                    let child = getChildNode(parent, key);
+
+                    // Detect moves within an array. Need to move the original proxy to the new position to keep
+                    // the proxy stable, so that listeners to this node will be unaffected by the array shift.
+                    if (isArr && id !== undefined) {
+                        // Find the previous position of this element in the array
+                        const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
+                        if (!prevChild) {
+                            // This id was not in the array before so it does not need to notify children
+                            isDiff = false;
+                            hasADiff = true;
+                        } else if (prevChild !== undefined && prevChild.key !== key) {
+                            // If array length changed then move the original node to the current position.
+                            // That should be faster than notifying every single element that
+                            // it's in a new position.
+                            if (isArrDiff) {
+                                child = prevChild;
+                                parent.children!.delete(child.key);
+                                child.key = key;
+                                moved!.push([key, child]);
+                            }
+
+                            didMove = true;
+
+                            // And check for diff against the previous value in the previous position
+                            const prevOfNode = prevChild;
+                            isDiff = prevOfNode !== value;
+                        }
                     }
-                }
-                if (isDiff || !isArrDiff) {
-                    // Notify for this child if this element is different and it has listeners
-                    // Or if the position changed in an array whose length did not change
-                    // But do not notify child if the parent is an array with changing length -
-                    // the array's listener will cover it
-                    if (child.listeners) {
-                        doNotify(child, value, [], [], value, prev, 0, !isArrDiff);
+
+                    if (isDiff) {
+                        // Array has a new / modified element
+                        // If object iterate through its children
+                        if (isPrimitive(value)) {
+                            hasADiff = true;
+                        } else {
+                            // Always need to updateNodes so we notify through all children
+                            const updatedNodes =
+                                (!hasADiff || child.descendantHasListener) && updateNodes(child, value, prev);
+                            hasADiff = hasADiff || updatedNodes;
+                        }
+                    }
+                    if (isDiff || !isArrDiff) {
+                        // Notify for this child if this element is different and it has listeners
+                        // Or if the position changed in an array whose length did not change
+                        // But do not notify child if the parent is an array with changing length -
+                        // the array's listener will cover it
+                        if (child.listeners) {
+                            doNotify(child, value, [], [], value, prev, 0, !isArrDiff);
+                        }
                     }
                 }
             }
-        }
 
-        if (moved) {
-            for (let i = 0; i < moved.length; i++) {
-                const [key, child] = moved[i];
-                parent.children!.set(key, child);
+            if (moved) {
+                for (let i = 0; i < moved.length; i++) {
+                    const [key, child] = moved[i];
+                    parent.children!.set(key, child);
+                }
             }
         }
 

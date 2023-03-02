@@ -364,6 +364,7 @@ interface BaseNodeValue {
     root: ObservableWrapper;
     listeners?: Set<NodeValueListener>;
     fns?: Record<string, Function>;
+    descendantHasListener?: boolean;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
