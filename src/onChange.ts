@@ -17,6 +17,12 @@ export function onChange(
 
     listeners.add(listener);
 
+    let parent = node.parent;
+    while (parent && !parent.descendantHasListener) {
+        parent.descendantHasListener = true;
+        parent = parent.parent;
+    }
+
     if (options?.initial) {
         const value = getNodeValue(node);
         callback({
