@@ -191,7 +191,6 @@ describe('Two way Computed', () => {
         expect(obs.test.get()).toEqual(true);
     });
     test('Two way computed value is set before calling setter', () => {
-        let cur = 0;
         const obs = observable(0);
 
         const comp = computed(

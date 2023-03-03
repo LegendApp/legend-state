@@ -34,6 +34,7 @@ export function enableLegendStateReact() {
         extraPrimitiveActivators.set('$$typeof', true);
         extraPrimitiveActivators.set(Symbol.toPrimitive, true);
 
+        // eslint-disable-next-line no-inner-declarations
         function set(key, value) {
             s.set(key, value);
             proto[key] = { configurable: true, value };
