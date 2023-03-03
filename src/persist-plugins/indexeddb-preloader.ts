@@ -102,8 +102,12 @@ export function preloadIndexedDB({
                                 } else if (mapped !== null) {
                                     if (v !== undefined && v !== null) {
                                         if (map[key + '_val']) {
-                                            const valMap = map[key + '_val'];
-                                            v = valMap[key];
+                                            const mapChild = map[key + '_val'];
+                                            if (isArray(v)) {
+                                                v = v.map((vChild) => mapChild[vChild]);
+                                            } else {
+                                                v = mapChild[v];
+                                            }
                                         } else if (map[key + '_arr'] && isArray(v)) {
                                             const mapChild = map[key + '_arr'];
                                             v = v.map((vChild) => transformObject(vChild, mapChild));
@@ -112,7 +116,7 @@ export function preloadIndexedDB({
                                                 v = transformObject(v, map[key + '_obj']);
                                             } else if (map[key + '_dict']) {
                                                 const mapChild = map[key + '_dict'];
-                                                let out = {};
+                                                const out = {};
                                                 Object.keys(v).forEach((keyChild) => {
                                                     out[keyChild] = transformObject(v[keyChild], mapChild);
                                                 });

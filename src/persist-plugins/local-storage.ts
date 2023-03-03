@@ -30,7 +30,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
             this.data[table] = {};
         }
         for (let i = 0; i < changes.length; i++) {
-            let { path, valueAtPath, pathTypes } = changes[i];
+            const { path, valueAtPath, pathTypes } = changes[i];
             this.data[table] = setAtPath(this.data[table], path as string[], pathTypes, valueAtPath);
         }
         this.save(table);

@@ -81,7 +81,7 @@ export function adjustSaveData(
         };
 
         if (adjustData?.save) {
-            let constructed = constructObjectWithPath(path, value, pathTypes);
+            const constructed = constructObjectWithPath(path, value, pathTypes);
             const saved = adjustData.save(constructed);
             const deconstruct = (toDeconstruct) => {
                 value = deconstructObjectWithPath(path, toDeconstruct);
@@ -126,7 +126,7 @@ function updateMetadata<T>(
     const { table, config } = parseLocalConfig(local);
 
     // Save metadata
-    let oldMetadata: PersistMetadata = metadatas.get(obs);
+    const oldMetadata: PersistMetadata = metadatas.get(obs);
 
     const { modified, pending } = newMetadata;
 

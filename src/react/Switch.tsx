@@ -8,7 +8,7 @@ export function Switch<T>(props: {
     children: Record<any, () => ReactNode>;
     default?: ReactNode;
 }): ReactElement;
-export function Switch<T>(props: { children: ReactNode[]; default?: ReactNode }): ReactElement;
+export function Switch(props: { children: ReactNode[]; default?: ReactNode }): ReactElement;
 export function Switch<T>({
     value,
     children,

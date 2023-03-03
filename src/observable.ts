@@ -67,6 +67,7 @@ const objectFns = new Map<string, Function>([
 ]);
 
 if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    // eslint-disable-next-line no-var
     var __devUpdateNodes = new Set();
 }
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
