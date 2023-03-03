@@ -363,6 +363,7 @@ interface BaseNodeValue {
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
     listeners?: Set<NodeValueListener>;
+    // eslint-disable-next-line @typescript-eslint/ban-types
     fns?: Record<string, Function>;
     descendantHasListener?: boolean;
 }
