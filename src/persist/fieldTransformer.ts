@@ -60,18 +60,15 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                 } else if (mapped !== null) {
                     if (v !== undefined && v !== null) {
                         if (map[key + '_val']) {
-                            const valMap = map[key + '_val'];
-                            v = valMap[key];
-                        } else if (map[key + '_arr'] && isArray(v)) {
-                            const mapChild = map[key + '_arr'];
-                            v = v.map((vChild) => transformObject(vChild, mapChild));
-                        } else if (map[key + '_val']) {
                             const mapChild = map[key + '_val'];
                             if (isArray(v)) {
                                 v = v.map((vChild) => mapChild[vChild]);
                             } else {
                                 v = mapChild[v];
                             }
+                        } else if (map[key + '_arr'] && isArray(v)) {
+                            const mapChild = map[key + '_arr'];
+                            v = v.map((vChild) => transformObject(vChild, mapChild));
                         } else if (isObject(v)) {
                             if (map[key + '_obj']) {
                                 v = transformObject(v, map[key + '_obj']);
