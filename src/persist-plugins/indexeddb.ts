@@ -22,7 +22,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
     public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
         if (typeof indexedDB === 'undefined') return;
-        if (process.env.NODE_ENV === 'development' && !config) {
+        if (process.env.NODE_ENV === 'development' && !config?.indexedDB) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
 
@@ -54,17 +54,22 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                         tableData: any;
                         tableMetadata: any;
                         dataPromise: Promise<any>;
+                        error: any;
                     });
 
                 let didPreload = false;
                 if (preload) {
-                    // Load from preload or wait for it to finish, if it exists
-                    if (!preload.tableData && preload.dataPromise) {
-                        await preload.dataPromise;
+                    if (preload.error) {
+                        config.onLoadError?.(preload.error);
+                    } else {
+                        // Load from preload or wait for it to finish, if it exists
+                        if (!preload.tableData && preload.dataPromise) {
+                            await preload.dataPromise;
+                        }
+                        this.tableData = preload.tableData || {};
+                        this.tableMetadata = preload.tableMetadata || {};
+                        didPreload = !!preload.tableData;
                     }
-                    this.tableData = preload.tableData;
-                    this.tableMetadata = preload.tableMetadata;
-                    didPreload = !!preload.tableData;
                 }
                 if (!didPreload) {
                     // Load each table

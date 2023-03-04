@@ -400,16 +400,19 @@ export interface ObserveEventCallback<T> {
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }
+export interface ObservablePersistenceConfigLocalOptions {
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
+    indexedDB?: {
+        databaseName: string;
+        version: number;
+        tableNames: string[];
+    };
+}
 export interface ObservablePersistenceConfig {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemote>;
-    persistLocalOptions?: {
-        indexedDB?: {
-            databaseName: string;
-            version: number;
-            tableNames: string[];
-        };
-    };
+    persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
     saveTimeout?: number;
     dateModifiedKey?: string;
 }
