@@ -45,15 +45,6 @@ export const mapPersistences: WeakMap<
 export const persistState = observable({ inRemoteSync: false });
 const metadatas = new WeakMap<ObservableReadable<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
-const metadatasAwaitingSave = new WeakMap<
-    ObservableReadable<any>,
-    {
-        localState: LocalState;
-        obsState: ObservableObject<ObservablePersistState>;
-        persistOptions: PersistOptions<any>;
-        newMetadata: PersistMetadata;
-    }
->();
 
 interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
@@ -124,35 +115,37 @@ export function adjustLoadData(
     return value;
 }
 
-async function _updateMetadata(obs: ObservableReadable<any>) {
-    const awaiting = metadatasAwaitingSave.get(obs);
-    if (awaiting) {
-        const saves = Array.from(promisesLocalSaves);
-        if (saves.length > 0) {
-            await Promise.all(saves);
-        }
-        const { localState, newMetadata, obsState, persistOptions } = awaiting;
+async function updateMetadataImmediate<T>(
+    obs: ObservableReadable<any>,
+    localState: LocalState,
+    obsState: ObservableObject<ObservablePersistState>,
+    persistOptions: PersistOptions<T>,
+    newMetadata: PersistMetadata
+) {
+    const saves = Array.from(promisesLocalSaves);
+    if (saves.length > 0) {
+        await Promise.all(saves);
+    }
 
-        const { persistenceLocal } = localState;
-        const local = persistOptions.local;
-        const { table, config } = parseLocalConfig(local);
+    const { persistenceLocal } = localState;
+    const local = persistOptions.local;
+    const { table, config } = parseLocalConfig(local);
 
-        // Save metadata
-        const oldMetadata: PersistMetadata = metadatas.get(obs);
+    // Save metadata
+    const oldMetadata: PersistMetadata = metadatas.get(obs);
 
-        const { modified, pending } = newMetadata;
+    const { modified, pending } = newMetadata;
 
-        const needsUpdate =
-            (pending && !isEmpty(pending)) || (modified && (!oldMetadata || modified !== oldMetadata.modified));
+    const needsUpdate =
+        (pending && !isEmpty(pending)) || (modified && (!oldMetadata || modified !== oldMetadata.modified));
 
-        if (needsUpdate) {
-            const metadata = Object.assign({}, oldMetadata, newMetadata);
-            metadatas.set(obs, metadata);
-            persistenceLocal.updateMetadata(table, metadata, config);
+    if (needsUpdate) {
+        const metadata = Object.assign({}, oldMetadata, newMetadata);
+        metadatas.set(obs, metadata);
+        await persistenceLocal.updateMetadata(table, metadata, config);
 
-            if (modified) {
-                obsState.dateModified.set(modified);
-            }
+        if (modified) {
+            obsState.dateModified.set(modified);
         }
     }
 }
@@ -164,16 +157,13 @@ function updateMetadata<T>(
     persistOptions: PersistOptions<T>,
     newMetadata: PersistMetadata
 ) {
-    if (metadatasAwaitingSave.has(obs)) {
-        metadatasAwaitingSave.get(obs).newMetadata = newMetadata;
-    } else {
-        metadatasAwaitingSave.set(obs, { localState, obsState, persistOptions, newMetadata });
-    }
-
     if (localState.timeoutSaveMetadata) {
         clearTimeout(localState.timeoutSaveMetadata);
     }
-    localState.timeoutSaveMetadata = setTimeout(() => _updateMetadata(obs), 30);
+    localState.timeoutSaveMetadata = setTimeout(
+        () => updateMetadataImmediate(obs, localState, obsState, persistOptions, newMetadata),
+        30
+    );
 }
 
 async function onObsChange<T>(
@@ -209,18 +199,20 @@ async function onObsChange<T>(
         if (saveRemote) {
             for (let i = 0; i < changes.length; i++) {
                 const { path, valueAtPath, prevAtPath, pathTypes } = changes[i];
-                const pathStr = path.join('/');
+                if (!path.includes(undefined)) {
+                    const pathStr = path.join('/');
 
-                if (!localState.pendingChanges) {
-                    localState.pendingChanges = {};
-                }
-                // The value saved in pending should be the previous state before changes,
-                // so don't overwrite it if it already exists
-                if (!localState.pendingChanges[pathStr]) {
-                    localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
-                }
+                    if (!localState.pendingChanges) {
+                        localState.pendingChanges = {};
+                    }
+                    // The value saved in pending should be the previous state before changes,
+                    // so don't overwrite it if it already exists
+                    if (!localState.pendingChanges[pathStr]) {
+                        localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
+                    }
 
-                localState.pendingChanges[pathStr].v = valueAtPath;
+                    localState.pendingChanges[pathStr].v = valueAtPath;
+                }
             }
         }
 
@@ -229,12 +221,12 @@ async function onObsChange<T>(
         const changesPaths = new Set<string>();
 
         const promisesAdjustData: Promise<any>[] = [];
-        changes.forEach((_, i) => {
-            // Reverse order
-            // eslint-disable-next-line prefer-const
-            let { path, prevAtPath, valueAtPath, pathTypes } = changes[changes.length - 1 - i];
+        // Reverse order
+        for (let i = changes.length - 1; i >= 0; i--) {
+            const { path, prevAtPath, valueAtPath, pathTypes } = changes[i];
 
             if (isSymbol(path[path.length - 1])) {
+                debugger;
                 return;
             }
             const pathStr = path.join('/');
@@ -251,6 +243,20 @@ async function onObsChange<T>(
                     // If path includes undefined there was a null in fieldTransforms so don't need to save it
                     if (!path.includes(undefined)) {
                         changesLocal.push({ path, pathTypes, prevAtPath, valueAtPath: value });
+
+                        // Prepare pending changes
+                        if (saveRemote) {
+                            if (!localState.pendingChanges) {
+                                localState.pendingChanges = {};
+                            }
+                            // The value saved in pending should be the previous state before changes,
+                            // so don't overwrite it if it already exists
+                            if (!localState.pendingChanges[pathStr]) {
+                                localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
+                            }
+
+                            localState.pendingChanges[pathStr].v = valueAtPath;
+                        }
                     }
                 };
 
@@ -260,7 +266,7 @@ async function onObsChange<T>(
                     push(promise);
                 }
             }
-        });
+        }
 
         // Save the changes to local persistence
         const doSet = () => {
@@ -285,74 +291,87 @@ async function onObsChange<T>(
     }
 
     if (saveRemote) {
-        // Save metadata
-        updateMetadata(obs, localState, obsState, persistOptions, {
+        // Save pending changes before saving remote
+        await updateMetadataImmediate(obs, localState, obsState, persistOptions, {
             pending: localState.pendingChanges,
         });
 
+        // Wait for remote to be ready before saving
         await when(
             () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
         );
 
-        changes.forEach(async (change) => {
-            const { path, valueAtPath, prevAtPath, pathTypes } = change;
-            const pathStr = path.join('/');
+        const saves = await Promise.all(
+            changes.map(async (change) => {
+                const { path, valueAtPath, prevAtPath, pathTypes } = change;
+                const pathStr = path.join('/');
 
-            const { path: pathSave, value: valueSave } = await adjustSaveData(
-                valueAtPath,
-                path as string[],
-                pathTypes,
-                configRemote
-            );
+                const { path: pathSave, value: valueSave } = await adjustSaveData(
+                    valueAtPath,
+                    path as string[],
+                    pathTypes,
+                    configRemote
+                );
 
-            // If path includes undefined there was a null in fieldTransforms so don't need to save it
-            if (!pathSave.includes(undefined)) {
-                // Save to remote persistence
-                persistenceRemote
-                    .save({
-                        obs,
-                        state: obsState,
-                        options: persistOptions,
-                        path: pathSave,
-                        pathTypes,
-                        valueAtPath: valueSave,
-                        prevAtPath,
-                    })
-                    .then(({ changes, dateModified }) => {
-                        if (local) {
-                            const pending = persistenceLocal.getMetadata(table, config)?.pending;
+                // If path includes undefined there was a null in fieldTransforms so don't need to save it
+                if (!pathSave.includes(undefined)) {
+                    // Save to remote persistence
+                    return persistenceRemote
+                        .save({
+                            obs,
+                            state: obsState,
+                            options: persistOptions,
+                            path: pathSave,
+                            pathTypes,
+                            valueAtPath: valueSave,
+                            prevAtPath,
+                        })
+                        .then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
+                }
+            })
+        );
 
-                            const metadata: PersistMetadata = {};
+        if (saves.length > 0) {
+            if (local) {
+                const pending = persistenceLocal.getMetadata(table, config)?.pending;
 
-                            // Clear pending for this path
-                            if (pending?.[pathStr]) {
-                                // Remove pending from the saved object
-                                delete pending[pathStr];
-                                // Remove pending from local state
-                                delete localState.pendingChanges[pathStr];
-                                metadata.pending = pending;
-                            }
+                const metadata: PersistMetadata = {};
 
-                            if (dateModified) {
-                                metadata.modified = dateModified;
-                            }
+                const adjustedChanges = [];
 
-                            if (changes && !isEmpty(changes)) {
-                                const adjustedChanges = adjustLoadData(changes, persistOptions.remote);
-
-                                onChangeRemote(() => mergeIntoObservable(obs, adjustedChanges));
-                            }
-
-                            if (!isEmpty(metadata)) {
-                                // Do this in a timeout to make sure it saves all the changes first before
-                                // saving the metadata, and that it only happens once after multiple saves
-                                updateMetadata(obs, localState, obsState, persistOptions, metadata);
-                            }
+                for (let i = 0; i < saves.length; i++) {
+                    const save = saves[i];
+                    if (save) {
+                        const { changes, dateModified, pathStr } = save;
+                        // Clear pending for this path
+                        if (pending?.[pathStr]) {
+                            // Remove pending from the saved object
+                            delete pending[pathStr];
+                            // Remove pending from local state
+                            delete localState.pendingChanges[pathStr];
+                            metadata.pending = pending;
                         }
-                        localState.onSaveRemote?.();
-                    });
+
+                        if (dateModified) {
+                            metadata.modified = dateModified;
+                        }
+
+                        if (changes && !isEmpty(changes)) {
+                            adjustedChanges.push(adjustLoadData(changes, persistOptions.remote));
+                        }
+                    }
+                }
+
+                if (adjustedChanges.length > 0) {
+                    onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
+                }
+
+                if (!isEmpty(metadata)) {
+                    updateMetadata(obs, localState, obsState, persistOptions, metadata);
+                }
             }
-        });
+            localState.onSaveRemote?.();
+        }
     }
 }
 
@@ -572,6 +591,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                     },
                 });
 
+                // Wait for remote to be ready before saving pending
                 await when(
                     () => obsState.isLoadedRemote.get() || (remote.allowSaveIfError && obsState.remoteError.get())
                 );

@@ -158,7 +158,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const { tableName } = this.getMetadataTableName(table, config);
         return this.tableMetadata[tableName];
     }
-    public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<void> {
+    public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
         this.tableMetadata[tableName] = Object.assign(metadata, {
@@ -166,7 +166,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
         this.tableMetadata[tableName] = metadata;
         const store = this.transactionStore(table);
-        store.put(metadata);
+        return store.put(metadata);
     }
     public async deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void> {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
