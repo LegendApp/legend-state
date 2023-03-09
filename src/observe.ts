@@ -1,17 +1,23 @@
 import { beginBatch, endBatch } from './batching';
 import { symbolIsEvent } from './globals';
 import { computeSelector } from './helpers';
+import { isFunction } from './is';
 import { ObserveEvent, ObserveEventCallback, Selector, TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 import { beginTracking, endTracking, tracking } from './tracking';
 
-function setupTracking(nodes: Map<number, TrackingNode> | undefined, update: () => void, noArgs?: boolean) {
+function setupTracking(
+    nodes: Map<number, TrackingNode> | undefined,
+    update: () => void,
+    noArgs?: boolean,
+    immediate?: boolean
+) {
     let listeners: (() => void)[] | undefined = [];
     // Listen to tracked nodes
     if (nodes) {
         for (const tracked of nodes.values()) {
             const { node, track } = tracked;
-            listeners.push(onChange(node, update, { trackingType: track }, noArgs));
+            listeners.push(onChange(node, update, { trackingType: track, immediate }, noArgs));
         }
     }
 
@@ -25,12 +31,27 @@ function setupTracking(nodes: Map<number, TrackingNode> | undefined, update: () 
     };
 }
 
-export function observe<T>(run: (e: ObserveEvent<T>) => T | void): () => void;
-export function observe<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): () => void;
+interface ObserveOptions {
+    immediate?: boolean;
+}
+
+export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
+export function observe<T>(
+    selector: Selector<T>,
+    reaction?: (e: ObserveEventCallback<T>) => T | void,
+    options?: ObserveOptions
+): () => void;
 export function observe<T>(
     selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => T | void),
-    reaction?: (e: ObserveEventCallback<T>) => T | void
+    reactionOrOptions?: ((e: ObserveEventCallback<T>) => T | void) | ObserveOptions,
+    options?: ObserveOptions
 ) {
+    let reaction: (e: ObserveEventCallback<T>) => T | void;
+    if (isFunction(reactionOrOptions)) {
+        reaction = reactionOrOptions;
+    } else {
+        options = reactionOrOptions;
+    }
     let dispose: () => void;
     const e: ObserveEventCallback<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
@@ -71,7 +92,7 @@ export function observe<T>(
                 }
 
                 // Setup tracking with the nodes that were accessed
-                dispose = setupTracking(tracker.nodes, update, noArgs);
+                dispose = setupTracking(tracker.nodes, update, noArgs, options?.immediate);
             }
         }
 

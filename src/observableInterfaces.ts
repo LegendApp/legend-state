@@ -350,10 +350,11 @@ export type ObservableReadable<T = any> =
 
 export type ObservableWriteable<T = any> = ObservableReadable<T> & { set: any };
 
-interface NodeValueListener {
+export interface NodeValueListener {
     track: TrackingType;
     noArgs?: boolean;
     listener: ListenerFn;
+    immediate?: boolean;
 }
 
 interface BaseNodeValue {
