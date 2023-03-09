@@ -215,4 +215,61 @@ describe('Two way Computed', () => {
         increment(3);
         increment(4);
     });
+    test('Computed values are set correctly while in batch', () => {
+        const obs = observable(0);
+
+        const comp = computed(() => obs.get() + 'A');
+
+        // First get activates it
+        expect(comp.get()).toEqual('0A');
+
+        beginBatch();
+        obs.set(1);
+        expect(comp.get()).toEqual('1A');
+        endBatch();
+    });
+    test('Computed values are set correctly while in batch nested', () => {
+        const obs = observable(0);
+
+        const comp = computed(() => obs.get() + 'A');
+        const comp2 = computed(() => comp.get() + 'B');
+        const comp3 = computed(() => comp2.get() + 'C');
+
+        const handler = expectChangeHandler(obs);
+        const handler3 = expectChangeHandler(comp3);
+
+        // First get activates it
+        expect(comp.get()).toEqual('0A');
+        expect(comp2.get()).toEqual('0AB');
+        expect(comp3.get()).toEqual('0ABC');
+
+        beginBatch();
+        obs.set(1);
+        expect(comp.get()).toEqual('1A');
+        expect(comp2.get()).toEqual('1AB');
+        expect(comp3.get()).toEqual('1ABC');
+        // Callback should not have been called because it's still batching
+        expect(handler).toHaveBeenCalledTimes(0);
+        expect(handler3).toHaveBeenCalledTimes(0);
+
+        endBatch();
+
+        expect(handler).toHaveBeenCalledWith(1, 0, [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 0,
+                valueAtPath: 1,
+            },
+        ]);
+        expect(handler3).toHaveBeenCalledWith('1ABC', '0ABC', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: '0ABC',
+                valueAtPath: '1ABC',
+            },
+        ]);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
 });

@@ -1,10 +1,10 @@
 import { checkActivate, getNodeValue } from './globals';
-import type { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
+import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
-    options?: { trackingType?: TrackingType; initial?: boolean },
+    options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean },
     noArgs?: boolean
 ): () => void {
     let listeners = node.listeners;
@@ -13,7 +13,12 @@ export function onChange(
     }
     checkActivate(node);
 
-    const listener = { listener: callback, track: options?.trackingType, noArgs };
+    const listener: NodeValueListener = {
+        listener: callback,
+        track: options?.trackingType,
+        noArgs,
+        immediate: options?.immediate,
+    };
 
     listeners.add(listener);
 

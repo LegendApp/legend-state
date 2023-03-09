@@ -23,17 +23,16 @@ function onActionTimeout() {
     }
 }
 
-export function batchNotify(b: BatchItem | (() => void)) {
+export function batchNotify(b: BatchItem | (() => void), immediate: boolean) {
     const isFunc = isFunction(b);
     const cb = isFunc ? b : b.cb;
-    if (numInBatch > 0) {
+    if (!immediate && numInBatch > 0) {
         // Set a timeout to call end() in case end() is never called or there's an uncaught error
         if (!timeout) {
             timeout = setTimeout(onActionTimeout, 0);
         }
 
         const existing = _batchMap.get(cb);
-        const it = isFunc ? true : b;
         // If this callback already exists, make sure it has the latest value but do not add it
         if (existing) {
             if (!isFunc) {
@@ -43,17 +42,19 @@ export function batchNotify(b: BatchItem | (() => void)) {
             }
         } else {
             _batch.push(b);
-            _batchMap.set(cb, it);
+            _batchMap.set(cb, isFunc ? true : b);
         }
     } else {
         // If not batched callback immediately
         isFunc ? b() : b.cb(b.params);
 
-        // Run afterBatch callbacks if this is not batched
-        const after = _afterBatch;
-        _afterBatch = [];
-        for (let i = 0; i < after.length; i++) {
-            after[i]();
+        if (numInBatch === 0) {
+            // Run afterBatch callbacks if this is not batched
+            const after = _afterBatch;
+            _afterBatch = [];
+            for (let i = 0; i < after.length; i++) {
+                after[i]();
+            }
         }
     }
 }

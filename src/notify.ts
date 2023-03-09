@@ -37,7 +37,7 @@ export function doNotify(
         const arr = Array.from(listeners);
         for (let i = 0; i < arr.length; i++) {
             const listenerFn = arr[i];
-            const { track, noArgs } = listenerFn;
+            const { track, noArgs, immediate, listener } = listenerFn;
 
             const ok =
                 track === true || track === 'shallow'
@@ -53,11 +53,12 @@ export function doNotify(
                 if (!noArgs && !getPrevious) {
                     getPrevious = createPreviousHandler(value, path, prevAtPath);
                 }
+
                 batchNotify(
                     noArgs
-                        ? (listenerFn.listener as () => void)
+                        ? (listener as () => void)
                         : {
-                              cb: listenerFn.listener,
+                              cb: listener,
                               params: {
                                   value,
                                   getPrevious,
@@ -70,7 +71,8 @@ export function doNotify(
                                       },
                                   ],
                               },
-                          }
+                          },
+                    immediate
                 );
             }
         }

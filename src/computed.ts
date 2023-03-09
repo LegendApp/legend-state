@@ -31,13 +31,17 @@ export function computed<T, T2 = T>(
         }
     };
     node.root.activate = () => {
-        observe(compute, ({ value }) => {
-            if (isPromise<T>(value)) {
-                value.then((v) => setInner(v));
-            } else {
-                setInner(value);
-            }
-        });
+        observe(
+            compute,
+            ({ value }) => {
+                if (isPromise<T>(value)) {
+                    value.then((v) => setInner(v));
+                } else {
+                    setInner(value);
+                }
+            },
+            { immediate: true }
+        );
     };
 
     if (set) {
