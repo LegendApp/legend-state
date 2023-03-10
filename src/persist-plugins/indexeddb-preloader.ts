@@ -249,12 +249,12 @@ export function preloadIndexedDB({
     const worker = new Worker(url);
     worker.postMessage([databaseName, tableNames, loadTables, version, fieldTransforms]);
 
-    const promise = new Promise((resolve) => {
+    const promise = new Promise<void>((resolve) => {
         worker.onmessage = (e) => {
             preloadData.tableData = e.data.tableData;
             preloadData.tableMetadata = e.data.tableMetadata;
 
-            resolve(e.data);
+            resolve();
         };
     });
 
