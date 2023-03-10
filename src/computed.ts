@@ -47,11 +47,6 @@ export function computed<T, T2 = T>(
     if (set) {
         node.fns = {
             set: (_: NodeValue, value: any) => {
-                // Set the correct value first
-                setInner(value);
-                // Then call the setter for its side effects.
-                // It's possible the setter will cause compute to return a different value,
-                // but in correct cases the setInner triggered by compute will no-op.
                 batch(() => set(value));
             },
         };
