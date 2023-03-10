@@ -12,13 +12,13 @@ interface PropsIfHasData<T> {
     ifHasData: Selector<T>;
 }
 
-interface PropsBase {
+interface PropsBase<T> {
     else?: ReactNode | (() => ReactNode);
     wrap?: FC;
     children: ReactNode | ((value?: T) => ReactNode);
 }
 
-type Props<T> = PropsBase & (PropsIf<T> | PropsIfHasData<T>);
+type Props<T> = PropsBase<T> & (PropsIf<T> | PropsIfHasData<T>);
 
 export function Show<T>(props: Props<T>): ReactElement;
 export function Show<T>({ if: if_, ifHasData, else: else_, wrap, children }: Props<T>): ReactElement {
