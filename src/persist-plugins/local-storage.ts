@@ -25,7 +25,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         const tableData = this.getTable(table);
         return tableData?.[id];
     }
-    public async set(table: string, changes: Change[]): Promise<void> {
+    public set(table: string, changes: Change[]): void {
         if (!this.data[table]) {
             this.data[table] = {};
         }
@@ -36,17 +36,17 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         this.save(table);
     }
     public updateMetadata(table: string, metadata: PersistMetadata) {
-        this.setValue(table + MetadataSuffix, metadata);
+        return this.setValue(table + MetadataSuffix, metadata);
     }
-    public async deleteTable(table: string): Promise<void> {
+    public deleteTable(table: string) {
         delete this.data[table];
         localStorage.removeItem(table);
     }
-    public async deleteMetadata(table: string): Promise<void> {
+    public deleteMetadata(table: string) {
         this.deleteTable(table + MetadataSuffix);
     }
     // Private
-    private async setValue(table: string, value: any) {
+    private setValue(table: string, value: any) {
         this.data[table] = value;
         this.save(table);
     }
