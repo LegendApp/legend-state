@@ -1,5 +1,5 @@
 import { symbolDelete } from '../internal';
-import { isObservable, mergeIntoObservable } from '../src/helpers';
+import { isObservable, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 
 describe('mergeIntoObservable', () => {
@@ -77,5 +77,53 @@ describe('mergeIntoObservable', () => {
                 ],
             },
         });
+    });
+});
+
+describe('isObservableValueReady', () => {
+    test('returns false for empty objects', () => {
+        expect(isObservableValueReady({})).toBe(false);
+    });
+
+    test('returns false for empty arrays', () => {
+        expect(isObservableValueReady([])).toBe(false);
+    });
+
+    test('returns false for null values', () => {
+        expect(isObservableValueReady(null)).toBe(false);
+    });
+
+    test('returns false for undefined values', () => {
+        expect(isObservableValueReady(undefined)).toBe(false);
+    });
+
+    test('returns false for empty strings', () => {
+        expect(isObservableValueReady('')).toBe(false);
+    });
+
+    test('returns true for non-empty strings', () => {
+        expect(isObservableValueReady('hello')).toBe(true);
+    });
+
+    test('returns true for non-empty objects', () => {
+        expect(isObservableValueReady({ name: 'John' })).toBe(true);
+    });
+
+    test('returns true for non-empty arrays', () => {
+        expect(isObservableValueReady([1, 2, 3])).toBe(true);
+    });
+
+    test('returns true for non-empty numbers', () => {
+        expect(isObservableValueReady(42)).toBe(true);
+    });
+
+    test('returns true for non-empty booleans', () => {
+        expect(isObservableValueReady(true)).toBe(true);
+    });
+
+    test('returns true for non-empty functions', () => {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        const myFunc = () => {};
+        expect(isObservableValueReady(myFunc)).toBe(true);
     });
 });
