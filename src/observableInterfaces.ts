@@ -209,11 +209,11 @@ export interface ObservablePersistLocal {
     getTable<T = any>(table: string, config: PersistOptionsLocal): T;
     getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void>;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any>;
-    deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
-    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void>;
-    loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
+    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
+    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
 export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
     preload(path: string): Promise<void>;
