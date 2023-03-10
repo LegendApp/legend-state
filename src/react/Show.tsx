@@ -5,11 +5,11 @@ import { useSelector } from './useSelector';
 
 interface PropsIf<T> {
     if: Selector<T>;
-    ifHasData?: never;
+    ifReady?: never;
 }
-interface PropsIfHasData<T> {
+interface PropsIfReady<T> {
     if?: never;
-    ifHasData: Selector<T>;
+    ifReady: Selector<T>;
 }
 
 interface PropsBase<T> {
@@ -18,13 +18,13 @@ interface PropsBase<T> {
     children: ReactNode | ((value?: T) => ReactNode);
 }
 
-type Props<T> = PropsBase<T> & (PropsIf<T> | PropsIfHasData<T>);
+type Props<T> = PropsBase<T> & (PropsIf<T> | PropsIfReady<T>);
 
 export function Show<T>(props: Props<T>): ReactElement;
-export function Show<T>({ if: if_, ifHasData, else: else_, wrap, children }: Props<T>): ReactElement {
+export function Show<T>({ if: if_, ifReady, else: else_, wrap, children }: Props<T>): ReactElement {
     const child = useSelector(
-        ifHasData !== undefined
-            ? isObservableValueReady(computeSelector(ifHasData))
+        ifReady !== undefined
+            ? isObservableValueReady(computeSelector(ifReady))
             : computeSelector(if_)
             ? children
             : else_
