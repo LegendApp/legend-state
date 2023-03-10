@@ -170,5 +170,5 @@ export function deconstructObjectWithPath(path: (string | number)[], value: any)
     return o;
 }
 export function isObservableValueReady(value: any) {
-    return value && !((isObject(value) && isEmpty(value)) || (isArray(value) && value.length === 0));
+    return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
 }
