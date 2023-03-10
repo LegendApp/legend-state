@@ -1825,7 +1825,7 @@ describe('Delete', () => {
         ]);
     });
 });
-describe('on functions', () => {
+describe('when', () => {
     test('when equals', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
@@ -1885,6 +1885,11 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledTimes(1);
         obs.val.set(10);
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('when with effect is promise', async () => {
+        const obs = observable({ val: false } as any);
+        expect(when(obs.val, () => 'test')).resolves.toEqual('test');
+        obs.val.set(true);
     });
 });
 describe('Shallow', () => {
