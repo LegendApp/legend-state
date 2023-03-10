@@ -127,14 +127,15 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
                 } else {
                     const isObj = isObject(sourceValue);
                     const isArr = !isObj && isArray(sourceValue);
-                    const targetValue = target[key];
-                    if ((isObj || isArr) && target[key] && (isObj ? !isEmpty(targetValue) : targetValue.length > 0)) {
-                        if (!needsSet && (!target[key] || (isObj ? !isObject(target[key]) : !isArray(target[key])))) {
-                            target[key] = isObj ? {} : [];
+                    const targetChild = target[key];
+                    if ((isObj || isArr) && targetChild && !isEmpty(targetChild)) {
+                        if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
+                            target[key] = sourceValue;
+                        } else {
+                            _mergeIntoObservable(targetChild, sourceValue);
                         }
-                        mergeIntoObservable(target[key], sourceValue);
                     } else {
-                        needsSet ? target[key].set(sourceValue) : ((target[key] as any) = sourceValue);
+                        needsSet ? targetChild.set(sourceValue) : ((target[key] as any) = sourceValue);
                     }
                 }
             }
