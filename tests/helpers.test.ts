@@ -10,6 +10,22 @@ describe('mergeIntoObservable', () => {
         expect(merged).toEqual({ a: { b: { c: { d: 5 } } } });
         expect(isObservable(merged)).toBe(false);
     });
+    test('merge undefined should do nothing', () => {
+        const target = { a: { b: { c: { d: 5 } } } };
+        const merged = mergeIntoObservable(target, undefined);
+        expect(merged).toEqual(target);
+    });
+    test('merge null should delete', () => {
+        const target = { a: { b: { c: { d: 5 } } } };
+        const merged = mergeIntoObservable(target, null);
+        expect(merged).toEqual(null);
+    });
+    test('merge null should delete (2)', () => {
+        const target = { a: { b: { c: { d: 5 } } } };
+        const source = { a: { b: { c: { d: null } } } };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged).toEqual(source);
+    });
     test('merge onto empty observable', () => {
         const target = observable();
         const source = { a: { b: { c: { d: 5 } } } };

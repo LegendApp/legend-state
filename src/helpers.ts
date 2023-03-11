@@ -139,7 +139,7 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
                     }
                 }
             }
-        } else {
+        } else if (source !== undefined) {
             needsSet ? target.set(source) : ((target as any) = source);
         }
     }
