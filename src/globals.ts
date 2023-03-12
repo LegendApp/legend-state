@@ -51,7 +51,7 @@ export function getNodeValue(node: NodeValue): any {
 }
 
 export function getChildNode(node: NodeValue, key: string | number): NodeValue {
-    if (isString(key)) {
+    if (key && isString(key)) {
         const n = +key;
         // Convert to number if it's a string representing a valid number
         // This is faster than isNaN

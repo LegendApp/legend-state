@@ -975,6 +975,10 @@ describe('Primitives', () => {
         expect(obs.val.toString()).toBe('10');
         expect(obs.val.valueOf()).toBe(10);
     });
+    test('empty string as key', () => {
+        const obs = observable({ '': 'test' });
+        expect(obs[''].get()).toBe('test');
+    });
 });
 describe('Array', () => {
     test('Basic array', () => {
