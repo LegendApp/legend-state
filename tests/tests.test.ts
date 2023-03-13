@@ -170,6 +170,10 @@ describe('Set', () => {
     //     expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
     //     expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
     // });
+    test('empty string as key', () => {
+        const obs = observable({ '': 'test' });
+        expect(obs[''].get()).toBe('test');
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
@@ -706,6 +710,18 @@ describe('Listeners', () => {
         const obs = observable({ val: 10 });
         expect(Object.keys(obs.val)).toEqual([]);
     });
+    test('Unlisten unlistens', () => {
+        const obs = observable({ val: 10 });
+        let numCalls = 0;
+        const unlisten = obs.onChange(() => {
+            numCalls++;
+        });
+        obs.val.set(20);
+        expect(numCalls).toBe(1);
+        unlisten();
+        obs.val.set(30);
+        expect(numCalls).toBe(1);
+    });
 });
 describe('undefined', () => {
     test('undefined is undefined', () => {
@@ -974,10 +990,6 @@ describe('Primitives', () => {
         const obs = observable({ val: 10 });
         expect(obs.val.toString()).toBe('10');
         expect(obs.val.valueOf()).toBe(10);
-    });
-    test('empty string as key', () => {
-        const obs = observable({ '': 'test' });
-        expect(obs[''].get()).toBe('test');
     });
 });
 describe('Array', () => {
