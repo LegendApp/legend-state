@@ -120,7 +120,7 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
                     const isObj = isObject(sourceValue);
                     const isArr = !isObj && isArray(sourceValue);
                     const targetChild = target[key];
-                    if ((isObj || isArr) && targetChild && !isEmpty(targetChild)) {
+                    if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
                         if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
                             target[key] = sourceValue;
                         } else {
