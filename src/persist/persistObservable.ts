@@ -347,7 +347,7 @@ async function onObsChange<T>(
                 if (local) {
                     const metadata: PersistMetadata = {};
                     const pending = persistenceLocal.getMetadata(table, configLocal)?.pending;
-                    const adjustedChanges = [];
+                    let adjustedChanges: any[] = [];
 
                     for (let i = 0; i < saves.length; i++) {
                         const save = saves[i];
@@ -375,6 +375,9 @@ async function onObsChange<T>(
                     }
 
                     if (adjustedChanges.length > 0) {
+                        if (adjustedChanges.some((change) => isPromise(change))) {
+                            adjustedChanges = await Promise.all(adjustedChanges);
+                        }
                         onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
                     }
 
@@ -570,13 +573,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                             if (mode === 'dateModified') {
                                 if (dateModified && !isEmpty(value as unknown as object)) {
                                     onChangeRemote(() => {
-                                        setInObservableAtPath(
-                                            obs,
-                                            path as string[],
-                                            value,
-                                            'assign',
-                                            /*failAssignSilently*/ true
-                                        );
+                                        setInObservableAtPath(obs, path as string[], value, 'assign');
                                     });
                                 }
                             } else {
