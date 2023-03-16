@@ -67,13 +67,7 @@ export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], 
 
     return obj;
 }
-export function setInObservableAtPath(
-    obs: ObservableWriteable,
-    path: string[],
-    value: any,
-    mode: 'assign' | 'set',
-    failAssignSilently?: boolean
-) {
+export function setInObservableAtPath(obs: ObservableWriteable, path: string[], value: any, mode: 'assign' | 'set') {
     let o = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
@@ -86,10 +80,8 @@ export function setInObservableAtPath(
         (o as ObservableChild).delete();
     }
     // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as ObservableObject).assign) {
-        if (!failAssignSilently || isObject(o.peek())) {
-            (o as ObservableObject).assign(v);
-        }
+    else if (mode === 'assign' && (o as ObservableObject).assign && isObject(o.peek())) {
+        (o as ObservableObject).assign(v);
     } else {
         o.set(v);
     }
