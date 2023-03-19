@@ -13,11 +13,13 @@ export function onChange(
     }
     checkActivate(node);
 
+    const { trackingType, initial, immediate } = options || {};
+
     const listener: NodeValueListener = {
         listener: callback,
-        track: options?.trackingType,
+        track: trackingType,
         noArgs,
-        immediate: options?.immediate,
+        immediate: immediate,
     };
 
     listeners.add(listener);
@@ -28,7 +30,7 @@ export function onChange(
         parent = parent.parent;
     }
 
-    if (options?.initial) {
+    if (initial) {
         const value = getNodeValue(node);
         callback({
             value,

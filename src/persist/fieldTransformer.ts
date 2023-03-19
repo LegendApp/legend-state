@@ -40,7 +40,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
 
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
-        Object.keys(dataIn).forEach((key) => {
+        for (const key in dataIn) {
             if (ret[key] !== undefined) return;
 
             let v = dataIn[key];
@@ -75,9 +75,9 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                             } else if (map[key + '_dict']) {
                                 const mapChild = map[key + '_dict'];
                                 const out = {};
-                                Object.keys(v).forEach((keyChild) => {
+                                for (const keyChild in v) {
                                     out[keyChild] = transformObject(v[keyChild], mapChild);
-                                });
+                                }
                                 v = out;
                             }
                         }
@@ -85,7 +85,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                     ret[mapped] = v;
                 }
             }
-        });
+        }
     }
 
     return ret;
@@ -112,7 +112,7 @@ export function invertFieldMap(obj: Record<string, any>) {
 
     const target: Record<string, any> = {} as any;
 
-    Object.keys(obj).forEach((key) => {
+    for (const key in obj) {
         const val = obj[key];
         if (key === '_dict') {
             target[key] = invertFieldMap(val);
@@ -123,7 +123,7 @@ export function invertFieldMap(obj: Record<string, any>) {
         } else if (typeof val === 'string') {
             target[val] = key;
         }
-    });
+    }
     invertedMaps.set(obj, target);
 
     return target;

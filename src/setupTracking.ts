@@ -8,13 +8,12 @@ export function setupTracking(
     immediate?: boolean
 ) {
     let listeners: (() => void)[] | undefined = [];
+
     // Listen to tracked nodes
-    if (nodes) {
-        for (const tracked of nodes.values()) {
-            const { node, track } = tracked;
-            listeners.push(onChange(node, update, { trackingType: track, immediate }, noArgs));
-        }
-    }
+    nodes?.forEach((tracked) => {
+        const { node, track } = tracked;
+        listeners.push(onChange(node, update, { trackingType: track, immediate }, noArgs));
+    });
 
     return () => {
         if (listeners) {

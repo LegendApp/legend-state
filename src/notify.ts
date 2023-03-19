@@ -34,6 +34,7 @@ export function doNotify(
     const listeners = node.listeners;
     if (listeners) {
         let getPrevious;
+        // Need to convert to an array here instead of using a for...of loop because listeners can change while iterating
         const arr = Array.from(listeners);
         for (let i = 0; i < arr.length; i++) {
             const listenerFn = arr[i];
