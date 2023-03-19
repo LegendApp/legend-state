@@ -133,7 +133,6 @@ type ObservableComputedFnsRecursive<T> = {
 export interface ObservableEvent {
     fire(): void;
     on(cb?: () => void): ObservableListenerDispose;
-    on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
     get(): void;
 }
 
