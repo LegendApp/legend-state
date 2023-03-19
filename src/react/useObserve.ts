@@ -5,9 +5,9 @@ export function useObserve<T>(
     selector: ObservableReadable<T>,
     callback: (e: ObserveEventCallback<T>) => T | void
 ): void;
-export function useObserve<T>(selector: (e: ObserveEvent<T>) => T | void): void;
-export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): void;
-export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): void {
+export function useObserve<T>(selector: (e: ObserveEvent<T>) => T | void): () => void;
+export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): () => void;
+export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): () => void {
     const refDispose = useRef<() => void>();
 
     refDispose.current?.();
@@ -23,4 +23,6 @@ export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEvent
             refDispose.current = undefined;
         };
     });
+
+    return refDispose.current;
 }

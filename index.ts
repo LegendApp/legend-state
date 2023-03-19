@@ -32,6 +32,8 @@ export { lockObservable } from './src/helpers';
 /** @internal */
 export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
 /** @internal */
+export { setupTracking } from './src/setupTracking';
+/** @internal */
 export {
     checkActivate,
     symbolIsObservable,

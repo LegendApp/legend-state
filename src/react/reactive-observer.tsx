@@ -1,8 +1,6 @@
 import { isObservable, Selector } from '@legendapp/state';
-import { ChangeEvent, FC, forwardRef, memo, useCallback, useReducer } from 'react';
+import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
-
-const Update = (s: number) => s + 1;
 
 export type ShapeWith$<T> = Partial<T> & {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
@@ -42,8 +40,6 @@ function createReactiveComponent<P = object>(
 
     const proxyHandler: ProxyHandler<any> = {
         apply(target, thisArg, argArray) {
-            const fr = useReducer(Update, 0)[1];
-
             // If this is a reactive component, convert all props ending in $
             // to regular props and set up a useSelector listener
             if (reactive) {
@@ -58,7 +54,7 @@ function createReactiveComponent<P = object>(
                     if (key.endsWith('$')) {
                         const k = key.slice(0, -1);
                         // Return raw value and Listen to the selector for changes
-                        propsOut[k] = useSelector(p, { forceRender: fr });
+                        propsOut[k] = useSelector(p);
 
                         // If this key is one of the bind keys set up a two-way binding
                         const bind = bindKeys?.[k as keyof P];
@@ -90,11 +86,8 @@ function createReactiveComponent<P = object>(
             }
 
             // If observing wrap the whole render in a useSelector to listen to it
-            if (observe && fr) {
-                return useSelector(() => Reflect.apply(target, thisArg, argArray), {
-                    forceRender: fr,
-                    shouldRender: true,
-                });
+            if (observe) {
+                return useSelector(() => Reflect.apply(target, thisArg, argArray));
             } else {
                 return Reflect.apply(target, thisArg, argArray);
             }

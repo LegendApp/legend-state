@@ -20,9 +20,7 @@ export function For<T extends { id: string | number } | { _id: string | number }
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = useSelector(() => (each as unknown as ObservableObject).get(optimized ? 'optimize' : (true as any)), {
-        shouldRender: true,
-    });
+    const v = useSelector(() => (each as unknown as ObservableObject).get(optimized ? 'optimize' : true));
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {

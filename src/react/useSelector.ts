@@ -1,42 +1,69 @@
-import { computeSelector, isPrimitive, observe, Selector } from '@legendapp/state';
-import { useReducer, useRef } from 'react';
+import { beginTracking, computeSelector, endTracking, Selector, setupTracking, tracking } from '@legendapp/state';
+import { useRef } from 'react';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
-const Update = (s: number) => s + 1;
-
-export function useSelector<T>(
-    selector: Selector<T>,
-    options?: { forceRender?: () => void; shouldRender?: boolean | ((current: T, previous: T) => boolean) }
-): T {
-    let inRun = true;
-    let ret: T;
-    const forceRender = options?.forceRender || useReducer(Update, 0)[1];
-    const shouldRender = options?.shouldRender;
-    const refDispose = useRef<() => void>();
-
-    refDispose.current?.();
+export function useSelector<T>(selector: Selector<T>): T {
+    const ref = useRef<{ version: number; value?: T; notify?: () => void; update?: () => void; dispose?: () => void }>({
+        version: 0,
+    });
 
     if (!selector) return selector as T;
 
-    refDispose.current = observe(function update(e) {
-        // If running, call selector and re-render if changed
-        const cur = (inRun || shouldRender !== true) && computeSelector(selector);
-        // Re-render if not currently rendering and value has changed
-        if (
-            !inRun &&
-            (shouldRender === true || (shouldRender ? shouldRender(cur, ret) : cur !== ret || !isPrimitive(cur)))
-        ) {
-            forceRender();
-            // Set cancel so that observe does not track
-            e.cancel = true;
+    const current = ref.current;
+
+    // Compute the selector inside a tracking context
+    beginTracking();
+    current.value = computeSelector(selector);
+    const tracker = tracking.current;
+    const { nodes } = tracker;
+    endTracking();
+
+    let noArgs = true;
+    if (!current.update) {
+        current.update = () => {
+            current.version++;
+            current.notify?.();
+        };
+        // Do tracing if it was requested
+        if (process.env.NODE_ENV === 'development' && tracker && nodes) {
+            tracker.traceListeners?.(nodes);
+            if (tracker.traceUpdates) {
+                noArgs = false;
+                current.update = tracker.traceUpdates(current.update) as () => void;
+            }
+            // Clear tracing so it doesn't leak to other components
+            tracker.traceListeners = undefined;
+            tracker.traceUpdates = undefined;
         }
-        ret = cur;
-        inRun = false;
-    });
+    }
 
-    // Note: This does not have a useEffect to cleanup listeners because it is ok
-    // to call useReducer after unmounting. So it will lazily cleanup after unmount
-    // because it will call forceRender() and return false to not track. Then since forceRender() does
-    // not trigger re-render since it's unmounted, it does not set up tracking again.
+    // Dispose if already listening
+    current.dispose?.();
+    // useSyncExternalStore doesn't subscribe until after the component mount.
+    // We want to subscribe immediately so we don't miss any updates
+    current.dispose = setupTracking(nodes, current.update, noArgs);
 
-    return ret;
+    // Returning a version number lets us have mutable values. When we know an observable
+    // is updated we increment the value so that the useSyncExternalStore updates with the new value.
+    const getVersion = () => current.version;
+
+    useSyncExternalStore(
+        (onStoreChange: () => void) => {
+            const current = ref.current;
+            current.notify = onStoreChange;
+            // Listen if not already listening
+            if (!current.dispose) {
+                current.dispose = setupTracking(nodes, current.update, noArgs);
+            }
+
+            return () => {
+                current.dispose?.();
+                current.dispose = undefined;
+            };
+        },
+        getVersion,
+        getVersion
+    );
+
+    return current.value;
 }
