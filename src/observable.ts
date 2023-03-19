@@ -349,7 +349,7 @@ const proxyHandler: ProxyHandler<any> = {
         return getProxy(node, p);
     },
     // Forward all proxy properties to the target's value
-    getPrototypeOf(node) {
+    getPrototypeOf(node: NodeValue) {
         const value = getNodeValue(node);
         return value !== null && typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
@@ -370,9 +370,9 @@ const proxyHandler: ProxyHandler<any> = {
         }
         return keys;
     },
-    getOwnPropertyDescriptor(node, p) {
+    getOwnPropertyDescriptor(node: NodeValue, prop: string) {
         const value = getNodeValue(node);
-        return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, p) : undefined;
+        return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, prop) : undefined;
     },
     set(node: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
@@ -387,16 +387,16 @@ const proxyHandler: ProxyHandler<any> = {
         setKey(node, prop, value);
         return true;
     },
-    deleteProperty(target: NodeValue, prop) {
+    deleteProperty(node: NodeValue, prop: string) {
         // If this delete comes from within an observable function it's allowed
         if (inSet) {
-            return Reflect.deleteProperty(target, prop);
+            return Reflect.deleteProperty(node, prop);
         } else {
             return false;
         }
     },
-    has(target, prop) {
-        const value = getNodeValue(target);
+    has(node: NodeValue, prop: string) {
+        const value = getNodeValue(node);
         return Reflect.has(value, prop);
     },
 };
