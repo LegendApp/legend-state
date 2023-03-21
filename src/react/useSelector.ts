@@ -12,6 +12,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
     let version = 0;
     let notify: () => void;
     let dispose: () => void;
+    let resubscribe: () => void;
 
     const _update = () => {
         version++;
@@ -22,7 +23,15 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
         subscribe: (onStoreChange: () => void) => {
             notify = onStoreChange;
 
-            return () => dispose?.();
+            // Workaround for React 18 running twice in dev (part 2)
+            if (process.env.NODE_ENV === 'development' && !dispose && resubscribe) {
+                resubscribe();
+            }
+
+            return () => {
+                dispose?.();
+                dispose = undefined;
+            };
         },
         getVersion: () => version,
         run: (selector: Selector<T>) => {
@@ -52,6 +61,11 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
             // useSyncExternalStore doesn't subscribe until after the component mount.
             // We want to subscribe immediately so we don't miss any updates
             dispose = setupTracking(nodes, update, noArgs);
+
+            // Workaround for React 18 running twice in dev (part 1)
+            if (process.env.NODE_ENV === 'development') {
+                resubscribe = () => setupTracking(nodes, update, noArgs);
+            }
 
             return value;
         },
