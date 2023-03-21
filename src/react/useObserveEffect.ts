@@ -10,14 +10,14 @@ import { useEffect, useRef } from 'react';
 
 export function useObserveEffect<T>(
     selector: ObservableReadable<T>,
-    callback: (e: ObserveEventCallback<T>) => T | void
+    callback: (e: ObserveEventCallback<T>) => any
 ): void;
 export function useObserveEffect<T>(selector: (e: ObserveEvent<T>) => T | void): void;
-export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): void;
-export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): void {
+export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => any): void;
+export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => any): void {
     const ref = useRef<{
         selector: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
-        reaction?: (e: ObserveEventCallback<T>) => T | void;
+        reaction?: (e: ObserveEventCallback<T>) => any;
     }>({ selector });
     ref.current = { selector, reaction };
 

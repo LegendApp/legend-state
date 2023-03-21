@@ -1,13 +1,10 @@
 import { ObservableReadable, observe, ObserveEvent, ObserveEventCallback, Selector } from '@legendapp/state';
 import { useEffect, useRef } from 'react';
 
-export function useObserve<T>(
-    selector: ObservableReadable<T>,
-    callback: (e: ObserveEventCallback<T>) => T | void
-): void;
-export function useObserve<T>(selector: (e: ObserveEvent<T>) => T | void): () => void;
-export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): () => void;
-export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => T | void): () => void {
+export function useObserve<T>(selector: ObservableReadable<T>, callback: (e: ObserveEventCallback<T>) => any): void;
+export function useObserve<T>(selector: (e: ObserveEvent<T>) => any): () => void;
+export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => any): () => void;
+export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEventCallback<T>) => any): () => void {
     const refDispose = useRef<() => void>();
 
     refDispose.current?.();

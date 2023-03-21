@@ -13,15 +13,15 @@ interface ObserveOptions {
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
 export function observe<T>(
     selector: Selector<T>,
-    reaction?: (e: ObserveEventCallback<T>) => T | void,
+    reaction?: (e: ObserveEventCallback<T>) => any,
     options?: ObserveOptions
 ): () => void;
 export function observe<T>(
-    selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => T | void),
-    reactionOrOptions?: ((e: ObserveEventCallback<T>) => T | void) | ObserveOptions,
+    selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => any),
+    reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
     options?: ObserveOptions
 ) {
-    let reaction: (e: ObserveEventCallback<T>) => T | void;
+    let reaction: (e: ObserveEventCallback<T>) => any;
     if (isFunction(reactionOrOptions)) {
         reaction = reactionOrOptions;
     } else {
