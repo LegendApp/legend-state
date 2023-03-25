@@ -21,6 +21,7 @@ import {
     isArray,
     isBoolean,
     isChildNodeValue,
+    isEmpty,
     isFunction,
     isObject,
     isPrimitive,
@@ -485,7 +486,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         }
     }
 
-    if (isPrim ? newValue !== prevValue : hasADiff) {
+    if (isPrim || !newValue || isEmpty(newValue) ? newValue !== prevValue : hasADiff) {
         // Notify for this element if something inside it has changed
         notify(
             isPrim && isRoot ? node : childNode,

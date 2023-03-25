@@ -174,6 +174,22 @@ describe('Set', () => {
         const obs = observable({ '': 'test' });
         expect(obs[''].get()).toBe('test');
     });
+    test('Setting an empty object notifies', () => {
+        const obs = observable({ test: undefined });
+        const handler = expectChangeHandler(obs.test);
+        obs.test.set({});
+        expect(handler).toHaveBeenCalledWith({}, undefined, [
+            { path: [], pathTypes: [], valueAtPath: {}, prevAtPath: undefined },
+        ]);
+    });
+    test('Setting undefined to null notifies', () => {
+        const obs = observable({ test: undefined });
+        const handler = expectChangeHandler(obs.test);
+        obs.test.set(null);
+        expect(handler).toHaveBeenCalledWith(null, undefined, [
+            { path: [], pathTypes: [], valueAtPath: null, prevAtPath: undefined },
+        ]);
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
