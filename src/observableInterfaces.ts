@@ -347,7 +347,10 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
 
-export type ObservableWriteable<T = any> = ObservableReadable<T> & { set: any };
+export type ObservableWriteable<T = any> = ObservableReadable<T> & {
+    set: (value: T | ((prev: T) => T)) => void;
+    delete?: () => void;
+};
 
 export interface NodeValueListener {
     track: TrackingType;

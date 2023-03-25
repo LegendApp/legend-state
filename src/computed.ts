@@ -2,16 +2,16 @@ import { batch } from './batching';
 import { getNode, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable, set as setBase } from './observable';
-import { NodeValue, ObservableComputed, ObservableComputedTwoWay } from './observableInterfaces';
+import { NodeValue, ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
 
 export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
 export function computed<T, T2 = T>(
-    compute: () => T | Promise<T>,
+    compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set: (value: T2) => void
 ): ObservableComputedTwoWay<T, T2>;
 export function computed<T, T2 = T>(
-    compute: () => T | Promise<T>,
+    compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set?: (value: T2) => void
 ): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
     // Create an observable for this computed variable

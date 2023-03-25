@@ -561,7 +561,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                         if (value !== undefined) {
                             value = adjustLoadData(value, remote);
                             if (isPromise(value)) {
-                                value = await value;
+                                value = await (value as Promise<T>);
                             }
 
                             const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
