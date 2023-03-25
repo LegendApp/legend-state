@@ -1,26 +1,28 @@
-import type { Observable, ObservableObject, ObservableReadable } from '@legendapp/state';
+import type { Observable, ObservableReadable } from '@legendapp/state';
 import { createElement, FC, ReactElement, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
 
-export function For<T extends { id: string | number } | { _id: string | number } | { __id: string | number }, TProps>({
+export function For<T, TProps>({
     each,
+    eachValues,
     optimized,
     item,
     itemProps,
     children,
 }: {
-    each?: ObservableReadable<T[]>;
+    each?: ObservableReadable<(T & ({ id: string | number } | { _id: string | number } | { __id: string | number }))[]>;
+    eachValues?: ObservableReadable<Record<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T> } & TProps>;
     itemProps?: TProps;
     children?: (value: Observable<T>) => ReactElement;
 }): ReactElement | null {
-    if (!each) return null;
+    if (!each && !eachValues) return null;
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const v = useSelector(() => (each as unknown as ObservableObject).get(optimized ? 'optimize' : true));
+    const value = useSelector(() => (each || eachValues).get(optimized ? 'optimize' : true));
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
@@ -31,18 +33,39 @@ export function For<T extends { id: string | number } | { _id: string | number }
         item = useMemo(() => observer(({ item }) => refChildren.current!(item)), []);
     }
 
-    if (!v) return null;
-
-    // Get the appropriate id field
-    const id = v.length > 0 ? (v[0].id ? 'id' : v[0]._id ? '_id' : v[0].__id ? '__id' : undefined) : undefined;
+    if (!value) return null;
 
     // Create the child elements
     const out: ReactElement[] = [];
-    for (let i = 0; i < v.length; i++) {
-        if (v[i]) {
-            const key = v[i][id as string] ?? i;
 
-            out.push(createElement(item as FC, Object.assign({ key: key, item: each[i] }, itemProps)));
+    // If using eachValues, render the values of the object
+    if (eachValues) {
+        for (const key in value) {
+            if (value[key]) {
+                out.push(
+                    createElement(item as FC, Object.assign({ key: key, item: eachValues[key], id: key }, itemProps))
+                );
+            }
+        }
+    } else {
+        // Get the appropriate id field
+        const id =
+            value.length > 0
+                ? value[0].id
+                    ? 'id'
+                    : value[0]._id
+                    ? '_id'
+                    : value[0].__id
+                    ? '__id'
+                    : undefined
+                : undefined;
+
+        for (let i = 0; i < value.length; i++) {
+            if (value[i]) {
+                const key = value[i][id as string] ?? i;
+
+                out.push(createElement(item as FC, Object.assign({ key: key, item: each[i], id: key }, itemProps)));
+            }
         }
     }
 
