@@ -320,6 +320,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableWrapper {
     _: any;
     locked?: boolean;
+    set?: (value: any) => void;
     activate?: () => void;
 }
 

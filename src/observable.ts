@@ -426,7 +426,7 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         }
     }
 
-    if (node.root.locked) {
+    if (node.root.locked && !node.root.set) {
         throw new Error(
             process.env.NODE_ENV === 'development'
                 ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
@@ -469,6 +469,10 @@ function setKey(node: NodeValue, key: string | number, newValue?: any, level?: n
         parentValue[key] = newValue;
     }
     inSet = false;
+
+    if (node.root.locked && node.root.set) {
+        node.root.set(node.root._);
+    }
 
     // Make sure we don't call too many listeners for ever property set
     beginBatch();

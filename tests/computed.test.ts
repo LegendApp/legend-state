@@ -190,6 +190,22 @@ describe('Two way Computed', () => {
 
         expect(obs.test.get()).toEqual(true);
     });
+    test('Set child of computed', () => {
+        const obs = observable({ test: false, test2: false });
+        const comp = computed(
+            () => ({
+                computedValue: obs.test.get() && obs.test2.get(),
+            }),
+            ({ computedValue }) => {
+                obs.test.set(computedValue) && obs.test2.set(computedValue);
+            }
+        );
+        expect(comp.get()).toEqual({ computedValue: false });
+        comp.computedValue.set(true);
+        expect(comp.get()).toEqual({ computedValue: true });
+        expect(obs.test.get()).toEqual(true);
+        expect(obs.test2.get()).toEqual(true);
+    });
     test('Two way computed value is set before calling setter', () => {
         const obs = observable(0);
 
