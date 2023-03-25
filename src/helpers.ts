@@ -55,7 +55,11 @@ export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], 
         for (let i = 0; i < path.length; i++) {
             const p = path[i];
             if (i === path.length - 1) {
-                o[p] = value;
+                // Don't set if the value is the same. This prevents creating a new key
+                // when setting undefined on an object without this key
+                if (o[p] !== value) {
+                    o[p] = value;
+                }
             } else if (o[p] === undefined) {
                 o[p] = pathTypes[i] === 'array' ? [] : {};
             }
