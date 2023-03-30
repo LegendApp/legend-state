@@ -169,15 +169,27 @@ function updateMetadata<T>(
     );
 }
 
-async function onObsChange<T>(
-    obs: Observable<T>,
-    obsState: ObservableObject<ObservablePersistState>,
-    localState: LocalState,
-    persistOptions: PersistOptions<T>,
-    { changes }: ListenerParams
-) {
-    // Note: Summary of the order of operations this function:
-    // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous adjustData
+interface QueuedChange<T = unknown> {
+    inRemoteChange: boolean;
+    obs: Observable<T>;
+    obsState: ObservableObject<ObservablePersistState>;
+    localState: LocalState;
+    persistOptions: PersistOptions<T>;
+    changes: ListenerParams['changes'];
+}
+
+let _queuedChanges: QueuedChange[] = [];
+
+async function processQueuedChanges() {
+    // Get a local copy of the queued changes and clear the global queue
+    const queuedChanges = _queuedChanges;
+    _queuedChanges = [];
+
+    // Note: Summary of the order of operations these functions:
+    // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous adjustData.
+    // We need to prepare all of the changes in the queue before saving so that the saves happen in the correct order,
+    // since some may take longer to adjustSaveData than others.
+    const changes = await Promise.all(queuedChanges.map(prepChange));
     // 2. Save pending to the metadata table first. If this is the only operation that succeeds, it would try to save
     // the current value again on next load, which isn't too bad.
     // 3. Save local changes to storage. If they never make it to remote, then on the next load they will be pending
@@ -187,12 +199,16 @@ async function onObsChange<T>(
     // 6. On successful save, merge changes (if any) back into observable
     // 7. Lastly, update metadata to clear pending and update dateModified. Doing this earlier could potentially cause
     // sync inconsistences so it's very important that this is last.
-    const { persistenceLocal, persistenceRemote, isApplyingPending } = localState;
+    changes.forEach(doChange);
+}
+
+async function prepChange(queuedChange: QueuedChange) {
+    const { obsState, changes, localState, persistOptions, inRemoteChange } = queuedChange;
+    const { isApplyingPending } = localState;
 
     const local = persistOptions.local;
-    const { table, config: configLocal } = parseLocalConfig(local);
+    const { config: configLocal } = parseLocalConfig(local);
     const configRemote = persistOptions.remote;
-    const inRemoteChange = tracking.inRemoteChange;
     const saveLocal = local && !configLocal.readonly && !isApplyingPending && obsState.isEnabledLocal.peek();
     const saveRemote =
         !isMergingLocalData &&
@@ -289,105 +305,138 @@ async function onObsChange<T>(
             await Promise.all(promisesAdjustData);
         }
 
-        if (saveRemote && changesRemote.length > 0) {
-            // First save pending changes before saving local or remote
-            await updateMetadataImmediate(obs, localState, obsState, persistOptions, {
-                pending: localState.pendingChanges,
-            });
-        }
+        return { queuedChange, changesLocal, changesRemote };
+    }
+}
 
-        if (saveLocal && changesLocal.length > 0) {
-            // Save the changes to local persistence before saving to remote. They are already marked as pending so
-            // if remote sync fails or the app is closed before remote sync, it will attempt to sync them on the next load.
-            if (changesLocal.length > 0) {
-                let promiseSet = persistenceLocal.set(table, changesLocal, configLocal);
+async function doChange(changeInfo: {
+    queuedChange: QueuedChange;
+    changesLocal: ChangeWithPathStr[];
+    changesRemote: ChangeWithPathStr[];
+}) {
+    if (!changeInfo) return;
 
-                if (promiseSet) {
-                    promiseSet = promiseSet.then(() => {
-                        promisesLocalSaves.delete(promiseSet as Promise<any>);
-                    });
-                    // Keep track of local save promises so that updateMetadata runs only after everything is saved
-                    promisesLocalSaves.add(promiseSet);
+    const { queuedChange, changesLocal, changesRemote } = changeInfo;
+    const { obs, obsState, localState, persistOptions } = queuedChange;
+    const { persistenceLocal, persistenceRemote } = localState;
 
-                    // await the local save before proceeding to save remotely
-                    await promiseSet;
-                }
+    const local = persistOptions.local;
+    const { table, config: configLocal } = parseLocalConfig(local);
+    const configRemote = persistOptions.remote;
+
+    if (changesRemote.length > 0) {
+        // First save pending changes before saving local or remote
+        await updateMetadataImmediate(obs, localState, obsState, persistOptions, {
+            pending: localState.pendingChanges,
+        });
+    }
+
+    if (changesLocal.length > 0) {
+        // Save the changes to local persistence before saving to remote. They are already marked as pending so
+        // if remote sync fails or the app is closed before remote sync, it will attempt to sync them on the next load.
+        if (changesLocal.length > 0) {
+            let promiseSet = persistenceLocal.set(table, changesLocal, configLocal);
+
+            if (promiseSet) {
+                promiseSet = promiseSet.then(() => {
+                    promisesLocalSaves.delete(promiseSet as Promise<any>);
+                });
+                // Keep track of local save promises so that updateMetadata runs only after everything is saved
+                promisesLocalSaves.add(promiseSet);
+
+                // await the local save before proceeding to save remotely
+                await promiseSet;
             }
         }
+    }
 
-        if (saveRemote && changesRemote.length > 0) {
-            // Wait for remote to be ready before saving
-            await when(
-                () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
-            );
+    if (changesRemote.length > 0) {
+        // Wait for remote to be ready before saving
+        await when(
+            () => obsState.isLoadedRemote.get() || (configRemote.allowSaveIfError && obsState.remoteError.get())
+        );
 
-            const saves = await Promise.all(
-                changesRemote.map(async (change) => {
-                    const { path, valueAtPath, prevAtPath, pathTypes, pathStr } = change;
+        const saves = await Promise.all(
+            changesRemote.map(async (change) => {
+                const { path, valueAtPath, prevAtPath, pathTypes, pathStr } = change;
 
-                    // Save to remote persistence
-                    return persistenceRemote
-                        .save({
-                            obs,
-                            state: obsState,
-                            options: persistOptions,
-                            path: path,
-                            pathTypes,
-                            valueAtPath,
-                            prevAtPath,
-                        })
-                        .then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
-                })
-            );
+                // Save to remote persistence
+                return persistenceRemote
+                    .save({
+                        obs,
+                        state: obsState,
+                        options: persistOptions,
+                        path: path,
+                        pathTypes,
+                        valueAtPath,
+                        prevAtPath,
+                    })
+                    .then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
+            })
+        );
 
-            // If this remote save changed anything then update persistence and metadata
-            // Because save happens after a timeout and they're batched together, some calls to save will
-            // return saved data and others won't, so those can be ignored.
-            if (saves.filter(Boolean).length > 0) {
-                if (local) {
-                    const metadata: PersistMetadata = {};
-                    const pending = persistenceLocal.getMetadata(table, configLocal)?.pending;
-                    let adjustedChanges: any[] = [];
+        // If this remote save changed anything then update persistence and metadata
+        // Because save happens after a timeout and they're batched together, some calls to save will
+        // return saved data and others won't, so those can be ignored.
+        if (saves.filter(Boolean).length > 0) {
+            if (local) {
+                const metadata: PersistMetadata = {};
+                const pending = persistenceLocal.getMetadata(table, configLocal)?.pending;
+                let adjustedChanges: any[] = [];
 
-                    for (let i = 0; i < saves.length; i++) {
-                        const save = saves[i];
-                        if (save) {
-                            const { changes, dateModified, pathStr } = save;
-                            // Clear pending for this path
-                            if (pending?.[pathStr]) {
-                                // Remove pending from the saved object
-                                delete pending[pathStr];
-                                // Remove pending from local state
-                                delete localState.pendingChanges[pathStr];
-                                metadata.pending = pending;
-                            }
-
-                            if (dateModified) {
-                                metadata.modified = dateModified;
-                            }
-
-                            // Remote can optionally have data that needs to be merged back into the observable,
-                            // for example Firebase may update dateModified with the server timestamp
-                            if (changes && !isEmpty(changes)) {
-                                adjustedChanges.push(adjustLoadData(changes, persistOptions.remote));
-                            }
+                for (let i = 0; i < saves.length; i++) {
+                    const save = saves[i];
+                    if (save) {
+                        const { changes, dateModified, pathStr } = save;
+                        // Clear pending for this path
+                        if (pending?.[pathStr]) {
+                            // Remove pending from the saved object
+                            delete pending[pathStr];
+                            // Remove pending from local state
+                            delete localState.pendingChanges[pathStr];
+                            metadata.pending = pending;
                         }
-                    }
 
-                    if (adjustedChanges.length > 0) {
-                        if (adjustedChanges.some((change) => isPromise(change))) {
-                            adjustedChanges = await Promise.all(adjustedChanges);
+                        if (dateModified) {
+                            metadata.modified = dateModified;
                         }
-                        onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
-                    }
 
-                    if (!isEmpty(metadata)) {
-                        updateMetadata(obs, localState, obsState, persistOptions, metadata);
+                        // Remote can optionally have data that needs to be merged back into the observable,
+                        // for example Firebase may update dateModified with the server timestamp
+                        if (changes && !isEmpty(changes)) {
+                            adjustedChanges.push(adjustLoadData(changes, persistOptions.remote));
+                        }
                     }
                 }
-                localState.onSaveRemote?.();
+
+                if (adjustedChanges.length > 0) {
+                    if (adjustedChanges.some((change) => isPromise(change))) {
+                        adjustedChanges = await Promise.all(adjustedChanges);
+                    }
+                    onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
+                }
+
+                if (!isEmpty(metadata)) {
+                    updateMetadata(obs, localState, obsState, persistOptions, metadata);
+                }
             }
+            localState.onSaveRemote?.();
         }
+    }
+}
+
+function onObsChange<T>(
+    obs: Observable<T>,
+    obsState: ObservableObject<ObservablePersistState>,
+    localState: LocalState,
+    persistOptions: PersistOptions<T>,
+    { changes }: ListenerParams
+) {
+    const inRemoteChange = tracking.inRemoteChange;
+    // Queue changes in a microtask so that multiple changes within a frame get run together
+    _queuedChanges.push({ obs, obsState, localState, persistOptions, changes, inRemoteChange });
+    if (_queuedChanges.length === 1) {
+        queueMicrotask(processQueuedChanges);
     }
 }
 
