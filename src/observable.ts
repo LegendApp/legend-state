@@ -79,7 +79,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 
     if (node) {
         const hasParent = isChildNodeValue(node);
-        const key: string | number = hasParent ? node.key : '_';
+        const key: string = hasParent ? node.key : '_';
         const parentValue = hasParent ? getNodeValue(node.parent) : node.root;
 
         // Set the object to the previous value first
@@ -115,8 +115,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     }
     const isArr = isArray(obj);
 
-    let prevChildrenById: Map<string | number, ChildNodeValue> | undefined;
-    let moved: [string | number, ChildNodeValue][] | undefined;
+    let prevChildrenById: Map<string, ChildNodeValue> | undefined;
+    let moved: [string, ChildNodeValue][] | undefined;
 
     const keys = obj ? Object.keys(obj) : [];
     const keysPrev = prevValue ? Object.keys(prevValue) : [];
@@ -138,7 +138,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         for (let i = 0; i < prevValue.length; i++) {
                             const p = prevValue[i];
                             if (p) {
-                                const child = parent.children.get(i);
+                                const child = parent.children.get(i + '');
                                 if (child) {
                                     prevChildrenById.set(p[idField], child);
                                 }
@@ -178,7 +178,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
         if (parent.descendantHasListener || !hasADiff) {
             for (let i = 0; i < length; i++) {
-                const key = isArr ? +keys[i] : keys[i];
+                const key = isArr ? keys[i] : keys[i];
                 const value = obj[key];
                 const prev = prevValue?.[key];
 
@@ -258,7 +258,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return false;
 }
 
-function getProxy(node: NodeValue, p?: string | number) {
+function getProxy(node: NodeValue, p?: string) {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
 
@@ -325,7 +325,7 @@ const proxyHandler: ProxyHandler<any> = {
                     updateTracking(node, true);
                     return function (cbOrig: any, thisArg: any) {
                         function cb(_: any, index: number, array: any[]) {
-                            return cbOrig(getProxy(node, index), index, array);
+                            return cbOrig(getProxy(node, index + ''), index, array);
                         }
                         return value[p](cb, thisArg);
                     };
@@ -419,7 +419,7 @@ function toggle(node: NodeValue) {
     }
 }
 
-function setKey(node: NodeValue, key: string | number, newValue?: any, level?: number) {
+function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
@@ -528,14 +528,14 @@ function assign(node: NodeValue, value: any) {
     return proxy;
 }
 
-function deleteFn(node: NodeValue, key?: string | number) {
+function deleteFn(node: NodeValue, key?: string) {
     // If called without a key, delete by key from the parent node
     if (key === undefined && isChildNodeValue(node)) {
         key = node.key;
         node = node.parent;
     }
     // delete sets to undefined first to notify
-    setKey(node, key as string | number, symbolDelete, /*level*/ -1);
+    setKey(node, key as string, symbolDelete, /*level*/ -1);
 }
 
 function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;

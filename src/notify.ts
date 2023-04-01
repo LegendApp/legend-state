@@ -3,7 +3,7 @@ import { getNodeValue } from './globals';
 import { isArray } from './is';
 import { NodeValue, TypeAtPath } from './observableInterfaces';
 
-function createPreviousHandler(value: any, path: (string | number)[], prevAtPath: any) {
+function createPreviousHandler(value: any, path: string[], prevAtPath: any) {
     // Create a function that clones the current state and injects the previous data at the changed path
     return function () {
         let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
@@ -24,7 +24,7 @@ function createPreviousHandler(value: any, path: (string | number)[], prevAtPath
 export function doNotify(
     node: NodeValue,
     value: any,
-    path: (string | number)[],
+    path: string[],
     pathTypes: ('object' | 'array')[],
     valueAtPath: any,
     prevAtPath: any,
@@ -83,7 +83,7 @@ export function doNotify(
 function _notifyParents(
     node: NodeValue,
     value: any,
-    path: (string | number)[],
+    path: string[],
     pathTypes: TypeAtPath[],
     valueAtPath: any,
     prevAtPath: any,

@@ -638,7 +638,7 @@ describe('Listeners', () => {
         const handler = expectChangeHandler(obs.test);
         obs.test[1].set('hi');
         expect(handler).toHaveBeenCalledWith({ '1': 'hi' }, { '1': undefined }, [
-            { path: [1], pathTypes: ['object'], valueAtPath: 'hi', prevAtPath: undefined },
+            { path: ['1'], pathTypes: ['object'], valueAtPath: 'hi', prevAtPath: undefined },
         ]);
     });
     test('Set number key multiple times', () => {
@@ -656,7 +656,7 @@ describe('Listeners', () => {
         });
         expect(handler).toHaveBeenCalledWith({ t: { 1000: { test1: { text: ['hi'] } } } }, { t: { 1000: undefined } }, [
             {
-                path: ['t', 1000],
+                path: ['t', '1000'],
                 pathTypes: ['object', 'object'],
                 valueAtPath: { test1: { text: ['hi'] } },
                 prevAtPath: undefined,
@@ -688,7 +688,7 @@ describe('Listeners', () => {
             { t: { 1000: { test1: { text: ['hi'] } } } },
             [
                 {
-                    path: ['t', 1000],
+                    path: ['t', '1000'],
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] } },
@@ -707,7 +707,7 @@ describe('Listeners', () => {
             { t: { 1000: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } } } },
             [
                 {
-                    path: ['t', 1000],
+                    path: ['t', '1000'],
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },

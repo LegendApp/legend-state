@@ -93,7 +93,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
 
 export function transformObjectWithPath(
     obj: object,
-    path: (string | number)[],
+    path: string[],
     pathTypes: TypeAtPath[],
     fieldTransforms: FieldTransforms<any>
 ) {

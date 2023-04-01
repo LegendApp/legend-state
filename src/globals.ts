@@ -1,4 +1,4 @@
-import { isChildNodeValue, isObject, isString } from './is';
+import { isChildNodeValue, isObject } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
@@ -34,7 +34,7 @@ export function peek(node: NodeValue) {
     return getNodeValue(node);
 }
 
-const arrNodeKeys: (string | number)[] = [];
+const arrNodeKeys: string[] = [];
 export function getNodeValue(node: NodeValue): any {
     let count = 0;
     let n: NodeValue = node;
@@ -52,15 +52,7 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export function getChildNode(node: NodeValue, key: string | number): NodeValue {
-    // Convert string to number if it's not a BigInt
-    if (key && isString(key) && key.length < 17) {
-        const n = +key;
-        // Convert to number if it's a string representing a valid number
-        // This is faster than isNaN
-        if (n - n < 1) key = n;
-    }
-
+export function getChildNode(node: NodeValue, key: string): NodeValue {
     // Get the child by id if included, or by key
     let child = node.children?.get(key);
 

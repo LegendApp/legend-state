@@ -145,7 +145,7 @@ export type QueryByModified<T> =
 export type TypeAtPath = 'object' | 'array';
 
 export interface Change {
-    path: (string | number)[];
+    path: string[];
     pathTypes: TypeAtPath[];
     valueAtPath: any;
     prevAtPath: any;
@@ -221,7 +221,7 @@ export interface ObservablePersistRemoteSaveParams<T, T2> {
     state: Observable<ObservablePersistState>;
     obs: Observable<T>;
     options: PersistOptions<T>;
-    path: (string | number)[];
+    path: string[];
     pathTypes: TypeAtPath[];
     valueAtPath: T2;
     prevAtPath: any;
@@ -234,7 +234,7 @@ export interface ObservablePersistRemoteListenParams<T> {
     onLoad: () => void;
     onChange: (params: {
         value: T;
-        path: (string | number)[];
+        path: string[];
         pathTypes: TypeAtPath[];
         mode: 'assign' | 'set' | 'dateModified';
         dateModified: number | undefined;
@@ -362,7 +362,7 @@ export interface NodeValueListener {
 
 interface BaseNodeValue {
     id: number;
-    children?: Map<string | number, ChildNodeValue>;
+    children?: Map<string, ChildNodeValue>;
     proxy?: object;
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
@@ -379,7 +379,7 @@ export interface RootNodeValue extends BaseNodeValue {
 
 export interface ChildNodeValue extends BaseNodeValue {
     parent: NodeValue;
-    key: string | number;
+    key: string;
 }
 
 export type NodeValue = RootNodeValue | ChildNodeValue;
