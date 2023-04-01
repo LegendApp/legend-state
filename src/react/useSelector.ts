@@ -24,7 +24,11 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
             notify = onStoreChange;
 
             // Workaround for React 18 running twice in dev (part 2)
-            if (process.env.NODE_ENV === 'development' && !dispose && resubscribe) {
+            if (
+                (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                !dispose &&
+                resubscribe
+            ) {
                 resubscribe();
             }
 
@@ -45,7 +49,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
             let noArgs = true;
             let update = _update;
             // Do tracing if it was requested
-            if (process.env.NODE_ENV === 'development' && tracker && nodes) {
+            if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
                 tracker.traceListeners?.(nodes);
                 if (tracker.traceUpdates) {
                     noArgs = false;
@@ -63,7 +67,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
             dispose = setupTracking(nodes, update, noArgs);
 
             // Workaround for React 18 running twice in dev (part 1)
-            if (process.env.NODE_ENV === 'development') {
+            if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
                 resubscribe = () => setupTracking(nodes, update, noArgs);
             }
 

@@ -172,6 +172,29 @@ describe('useSelector', () => {
         expect(num).toEqual(5);
         expect(numSelects).toEqual(5);
     });
+    test('useSelector runs twice in strict mode', () => {
+        const obs = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+        act(() => {
+            obs.set('hello');
+        });
+        // Goes up by two because it runs, decides to re-render, and runs again
+        expect(num).toEqual(4);
+    });
 });
 
 describe('For', () => {
