@@ -34,17 +34,19 @@ export function peek(node: NodeValue) {
     return getNodeValue(node);
 }
 
+const arrNodeKeys: (string | number)[] = [];
 export function getNodeValue(node: NodeValue): any {
-    const arr: (string | number)[] = [];
+    let count = 0;
     let n: NodeValue = node;
     while (isChildNodeValue(n)) {
-        arr.push(n.key);
+        arrNodeKeys[count] = n.key;
         n = n.parent;
+        count++;
     }
     let child = node.root._;
-    for (let i = arr.length - 1; i >= 0; i--) {
-        if (arr[i] !== undefined && child) {
-            child = child[arr[i]];
+    for (let i = count - 1; i >= 0; i--) {
+        if (arrNodeKeys[i] !== undefined && child) {
+            child = child[arrNodeKeys[i]];
         }
     }
     return child;
