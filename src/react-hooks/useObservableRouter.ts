@@ -13,9 +13,9 @@ interface TransitionOptions {
     scroll?: boolean;
     unstable_skipClientCache?: boolean;
 }
-export interface ParamsUseNextRouter<T extends object> {
+export interface ParamsUseObservableRouter<T extends object> {
     compute: (value: { pathname: string; hash: string; query: ParsedUrlQuery }) => T;
-    set: (value: T) => { pathname?: string; hash?: string; query?: ParsedUrlQuery };
+    set: (value: T, router: NextRouter) => { pathname?: string; hash?: string; query?: ParsedUrlQuery };
     pushOptions?: TransitionOptions;
     subscribe?: boolean;
 }
@@ -42,13 +42,13 @@ function isShallowEqual(query1: ParsedUrlQuery, query2: ParsedUrlQuery) {
 
 let isSettingRoutes = false;
 const routes$ = observable({});
-let routeParams = {} as ParamsUseNextRouter<any>;
+let routeParams = {} as ParamsUseObservableRouter<any>;
 let router: NextRouter;
 
 routes$.onChange(({ value }) => {
     // Only run this if being manually changed by the user
     if (!isSettingRoutes) {
-        const { pathname, hash, query } = routeParams.set(value);
+        const { pathname, hash, query } = routeParams.set(value, router);
 
         const prevHash = router.asPath.split('#')[1] || '';
 
@@ -71,7 +71,7 @@ routes$.onChange(({ value }) => {
     }
 });
 
-export function useNextRouter<T extends object>(params: ParamsUseNextRouter<T>): Observable<T> {
+export function useObservableRouter<T extends object>(params: ParamsUseObservableRouter<T>): Observable<T> {
     const { subscribe, compute } = params;
 
     // Use the useRouter hook if we're on the client side and want to subscribe to changes.
@@ -92,7 +92,7 @@ export function useNextRouter<T extends object>(params: ParamsUseNextRouter<T>):
     // Update the local state with the new functions and options. This can happen when being run
     // on a new page or if the user just changes it on the current page.
     // It's better for performance than creating new observables or hooks for every use, since there may be
-    // many uses of useNextRouter in the lifecycle of a page.
+    // many uses of useObservableRouter in the lifecycle of a page.
     routeParams = params;
 
     // Get the pathname and hash
