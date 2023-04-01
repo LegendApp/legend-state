@@ -19,6 +19,16 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private tableMetadata: Record<string, any> = {};
     private tablesAdjusted: Map<string, Observable<boolean>> = new Map();
     private db: IDBDatabase;
+    private isSaveTaskQueued = false;
+    private pendingSaves = new Map<
+        PersistOptionsLocal,
+        Record<string, { tableName: string; tablePrev?: any; items: Set<string> }>
+    >();
+    private promisesQueued: (() => void)[] = [];
+
+    constructor() {
+        this.doSave = this.doSave.bind(this);
+    }
 
     public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
         if (typeof indexedDB === 'undefined') return;
@@ -178,8 +188,12 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public async set(table: string, changes: Change[], config: PersistOptionsLocal) {
         if (typeof indexedDB === 'undefined') return;
 
-        const store = this.transactionStore(table);
+        if (!this.pendingSaves.has(config)) {
+            this.pendingSaves.set(config, {});
+        }
+        const pendingSaves = this.pendingSaves.get(config);
 
+        const realTable = table;
         const prefixID = config.indexedDB?.prefixID;
         if (prefixID) {
             table += '/' + prefixID;
@@ -188,9 +202,13 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
         const itemID = config.indexedDB?.itemID;
 
+        if (!pendingSaves[table]) {
+            pendingSaves[table] = { tableName: realTable, items: new Set() };
+        }
+
+        const pendingTable = pendingSaves[table];
+
         // Combine changes into a minimal set of saves
-        const savesItems: Record<string, any> = {};
-        let saveTable: any;
         for (let i = 0; i < changes.length; i++) {
             // eslint-disable-next-line prefer-const
             let { path, valueAtPath, pathTypes } = changes[i];
@@ -205,22 +223,60 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     this.tableData[table] = {};
                 }
                 this.tableData[table] = setAtPath(this.tableData[table], path as string[], pathTypes, valueAtPath);
-                savesItems[key] = this.tableData[table][key];
+                pendingTable.items.add(key);
             } else {
                 // Set the whole table
-                saveTable = valueAtPath;
+                this.tableData[table] = valueAtPath;
+                pendingTable.tablePrev = prev;
                 break;
             }
         }
 
-        const puts = await Promise.all(
-            saveTable
-                ? [this._setTable(table, prev, saveTable, store, config)]
-                : Object.keys(savesItems).map((key) => this._setItem(table, key, savesItems[key], store, config))
-        );
+        return new Promise<void>((resolve) => {
+            this.promisesQueued.push(resolve);
 
-        const lastPut = puts[puts.length - 1];
-        return requestToPromise(lastPut);
+            if (!this.isSaveTaskQueued) {
+                this.isSaveTaskQueued = true;
+                queueMicrotask(this.doSave);
+            }
+        });
+    }
+    private async doSave() {
+        this.isSaveTaskQueued = false;
+        const promisesQueued = this.promisesQueued;
+        this.promisesQueued = [];
+        const promises: Promise<IDBRequest>[] = [];
+        let lastPut: IDBRequest;
+        this.pendingSaves.forEach((pendingSaves, config) => {
+            Object.keys(pendingSaves).forEach((table) => {
+                const pendingTable = pendingSaves[table];
+                const { tablePrev, items, tableName } = pendingTable;
+                const store = this.transactionStore(tableName);
+                const tableValue = this.tableData[table];
+                if (tablePrev) {
+                    promises.push(this._setTable(table, tablePrev, tableValue, store, config));
+                } else {
+                    items.forEach((key) => {
+                        lastPut = this._setItem(table, key, tableValue[key], store, config);
+                    });
+                }
+
+                // Clear pending saves
+                items.clear();
+                delete pendingTable.tablePrev;
+            });
+        });
+
+        // setTable awaits multiple sets and deletes so we need to await that to get
+        // the lastPut from it.
+        if (promises.length) {
+            const puts = await Promise.all(promises);
+            lastPut = puts[puts.length - 1];
+        }
+
+        await requestToPromise(lastPut);
+
+        promisesQueued.forEach((resolve) => resolve());
     }
     public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
         const configIDB = config.indexedDB;
@@ -331,7 +387,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const transaction = this.db.transaction(table, 'readwrite');
         return transaction.objectStore(table);
     }
-    private async _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptionsLocal) {
+    private _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptionsLocal) {
         if (!value) {
             if (this.tableData[table]) {
                 delete this.tableData[table][key];
