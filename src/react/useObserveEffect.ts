@@ -6,7 +6,8 @@ import {
     ObserveEventCallback,
     Selector,
 } from '@legendapp/state';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useEffectOnce } from './useEffectOnce';
 
 export function useObserveEffect<T>(
     selector: ObservableReadable<T>,
@@ -21,15 +22,13 @@ export function useObserveEffect<T>(selector: Selector<T>, reaction?: (e: Observ
     }>({ selector });
     ref.current = { selector, reaction };
 
-    useEffect(
-        () =>
-            observe<T>(
-                ((e: ObserveEventCallback<T>) => {
-                    const { selector } = ref.current as { selector: (e: ObserveEvent<T>) => T | void };
-                    return isFunction(selector) ? selector(e) : selector;
-                }) as any,
-                (e) => ref.current.reaction?.(e)
-            ),
-        []
+    useEffectOnce(() =>
+        observe<T>(
+            ((e: ObserveEventCallback<T>) => {
+                const { selector } = ref.current as { selector: (e: ObserveEvent<T>) => T | void };
+                return isFunction(selector) ? selector(e) : selector;
+            }) as any,
+            (e) => ref.current.reaction?.(e)
+        )
     );
 }

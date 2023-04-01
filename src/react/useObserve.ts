@@ -1,5 +1,6 @@
 import { ObservableReadable, observe, ObserveEvent, ObserveEventCallback, Selector } from '@legendapp/state';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useUnmountOnce } from './useUnmount';
 
 export function useObserve<T>(selector: ObservableReadable<T>, callback: (e: ObserveEventCallback<T>) => any): void;
 export function useObserve<T>(selector: (e: ObserveEvent<T>) => any): () => void;
@@ -10,15 +11,9 @@ export function useObserve<T>(selector: Selector<T>, reaction?: (e: ObserveEvent
     refDispose.current?.();
     refDispose.current = observe(selector, reaction);
 
-    useEffect(() => {
-        // React 18 StrictMode workaround to re-observe when useEffect is called twice
-        if (!refDispose.current) {
-            refDispose.current = observe(selector, reaction);
-        }
-        return () => {
-            refDispose.current?.();
-            refDispose.current = undefined;
-        };
+    useUnmountOnce(() => {
+        refDispose.current?.();
+        refDispose.current = undefined;
     });
 
     return refDispose.current;

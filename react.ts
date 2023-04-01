@@ -6,6 +6,7 @@ export * from './src/react/reactive-observer';
 export * from './src/react/Show';
 export * from './src/react/Switch';
 export * from './src/react/useComputed';
+export * from './src/react/useEffectOnce';
 export * from './src/react/useIsMounted';
 export * from './src/react/useMount';
 export * from './src/react/useObservable';

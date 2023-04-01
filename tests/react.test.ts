@@ -3,13 +3,15 @@
  */
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
-import { createElement, useReducer } from 'react';
+import { createElement, StrictMode, useReducer } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { For } from '../src/react/For';
 import { useObservableReducer } from '../src/react/useObservableReducer';
+import { useObserve } from '../src/react/useObserve';
+import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 
 describe('useSelector', () => {
@@ -27,7 +29,6 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        // Goes up by two because it runs, decides to re-render, and runs again
         expect(num).toEqual(2);
         expect(result.current).toEqual('hello there');
         act(() => {
@@ -358,5 +359,41 @@ describe('Render direct', () => {
         const items = container.querySelectorAll('div');
         expect(items.length).toEqual(1);
         expect(items[0].textContent).toEqual('hi');
+    });
+});
+
+describe('useObserve', () => {
+    test('useObserve runs twice in StrictMode', () => {
+        let num = 0;
+        function Test() {
+            useObserve(() => {
+                num++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+    });
+});
+
+describe('useObserveEffect', () => {
+    test('useObserveEffect runs once in StrictMode', () => {
+        let num = 0;
+        function Test() {
+            useObserveEffect(() => {
+                num++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
     });
 });
