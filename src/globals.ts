@@ -53,13 +53,12 @@ export function getNodeValue(node: NodeValue): any {
 }
 
 export function getChildNode(node: NodeValue, key: string): NodeValue {
-    // Get the child by id if included, or by key
+    // Get the child by key
     let child = node.children?.get(key);
 
     // Create the child node if it doesn't already exist
     if (!child) {
         child = {
-            id: nextNodeID.current++,
             root: node.root,
             parent: node,
             key,

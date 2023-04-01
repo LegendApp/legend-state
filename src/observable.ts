@@ -8,7 +8,6 @@ import {
     getChildNode,
     getNodeValue,
     IDKey,
-    nextNodeID,
     peek,
     symbolDelete,
     symbolGetNode,
@@ -279,7 +278,7 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        const fn = node.fns?.[p] ?? objectFns.get(p);
+        const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
             return function (a: unknown, b: unknown, c: unknown) {
@@ -549,7 +548,6 @@ function createObservable<T>(
     };
 
     const node: NodeValue = {
-        id: nextNodeID.current++,
         root,
     };
 
