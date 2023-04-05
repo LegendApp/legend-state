@@ -34,6 +34,15 @@
             "react-native-mmkv": [
                 "node_modules/react-native-mmkv"
             ],
+            "next": [
+                "node_modules/next"
+            ],
+            "next/router": [
+                "node_modules/next/router"
+            ],
+            "@babel/types": [
+                "node_modules/@babel/types"
+            ],
             "@tanstack/react-query": [
                 "node_modules/@tanstack/react-query"
             ],

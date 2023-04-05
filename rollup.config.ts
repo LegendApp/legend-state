@@ -16,6 +16,9 @@ export default Object.keys(pkg.exports)
         let f = exp.slice(2);
 
         const external = [
+            '@babel/types',
+            'next',
+            'next/router',
             'react',
             'react-native',
             'react-native-mmkv',
