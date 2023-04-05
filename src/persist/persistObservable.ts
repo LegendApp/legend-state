@@ -171,6 +171,7 @@ function updateMetadata<T>(
 
 interface QueuedChange<T = unknown> {
     inRemoteChange: boolean;
+    isApplyingPending: boolean;
     obs: Observable<T>;
     obsState: ObservableObject<ObservablePersistState>;
     localState: LocalState;
@@ -203,19 +204,13 @@ async function processQueuedChanges() {
 }
 
 async function prepChange(queuedChange: QueuedChange) {
-    const { obsState, changes, localState, persistOptions, inRemoteChange } = queuedChange;
-    const { isApplyingPending } = localState;
+    const { obsState, changes, localState, persistOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
     const local = persistOptions.local;
     const { config: configLocal } = parseLocalConfig(local);
     const configRemote = persistOptions.remote;
     const saveLocal = local && !configLocal.readonly && !isApplyingPending && obsState.isEnabledLocal.peek();
-    const saveRemote =
-        !isMergingLocalData &&
-        !inRemoteChange &&
-        configRemote &&
-        !configRemote.readonly &&
-        obsState.isEnabledRemote.peek();
+    const saveRemote = !inRemoteChange && configRemote && !configRemote.readonly && obsState.isEnabledRemote.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !obsState.isLoadedLocal.peek()) {
@@ -432,11 +427,14 @@ function onObsChange<T>(
     persistOptions: PersistOptions<T>,
     { changes }: ListenerParams
 ) {
-    const inRemoteChange = tracking.inRemoteChange;
-    // Queue changes in a microtask so that multiple changes within a frame get run together
-    _queuedChanges.push({ obs, obsState, localState, persistOptions, changes, inRemoteChange });
-    if (_queuedChanges.length === 1) {
-        queueMicrotask(processQueuedChanges);
+    if (!isMergingLocalData) {
+        const inRemoteChange = tracking.inRemoteChange;
+        const isApplyingPending = localState.isApplyingPending;
+        // Queue changes in a microtask so that multiple changes within a frame get run together
+        _queuedChanges.push({ obs, obsState, localState, persistOptions, changes, inRemoteChange, isApplyingPending });
+        if (_queuedChanges.length === 1) {
+            queueMicrotask(processQueuedChanges);
+        }
     }
 }
 
