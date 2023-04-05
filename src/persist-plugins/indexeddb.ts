@@ -157,12 +157,18 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     public getTableTransformed<T = any>(table: string, config: PersistOptionsLocal<any>): T {
         const configIDB = config.indexedDB;
         const prefix = configIDB?.prefixID;
-        const data = this.tableData[(prefix ? table + '/' + prefix : table) + '_transformed'];
+        const tableName = (prefix ? table + '/' + prefix : table) + '_transformed';
+        const data = this.tableData[tableName];
+        const value = data && configIDB?.itemID ? data[configIDB.itemID] : data;
+
+        // Once we've loaded the transformed objects we can safely dispose them
         if (data && configIDB?.itemID) {
-            return data[configIDB.itemID];
+            delete this.tableData[tableName][configIDB.itemID];
         } else {
-            return data;
+            delete this.tableData[tableName];
         }
+
+        return value;
     }
     public getMetadata(table: string, config: PersistOptionsLocal) {
         const { tableName } = this.getMetadataTableName(table, config);

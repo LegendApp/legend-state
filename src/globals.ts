@@ -39,15 +39,12 @@ export function getNodeValue(node: NodeValue): any {
     let count = 0;
     let n: NodeValue = node;
     while (isChildNodeValue(n)) {
-        arrNodeKeys[count] = n.key;
+        arrNodeKeys[count++] = n.key;
         n = n.parent;
-        count++;
     }
     let child = node.root._;
-    for (let i = count - 1; i >= 0; i--) {
-        if (arrNodeKeys[i] !== undefined && child) {
-            child = child[arrNodeKeys[i]];
-        }
+    for (let i = count - 1; child && i >= 0; i--) {
+        child = child[arrNodeKeys[i]];
     }
     return child;
 }

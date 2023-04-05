@@ -267,7 +267,7 @@ function getProxy(node: NodeValue, p?: string) {
 
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeValue, p: any) {
-        // Return true is called by isObservable()
+        // Return true if called by isObservable()
         if (p === symbolIsObservable) {
             return true;
         }
@@ -281,12 +281,21 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
-            return function (a: unknown, b: unknown, c: unknown) {
+            return function (a: any, b: any, c: any) {
                 const l = arguments.length;
                 // Array call and apply are slow so micro-optimize this hot path.
                 // The observable functions depends on the number of arguments so we have to
                 // call it with the correct arguments, not just undefined
-                return l > 2 ? fn(node, a, b, c) : l > 1 ? fn(node, a, b) : fn(node, a);
+                switch (l) {
+                    case 0:
+                        return fn(node);
+                    case 1:
+                        return fn(node, a);
+                    case 2:
+                        return fn(node, a, b);
+                    default:
+                        return fn(node, a, b, c);
+                }
             };
         }
 
@@ -450,9 +459,11 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     // Save the previous value first
     const prevValue = parentValue[key];
 
+    const isFunc = isFunction(newValue);
+
     // Compute newValue if newValue is a function or an observable
     newValue =
-        !inAssign && isFunction(newValue)
+        !inAssign && isFunc
             ? newValue(prevValue)
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
             ? newValue.peek()
@@ -502,7 +513,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
     endBatch();
 
-    return isRoot ? getProxy(node) : getProxy(node, key);
+    return isFunc ? newValue : isRoot ? getProxy(node) : getProxy(node, key);
 }
 
 function assign(node: NodeValue, value: any) {
