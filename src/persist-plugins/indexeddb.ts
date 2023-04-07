@@ -83,7 +83,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 }
                 if (!didPreload) {
                     // Load each table
-                    const tables = tableNames.filter((table) => this.db.objectStoreNames.contains(table));
+                    const objectStoreNames = this.db.objectStoreNames;
+                    const tables = tableNames.filter((table) => objectStoreNames.contains(table));
                     try {
                         const transaction = this.db.transaction(tables, 'readonly');
 
