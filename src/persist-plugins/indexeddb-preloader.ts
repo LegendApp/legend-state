@@ -165,6 +165,8 @@ export function preloadIndexedDB({
                 } else {
                     postMessage({});
                 }
+
+                close();
             };
             openRequest.onerror = () => postMessage({});
             function initTable(table: string, transaction: IDBTransaction) {
