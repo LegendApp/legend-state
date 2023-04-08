@@ -15,8 +15,19 @@ interface TransitionOptions {
 }
 export interface ParamsUseObservableRouter<T extends object> {
     compute: (value: { pathname: string; hash: string; query: ParsedUrlQuery }) => T;
-    set: (value: T, router: NextRouter) => { pathname?: string; hash?: string; query?: ParsedUrlQuery };
-    pushOptions?: TransitionOptions;
+    set: (
+        value: T,
+        previous: T,
+        router: NextRouter
+    ) => {
+        pathname?: string;
+        hash?: string;
+        query?: ParsedUrlQuery;
+        transitionOptions?: TransitionOptions;
+        method?: 'push' | 'replace';
+    };
+    transitionOptions?: TransitionOptions;
+    method?: 'push' | 'replace';
     subscribe?: boolean;
 }
 
@@ -48,7 +59,12 @@ let router: NextRouter;
 routes$.onChange(({ value }) => {
     // Only run this if being manually changed by the user
     if (!isSettingRoutes) {
-        const { pathname, hash, query } = routeParams.set(value, router);
+        const setReturn = routeParams.set(value, routes$.peek(), router);
+        const { pathname, hash, query } = setReturn;
+        let { transitionOptions, method } = setReturn;
+
+        method = method || routeParams.method;
+        transitionOptions = transitionOptions || routeParams.transitionOptions;
 
         const prevHash = router.asPath.split('#')[1] || '';
 
@@ -66,7 +82,11 @@ routes$.onChange(({ value }) => {
         }
         // Only push if there are changes
         if (!isEmpty(change)) {
-            router.push(change, undefined, routeParams.pushOptions);
+            if (method === 'replace') {
+                router.replace(change, undefined, transitionOptions);
+            } else {
+                router.push(change, undefined, transitionOptions);
+            }
         }
     }
 });
