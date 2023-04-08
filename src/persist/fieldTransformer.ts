@@ -41,8 +41,6 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
         for (const key in dataIn) {
-            if (ret[key] !== undefined) continue;
-
             let v = dataIn[key];
 
             if (dict) {
