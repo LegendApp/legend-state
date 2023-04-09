@@ -110,17 +110,10 @@ export function useObservableNextRouter<T extends object>(
 ): Observable<T> | Observable<ObservableNextRouterState> {
     const { subscribe, compute } = params || {};
 
-    // Use the useRouter hook if we're on the client side and want to subscribe to changes.
-    // Otherwise use the Router object so that this does not subscribe to router changes.
-    router = typeof window !== 'undefined' && !subscribe ? Router : useRouter();
-
     try {
-        if (!subscribe) {
-            // Try getting a property of Router to see if it works. If it throws an error
-            // we're on the server so fallback to the hook.
-            Router.asPath;
-            router = Router;
-        }
+        // Use the useRouter hook if we're on the client side and want to subscribe to changes.
+        // Otherwise use the Router object so that this does not subscribe to router changes.
+        router = typeof window !== 'undefined' && !subscribe ? Router : useRouter();
     } finally {
         router = router || useRouter();
     }
