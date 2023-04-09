@@ -101,31 +101,6 @@ persistObservable(settings, {
 })
 ```
 
-### Preloading
-
-Because loading from IndexedDB is asynchronous, the fastest way to load is to begin loading in a Web Worker as soon as possible. Then when your app is finished loading the data is ready. You can use `preloadIndexedDB` to start a Worker to load the data.
-
-```js
-import { preloadIndexedDB } from '@legendapp/state/persist-plugins/indexeddb-preloader';
-
-// The preload configuration needs to match the options used in configureObservablePersistence
-preloadIndexedDB({
-    databaseName: 'Legend',
-    version: 1,
-    tableNames: [
-        'documents',
-        'store'
-    ],
-})
-```
-
-It's easiest to simply start the preload at the very beginning of your app. But it's ideal to run it as a separate script from your HTML so that it runs immediately, before parsing and running the app code. That could looks something like this:
-
-```html
-<script src="js/preload.js"></script>
-<script src="js/app.js" async></script>
-```
-
 ### React Native
 
 If you are on React Native you will need to install `react-native-mmvk` too:

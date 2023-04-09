@@ -214,9 +214,6 @@ export interface ObservablePersistLocal {
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
     loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
-export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
-    preload(path: string): Promise<void>;
-}
 export interface ObservablePersistRemoteSaveParams<T, T2> {
     state: Observable<ObservablePersistState>;
     obs: Observable<T>;

@@ -31,7 +31,6 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
     if (process.env.NODE_ENV === 'development') {
         validateMap(map);
     }
-    // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
     if (dataIn) {
         if ((dataIn as unknown) === symbolDelete) return dataIn;
@@ -104,7 +103,6 @@ export function transformObjectWithPath(
 const invertedMaps = new WeakMap();
 
 export function invertFieldMap(obj: Record<string, any>) {
-    // Note: If changing this, change it in IndexedDB preloader
     const existing = invertedMaps.get(obj);
     if (existing) return existing;
 

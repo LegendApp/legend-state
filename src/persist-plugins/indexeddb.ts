@@ -58,40 +58,15 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             openRequest.onsuccess = async () => {
                 this.db = openRequest.result;
 
-                const preload =
-                    typeof window !== 'undefined' &&
-                    ((window as any).__legend_state_preload as {
-                        tableData: any;
-                        tableMetadata: any;
-                        dataPromise: Promise<any>;
-                        error: any;
-                    });
+                // Load each table
+                const objectStoreNames = this.db.objectStoreNames;
+                const tables = tableNames.filter((table) => objectStoreNames.contains(table));
+                try {
+                    const transaction = this.db.transaction(tables, 'readonly');
 
-                let didPreload = false;
-                if (preload) {
-                    if (preload.error) {
-                        config.onLoadError?.(preload.error);
-                    } else {
-                        // Load from preload or wait for it to finish, if it exists
-                        if (!preload.tableData && preload.dataPromise) {
-                            await preload.dataPromise;
-                        }
-                        this.tableData = preload.tableData || {};
-                        this.tableMetadata = preload.tableMetadata || {};
-                        didPreload = !!preload.tableData;
-                    }
-                }
-                if (!didPreload) {
-                    // Load each table
-                    const objectStoreNames = this.db.objectStoreNames;
-                    const tables = tableNames.filter((table) => objectStoreNames.contains(table));
-                    try {
-                        const transaction = this.db.transaction(tables, 'readonly');
-
-                        await Promise.all(tables.map((table) => this.initTable(table, transaction)));
-                    } catch (err) {
-                        console.error('[legend-state] Error loading IndexedDB', err);
-                    }
+                    await Promise.all(tables.map((table) => this.initTable(table, transaction)));
+                } catch (err) {
+                    console.error('[legend-state] Error loading IndexedDB', err);
                 }
 
                 resolve();
@@ -342,7 +317,6 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         return { tableNameBase: name, tableName: name ? table + '/' + name : table };
     }
     private initTable(table: string, transaction: IDBTransaction): Promise<void> {
-        // If changing this, change it in the preloader too
         const store = transaction.objectStore(table);
         const allRequest = store.getAll();
 
