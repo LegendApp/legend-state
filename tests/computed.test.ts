@@ -159,9 +159,7 @@ describe('Two way Computed', () => {
         );
         expect(comp.get()).toEqual(false);
         comp.set(true);
-        // TODO: This previous value is wrong, fix and write a test for previous to make sure
-        // it is the previous value before all changes in the current batch
-        expect(handler).toHaveBeenCalledWith({ test: true, test2: true }, { test: false, test2: true }, [
+        expect(handler).toHaveBeenCalledWith({ test: true, test2: true }, { test: false, test2: false }, [
             {
                 path: ['test'],
                 pathTypes: ['object'],

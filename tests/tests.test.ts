@@ -2091,6 +2091,31 @@ describe('Batching', () => {
         endBatch();
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Assign getPrevious is correct', async () => {
+        const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+        const handler = expectChangeHandler(obs);
+        obs.assign({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+        expect(handler).toHaveBeenCalledWith(
+            {
+                num1: 11,
+                num2: 22,
+                num3: 33,
+                obj: { text: 'hello' },
+            },
+            { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } },
+            [
+                { path: ['num1'], pathTypes: ['object'], prevAtPath: 1, valueAtPath: 11 },
+                { path: ['num2'], pathTypes: ['object'], prevAtPath: 2, valueAtPath: 22 },
+                { path: ['num3'], pathTypes: ['object'], prevAtPath: 3, valueAtPath: 33 },
+                { path: ['obj'], pathTypes: ['object'], prevAtPath: { text: 'hi' }, valueAtPath: { text: 'hello' } },
+            ]
+        );
+    });
 });
 describe('Observable with promise', () => {
     test('Promise', async () => {

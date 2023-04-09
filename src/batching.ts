@@ -1,16 +1,22 @@
 import { isFunction } from './is';
-import type { ListenerFn, ListenerParams } from './observableInterfaces';
+import type { Change, ListenerFn, ListenerParams } from './observableInterfaces';
 
-interface BatchItem {
+export interface BatchItem {
     cb: ListenerFn<any>;
     params: ListenerParams<any>;
 }
+export type ListenerParamsWithoutGetPrevious = Omit<ListenerParams<any>, 'getPrevious'> &
+    Partial<Pick<ListenerParams<any>, 'getPrevious'>>;
+export interface BatchItemWithoutGetPrevious {
+    cb: ListenerFn<any>;
+    params: ListenerParamsWithoutGetPrevious;
+}
 let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
-let _batch: (BatchItem | (() => void))[] = [];
+let _batch: (BatchItemWithoutGetPrevious | (() => void))[] = [];
 let _afterBatch: (() => void)[] = [];
 // Use a Map of callbacks for fast lookups to update the BatchItem
-let _batchMap = new Map<ListenerFn, BatchItem | true>();
+let _batchMap = new Map<ListenerFn, BatchItemWithoutGetPrevious | true>();
 
 function onActionTimeout() {
     if (_batch.length > 0) {
@@ -23,7 +29,28 @@ function onActionTimeout() {
     }
 }
 
-export function batchNotify(b: BatchItem | (() => void), immediate: boolean) {
+function createPreviousHandler(value: any, changes: Change[]) {
+    // Create a function that clones the current state and injects the previous data at the changed path
+    return function () {
+        let clone = value ? JSON.parse(JSON.stringify(value)) : {};
+        for (let i = 0; i < changes.length; i++) {
+            const { path, prevAtPath } = changes[i];
+            let o = clone;
+            if (path.length > 0) {
+                let i: number;
+                for (i = 0; i < path.length - 1; i++) {
+                    o = o[path[i]];
+                }
+                o[path[i]] = prevAtPath;
+            } else {
+                clone = prevAtPath;
+            }
+        }
+        return clone;
+    };
+}
+
+export function batchNotify(b: BatchItemWithoutGetPrevious | (() => void), immediate: boolean) {
     const isFunc = isFunction(b);
     const cb = isFunc ? b : b.cb;
     if (!immediate && numInBatch > 0) {
@@ -39,14 +66,23 @@ export function batchNotify(b: BatchItem | (() => void), immediate: boolean) {
                 const params = (existing as BatchItem).params;
                 params.value = b.params.value;
                 params.changes.push(...b.params.changes);
+                params.getPrevious = createPreviousHandler(params.value, params.changes);
             }
         } else {
+            if (!isFunc) {
+                b.params.getPrevious = createPreviousHandler(b.params.value, b.params.changes);
+            }
             _batch.push(b);
             _batchMap.set(cb, isFunc ? true : b);
         }
     } else {
         // If not batched callback immediately
-        isFunc ? b() : b.cb(b.params);
+        if (isFunc) {
+            b();
+        } else {
+            b.params.getPrevious = createPreviousHandler(b.params.value, b.params.changes);
+            b.cb(b.params as ListenerParams);
+        }
 
         if (numInBatch === 0) {
             // Run afterBatch callbacks if this is not batched
@@ -91,7 +127,7 @@ export function endBatch(force?: boolean) {
                 b();
             } else {
                 const { cb } = b;
-                cb(b.params);
+                cb(b.params as ListenerParams);
             }
         }
         for (let i = 0; i < after.length; i++) {

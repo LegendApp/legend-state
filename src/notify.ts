@@ -1,25 +1,7 @@
-import { batchNotify } from './batching';
+import { batchNotify, ListenerParamsWithoutGetPrevious } from './batching';
 import { getNodeValue } from './globals';
 import { isArray } from './is';
 import { NodeValue, TypeAtPath } from './observableInterfaces';
-
-function createPreviousHandler(value: any, path: string[], prevAtPath: any) {
-    // Create a function that clones the current state and injects the previous data at the changed path
-    return function () {
-        let clone = value ? JSON.parse(JSON.stringify(value)) : path.length > 0 ? {} : value;
-        let o = clone;
-        if (path.length > 0) {
-            let i: number;
-            for (i = 0; i < path.length - 1; i++) {
-                o = o[path[i]];
-            }
-            o[path[i]] = prevAtPath;
-        } else {
-            clone = prevAtPath;
-        }
-        return clone;
-    };
-}
 
 export function doNotify(
     node: NodeValue,
@@ -33,7 +15,7 @@ export function doNotify(
 ) {
     const listeners = node.listeners;
     if (listeners) {
-        let getPrevious;
+        let listenerParams: ListenerParamsWithoutGetPrevious;
         // Need to convert to an array here instead of using a for...of loop because listeners can change while iterating
         const arr = Array.from(listeners);
         for (let i = 0; i < arr.length; i++) {
@@ -49,32 +31,21 @@ export function doNotify(
 
             // Notify if listener is not shallow or if this is the first level
             if (ok) {
-                // Create a function to get the previous data. Computing a clone of previous data can be expensive if doing
-                // it often, so leave it up to the caller.
-                if (!noArgs && !getPrevious) {
-                    getPrevious = createPreviousHandler(value, path, prevAtPath);
+                if (!noArgs && !listenerParams) {
+                    listenerParams = {
+                        value,
+                        changes: [
+                            {
+                                path,
+                                pathTypes,
+                                valueAtPath,
+                                prevAtPath,
+                            },
+                        ],
+                    };
                 }
 
-                batchNotify(
-                    noArgs
-                        ? (listener as () => void)
-                        : {
-                              cb: listener,
-                              params: {
-                                  value,
-                                  getPrevious,
-                                  changes: [
-                                      {
-                                          path,
-                                          pathTypes,
-                                          valueAtPath,
-                                          prevAtPath,
-                                      },
-                                  ],
-                              },
-                          },
-                    immediate
-                );
+                batchNotify(noArgs ? (listener as () => void) : { cb: listener, params: listenerParams }, immediate);
             }
         }
     }
