@@ -57,7 +57,7 @@ const routes$ = observable({});
 let routeParams = {} as ParamsUseObservableNextRouter<any>;
 let router: NextRouter;
 
-routes$.onChange(({ value }) => {
+routes$.onChange(({ value, getPrevious }) => {
     // Only run this if being manually changed by the user
     if (!isSettingRoutes) {
         let setter = routeParams?.set;
@@ -68,7 +68,7 @@ routes$.onChange(({ value }) => {
                 console.error('[legend-state]: Must provide a set method to useObservableNextRouter');
             }
         }
-        const setReturn = setter(value, routes$.peek(), router);
+        const setReturn = setter(value, getPrevious(), router);
         const { pathname, hash, query } = setReturn;
         let { transitionOptions, method } = setReturn;
 
