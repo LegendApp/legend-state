@@ -2,33 +2,34 @@ import { isEmpty, observable, Observable } from '@legendapp/state';
 import Router, { NextRouter, useRouter } from 'next/router';
 
 type ParsedUrlQuery = { [key: string]: string | string[] | undefined };
-interface RouteInfo {
-    pathname?: string;
-    hash?: string;
-    query?: ParsedUrlQuery;
-}
+
 interface TransitionOptions {
     shallow?: boolean;
     locale?: string | false;
     scroll?: boolean;
     unstable_skipClientCache?: boolean;
 }
-export interface ParamsUseObservableRouter<T extends object> {
-    compute: (value: { pathname: string; hash: string; query: ParsedUrlQuery }) => T;
+export interface ObservableNextRouterState {
+    pathname: string;
+    hash: string;
+    query: ParsedUrlQuery;
+}
+type RouteInfo = Partial<ObservableNextRouterState>;
+export interface ParamsUseObservableNextRouterBase {
+    transitionOptions?: TransitionOptions;
+    method?: 'push' | 'replace';
+    subscribe?: boolean;
+}
+export interface ParamsUseObservableNextRouter<T extends object> extends ParamsUseObservableNextRouterBase {
+    compute: (value: ObservableNextRouterState) => T;
     set: (
         value: T,
         previous: T,
         router: NextRouter
-    ) => {
-        pathname?: string;
-        hash?: string;
-        query?: ParsedUrlQuery;
+    ) => RouteInfo & {
         transitionOptions?: TransitionOptions;
         method?: 'push' | 'replace';
     };
-    transitionOptions?: TransitionOptions;
-    method?: 'push' | 'replace';
-    subscribe?: boolean;
 }
 
 function isShallowEqual(query1: ParsedUrlQuery, query2: ParsedUrlQuery) {
@@ -53,18 +54,26 @@ function isShallowEqual(query1: ParsedUrlQuery, query2: ParsedUrlQuery) {
 
 let isSettingRoutes = false;
 const routes$ = observable({});
-let routeParams = {} as ParamsUseObservableRouter<any>;
+let routeParams = {} as ParamsUseObservableNextRouter<any>;
 let router: NextRouter;
 
 routes$.onChange(({ value }) => {
     // Only run this if being manually changed by the user
     if (!isSettingRoutes) {
-        const setReturn = routeParams.set(value, routes$.peek(), router);
+        let setter = routeParams?.set;
+        if (!setter) {
+            if ((value as any).pathname) {
+                setter = () => value;
+            } else {
+                console.error('[legend-state]: Must provide a set method to useObservableNextRouter');
+            }
+        }
+        const setReturn = setter(value, routes$.peek(), router);
         const { pathname, hash, query } = setReturn;
         let { transitionOptions, method } = setReturn;
 
-        method = method || routeParams.method;
-        transitionOptions = transitionOptions || routeParams.transitionOptions;
+        method = method || routeParams?.method;
+        transitionOptions = transitionOptions || routeParams?.transitionOptions;
 
         const prevHash = router.asPath.split('#')[1] || '';
 
@@ -91,8 +100,15 @@ routes$.onChange(({ value }) => {
     }
 });
 
-export function useObservableRouter<T extends object>(params: ParamsUseObservableRouter<T>): Observable<T> {
-    const { subscribe, compute } = params;
+export function useObservableNextRouter(): Observable<ObservableNextRouterState>;
+export function useObservableNextRouter<T extends object>(params: ParamsUseObservableNextRouter<T>): Observable<T>;
+export function useObservableNextRouter(
+    params: ParamsUseObservableNextRouterBase
+): Observable<ObservableNextRouterState>;
+export function useObservableNextRouter<T extends object>(
+    params?: ParamsUseObservableNextRouter<T>
+): Observable<T> | Observable<ObservableNextRouterState> {
+    const { subscribe, compute } = params || {};
 
     // Use the useRouter hook if we're on the client side and want to subscribe to changes.
     // Otherwise use the Router object so that this does not subscribe to router changes.
@@ -101,7 +117,7 @@ export function useObservableRouter<T extends object>(params: ParamsUseObservabl
     try {
         if (!subscribe) {
             // Try getting a property of Router to see if it works. If it throws an error
-            //  we're on the server so fallback to the hook.
+            // we're on the server so fallback to the hook.
             Router.asPath;
             router = Router;
         }
@@ -120,7 +136,8 @@ export function useObservableRouter<T extends object>(params: ParamsUseObservabl
     const hash = asPath.split('#')[1] || '';
 
     // Run the compute function to get the value of the object
-    const obj = compute({ pathname, hash, query });
+    const computeParams = { pathname, hash, query };
+    const obj = compute ? compute(computeParams) : computeParams;
 
     // Set the object without triggering router.push
     try {
