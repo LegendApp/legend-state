@@ -329,19 +329,17 @@ async function doChange(changeInfo: {
     if (changesLocal.length > 0) {
         // Save the changes to local persistence before saving to remote. They are already marked as pending so
         // if remote sync fails or the app is closed before remote sync, it will attempt to sync them on the next load.
-        if (changesLocal.length > 0) {
-            let promiseSet = persistenceLocal.set(table, changesLocal, configLocal);
+        let promiseSet = persistenceLocal.set(table, changesLocal, configLocal);
 
-            if (promiseSet) {
-                promiseSet = promiseSet.then(() => {
-                    promisesLocalSaves.delete(promiseSet as Promise<any>);
-                });
-                // Keep track of local save promises so that updateMetadata runs only after everything is saved
-                promisesLocalSaves.add(promiseSet);
+        if (promiseSet) {
+            promiseSet = promiseSet.then(() => {
+                promisesLocalSaves.delete(promiseSet as Promise<any>);
+            });
+            // Keep track of local save promises so that updateMetadata runs only after everything is saved
+            promisesLocalSaves.add(promiseSet);
 
-                // await the local save before proceeding to save remotely
-                await promiseSet;
-            }
+            // await the local save before proceeding to save remotely
+            await promiseSet;
         }
     }
 
