@@ -248,6 +248,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 delete pendingTable.tablePrev;
             });
         });
+        this.pendingSaves.clear();
 
         // setTable awaits multiple sets and deletes so we need to await that to get
         // the lastPut from it.
@@ -256,7 +257,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             lastPut = puts[puts.length - 1];
         }
 
-        await requestToPromise(lastPut);
+        if (lastPut) {
+            await requestToPromise(lastPut);
+        }
 
         promisesQueued.forEach((resolve) => resolve());
     }
