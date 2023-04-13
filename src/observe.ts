@@ -36,9 +36,6 @@ export function observe<T>(
             e.onCleanup = undefined;
         }
 
-        // Dispose listeners from previous run
-        dispose?.();
-
         // Run in a batch so changes don't happen until we're done tracking here
         beginBatch();
 
@@ -49,6 +46,9 @@ export function observe<T>(
         delete e.value;
         const previous = e.previous;
         e.previous = computeSelector(selectorOrRun, e);
+
+        // Dispose listeners from previous run
+        dispose?.();
 
         if (!e.cancel) {
             const tracker = tracking.current;

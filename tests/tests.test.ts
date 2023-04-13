@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { beginBatch, endBatch } from '../src/batching';
+import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
@@ -2150,6 +2150,29 @@ describe('Observable with promise', () => {
         await promiseTimeout(1000);
 
         expect(fn).toHaveBeenCalled();
+    });
+    test('recursive batches prevented', async () => {
+        let isInInnerBatch = false;
+        const obs = observable({ num: 0 });
+        const obs2 = observable({ num: 0 });
+        let numCalls = 0;
+        observe(() => {
+            numCalls++;
+            obs2.get();
+            expect(isInInnerBatch).toEqual(false);
+            isInInnerBatch = false;
+        });
+        obs.onChange(() => {
+            isInInnerBatch = true;
+            beginBatch();
+            obs2.num.set(2);
+            endBatch();
+            isInInnerBatch = false;
+        });
+        batch(() => {
+            obs.num.set(1);
+        });
+        expect(numCalls).toEqual(2);
     });
 });
 describe('Locking', () => {

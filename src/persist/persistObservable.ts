@@ -17,10 +17,8 @@ import type {
 } from '@legendapp/state';
 import {
     batch,
-    beginBatch,
     constructObjectWithPath,
     deconstructObjectWithPath,
-    endBatch,
     isEmpty,
     isPromise,
     isString,
@@ -441,18 +439,10 @@ export function onChangeRemote(cb: () => void) {
     persistState.inRemoteSync.set(true);
     tracking.inRemoteChange = true;
 
-    try {
-        beginBatch();
-        cb();
-    } finally {
-        try {
-            endBatch(true);
-        } finally {
-            // Even if endBatch crashes these need to be reset
-            tracking.inRemoteChange = false;
-            persistState.inRemoteSync.set(false);
-        }
-    }
+    batch(cb, () => {
+        tracking.inRemoteChange = false;
+        persistState.inRemoteSync.set(false);
+    });
 }
 
 async function loadLocal<T>(

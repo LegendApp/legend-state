@@ -13,6 +13,8 @@ export interface BatchItemWithoutGetPrevious {
 }
 let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
+let isRunningBatch = false;
+let didDelayEndBatch = false;
 let _batch: (BatchItemWithoutGetPrevious | (() => void))[] = [];
 let _afterBatch: (() => void)[] = [];
 // Use a Map of callbacks for fast lookups to update the BatchItem
@@ -100,38 +102,57 @@ export function batch(fn: () => void, onComplete?: () => void) {
         _afterBatch.push(onComplete);
     }
     beginBatch();
-    fn();
-    endBatch();
+    try {
+        fn();
+    } finally {
+        endBatch();
+    }
 }
 export function beginBatch() {
     numInBatch++;
 }
 export function endBatch(force?: boolean) {
     numInBatch--;
+
     if (numInBatch <= 0 || force) {
-        if (timeout) {
-            clearTimeout(timeout);
-            timeout = undefined;
-        }
-        numInBatch = 0;
-        // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
-        // This can happen with observableComputed for example.
-        const batch = _batch;
-        const after = _afterBatch;
-        _batch = [];
-        _batchMap = new Map();
-        _afterBatch = [];
-        for (let i = 0; i < batch.length; i++) {
-            const b = batch[i];
-            if (isFunction(b)) {
-                b();
-            } else {
-                const { cb } = b;
-                cb(b.params as ListenerParams);
+        if (isRunningBatch) {
+            // Don't want to run multiple endBatches recursively, so just note that an endBatch
+            // was delayed so that the top level endBatch will run endBatch again after it's done.
+            didDelayEndBatch = true;
+        } else {
+            if (timeout) {
+                clearTimeout(timeout);
+                timeout = undefined;
             }
-        }
-        for (let i = 0; i < after.length; i++) {
-            after[i]();
+            numInBatch = 0;
+            // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
+            // This can happen with observableComputed for example.
+            const batch = _batch;
+            const after = _afterBatch;
+            _batch = [];
+            _batchMap = new Map();
+            _afterBatch = [];
+            isRunningBatch = true;
+
+            for (let i = 0; i < batch.length; i++) {
+                const b = batch[i];
+                if (isFunction(b)) {
+                    b();
+                } else {
+                    const { cb } = b;
+                    cb(b.params as ListenerParams);
+                }
+            }
+            for (let i = 0; i < after.length; i++) {
+                after[i]();
+            }
+
+            isRunningBatch = false;
+
+            if (didDelayEndBatch) {
+                didDelayEndBatch = false;
+                endBatch(true);
+            }
         }
     }
 }
