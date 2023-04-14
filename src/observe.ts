@@ -44,8 +44,7 @@ export function observe<T>(
 
         // Run the function/selector
         delete e.value;
-        const previous = e.previous;
-        e.previous = computeSelector(selectorOrRun, e);
+        e.value = computeSelector(selectorOrRun, e);
 
         // Dispose listeners from previous run
         dispose?.();
@@ -77,9 +76,9 @@ export function observe<T>(
             e.onCleanupReaction();
             e.onCleanupReaction = undefined;
         }
-        if (reaction && (e.num > 0 || !(selectorOrRun as any)[symbolIsEvent]) && previous !== e.previous) {
-            e.value = e.previous;
+        if (reaction && (e.num > 0 || !(selectorOrRun as any)[symbolIsEvent]) && e.previous !== e.value) {
             reaction(e);
+            e.previous = e.value;
         }
 
         // Increment the counter

@@ -2313,6 +2313,24 @@ describe('Observe', () => {
         obs.set(2);
         expect(count).toEqual(2);
     });
+    test('Observe with reaction previous', () => {
+        const obs = observable(0);
+        let count = 0;
+        let prev;
+        observe<number>(
+            () => obs.get(),
+            ({ value, previous }) => {
+                count = value;
+                prev = previous;
+            }
+        );
+        obs.set(1);
+        expect(count).toEqual(1);
+        expect(prev).toEqual(0);
+        obs.set(2);
+        expect(count).toEqual(2);
+        expect(prev).toEqual(1);
+    });
     test('Observe with reaction does not track', () => {
         const obs = observable(0);
         const obsOther = observable(0);
