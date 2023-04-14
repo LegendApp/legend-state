@@ -407,7 +407,7 @@ async function doChange(changeInfo: {
                     onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
                 }
 
-                if (!isEmpty(metadata)) {
+                if (local && !isEmpty(metadata)) {
                     updateMetadata(obs, localState, obsState, persistOptions, metadata);
                 }
             }
@@ -628,7 +628,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                 });
                             }
                         }
-                        if (dateModified) {
+                        if (dateModified && local) {
                             updateMetadata(obs, localState, obsState, persistOptions, {
                                 modified: dateModified,
                             });
