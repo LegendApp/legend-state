@@ -48,9 +48,11 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             const { tableNames } = config.indexedDB;
             // Create a table for each name with "id" as the key
             tableNames.forEach((table) => {
-                db.createObjectStore(table, {
-                    keyPath: 'id',
-                });
+                if (!db.objectStoreNames.contains(table)) {
+                    db.createObjectStore(table, {
+                        keyPath: 'id',
+                    });
+                }
             });
         };
 
