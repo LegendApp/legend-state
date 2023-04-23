@@ -157,12 +157,14 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 const child = getChildNode(parent, key);
 
                 const prev = prevValue[key];
-                if (!isPrimitive(prev)) {
-                    updateNodes(child, undefined, prev);
-                }
+                if (prev !== undefined) {
+                    if (!isPrimitive(prev)) {
+                        updateNodes(child, undefined, prev);
+                    }
 
-                if (child.listeners) {
-                    doNotify(child, undefined, [], [], undefined, prev, 0);
+                    if (child.listeners) {
+                        doNotify(child, undefined, [], [], undefined, prev, 0);
+                    }
                 }
             }
         }
