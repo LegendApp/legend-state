@@ -3,7 +3,7 @@
 // 2. Return an observable that subscribes to the query observer
 // 3. If there is a mutator observe the observable for changes and call mutate
 
-import { observable, observe } from '@legendapp/state';
+import { observable, observe, ObservableObject } from '@legendapp/state';
 import {
     DefaultedQueryObserverOptions,
     MutationObserver,
@@ -21,6 +21,7 @@ import {
     UseMutationOptions,
     useQueryClient,
     useQueryErrorResetBoundary,
+    UseBaseQueryResult
 } from '@tanstack/react-query';
 import type { QueryErrorResetBoundaryValue } from '@tanstack/react-query/build/lib/QueryErrorResetBoundary';
 import * as React from 'react';
@@ -77,7 +78,7 @@ const getHasError = <TData, TError, TQueryFnData, TQueryData, TQueryKey extends 
 export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey, TContext>(
     options: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> & { queryClient?: QueryClient },
     mutationOptions?: UseMutationOptions<TData, TError, void, TContext>
-) {
+): ObservableObject<UseBaseQueryResult<TData, TError>> {
     const Observer = QueryObserver;
     const queryClient = options?.queryClient || useQueryClient({ context: options.context });
     const isRestoring = useIsRestoring();
