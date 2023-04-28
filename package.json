@@ -46,11 +46,6 @@
             "require": "./index.js",
             "types": "./index.d.ts"
         },
-        "./internal": {
-            "import": "./internal.mjs",
-            "require": "./internal.js",
-            "types": "./internal.d.ts"
-        },
         "./persist": {
             "import": "./persist.mjs",
             "require": "./persist.js",

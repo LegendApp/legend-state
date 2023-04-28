@@ -8,6 +8,7 @@ export {
     deconstructObjectWithPath,
     setAtPath,
     setInObservableAtPath,
+    lockObservable
 } from './src/helpers';
 export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
@@ -27,7 +28,6 @@ export {
     isString,
     isSymbol,
 } from './src/is';
-export { lockObservable } from './src/helpers';
 
 /** @internal */
 export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
@@ -42,8 +42,25 @@ export {
     extraPrimitiveActivators,
     getNodeValue,
     symbolDelete,
+    findIDKey
 } from './src/globals';
 /** @internal */
 export { getNode, isObservableValueReady } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
+
+import {
+    setAtPath,
+    getNode,
+} from './src/helpers';
+import {
+    getNodeValue,
+    symbolDelete,
+} from './src/globals';
+
+export const internal = {
+    getNode,
+    getNodeValue,
+    setAtPath,
+    symbolDelete
+}
