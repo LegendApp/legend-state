@@ -1,4 +1,5 @@
 import type { Observable, ObservableReadable } from '@legendapp/state';
+import { findIDKey, getNode, isFunction } from '@legendapp/state';
 import { createElement, FC, ReactElement, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -11,7 +12,7 @@ export function For<T, TProps>({
     itemProps,
     children,
 }: {
-    each?: ObservableReadable<(T & ({ id: string | number } | { _id: string | number } | { __id: string | number }))[]>;
+    each?: ObservableReadable<T[]>;
     eachValues?: ObservableReadable<Record<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T> } & TProps>;
@@ -20,9 +21,11 @@ export function For<T, TProps>({
 }): ReactElement | null {
     if (!each && !eachValues) return null;
 
+    const obs = each || eachValues;
+
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const value = useSelector(() => (each || eachValues).get(optimized ? 'optimize' : true));
+    const value = useSelector(() => obs.get(optimized ? 'optimize' : true));
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
@@ -49,20 +52,21 @@ export function For<T, TProps>({
         }
     } else {
         // Get the appropriate id field
-        const id =
+        const v0 = value[0];
+        const node = getNode(obs);
+
+        const idField =
             value.length > 0
-                ? value[0].id
-                    ? 'id'
-                    : value[0]._id
-                    ? '_id'
-                    : value[0].__id
-                    ? '__id'
-                    : undefined
+                ? (node && findIDKey(v0, node)) ||
+                  (v0.id !== undefined ? 'id' : v0.key !== undefined ? 'key' : undefined)
                 : undefined;
+
+        const isIdFieldFunction = isFunction(idField);
 
         for (let i = 0; i < value.length; i++) {
             if (value[i]) {
-                const key = value[i][id as string] ?? i;
+                const val = value[i];
+                const key = (isIdFieldFunction ? idField(val) : val[idField as string]) ?? i;
 
                 out.push(createElement(item as FC, Object.assign({ key: key, item: each[i], id: key }, itemProps)));
             }

@@ -1,4 +1,4 @@
-import { isChildNodeValue, isObject } from './is';
+import { isChildNodeValue, isFunction, isObject } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
@@ -82,8 +82,26 @@ export function ensureNodeValue(node: NodeValue) {
     return value;
 }
 
-export type IDKey = 'id' | '_id' | '__id';
+export function findIDKey(obj: unknown | undefined, node: NodeValue): string | ((value: any) => string) {
+    let idKey: string | ((value: any) => string) = isObject(obj)
+        ? 'id' in obj
+            ? 'id'
+            : 'key' in obj
+            ? 'key'
+            : '_id' in obj
+            ? '_id'
+            : '__id' in obj
+            ? '__id'
+            : undefined
+        : undefined;
 
-export function findIDKey(obj: unknown | undefined): IDKey | undefined {
-    return isObject(obj) ? ('id' in obj ? 'id' : '_id' in obj ? '_id' : '__id' in obj ? '__id' : undefined) : undefined;
+    // let idKey = isObject(obj) && ('id' in obj ? 'id' : 'key' in obj ? 'key' : undefined);
+    if (!idKey && node.parent) {
+        const keyExtractor = getNodeValue(node.parent)[node.key + '_keyExtractor'] as (value: any) => string;
+        if (keyExtractor && isFunction(keyExtractor)) {
+            idKey = keyExtractor;
+        }
+    }
+
+    return idKey;
 }

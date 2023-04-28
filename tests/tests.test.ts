@@ -1139,19 +1139,20 @@ describe('Array', () => {
     test('Array swap with objects and then remove', () => {
         const obs = observable({
             test: [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { zid: 1, text: 1 },
+                { zid: 2, text: 2 },
+                { zid: 3, text: 3 },
+                { zid: 4, text: 4 },
+                { zid: 5, text: 5 },
             ],
+            test_keyExtractor: (item) => item.zid,
         });
         const arr = obs.test;
         const tmp = arr[1].get();
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
         obs.test.splice(0, 1);
-        expect(obs.test[0].get()).toEqual({ id: 5, text: 5 });
+        expect(obs.test[0].get()).toEqual({ zid: 5, text: 5 });
     });
     test('Array swap if empty', () => {
         interface Data {
@@ -1746,8 +1747,10 @@ describe('Deep changes keep listeners', () => {
     test('Array objects getPrevious', () => {
         interface Data {
             arr: { _id: number }[];
+            arr_keyExtractor: (item: any) => string;
         }
-        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] });
+        const arr_keyExtractor = (el) => el._id;
+        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }], arr_keyExtractor });
         const handler = expectChangeHandler(obs.arr);
         const handler2 = expectChangeHandler(obs);
         obs.arr.set([{ _id: 1 }, { _id: 2 }, { _id: 3 }]);
@@ -1764,7 +1767,7 @@ describe('Deep changes keep listeners', () => {
             ]
         );
         expect(handler2).toHaveBeenCalledWith(
-            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }] },
+            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }], arr_keyExtractor },
             { arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] },
             [
                 {

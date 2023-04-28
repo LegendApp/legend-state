@@ -7,7 +7,6 @@ import {
     get,
     getChildNode,
     getNodeValue,
-    IDKey,
     peek,
     symbolDelete,
     symbolGetNode,
@@ -120,7 +119,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     const keys = obj ? Object.keys(obj) : [];
     const keysPrev = prevValue ? Object.keys(prevValue) : [];
 
-    let idField: IDKey | undefined;
+    let idField: string | ((value: any) => string);
+    let isIdFieldFunction;
     let hasADiff = false;
 
     if (isArr && isArray(prevValue)) {
@@ -128,18 +128,34 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         if (prevValue.length > 0) {
             const firstPrevValue = prevValue[0];
             if (firstPrevValue) {
-                idField = findIDKey(firstPrevValue);
+                idField = findIDKey(firstPrevValue, parent);
 
                 if (idField) {
+                    isIdFieldFunction = isFunction(idField);
                     prevChildrenById = new Map();
                     moved = [];
+                    const keysSeen =
+                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && new Set();
                     if (parent.children) {
                         for (let i = 0; i < prevValue.length; i++) {
                             const p = prevValue[i];
                             if (p) {
                                 const child = parent.children.get(i + '');
                                 if (child) {
-                                    prevChildrenById.set(p[idField], child);
+                                    const key = isIdFieldFunction
+                                        ? (idField as (value: any) => string)(p)
+                                        : p[idField as string];
+
+                                    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                                        if (keysSeen.has(key)) {
+                                            console.warn(
+                                                `[legend-state] Warning: Multiple elements in array have the same ID. Key field: ${idField}, Array:`,
+                                                prevValue
+                                            );
+                                        }
+                                        keysSeen.add(key);
+                                    }
+                                    prevChildrenById.set(key, child);
                                 }
                             }
                         }
@@ -185,7 +201,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 let isDiff = value !== prev;
                 if (isDiff) {
-                    const id = value?.[idField as IDKey];
+                    const id =
+                        idField && value
+                            ? isIdFieldFunction
+                                ? (idField as (value: any) => string)(value)
+                                : value[idField as string]
+                            : undefined;
 
                     let child = getChildNode(parent, key);
 

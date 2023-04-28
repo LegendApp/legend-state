@@ -1,4 +1,4 @@
-import { symbolDelete } from '../internal';
+import { symbolDelete } from '@legendapp/state';
 import { isObservable, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 
