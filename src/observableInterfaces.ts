@@ -48,8 +48,9 @@ export interface ObservableBaseFns<T> {
     ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
-    set(value: T | ((prev: T) => T)): ObservablePrimitiveChild<T>;
+    set(value: T | CallbackSetter<T>): ObservablePrimitiveChild<T>;
 }
+
 interface ObservablePrimitiveFnsBoolean<T> {
     toggle(): T;
 }
@@ -61,11 +62,17 @@ export type ObservablePrimitiveFns<T> = [T] extends [boolean]
 export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFnsBase<T> {
     delete(): ObservablePrimitiveChild<T>;
 }
+
 export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
-    set(value: T | ((prev: T) => T)): ObservableChild<T>;
+    set(value: T | CallbackSetter<T>): ObservableChild<T>;
     assign(value: T | Partial<T>): ObservableChild<T>;
     delete(): ObservableChild<T>;
 }
+
+type CallbackSetter<T> = {
+    bivarianceHack(prev: T): T;
+}['bivarianceHack'];
+
 export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
 
 export type ObservablePrimitive<T> = ObservablePrimitiveFns<T>;
