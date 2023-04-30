@@ -10,6 +10,7 @@ export function For<T, TProps>({
     optimized,
     item,
     itemProps,
+    sortValues,
     children,
 }: {
     each?: ObservableReadable<T[]>;
@@ -17,6 +18,7 @@ export function For<T, TProps>({
     optimized?: boolean;
     item?: FC<{ item: Observable<T> } & TProps>;
     itemProps?: TProps;
+    sortValues?: (A: T, B: T, AKey: string, BKey: string) => number;
     children?: (value: Observable<T>) => ReactElement;
 }): ReactElement | null {
     if (!each && !eachValues) return null;
@@ -36,6 +38,7 @@ export function For<T, TProps>({
         item = useMemo(() => observer(({ item }) => refChildren.current!(item)), []);
     }
 
+    // This early out needs to be after any hooks
     if (!value) return null;
 
     // Create the child elements
@@ -43,10 +46,18 @@ export function For<T, TProps>({
 
     // If using eachValues, render the values of the object
     if (eachValues) {
-        for (const key in value) {
+        const keys = Object.keys(value);
+        if (sortValues) {
+            keys.sort((A, B) => sortValues(value[A], value[B], A, B));
+        }
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
             if (value[key]) {
                 out.push(
-                    createElement(item as FC, Object.assign({ key: key, item: eachValues[key], id: key }, itemProps))
+                    createElement(
+                        item as FC,
+                        Object.assign({ key: key as string, item: eachValues[key], id: key }, itemProps)
+                    )
                 );
             }
         }
