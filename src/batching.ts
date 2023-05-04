@@ -166,7 +166,8 @@ export function computeChangesAtNode(
         };
 
         const changeInBatch = changesInBatch.get(node);
-        if (changeInBatch) {
+        // If the node itself has been changed then we can ignore all the child changes
+        if (changeInBatch && path.length > 0) {
             changeInBatch.changes.push(change);
         } else {
             changesInBatch.set(node, {
