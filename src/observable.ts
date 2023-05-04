@@ -25,7 +25,7 @@ import {
     isPrimitive,
     isPromise,
 } from './is';
-import { doNotify, notify } from './notify';
+import { notify } from './notify';
 import type {
     ChildNodeValue,
     NodeValue,
@@ -106,7 +106,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners) {
-                doNotify(parent, obj, [], [], obj, prevValue, 0);
+                batchNotify2(parent, obj, prevValue, 0);
+                // notify(parent, obj, [], [], obj, prevValue, 0);
             }
         }
         return isDiff;
@@ -179,7 +180,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     }
 
                     if (child.listeners) {
-                        doNotify(child, undefined, [], [], undefined, prev, 0);
+                        // doNotify(child, undefined, [], [], undefined, prev, 0);
                         batchNotify2(child, undefined, prev, 0);
                     }
                 }
@@ -258,7 +259,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         // the array's listener will cover it
                         if (child.listeners) {
                             batchNotify2(child, value, prev, 0, !isArrDiff);
-                            doNotify(child, value, [], [], value, prev, 0, !isArrDiff);
+                            // doNotify(child, value, [], [], value, prev, 0, !isArrDiff);
                         }
                     }
                 }

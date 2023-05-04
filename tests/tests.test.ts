@@ -2058,9 +2058,9 @@ describe('Batching', () => {
             num3: 33,
             obj: { text: 'hello' },
         });
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(3);
     });
-    test('Setting only calls once', async () => {
+    test('Setting calls each handler once', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
         const handler = jest.fn();
         obs.num1.onChange(handler);
@@ -2072,7 +2072,7 @@ describe('Batching', () => {
             num3: 33,
             obj: { text: 'hello' },
         });
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(3);
     });
     test('Batching is batched', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
@@ -2092,7 +2092,7 @@ describe('Batching', () => {
         endBatch();
         endBatch();
         endBatch();
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(3);
     });
     test('Assign getPrevious is correct', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
