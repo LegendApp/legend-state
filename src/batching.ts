@@ -61,12 +61,21 @@ function createPreviousHandler(value: any, changes: Change[]) {
 }
 
 export function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
-    // Run immediate listeners first
-    if (node.listenersImmediate) {
-        const changesInBatch = new Map<NodeValue, ChangeInBatch>();
-        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, true, level, whenOptimizedOnlyIf);
-        batchNotifyChanges(changesInBatch, true);
-    }
+    // Run immediate listeners if there are any
+    const changesInBatch = new Map<NodeValue, ChangeInBatch>();
+    computeChangesRecursive(
+        changesInBatch,
+        node,
+        value,
+        [],
+        [],
+        value,
+        prev,
+        /*immediate*/ true,
+        level,
+        whenOptimizedOnlyIf
+    );
+    batchNotifyChanges(changesInBatch, /*immediate*/ true);
 
     // Update the current batch
     const existing = _batchMap.get(node);
