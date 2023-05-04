@@ -1,4 +1,4 @@
-import { batchNotify, ListenerParamsWithoutGetPrevious } from './batching';
+import { batchNotify, batchNotify2, ListenerParamsWithoutGetPrevious } from './batching';
 import { getNodeValue } from './globals';
 import { isArray } from './is';
 import { NodeValue, TypeAtPath } from './observableInterfaces';
@@ -83,5 +83,7 @@ function _notifyParents(
 }
 export function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
     // Notify self and up through parents
-    _notifyParents(node, value, [], [], value, prev, level, whenOptimizedOnlyIf);
+    // _notifyParents(node, value, [], [], value, prev, level, whenOptimizedOnlyIf);
+
+    batchNotify2(node, value, prev, level, whenOptimizedOnlyIf);
 }

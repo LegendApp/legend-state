@@ -1,5 +1,6 @@
-import { isFunction } from './is';
-import type { Change, ListenerFn, ListenerParams } from './observableInterfaces';
+import { getNodeValue } from './globals';
+import { isArray, isFunction } from './is';
+import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 export interface BatchItem {
     cb: ListenerFn<any>;
@@ -19,6 +20,7 @@ let _batch: (BatchItemWithoutGetPrevious | (() => void))[] = [];
 let _afterBatch: (() => void)[] = [];
 // Use a Map of callbacks for fast lookups to update the BatchItem
 let _batchMap = new Map<ListenerFn, BatchItemWithoutGetPrevious | true>();
+let _batchMap2 = new Map<NodeValue, { value: any; prev: any; level: number; whenOptimizedOnlyIf?: boolean }>();
 
 function onActionTimeout() {
     if (_batch.length > 0) {
@@ -50,6 +52,126 @@ function createPreviousHandler(value: any, changes: Change[]) {
         }
         return clone;
     };
+}
+function createPreviousHandler2(value: any, prevAtPath: any, path: string[]) {
+    // Create a function that clones the current state and injects the previous data at the changed path
+    return function () {
+        // TODO
+        let clone = value ? JSON.parse(JSON.stringify(value)) : {};
+        let o = clone;
+        if (path.length > 0) {
+            let i: number;
+            for (i = 0; i < path.length - 1; i++) {
+                o = o[path[i]];
+            }
+            o[path[i]] = prevAtPath;
+        } else {
+            clone = prevAtPath;
+        }
+        return clone;
+    };
+}
+
+export function batchNotify2(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
+    const existing = _batchMap2.get(node);
+    if (existing) {
+        existing.value = value;
+        // TODO: level, whenOptimizedOnlyIf
+    } else {
+        _batchMap2.set(node, { value, prev, level, whenOptimizedOnlyIf });
+    }
+    if (numInBatch <= 0) {
+        runBatch2();
+    }
+}
+
+export function batchNotifyNode2(
+    node: NodeValue,
+    value: any,
+    path: string[],
+    pathTypes: ('object' | 'array')[],
+    valueAtPath: any,
+    prevAtPath: any,
+    level: number,
+    whenOptimizedOnlyIf?: boolean
+) {
+    const listeners = node.listeners;
+    if (listeners) {
+        let listenerParams: ListenerParams;
+        // Need to convert to an array here instead of using a for...of loop because listeners can change while iterating
+        const arr = Array.from(listeners);
+        for (let i = 0; i < arr.length; i++) {
+            const listenerFn = arr[i];
+            const { track, noArgs, listener } = listenerFn;
+
+            const ok =
+                track === true || track === 'shallow'
+                    ? level <= 0
+                    : track === 'optimize'
+                    ? whenOptimizedOnlyIf && level <= 0
+                    : true;
+
+            // Notify if listener is not shallow or if this is the first level
+            if (ok) {
+                // Create listenerParams if not already created
+                if (!noArgs && !listenerParams) {
+                    listenerParams = {
+                        value,
+                        getPrevious: createPreviousHandler2(value, prevAtPath, path),
+                        changes: [
+                            {
+                                path,
+                                pathTypes,
+                                valueAtPath,
+                                prevAtPath,
+                            },
+                        ],
+                    };
+                }
+
+                listener(listenerParams);
+            }
+        }
+    }
+}
+
+function batchNotifyRecursive2(
+    node: NodeValue,
+    value: any,
+    path: string[],
+    pathTypes: TypeAtPath[],
+    valueAtPath: any,
+    prevAtPath: any,
+    level: number,
+    whenOptimizedOnlyIf?: boolean
+) {
+    // Do the notify
+    batchNotifyNode2(node, value, path, pathTypes, valueAtPath, prevAtPath, level, whenOptimizedOnlyIf);
+    // If not root notify up through parents
+    if (node.parent) {
+        const parent = node.parent;
+        if (parent) {
+            const parentValue = getNodeValue(parent);
+            batchNotifyRecursive2(
+                parent,
+                parentValue,
+                [node.key].concat(path),
+                [(isArray(value) ? 'array' : 'object') as TypeAtPath].concat(pathTypes),
+                valueAtPath,
+                prevAtPath,
+                level + 1,
+                whenOptimizedOnlyIf
+            );
+        }
+    }
+}
+
+export function runBatch2() {
+    const map = _batchMap2;
+    _batchMap2 = new Map();
+    map.forEach(({ value, prev, level, whenOptimizedOnlyIf }, node) => {
+        batchNotifyRecursive2(node, value, [], [], value, prev, level, whenOptimizedOnlyIf);
+    });
 }
 
 export function batchNotify(b: BatchItemWithoutGetPrevious | (() => void), immediate: boolean) {
@@ -134,15 +256,16 @@ export function endBatch(force?: boolean) {
             _afterBatch = [];
             isRunningBatch = true;
 
-            for (let i = 0; i < batch.length; i++) {
-                const b = batch[i];
-                if (isFunction(b)) {
-                    b();
-                } else {
-                    const { cb } = b;
-                    cb(b.params as ListenerParams);
-                }
-            }
+            // for (let i = 0; i < batch.length; i++) {
+            //     const b = batch[i];
+            //     if (isFunction(b)) {
+            //         b();
+            //     } else {
+            //         const { cb } = b;
+            //         cb(b.params as ListenerParams);
+            //     }
+            // }
+            runBatch2();
 
             isRunningBatch = false;
 
