@@ -1,4 +1,4 @@
-import { batchNotify2 } from './batching';
+import { notify } from './batching';
 import { checkActivate, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
 import { isBoolean, isFunction } from './is';
 import {
@@ -62,7 +62,7 @@ ObservablePrimitiveClass.prototype.set = function <T>(value: T | ((prev: T) => T
     const root = this._node.root;
     const prev = root._;
     root._ = value;
-    batchNotify2(this._node, value, prev, 0);
+    notify(this._node, value, prev, 0);
     return this as unknown as ObservableChild<T>;
 };
 ObservablePrimitiveClass.prototype.toggle = function (): boolean {
