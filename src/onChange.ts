@@ -7,19 +7,23 @@ export function onChange(
     options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean },
     noArgs?: boolean
 ): () => void {
-    let listeners = node.listeners;
+    const { trackingType, initial, immediate } = options || {};
+
+    let listeners = immediate ? node.listenersImmediate : node.listeners;
     if (!listeners) {
-        node.listeners = listeners = new Set();
+        listeners = new Set();
+        if (immediate) {
+            node.listenersImmediate = listeners;
+        } else {
+            node.listeners = listeners;
+        }
     }
     checkActivate(node);
-
-    const { trackingType, initial, immediate } = options || {};
 
     const listener: NodeValueListener = {
         listener: callback,
         track: trackingType,
         noArgs,
-        immediate: immediate,
     };
 
     listeners.add(listener);

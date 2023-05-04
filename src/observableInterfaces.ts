@@ -361,7 +361,6 @@ export interface NodeValueListener {
     track: TrackingType;
     noArgs?: boolean;
     listener: ListenerFn;
-    immediate?: boolean;
 }
 
 interface BaseNodeValue {
@@ -370,6 +369,7 @@ interface BaseNodeValue {
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
     listeners?: Set<NodeValueListener>;
+    listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
 }
 

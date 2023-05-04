@@ -81,6 +81,12 @@ function createPreviousHandler2(value: any, node: NodeValue, changes: Change[]) 
 }
 
 export function batchNotify2(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
+    if (node.listenersImmediate) {
+        const changesInBatch = new Map<NodeValue, ChangeInBatch>();
+        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, true, level, whenOptimizedOnlyIf);
+        batchNotifyChanges2(changesInBatch, true);
+    }
+
     const existing = _batchMap2.get(node);
     if (existing) {
         existing.value = value;
@@ -153,11 +159,11 @@ export function computeChangesAtNode(
     pathTypes: ('object' | 'array')[],
     valueAtPath: any,
     prevAtPath: any,
+    immediate: boolean,
     level: number,
     whenOptimizedOnlyIf?: boolean
 ) {
-    const listeners = node.listeners;
-    if (listeners) {
+    if (immediate ? node.listenersImmediate : node.listeners) {
         const change: Change = {
             path,
             pathTypes,
@@ -188,6 +194,7 @@ function computeChangesRecursive(
     pathTypes: TypeAtPath[],
     valueAtPath: any,
     prevAtPath: any,
+    immediate: boolean,
     level: number,
     whenOptimizedOnlyIf?: boolean
 ) {
@@ -200,6 +207,7 @@ function computeChangesRecursive(
         pathTypes,
         valueAtPath,
         prevAtPath,
+        immediate,
         level,
         whenOptimizedOnlyIf
     );
@@ -216,6 +224,7 @@ function computeChangesRecursive(
                 [(isArray(value) ? 'array' : 'object') as TypeAtPath].concat(pathTypes),
                 valueAtPath,
                 prevAtPath,
+                immediate,
                 level + 1,
                 whenOptimizedOnlyIf
             );
@@ -256,9 +265,9 @@ function computeChangesRecursive(
 //     }
 // }
 
-function batchNotifyChanges2(changesInBatch: Map<NodeValue, ChangeInBatch>) {
+function batchNotifyChanges2(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
     changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
-        const listeners = node.listeners;
+        const listeners = immediate ? node.listenersImmediate : node.listeners;
         if (listeners) {
             let listenerParams: ListenerParams;
             // Need to convert to an array here instead of using a for...of loop because listeners can change while iterating
@@ -297,10 +306,10 @@ export function runBatch2() {
     _batchMap2 = new Map();
     const changesInBatch = new Map<NodeValue, ChangeInBatch>();
     map.forEach(({ value, prev, level, whenOptimizedOnlyIf }, node) => {
-        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, level, whenOptimizedOnlyIf);
+        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, false, level, whenOptimizedOnlyIf);
     });
 
-    batchNotifyChanges2(changesInBatch);
+    batchNotifyChanges2(changesInBatch, false);
 }
 
 // export function batchNotify(b: BatchItemWithoutGetPrevious | (() => void), immediate: boolean) {
