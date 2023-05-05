@@ -6,8 +6,8 @@ import { ObserveEvent, ObserveEventCallback, Selector } from './observableInterf
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 
-interface ObserveOptions {
-    immediate?: boolean;
+export interface ObserveOptions {
+    immediate?: boolean; // Ignore batching and run immediately
 }
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
@@ -76,10 +76,14 @@ export function observe<T>(
             e.onCleanupReaction();
             e.onCleanupReaction = undefined;
         }
+
+        // Call the reaction if there is one and the value changed
         if (reaction && (e.num > 0 || !(selectorOrRun as any)[symbolIsEvent]) && e.previous !== e.value) {
             reaction(e);
-            e.previous = e.value;
         }
+
+        // Update the previous value
+        e.previous = e.value;
 
         // Increment the counter
         e.num++;
