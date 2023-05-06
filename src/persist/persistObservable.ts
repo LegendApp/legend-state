@@ -435,14 +435,19 @@ function onObsChange<T>(
 }
 
 export function onChangeRemote(cb: () => void) {
-    // Remote changes should only update local state
-    persistState.inRemoteSync.set(true);
-    tracking.inRemoteChange = true;
+    when(
+        () => !persistState.inRemoteSync.get(),
+        () => {
+            // Remote changes should only update local state
+            persistState.inRemoteSync.set(true);
+            tracking.inRemoteChange = true;
 
-    batch(cb, () => {
-        tracking.inRemoteChange = false;
-        persistState.inRemoteSync.set(false);
-    });
+            batch(cb, () => {
+                tracking.inRemoteChange = false;
+                persistState.inRemoteSync.set(false);
+            });
+        }
+    );
 }
 
 async function loadLocal<T>(
