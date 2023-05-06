@@ -143,15 +143,16 @@ export function endBatch(force?: boolean) {
                     cb(b.params as ListenerParams);
                 }
             }
-            for (let i = 0; i < after.length; i++) {
-                after[i]();
-            }
 
             isRunningBatch = false;
 
             if (didDelayEndBatch) {
                 didDelayEndBatch = false;
                 endBatch(true);
+            }
+
+            for (let i = 0; i < after.length; i++) {
+                after[i]();
             }
         }
     }
