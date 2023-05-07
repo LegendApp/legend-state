@@ -4,7 +4,7 @@ import { computed } from '../src/computed';
 import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
-import { observable } from '../src/observable';
+import { observable, observablePrimitive } from '../src/observable';
 import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
@@ -1858,6 +1858,17 @@ describe('Delete', () => {
         expect(handler).toHaveBeenCalledWith({}, { test: '' }, [
             { path: ['test'], pathTypes: ['object'], valueAtPath: undefined, prevAtPath: '' },
         ]);
+    });
+    test('Delete root', () => {
+        const obs = observable({ test: { text: 't', text2: 't2' } });
+        obs.delete();
+        expect(obs.test.peek()).toEqual(undefined);
+        expect(obs.peek()).toEqual(undefined);
+    });
+    test('Delete primitive', () => {
+        const obs = observablePrimitive(true);
+        obs.delete();
+        expect(obs.peek()).toEqual(undefined);
     });
 });
 describe('when', () => {

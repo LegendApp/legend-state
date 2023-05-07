@@ -48,6 +48,7 @@ export interface ObservableBaseFns<T> {
     ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
+    delete(): ObservablePrimitiveFnsBase<T>;
     set(value: T | CallbackSetter<T>): ObservablePrimitiveChild<T>;
 }
 

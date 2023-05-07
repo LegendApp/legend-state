@@ -75,6 +75,11 @@ ObservablePrimitiveClass.prototype.toggle = function (): boolean {
 
     return !value;
 };
+ObservablePrimitiveClass.prototype.delete = function () {
+    this.set(undefined);
+
+    return this;
+};
 // Listener
 ObservablePrimitiveClass.prototype.onChange = function <T>(
     cb: ListenerFn<T>,
