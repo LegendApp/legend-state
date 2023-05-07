@@ -7,8 +7,8 @@ import {
     Selector,
 } from '@legendapp/state';
 import { useRef } from 'react';
-import { useUnmountOnce } from 'src/react/useUnmount';
 import type { ObserveOptions } from '../observe';
+import { useUnmountOnce } from './useUnmount';
 
 export function useObserve<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
 export function useObserve<T>(
@@ -32,7 +32,7 @@ export function useObserve<T>(
         selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
-    }>({});
+    }>();
 
     if (!ref.current) {
         ref.current = {
@@ -54,7 +54,7 @@ export function useObserve<T>(
     }
 
     useUnmountOnce(() => {
-        ref.current?.dispose();
+        ref.current?.dispose?.();
         ref.current = undefined;
     });
 
