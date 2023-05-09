@@ -16,7 +16,7 @@ export function For<T, TProps>({
     each?: ObservableReadable<T[]>;
     eachValues?: ObservableReadable<Record<any, T>>;
     optimized?: boolean;
-    item?: FC<{ item: Observable<T>; id: string } & TProps>;
+    item?: FC<{ item: Observable<T>; id?: string } & TProps>;
     itemProps?: TProps;
     sortValues?: (A: T, B: T, AKey: string, BKey: string) => number;
     children?: (value: Observable<T>) => ReactElement;
