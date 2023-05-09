@@ -1,27 +1,28 @@
-import { isFunction } from './is';
-import type { Change, ListenerFn, ListenerParams } from './observableInterfaces';
+import { getNodeValue } from './globals';
+import { isArray } from './is';
+import type { Change, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
-export interface BatchItem {
-    cb: ListenerFn<any>;
-    params: ListenerParams<any>;
+export interface BatchItem2 {
+    value: any;
+    prev: any;
+    level: number;
+    whenOptimizedOnlyIf?: boolean;
 }
-export type ListenerParamsWithoutGetPrevious = Omit<ListenerParams<any>, 'getPrevious'> &
-    Partial<Pick<ListenerParams<any>, 'getPrevious'>>;
-export interface BatchItemWithoutGetPrevious {
-    cb: ListenerFn<any>;
-    params: ListenerParamsWithoutGetPrevious;
+interface ChangeInBatch {
+    value: any;
+    level: number;
+    whenOptimizedOnlyIf?: boolean;
+    changes: Change[];
 }
 let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
 let isRunningBatch = false;
 let didDelayEndBatch = false;
-let _batch: (BatchItemWithoutGetPrevious | (() => void))[] = [];
 let _afterBatch: (() => void)[] = [];
-// Use a Map of callbacks for fast lookups to update the BatchItem
-let _batchMap = new Map<ListenerFn, BatchItemWithoutGetPrevious | true>();
+let _batchMap = new Map<NodeValue, BatchItem2>();
 
 function onActionTimeout() {
-    if (_batch.length > 0) {
+    if (_batchMap.size > 0) {
         if (process.env.NODE_ENV === 'development') {
             console.error(
                 'Forcibly completing observableBatcher because end() was never called. This may be due to an uncaught error between begin() and end().'
@@ -31,70 +32,198 @@ function onActionTimeout() {
     }
 }
 
-function createPreviousHandler(value: any, changes: Change[]) {
-    // Create a function that clones the current state and injects the previous data at the changed path
-    return function () {
-        let clone = value ? JSON.parse(JSON.stringify(value)) : {};
-        for (let i = 0; i < changes.length; i++) {
-            const { path, prevAtPath } = changes[i];
-            let o = clone;
-            if (path.length > 0) {
-                let i: number;
-                for (i = 0; i < path.length - 1; i++) {
-                    o = o[path[i]];
-                }
-                o[path[i]] = prevAtPath;
-            } else {
-                clone = prevAtPath;
+function createPreviousHandlerInner(value: any, changes: Change[]) {
+    // Clones the current state and inject the previous data at the changed path
+    let clone = value ? JSON.parse(JSON.stringify(value)) : {};
+    for (let i = 0; i < changes.length; i++) {
+        const { path, prevAtPath } = changes[i];
+        let o = clone;
+        if (path.length > 0) {
+            let i: number;
+            for (i = 0; i < path.length - 1; i++) {
+                o = o[path[i]];
             }
+            o[path[i]] = prevAtPath;
+        } else {
+            clone = prevAtPath;
         }
-        return clone;
+    }
+    return clone;
+}
+
+function createPreviousHandler(value: any, changes: Change[]) {
+    // Create a function that generates the previous state
+    // We don't want to always do this because cloning is expensive
+    // so it's better to run on demand.
+    return function () {
+        return createPreviousHandlerInner(value, changes);
     };
 }
 
-export function batchNotify(b: BatchItemWithoutGetPrevious | (() => void), immediate: boolean) {
-    const isFunc = isFunction(b);
-    const cb = isFunc ? b : b.cb;
-    if (!immediate && numInBatch > 0) {
-        // Set a timeout to call end() in case end() is never called or there's an uncaught error
-        if (!timeout) {
-            timeout = setTimeout(onActionTimeout, 0);
-        }
+export function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
+    // Run immediate listeners if there are any
+    const changesInBatch = new Map<NodeValue, ChangeInBatch>();
+    computeChangesRecursive(
+        changesInBatch,
+        node,
+        value,
+        [],
+        [],
+        value,
+        prev,
+        /*immediate*/ true,
+        level,
+        whenOptimizedOnlyIf
+    );
+    batchNotifyChanges(changesInBatch, /*immediate*/ true);
 
-        const existing = _batchMap.get(cb);
-        // If this callback already exists, make sure it has the latest value but do not add it
-        if (existing) {
-            if (!isFunc) {
-                const params = (existing as BatchItem).params;
-                params.value = b.params.value;
-                params.changes.push(...b.params.changes);
-                params.getPrevious = createPreviousHandler(params.value, params.changes);
-            }
-        } else {
-            if (!isFunc) {
-                b.params.getPrevious = createPreviousHandler(b.params.value, b.params.changes);
-            }
-            _batch.push(b);
-            _batchMap.set(cb, isFunc ? true : b);
-        }
+    // Update the current batch
+    const existing = _batchMap.get(node);
+    if (existing) {
+        existing.value = value;
+        // TODO: level, whenOptimizedOnlyIf
     } else {
-        // If not batched callback immediately
-        if (isFunc) {
-            b();
-        } else {
-            b.params.getPrevious = createPreviousHandler(b.params.value, b.params.changes);
-            b.cb(b.params as ListenerParams);
-        }
+        _batchMap.set(node, { value, prev, level, whenOptimizedOnlyIf });
+    }
 
-        if (numInBatch === 0) {
-            // Run afterBatch callbacks if this is not batched
-            const after = _afterBatch;
-            _afterBatch = [];
-            for (let i = 0; i < after.length; i++) {
-                after[i]();
-            }
+    // If not in a batch run it immediately
+    if (numInBatch <= 0) {
+        runBatch();
+    }
+}
+
+function computeChangesAtNode(
+    changesInBatch: Map<NodeValue, ChangeInBatch>,
+    node: NodeValue,
+    value: any,
+    path: string[],
+    pathTypes: ('object' | 'array')[],
+    valueAtPath: any,
+    prevAtPath: any,
+    immediate: boolean,
+    level: number,
+    whenOptimizedOnlyIf?: boolean
+) {
+    // If there are listeners at this node compute the changes that need to be run
+    if (immediate ? node.listenersImmediate : node.listeners) {
+        const change: Change = {
+            path,
+            pathTypes,
+            valueAtPath,
+            prevAtPath,
+        };
+
+        const changeInBatch = changesInBatch.get(node);
+        // If the node itself has been changed then we can ignore all the child changes
+        if (changeInBatch && path.length > 0) {
+            changeInBatch.changes.push(change);
+        } else {
+            changesInBatch.set(node, {
+                level,
+                value,
+                whenOptimizedOnlyIf,
+                changes: [change],
+            });
         }
     }
+}
+
+function computeChangesRecursive(
+    changesInBatch: Map<NodeValue, ChangeInBatch>,
+    node: NodeValue,
+    value: any,
+    path: string[],
+    pathTypes: TypeAtPath[],
+    valueAtPath: any,
+    prevAtPath: any,
+    immediate: boolean,
+    level: number,
+    whenOptimizedOnlyIf?: boolean
+) {
+    // Do the compute at this node
+    computeChangesAtNode(
+        changesInBatch,
+        node,
+        value,
+        path,
+        pathTypes,
+        valueAtPath,
+        prevAtPath,
+        immediate,
+        level,
+        whenOptimizedOnlyIf
+    );
+    // If not root notify up through parents
+    if (node.parent) {
+        const parent = node.parent;
+        if (parent) {
+            const parentValue = getNodeValue(parent);
+            computeChangesRecursive(
+                changesInBatch,
+                parent,
+                parentValue,
+                [node.key].concat(path),
+                [(isArray(value) ? 'array' : 'object') as TypeAtPath].concat(pathTypes),
+                valueAtPath,
+                prevAtPath,
+                immediate,
+                level + 1,
+                whenOptimizedOnlyIf
+            );
+        }
+    }
+}
+
+function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
+    // For each change in the batch, notify all of the listeners
+    changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
+        const listeners = immediate ? node.listenersImmediate : node.listeners;
+        if (listeners) {
+            let listenerParams: ListenerParams;
+            // Need to convert to an array here instead of using a for...of loop because listeners can change while iterating
+            const arr = Array.from(listeners);
+            for (let i = 0; i < arr.length; i++) {
+                const listenerFn = arr[i];
+                const { track, noArgs, listener } = listenerFn;
+
+                const ok =
+                    track === true || track === 'shallow'
+                        ? level <= 0
+                        : track === 'optimize'
+                        ? whenOptimizedOnlyIf && level <= 0
+                        : true;
+
+                // Notify if listener is not shallow or if this is the first level
+                if (ok) {
+                    // Create listenerParams if not already created
+                    if (!noArgs && !listenerParams) {
+                        listenerParams = {
+                            value,
+                            getPrevious: createPreviousHandler(value, changes),
+                            changes,
+                        };
+                    }
+
+                    listener(listenerParams);
+                }
+            }
+        }
+    });
+}
+
+export function runBatch() {
+    const map = _batchMap;
+    _batchMap = new Map();
+    const changesInBatch = new Map<NodeValue, ChangeInBatch>();
+    // First compute all of the changes at each node. It's important to do this first before
+    // running all the notifications because createPreviousHandler depends on knowing
+    // all of the changes happening at the node.
+    map.forEach(({ value, prev, level, whenOptimizedOnlyIf }, node) => {
+        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, false, level, whenOptimizedOnlyIf);
+    });
+
+    // Once all changes are computed, notify all listeners for each node with the computed changes.
+    batchNotifyChanges(changesInBatch, false);
 }
 
 export function batch(fn: () => void, onComplete?: () => void) {
@@ -110,6 +239,9 @@ export function batch(fn: () => void, onComplete?: () => void) {
 }
 export function beginBatch() {
     numInBatch++;
+    if (!timeout) {
+        timeout = setTimeout(onActionTimeout, 0);
+    }
 }
 export function endBatch(force?: boolean) {
     numInBatch--;
@@ -127,22 +259,11 @@ export function endBatch(force?: boolean) {
             numInBatch = 0;
             // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
             // This can happen with observableComputed for example.
-            const batch = _batch;
             const after = _afterBatch;
-            _batch = [];
-            _batchMap = new Map();
             _afterBatch = [];
             isRunningBatch = true;
 
-            for (let i = 0; i < batch.length; i++) {
-                const b = batch[i];
-                if (isFunction(b)) {
-                    b();
-                } else {
-                    const { cb } = b;
-                    cb(b.params as ListenerParams);
-                }
-            }
+            runBatch();
 
             isRunningBatch = false;
 

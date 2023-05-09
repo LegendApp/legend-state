@@ -48,6 +48,7 @@ export interface ObservableBaseFns<T> {
     ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
+    delete(): ObservablePrimitiveFnsBase<T>;
     set(value: T | CallbackSetter<T>): ObservablePrimitiveChild<T>;
 }
 
@@ -361,7 +362,6 @@ export interface NodeValueListener {
     track: TrackingType;
     noArgs?: boolean;
     listener: ListenerFn;
-    immediate?: boolean;
 }
 
 interface BaseNodeValue {
@@ -370,6 +370,7 @@ interface BaseNodeValue {
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
     listeners?: Set<NodeValueListener>;
+    listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
 }
 

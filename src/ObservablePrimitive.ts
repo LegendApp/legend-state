@@ -1,6 +1,6 @@
+import { notify } from './batching';
 import { checkActivate, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
 import { isBoolean, isFunction } from './is';
-import { doNotify } from './notify';
 import {
     ListenerFn,
     NodeValue,
@@ -62,7 +62,7 @@ ObservablePrimitiveClass.prototype.set = function <T>(value: T | ((prev: T) => T
     const root = this._node.root;
     const prev = root._;
     root._ = value;
-    doNotify(this._node, value, [], [], value, prev, 0);
+    notify(this._node, value, prev, 0);
     return this as unknown as ObservableChild<T>;
 };
 ObservablePrimitiveClass.prototype.toggle = function (): boolean {
@@ -74,6 +74,11 @@ ObservablePrimitiveClass.prototype.toggle = function (): boolean {
     }
 
     return !value;
+};
+ObservablePrimitiveClass.prototype.delete = function () {
+    this.set(undefined);
+
+    return this;
 };
 // Listener
 ObservablePrimitiveClass.prototype.onChange = function <T>(
