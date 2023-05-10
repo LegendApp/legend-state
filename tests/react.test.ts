@@ -3,7 +3,7 @@
  */
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
-import { createElement, StrictMode, useReducer } from 'react';
+import { createElement, StrictMode, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
@@ -400,6 +400,66 @@ describe('useObserve', () => {
         render(createElement(App));
 
         expect(num).toEqual(2);
+    });
+    test('useObserve with true and setState sets once', () => {
+        let num = 0;
+        let numSets = 0;
+        function Test() {
+            const [, setValue] = useState(0);
+            num++;
+            useObserve(true, () => {
+                numSets++;
+                setValue((v) => v + 1);
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+        expect(numSets).toEqual(1);
+    });
+    test('useObserve with false and setState sets once', () => {
+        let num = 0;
+        let numSets = 0;
+        function Test() {
+            const [, setValue] = useState(0);
+            num++;
+            useObserve(false, () => {
+                numSets++;
+                setValue((v) => v + 1);
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+        expect(numSets).toEqual(1);
+    });
+    test('useObserve with undefined never calls reaction', () => {
+        let num = 0;
+        let numSets = 0;
+        function Test() {
+            const [, setValue] = useState(0);
+            num++;
+            useObserve(undefined, () => {
+                numSets++;
+                setValue((v) => v + 1);
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(numSets).toEqual(0);
     });
 });
 

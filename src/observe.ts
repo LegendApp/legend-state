@@ -78,7 +78,7 @@ export function observe<T>(
         }
 
         // Call the reaction if there is one and the value changed
-        if (reaction && (e.num > 0 || !(selectorOrRun as any)[symbolIsEvent]) && e.previous !== e.value) {
+        if (reaction && (e.num > 0 || !(selectorOrRun as any)?.[symbolIsEvent]) && e.previous !== e.value) {
             reaction(e);
         }
 
