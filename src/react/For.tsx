@@ -1,8 +1,10 @@
 import type { Observable, ObservableReadable } from '@legendapp/state';
 import { findIDKey, getNode, isFunction } from '@legendapp/state';
-import { createElement, FC, ReactElement, useMemo, useRef } from 'react';
+import { createElement, FC, memo, ReactElement, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
+
+const autoMemoCache = new Map<FC, FC>();
 
 export function For<T, TProps>({
     each,
@@ -36,6 +38,16 @@ export function For<T, TProps>({
         refChildren.current = children;
 
         item = useMemo(() => observer(({ item }) => refChildren.current!(item)), []);
+    } else {
+        // @ts-expect-error $$typeof is private
+        if (item.$$typeof !== Symbol.for('react.memo')) {
+            let memod = autoMemoCache.get(item);
+            if (!memod) {
+                memod = memo(item);
+                autoMemoCache.set(item, memod);
+            }
+            item = memod;
+        }
     }
 
     // This early out needs to be after any hooks
