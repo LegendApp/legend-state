@@ -37,6 +37,21 @@ describe('useSelector', () => {
         expect(num).toEqual(3);
         expect(result.current).toEqual('z there');
     });
+    test('useSelector with observable', () => {
+        const obs = observable('hi');
+        const { result } = renderHook(() => {
+            return useSelector(obs);
+        });
+
+        act(() => {
+            obs.set('hello');
+        });
+        expect(result.current).toEqual('hello');
+        act(() => {
+            obs.set('z');
+        });
+        expect(result.current).toEqual('z');
+    });
     test('useSelector undefined', () => {
         const { result } = renderHook(() => {
             return useSelector(undefined);
