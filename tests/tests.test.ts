@@ -1799,6 +1799,18 @@ describe('Deep changes keep listeners', () => {
             ]
         );
     });
+    test('Array perf', () => {
+        const obs = observable({ arr: [] });
+        for (let i = 0; i < 10000; i++) {
+            obs.arr[i].set({ id: i, value: i });
+            obs.arr[i].onChange(() => {});
+        }
+        const now = performance.now();
+        obs.arr.splice(1, 1);
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(20);
+    });
 });
 describe('Delete', () => {
     test('Delete key', () => {

@@ -126,7 +126,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         // Construct a map of previous indices for computing move
         if (prevValue.length > 0) {
             const firstPrevValue = prevValue[0];
-            if (firstPrevValue) {
+            if (firstPrevValue !== undefined) {
                 idField = findIDKey(firstPrevValue, parent);
 
                 if (idField) {
@@ -219,6 +219,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             isDiff = false;
                             hasADiff = true;
                         } else if (prevChild !== undefined && prevChild.key !== key) {
+                            const valuePrevChild = prevValue[prevChild.key];
                             // If array length changed then move the original node to the current position.
                             // That should be faster than notifying every single element that
                             // it's in a new position.
@@ -232,8 +233,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             didMove = true;
 
                             // And check for diff against the previous value in the previous position
-                            const prevOfNode = prevChild;
-                            isDiff = prevOfNode !== value;
+                            isDiff = valuePrevChild !== value;
                         }
                     }
 
