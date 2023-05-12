@@ -4,10 +4,9 @@ import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './o
 export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
-    options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean },
-    noArgs?: boolean
+    options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
 ): () => void {
-    const { trackingType, initial, immediate } = options || {};
+    const { trackingType, initial, immediate, noArgs } = options || {};
 
     let listeners = immediate ? node.listenersImmediate : node.listeners;
     if (!listeners) {

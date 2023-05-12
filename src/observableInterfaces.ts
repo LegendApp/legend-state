@@ -44,7 +44,7 @@ export interface ObservableBaseFns<T> {
     get(trackingType?: TrackingType): T;
     onChange(
         cb: ListenerFn<T>,
-        options?: { trackingType?: TrackingType; initial?: boolean }
+        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
     ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {

@@ -12,7 +12,7 @@ export function setupTracking(
     // Listen to tracked nodes
     nodes?.forEach((tracked) => {
         const { node, track } = tracked;
-        listeners.push(onChange(node, update, { trackingType: track, immediate }, noArgs));
+        listeners.push(onChange(node, update, { trackingType: track, immediate, noArgs }));
     });
 
     return () => {

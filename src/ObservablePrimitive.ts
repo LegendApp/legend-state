@@ -83,8 +83,7 @@ ObservablePrimitiveClass.prototype.delete = function () {
 // Listener
 ObservablePrimitiveClass.prototype.onChange = function <T>(
     cb: ListenerFn<T>,
-    options?: { trackingType?: TrackingType; initial?: boolean },
-    noArgs?: boolean
+    options?: { trackingType?: TrackingType; initial?: boolean; noArgs?: boolean }
 ): ObservableListenerDispose {
-    return onChange(this._node, cb, options, noArgs);
+    return onChange(this._node, cb, options);
 };
