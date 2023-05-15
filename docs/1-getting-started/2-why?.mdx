@@ -8,7 +8,7 @@ Legend-State is the [fastest React state library](../fast), designed to be as ef
 
 ## Feels natural 😌
 
-There are no special hooks, functions, Contexts, or other boilerplate required to work with observables. Observable objects work as you'd expect, and the observable functions are right there on the prototype.
+Working with observables is as simple as `get()` and `set()` - they work as you'd expect, and the observable functions are right there on the prototype.
 
 ```jsx
 const obs = observable({ value: 1 })
@@ -90,7 +90,7 @@ See [Patterns](../patterns) for more examples of different ways to use Legend-St
 
 We don't want developers to have to worry about persisting and syncing state, because it's often very complicated and error-prone. So we've built [persistence](../persistence) plugins using Legend-State's listeners, with extensive tests to make sure it's absolutely correct.
 
-It currently includes plugins for local persistence with Local Storage on web and [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) in React Native, with more persistence plugins coming soon, including persisting remotely to Firebase.
+It currently includes plugins for local persistence with Local Storage and IndexedDB on web and [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) in React Native, with more persistence plugins coming soon, including persisting remotely to Firebase.
 
 ```js
 const state = observable({ settings: { theme: 'dark' } })

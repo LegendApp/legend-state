@@ -1,4 +1,4 @@
-Listening for changes is the core purpose of observables, so Legend-State provides many options.
+Listening for changes is the core purpose of observables, so Legend-State provides many options. Critically, you can listen to changes at any level in an object's hierarchy and it will be notified by changes in any children.
 
 ## onChange
 
@@ -18,10 +18,11 @@ obs.text.set('hello')
 
 `onChange` has some extra options for more advanced use:
 
-1. `getPrevious`: Function to compare with the previous value. It is a function to prevent the performance cost of cloning objects unnecessarily.
-2. `changes`: Array of all of the changes to this observable in the latest batch. This is mainly for the persistence plugins to know what to sync/update, but it may be good for other uses too.
+1. `getPrevious`: Function to compare with the previous value. It is a function to let you opt into getting the previous value if needed, because it has some performance cost in cloning the object to compute the previous value.
+2. `changes`: Array of all of the changes to this observable in the latest batch. This is intended mainly for internal usage by the persistence plugins to know what to sync/update and the history plugin to track all changes, but it may be good for other uses too.
 3. `trackingType`: Whether to track only shallow changes
 4. `initial`: Whether to run the callback immediately with the current value
+5. `immediate`: Whether to run the callback immediately instead of within a batch. This is used internally by `computed` to make sure its value is always correct, but it may be useful for other specific uses.
 
 ```js
 // Full example
@@ -57,7 +58,7 @@ This can be useful to use multiple observables at once, for the benefit of clean
 The callback parameter has some useful properties:
 - `num`: How many times it's run. Use this to do something only the first time or not the first time.
 - `previous`: The previous value, which will be undefined on the first run and set to the return value
-- `cancel`: Set to `true` to not track the observables
+- `cancel`: Set to `true` to stop tracking the observables when you are done observing
 - `onCleanup`: A function to call before running the selector again
 
 `observe` has an optional second `reaction` parameter which will run after the selector, and does not track changes. This can be useful for observing an `event` or a single `observable`.
@@ -116,6 +117,25 @@ const dispose = when(() => obs.ok.get(), () => console.log("Don't worry, it's ok
 dispose()
 ```
 
+## whenReady
+
+`whenReady` is the same as `when` except it waits for objects and arrays to not be empty.
+
+```js
+import { whenReady } from "@legendapp/state"
+
+const obs = observable({ arr: [] })
+
+whenReady(() => obs.arr.get(), () => console.log("Array has some values"))
+// Not ready yet
+
+obs.arr.push('hello')
+
+// "Array has some values"
+
+
+```
+
 ## computed
 
 `computed` automatically tracks the observables accessed while computing, so you can return a computed value based on multiple observables, and it will update whenever one of them changes.
@@ -163,7 +183,7 @@ const onClosed = event()
 onClosed.on(() => { ... })
 
 // Or use it with 'onChange' like other observables
-onClosed.onChange(() => { ... }))
+onClosed.onChange(() => { ... })
 
 // Dispatch the event to call listeners
 onClosed.fire()

@@ -49,8 +49,6 @@ persistObservable(obs, {
 
 ### IndexedDB
 
-Note: The IndexedDB plugin is still experimental and it's possible the API may change before version 1.0. If you're using it (or want to use it) please [share your thoughts](https://github.com/LegendApp/legend-state/issues/) so we can make sure it's flexible enough for your usage.
-
 The IndexedDB plugin can be used in two ways:
 
 1. Persisting a dictionary where each value has an `id` field, and each value will create a row in the table
@@ -99,6 +97,16 @@ persistObservable(settings, {
         },
     }
 })
+```
+
+Because IndexedDB is an asynchronous API, you'll need to wait for it to load before you start reading from it. `persistObservable` returns an Observable with load statuses that you can wait for.
+
+```js
+const status = persistObservable(obs, {
+    local: 'store' // IndexedDB table name
+})
+await when(status.isLoadedLocal)
+...
 ```
 
 ### React Native

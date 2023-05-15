@@ -2,7 +2,14 @@ Legend-State is especially optimized for arrays since [Legend](https://www.legen
 
 ## Arrays of objects require a unique id
 
-To optimize rendering of arrays of objects, Legend-State requires a unique `id`, `_id`, or `__id` field on each object.
+To optimize rendering of arrays of objects, Legend-State requires a unique `id` or `key` field on each object. If your data needs to have a different id field, you can use a `${arrayName}_keyExtractor` function next to the array object:
+
+```js
+const data = observable({
+    arr: [],
+    arr_keyExtractor: (item) => item.idObject._id
+})
+```
 
 Under the hood, Legend-State listens to elements by path within the object. Operations like `splice` can change the index of an element which changes its path, so it uses the unique `id` to handle elements being moved and keep observables as stable references to their underlying element. It also optimizes for repositioning items within arrays and only re-renders the changed elements.
 
@@ -105,7 +112,7 @@ function Row({ item }) {
 function List() {
     // Be sure to use peek() to make sure you don't track any observable fields here
     return list.map(item =>
-        <Row key={item.id.peek()} item={item} />
+        <Row key={item.peek().id} item={item} />
     )
 }
 ```

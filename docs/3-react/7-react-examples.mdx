@@ -517,3 +517,49 @@ export function Modal({ show }) {
   )
 }
 `}} />
+
+## Router
+
+<Example name="Router">
+```jsx
+function RouterExample() {
+  const renderCount = ++useRef(0).current;
+
+  return (
+    <div style={{ width: 300 }}>
+      <div>Renders: {renderCount}</div>
+      <div>
+        <button
+          onClick={() => pageHashParams.page.delete()}
+        >
+          Go to root
+        </button>
+        <button
+          onClick={() => pageHashParams.page.set('')}
+        >
+          Go to Page
+        </button>
+        <button
+          onClick={() => pageHashParams.page.set('Home')}
+        >
+          Go Home
+        </button>
+        <button
+          onClick={() => pageHashParams.page.set('asdf')}
+        >
+          Go to unknown
+        </button>
+      </div>
+      <Switch value={pageHashParams.page}>
+        {{
+          undefined: () => <div>Root</div>,
+          '': () => <div>Page</div>,
+          Home: () => <div>Home</div>,
+          default: () => <div>Unknown page</div>,
+        }}
+      </Switch>
+    </div>
+  );
+}
+```
+</Example>

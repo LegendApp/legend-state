@@ -8,9 +8,11 @@ We'll show results of the popular [krausest](https://github.com/krausest/js-fram
 
 <img src="/img/dev/state/times.png" style={{ borderRadius: '1rem' }} />
 
-Legend-State (on the left) optimizes for rendering each row when it changes, but not the entire list, which is reflected in the fast "partial update" and "select row" benchmarks. That typically incurs an extra upfront cost to set up the listeners in each row, but Legend-State is so optimized that even so it's actually still the fastest in the "create many rows" benchmark.
+Legend-State's "optimized" mode (on the left) optimizes for rendering each row when it changes, but not the entire list, which is reflected in the fast "partial update" and "select row" benchmarks. That typically incurs an extra upfront cost to set up the listeners in each row, but Legend-State is so optimized that even so it's actually still the fastest in the "create many rows" benchmark.
 
-Legend-State really shines in the "replace all rows" and "swap rows" benchmarks. When no elements are added or removed, it does not need to re-render the list and renders the individual rows that changed. That brings a beed speed improvement for drag/drop or when items are moved around in a list.
+Legend-State really shines in the "replace all rows" and "swap rows" benchmarks. When no elements are added or removed, it does not need to re-render the list and renders the individual rows that changed. That brings a big speed improvement for drag/drop or when items are moved around in a list.
+
+You can opt into the fast array rendering with the "optimize" prop on the [For](../fine-grained-reactivity#for) component.
 
 ### Startup metrics
 

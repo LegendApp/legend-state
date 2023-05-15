@@ -32,7 +32,10 @@ function Component() {
 You may prefer passing state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from child component. The observable itself is a stable object so changing the value of an observable will not cause a re-render.
 
 ```jsx
+import { createContext, useContext } from "react"
 import { useObservable } from "@legendapp/state/react"
+
+const StateContext = createContext()
 
 function App() {
     const state = useObservable({
@@ -86,9 +89,11 @@ function Component() {
 
 ## useObserve
 
-`useObserve` creates an [observe](../reactivity#observe) which you can use to take actions when observables change. This is like `useEffect` for observables which runs only when observables change and not because of rendering.
+`useObserve` creates an [observe](../reactivity#observe) which you can use to take actions when observables change. This is similar to `useEffect` for observables which runs only when observables change and not because of rendering.
 
 Like `observe`, `useObserve` has an optional second callback parameter which will run after the selector, and does not track changes. This can be useful for observing an `event` or a single `observable`.
+
+Note that `useObserve` runs during component render, not after render like `useEffect`. If you want an observer that runs after render, see [useObserveEffect](#useObserveEffect).
 
 ```jsx
 import { useObserve, event } from "@legendapp/state"
@@ -136,9 +141,6 @@ function ProfilePage() {
 
 Props:
 - `selector`: Observable or computation function that listens to observables accessed while running
-- `options`:
-    - `forceRender`: If you already have a forceRender function or are using multiple useSelectors, you can reuse the same hook
-    - `shouldRender`: `true` or `(current, previous) => boolean` to determine if the new value should trigger a render. `true` can be an optimization to run the selector only once.
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -159,7 +161,7 @@ const Component = ({ id }) => {
 
 ## useObservableReducer
 
-`useObservableReducer` works the same way as `useReducer` but sets an observable rather than trigger a render.
+`useObservableReducer` works the same way as `useReducer` but sets an observable rather than triggering a render.
 
 ```jsx
 import { useObservableReducer } from "@legendapp/state/react"
