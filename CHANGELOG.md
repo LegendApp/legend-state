@@ -1,3 +1,14 @@
+## 1.0.0
+
+After an unexpectly large number of changes while in RC, 1.0 includes tons of improvements and fixes that can broadly be categorized as:
+
+- Improved persistence plugin system
+- Added two-way `computed`
+- Performance improvements
+- A few minor breaking changes - see https://legendapp.com/open-source/state/migrating/
+
+See https://legendapp.com/open-source/legend-state-v1/ for more details.
+
 ## 1.0.0-rc.34
 
 - Fix: Reactive FlatList `data$` prop was not working correctly #66
