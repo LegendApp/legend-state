@@ -83,6 +83,9 @@ const obs = observable({ text: 'hi' })
 
 // Delete text
 obs.text.delete()
+
+// Set the whole value to undefined
+obs.delete()
 ```
 
 ## Safety
@@ -116,7 +119,7 @@ obs.text.assign({ value: 'hello there' })
 
 ## undefined
 
-Because observables track nodes by path and not the underlying data, an observable points to a path within an object regardless of its actual value. So it is perfectly fine to access observables when they are currently undefined in the object.
+Because observables track nodes [by path](../fast/#proxy-to-path) and not the underlying data, an observable points to a path within an object regardless of its actual value. So it is perfectly fine to access observables when they are currently undefined in the object.
 
 You could to do this to set up a listener to a field whenever it becomes available.
 

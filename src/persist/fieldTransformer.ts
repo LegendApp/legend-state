@@ -1,24 +1,23 @@
 import {
     constructObjectWithPath,
-    dateModifiedKey,
     deconstructObjectWithPath,
     FieldTransforms,
+    isArray,
     isObject,
     isString,
-    symbolDateModified,
     symbolDelete,
     TypeAtPath,
 } from '@legendapp/state';
 
 let validateMap: (map: Record<string, any>) => void;
 
-export function transformPath(path: string[], map: Record<string, any>, passThroughKeys?: string[]): string[] {
+export function transformPath(path: string[], pathTypes: TypeAtPath[], map: Record<string, any>): string[] {
     const data: Record<string, any> = {};
     let d = data;
     for (let i = 0; i < path.length; i++) {
-        d = d[path[i]] = i === path.length - 1 ? null : {};
+        d = d[path[i]] = i === path.length - 1 ? null : pathTypes[i] === 'array' ? [] : {};
     }
-    let value = transformObject(data, map, passThroughKeys);
+    let value = transformObject(data, map);
     const pathOut = [];
     for (let i = 0; i < path.length; i++) {
         const key = Object.keys(value)[0];
@@ -28,16 +27,10 @@ export function transformPath(path: string[], map: Record<string, any>, passThro
     return pathOut;
 }
 
-export function transformObject(
-    dataIn: Record<string, any>,
-    map: Record<string, any>,
-    passThroughKeys?: string[],
-    ignoreKeys?: string[]
-) {
+export function transformObject(dataIn: Record<string, any>, map: Record<string, any>) {
     if (process.env.NODE_ENV === 'development') {
         validateMap(map);
     }
-    // Note: If changing this, change it in IndexedDB preloader
     let ret = dataIn;
     if (dataIn) {
         if ((dataIn as unknown) === symbolDelete) return dataIn;
@@ -46,56 +39,50 @@ export function transformObject(
 
         const dict = Object.keys(map).length === 1 && map['_dict'];
 
-        const dateModified = dataIn[symbolDateModified as any];
-        if (dateModified) {
-            ret[symbolDateModified as any] = dateModified;
-        }
-        Object.keys(dataIn).forEach((key) => {
-            if (ret[key] !== undefined || ignoreKeys?.includes(key)) return;
-
+        for (const key in dataIn) {
             let v = dataIn[key];
 
             if (dict) {
-                ret[key] = transformObject(v, dict, passThroughKeys, ignoreKeys);
+                ret[key] = transformObject(v, dict);
             } else {
                 const mapped = map[key];
                 if (mapped === undefined) {
-                    if (passThroughKeys?.includes(key)) {
+                    // Don't transform dateModified if user doesn't want it
+                    if (key !== '@') {
                         ret[key] = v;
-                    } else if (
-                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                        map[key] === undefined
-                    ) {
-                        console.error('A fatal field transformation error has occurred', key, dataIn, map);
-                        ret[key] = v;
+                        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                            console.error('A fatal field transformation error has occurred', key, dataIn, map);
+                        }
                     }
                 } else if (mapped !== null) {
                     if (v !== undefined && v !== null) {
                         if (map[key + '_val']) {
-                            const valMap = map[key + '_val'];
-                            v = valMap[key];
-                        } else if (map[key + '_obj']) {
-                            v = transformObject(v, map[key + '_obj'], passThroughKeys, ignoreKeys);
-                        } else if (map[key + '_dict']) {
-                            const mapChild = map[key + '_dict'];
-                            const out = {};
-                            const dateModifiedChild = dataIn[symbolDateModified as any];
-                            if (dateModifiedChild) {
-                                out[symbolDateModified as any] = dateModifiedChild;
+                            const mapChild = map[key + '_val'];
+                            if (isArray(v)) {
+                                v = v.map((vChild) => mapChild[vChild]);
+                            } else {
+                                v = mapChild[v];
                             }
-                            Object.keys(v).forEach((keyChild) => {
-                                out[keyChild] = transformObject(v[keyChild], mapChild, passThroughKeys, ignoreKeys);
-                            });
-                            v = out;
-                        } else if (map[key + '_arr']) {
+                        } else if (map[key + '_arr'] && isArray(v)) {
                             const mapChild = map[key + '_arr'];
-                            v = v.map((vChild) => transformObject(vChild, mapChild, passThroughKeys, ignoreKeys));
+                            v = v.map((vChild) => transformObject(vChild, mapChild));
+                        } else if (isObject(v)) {
+                            if (map[key + '_obj']) {
+                                v = transformObject(v, map[key + '_obj']);
+                            } else if (map[key + '_dict']) {
+                                const mapChild = map[key + '_dict'];
+                                const out = {};
+                                for (const keyChild in v) {
+                                    out[keyChild] = transformObject(v[keyChild], mapChild);
+                                }
+                                v = out;
+                            }
                         }
                     }
                     ret[mapped] = v;
                 }
             }
-        });
+        }
     }
 
     return ret;
@@ -103,37 +90,36 @@ export function transformObject(
 
 export function transformObjectWithPath(
     obj: object,
-    path: (string | number)[],
+    path: string[],
     pathTypes: TypeAtPath[],
     fieldTransforms: FieldTransforms<any>
 ) {
     const constructed = constructObjectWithPath(path, obj, pathTypes);
-    const transformed = transformObject(constructed, fieldTransforms, [dateModifiedKey]);
-    const transformedPath = transformPath(path as string[], fieldTransforms, [dateModifiedKey]);
+    const transformed = transformObject(constructed, fieldTransforms);
+    const transformedPath = transformPath(path as string[], pathTypes, fieldTransforms);
     return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
 }
 
 const invertedMaps = new WeakMap();
 
 export function invertFieldMap(obj: Record<string, any>) {
-    // Note: If changing this, change it in IndexedDB preloader
     const existing = invertedMaps.get(obj);
     if (existing) return existing;
 
     const target: Record<string, any> = {} as any;
 
-    Object.keys(obj).forEach((key) => {
+    for (const key in obj) {
         const val = obj[key];
         if (key === '_dict') {
             target[key] = invertFieldMap(val);
-        } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr')) {
-            const keyMapped = obj[key.replace(/_obj|_dict|_arr$/, '')];
-            const suffix = key.match(/_obj|_dict|_arr$/)[0];
+        } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr') || key.endsWith('_val')) {
+            const keyMapped = obj[key.replace(/_obj|_dict|_arr|_val$/, '')];
+            const suffix = key.match(/_obj|_dict|_arr|_val$/)[0];
             target[keyMapped + suffix] = invertFieldMap(val);
         } else if (typeof val === 'string') {
             target[val] = key;
         }
-    });
+    }
     invertedMaps.set(obj, target);
 
     return target;

@@ -13,6 +13,7 @@ import { Legend } from "@legendapp/state/react-components"
 enableLegendStateReact();
 
 function Component() {
+    // This component renders only once
     const state = useObservable({ name: '', age: 18 })
 
     return (
@@ -52,6 +53,7 @@ import { Legend } from "@legendapp/state/react-native-components"
 enableLegendStateReact();
 
 function Component() {
+    // This component renders only once
     const state = useObservable({ name: '', enabled: false })
 
     return (
@@ -88,6 +90,7 @@ import { Legend } from "@legendapp/state/react-components"
 enableLegendStateReact();
 
 function Component() {
+    // This component renders only once
     const state = useObservable({ name: 'Legend' })
 
     return (
@@ -121,6 +124,7 @@ import { motion } from "framer-motion"
 const ReactiveMotionDiv = reactive(motion.div);
 
 function Component() {
+    // This component renders only once
     const width = useObservable(100)
 
     return (

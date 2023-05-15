@@ -16,7 +16,9 @@ enableLegendStateReact()
 const count = observable(0)
 
 function Optimized() {
-    // This never re-renders when observable is rendered directly
+    // This component never re-renders.
+
+    // The {count} element re-renders itself when its value changes.
     return (
         <div>Count: {count}</div>
     )
@@ -29,6 +31,8 @@ See [enableLegendStateReact.ts](https://github.com/LegendApp/legend-state/blob/m
 ## Computed
 
 Computed extracts children so that their changes do not affect the parent, but the parent's changes will still re-render them. Use this when children use observables that change often without affecting the parent, but also depends on local state in the parent.
+
+This is equivalent to extracting it as a separate component (and passing in all needed props).
 
 The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
 
@@ -83,7 +87,7 @@ function ComputedExample() {
 
 ## Memo
 
-Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly independent from the parent component. This is equivalent to extracting it as a separate function.
+Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly independent from the parent component. This is equivalent to extracting it as a separate component (and passing in all needed props) with `React.memo`.
 
 The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
 
@@ -144,13 +148,16 @@ Passing children as a function can prevent the JSX from being created until it n
 
 Props:
 - `if`: A computed function or an observable
+- `ifReady`: A computed function or an observable. This will not render if the value is an empty object or empty array.
 - `else`: Optionally provide a component to render if the condition is not met
 - `children`: The components to show conditionally. This can be React elements or a function given the value returned from `if` which you can use to do more complex conditional rendering.
+- `wrap`: A component to wrap the children. For example this could be [Framer Motion's AnimatePresence](https://www.framer.com/motion/) to animate the element entering/exiting.
 
 ```jsx
 <Show
     if={state.show}
     else={<div>Nothing to see here</div>}
+    wrap={AnimatePresence}
 >
     <Modal />
 </Show>

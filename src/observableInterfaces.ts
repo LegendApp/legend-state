@@ -44,10 +44,11 @@ export interface ObservableBaseFns<T> {
     get(trackingType?: TrackingType): T;
     onChange(
         cb: ListenerFn<T>,
-        options?: { trackingType?: TrackingType; initial?: boolean }
+        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
     ): ObservableListenerDispose;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
+    delete(): ObservablePrimitiveFnsBase<T>;
     set(value: T | CallbackSetter<T>): ObservablePrimitiveChild<T>;
 }
 
@@ -140,7 +141,6 @@ type ObservableComputedFnsRecursive<T> = {
 export interface ObservableEvent {
     fire(): void;
     on(cb?: () => void): ObservableListenerDispose;
-    on(eventType: 'change', cb?: () => void): ObservableListenerDispose;
     get(): void;
 }
 
@@ -153,7 +153,7 @@ export type QueryByModified<T> =
 export type TypeAtPath = 'object' | 'array';
 
 export interface Change {
-    path: (string | number)[];
+    path: string[];
     pathTypes: TypeAtPath[];
     valueAtPath: any;
     prevAtPath: any;
@@ -184,6 +184,8 @@ export interface PersistOptionsRemote<T = any> {
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSaveIfError?: boolean;
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
     adjustData?: {
         load?: (value: T) => T | Promise<T>;
         save?: (value: T) => T | Promise<T>;
@@ -192,7 +194,7 @@ export interface PersistOptionsRemote<T = any> {
         syncPath: (uid: string) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
-        onError?: (error: Error) => void;
+        dateModifiedKey?: string;
     };
     onSaveRemote?: () => void;
 }
@@ -201,7 +203,6 @@ export interface PersistOptions<T = any> {
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemote>;
-    dateModifiedKey?: string;
 }
 
 export interface PersistMetadata {
@@ -215,19 +216,17 @@ export interface ObservablePersistLocal {
     getTable<T = any>(table: string, config: PersistOptionsLocal): T;
     getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void>;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): void;
-    deleteTable(table: string, config: PersistOptionsLocal): Promise<void>;
-    loadTable?(table: string, config: PersistOptionsLocal): void | Promise<void>;
-}
-export interface ObservablePersistLocalAsync extends ObservablePersistLocal {
-    preload(path: string): Promise<void>;
+    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
+    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
+    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
 export interface ObservablePersistRemoteSaveParams<T, T2> {
     state: Observable<ObservablePersistState>;
     obs: Observable<T>;
     options: PersistOptions<T>;
-    path: (string | number)[];
+    path: string[];
     pathTypes: TypeAtPath[];
     valueAtPath: T2;
     prevAtPath: any;
@@ -236,11 +235,18 @@ export interface ObservablePersistRemoteListenParams<T> {
     state: Observable<ObservablePersistState>;
     obs: ObservableReadable<T>;
     options: PersistOptions<T>;
+    dateModified?: number;
     onLoad: () => void;
-    onChange: (params: { value: T; path: (string | number)[]; mode: 'assign' | 'set' }) => void;
+    onChange: (params: {
+        value: T;
+        path: string[];
+        pathTypes: TypeAtPath[];
+        mode: 'assign' | 'set' | 'dateModified';
+        dateModified: number | undefined;
+    }) => void | Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<T>;
+    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<{ changes?: object; dateModified?: number }>;
     listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
 }
 
@@ -250,6 +256,7 @@ export interface ObservablePersistState {
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
     remoteError?: Error;
+    dateModified?: number;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
     getPendingChanges: () =>
@@ -306,6 +313,8 @@ export declare type FieldTransformsInner<T> = {
       }
 ) & {
         [K in keyof ArrayKeys<T> as `${K}_arr`]?: FieldTransforms<ArrayValue<T[K]>>;
+    } & {
+        [K in keyof ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
     };
 
 export type Selector<T> = ObservableReadable<T> | (() => T) | T;
@@ -316,6 +325,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableWrapper {
     _: any;
     locked?: boolean;
+    set?: (value: any) => void;
     activate?: () => void;
 }
 
@@ -343,21 +353,25 @@ export type ObservableReadable<T = any> =
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
 
-export type ObservableWriteable<T = any> = ObservableReadable<T> & { set: any };
+export type ObservableWriteable<T = any> = ObservableReadable<T> & {
+    set: (value: T | ((prev: T) => T)) => void;
+    delete?: () => void;
+};
 
-interface NodeValueListener {
+export interface NodeValueListener {
     track: TrackingType;
     noArgs?: boolean;
     listener: ListenerFn;
 }
 
 interface BaseNodeValue {
-    id: number;
-    children?: Map<string | number, ChildNodeValue>;
+    children?: Map<string, ChildNodeValue>;
     proxy?: object;
     isActivatedPrimitive?: boolean;
     root: ObservableWrapper;
     listeners?: Set<NodeValueListener>;
+    listenersImmediate?: Set<NodeValueListener>;
+    descendantHasListener?: boolean;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -367,7 +381,7 @@ export interface RootNodeValue extends BaseNodeValue {
 
 export interface ChildNodeValue extends BaseNodeValue {
     parent: NodeValue;
-    key: string | number;
+    key: string;
 }
 
 export type NodeValue = RootNodeValue | ChildNodeValue;
@@ -392,16 +406,19 @@ export interface ObserveEventCallback<T> {
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }
+export interface ObservablePersistenceConfigLocalOptions {
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
+    indexedDB?: {
+        databaseName: string;
+        version: number;
+        tableNames: string[];
+    };
+}
 export interface ObservablePersistenceConfig {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemote>;
-    persistLocalOptions?: {
-        indexedDB?: {
-            databaseName: string;
-            version: number;
-            tableNames: string[];
-        };
-    };
+    persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
     saveTimeout?: number;
     dateModifiedKey?: string;
 }

@@ -1,4 +1,5 @@
-import { symbolDateModified, symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
+import { beginBatch, endBatch } from './batching';
+import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
@@ -36,7 +37,9 @@ export function getObservableIndex(obs: ObservableReadable): number {
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
-    (value as OpaqueObject<T>)[symbolOpaque] = true;
+    if (value) {
+        (value as OpaqueObject<T>)[symbolOpaque] = true;
+    }
     return value as OpaqueObject<T>;
 }
 
@@ -48,36 +51,52 @@ export function lockObservable(obs: ObservableReadable, value: boolean) {
 }
 export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], value: any) {
     let o = obj;
-    for (let i = 0; i < path.length; i++) {
-        const p = path[i];
-        if (i === path.length - 1) {
-            o[p] = value;
-        } else if (o[p] === undefined) {
-            o[p] = pathTypes[i] === 'array' ? [] : {};
+    if (path.length > 0) {
+        for (let i = 0; i < path.length; i++) {
+            const p = path[i];
+            if (i === path.length - 1) {
+                // Don't set if the value is the same. This prevents creating a new key
+                // when setting undefined on an object without this key
+                if (o[p] !== value) {
+                    o[p] = value;
+                }
+            } else if (o[p] === undefined) {
+                o[p] = pathTypes[i] === 'array' ? [] : {};
+            }
+            o = o[p];
         }
-        o = o[p];
+    } else {
+        obj = value;
     }
+
+    return obj;
 }
 export function setInObservableAtPath(obs: ObservableWriteable, path: string[], value: any, mode: 'assign' | 'set') {
     let o = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
-        o = obs[p];
-        v = value[p];
+        o = o[p];
+        v = v[p];
     }
 
     if (v === symbolDelete) {
         (o as ObservableChild).delete();
     }
     // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as ObservableObject).assign) {
+    else if (mode === 'assign' && (o as ObservableObject).assign && isObject(o.peek())) {
         (o as ObservableObject).assign(v);
     } else {
         o.set(v);
     }
 }
 export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
+    beginBatch();
+    const value = _mergeIntoObservable(target, ...sources);
+    endBatch();
+    return value;
+}
+function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     if (!sources.length) return target;
 
     for (let u = 0; u < sources.length; u++) {
@@ -93,10 +112,7 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
             (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
             (isTargetArr && isArray(source) && targetValue.length > 0)
         ) {
-            const keys: any[] = isTargetArr ? (source as any[]) : Object.keys(source);
-            let dateModified = source[symbolDateModified as any];
-            for (let i = 0; i < keys.length; i++) {
-                const key = isTargetArr ? i : (keys[i] as string);
+            for (const key in source) {
                 const sourceValue = source[key];
                 if (sourceValue === symbolDelete) {
                     needsSet && target[key]?.delete
@@ -105,31 +121,26 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
                 } else {
                     const isObj = isObject(sourceValue);
                     const isArr = !isObj && isArray(sourceValue);
-                    const targetValue = target[key];
-                    if ((isObj || isArr) && target[key] && (isObj ? !isEmpty(targetValue) : targetValue.length > 0)) {
-                        if (!needsSet && (!target[key] || (isObj ? !isObject(target[key]) : !isArray(target[key])))) {
-                            target[key] = isObj ? {} : [];
+                    const targetChild = target[key];
+                    if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
+                        if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
+                            target[key] = sourceValue;
+                        } else {
+                            _mergeIntoObservable(targetChild, sourceValue);
                         }
-                        mergeIntoObservable(target[key], sourceValue);
-                        dateModified = Math.max(dateModified || 0, sourceValue[symbolDateModified as any] || 0);
                     } else {
-                        needsSet ? target[key].set(sourceValue) : ((target[key] as any) = sourceValue);
+                        needsSet ? targetChild.set(sourceValue) : ((target[key] as any) = sourceValue);
                     }
                 }
             }
-            if (dateModified) {
-                needsSet
-                    ? target[symbolDateModified as any].set(dateModified)
-                    : (target[symbolDateModified] = dateModified);
-            }
-        } else {
+        } else if (source !== undefined) {
             needsSet ? target.set(source) : ((target as any) = source);
         }
     }
 
     return target;
 }
-export function constructObjectWithPath(path: (string | number)[], value: any, pathTypes: TypeAtPath[]): object {
+export function constructObjectWithPath(path: string[], value: any, pathTypes: TypeAtPath[]): object {
     let out;
     if (path.length > 0) {
         let o = (out = {});
@@ -144,7 +155,7 @@ export function constructObjectWithPath(path: (string | number)[], value: any, p
 
     return out;
 }
-export function deconstructObjectWithPath(path: (string | number)[], value: any): object {
+export function deconstructObjectWithPath(path: string[], value: any): object {
     let o = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
@@ -154,5 +165,5 @@ export function deconstructObjectWithPath(path: (string | number)[], value: any)
     return o;
 }
 export function isObservableValueReady(value: any) {
-    return value && !((isObject(value) && isEmpty(value)) || (isArray(value) && value.length === 0));
+    return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
 }

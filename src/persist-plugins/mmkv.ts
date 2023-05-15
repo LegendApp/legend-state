@@ -1,8 +1,9 @@
-import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
+import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '@legendapp/state';
+import { setAtPath } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
-import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '../observableInterfaces';
 
 const symbolDefault = Symbol();
+const MetadataSuffix = '__m';
 
 export class ObservablePersistMMKV implements ObservablePersistLocal {
     private data: Record<string, any> = {};
@@ -19,7 +20,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         if (this.data[table] === undefined) {
             try {
                 const value = storage.getString(table);
-                return value ? JSON.parse(value) : undefined;
+                this.data[table] = value ? JSON.parse(value) : undefined;
             } catch {
                 console.error('[legend-state] MMKV failed to parse', table);
             }
@@ -27,25 +28,28 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         return this.data[table];
     }
     public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
-        return this.getTable(table + '__m', config);
+        return this.getTable(table + MetadataSuffix, config);
     }
     public async set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void> {
         if (!this.data[table]) {
             this.data[table] = {};
         }
-        this.data[table] = mergeIntoObservable(
-            this.data[table],
-            ...changes.map(({ path, valueAtPath, pathTypes }) => constructObjectWithPath(path, valueAtPath, pathTypes))
-        );
+        for (let i = 0; i < changes.length; i++) {
+            const { path, valueAtPath, pathTypes } = changes[i];
+            this.data[table] = setAtPath(this.data[table], path as string[], pathTypes, valueAtPath);
+        }
         this.save(table, config);
     }
     public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
-        return this.setValue(table + '__m', metadata, config);
+        return this.setValue(table + MetadataSuffix, metadata, config);
     }
     public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
         const storage = this.getStorage(config);
         delete this.data[table];
         storage.delete(table);
+    }
+    public async deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void> {
+        this.deleteTable(table + MetadataSuffix, config);
     }
     // Private
     private getStorage(config: PersistOptionsLocal): MMKV {

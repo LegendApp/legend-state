@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "1.0.0-rc.5",
+    "version": "1.0.0-rc.34",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
@@ -11,13 +11,13 @@
         "**"
     ],
     "engines": {
-        "node": "16.6.0",
-        "npm": "8.11.0"
+        "node": ">=16.6.0",
+        "npm": ">=8.11.0"
     },
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
+        "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
         "postbuild": "node postbuild.mjs",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
@@ -45,11 +45,6 @@
             "import": "./index.mjs",
             "require": "./index.js",
             "types": "./index.d.ts"
-        },
-        "./internal": {
-            "import": "./internal.mjs",
-            "require": "./internal.js",
-            "types": "./internal.d.ts"
         },
         "./persist": {
             "import": "./persist.mjs",
@@ -130,6 +125,7 @@
         "jest": "^29.4.1",
         "jest-environment-jsdom": "^29.3.1",
         "json": "^11.0.0",
+        "next": "^13",
         "prettier": "^2.7.1",
         "react": "18.2.0",
         "react-native": "^0.70.5",
@@ -147,6 +143,7 @@
     },
     "peerDependencies": {
         "@tanstack/react-query": "^4.14.6",
+        "next": "^12",
         "react": ">=16.8",
         "react-native": ">=0.61",
         "react-native-mmkv": "^2"
@@ -190,21 +187,7 @@
             "@commitlint/config-conventional"
         ]
     },
-    "release-it": {
-        "git": {
-            "commitMessage": "chore: release ${version}",
-            "tagName": "v${version}"
-        },
-        "npm": {
-            "publish": true
-        },
-        "github": {
-            "release": true
-        },
-        "plugins": {
-            "@release-it/conventional-changelog": {
-                "preset": "angular"
-            }
-        }
+    "dependencies": {
+        "use-sync-external-store": "^1.2.0"
     }
 }

@@ -1,7 +1,7 @@
 Legend-State enables a new way of thinking about how React components update, to **observe state changing**, not renders. But it can also work in a more familiar React style, so there are two ways to use Legend-State in React (that you can mix and match per component).
 
-1. **Re-render when state changes**: the normal React behavior. You can use an `observer` HOC to make components automatically track observerables (similar to libraries like MobX), or `useSelector` to grab specific observables and track them.
-2. **Fine-grained reactivity**: individual elements re-render themselves. You can render observable strings directly to make them self-updating, use reactive props to update props based on state, and a set of control-flow components to optimize conditional rendering and arrays to re-render as little as possible.
+1. **Re-render when state changes**: the normal React behavior. You can use an `observer` HOC to make components automatically track observables (similar to libraries like MobX), or `useSelector` to track specific observables.
+2. **Fine-grained reactivity**: individual elements re-render themselves. You can render observable strings directly to create mini self-updating components, use reactive props to update props based on state, and a set of control-flow components to optimize conditional rendering and arrays to re-render as little as possible.
 
 This page describes #1, the basic usage. See [Fine-grained reactivity](../fine-grained-reactivity) and [React Examples](../react-examples) for more details about #2.
 
@@ -24,7 +24,7 @@ const Component = observer(function Component() {
     // Accessing state automatically makes this component track changes to re-render
     const count = state.count.get();
 
-    // Magic 🦄
+    // Re-renders whenever count changes
     return <div>{count}</div>
 })
 ```
@@ -34,10 +34,7 @@ const Component = observer(function Component() {
 `useSelector` computes a value and automatically listens to any observables accessed while running, and only re-renders if the computed value changes. It is slightly more efficient than `observer` so you may prefer it for components that only need to track one observable or selector.
 
 Props:
-- `selector`: Observable or computation function that listens to observables accessed while running
-- `options`:
-    - `forceRender`: If you already have a forceRender function or are using multiple useSelectors, you can reuse the same hook
-    - `shouldRender`: `true` or `(current, previous) => boolean` to determine if the new value should trigger a render. `true` can be an optimization to run the selector only once.
+- `selector`: Observable or compute function that listens to observables accessed while running
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -154,16 +151,13 @@ const classNameError = "text-sm text-red-500 mb-2 h-5 pt-1"
 
 You can use the [hooks](../hooks) to create local state (state owned by a React component). This can replace `useState` and `useReducer`. Local state could also be passed down a component tree through props or [Context](../hooks/#using-with-context). Observables are objects that will never change, so they will never cause Context to re-render and will not re-render child components that use `memo`.
 
-<Sandbox height={480} width={64} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
+<Sandbox height={480} width={64} options={{ showTabs: true }} files={{
 '/App.js': `
 import { useRef } from 'react'
-import { enableLegendStateReact, reactive, useComputed, useObservable } from '@legendapp/state/react'
+import { observer, reactive, useComputed, useObservable } from '@legendapp/state/react'
 import { Legend } from '@legendapp/state/react-components'
-import { motion } from "framer-motion"
 
-enableLegendStateReact()
-
-export default function App() {
+export default observer(function App() {
   const renderCount = ++useRef(0).current
 
   const first = useObservable('')
@@ -178,7 +172,7 @@ export default function App() {
           Renders: {renderCount}
       </div>
       <h2 className="pb-4 font-bold">
-        Hi {name}
+        Hi {name.get()}
       </h2>
       <div>First:</div>
       <Legend.input
@@ -192,7 +186,7 @@ export default function App() {
       />
     </div>
   )
-}
+})
 
 const classNameInput = "border rounded border-gray-300 px-2 py-1 mt-2 mb-4"
 

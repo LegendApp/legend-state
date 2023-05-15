@@ -1,22 +1,39 @@
-import { getNodeValue } from './globals';
-import type { ListenerFn, NodeValue, TrackingType } from './observableInterfaces';
+import { checkActivate, getNodeValue } from './globals';
+import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
-    options?: { trackingType?: TrackingType; initial?: boolean },
-    noArgs?: boolean
+    options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
 ): () => void {
-    let listeners = node.listeners;
-    if (!listeners) {
-        node.listeners = listeners = new Set();
-    }
+    const { trackingType, initial, immediate, noArgs } = options || {};
 
-    const listener = { listener: callback, track: options?.trackingType, noArgs };
+    let listeners = immediate ? node.listenersImmediate : node.listeners;
+    if (!listeners) {
+        listeners = new Set();
+        if (immediate) {
+            node.listenersImmediate = listeners;
+        } else {
+            node.listeners = listeners;
+        }
+    }
+    checkActivate(node);
+
+    const listener: NodeValueListener = {
+        listener: callback,
+        track: trackingType,
+        noArgs,
+    };
 
     listeners.add(listener);
 
-    if (options?.initial) {
+    let parent = node.parent;
+    while (parent && !parent.descendantHasListener) {
+        parent.descendantHasListener = true;
+        parent = parent.parent;
+    }
+
+    if (initial) {
         const value = getNodeValue(node);
         callback({
             value,

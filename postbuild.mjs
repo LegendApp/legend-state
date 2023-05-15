@@ -50,5 +50,6 @@ Object.keys(pkg.exports).forEach((exp) => {
 pkg.private = false;
 delete pkg.devDependencies;
 delete pkg.scripts;
+delete pkg.engines;
 
 fs.writeFileSync(path.join('dist/package.json'), JSON.stringify(pkg, undefined, 4));

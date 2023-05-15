@@ -2,15 +2,13 @@ import { computeSelector, isObservableValueReady } from './helpers';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
-export function when<T>(predicate: Selector<T>): Promise<T>;
-export function when<T>(predicate: Selector<T>, effect: (value: T) => any | (() => any)): () => void;
-export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any)) {
+function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {
     let value: T;
     // Create a wrapping fn that calls the effect if predicate returns true
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
 
-        if (isObservableValueReady(ret)) {
+        if (checkReady ? isObservableValueReady(ret) : ret) {
             value = ret;
             // If value is truthy then run the effect
             effect?.(ret);
@@ -19,21 +17,34 @@ export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (()
             e.cancel = true;
         }
     }
-    // Create an effect for the fn
-    const dispose = observe(run);
+    // Run in an observe
+    observe(run);
 
-    // If first run resulted in a truthy value just return it
+    // If first run resulted in a truthy value just return it.
     // It will have set e.cancel so no need to dispose
     if (value !== undefined) {
-        return value;
+        return Promise.resolve(value);
     } else {
-        // If no effect parameter return a promise
-        const promise =
-            !effect &&
-            new Promise<T>((resolve) => {
+        // Wrap it in a promise
+        const promise = new Promise<T>((resolve) => {
+            if (effect) {
+                const originalEffect = effect;
+                effect = (value) => {
+                    const effectValue = originalEffect(value);
+                    resolve(effectValue);
+                };
+            } else {
                 effect = resolve;
-            });
+            }
+        });
 
-        return promise || dispose;
+        return promise;
     }
+}
+
+export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any)): Promise<T> {
+    return _when<T>(predicate, effect, false);
+}
+export function whenReady<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any)): Promise<T> {
+    return _when<T>(predicate, effect, true);
 }

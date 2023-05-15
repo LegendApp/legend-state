@@ -1,8 +1,8 @@
 import type { NodeValue, TrackingNode, TrackingType } from './observableInterfaces';
 
 interface TrackingState {
-    nodes?: Map<number, TrackingNode>;
-    traceListeners?: (nodes: Map<number, TrackingNode>) => void;
+    nodes?: Map<NodeValue, TrackingNode>;
+    traceListeners?: (nodes: Map<NodeValue, TrackingNode>) => void;
     // eslint-disable-next-line @typescript-eslint/ban-types
     traceUpdates?: (fn: Function) => Function;
 }
@@ -39,12 +39,12 @@ export function updateTracking(node: NodeValue, track?: TrackingType) {
                 tracker.nodes = new Map();
             }
 
-            const existing = tracker.nodes.get(node.id);
+            const existing = tracker.nodes.get(node);
             if (existing) {
                 existing.track = existing.track || track;
                 existing.num++;
             } else {
-                tracker.nodes.set(node.id, { node, track, num: 1 });
+                tracker.nodes.set(node, { node, track, num: 1 });
             }
         }
     }

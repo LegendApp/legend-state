@@ -1,5 +1,7 @@
-import { constructObjectWithPath, mergeIntoObservable } from '@legendapp/state';
-import type { Change, ObservablePersistLocal, PersistMetadata } from '../observableInterfaces';
+import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
+import { setAtPath } from '@legendapp/state';
+
+const MetadataSuffix = '__m';
 
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     private data: Record<string, any> = {};
@@ -9,7 +11,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         if (this.data[table] === undefined) {
             try {
                 const value = localStorage.getItem(table);
-                return value ? JSON.parse(value) : undefined;
+                this.data[table] = value ? JSON.parse(value) : undefined;
             } catch {
                 console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
             }
@@ -17,31 +19,34 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         return this.data[table];
     }
     public getMetadata(table: string): PersistMetadata {
-        return this.getTable(table + '__m');
+        return this.getTable(table + MetadataSuffix);
     }
     public get(table: string, id: string) {
         const tableData = this.getTable(table);
         return tableData?.[id];
     }
-    public async set(table: string, changes: Change[]): Promise<void> {
+    public set(table: string, changes: Change[]): void {
         if (!this.data[table]) {
             this.data[table] = {};
         }
-        this.data[table] = mergeIntoObservable(
-            this.data[table],
-            ...changes.map(({ path, valueAtPath, pathTypes }) => constructObjectWithPath(path, valueAtPath, pathTypes))
-        );
+        for (let i = 0; i < changes.length; i++) {
+            const { path, valueAtPath, pathTypes } = changes[i];
+            this.data[table] = setAtPath(this.data[table], path as string[], pathTypes, valueAtPath);
+        }
         this.save(table);
     }
     public updateMetadata(table: string, metadata: PersistMetadata) {
-        return this.setValue(table + '__m', metadata);
+        return this.setValue(table + MetadataSuffix, metadata);
     }
-    public async deleteTable(table: string): Promise<void> {
+    public deleteTable(table: string) {
         delete this.data[table];
         localStorage.removeItem(table);
     }
+    public deleteMetadata(table: string) {
+        this.deleteTable(table + MetadataSuffix);
+    }
     // Private
-    private async setValue(table: string, value: any) {
+    private setValue(table: string, value: any) {
         this.data[table] = value;
         this.save(table);
     }

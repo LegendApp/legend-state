@@ -1,6 +1,6 @@
-import { symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
+import { notify } from './batching';
+import { checkActivate, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
 import { isBoolean, isFunction } from './is';
-import { doNotify } from './notify';
 import {
     ListenerFn,
     NodeValue,
@@ -38,13 +38,8 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsEvent, {
     value: false,
 });
 ObservablePrimitiveClass.prototype.peek = function () {
-    const root = this._node.root;
-    const activate = root.activate;
-    if (activate) {
-        root.activate = undefined;
-        activate();
-    }
-    return root._;
+    checkActivate(this._node);
+    return this._node.root._;
 };
 ObservablePrimitiveClass.prototype.get = function () {
     const node = this._node;
@@ -67,7 +62,7 @@ ObservablePrimitiveClass.prototype.set = function <T>(value: T | ((prev: T) => T
     const root = this._node.root;
     const prev = root._;
     root._ = value;
-    doNotify(this._node, value, [], [], value, prev, 0);
+    notify(this._node, value, prev, 0);
     return this as unknown as ObservableChild<T>;
 };
 ObservablePrimitiveClass.prototype.toggle = function (): boolean {
@@ -80,11 +75,15 @@ ObservablePrimitiveClass.prototype.toggle = function (): boolean {
 
     return !value;
 };
+ObservablePrimitiveClass.prototype.delete = function () {
+    this.set(undefined);
+
+    return this;
+};
 // Listener
 ObservablePrimitiveClass.prototype.onChange = function <T>(
     cb: ListenerFn<T>,
-    options?: { trackingType?: TrackingType; initial?: boolean },
-    noArgs?: boolean
+    options?: { trackingType?: TrackingType; initial?: boolean; noArgs?: boolean }
 ): ObservableListenerDispose {
-    return onChange(this._node, cb, options, noArgs);
+    return onChange(this._node, cb, options);
 };

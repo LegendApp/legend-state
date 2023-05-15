@@ -1,4 +1,11 @@
-import { extraPrimitiveProps, getNode, ObservablePrimitiveClass, ObservableReadable } from '@legendapp/state';
+import {
+    checkActivate,
+    extraPrimitiveActivators,
+    extraPrimitiveProps,
+    getNode,
+    ObservablePrimitiveClass,
+    ObservableReadable,
+} from '@legendapp/state';
 import { createElement, memo } from 'react';
 import { hasSymbol } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -14,12 +21,7 @@ export function enableLegendStateReact() {
         const Text = memo(function Text({ data }: { data: ObservableReadable }) {
             const value = useSelector(data);
 
-            const root = getNode(data).root;
-            const activate = root.activate;
-            if (activate) {
-                root.activate = undefined;
-                activate();
-            }
+            checkActivate(getNode(data));
 
             return value;
         });
@@ -27,41 +29,42 @@ export function enableLegendStateReact() {
         const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
 
         const s = extraPrimitiveProps;
+        const proto = {} as Record<string | symbol, any>;
+        // Set up activators to activate this node as being used in React
+        extraPrimitiveActivators.set('$$typeof', true);
+        extraPrimitiveActivators.set(Symbol.toPrimitive, true);
+
+        // eslint-disable-next-line no-inner-declarations
+        function set(key, value) {
+            s.set(key, value);
+            proto[key] = { configurable: true, value };
+        }
+        set('$$typeof', ReactTypeofSymbol);
+        set('type', Text);
+        set('_store', { validated: true });
+        set('key', null);
+        set('ref', null);
+        set('alternate', null);
+        set('_owner', null);
+        set('_source', null);
+
         // Set extra props for the proxyHandler to return on primitives
         s.set(Symbol.toPrimitive, (_: any, value: any) => value);
-        s.set('props', {
-            __fn: (obs: any) => ({ data: obs }),
-        });
-        s.set('$$typeof', ReactTypeofSymbol);
-        s.set('type', Text);
-        s.set('_store', { validated: true });
-        s.set('key', null);
-        s.set('ref', null);
-        s.set('alternate', null);
-        s.set('_owner', null);
-        s.set('_source', null);
-        const config = (value: any) => ({ configurable: true, value });
+        s.set('props', (obs: any) => ({ data: obs }));
         // Set extra props for ObservablePrimitive to return on primitives
-        Object.defineProperties(ObservablePrimitiveClass.prototype, {
-            [Symbol.toPrimitive]: {
-                configurable: true,
-                get() {
-                    return this.peek();
-                },
+        proto[Symbol.toPrimitive] = {
+            configurable: true,
+            get() {
+                return this.peek();
             },
-            props: {
-                configurable: true,
-                get() {
-                    return { data: this };
-                },
+        };
+        proto.props = {
+            configurable: true,
+            get() {
+                return { data: this };
             },
-            $$typeof: config(ReactTypeofSymbol),
-            type: config(Text),
-            _store: config({ validated: true }),
-            ref: config(null),
-            alternate: config(null),
-            _owner: config(null),
-            _source: config(null),
-        });
+        };
+
+        Object.defineProperties(ObservablePrimitiveClass.prototype, proto);
     }
 }

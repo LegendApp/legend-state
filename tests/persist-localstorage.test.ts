@@ -24,6 +24,10 @@ class LocalStorageMock {
     }
 }
 
+function promiseTimeout(time?: number) {
+    return new Promise((resolve) => setTimeout(resolve, time || 0));
+}
+
 function reset() {
     global.localStorage.clear();
     const persist = mapPersistences.get(ObservablePersistLocalStorage)?.persist as ObservablePersistLocal;
@@ -74,7 +78,7 @@ beforeEach(() => {
 });
 
 describe('Persist local', () => {
-    test('Saves to local', () => {
+    test('Saves to local', async () => {
         reset();
         const obs = observable({ test: '' });
 
@@ -83,6 +87,8 @@ describe('Persist local', () => {
         });
 
         obs.set({ test: 'hello' });
+
+        await promiseTimeout(0);
 
         const localValue = global.localStorage.getItem('jestlocal');
 
@@ -97,7 +103,7 @@ describe('Persist local', () => {
 
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
-    test('Saves empty root object to local overwriting complex', () => {
+    test('Saves empty root object to local overwriting complex', async () => {
         reset();
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
@@ -106,6 +112,8 @@ describe('Persist local', () => {
         });
 
         obs.test.set({});
+
+        await promiseTimeout(0);
 
         const localValue = global.localStorage.getItem('jestlocal');
 
@@ -120,7 +128,7 @@ describe('Persist local', () => {
 
         expect(obs2.get()).toEqual({ test: {} });
     });
-    test('Saves empty root object to local', () => {
+    test('Saves empty root object to local', async () => {
         reset();
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
@@ -129,6 +137,8 @@ describe('Persist local', () => {
         });
 
         obs.set({});
+
+        await promiseTimeout(0);
 
         const localValue = global.localStorage.getItem('jestlocal');
 
@@ -175,7 +185,7 @@ describe('Persist local', () => {
 });
 
 describe('Persist primitives', () => {
-    test('Primitive saves to local', () => {
+    test('Primitive saves to local', async () => {
         const obs = observable('');
 
         persistObservable(obs, {
@@ -183,6 +193,8 @@ describe('Persist primitives', () => {
         });
 
         obs.set('hello');
+
+        await promiseTimeout(0);
 
         const localValue = global.localStorage.getItem('jestlocal');
 

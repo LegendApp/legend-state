@@ -1,3 +1,83 @@
+## 1.0.0-rc.34
+
+- Fix: Reactive FlatList `data$` prop was not working correctly #66
+
+## 1.0.0-rc.33
+
+- Perf: Improve performance of arrays
+- Perf: Improve performance of useSelector when passing an observable directly
+- Perf: Improve performance of the For component
+
+## 1.0.0-rc.32
+
+- Change: `useObserve` runs the function less often
+- Change: `when` checks truthiness instead of readiness. Use `whenReady` if you want empty objects and arrays to not count.
+- Change: `afterBatch` runs after the batch instead of at the end of a batch, which is more useful
+- Perf: Changes are internally batched by node instead of by listener, resulting in fewer `onChange` calls
+
+## 1.0.0-rc.31
+
+- Feat: Add a sortValues function to For for use with eachValues
+
+## 1.0.0-rc.30
+
+- Feat: Add support for a _keyExtractor field to return an arbitrary key value on arrays
+- Change: internals is exported as an object instead of a separate export path
+
+## 1.0.0-rc.29
+
+- Fix: Prevent batches from running recursively
+- Fix: The second "reaction" paremeter in `observe` sometimes had an incorrect `previous` value
+
+## 1.0.0-rc.27
+
+- Fix: `getPrevious()` in onChange was sometimes incorrect during a batch
+
+## 1.0.0-rc.26
+
+- Perf: Removed IndexedDB preloader because it's actually slower because of the time it takes to copy the data across the Web Worker bridge
+
+## 1.0.0-rc.23
+
+- Perf: Miscellaneous micro-optimizing
+
+## 1.0.0-rc.22
+
+- Feat: Add a useObservableNextRouter hook for Next.js
+- Perf: Persistence plugins queue into a microtask to bundle saves together
+
+## 1.0.0-rc.21
+
+- Feat: Added `eachValues` prop to For to map the values of an object
+
+## 1.0.0-rc.20
+
+- Fix: useSelector now uses useSyncExternalStore under the hood to support Suspense better
+
+## 1.0.0-rc.19
+
+- Fix: mergeIntoObservable was sometimes deleting undefined fields
+
+## 1.0.0-rc.17
+
+- Perf: Sped up IndexedDB plugin and removed the preloader because it was actually slower
+
+## 1.0.0-rc.16
+
+- Fix: Fast Refresh sometimes resetting observables -By @GiFarina
+
+## 1.0.0-rc.14
+
+- Perf: Running notifications in large objects sped up
+
+## 1.0.0-rc.10
+
+- Fix: `afterBatch` was not working correctly if run from within a batch
+
+## 1.0.0-rc.4
+
+- Feature: Added two way `computed`
+
 ## 1.0.0-rc.2
 
 - Feature: `batch` has a new `onComplete `batch(callback, onComplete)` parameter to run a function after the batch commits. This can be useful for cleaning up a temporary state while batching.

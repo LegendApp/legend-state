@@ -1,42 +1,113 @@
-import { computeSelector, isPrimitive, observe, Selector } from '@legendapp/state';
-import { useReducer, useRef } from 'react';
+import {
+    beginTracking,
+    computeSelector,
+    endTracking,
+    isObservable,
+    Selector,
+    setupTracking,
+    tracking,
+} from '@legendapp/state';
+import { useRef } from 'react';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
-const Update = (s: number) => s + 1;
+interface SelectorFunctions<T> {
+    subscribe: (onStoreChange: () => void) => void;
+    getVersion: () => number;
+    run: (selector: Selector<T>) => T;
+}
 
-export function useSelector<T>(
-    selector: Selector<T>,
-    options?: { forceRender?: () => void; shouldRender?: boolean | ((current: T, previous: T) => boolean) }
-): T {
-    let inRun = true;
-    let ret: T;
-    const forceRender = options?.forceRender || useReducer(Update, 0)[1];
-    const shouldRender = options?.shouldRender;
-    const refDispose = useRef<() => void>();
+function createSelectorFunctions<T>(): SelectorFunctions<T> {
+    let version = 0;
+    let notify: () => void;
+    let dispose: () => void;
+    let resubscribe: () => void;
 
-    refDispose.current?.();
+    const _update = () => {
+        version++;
+        notify?.();
+    };
 
-    if (!selector) return selector as T;
+    return {
+        subscribe: (onStoreChange: () => void) => {
+            notify = onStoreChange;
 
-    refDispose.current = observe(function update(e) {
-        // If running, call selector and re-render if changed
-        const cur = (inRun || shouldRender !== true) && computeSelector(selector);
-        // Re-render if not currently rendering and value has changed
-        if (
-            !inRun &&
-            (shouldRender === true || (shouldRender ? shouldRender(cur, ret) : cur !== ret || !isPrimitive(cur)))
-        ) {
-            forceRender();
-            // Set cancel so that observe does not track
-            e.cancel = true;
-        }
-        ret = cur;
-        inRun = false;
-    });
+            // Workaround for React 18 running twice in dev (part 2)
+            if (
+                (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                !dispose &&
+                resubscribe
+            ) {
+                resubscribe();
+            }
 
-    // Note: This does not have a useEffect to cleanup listeners because it is ok
-    // to call useReducer after unmounting. So it will lazily cleanup after unmount
-    // because it will call forceRender() and return false to not track. Then since forceRender() does
-    // not trigger re-render since it's unmounted, it does not set up tracking again.
+            return () => {
+                dispose?.();
+                dispose = undefined;
+            };
+        },
+        getVersion: () => version,
+        run: (selector: Selector<T>) => {
+            let value: T;
+            // Dispose if already listening
+            dispose?.();
 
-    return ret;
+            if (isObservable(selector)) {
+                // Fast path for useSelector just accessing an observable directly. We don't need to do all the
+                // tracking context management, can just onChange the observable directly.
+                value = selector.get();
+                dispose = selector.onChange(_update, { noArgs: true });
+
+                // Workaround for React 18 running twice in dev (part 1)
+                if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                    resubscribe = () => selector.onChange(_update, { noArgs: true });
+                }
+            } else {
+                // Compute the selector inside a tracking context
+                beginTracking();
+                value = selector ? computeSelector(selector) : selector;
+                const tracker = tracking.current;
+                const { nodes } = tracker;
+                endTracking();
+
+                let noArgs = true;
+                let update = _update;
+                // Do tracing if it was requested
+                if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
+                    tracker.traceListeners?.(nodes);
+                    if (tracker.traceUpdates) {
+                        noArgs = false;
+                        update = tracker.traceUpdates(_update) as () => void;
+                    }
+                    // Clear tracing so it doesn't leak to other components
+                    tracker.traceListeners = undefined;
+                    tracker.traceUpdates = undefined;
+                }
+
+                // useSyncExternalStore doesn't subscribe until after the component mount.
+                // We want to subscribe immediately so we don't miss any updates
+                dispose = setupTracking(nodes, update, noArgs);
+
+                // Workaround for React 18 running twice in dev (part 1)
+                if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                    resubscribe = () => setupTracking(nodes, update, noArgs);
+                }
+            }
+
+            return value;
+        },
+    };
+}
+
+export function useSelector<T>(selector: Selector<T>): T {
+    const ref = useRef<SelectorFunctions<T>>();
+    if (!ref.current) {
+        ref.current = createSelectorFunctions<T>();
+    }
+    const { subscribe, getVersion, run } = ref.current;
+
+    const value = run(selector);
+
+    useSyncExternalStore(subscribe, getVersion, getVersion);
+
+    return value;
 }

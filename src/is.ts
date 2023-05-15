@@ -1,5 +1,7 @@
 import type { ChildNodeValue, NodeValue } from './observableInterfaces';
 
+const hasOwnProperty = Object.prototype.hasOwnProperty;
+
 export function isArray(obj: unknown): obj is Array<any> {
     return Array.isArray(obj);
 }
@@ -27,7 +29,16 @@ export function isPromise<T>(obj: unknown): obj is Promise<T> {
     return obj instanceof Promise;
 }
 export function isEmpty(obj: object): boolean {
-    return obj && Object.keys(obj).length === 0;
+    // Looping and returning false on the first property is faster than Object.keys(obj).length === 0
+    // https://jsbench.me/qfkqv692c8
+    if (!obj) return false;
+    if (isArray(obj)) return obj.length === 0;
+    for (const key in obj) {
+        if (hasOwnProperty.call(obj, key)) {
+            return false;
+        }
+    }
+    return true;
 }
 const setPrimitives = new Set(['boolean', 'string', 'number']);
 /** @internal */

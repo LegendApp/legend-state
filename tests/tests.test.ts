@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { beginBatch, endBatch } from '../src/batching';
+import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
-import { observable } from '../src/observable';
+import { observable, observablePrimitive } from '../src/observable';
 import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
@@ -170,6 +170,26 @@ describe('Set', () => {
     //     expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
     //     expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
     // });
+    test('empty string as key', () => {
+        const obs = observable({ '': 'test' });
+        expect(obs[''].get()).toBe('test');
+    });
+    test('Setting an empty object notifies', () => {
+        const obs = observable({ test: undefined });
+        const handler = expectChangeHandler(obs.test);
+        obs.test.set({});
+        expect(handler).toHaveBeenCalledWith({}, undefined, [
+            { path: [], pathTypes: [], valueAtPath: {}, prevAtPath: undefined },
+        ]);
+    });
+    test('Setting undefined to null notifies', () => {
+        const obs = observable({ test: undefined });
+        const handler = expectChangeHandler(obs.test);
+        obs.test.set(null);
+        expect(handler).toHaveBeenCalledWith(null, undefined, [
+            { path: [], pathTypes: [], valueAtPath: null, prevAtPath: undefined },
+        ]);
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
@@ -470,6 +490,20 @@ describe('Listeners', () => {
             },
         ]);
     });
+    test('Start 0 set to null', () => {
+        const obs = observable(0);
+        const handler = expectChangeHandler(obs);
+        obs.set(null);
+        expect(handler).toHaveBeenCalledWith(null, 0, [
+            {
+                path: [],
+                pathTypes: [],
+                valueAtPath: null,
+                prevAtPath: 0,
+            },
+        ]);
+        expect(obs.peek()).toEqual(null);
+    });
     test('Start undefined set to something', () => {
         interface Data {
             test: undefined | Record<string, string>;
@@ -604,7 +638,7 @@ describe('Listeners', () => {
         const handler = expectChangeHandler(obs.test);
         obs.test[1].set('hi');
         expect(handler).toHaveBeenCalledWith({ '1': 'hi' }, { '1': undefined }, [
-            { path: [1], pathTypes: ['object'], valueAtPath: 'hi', prevAtPath: undefined },
+            { path: ['1'], pathTypes: ['object'], valueAtPath: 'hi', prevAtPath: undefined },
         ]);
     });
     test('Set number key multiple times', () => {
@@ -622,7 +656,7 @@ describe('Listeners', () => {
         });
         expect(handler).toHaveBeenCalledWith({ t: { 1000: { test1: { text: ['hi'] } } } }, { t: { 1000: undefined } }, [
             {
-                path: ['t', 1000],
+                path: ['t', '1000'],
                 pathTypes: ['object', 'object'],
                 valueAtPath: { test1: { text: ['hi'] } },
                 prevAtPath: undefined,
@@ -654,7 +688,7 @@ describe('Listeners', () => {
             { t: { 1000: { test1: { text: ['hi'] } } } },
             [
                 {
-                    path: ['t', 1000],
+                    path: ['t', '1000'],
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] } },
@@ -673,7 +707,7 @@ describe('Listeners', () => {
             { t: { 1000: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } } } },
             [
                 {
-                    path: ['t', 1000],
+                    path: ['t', '1000'],
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
@@ -691,6 +725,18 @@ describe('Listeners', () => {
     test('Primitive has no keys', () => {
         const obs = observable({ val: 10 });
         expect(Object.keys(obs.val)).toEqual([]);
+    });
+    test('Unlisten unlistens', () => {
+        const obs = observable({ val: 10 });
+        let numCalls = 0;
+        const unlisten = obs.onChange(() => {
+            numCalls++;
+        });
+        obs.val.set(20);
+        expect(numCalls).toBe(1);
+        unlisten();
+        obs.val.set(30);
+        expect(numCalls).toBe(1);
     });
 });
 describe('undefined', () => {
@@ -1093,19 +1139,20 @@ describe('Array', () => {
     test('Array swap with objects and then remove', () => {
         const obs = observable({
             test: [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { zid: 1, text: 1 },
+                { zid: 2, text: 2 },
+                { zid: 3, text: 3 },
+                { zid: 4, text: 4 },
+                { zid: 5, text: 5 },
             ],
+            test_keyExtractor: (item) => item.zid,
         });
         const arr = obs.test;
         const tmp = arr[1].get();
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
         obs.test.splice(0, 1);
-        expect(obs.test[0].get()).toEqual({ id: 5, text: 5 });
+        expect(obs.test[0].get()).toEqual({ zid: 5, text: 5 });
     });
     test('Array swap if empty', () => {
         interface Data {
@@ -1543,6 +1590,18 @@ describe('Array', () => {
         });
         expect(obs.test.filter((a) => isObservable(a))).toHaveLength(1);
     });
+    test('Notifies on second element', () => {
+        const obs = observable({
+            test: [{ text: 1 }, { text: 2 }],
+        });
+        const handler = expectChangeHandler(obs.test[0].text);
+        const handler2 = expectChangeHandler(obs.test[1].text);
+        obs.set({ test: [{ text: 11 }, { text: 22 }] });
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler2).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith(11, 1, [{ path: [], pathTypes: [], prevAtPath: 1, valueAtPath: 11 }]);
+        expect(handler2).toHaveBeenCalledWith(22, 2, [{ path: [], pathTypes: [], prevAtPath: 2, valueAtPath: 22 }]);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
@@ -1688,8 +1747,10 @@ describe('Deep changes keep listeners', () => {
     test('Array objects getPrevious', () => {
         interface Data {
             arr: { _id: number }[];
+            arr_keyExtractor: (item: any) => string;
         }
-        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] });
+        const arr_keyExtractor = (el) => el._id;
+        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }], arr_keyExtractor });
         const handler = expectChangeHandler(obs.arr);
         const handler2 = expectChangeHandler(obs);
         obs.arr.set([{ _id: 1 }, { _id: 2 }, { _id: 3 }]);
@@ -1706,7 +1767,7 @@ describe('Deep changes keep listeners', () => {
             ]
         );
         expect(handler2).toHaveBeenCalledWith(
-            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }] },
+            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }], arr_keyExtractor },
             { arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] },
             [
                 {
@@ -1737,6 +1798,18 @@ describe('Deep changes keep listeners', () => {
                 },
             ]
         );
+    });
+    test('Array perf', () => {
+        const obs = observable({ arr: [] });
+        for (let i = 0; i < 10000; i++) {
+            obs.arr[i].set({ id: i, value: i });
+            obs.arr[i].onChange(() => {});
+        }
+        const now = performance.now();
+        obs.arr.splice(1, 1);
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(25);
     });
 });
 describe('Delete', () => {
@@ -1798,8 +1871,19 @@ describe('Delete', () => {
             { path: ['test'], pathTypes: ['object'], valueAtPath: undefined, prevAtPath: '' },
         ]);
     });
+    test('Delete root', () => {
+        const obs = observable({ test: { text: 't', text2: 't2' } });
+        obs.delete();
+        expect(obs.test.peek()).toEqual(undefined);
+        expect(obs.peek()).toEqual(undefined);
+    });
+    test('Delete primitive', () => {
+        const obs = observablePrimitive(true);
+        obs.delete();
+        expect(obs.peek()).toEqual(undefined);
+    });
 });
-describe('on functions', () => {
+describe('when', () => {
     test('when equals', () => {
         const obs = observable({ val: 10 });
         const handler = jest.fn();
@@ -1859,6 +1943,11 @@ describe('on functions', () => {
         expect(handler).toHaveBeenCalledTimes(1);
         obs.val.set(10);
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('when with effect is promise', async () => {
+        const obs = observable({ val: false } as any);
+        expect(when(obs.val, () => 'test')).resolves.toEqual('test');
+        obs.val.set(true);
     });
 });
 describe('Shallow', () => {
@@ -1992,9 +2081,9 @@ describe('Batching', () => {
             num3: 33,
             obj: { text: 'hello' },
         });
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(3);
     });
-    test('Setting only calls once', async () => {
+    test('Setting calls each handler once', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
         const handler = jest.fn();
         obs.num1.onChange(handler);
@@ -2006,7 +2095,7 @@ describe('Batching', () => {
             num3: 33,
             obj: { text: 'hello' },
         });
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(3);
     });
     test('Batching is batched', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
@@ -2026,7 +2115,32 @@ describe('Batching', () => {
         endBatch();
         endBatch();
         endBatch();
-        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledTimes(3);
+    });
+    test('Assign getPrevious is correct', async () => {
+        const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+        const handler = expectChangeHandler(obs);
+        obs.assign({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+        expect(handler).toHaveBeenCalledWith(
+            {
+                num1: 11,
+                num2: 22,
+                num3: 33,
+                obj: { text: 'hello' },
+            },
+            { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } },
+            [
+                { path: ['num1'], pathTypes: ['object'], prevAtPath: 1, valueAtPath: 11 },
+                { path: ['num2'], pathTypes: ['object'], prevAtPath: 2, valueAtPath: 22 },
+                { path: ['num3'], pathTypes: ['object'], prevAtPath: 3, valueAtPath: 33 },
+                { path: ['obj'], pathTypes: ['object'], prevAtPath: { text: 'hi' }, valueAtPath: { text: 'hello' } },
+            ]
+        );
     });
 });
 describe('Observable with promise', () => {
@@ -2062,6 +2176,29 @@ describe('Observable with promise', () => {
         await promiseTimeout(1000);
 
         expect(fn).toHaveBeenCalled();
+    });
+    test('recursive batches prevented', async () => {
+        let isInInnerBatch = false;
+        const obs = observable({ num: 0 });
+        const obs2 = observable({ num: 0 });
+        let numCalls = 0;
+        observe(() => {
+            numCalls++;
+            obs2.get();
+            expect(isInInnerBatch).toEqual(false);
+            isInInnerBatch = false;
+        });
+        obs.onChange(() => {
+            isInInnerBatch = true;
+            beginBatch();
+            obs2.num.set(2);
+            endBatch();
+            isInInnerBatch = false;
+        });
+        batch(() => {
+            obs.num.set(1);
+        });
+        expect(numCalls).toEqual(2);
     });
 });
 describe('Locking', () => {
@@ -2202,6 +2339,24 @@ describe('Observe', () => {
         obs.set(2);
         expect(count).toEqual(2);
     });
+    test('Observe with reaction previous', () => {
+        const obs = observable(0);
+        let count = 0;
+        let prev;
+        observe<number>(
+            () => obs.get(),
+            ({ value, previous }) => {
+                count = value;
+                prev = previous;
+            }
+        );
+        obs.set(1);
+        expect(count).toEqual(1);
+        expect(prev).toEqual(0);
+        obs.set(2);
+        expect(count).toEqual(2);
+        expect(prev).toEqual(1);
+    });
     test('Observe with reaction does not track', () => {
         const obs = observable(0);
         const obsOther = observable(0);
@@ -2220,5 +2375,22 @@ describe('Observe', () => {
         expect(count).toEqual(1);
         obsOther.set(1);
         expect(count).toEqual(1);
+    });
+});
+describe('Error detection', () => {
+    test('Circular objects', () => {
+        const a: any = {};
+        a.c = { a };
+
+        const obs = observable(a);
+
+        const aa: any = {};
+        aa.c = { a: aa };
+
+        expect(console.error).toHaveBeenCalledTimes(0);
+
+        obs.set(aa);
+
+        expect(console.error).toHaveBeenCalledTimes(1);
     });
 });

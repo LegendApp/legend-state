@@ -1,4 +1,4 @@
-## 0.23 to 1.0 RC
+## 0.23 to 1.0
 
 ### onChange changed
 
@@ -19,6 +19,14 @@ obs.onChange(({ value, getPrevious, changes }) => {
     // ...
 }, { trackingType: true })
 ```
+
+### when and Show tweaked
+
+They were previously checking if the value is "ready", meaning it doesn't count if it's an empty object or empty array. They now do a standard javascript truthiness check as would be expected. For the previous behavior you can use `whenReady` or <Show ifReady={...}>
+
+### IndexedDB preloader removed
+
+It was actually slower in our testing so we simplified things and just removed it. See [IndexedDB](../persistence#IndexedDB) for up-to-date docs.
 
 
 ## 0.22 to 0.23

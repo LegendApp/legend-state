@@ -3,13 +3,15 @@
  */
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
-import { createElement, useReducer } from 'react';
+import { createElement, StrictMode, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
-import { For } from '../src/react/flow';
+import { For } from '../src/react/For';
 import { useObservableReducer } from '../src/react/useObservableReducer';
+import { useObserve } from '../src/react/useObserve';
+import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 
 describe('useSelector', () => {
@@ -27,14 +29,28 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        // Goes up by two because it runs, decides to re-render, and runs again
-        expect(num).toEqual(3);
+        expect(num).toEqual(2);
         expect(result.current).toEqual('hello there');
         act(() => {
             obs.set('z');
         });
-        expect(num).toEqual(5);
+        expect(num).toEqual(3);
         expect(result.current).toEqual('z there');
+    });
+    test('useSelector with observable', () => {
+        const obs = observable('hi');
+        const { result } = renderHook(() => {
+            return useSelector(obs);
+        });
+
+        act(() => {
+            obs.set('hello');
+        });
+        expect(result.current).toEqual('hello');
+        act(() => {
+            obs.set('z');
+        });
+        expect(result.current).toEqual('z');
     });
     test('useSelector undefined', () => {
         const { result } = renderHook(() => {
@@ -59,12 +75,12 @@ describe('useSelector', () => {
             obs.set('hello');
             obs.set('hello2');
         });
-        expect(num).toEqual(3);
+        expect(num).toEqual(2);
         expect(result.current).toEqual('hello2 there');
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(5);
+        expect(num).toEqual(3);
         expect(result.current).toEqual('hello there');
     });
     test('useSelector two observables', () => {
@@ -86,17 +102,17 @@ describe('useSelector', () => {
             obs2.set('bb');
             obs2.set('b');
         });
-        expect(num).toEqual(3);
+        expect(num).toEqual(2);
         expect(result.current).toEqual('a b there');
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(5);
+        expect(num).toEqual(3);
         expect(result.current).toEqual('hello b there');
         act(() => {
             obs2.set('z');
         });
-        expect(num).toEqual(7);
+        expect(num).toEqual(4);
         expect(result.current).toEqual('hello z there');
     });
     test('useSelector cleaned up', () => {
@@ -119,14 +135,14 @@ describe('useSelector', () => {
         });
         // Set after unmounted triggers the observe but since it does not
         // re-render it does not run again
-        expect(num).toEqual(2);
+        expect(num).toEqual(1);
         expect(result.current).toEqual('hi there');
 
         act(() => {
             obs.set('b');
         });
 
-        expect(num).toEqual(2);
+        expect(num).toEqual(1);
     });
     test('useSelector with forceRender', () => {
         const obs = observable('hi');
@@ -155,7 +171,7 @@ describe('useSelector', () => {
             fr();
         });
 
-        expect(num).toEqual(2);
+        expect(num).toEqual(3);
         expect(numSelects).toEqual(3);
 
         act(() => {
@@ -168,8 +184,81 @@ describe('useSelector', () => {
             fr();
         });
 
-        expect(num).toEqual(3);
+        expect(num).toEqual(5);
         expect(numSelects).toEqual(5);
+    });
+    test('useSelector runs twice in strict mode', () => {
+        const obs = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(4);
+    });
+    test('Renders once with one selector listening to multiple', () => {
+        const obs = observable('hi');
+        const obs2 = observable('hi');
+        const obs3 = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + obs.get() + obs2.get() + obs3.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        render(createElement(Test));
+
+        expect(num).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(2);
+    });
+    test('Renders once for each selector', () => {
+        const obs = observable('hi');
+        const obs2 = observable('hi');
+        const obs3 = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+            const value2 = useSelector(() => {
+                num++;
+                return obs2.get() + ' there';
+            });
+            const value3 = useSelector(() => {
+                num++;
+                return obs3.get() + ' there';
+            });
+            return createElement('div', undefined, value + value2 + value3);
+        }
+        render(createElement(Test));
+
+        expect(num).toEqual(3);
+        act(() => {
+            obs.set('hello');
+        });
+        // Goes up by two because it runs, decides to re-render, and runs again
+        expect(num).toEqual(6);
     });
 });
 
@@ -332,5 +421,127 @@ describe('useObservableReducer', () => {
             { id: 2, text: 'Lennon Wall pic', done: false },
             { id: 3, text: 'test', done: false },
         ]);
+    });
+});
+
+describe('Render direct', () => {
+    enableLegendStateReact();
+    test('Render direct primitive', () => {
+        const obs = observable('hi');
+        function Test() {
+            return createElement('div', undefined, obs);
+        }
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('div');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi');
+    });
+    test('Render direct object', () => {
+        const obs = observable({ test: 'hi' });
+        function Test() {
+            return createElement('div', undefined, obs.test);
+        }
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('div');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi');
+    });
+});
+
+describe('useObserve', () => {
+    test('useObserve runs twice in StrictMode', () => {
+        let num = 0;
+        function Test() {
+            useObserve(() => {
+                num++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+    });
+    test('useObserve with true and setState sets once', () => {
+        let num = 0;
+        let numSets = 0;
+        function Test() {
+            const [, setValue] = useState(0);
+            num++;
+            useObserve(true, () => {
+                numSets++;
+                setValue((v) => v + 1);
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+        expect(numSets).toEqual(1);
+    });
+    test('useObserve with false and setState sets once', () => {
+        let num = 0;
+        let numSets = 0;
+        function Test() {
+            const [, setValue] = useState(0);
+            num++;
+            useObserve(false, () => {
+                numSets++;
+                setValue((v) => v + 1);
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(2);
+        expect(numSets).toEqual(1);
+    });
+    test('useObserve with undefined never calls reaction', () => {
+        let num = 0;
+        let numSets = 0;
+        function Test() {
+            const [, setValue] = useState(0);
+            num++;
+            useObserve(undefined, () => {
+                numSets++;
+                setValue((v) => v + 1);
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(numSets).toEqual(0);
+    });
+});
+
+describe('useObserveEffect', () => {
+    test('useObserveEffect runs once in StrictMode', () => {
+        let num = 0;
+        function Test() {
+            useObserveEffect(() => {
+                num++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
     });
 });
