@@ -1,5 +1,6 @@
+import { isEmpty, isFunction } from '@legendapp/state';
 import { BindKeys, reactive, ShapeWith$ } from '@legendapp/state/react';
-import { FC, LegacyRef } from 'react';
+import { createElement, FC, forwardRef, LegacyRef } from 'react';
 import {
     ActivityIndicator,
     ActivityIndicatorProps,
@@ -62,9 +63,19 @@ export const Legend = new Proxy(
     {},
     {
         get(target: Record<string, FC>, p: keyof typeof Components) {
-            if (!target[p] && Components[p]) {
+            if (!target[p]) {
+                // Create a wrapper around createElement with the string so we can proxy it
+                // eslint-disable-next-line react/display-name
+                const render = forwardRef((props, ref) => {
+                    const propsOut = { ...props } as any;
+                    if (ref && (isFunction(ref) || !isEmpty(ref))) {
+                        propsOut.ref = ref;
+                    }
+                    return createElement(Components[p], propsOut);
+                });
+
                 target[p] = reactive(
-                    Components[p] as FC,
+                    render,
                     bindables[p] &&
                         ({
                             value: bindables[p],
