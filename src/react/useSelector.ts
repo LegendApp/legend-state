@@ -56,6 +56,11 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
                 // tracking context management, can just onChange the observable directly.
                 value = selector.get();
                 dispose = selector.onChange(_update, { noArgs: true });
+
+                // Workaround for React 18 running twice in dev (part 1)
+                if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                    resubscribe = () => selector.onChange(_update, { noArgs: true });
+                }
             } else {
                 // Compute the selector inside a tracking context
                 beginTracking();
