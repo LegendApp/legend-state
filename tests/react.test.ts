@@ -207,8 +207,58 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        // Goes up by two because it runs, decides to re-render, and runs again
         expect(num).toEqual(4);
+    });
+    test('Renders once with one selector listening to multiple', () => {
+        const obs = observable('hi');
+        const obs2 = observable('hi');
+        const obs3 = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + obs.get() + obs2.get() + obs3.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        render(createElement(Test));
+
+        expect(num).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(2);
+    });
+    test('Renders once for each selector', () => {
+        const obs = observable('hi');
+        const obs2 = observable('hi');
+        const obs3 = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+            const value2 = useSelector(() => {
+                num++;
+                return obs2.get() + ' there';
+            });
+            const value3 = useSelector(() => {
+                num++;
+                return obs3.get() + ' there';
+            });
+            return createElement('div', undefined, value + value2 + value3);
+        }
+        render(createElement(Test));
+
+        expect(num).toEqual(3);
+        act(() => {
+            obs.set('hello');
+        });
+        // Goes up by two because it runs, decides to re-render, and runs again
+        expect(num).toEqual(6);
     });
 });
 
