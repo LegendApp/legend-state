@@ -7,7 +7,10 @@ export function isInRemoteChange() {
     return tracking.inRemoteChange;
 }
 
+import type { ObservablePersistenceConfig } from './src/observableInterfaces';
 import { observablePersistConfiguration } from './src/persist/configureObservablePersistence';
-export const internal = {
+export const internal: {
+    observablePersistConfiguration: ObservablePersistenceConfig;
+} = {
     observablePersistConfiguration,
 };
