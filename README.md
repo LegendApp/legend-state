@@ -20,7 +20,7 @@ observe(() => {
 })
 
 // Observer components automatically track observables and re-render when they change
-const Component = observer(function Component() => {
+const Component = observer(function Component() {
     const theme = state.settings.theme.get()
 
     return <div>Theme: {theme}</div>
