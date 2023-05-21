@@ -1,6 +1,6 @@
 import { getNodeValue } from './globals';
 import { isArray } from './is';
-import type { Change, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
+import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 export interface BatchItem2 {
     value: any;
@@ -175,6 +175,7 @@ function computeChangesRecursive(
 }
 
 function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
+    const listenersNotified = new Set<ListenerFn>();
     // For each change in the batch, notify all of the listeners
     changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
         const listeners = immediate ? node.listenersImmediate : node.listeners;
@@ -185,26 +186,31 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
             for (let i = 0; i < arr.length; i++) {
                 const listenerFn = arr[i];
                 const { track, noArgs, listener } = listenerFn;
+                if (!listenersNotified.has(listener)) {
+                    const ok =
+                        track === true || track === 'shallow'
+                            ? level <= 0
+                            : track === 'optimize'
+                            ? whenOptimizedOnlyIf && level <= 0
+                            : true;
 
-                const ok =
-                    track === true || track === 'shallow'
-                        ? level <= 0
-                        : track === 'optimize'
-                        ? whenOptimizedOnlyIf && level <= 0
-                        : true;
+                    // Notify if listener is not shallow or if this is the first level
+                    if (ok) {
+                        // Create listenerParams if not already created
+                        if (!noArgs && !listenerParams) {
+                            listenerParams = {
+                                value,
+                                getPrevious: createPreviousHandler(value, changes),
+                                changes,
+                            };
+                        }
 
-                // Notify if listener is not shallow or if this is the first level
-                if (ok) {
-                    // Create listenerParams if not already created
-                    if (!noArgs && !listenerParams) {
-                        listenerParams = {
-                            value,
-                            getPrevious: createPreviousHandler(value, changes),
-                            changes,
-                        };
+                        if (!track) {
+                            listenersNotified.add(listener);
+                        }
+
+                        listener(listenerParams);
                     }
-
-                    listener(listenerParams);
                 }
             }
         }

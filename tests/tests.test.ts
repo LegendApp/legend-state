@@ -2081,21 +2081,25 @@ describe('Batching', () => {
             num3: 33,
             obj: { text: 'hello' },
         });
-        expect(handler).toHaveBeenCalledTimes(3);
+        expect(handler).toHaveBeenCalledTimes(1);
     });
-    test('Setting calls each handler once', async () => {
+    test('Setting an object calls each handler once', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
-        const handler = jest.fn();
-        obs.num1.onChange(handler);
-        obs.num2.onChange(handler);
-        obs.num3.onChange(handler);
+        const handler1 = jest.fn();
+        const handler2 = jest.fn();
+        const handler3 = jest.fn();
+        obs.num1.onChange(handler1);
+        obs.num2.onChange(handler2);
+        obs.num3.onChange(handler3);
         obs.set({
             num1: 11,
             num2: 22,
             num3: 33,
             obj: { text: 'hello' },
         });
-        expect(handler).toHaveBeenCalledTimes(3);
+        expect(handler1).toHaveBeenCalledTimes(1);
+        expect(handler2).toHaveBeenCalledTimes(1);
+        expect(handler3).toHaveBeenCalledTimes(1);
     });
     test('Batching is batched', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
@@ -2115,7 +2119,7 @@ describe('Batching', () => {
         endBatch();
         endBatch();
         endBatch();
-        expect(handler).toHaveBeenCalledTimes(3);
+        expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Assign getPrevious is correct', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
@@ -2141,6 +2145,22 @@ describe('Batching', () => {
                 { path: ['obj'], pathTypes: ['object'], prevAtPath: { text: 'hi' }, valueAtPath: { text: 'hello' } },
             ]
         );
+    });
+    test('Observe function called only once in batch', () => {
+        const obs = observable({ a: 'hi', b: 'hello' });
+        let val = '';
+        let callCount = 0;
+        observe(() => {
+            callCount++;
+            val = obs.a.get() + obs.b.get();
+        });
+        expect(callCount).toEqual(1);
+        batch(() => {
+            obs.a.set('hi2');
+            obs.b.set('hello2');
+        });
+        expect(callCount).toEqual(2);
+        expect(val).toEqual('hi2hello2');
     });
 });
 describe('Observable with promise', () => {
