@@ -7,14 +7,14 @@ export function Switch<T extends object>({
     children,
 }: {
     value?: Selector<T>;
-    children: Record<keyof T, () => ReactNode>;
+    children: Partial<Record<keyof T | 'null' | 'undefined' | 'default', () => ReactNode>>;
 }): ReactElement;
 export function Switch<T extends string | number | symbol>({
     value,
     children,
 }: {
     value?: Selector<T>;
-    children: Record<T, () => ReactNode>;
+    children: Partial<Record<T | 'null' | 'undefined' | 'default', () => ReactNode>>;
 }): ReactElement;
 export function Switch<T>({
     value,
