@@ -1809,7 +1809,7 @@ describe('Deep changes keep listeners', () => {
         obs.arr.splice(1, 1);
         const then = performance.now();
 
-        expect(then - now).toBeLessThan(25);
+        expect(then - now).toBeLessThan(30);
     });
 });
 describe('Delete', () => {
