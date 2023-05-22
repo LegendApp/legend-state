@@ -52,7 +52,19 @@ const ArrayModifiers = new Set([
     'splice',
     'unshift',
 ]);
-const ArrayLoopers = new Set<keyof Array<any>>(['every', 'some', 'filter', 'forEach', 'map', 'join']);
+const ArrayLoopers = new Set<keyof Array<any>>([
+    'every',
+    'filter',
+    'find',
+    'findIndex',
+    'forEach',
+    'includes',
+    'join',
+    'map',
+    'some',
+]);
+const ArrayLoopersCB = new Set<keyof Array<any>>(['forEach', 'map']);
+const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
 // eslint-disable-next-line @typescript-eslint/ban-types
 const objectFns = new Map<string, Function>([
     ['get', get],
@@ -110,6 +122,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
         return isDiff;
     }
+
     const isArr = isArray(obj);
 
     let prevChildrenById: Map<string, ChildNodeValue> | undefined;
@@ -351,14 +364,39 @@ const proxyHandler: ProxyHandler<any> = {
                     return (...args: any[]) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
                     // Update that this node was accessed for observers
-                    // Listen to the array shallowly
-                    updateTracking(node, true);
-                    return function (cbOrig: any, thisArg: any) {
-                        function cb(_: any, index: number, array: any[]) {
-                            return cbOrig(getProxy(node, index + ''), index, array);
-                        }
-                        return value[p](cb, thisArg);
-                    };
+                    updateTracking(node);
+
+                    const convertCB = ArrayLoopersCB.has(p);
+                    const convertReturn = ArrayLoopersReturn.has(p);
+
+                    if (convertCB || convertReturn) {
+                        return function (cbOrig: any, thisArg: any) {
+                            // If callback needs to run on the observable proxies, use a wrapped callback
+                            const cb = convertCB
+                                ? function cbWrapped(_: any, index: number, array: any[]) {
+                                      return cbOrig(getProxy(node, index + ''), index, array);
+                                  }
+                                : cbOrig;
+
+                            // If return value needs to be observable proxies, use our own looping logic and return the proxy when found
+                            if (convertReturn) {
+                                const out = [];
+                                for (let i = 0; i < value.length; i++) {
+                                    if (cb(value[i], i, value)) {
+                                        const proxy = getProxy(node, i + '');
+                                        if (p === 'find') {
+                                            return proxy;
+                                        } else {
+                                            out.push(proxy);
+                                        }
+                                    }
+                                }
+                                return out;
+                            } else {
+                                return value[p](cb, thisArg);
+                            }
+                        };
+                    }
                 }
             }
             // Return the function bound to the value

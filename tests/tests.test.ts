@@ -1584,11 +1584,19 @@ describe('Array', () => {
             ]
         );
     });
-    test('Array.filter param is an observable', () => {
+    test('Array.filter param is raw and return are observables', () => {
         const obs = observable({
             test: [{ text: 1 }],
         });
-        expect(obs.test.filter((a) => isObservable(a))).toHaveLength(1);
+        expect(obs.test.filter((a) => !isObservable(a))).toHaveLength(1);
+        expect(isObservable(obs.test.filter((a) => !isObservable(a))[0])).toBe(true);
+    });
+    test('Array.find param is raw and result is observable', () => {
+        const obs = observable({
+            test: [{ text: 1 }],
+        });
+        expect(isObservable(obs.test.find((a) => !isObservable(a)))).toBe(true);
+        expect(obs.test.find((a) => !isObservable(a)).text.get()).toBe(1);
     });
     test('Notifies on second element', () => {
         const obs = observable({

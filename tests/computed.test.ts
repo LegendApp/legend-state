@@ -142,7 +142,7 @@ describe('Two way Computed', () => {
     test('Bound to array, set', () => {
         const obs = observable([false, false, false, false, false]);
         const comp = computed(
-            () => obs.every((val) => val.get()),
+            () => obs.every((val) => val),
             (value) => obs.forEach((child) => child.set(value))
         );
         expect(comp.get()).toEqual(false);
