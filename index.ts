@@ -8,7 +8,8 @@ export {
     deconstructObjectWithPath,
     setAtPath,
     setInObservableAtPath,
-    lockObservable
+    lockObservable,
+    isObservableValueReady,
 } from './src/helpers';
 export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
@@ -45,7 +46,7 @@ export {
     findIDKey
 } from './src/globals';
 /** @internal */
-export { getNode, isObservableValueReady } from './src/helpers';
+export { getNode } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
