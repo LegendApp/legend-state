@@ -13,6 +13,7 @@ import {
     symbolIsEvent,
     symbolIsObservable,
     symbolOpaque,
+    symbolReference,
 } from './globals';
 import {
     isActualPrimitive,
@@ -352,8 +353,12 @@ const proxyHandler: ProxyHandler<any> = {
 
         const vProp = value?.[p];
 
-        if (isObject(value) && value[symbolOpaque as any]) {
-            return vProp;
+        if (isObject(value)) {
+            if (value[symbolOpaque as any]) {
+                return vProp;
+            }
+            if (value[symbolReference as any]) {
+            }
         }
 
         // Handle function calls

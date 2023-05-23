@@ -1,27 +1,35 @@
+export { afterBatch, batch, beginBatch, endBatch } from './src/batching';
+export { computed } from './src/computed';
+export { event } from './src/event';
+/** @internal */
 export {
-    opaqueObject,
-    isObservable,
-    mergeIntoObservable,
-    getObservableIndex,
+    checkActivate,
+    extraPrimitiveActivators,
+    extraPrimitiveProps,
+    findIDKey,
+    getNodeValue,
+    symbolDelete,
+    symbolIsEvent,
+    symbolIsObservable,
+} from './src/globals';
+export {
     computeSelector,
     constructObjectWithPath,
     deconstructObjectWithPath,
+    getNode,
+    getObservableIndex,
+    isObservable,
+    isObservableValueReady,
+    lockObservable,
+    mergeIntoObservable,
+    opaqueObject,
     setAtPath,
     setInObservableAtPath,
-    lockObservable,
-    isObservableValueReady,
 } from './src/helpers';
-export { observable, observablePrimitive } from './src/observable';
-export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
-export { computed } from './src/computed';
-export { event } from './src/event';
-export { observe } from './src/observe';
-export { when, whenReady } from './src/when';
-export * from './src/observableInterfaces';
 export {
-    isEmpty,
     isArray,
     isBoolean,
+    isEmpty,
     isFunction,
     isObject,
     isPrimitive,
@@ -29,39 +37,24 @@ export {
     isString,
     isSymbol,
 } from './src/is';
-
+export { observable, observablePrimitive } from './src/observable';
+export * from './src/observableInterfaces';
 /** @internal */
-export { tracking, beginTracking, endTracking, updateTracking } from './src/tracking';
+export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
+export { observe } from './src/observe';
+export { reference } from './src/reference';
 /** @internal */
 export { setupTracking } from './src/setupTracking';
 /** @internal */
-export {
-    checkActivate,
-    symbolIsObservable,
-    symbolIsEvent,
-    extraPrimitiveProps,
-    extraPrimitiveActivators,
-    getNodeValue,
-    symbolDelete,
-    findIDKey
-} from './src/globals';
-/** @internal */
-export { getNode } from './src/helpers';
-/** @internal */
-export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
+export { beginTracking, endTracking, tracking, updateTracking } from './src/tracking';
+export { when, whenReady } from './src/when';
 
-import {
-    setAtPath,
-    getNode,
-} from './src/helpers';
-import {
-    getNodeValue,
-    symbolDelete,
-} from './src/globals';
+import { getNodeValue, symbolDelete } from './src/globals';
+import { getNode, setAtPath } from './src/helpers';
 
 export const internal = {
     getNode,
     getNodeValue,
     setAtPath,
-    symbolDelete
-}
+    symbolDelete,
+};

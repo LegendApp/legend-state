@@ -432,3 +432,8 @@ export interface ObservablePersistenceConfig {
     saveTimeout?: number;
     dateModifiedKey?: string;
 }
+
+export interface ObservableReference<TKey, TRef> {
+    id: TKey;
+    getRef: (key: TKey) => Observable<TRef>;
+}

@@ -7,6 +7,7 @@ export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
+export const symbolReference = Symbol('reference');
 
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
 export const extraPrimitiveProps = new Map<string | symbol, any>();

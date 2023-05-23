@@ -2,7 +2,7 @@ import { batch } from './batching';
 import { getNode, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable, set as setBase } from './observable';
-import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
+import type { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
 
 export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
