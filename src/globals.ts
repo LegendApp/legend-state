@@ -11,8 +11,6 @@ export const symbolOpaque = Symbol('opaque');
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
 export const extraPrimitiveProps = new Map<string | symbol, any>();
 
-export const nextNodeID = { current: 0 };
-
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     const activate = root.activate;
