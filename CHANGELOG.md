@@ -1,3 +1,8 @@
+## 1.1.0
+
+- Perf: Listeners are batched uniquely so that each listener will fire only once for all of the changes within a batch
+- Change: Array filter and find return the observable instead of the raw data.
+
 ## 1.0.0
 
 After an unexpectly large number of changes while in RC, 1.0 includes tons of improvements and fixes that can broadly be categorized as:
