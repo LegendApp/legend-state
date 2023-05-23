@@ -1124,7 +1124,7 @@ describe('Array', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         const arr = obs.test;
         let tmp = arr[1].get();
-        obs.test[1].set(arr[4]);
+        obs.test[1].set(arr[4].peek());
         obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 5 }, { text: 3 }, { text: 4 }, { text: 2 }]);
         expect(obs.test[1].get()).toEqual({ text: 5 });
@@ -1132,7 +1132,7 @@ describe('Array', () => {
         expect(obs.test[4].get()).toEqual({ text: 2 });
         expect(arr[4].get()).toEqual({ text: 2 });
         tmp = arr[1].get();
-        obs.test[1].set(arr[4]);
+        obs.test[1].set(arr[4].peek());
         obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }]);
     });
@@ -1149,7 +1149,7 @@ describe('Array', () => {
         });
         const arr = obs.test;
         const tmp = arr[1].get();
-        obs.test[1].set(arr[4]);
+        obs.test[1].set(arr[4].peek());
         obs.test[4].set(tmp);
         obs.test.splice(0, 1);
         expect(obs.test[0].get()).toEqual({ zid: 5, text: 5 });
@@ -1591,7 +1591,7 @@ describe('Array', () => {
         expect(obs.test.filter((a) => isObservable(a))).toHaveLength(1);
         expect(isObservable(obs.test.filter((a) => isObservable(a))[0])).toBe(true);
     });
-    test('Array.find param is raw and result is observable', () => {
+    test('Array.find result is observable', () => {
         const obs = observable({
             test: [{ text: 1 }],
         });
@@ -1943,17 +1943,17 @@ describe('when', () => {
         expect(handler).toHaveBeenCalled();
     });
     test('when disposes itself', () => {
-        const obs = observable({ val: false } as any);
+        const obs = observable({ val: false });
         const handler = jest.fn();
         when(obs.val, handler);
         expect(handler).not.toHaveBeenCalled();
         obs.val.set(true);
         expect(handler).toHaveBeenCalledTimes(1);
-        obs.val.set(10);
+        obs.val.set(10 as any);
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('when with effect is promise', async () => {
-        const obs = observable({ val: false } as any);
+        const obs = observable({ val: false });
         expect(when(obs.val, () => 'test')).resolves.toEqual('test');
         obs.val.set(true);
     });

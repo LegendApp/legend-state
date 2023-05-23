@@ -81,30 +81,11 @@ export type ObservablePrimitive<T> = ObservablePrimitiveFns<T>;
 export type OpaqueObject<T> = T & { [symbolOpaque]: true };
 
 type ArrayOverrideFnNames = 'find' | 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
-export interface ObservableArrayOverride<T> extends Omit<Array<T>, 'find' | 'forEach' | 'map'> {
-    /**
-     * Returns the value of the first element in the array where predicate is true, and undefined
-     * otherwise.
-     * @param predicate find calls predicate once for each element of the array, in ascending
-     * order, until it finds one where predicate returns true. If such an element is found, find
-     * immediately returns that element value. Otherwise, find returns undefined.
-     * @param thisArg If provided, it will be used as the this value for each invocation of
-     * predicate. If it is not provided, undefined is used instead.
-     */
-    find(predicate: (value: T, index: number, obj: T[]) => unknown, thisArg?: any): Observable<T> | undefined;
-    /**
-     * Performs the specified action for each element in an array.
-     * @param callbackfn  A function that accepts up to three arguments. forEach calls the callbackfn function one time for each element in the array.
-     * @param thisArg  An object to which the this keyword can refer in the callbackfn function. If thisArg is omitted, undefined is used as the this value.
-     */
-    forEach(callbackfn: (value: T, index: number, array: T[]) => void, thisArg?: any): void;
-    /**
-     * Calls a defined callback function on each element of an array, and returns an array that contains the results.
-     * @param callbackfn A function that accepts up to three arguments. The map method calls the callbackfn function one time for each element in the array.
-     * @param thisArg An object to which the this keyword can refer in the callbackfn function. If thisArg is omitted, undefined is used as the this value.
-     */
-    map<U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): U[];
-}
+type RemoveIndex<T> = {
+    [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
+};
+export type ObservableArrayOverride<T> = Omit<RemoveIndex<Array<T>>, ArrayOverrideFnNames> &
+    Pick<Array<Observable<T>>, ArrayOverrideFnNames> & { [n: number]: Observable<T> };
 export interface ListenerParams<T = any> {
     value: T;
     getPrevious: () => T;
@@ -128,9 +109,7 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends  // eslint-disable-n
     : T[K] extends Primitive
     ? ObservablePrimitiveChild<T[K]>
     : T[K] extends Array<any>
-    ? Omit<T[K], ArrayOverrideFnNames> &
-          ObservableObjectFns<T[K]> &
-          ObservableArrayOverride<ObservableObject<T[K][number]>>
+    ? ObservableObjectFns<T[K]> & ObservableArrayOverride<T[K][number]>
     : T extends object
     ? TRecurse
     : T[K];
@@ -342,9 +321,7 @@ export interface ObservableWrapper {
 export type Primitive = boolean | string | number | Date;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
-export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
-    ObservableObjectFns<T> &
-    ObservableArrayOverride<ObservableObject<T[number]>>;
+export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
