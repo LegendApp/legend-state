@@ -332,7 +332,12 @@ export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : 
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
 export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveFnsBase<T2>;
-export type Observable<T = any> = [T] extends [object] ? ObservableObjectOrArray<T> : ObservablePrimitive<T>;
+type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
+export type Observable<T = any> = Equals<T, any> extends true
+    ? ObservableObject<any>
+    : [T] extends [object]
+    ? ObservableObjectOrArray<T>
+    : ObservablePrimitive<T>;
 
 export type ObservableReadable<T = any> =
     | ObservableBaseFns<T>
