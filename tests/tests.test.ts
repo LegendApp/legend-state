@@ -2422,3 +2422,38 @@ describe('Error detection', () => {
         expect(console.error).toHaveBeenCalledTimes(1);
     });
 });
+describe('Functions', () => {
+    test('Functions work normally', () => {
+        let count = 0;
+        const obs = observable({
+            test: () => {
+                count++;
+            },
+        });
+        obs.test();
+        expect(count).toEqual(1);
+    });
+    test('Functions added later work normally', () => {
+        let count = 0;
+        const obs = observable({} as any);
+        obs.assign({
+            test: () => {
+                count++;
+            },
+        });
+        obs.test();
+        expect(count).toEqual(1);
+    });
+    test('Nested functions with params work normally', () => {
+        let count = 0;
+        const obs = observable({
+            child: {
+                test: (num: number) => {
+                    count += num;
+                },
+            },
+        });
+        obs.child.test(2);
+        expect(count).toEqual(2);
+    });
+});
