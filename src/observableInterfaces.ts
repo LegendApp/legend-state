@@ -39,6 +39,10 @@ interface MMKVConfiguration {
 
 export type TrackingType = undefined | true | 'shallow' | 'optimize'; // true === shallow
 
+export interface MapGet<T extends Map<K, V> | WeakMap<K, V>, K extends object = any, V = any> {
+    get(key: K): ObservableChild<V | undefined>;
+    get(): T;
+}
 export interface ObservableBaseFns<T> {
     peek(): T;
     get(trackingType?: TrackingType): T;
@@ -96,16 +100,15 @@ export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
-type Recurse<T, K extends keyof T, TRecurse> = T[K] extends  // eslint-disable-next-line @typescript-eslint/ban-types
-    | Function
-    | Map<any, any>
-    | WeakMap<any, any>
-    | Set<any>
-    | WeakSet<any>
-    | Promise<any>
+// eslint-disable-next-line @typescript-eslint/ban-types
+type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<any>
     ? T[K]
+    : T[K] extends Map<any, any> | WeakMap<any, any>
+    ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveFnsBase<T[K]>, 'get'> & MapGet<T[K]>
+    : T[K] extends Set<any> | WeakSet<any>
+    ? T[K] & ObservablePrimitiveFnsBase<T[K]>
     : T[K] extends OpaqueObject<T[K]>
-    ? T[K] & ObservablePrimitiveChild<T[K]>
+    ? T[K] & ObservablePrimitiveChildFns<T[K]>
     : T[K] extends Primitive
     ? ObservablePrimitiveChild<T[K]>
     : T[K] extends Array<any>

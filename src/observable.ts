@@ -127,8 +127,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     let prevChildrenById: Map<string, ChildNodeValue> | undefined;
     let moved: [string, ChildNodeValue][] | undefined;
 
-    const keys = obj ? Object.keys(obj) : [];
-    const keysPrev = prevValue ? Object.keys(prevValue) : [];
+    const isMap = obj instanceof Map;
+
+    const keys: string[] = obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
+    const keysPrev: string[] = prevValue ? (isMap ? Array.from(prevValue.keys()) : Object.keys(prevValue)) : [];
 
     let idField: string | ((value: any) => string);
     let isIdFieldFunction;
@@ -183,7 +185,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 hasADiff = true;
                 const child = getChildNode(parent, key);
 
-                const prev = prevValue[key];
+                const prev = isMap ? prevValue.get(key) : prevValue[key];
                 if (prev !== undefined) {
                     if (!isPrimitive(prev)) {
                         updateNodes(child, undefined, prev);
@@ -206,9 +208,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
         if (parent.descendantHasListener || !hasADiff) {
             for (let i = 0; i < length; i++) {
-                const key = isArr ? keys[i] : keys[i];
-                const value = obj[key];
-                const prev = prevValue?.[key];
+                const key = keys[i];
+                const value = isMap ? obj.get(key) : obj[key];
+                const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
                 let isDiff = value !== prev;
                 if (isDiff) {
@@ -312,11 +314,21 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
+        const value = peek(node);
+
+        if (value instanceof Map || value instanceof WeakMap || value instanceof Set || value instanceof WeakSet) {
+            const ret = handlerMapSet(node, p, value);
+            if (ret !== undefined) {
+                return ret;
+            }
+        }
+
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
             return function (a: any, b: any, c: any) {
                 const l = arguments.length;
+
                 // Array call and apply are slow so micro-optimize this hot path.
                 // The observable functions depends on the number of arguments so we have to
                 // call it with the correct arguments, not just undefined
@@ -332,8 +344,6 @@ const proxyHandler: ProxyHandler<any> = {
                 }
             };
         }
-
-        const value = peek(node);
 
         const isValuePrimitive = isPrimitive(value);
 
@@ -536,34 +546,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         node.root.set(node.root._);
     }
 
-    // Make sure we don't call too many listeners for ever property set
-    beginBatch();
-
-    let hasADiff = isPrim;
-    let whenOptimizedOnlyIf = false;
-    // If new value is an object or array update notify down the tree
-    if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-            __devUpdateNodes.clear();
-        }
-        hasADiff = updateNodes(childNode, newValue, prevValue);
-        if (isArray(newValue)) {
-            whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
-        }
-    }
-
-    if (isPrim || !newValue || isEmpty(newValue) ? newValue !== prevValue : hasADiff) {
-        // Notify for this element if something inside it has changed
-        notify(
-            isPrim && isRoot ? node : childNode,
-            newValue,
-            prevValue,
-            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
-            whenOptimizedOnlyIf
-        );
-    }
-
-    endBatch();
+    updateNodesAndNotify(node, newValue, prevValue, childNode, isPrim, isRoot, level);
 
     return isFunc ? newValue : isRoot ? getProxy(node) : getProxy(node, key);
 }
@@ -637,4 +620,114 @@ export function observable<T>(value?: T | Promise<T>): Observable<T> {
 
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
     return createObservable<T>(value, /*makePrimitive*/ true);
+}
+
+function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>);
+function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
+    const vProp = value?.[p];
+    if (isFunction(vProp)) {
+        return function (a: any, b: any, c: any) {
+            const l = arguments.length;
+
+            if (p === 'get') {
+                if (l > 0) {
+                    return getProxy(node, a);
+                }
+            } else if (p === 'set') {
+                if (l === 2) {
+                    const prev = value.get(a);
+                    const ret = value.set(a, b);
+                    if (prev !== b) {
+                        updateNodesAndNotify(getChildNode(node, a), b, prev);
+                    }
+                    return ret;
+                }
+            } else if (p === 'delete') {
+                if (l > 0) {
+                    // Support Set by just returning a if it doesn't have get, meaning it's not a Map
+                    const prev = value.get ? value.get(a) : a;
+                    const ret = value.delete(a);
+                    if (ret) {
+                        updateNodesAndNotify(getChildNode(node, a), undefined, prev);
+                    }
+                    return ret;
+                }
+            } else if (p === 'clear') {
+                const prev = new Map(value);
+                const size = value.size;
+                value.clear();
+                if (size) {
+                    updateNodesAndNotify(node, value, prev);
+                }
+                return;
+            } else if (p === 'add') {
+                const prev = new Set(value as unknown as Set<any>);
+                const ret = (value as unknown as Set<any>).add(a);
+                if (!(value as unknown as Set<any>).has(p)) {
+                    notify(node, ret, prev, 0);
+                }
+                return ret;
+            }
+
+            // TODO: This is duplicated from proxy handler, how to dedupe with best performance?
+            const fn = objectFns.get(p);
+            if (fn) {
+                // Array call and apply are slow so micro-optimize this hot path.
+                // The observable functions depends on the number of arguments so we have to
+                // call it with the correct arguments, not just undefined
+                switch (l) {
+                    case 0:
+                        return fn(node);
+                    case 1:
+                        return fn(node, a);
+                    case 2:
+                        return fn(node, a, b);
+                    default:
+                        return fn(node, a, b, c);
+                }
+            } else {
+                return value[p](a, b);
+            }
+        };
+    }
+}
+
+function updateNodesAndNotify(
+    node: NodeValue,
+    newValue: any,
+    prevValue: any,
+    childNode?: NodeValue,
+    isPrim?: boolean,
+    isRoot?: boolean,
+    level?: number
+) {
+    if (!childNode) childNode = node;
+    // Make sure we don't call too many listeners for ever property set
+    beginBatch();
+
+    let hasADiff = isPrim;
+    let whenOptimizedOnlyIf = false;
+    // If new value is an object or array update notify down the tree
+    if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
+        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+            __devUpdateNodes.clear();
+        }
+        hasADiff = updateNodes(childNode, newValue, prevValue);
+        if (isArray(newValue)) {
+            whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
+        }
+    }
+
+    if (isPrim || !newValue || isEmpty(newValue) ? newValue !== prevValue : hasADiff) {
+        // Notify for this element if something inside it has changed
+        notify(
+            isPrim && isRoot ? node : childNode,
+            newValue,
+            prevValue,
+            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
+            whenOptimizedOnlyIf
+        );
+    }
+
+    endBatch();
 }
