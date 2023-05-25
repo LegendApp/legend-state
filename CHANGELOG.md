@@ -1,3 +1,7 @@
+## 1.2.0
+
+- Feat: Added support for observable Map, WeakMap, Set, WeakSet
+
 ## 1.1.0
 
 - Perf: Listeners are batched uniquely so that each listener will fire only once for all of the changes within a batch
