@@ -39,8 +39,8 @@ interface MMKVConfiguration {
 
 export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; // true === shallow
 
-export interface MapGet<T extends Map<K, V> | WeakMap<K, V>, K extends object = any, V = any> {
-    get(key: K): ObservableChild<V | undefined>;
+export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
+    get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;
     get(): T;
 }
 export interface ObservableBaseFns<T> {
