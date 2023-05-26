@@ -1,3 +1,17 @@
+## 1.2.3
+
+- Types: Fix types of Map get so that it returns an Observable of the correct type
+
+## 1.2.2
+
+- Fix: When persisting, changes to a node are ignored if a later change modifies a parent node (as can happen when deleting nodes)
+
+## 1.2.1
+
+- Feat: Support Map in the For component
+- Change: TrackingType "optimize" parameter is changed to a symbol to avoid conflict with Map get. It will still work for now, but please `import { optimize } from "@legendapp/state"` and use that instead.
+- Change: The For component's `eachValues` prop is deprecated in favor of just working with the `each` prop. It will still work for now, but please change `eachValues` to `each`.
+
 ## 1.2.0
 
 - Feat: Added support for observable Map, WeakMap, Set, WeakSet
