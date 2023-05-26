@@ -377,7 +377,7 @@ describe('For', () => {
             return createElement('li', { id: data.label }, data.label);
         }
         function Test() {
-            return createElement('div', undefined, createElement(For, { eachValues: obs.items, item: Item }));
+            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
         }
         const { container } = render(createElement(Test));
 
@@ -409,7 +409,7 @@ describe('For', () => {
                 'div',
                 undefined,
                 createElement(For, {
-                    eachValues: obs.items,
+                    each: obs.items,
                     item: Item,
                     sortValues: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label),
                 })

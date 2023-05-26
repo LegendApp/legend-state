@@ -1,5 +1,5 @@
 import type { Observable, ObservableReadable } from '@legendapp/state';
-import { findIDKey, getNode, isFunction, optimized } from '@legendapp/state';
+import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -15,7 +15,7 @@ export function For<T, TProps>({
     sortValues,
     children,
 }: {
-    each?: ObservableReadable<T[]>;
+    each?: ObservableReadable<T[] | Record<any, T> | Map<any, T>>;
     eachValues?: ObservableReadable<Record<any, T> | Map<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T>; id?: string } & TProps>;
@@ -24,6 +24,15 @@ export function For<T, TProps>({
     children?: (value: Observable<T>) => ReactElement;
 }): ReactElement | null {
     if (!each && !eachValues) return null;
+
+    if (eachValues) {
+        each = eachValues;
+        if (process.env.NODE_ENV === 'development') {
+            console.log(
+                '[legend-state]: "eachValues" prop is deprecated and will be removed in the next major version. Please use "each" prop instead.'
+            );
+        }
+    }
 
     const obs = each || eachValues;
 
@@ -56,30 +65,11 @@ export function For<T, TProps>({
     // Create the child elements
     const out: ReactElement[] = [];
 
-    // If using eachValues, render the values of the object
-    if (eachValues) {
-        const isMap = value instanceof Map;
-        const keys = isMap ? Array.from(value.keys()) : Object.keys(value);
-        if (sortValues) {
-            keys.sort((A, B) => sortValues(isMap ? value.get(A) : value[A], isMap ? value.get(B) : value[B], A, B));
-        }
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            if (isMap ? value.get(key) : value[key]) {
-                out.push(
-                    createElement(
-                        item as FC,
-                        Object.assign(
-                            { key: key as string, item: isMap ? eachValues.get(key) : eachValues[key], id: key },
-                            itemProps
-                        )
-                    )
-                );
-            }
-        }
-    } else {
+    const isArr = isArray(value);
+
+    if (isArr) {
         // Get the appropriate id field
-        const v0 = value[0];
+        const v0 = value[0] as any;
         const node = getNode(obs);
         const length = (value as any[]).length;
 
@@ -97,6 +87,27 @@ export function For<T, TProps>({
                 const key = (isIdFieldFunction ? idField(val) : val[idField as string]) ?? i;
 
                 out.push(createElement(item as FC, Object.assign({ key: key, item: each[i], id: key }, itemProps)));
+            }
+        }
+    } else {
+        // Render the values of the object / Map
+        const isMap = value instanceof Map;
+        const keys = isMap ? Array.from(value.keys()) : Object.keys(value);
+        if (sortValues) {
+            keys.sort((A, B) => sortValues(isMap ? value.get(A) : value[A], isMap ? value.get(B) : value[B], A, B));
+        }
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            if (isMap ? value.get(key) : value[key]) {
+                out.push(
+                    createElement(
+                        item as FC,
+                        Object.assign(
+                            { key: key as string, item: isMap ? each.get(key) : each[key], id: key },
+                            itemProps
+                        )
+                    )
+                );
             }
         }
     }
