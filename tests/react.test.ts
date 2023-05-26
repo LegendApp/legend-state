@@ -358,6 +358,70 @@ describe('For', () => {
         expect(items[0].id).toEqual('0');
         expect(items[1].id).toEqual('1');
     });
+    test('For with Map', () => {
+        const obs = observable({
+            items: new Map<string, { label: string }>([
+                ['m2', { label: 'B' }],
+                ['m1', { label: 'A' }],
+            ]),
+        });
+        function Item({
+            item,
+        }: {
+            item: Observable<{
+                id: number;
+                label: string;
+            }>;
+        }) {
+            const data = useSelector(item);
+            return createElement('li', { id: data.label }, data.label);
+        }
+        function Test() {
+            return createElement('div', undefined, createElement(For, { eachValues: obs.items, item: Item }));
+        }
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+    });
+    test('For with Map sorted', () => {
+        const obs = observable({
+            items: new Map<string, { label: string }>([
+                ['m2', { label: 'B' }],
+                ['m1', { label: 'A' }],
+            ]),
+        });
+        function Item({
+            item,
+        }: {
+            item: Observable<{
+                id: number;
+                label: string;
+            }>;
+        }) {
+            const data = useSelector(item);
+            return createElement('li', { id: data.label }, data.label);
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                createElement(For, {
+                    eachValues: obs.items,
+                    item: Item,
+                    sortValues: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label),
+                })
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('A');
+        expect(items[1].id).toEqual('B');
+    });
 });
 
 describe('useObservableReducer', () => {

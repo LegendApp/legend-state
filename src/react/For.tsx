@@ -16,7 +16,7 @@ export function For<T, TProps>({
     children,
 }: {
     each?: ObservableReadable<T[]>;
-    eachValues?: ObservableReadable<Record<any, T>>;
+    eachValues?: ObservableReadable<Record<any, T> | Map<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T>; id?: string } & TProps>;
     itemProps?: TProps;
@@ -58,17 +58,21 @@ export function For<T, TProps>({
 
     // If using eachValues, render the values of the object
     if (eachValues) {
-        const keys = Object.keys(value);
+        const isMap = value instanceof Map;
+        const keys = isMap ? Array.from(value.keys()) : Object.keys(value);
         if (sortValues) {
-            keys.sort((A, B) => sortValues(value[A], value[B], A, B));
+            keys.sort((A, B) => sortValues(isMap ? value.get(A) : value[A], isMap ? value.get(B) : value[B], A, B));
         }
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            if (value[key]) {
+            if (isMap ? value.get(key) : value[key]) {
                 out.push(
                     createElement(
                         item as FC,
-                        Object.assign({ key: key as string, item: eachValues[key], id: key }, itemProps)
+                        Object.assign(
+                            { key: key as string, item: isMap ? eachValues.get(key) : eachValues[key], id: key },
+                            itemProps
+                        )
                     )
                 );
             }
@@ -77,16 +81,17 @@ export function For<T, TProps>({
         // Get the appropriate id field
         const v0 = value[0];
         const node = getNode(obs);
+        const length = (value as any[]).length;
 
         const idField =
-            value.length > 0
+            length > 0
                 ? (node && findIDKey(v0, node)) ||
                   (v0.id !== undefined ? 'id' : v0.key !== undefined ? 'key' : undefined)
                 : undefined;
 
         const isIdFieldFunction = isFunction(idField);
 
-        for (let i = 0; i < value.length; i++) {
+        for (let i = 0; i < length; i++) {
             if (value[i]) {
                 const val = value[i];
                 const key = (isIdFieldFunction ? idField(val) : val[idField as string]) ?? i;
