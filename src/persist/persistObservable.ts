@@ -227,12 +227,23 @@ async function prepChange(queuedChange: QueuedChange) {
         for (let i = changes.length - 1; i >= 0; i--) {
             const { path } = changes[i];
 
-            const pathStr = path.join('/');
+            let found = false;
 
             // Optimization to only save the latest update at each path. We might have multiple changes at the same path
             // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
-            // already processed.
-            if (!changesPaths.has(pathStr)) {
+            // already processed. If a later change modifies a parent of an earlier change (which happens on delete()
+            // it should be ignored as it's superseded by the parent modification.
+            if (changesPaths.size > 0) {
+                for (let u = 1; u < path.length; u++) {
+                    if (changesPaths.has((u === path.length - 1 ? path : path.slice(0, u + 1)).join('/'))) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found) {
+                const pathStr = path.join('/');
                 changesPaths.add(pathStr);
 
                 const { prevAtPath, valueAtPath, pathTypes } = changes[i];
