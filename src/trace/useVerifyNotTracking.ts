@@ -1,4 +1,4 @@
-import { NodeValue, tracking, TrackingNode } from '@legendapp/state';
+import { NodeValue, optimized, tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
 export function useVerifyNotTracking(name?: string) {
@@ -15,10 +15,10 @@ function traceNodes(name: string, nodes: Map<NodeValue, TrackingNode>) {
             for (const tracked of nodes.values()) {
                 const { node, track } = tracked;
                 const shallow = track === true;
-                const optimized = track === 'optimize';
+                const isOptimized = track === optimized;
                 arr.push(
                     `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
-                        optimized ? ' (optimized)' : ''
+                        isOptimized ? ' (optimized)' : ''
                     }`
                 );
             }

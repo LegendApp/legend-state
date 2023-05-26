@@ -1,5 +1,5 @@
 import type { Observable, ObservableReadable } from '@legendapp/state';
-import { findIDKey, getNode, isFunction } from '@legendapp/state';
+import { findIDKey, getNode, isFunction, optimized } from '@legendapp/state';
 import { createElement, FC, memo, ReactElement, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -9,7 +9,7 @@ const autoMemoCache = new Map<FC, FC>();
 export function For<T, TProps>({
     each,
     eachValues,
-    optimized,
+    optimized: isOptimized,
     item,
     itemProps,
     sortValues,
@@ -29,7 +29,7 @@ export function For<T, TProps>({
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const value = useSelector(() => obs.get(optimized ? 'optimize' : true));
+    const value = useSelector(() => obs.get(isOptimized ? optimized : true));
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {

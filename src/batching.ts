@@ -1,4 +1,4 @@
-import { getNodeValue } from './globals';
+import { getNodeValue, optimized } from './globals';
 import { isArray } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
@@ -190,7 +190,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                     const ok =
                         track === true || track === 'shallow'
                             ? level <= 0
-                            : track === 'optimize'
+                            : track === optimized
                             ? whenOptimizedOnlyIf && level <= 0
                             : true;
 

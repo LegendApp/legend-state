@@ -7,6 +7,7 @@ import {
     get,
     getChildNode,
     getNodeValue,
+    optimized,
     peek,
     symbolDelete,
     symbolGetNode,
@@ -630,7 +631,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
             const l = arguments.length;
 
             if (p === 'get') {
-                if (l > 0) {
+                if (l > 0 && typeof a !== 'boolean' && a !== optimized) {
                     return getProxy(node, a);
                 }
             } else if (p === 'set') {

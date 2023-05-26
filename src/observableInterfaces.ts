@@ -37,7 +37,7 @@ interface MMKVConfiguration {
     encryptionKey?: string;
 }
 
-export type TrackingType = undefined | true | 'shallow' | 'optimize'; // true === shallow
+export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; // true === shallow
 
 export interface MapGet<T extends Map<K, V> | WeakMap<K, V>, K extends object = any, V = any> {
     get(key: K): ObservableChild<V | undefined>;

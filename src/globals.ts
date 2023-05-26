@@ -7,6 +7,7 @@ export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
+export const optimized = Symbol('optimized');
 
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
 export const extraPrimitiveProps = new Map<string | symbol, any>();
@@ -94,7 +95,6 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
             : undefined
         : undefined;
 
-    // let idKey = isObject(obj) && ('id' in obj ? 'id' : 'key' in obj ? 'key' : undefined);
     if (!idKey && node.parent) {
         const keyExtractor = getNodeValue(node.parent)[node.key + '_keyExtractor'] as (value: any) => string;
         if (keyExtractor && isFunction(keyExtractor)) {

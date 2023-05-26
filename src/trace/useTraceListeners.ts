@@ -15,7 +15,7 @@ function traceNodes(name: string, nodes: Map<NodeValue, TrackingNode>) {
             for (const tracked of nodes.values()) {
                 const { node, track } = tracked;
                 const shallow = track === true;
-                const optimized = track === 'optimize';
+                const optimized = track === optimized;
                 arr.push(
                     `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
                         optimized ? ' (optimized)' : ''
