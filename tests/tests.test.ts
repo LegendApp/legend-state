@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
+import { configureLegendState } from '../src/config';
 import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
@@ -2455,5 +2456,36 @@ describe('Functions', () => {
         });
         obs.child.test(2);
         expect(count).toEqual(2);
+    });
+});
+describe('_', () => {
+    test('_ works like get()', () => {
+        const obs = observable({ value: 'hi' });
+
+        expect(obs._value).toEqual('hi');
+    });
+    test('_ works like set()', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs._value = 'hello';
+
+        expect(obs._value).toEqual('hello');
+        expect(obs.value.get()).toEqual('hello');
+    });
+    test('_ works like set() with objects', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs._test2 = { t: 'hello' };
+
+        expect(obs._test2).toEqual({ t: 'hello' });
+        expect(obs.test2._t).toEqual('hello');
+    });
+    test('_ does not work if disabled', () => {
+        configureLegendState({ enableDirectAccess: false });
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        expect(obs._value).not.toEqual('hi');
+        expect(() => {
+            obs._value = 'hello';
+        }).toThrow();
+
+        expect(obs.value.get()).toEqual('hi');
     });
 });

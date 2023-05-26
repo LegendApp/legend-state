@@ -1,4 +1,5 @@
 import { beginBatch, endBatch, notify } from './batching';
+import { config } from './config';
 import {
     ensureNodeValue,
     extraPrimitiveActivators,
@@ -366,6 +367,11 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
+        if (value && vProp === undefined && config.enableDirectAccess && p[0] === '_') {
+            const reactiveKey = (p as string).slice(1);
+            return get(getChildNode(node, reactiveKey));
+        }
+
         // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {
@@ -452,7 +458,14 @@ const proxyHandler: ProxyHandler<any> = {
             return Reflect.set(node, prop, value);
         }
 
-        if (!inAssign) {
+        let isOk = inAssign;
+
+        if (prop[0] === '_' && config.enableDirectAccess) {
+            prop = prop.slice(1);
+            isOk = true;
+        }
+
+        if (!isOk) {
             return false;
         }
 

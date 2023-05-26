@@ -119,9 +119,13 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<a
 
 type ObservableFnsRecursiveUnsafe<T> = {
     [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+} & {
+    [K in keyof StringKeys<T> as `_${K}`]: T[K];
 };
 type ObservableFnsRecursiveSafe<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+} & {
+    [K in keyof StringKeys<T> as `_${K}`]: T[K];
 };
 type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
     ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
@@ -267,6 +271,12 @@ export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
+declare type StringKeys<T> = Pick<
+    T,
+    {
+        [K in keyof T]-?: K extends string ? K : never;
+    }[keyof T]
+>;
 declare type ObjectKeys<T> = Pick<
     T,
     {
