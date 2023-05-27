@@ -117,18 +117,26 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<a
     ? TRecurse
     : T[K];
 
-type ObservableFnsRecursiveUnsafe<T> = {
+type ObservableFnsRecursivePrimitiveKeysSafe<T> = {
+    [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+};
+type ObservableFnsRecursivePrimitiveKeys<T> = {
     [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 } & {
     [K in keyof StringKeys<T> as `_${K}`]: T[K];
 };
-type ObservableFnsRecursiveSafe<T> = {
+type ObservableFnsRecursiveNonPrimitiveKeysSafe<T> = {
+    readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+};
+type ObservableFnsRecursiveNonPrimitiveKeys<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
 } & {
     [K in keyof StringKeys<T> as `_${K}`]: T[K];
 };
-type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
-    ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
+type ObservableFnsRecursive<T> = ObservableFnsRecursiveNonPrimitiveKeys<NonPrimitiveKeys<T>> &
+    ObservableFnsRecursivePrimitiveKeys<PrimitiveKeys<T>>;
+type ObservableFnsRecursiveSafe<T> = ObservableFnsRecursiveNonPrimitiveKeysSafe<NonPrimitiveKeys<T>> &
+    ObservableFnsRecursivePrimitiveKeysSafe<PrimitiveKeys<T>>;
 
 type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]: Recurse<T, K, ObservableBaseFns<T[K]>>;
@@ -267,7 +275,7 @@ export interface ObservablePersistState {
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
-export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
+export type ObservableValue<T> = T extends Observable<infer t> | ObservableSafe<infer t> ? t : never;
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
@@ -336,12 +344,14 @@ export type NotPrimitive<T> = T extends Primitive ? never : T;
 
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
+export type ObservableObjectSafe<T = any> = ObservableFnsRecursiveSafe<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveFnsBoolean<T>
     : ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
+export type ObservableObjectOrArraySafe<T> = T extends any[] ? ObservableArray<T> : ObservableObjectSafe<T>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
 export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveFnsBase<T2>;
@@ -350,6 +360,11 @@ export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
     : [T] extends [object]
     ? ObservableObjectOrArray<T>
+    : ObservablePrimitive<T>;
+export type ObservableSafe<T = any> = Equals<T, any> extends true
+    ? ObservableObject<any>
+    : [T] extends [object]
+    ? ObservableObjectOrArraySafe<T>
     : ObservablePrimitive<T>;
 
 export type ObservableReadable<T = any> =
