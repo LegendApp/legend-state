@@ -16,6 +16,13 @@ export function Switch<T extends string | number | symbol>({
     value?: Selector<T>;
     children: Partial<Record<T | 'null' | 'undefined' | 'default', () => ReactNode>>;
 }): ReactElement;
+export function Switch<T extends boolean>({
+    value,
+    children,
+}: {
+    value?: Selector<T>;
+    children: Partial<Record<'false' | 'true' | 'null' | 'undefined' | 'default', () => ReactNode>>;
+}): ReactElement;
 export function Switch<T>({
     value,
     children,

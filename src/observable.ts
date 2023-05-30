@@ -106,7 +106,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
         if (__devUpdateNodes.has(obj)) {
             console.error(
-                '[legend-state] Circular reference detected in object. You may way to use opaqueObject to stop traversing child nodes.',
+                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
                 obj
             );
             return false;

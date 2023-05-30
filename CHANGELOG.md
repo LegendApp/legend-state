@@ -1,3 +1,7 @@
+## 1.2.4
+
+- Types: Fix types of Switch so that it works better with booleans
+
 ## 1.2.3
 
 - Types: Fix types of Map get so that it returns an Observable of the correct type
