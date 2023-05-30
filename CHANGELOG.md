@@ -1,3 +1,7 @@
+## 1.2.5
+
+- Fix: peerDependencies to make next optional
+
 ## 1.2.4
 
 - Types: Fix types of Switch so that it works better with booleans
