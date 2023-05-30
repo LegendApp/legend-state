@@ -1,3 +1,7 @@
+## 1.2.6
+
+- Fix: _arr in fieldTransforms not working for strings
+
 ## 1.2.5
 
 - Fix: peerDependencies to make next optional

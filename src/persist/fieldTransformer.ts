@@ -34,6 +34,9 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
     let ret = dataIn;
     if (dataIn) {
         if ((dataIn as unknown) === symbolDelete) return dataIn;
+        if (isString(dataIn)) {
+            return map[dataIn];
+        }
 
         ret = {};
 
