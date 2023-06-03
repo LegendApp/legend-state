@@ -580,7 +580,6 @@ function deleteFn(node: NodeValue, key?: string) {
         key = node.key;
         node = node.parent;
     }
-    // delete sets to undefined first to notify
     setKey(node, key as string, symbolDelete, /*level*/ -1);
 }
 

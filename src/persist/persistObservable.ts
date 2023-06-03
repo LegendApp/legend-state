@@ -634,7 +634,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                         const p = key.split('/').filter((p) => p !== '');
                                         const { v, t } = pending[key];
 
-                                        const constructed = constructObjectWithPath(p, v, t);
+                                        const constructed = constructObjectWithPath(p, v, t || []);
                                         value = mergeIntoObservable(value as any, constructed) as T;
                                     });
                                 }
