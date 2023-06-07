@@ -49,6 +49,7 @@ Object.keys(pkg.exports).forEach((exp) => {
 // Remove fields we don't want in the built version
 pkg.private = false;
 delete pkg.devDependencies;
+delete pkg.overrides;
 delete pkg.scripts;
 delete pkg.engines;
 

@@ -141,30 +141,6 @@
     "overrides": {
         "react": "18.2.0"
     },
-    "peerDependencies": {
-        "@tanstack/react-query": ">=4.14.6",
-        "next": ">=12",
-        "react": ">=16.8",
-        "react-native": ">=0.61",
-        "react-native-mmkv": ">=2"
-    },
-    "peerDependenciesMeta": {
-        "@tanstack/react-query": {
-            "optional": true
-        },
-        "next": {
-            "optional": true
-        },
-        "react": {
-            "optional": true
-        },
-        "react-native": {
-            "optional": true
-        },
-        "react-native-mmkv": {
-            "optional": true
-        }
-    },
     "author": "Legend <contact@legendapp.com> (https://github.com/LegendApp)",
     "keywords": [
         "react",
