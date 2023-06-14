@@ -85,8 +85,9 @@ export function For<T, TProps>({
             if (value[i]) {
                 const val = value[i];
                 const key = (isIdFieldFunction ? idField(val) : val[idField as string]) ?? i;
+                const props = { key, id: key, item: each[i] };
 
-                out.push(createElement(item as FC, Object.assign({ key: key, item: each[i], id: key }, itemProps)));
+                out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
             }
         }
     } else {
@@ -99,15 +100,8 @@ export function For<T, TProps>({
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             if (isMap ? value.get(key) : value[key]) {
-                out.push(
-                    createElement(
-                        item as FC,
-                        Object.assign(
-                            { key: key as string, item: isMap ? each.get(key) : each[key], id: key },
-                            itemProps
-                        )
-                    )
-                );
+                const props = { key, id: key, item: isMap ? each.get(key) : each[key] };
+                out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
             }
         }
     }
