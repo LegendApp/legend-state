@@ -325,6 +325,11 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
+        if (p === '$' && config.enableDirectAccess) {
+            updateTracking(node);
+            return value;
+        }
+
         const fn = objectFns.get(p);
         // If this is an observable function, call it
         if (fn) {
@@ -452,7 +457,7 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(node);
         return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, prop) : undefined;
     },
-    set(node: NodeValue, prop: string, value) {
+    set(node: NodeValue, prop: string, value: any) {
         // If this assignment comes from within an observable function it's allowed
         if (inSet) {
             return Reflect.set(node, prop, value);
@@ -460,16 +465,21 @@ const proxyHandler: ProxyHandler<any> = {
 
         let isOk = inAssign;
 
-        if (prop[0] === '_' && config.enableDirectAccess) {
-            prop = prop.slice(1);
-            isOk = true;
+        if (prop === '$' && config.enableDirectAccess) {
+            set(node, value);
+        } else {
+            if (prop[0] === '_' && config.enableDirectAccess) {
+                prop = prop.slice(1);
+                isOk = true;
+            }
+
+            if (!isOk) {
+                return false;
+            }
+
+            setKey(node, prop, value);
         }
 
-        if (!isOk) {
-            return false;
-        }
-
-        setKey(node, prop, value);
         return true;
     },
     deleteProperty(node: NodeValue, prop: string) {

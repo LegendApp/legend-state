@@ -37,6 +37,15 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsEvent, {
     configurable: true,
     value: false,
 });
+Object.defineProperty(ObservablePrimitiveClass.prototype, '$', {
+    configurable: true,
+    get() {
+        return this.get();
+    },
+    set(value: any) {
+        return this.set(value);
+    },
+});
 ObservablePrimitiveClass.prototype.peek = function () {
     checkActivate(this._node);
     return this._node.root._;

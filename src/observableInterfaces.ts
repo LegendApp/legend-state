@@ -50,6 +50,7 @@ export interface ObservableBaseFns<T> {
         cb: ListenerFn<T>,
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
     ): ObservableListenerDispose;
+    $: T;
 }
 interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
     delete(): ObservablePrimitiveFnsBase<T>;

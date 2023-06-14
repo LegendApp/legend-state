@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
-import { configureLegendState } from '../src/config';
+import { config, configureLegendState } from '../src/config';
 import { event } from '../src/event';
 import { symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
@@ -2458,32 +2458,39 @@ describe('Functions', () => {
         expect(count).toEqual(2);
     });
 });
-describe('_', () => {
-    test('_ works like get()', () => {
+describe('$', () => {
+    test('$ works like get()', () => {
+        config.enableDirectAccess = true;
         const obs = observable({ value: 'hi' });
 
-        expect(obs._value).toEqual('hi');
+        expect(obs.value.$).toEqual('hi');
     });
-    test('_ works like set()', () => {
+    test('$ works like set()', () => {
         const obs = observable({ value: 'hi', test2: { t: 'hi' } });
-        obs._value = 'hello';
+        obs.value.$ = 'hello';
 
-        expect(obs._value).toEqual('hello');
+        expect(obs.value.$).toEqual('hello');
         expect(obs.value.get()).toEqual('hello');
     });
-    test('_ works like set() with objects', () => {
+    test('$ works like set() with objects', () => {
         const obs = observable({ value: 'hi', test2: { t: 'hi' } });
-        obs._test2 = { t: 'hello' };
+        obs.test2.$ = { t: 'hello' };
 
-        expect(obs._test2).toEqual({ t: 'hello' });
-        expect(obs.test2._t).toEqual('hello');
+        expect(obs.test2.$).toEqual({ t: 'hello' });
+        expect(obs.test2.t.$).toEqual('hello');
     });
-    test('_ does not work if disabled', () => {
+    test('$ works on primitives', () => {
+        const obs = observable(0);
+        obs.$ = 1;
+
+        expect(obs.$).toEqual(1);
+    });
+    test('$ does not work if disabled', () => {
         configureLegendState({ enableDirectAccess: false });
         const obs = observable({ value: 'hi', test2: { t: 'hi' } });
-        expect(obs._value).not.toEqual('hi');
+        expect(obs.value.$).not.toEqual('hi');
         expect(() => {
-            obs._value = 'hello';
+            obs.value.$ = 'hello';
         }).toThrow();
 
         expect(obs.value.get()).toEqual('hi');

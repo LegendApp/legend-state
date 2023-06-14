@@ -2,9 +2,13 @@ import { isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
 
-export type ShapeWith$<T> = Partial<T> & {
+type ShapeWithOld$<T> = {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
+export type ShapeWith$<T> = Partial<T> &
+    ShapeWithOld$<T> & {
+        [K in keyof T as K extends `$:${string & K}` ? K : `$:${string & K}`]?: Selector<T[K]>;
+    };
 
 export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
 
