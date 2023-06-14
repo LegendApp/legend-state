@@ -67,7 +67,7 @@ const ArrayLoopers = new Set<keyof Array<any>>([
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
 // eslint-disable-next-line @typescript-eslint/ban-types
-const objectFns = new Map<string, Function>([
+export const observableFns = new Map<string, Function>([
     ['get', get],
     ['set', set],
     ['peek', peek],
@@ -330,7 +330,7 @@ const proxyHandler: ProxyHandler<any> = {
             return value;
         }
 
-        const fn = objectFns.get(p);
+        const fn = observableFns.get(p);
         // If this is an observable function, call it
         if (fn) {
             return function (a: any, b: any, c: any) {
@@ -693,7 +693,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
             }
 
             // TODO: This is duplicated from proxy handler, how to dedupe with best performance?
-            const fn = objectFns.get(p);
+            const fn = observableFns.get(p);
             if (fn) {
                 // Array call and apply are slow so micro-optimize this hot path.
                 // The observable functions depends on the number of arguments so we have to

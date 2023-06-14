@@ -3,10 +3,10 @@ import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { config, configureLegendState } from '../src/config';
 import { event } from '../src/event';
-import { symbolGetNode } from '../src/globals';
+import { getNodeValue, symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
-import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
@@ -2494,5 +2494,24 @@ describe('$', () => {
         }).toThrow();
 
         expect(obs.value.get()).toEqual('hi');
+    });
+});
+describe('Extend observableFunctions', () => {
+    test('Extend observableFunctions works', () => {
+        configureLegendState({
+            observableFunctions: {
+                testfn: (node: NodeValue, arg1, arg2) => getNodeValue(node) + arg2,
+            },
+        });
+
+        const obs = observable({ value: 0 });
+
+        // @ts-expect-error Would need to add to types
+        expect(obs.value.testfn(1, 'hi')).toEqual('0hi');
+
+        const prim = observable(0);
+
+        // @ts-expect-error Would need to add to types
+        expect(prim.testfn(1, 'hi')).toEqual('0hi');
     });
 });

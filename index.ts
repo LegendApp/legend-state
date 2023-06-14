@@ -52,18 +52,13 @@ export { getNode } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
-import {
-    setAtPath,
-    getNode,
-} from './src/helpers';
-import {
-    getNodeValue,
-    symbolDelete,
-} from './src/globals';
+import { setAtPath, getNode } from './src/helpers';
+import { getNodeValue, symbolDelete, get } from './src/globals';
 
 export const internal = {
+    get,
     getNode,
     getNodeValue,
     setAtPath,
-    symbolDelete
-}
+    symbolDelete,
+};
