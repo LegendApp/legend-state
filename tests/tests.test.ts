@@ -2509,9 +2509,9 @@ describe('Extend observableFunctions', () => {
         // @ts-expect-error Would need to add to types
         expect(obs.value.testfn(1, 'hi')).toEqual('0hi');
 
-        const prim = observable(0);
+        const prim = observable(1);
 
         // @ts-expect-error Would need to add to types
-        expect(prim.testfn(1, 'hi')).toEqual('0hi');
+        expect(prim.testfn(1, 'hi')).toEqual('1hi');
     });
 });

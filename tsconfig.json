@@ -70,6 +70,7 @@
         "node_modules",
         "dist",
         "types.d.ts",
-        "types-safe.d.ts"
+        "types-safe.d.ts",
+        "types-use.d.ts",
     ],
 }

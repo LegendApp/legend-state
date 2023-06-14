@@ -1,19 +1,31 @@
 import {
     checkActivate,
+    configureLegendState,
     extraPrimitiveActivators,
     extraPrimitiveProps,
     getNode,
+    internal,
+    NodeValue,
     ObservablePrimitiveClass,
     ObservableReadable,
 } from '@legendapp/state';
 import { createElement, memo } from 'react';
 import { hasSymbol } from './reactive-observer';
 import { useSelector } from './useSelector';
-let isEnabled = false;
 
-export function enableLegendStateReact() {
-    if (!isEnabled) {
-        isEnabled = true;
+let isRenderEnabled = false;
+
+export function enableLegendStateReact(options?: { renderDirectly?: boolean; enableUse?: boolean }) {
+    if (!options || options.enableUse) {
+        configureLegendState({
+            observableFunctions: {
+                use: (node: NodeValue) => useSelector(() => internal.get(node)),
+            },
+        });
+    }
+
+    if (!isRenderEnabled && (!options || options.renderDirectly)) {
+        isRenderEnabled = true;
 
         // Rendering observables directly inspired by Preact Signals: https://github.com/preactjs/signals/blob/main/packages/react/src/index.ts
         // Add the extra primitive props so that observables can render directly
