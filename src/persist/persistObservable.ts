@@ -24,6 +24,7 @@ import {
     isString,
     mergeIntoObservable,
     observable,
+    setAtPath,
     setInObservableAtPath,
     tracking,
     when,
@@ -634,8 +635,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                         const p = key.split('/').filter((p) => p !== '');
                                         const { v, t } = pending[key];
 
-                                        const constructed = constructObjectWithPath(p, v, t || []);
-                                        value = mergeIntoObservable(value as any, constructed) as T;
+                                        (value as any) = setAtPath(value as any, p, t, v);
                                     });
                                 }
 
