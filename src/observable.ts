@@ -453,6 +453,9 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         if (!inAssign) {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('[legend-state]: Error: Cannot set a value directly:', prop, value);
+            }
             return false;
         }
 
@@ -464,6 +467,9 @@ const proxyHandler: ProxyHandler<any> = {
         if (inSet) {
             return Reflect.deleteProperty(node, prop);
         } else {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('[legend-state]: Error: Cannot delete a value directly:', prop);
+            }
             return false;
         }
     },
