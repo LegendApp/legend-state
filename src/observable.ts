@@ -38,9 +38,6 @@ import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
-let inSet = false;
-let inAssign = false;
-
 const ArrayModifiers = new Set([
     'copyWithin',
     'fill',
@@ -448,11 +445,11 @@ const proxyHandler: ProxyHandler<any> = {
     },
     set(node: NodeValue, prop: string, value) {
         // If this assignment comes from within an observable function it's allowed
-        if (inSet) {
+        if (node.isSetting) {
             return Reflect.set(node, prop, value);
         }
 
-        if (!inAssign) {
+        if (!node.isAssigning) {
             if (process.env.NODE_ENV === 'development') {
                 console.warn('[legend-state]: Error: Cannot set a value directly:', prop, value);
             }
@@ -464,7 +461,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
     deleteProperty(node: NodeValue, prop: string) {
         // If this delete comes from within an observable function it's allowed
-        if (inSet) {
+        if (node.isSetting) {
             return Reflect.deleteProperty(node, prop);
         } else {
             if (process.env.NODE_ENV === 'development') {
@@ -532,7 +529,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
     // Compute newValue if newValue is a function or an observable
     newValue =
-        !inAssign && isFunc
+        !node.isAssigning && isFunc
             ? newValue(prevValue)
             : isObject(newValue) && newValue?.[symbolIsObservable as any]
             ? newValue.peek()
@@ -540,14 +537,14 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
     const isPrim = isPrimitive(newValue) || newValue instanceof Date;
 
-    inSet = true;
+    node.isSetting = true;
     // Save the new value
     if (isDelete) {
         delete parentValue[key];
     } else {
         parentValue[key] = newValue;
     }
-    inSet = false;
+    node.isSetting = false;
 
     if (node.root.locked && node.root.set) {
         node.root.set(node.root._);
@@ -568,11 +565,11 @@ function assign(node: NodeValue, value: any) {
     }
 
     // Set inAssign to allow setting on safe observables
-    inAssign = true;
+    node.isAssigning = true;
     try {
         Object.assign(proxy, value);
     } finally {
-        inAssign = false;
+        node.isAssigning = false;
     }
 
     endBatch();

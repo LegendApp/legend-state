@@ -942,6 +942,21 @@ describe('Safety', () => {
         expect(typeof obs.get === 'function').toBe(true);
         expect(typeof obs.assign === 'function').toBe(true);
     });
+    test('Nested assign', () => {
+        const obs = observable({ child: { a: 0, b: 0 } });
+        const obs2 = observable({ child2: { a: 0, b: 0 } });
+        const comp = computed(() => {
+            const a = obs.child.a.get();
+
+            obs2.child2.assign({ a: 2, b: 2 });
+
+            return a;
+        });
+
+        comp.get();
+
+        obs.child.assign({ a: 1, b: 1 });
+    });
 });
 describe('Primitives', () => {
     test('Primitive node object', () => {
