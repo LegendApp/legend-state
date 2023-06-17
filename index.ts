@@ -11,6 +11,9 @@ export {
     setAtPath,
     setInObservableAtPath,
 } from './src/helpers';
+export {
+    trackSelector,
+} from './src/trackSelector';
 export { observable, observablePrimitive } from './src/observable';
 export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
 export { computed } from './src/computed';

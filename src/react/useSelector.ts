@@ -1,12 +1,4 @@
-import {
-    beginTracking,
-    computeSelector,
-    endTracking,
-    isObservable,
-    Selector,
-    setupTracking,
-    tracking,
-} from '@legendapp/state';
+import { Selector, trackSelector } from '@legendapp/state';
 import { useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
@@ -47,51 +39,17 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
         },
         getVersion: () => version,
         run: (selector: Selector<T>) => {
-            let value: T;
             // Dispose if already listening
             dispose?.();
 
-            if (isObservable(selector)) {
-                // Fast path for useSelector just accessing an observable directly. We don't need to do all the
-                // tracking context management, can just onChange the observable directly.
-                value = selector.get();
-                dispose = selector.onChange(_update, { noArgs: true });
+            const {
+                value,
+                dispose: _dispose,
+                resubscribe: _resubscribe,
+            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true);
 
-                // Workaround for React 18 running twice in dev (part 1)
-                if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-                    resubscribe = () => selector.onChange(_update, { noArgs: true });
-                }
-            } else {
-                // Compute the selector inside a tracking context
-                beginTracking();
-                value = selector ? computeSelector(selector) : selector;
-                const tracker = tracking.current;
-                const { nodes } = tracker;
-                endTracking();
-
-                let noArgs = true;
-                let update = _update;
-                // Do tracing if it was requested
-                if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
-                    tracker.traceListeners?.(nodes);
-                    if (tracker.traceUpdates) {
-                        noArgs = false;
-                        update = tracker.traceUpdates(_update) as () => void;
-                    }
-                    // Clear tracing so it doesn't leak to other components
-                    tracker.traceListeners = undefined;
-                    tracker.traceUpdates = undefined;
-                }
-
-                // useSyncExternalStore doesn't subscribe until after the component mount.
-                // We want to subscribe immediately so we don't miss any updates
-                dispose = setupTracking(nodes, update, noArgs);
-
-                // Workaround for React 18 running twice in dev (part 1)
-                if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-                    resubscribe = () => setupTracking(nodes, update, noArgs);
-                }
-            }
+            dispose = _dispose;
+            resubscribe = _resubscribe;
 
             return value;
         },

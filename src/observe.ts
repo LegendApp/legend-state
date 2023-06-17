@@ -1,10 +1,8 @@
 import { beginBatch, endBatch } from './batching';
 import { symbolIsEvent } from './globals';
-import { computeSelector } from './helpers';
 import { isFunction } from './is';
 import { ObserveEvent, ObserveEventCallback, Selector } from './observableInterfaces';
-import { setupTracking } from './setupTracking';
-import { beginTracking, endTracking, tracking } from './tracking';
+import { trackSelector } from './trackSelector';
 
 export interface ObserveOptions {
     immediate?: boolean; // Ignore batching and run immediately
@@ -30,7 +28,7 @@ export function observe<T>(
     let dispose: () => void;
     const e: ObserveEventCallback<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
-    let update = function () {
+    const update = function () {
         if (e.onCleanup) {
             e.onCleanup();
             e.onCleanup = undefined;
@@ -39,38 +37,16 @@ export function observe<T>(
         // Run in a batch so changes don't happen until we're done tracking here
         beginBatch();
 
-        // Begin tracking observables accessed while running
-        beginTracking();
-
         // Run the function/selector
         delete e.value;
-        e.value = computeSelector(selectorOrRun, e);
 
         // Dispose listeners from previous run
         dispose?.();
 
-        if (!e.cancel) {
-            const tracker = tracking.current;
-            let noArgs = true;
-            if (tracker) {
-                // Do tracing if it was requested
-                if (process.env.NODE_ENV === 'development' && tracker.nodes) {
-                    tracker.traceListeners?.(tracker.nodes);
-                    if (tracker.traceUpdates) {
-                        noArgs = false;
-                        update = tracker.traceUpdates(update) as () => void;
-                    }
-                    // Clear tracing
-                    tracker.traceListeners = undefined;
-                    tracker.traceUpdates = undefined;
-                }
+        const { dispose: _dispose, value } = trackSelector(selectorOrRun, update, e, options);
+        dispose = _dispose;
 
-                // Setup tracking with the nodes that were accessed
-                dispose = setupTracking(tracker.nodes, update, noArgs, options?.immediate);
-            }
-        }
-
-        endTracking();
+        e.value = value;
 
         if (e.onCleanupReaction) {
             e.onCleanupReaction();
