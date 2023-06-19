@@ -367,8 +367,8 @@ interface BaseNodeValue {
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
-    isSetting?: boolean;
-    isAssigning?: boolean;
+    isSetting?: number;
+    isAssigning?: number;
 }
 
 export interface RootNodeValue extends BaseNodeValue {

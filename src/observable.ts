@@ -457,15 +457,15 @@ const proxyHandler: ProxyHandler<any> = {
             return Reflect.set(node, prop, value);
         }
 
-        if (!node.isAssigning) {
-            if (process.env.NODE_ENV === 'development') {
-                console.warn('[legend-state]: Error: Cannot set a value directly:', prop, value);
-            }
-            return false;
+        if (node.isAssigning) {
+            setKey(node, prop, value);
+            return true;
         }
 
-        setKey(node, prop, value);
-        return true;
+        if (process.env.NODE_ENV === 'development') {
+            console.warn('[legend-state]: Error: Cannot set a value directly:', prop, value);
+        }
+        return false;
     },
     deleteProperty(node: NodeValue, prop: string) {
         // If this delete comes from within an observable function it's allowed
@@ -545,14 +545,18 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
     const isPrim = isPrimitive(newValue) || newValue instanceof Date;
 
-    node.isSetting = true;
-    // Save the new value
-    if (isDelete) {
-        delete parentValue[key];
-    } else {
-        parentValue[key] = newValue;
+    try {
+        node.isSetting++;
+
+        // Save the new value
+        if (isDelete) {
+            delete parentValue[key];
+        } else {
+            parentValue[key] = newValue;
+        }
+    } finally {
+        node.isSetting--;
     }
-    node.isSetting = false;
 
     if (node.root.locked && node.root.set) {
         node.root.set(node.root._);
@@ -573,11 +577,11 @@ function assign(node: NodeValue, value: any) {
     }
 
     // Set inAssign to allow setting on safe observables
-    node.isAssigning = true;
+    node.isAssigning = (node.isAssigning || 0) + 1;
     try {
         Object.assign(proxy, value);
     } finally {
-        node.isAssigning = false;
+        node.isAssigning--;
     }
 
     endBatch();
