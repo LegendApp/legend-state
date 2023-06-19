@@ -117,6 +117,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 notify(parent, obj, prevValue, 0);
             }
         }
+        if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+            __devUpdateNodes.delete(obj);
+        }
         return isDiff;
     }
 
@@ -133,6 +136,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     let idField: string | ((value: any) => string);
     let isIdFieldFunction;
     let hasADiff = false;
+    let retValue: boolean;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
@@ -283,12 +287,16 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
-        return hasADiff || didMove;
+        retValue = hasADiff || didMove;
     } else if (prevValue !== undefined) {
         // If value got set to undefined, it has a diff
-        return true;
+        retValue = true;
     }
-    return false;
+
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+        __devUpdateNodes.delete(obj);
+    }
+    return retValue ?? false;
 }
 
 function getProxy(node: NodeValue, p?: string) {
