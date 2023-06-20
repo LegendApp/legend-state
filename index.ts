@@ -20,6 +20,7 @@ export { computed } from './src/computed';
 export { event } from './src/event';
 export { observe } from './src/observe';
 export { when, whenReady } from './src/when';
+export { configureLegendState } from './src/config';
 export * from './src/observableInterfaces';
 export {
     isEmpty,
@@ -54,18 +55,13 @@ export { getNode } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
-import {
-    setAtPath,
-    getNode,
-} from './src/helpers';
-import {
-    getNodeValue,
-    symbolDelete,
-} from './src/globals';
+import { setAtPath, getNode } from './src/helpers';
+import { getNodeValue, symbolDelete, get } from './src/globals';
 
 export const internal = {
+    get,
     getNode,
     getNodeValue,
     setAtPath,
-    symbolDelete
-}
+    symbolDelete,
+};
