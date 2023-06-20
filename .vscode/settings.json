@@ -3,5 +3,6 @@
     "editor.formatOnSave": true,
     "[markdown]": {
         "editor.defaultFormatter": "vscode.markdown-language-features"
-    }
+    },
+    "typescript.tsdk": "node_modules/typescript/lib"
 }
