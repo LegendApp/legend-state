@@ -63,7 +63,12 @@ const ArrayLoopers = new Set<keyof Array<any>>([
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
 // eslint-disable-next-line @typescript-eslint/ban-types
-export const observableFns = new Map<string, Function>([
+export const observableProperties = new Map<
+    string,
+    { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
+>();
+// eslint-disable-next-line @typescript-eslint/ban-types
+export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) => any>([
     ['get', get],
     ['set', set],
     ['peek', peek],
@@ -351,6 +356,11 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
+        const property = observableProperties.get(p);
+        if (property) {
+            return property.get(node);
+        }
+
         const isValuePrimitive = isPrimitive(value);
 
         // If accessing a key that doesn't already exist, and this node has been activated with extra keys
@@ -451,15 +461,19 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(node);
         return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, prop) : undefined;
     },
-    set(node: NodeValue, prop: string, value) {
+    set(node: NodeValue, prop: string, value: any) {
         // If this assignment comes from within an observable function it's allowed
         if (node.isSetting) {
             return Reflect.set(node, prop, value);
         }
-
         if (node.isAssigning) {
             setKey(node, prop, value);
             return true;
+        }
+
+        const property = observableProperties.get(prop);
+        if (property) {
+            return property.set(node, value);
         }
 
         if (process.env.NODE_ENV === 'development') {
