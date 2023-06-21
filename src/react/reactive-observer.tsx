@@ -58,7 +58,7 @@ function createReactiveComponent<P = object>(
                     // Convert reactive props
                     // TODOV2 Remove the deprecated endsWith option
                     if (key.startsWith('$') || key.endsWith('$')) {
-                        const k = key.slice(0, -1);
+                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and Listen to the selector for changes
                         propsOut[k] = useSelector(p);
 
