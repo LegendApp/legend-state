@@ -51,21 +51,13 @@ export interface ObservableBaseFns<T> {
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
     ): ObservableListenerDispose;
 }
-interface ObservablePrimitiveFnsBase<T> extends ObservableBaseFns<T> {
-    delete(): ObservablePrimitiveFnsBase<T>;
+export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
+    delete(): ObservablePrimitiveBaseFns<T>;
     set(value: T | CallbackSetter<T>): ObservablePrimitiveChild<T>;
 }
 
-interface ObservablePrimitiveFnsBoolean<T> {
+export interface ObservablePrimitiveBooleanFns<T> {
     toggle(): T;
-}
-
-export type ObservablePrimitiveFns<T> = [T] extends [boolean]
-    ? ObservablePrimitiveFnsBase<T> & ObservablePrimitiveFnsBoolean<T>
-    : ObservablePrimitiveFnsBase<T>;
-
-export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveFnsBase<T> {
-    delete(): ObservablePrimitiveChild<T>;
 }
 
 export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
@@ -74,13 +66,17 @@ export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
     delete(): ObservableChild<T>;
 }
 
+export type ObservablePrimitive<T> = [T] extends [boolean]
+    ? ObservablePrimitiveBaseFns<T> & ObservablePrimitiveBooleanFns<T>
+    : ObservablePrimitiveBaseFns<T>;
+
+export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveBaseFns<T> {
+    delete(): ObservablePrimitiveChild<T>;
+}
+
 type CallbackSetter<T> = {
     bivarianceHack(prev: T): T;
 }['bivarianceHack'];
-
-export type ObservableFns<T> = ObservablePrimitiveFns<T> | ObservableObjectFns<T>;
-
-export type ObservablePrimitive<T> = ObservablePrimitiveFns<T>;
 
 export type OpaqueObject<T> = T & { [symbolOpaque]: true };
 
@@ -104,9 +100,9 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<any>
     ? T[K]
     : T[K] extends Map<any, any> | WeakMap<any, any>
-    ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveFnsBase<T[K]>, 'get'> & MapGet<T[K]>
+    ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveBaseFns<T[K]>, 'get'> & MapGet<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
-    ? T[K] & ObservablePrimitiveFnsBase<T[K]>
+    ? T[K] & ObservablePrimitiveBaseFns<T[K]>
     : T[K] extends OpaqueObject<T[K]>
     ? T[K] & ObservablePrimitiveChildFns<T[K]>
     : T[K] extends Primitive
@@ -328,13 +324,13 @@ export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & Observab
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
-    ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveFnsBoolean<T>
+    ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>
     : ObservablePrimitiveChildFns<T>;
 
 export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
-export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveFnsBase<T2>;
+export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveBaseFns<T2>;
 type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
@@ -344,7 +340,7 @@ export type Observable<T = any> = Equals<T, any> extends true
 
 export type ObservableReadable<T = any> =
     | ObservableBaseFns<T>
-    | ObservablePrimitiveFnsBase<T>
+    | ObservablePrimitiveBaseFns<T>
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>;
 
