@@ -16,14 +16,13 @@ export function enableDirectAccess() {
     });
 }
 
+// Types:
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ObservableBaseFns } from '@legendapp/state';
 
 declare module '@legendapp/state' {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-unused-vars
     interface ObservableBaseFns<T> {
         $: T;
     }
 }
-
-export {};

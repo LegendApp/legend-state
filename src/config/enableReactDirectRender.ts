@@ -71,6 +71,8 @@ export function enableReactDirectRender() {
     }
 }
 
+// Types:
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ObservableBaseFns } from '@legendapp/state';
 import type { ReactFragment } from 'react';
