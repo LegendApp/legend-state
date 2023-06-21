@@ -58,10 +58,11 @@ export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 // Internal:
 import { setAtPath, getNode } from './src/helpers';
 import { getNodeValue, symbolDelete, get } from './src/globals';
-import { set } from './src/observable';
+import { getProxy, set } from './src/observable';
 
 export const internal = {
     get,
+    getProxy,
     getNode,
     getNodeValue,
     set,

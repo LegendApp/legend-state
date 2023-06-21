@@ -304,7 +304,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-function getProxy(node: NodeValue, p?: string) {
+export function getProxy(node: NodeValue, p?: string) {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
 
