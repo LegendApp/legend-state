@@ -6,7 +6,7 @@ export function enableDirectAccess() {
             $: {
                 get(node) {
                     updateTracking(node);
-                    return internal.getNodeValue(node);
+                    return internal.peek(node);
                 },
                 set(node, value) {
                     return internal.set(node, value);
