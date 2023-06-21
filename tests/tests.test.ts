@@ -2,6 +2,8 @@
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
+import '../src/config/enableDirectAccess';
+import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { event } from '../src/event';
 import { getNodeValue, symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
@@ -9,6 +11,8 @@ import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
+
+enableDirectAccess();
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -2491,5 +2495,32 @@ describe('Extend observableFunctions', () => {
 
         // @ts-expect-error Would need to add to types
         expect(prim.testfn(1, 'hi')).toEqual('0hi');
+    });
+});
+describe('$', () => {
+    test('$ works like get()', () => {
+        const obs = observable({ value: 'hi' });
+
+        expect(obs.value.$).toEqual('hi');
+    });
+    test('$ works like set()', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.value.$ = 'hello';
+
+        expect(obs.value.$).toEqual('hello');
+        expect(obs.value.get()).toEqual('hello');
+    });
+    test('$ works like set() with objects', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.test2.$ = { t: 'hello' };
+
+        expect(obs.test2.$).toEqual({ t: 'hello' });
+        expect(obs.test2.t.$).toEqual('hello');
+    });
+    test('$ works on primitives', () => {
+        const obs = observable(0);
+        obs.$ = 1;
+
+        expect(obs.$).toEqual(1);
     });
 });

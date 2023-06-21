@@ -76,6 +76,11 @@
             "require": "./history.js",
             "types": "./history.d.ts"
         },
+        "./config/*": {
+            "import": "./config/*.mjs",
+            "require": "./config/*.js",
+            "types": "./config/*.d.ts"
+        },
         "./helpers/*": {
             "import": "./helpers/*.mjs",
             "require": "./helpers/*.js",
