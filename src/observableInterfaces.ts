@@ -184,6 +184,7 @@ export interface PersistOptionsRemote<T = any> {
         ignoreKeys?: string[];
         dateModifiedKey?: string;
     };
+    onBeforeSaveRemote?: () => void;
     onSaveRemote?: () => void;
 }
 export interface PersistOptions<T = any> {
