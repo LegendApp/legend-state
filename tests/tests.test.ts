@@ -1127,6 +1127,18 @@ describe('Array', () => {
         obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([1, 2, 3, 4, 5]);
     });
+    test('Array swap notifies if not shallow listener', () => {
+        const obs = observable([{ id: 1 }, { id: 2 }]);
+        const handlerItem = expectChangeHandler(obs);
+
+        obs.set([{ id: 2 }, { id: 1 }]);
+
+        expect(handlerItem).toHaveBeenCalledWith(
+            [{ id: 2 }, { id: 1 }],
+            [{ id: 1 }, { id: 2 }],
+            [{ path: [], pathTypes: [], valueAtPath: [{ id: 2 }, { id: 1 }], prevAtPath: [{ id: 1 }, { id: 2 }] }]
+        );
+    });
     test('Array set', () => {
         interface Data {
             test: Array<{ id: number }>;
