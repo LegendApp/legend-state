@@ -454,9 +454,13 @@ export function onChangeRemote(cb: () => void) {
             persistState.inRemoteSync.set(true);
             tracking.inRemoteChange = true;
 
-            batch(cb, () => {
-                tracking.inRemoteChange = false;
-                persistState.inRemoteSync.set(false);
+            batch(cb, {
+                onPriorityComplete: () => {
+                    tracking.inRemoteChange = false;
+                },
+                onComplete: () => {
+                    persistState.inRemoteSync.set(false);
+                },
             });
         }
     );
@@ -549,8 +553,10 @@ async function loadLocal<T>(
                     // We want to merge the local data on top of any initial state the object is created with
                     mergeIntoObservable(obs, value);
                 },
-                () => {
-                    isMergingLocalData = false;
+                {
+                    onPriorityComplete: () => {
+                        isMergingLocalData = false;
+                    },
                 }
             );
         }
@@ -691,7 +697,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
     }
 
     when(obsState.isLoadedLocal, () => {
-        obs.onChange(onObsChange.bind(this, obs, obsState, localState, persistOptions));
+        obs.onChange(onObsChange.bind(this, obs, obsState, localState, persistOptions), { priority: true });
     });
 
     return obsState;
