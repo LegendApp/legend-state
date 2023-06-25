@@ -48,7 +48,13 @@ export interface ObservableBaseFns<T> {
     get(trackingType?: TrackingType): T;
     onChange(
         cb: ListenerFn<T>,
-        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
+        options?: {
+            trackingType?: TrackingType;
+            initial?: boolean;
+            immediate?: boolean;
+            noArgs?: boolean;
+            priority?: boolean;
+        }
     ): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
@@ -351,9 +357,10 @@ export type ObservableWriteable<T = any> = ObservableReadable<T> & {
 };
 
 export interface NodeValueListener {
+    listener: ListenerFn;
     track: TrackingType;
     noArgs?: boolean;
-    listener: ListenerFn;
+    priority?: boolean;
 }
 
 interface BaseNodeValue {

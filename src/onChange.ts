@@ -4,9 +4,15 @@ import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './o
 export function onChange(
     node: NodeValue,
     callback: ListenerFn<any>,
-    options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {}
+    options: {
+        trackingType?: TrackingType;
+        initial?: boolean;
+        immediate?: boolean;
+        priority?: boolean;
+        noArgs?: boolean;
+    } = {}
 ): () => void {
-    const { initial, immediate, noArgs } = options;
+    const { initial, immediate, priority, noArgs } = options;
     let { trackingType } = options;
 
     // Temporary migration of string to symbol
@@ -19,14 +25,11 @@ export function onChange(
         trackingType = optimized;
     }
 
-    let listeners = immediate ? node.listenersImmediate : node.listeners;
+    const listenersName: keyof NodeValue = immediate ? 'listenersImmediate' : 'listeners';
+
+    let listeners = node[listenersName];
     if (!listeners) {
-        listeners = new Set();
-        if (immediate) {
-            node.listenersImmediate = listeners;
-        } else {
-            node.listeners = listeners;
-        }
+        listeners = node[listenersName] = new Set();
     }
     checkActivate(node);
 
@@ -34,6 +37,7 @@ export function onChange(
         listener: callback,
         track: trackingType,
         noArgs,
+        priority,
     };
 
     listeners.add(listener);

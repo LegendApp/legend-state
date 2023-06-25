@@ -2454,6 +2454,26 @@ describe('Error detection', () => {
         expect(console.error).toHaveBeenCalledTimes(1);
     });
 });
+describe('Priority', () => {
+    test('With no priority listeners run in order', () => {
+        const obs = observable({ test: { text: 't' }, arr: [] });
+        let whichFirst = 0;
+        obs.onChange(() => !whichFirst && (whichFirst = 1));
+        obs.onChange(() => !whichFirst && (whichFirst = 2));
+
+        obs.test.text.set('hi');
+        expect(whichFirst).toEqual(1);
+    });
+    test('With priority listeners run in priority order', () => {
+        const obs = observable({ test: { text: 't' }, arr: [] });
+        let whichFirst = 0;
+        obs.onChange(() => !whichFirst && (whichFirst = 1));
+        obs.onChange(() => !whichFirst && (whichFirst = 2), { priority: true });
+
+        obs.test.text.set('hi');
+        expect(whichFirst).toEqual(2);
+    });
+});
 describe('Functions', () => {
     test('Functions work normally', () => {
         let count = 0;

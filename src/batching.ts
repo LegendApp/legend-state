@@ -19,6 +19,7 @@ let numInBatch = 0;
 let isRunningBatch = false;
 let didDelayEndBatch = false;
 let _afterBatch: (() => void)[] = [];
+let _afterPriorityBatch: (() => void)[] = [];
 let _batchMap = new Map<NodeValue, BatchItem2>();
 
 function onActionTimeout() {
@@ -176,6 +177,8 @@ function computeChangesRecursive(
 
 function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
     const listenersNotified = new Set<ListenerFn>();
+    const runPriority: [ListenerFn, ListenerParams<any>][] = [];
+    const runNormal: [ListenerFn, ListenerParams<any>][] = [];
     // For each change in the batch, notify all of the listeners
     changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
         const listeners = immediate ? node.listenersImmediate : node.listeners;
@@ -185,7 +188,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
             const arr = Array.from(listeners);
             for (let i = 0; i < arr.length; i++) {
                 const listenerFn = arr[i];
-                const { track, noArgs, listener } = listenerFn;
+                const { listener, priority, track, noArgs } = listenerFn;
                 if (!listenersNotified.has(listener)) {
                     const ok =
                         track === true || track === 'shallow'
@@ -209,12 +212,30 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                             listenersNotified.add(listener);
                         }
 
-                        listener(listenerParams);
+                        (priority ? runPriority : runNormal).push([listener, listenerParams]);
                     }
                 }
             }
         }
     });
+
+    for (let i = 0; i < runPriority.length; i++) {
+        const r = runPriority[i];
+        r[0](r[1]);
+    }
+
+    const afterPriority = _afterPriorityBatch;
+    if (afterPriority.length) {
+        for (let i = 0; i < afterPriority.length; i++) {
+            afterPriority[i]();
+        }
+        _afterPriorityBatch = [];
+    }
+
+    for (let i = 0; i < runNormal.length; i++) {
+        const r = runNormal[i];
+        r[0](r[1]);
+    }
 }
 
 export function runBatch() {
@@ -232,9 +253,15 @@ export function runBatch() {
     batchNotifyChanges(changesInBatch, false);
 }
 
-export function batch(fn: () => void, onComplete?: () => void) {
-    if (onComplete) {
-        _afterBatch.push(onComplete);
+export function batch(fn: () => void, options?: { onPriorityComplete?: () => void; onComplete?: () => void }) {
+    if (options) {
+        const { onPriorityComplete, onComplete } = options;
+        if (onPriorityComplete) {
+            _afterPriorityBatch.push(onPriorityComplete);
+        }
+        if (onComplete) {
+            _afterBatch.push(onComplete);
+        }
     }
     beginBatch();
     try {
@@ -267,7 +294,7 @@ export function endBatch(force?: boolean) {
             // This can happen with observableComputed for example.
             const after = _afterBatch;
             if (after.length) {
-            _afterBatch = [];
+                _afterBatch = [];
             }
             isRunningBatch = true;
 
