@@ -267,7 +267,7 @@ export function endBatch(force?: boolean) {
             // This can happen with observableComputed for example.
             const after = _afterBatch;
             if (after.length) {
-            _afterBatch = [];
+                _afterBatch = [];
             }
             isRunningBatch = true;
 
