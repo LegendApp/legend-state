@@ -1,3 +1,26 @@
+## 1.2.11
+
+- Fix: detection of circular references was having false positives if references existed in multiple places in the hierarchy
+- Fix: Crash in proxy trap with nested calls to assign (part 2)
+
+## 1.2.10
+
+- Fix: Crash in proxy trap with nested calls to assign
+
+## 1.2.9
+
+- Perf: A small optimization in For to skip Object.assign if there's no itemProps
+- Perf: Change merge of pending data on load to use setAtPath instead of mergeIntoObservable
+- Misc: Add some warnings when setting an observable directly
+
+## 1.2.8
+
+- Fix: Remove peerDependencies which was causing issues in some environments
+
+## 1.2.7
+
+- Fix: Potential crash in persistence if pathTypes comes from persistence undefined
+
 ## 1.2.6
 
 - Fix: _arr in fieldTransforms not working for strings
