@@ -1,5 +1,5 @@
 import { checkActivate, getNodeValue, optimized } from './globals';
-import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
+import type { ListenerFn, NodeValue, NodeValueListener, Observable, TrackingType } from './observableInterfaces';
 
 export function onChange(
     node: NodeValue,
@@ -58,6 +58,7 @@ export function onChange(
                 },
             ],
             getPrevious: () => undefined,
+            source: node.root.obs as Observable<any>,
         });
     }
 

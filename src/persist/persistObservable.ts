@@ -677,6 +677,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                         // TODO getPrevious if any remote persistence layers need it
                         getPrevious: () => undefined,
                         changes,
+                        source: obs as Observable<any>,
                     });
                     localState.isApplyingPending = false;
                 }

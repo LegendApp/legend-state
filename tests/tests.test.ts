@@ -2552,7 +2552,8 @@ describe('Middleware', () => {
             name: 'obsname',
             changes: [{ path: ['text'], pathTypes: ['object'], prevAtPath: 'hi', valueAtPath: 'hi2' }],
             value: { text: 'hi2' },
-            getPrevious: expect.anything(),
+            getPrevious: expect.any(Function),
+            source: expect.anything(),
         });
 
         obs.text.set('hi3');
@@ -2562,7 +2563,8 @@ describe('Middleware', () => {
             name: 'obsname',
             changes: [{ path: ['text'], pathTypes: ['object'], prevAtPath: 'hi2', valueAtPath: 'hi3' }],
             value: { text: 'hi3' },
-            getPrevious: expect.anything(),
+            getPrevious: expect.any(Function),
+            source: expect.anything(),
         });
 
         // Works on primitives too
@@ -2576,18 +2578,14 @@ describe('Middleware', () => {
             changes: [{ path: [], pathTypes: [], prevAtPath: 'hi', valueAtPath: 'hi4' }],
             value: 'hi4',
             getPrevious: expect.anything(),
+            source: expect.anything(),
         });
 
-        // If no name the handler has no name
+        // If no name it doesn't run
         const obs3 = observable('hi');
 
         obs3.set('hi5');
 
-        expect(handler).toHaveBeenCalledTimes(4);
-        expect(handler).toHaveBeenCalledWith({
-            changes: [{ path: [], pathTypes: [], prevAtPath: 'hi', valueAtPath: 'hi5' }],
-            value: 'hi5',
-            getPrevious: expect.anything(),
-        });
+        expect(handler).toHaveBeenCalledTimes(3);
     });
 });

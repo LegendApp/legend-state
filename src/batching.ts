@@ -1,6 +1,6 @@
 import { getNodeValue, optimized } from './globals';
 import { isArray } from './is';
-import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
+import type { Change, ListenerFn, ListenerParams, NodeValue, Observable, TypeAtPath } from './observableInterfaces';
 
 export interface BatchItem2 {
     value: any;
@@ -203,6 +203,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                                 value,
                                 getPrevious: createPreviousHandler(value, changes),
                                 changes,
+                                source: node.root.obs as Observable<any>,
                             };
                         }
 

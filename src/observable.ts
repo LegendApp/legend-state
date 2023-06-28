@@ -636,6 +636,8 @@ function createObservable<T>(
             ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
             : (getProxy(node) as ObservableObjectOrArray<T>);
 
+    node.root.obs = obs;
+
     if (valueIsPromise) {
         value.catch((error) => {
             obs.set({ error } as any);
