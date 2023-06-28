@@ -9,7 +9,7 @@ export function configureLegendState({
 }: {
     observableFunctions?: Record<string, (node: NodeValue, ...args: any[]) => any>;
     observableProperties?: Record<string, { get: (node: NodeValue) => any; set: (node: NodeValue, value: any) => any }>;
-    middleware?: ListenerFn<any>;
+    middleware?: ListenerFn;
 }) {
     if (observableFunctions) {
         for (const key in observableFunctions) {

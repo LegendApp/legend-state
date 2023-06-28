@@ -3,7 +3,7 @@ import { onChange } from './onChange';
 
 export function setupTracking(
     nodes: Map<NodeValue, TrackingNode> | undefined,
-    update: ListenerFn<any>,
+    update: ListenerFn,
     noArgs?: boolean,
     immediate?: boolean
 ) {

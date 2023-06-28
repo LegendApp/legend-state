@@ -79,7 +79,7 @@ export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) =
     ['toggle', toggle],
 ]);
 
-export const observableMiddlewares: ListenerFn<any>[] = [];
+export const observableMiddlewares: ListenerFn[] = [];
 
 if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     // eslint-disable-next-line no-var
