@@ -199,6 +199,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                         // Create listenerParams if not already created
                         if (!noArgs && !listenerParams) {
                             listenerParams = {
+                                name: node.root.name,
                                 value,
                                 getPrevious: createPreviousHandler(value, changes),
                                 changes,

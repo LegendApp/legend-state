@@ -2543,12 +2543,13 @@ describe('Middleware', () => {
     test('Middleware listens to all observables', () => {
         const handler = jest.fn();
         addMiddleware(handler);
-        const obs = observable({ text: 'hi' });
+        const obs = observable({ text: 'hi' }, 'obsname');
 
         obs.text.set('hi2');
 
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith({
+            name: 'obsname',
             changes: [{ path: ['text'], pathTypes: ['object'], prevAtPath: 'hi', valueAtPath: 'hi2' }],
             value: { text: 'hi2' },
             getPrevious: expect.anything(),
@@ -2558,20 +2559,34 @@ describe('Middleware', () => {
 
         expect(handler).toHaveBeenCalledTimes(2);
         expect(handler).toHaveBeenCalledWith({
+            name: 'obsname',
             changes: [{ path: ['text'], pathTypes: ['object'], prevAtPath: 'hi2', valueAtPath: 'hi3' }],
             value: { text: 'hi3' },
             getPrevious: expect.anything(),
         });
 
         // Works on primitives too
-        const obs2 = observable('hi');
+        const obs2 = observable('hi', 'obsname2');
 
         obs2.set('hi4');
 
         expect(handler).toHaveBeenCalledTimes(3);
         expect(handler).toHaveBeenCalledWith({
+            name: 'obsname2',
             changes: [{ path: [], pathTypes: [], prevAtPath: 'hi', valueAtPath: 'hi4' }],
             value: 'hi4',
+            getPrevious: expect.anything(),
+        });
+
+        // If no name the handler has no name
+        const obs3 = observable('hi');
+
+        obs3.set('hi5');
+
+        expect(handler).toHaveBeenCalledTimes(4);
+        expect(handler).toHaveBeenCalledWith({
+            changes: [{ path: [], pathTypes: [], prevAtPath: 'hi', valueAtPath: 'hi5' }],
+            value: 'hi5',
             getPrevious: expect.anything(),
         });
     });

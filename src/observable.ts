@@ -615,14 +615,16 @@ function deleteFn(node: NodeValue, key?: string) {
     setKey(node, key as string, symbolDelete, /*level*/ -1);
 }
 
-function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
+function createObservable<T>(value?: T | Promise<T>, name?: string, makePrimitive?: true): ObservablePrimitive<T>;
 function createObservable<T>(
     value?: T | Promise<T>,
+    name?: string,
     makePrimitive?: boolean
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const valueIsPromise = isPromise<T>(value);
     const root: ObservableRoot = {
         _: valueIsPromise ? undefined : value,
+        name,
     };
 
     const node: NodeValue = {
@@ -652,12 +654,12 @@ function createObservable<T>(
     return obs;
 }
 
-export function observable<T>(value?: T | Promise<T>): Observable<T> {
-    return createObservable(value) as Observable<T>;
+export function observable<T>(value?: T | Promise<T>, name?: string): Observable<T> {
+    return createObservable(value, name) as Observable<T>;
 }
 
-export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
-    return createObservable<T>(value, /*makePrimitive*/ true);
+export function observablePrimitive<T>(value?: T | Promise<T>, name?: string): ObservablePrimitive<T> {
+    return createObservable<T>(value, name, /*makePrimitive*/ true);
 }
 
 function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>);

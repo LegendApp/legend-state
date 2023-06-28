@@ -90,6 +90,7 @@ export interface ListenerParams<T = any> {
     value: T;
     getPrevious: () => T;
     changes: Change[];
+    name?: string;
 }
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
@@ -314,6 +315,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableRoot {
     _: any;
     locked?: boolean;
+    name?: string;
     set?: (value: any) => void;
     activate?: () => void;
 }

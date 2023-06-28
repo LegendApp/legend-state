@@ -47,6 +47,7 @@ export function onChange(
     if (initial) {
         const value = getNodeValue(node);
         callback({
+            name: node.root.name,
             value,
             changes: [
                 {
