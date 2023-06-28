@@ -2,10 +2,10 @@ import { symbolIsEvent, symbolIsObservable } from './globals';
 import { observable } from './observable';
 import type { ObservableEvent } from './observableInterfaces';
 
-export function event(): ObservableEvent {
+export function event(name?: string): ObservableEvent {
     // event simply wraps around a number observable
     // which increments its value to dispatch change events
-    const obs = observable(0);
+    const obs = observable(0, name);
     return {
         fire: function () {
             // Notify increments the value so that the observable changes

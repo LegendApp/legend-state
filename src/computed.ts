@@ -1,21 +1,28 @@
 import { batch } from './batching';
 import { getNode, lockObservable } from './helpers';
-import { isPromise } from './is';
+import { isPromise, isString } from './is';
 import { observable, set as setBase } from './observable';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
 
-export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
+export function computed<T>(compute: () => T | Promise<T>, name?: string): ObservableComputed<T>;
 export function computed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set: (value: T2) => void
+    set: (value: T2) => void,
+    name?: string
 ): ObservableComputedTwoWay<T, T2>;
 export function computed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set?: (value: T2) => void
+    set?: string | ((value: T2) => void),
+    name?: string
 ): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
+    if (!name && isString(set)) {
+        name = set;
+        set = undefined;
+    }
+
     // Create an observable for this computed variable
-    const obs = observable<T>();
+    const obs = observable<T>(undefined, name);
     lockObservable(obs, true);
 
     // Lazily activate the observable when get is called
@@ -44,7 +51,7 @@ export function computed<T, T2 = T>(
 
     if (set) {
         node.root.set = (value: any) => {
-            batch(() => set(value));
+            batch(() => (set as (value: T2) => void)(value));
         };
     }
 
