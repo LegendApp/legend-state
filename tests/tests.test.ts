@@ -2,6 +2,7 @@
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
+import { addMiddleware } from '../src/config/addMiddleware';
 import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { event } from '../src/event';
@@ -2509,6 +2510,7 @@ describe('Extend observableFunctions', () => {
         expect(prim.testfn(1, 'hi')).toEqual('0hi');
     });
 });
+
 describe('$', () => {
     test('$ works like get()', () => {
         const obs = observable({ value: 'hi' });
@@ -2534,5 +2536,43 @@ describe('$', () => {
         obs.$ = 1;
 
         expect(obs.$).toEqual(1);
+    });
+});
+
+describe('Middleware', () => {
+    test('Middleware listens to all observables', () => {
+        const handler = jest.fn();
+        addMiddleware(handler);
+        const obs = observable({ text: 'hi' });
+
+        obs.text.set('hi2');
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith({
+            changes: [{ path: ['text'], pathTypes: ['object'], prevAtPath: 'hi', valueAtPath: 'hi2' }],
+            value: { text: 'hi2' },
+            getPrevious: expect.anything(),
+        });
+
+        obs.text.set('hi3');
+
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler).toHaveBeenCalledWith({
+            changes: [{ path: ['text'], pathTypes: ['object'], prevAtPath: 'hi2', valueAtPath: 'hi3' }],
+            value: { text: 'hi3' },
+            getPrevious: expect.anything(),
+        });
+
+        // Works on primitives too
+        const obs2 = observable('hi');
+
+        obs2.set('hi4');
+
+        expect(handler).toHaveBeenCalledTimes(3);
+        expect(handler).toHaveBeenCalledWith({
+            changes: [{ path: [], pathTypes: [], prevAtPath: 'hi', valueAtPath: 'hi4' }],
+            value: 'hi4',
+            getPrevious: expect.anything(),
+        });
     });
 });

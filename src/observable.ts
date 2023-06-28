@@ -28,6 +28,7 @@ import {
 } from './is';
 import type {
     ChildNodeValue,
+    ListenerFn,
     NodeValue,
     Observable,
     ObservableObjectOrArray,
@@ -77,6 +78,8 @@ export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) =
     ['delete', deleteFn],
     ['toggle', toggle],
 ]);
+
+export const observableMiddlewares: ListenerFn<any>[] = [];
 
 if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     // eslint-disable-next-line no-var
@@ -638,6 +641,12 @@ function createObservable<T>(
         value.then((value) => {
             obs.set(value);
         });
+    }
+
+    if (observableMiddlewares.length) {
+        for (let i = 0; i < observableMiddlewares.length; i++) {
+            obs.onChange(observableMiddlewares[i]);
+        }
     }
 
     return obs;

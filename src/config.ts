@@ -1,13 +1,15 @@
-import { observableFns, observableProperties as _observableProperties } from './observable';
-import type { NodeValue } from './observableInterfaces';
+import { observableFns, observableMiddlewares, observableProperties as _observableProperties } from './observable';
+import type { ListenerFn, NodeValue } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 
 export function configureLegendState({
     observableFunctions,
     observableProperties,
+    middleware,
 }: {
     observableFunctions?: Record<string, (node: NodeValue, ...args: any[]) => any>;
     observableProperties?: Record<string, { get: (node: NodeValue) => any; set: (node: NodeValue, value: any) => any }>;
+    middleware?: ListenerFn<any>;
 }) {
     if (observableFunctions) {
         for (const key in observableFunctions) {
@@ -31,6 +33,11 @@ export function configureLegendState({
                     return fns.set.call(this, this._node, value);
                 },
             });
+        }
+    }
+    if (middleware) {
+        if (!observableMiddlewares.includes(middleware)) {
+            observableMiddlewares.push(middleware);
         }
     }
 }
