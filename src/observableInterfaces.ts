@@ -311,7 +311,7 @@ export type Selector<T> = ObservableReadable<T> | (() => T) | T;
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
 
-export interface ObservableWrapper {
+export interface ObservableRoot {
     _: any;
     locked?: boolean;
     set?: (value: any) => void;
@@ -360,7 +360,7 @@ interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
     isActivatedPrimitive?: boolean;
-    root: ObservableWrapper;
+    root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
