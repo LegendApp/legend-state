@@ -1,5 +1,75 @@
-This page contains unreleased experiments for sharing and getting feedback before they're fully released. There are currently no experiments in progress.
+This page contains experiments for sharing and getting feedback before they're fully released.
 
-### Previous experiments:
+## Configuring extra features
 
-1. [Isolate and Memo](../reactivity)
+Starting in version 1.3.0 the following configuration options are available. We see this pattern as a good way to enable some useful features that only some users would want, and to allow for a library of plugins that enable extra features on top of observables.
+
+These functions:
+
+1. Add a function or property to all observables
+2. Augment the Observable TypeScript interface to add the functions, so just importing the file adds the interface
+
+### enableDirectAccess
+
+This enables accessing and setting the raw value of an observable directly. It's a shorthand for `get()` and `set(...)`.
+
+```js
+import { observable } from '@legendapp/state';
+import { enableDirectAccess } from '@legendapp/state/config/enableDirectAccess';
+enableDirectAccess()
+
+const obs = observable({ test: 'hi', num: 0 })
+
+// $ is a shorthand for get()
+const testValue = obs.test.$
+
+// Assign to $ as a shorthand for set()
+obs.test.$ = 'hello'
+
+// Assign objects too just like you can with set()
+obs.$ = { test: 'hello' }
+
+// Incrementing works as you'd expect
+obs.$ ++
+```
+
+### enableReactDirectRender
+
+This enables rendering observables directly into React, which creates an element that's reactive to the observable changing. This replaces `enableLegendStateReact()`, which will be deprecated in later versions.
+
+```jsx
+import { observable } from '@legendapp/state';
+import { enableReactDirectRender } from '@legendapp/state/config/enableReactDirectRender';
+enableReactDirectRender()
+
+const obs = observable({ test: 'hi' })
+
+function Component() {
+    // The observable can now be rendered directly to create a self-reactive elemtn
+    return <div>{obs.test}</div>
+}
+```
+
+### enableReactUse
+
+This adds a `use()` function to all observables, which gets the value and makes the component reactive to the observable changing. It simply runs `useSelector(obs)` under the hood.
+
+```jsx
+import { observable } from '@legendapp/state';
+import { enableReactUse } from '@legendapp/state/config/enableReactUse';
+enableReactUse()
+
+const obs = observable({ test: 'hi' })
+
+function Component() {
+    // This makes this component responsive to test changing
+    const test = obs.test.use()
+
+    return <div>{test}</div>
+}
+```
+
+
+## Previous experiments
+
+1. [Computed and Memo](../reactivity)
