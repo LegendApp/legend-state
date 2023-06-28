@@ -43,7 +43,16 @@ import { useSelector } from "@legendapp/state/react"
 const state = observable({ selected: 1 })
 
 const Component = ({ id }) => {
+    // Track all observables accessed with a selector function
     const isSelected = useSelector(() => id === state.selected.get())
+    // Only re-renders if the return value changes
+
+    return <div>Is selected: {isSelected}</div>
+}
+
+const App = ({ id }) => {
+    // Track a single observable directly
+    const selected = useSelector(state.selected)
     // Only re-renders if the return value changes
 
     return <div>Selected: {isSelected}</div>
@@ -68,6 +77,7 @@ For brevity this example has one global state object.
 '/State.js': { active: true, code: `
 import { observable } from '@legendapp/state'
 import { persistObservable } from '@legendapp/state/persist'
+import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
 
 export const State = observable({
   settings: {
@@ -85,7 +95,8 @@ export const State = observable({
 
 // Persist state
 persistObservable(State, {
-  local: 'example'
+  local: 'example',
+  persistLocal: ObservablePersistLocalStorage,
 })
 `},
 '/App.js': `

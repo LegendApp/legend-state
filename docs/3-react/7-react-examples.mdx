@@ -8,6 +8,7 @@ This example creates a global state object and persists it to Local Storage. Try
 '/State.js': { active: true, code: `
 import { observable } from '@legendapp/state'
 import { persistObservable } from '@legendapp/state/persist'
+import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
 
 export const State = observable({
   settings: {
@@ -21,7 +22,8 @@ export const State = observable({
 })
 
 persistObservable(State, {
-  local: 'example'
+  local: 'example',
+  persistLocal: ObservablePersistLocalStorage,
 })
 
 `},

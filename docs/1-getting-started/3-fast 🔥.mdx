@@ -2,7 +2,7 @@ Legend-State is the result of dozens of experiments and rewrites to build the fa
 
 It may seem silly to quibble over milliseconds, but state is a hot path of most applications, so it's important that it be as fast as possible to keep your whole application snappy.
 
-We'll show results of the popular [krausest](https://github.com/krausest/js-framework-benchmark) benchmark and use that to describe why Legend-State is so fast.
+We'll show results of the popular [krausest](https://github.com/krausest/js-framework-benchmark) benchmark and use that to describe why Legend-State is so fast. This benchmark is a good approximation of real-world performance, but the most important optimization in Legend-State is that it just does less work because it renders less, less often.
 
 ## Benchmark
 
@@ -10,7 +10,7 @@ We'll show results of the popular [krausest](https://github.com/krausest/js-fram
 
 Legend-State's "optimized" mode (on the left) optimizes for rendering each row when it changes, but not the entire list, which is reflected in the fast "partial update" and "select row" benchmarks. That typically incurs an extra upfront cost to set up the listeners in each row, but Legend-State is so optimized that even so it's actually still the fastest in the "create many rows" benchmark.
 
-Legend-State really shines in the "replace all rows" and "swap rows" benchmarks. When no elements are added or removed, it does not need to re-render the list and renders the individual rows that changed. That brings a big speed improvement for drag/drop or when items are moved around in a list.
+Legend-State really shines in the "replace all rows" and "swap rows" benchmarks. When no elements are added or removed, it does not need to re-render the list and can only render the individual rows that changed. That brings a big speed improvement for drag/drop or when items are moved around in a list.
 
 You can opt into the fast array rendering with the "optimize" prop on the [For](../fine-grained-reactivity#for) component.
 
@@ -18,7 +18,7 @@ You can opt into the fast array rendering with the "optimize" prop on the [For](
 
 <img src="/img/dev/state/startup.png" style={{ borderRadius: '1rem' }} />
 
-In these benchmarks you can see that Legend-State has the fastest TTI (time to interactive) and lowest CPU cost, because Legend-State doesn't do much processing up front. Creating observables and adding thousands of listeners does very little work. Because observables don't have to modify the underlying data at all, creating an observable just creates a tiny amount of metadata.
+In these benchmarks you can see that Legend-State has the fastest TTI (time to interactive) because Legend-State doesn't do much processing up front. Creating observables and adding thousands of listeners does very little work. Because observables don't have to modify the underlying data at all, creating an observable just creates a tiny amount of metadata.
 
 ### Memory
 
@@ -32,7 +32,9 @@ Legend-State is optimized in a lot of different ways:
 
 ### Proxy to path
 
-Legend-State uses [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy), which is how it exposes the observable functions (get/set/listen etc...) on anything within state. But it differs from other Proxy-based systems by not touching the underlying data all. Each proxy node represents a path within the object tree, and to get the value of any node it traverses the raw data to that path and returns the value. So every node within the state object stores minimal metadata, and never has to modify or clone the underlying data, which keeps object creation to a minimum and memory usage down.
+Legend-State uses [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy), which is how it exposes the observable functions (get/set/listen etc...) on anything within an observable object. But it differs from other Proxy-based systems by not touching the underlying data all. Each proxy node represents a path within the object tree, and to get the value of any node it traverses the raw data to that path and returns the value. So every node within the state object stores minimal metadata, and never has to modify or clone the underlying data, which keeps object creation to a minimum and memory usage down.
+
+Proxying by path also enables some really interesting list optimizations: in the For component's optimized mode, the Proxy object for the observable references an index in the array. So when array elements rearrange, the existing Proxy nodes can be updated to point to their new indices, and we can render only the changed/ moved elements and skip rendering the full array.
 
 ### Listeners at each node
 

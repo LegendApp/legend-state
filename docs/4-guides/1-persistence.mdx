@@ -2,7 +2,7 @@ A primary goal of Legend-State is to make automatic persistence easy. We use Leg
 
 Persistence plugins listen for all changes within an object and write them to local or remote storage.
 
-Legend-State currently ships with local plugins for Local Storage and IndexedDB on web and `react-native-mmkv` in React Native, and a remote plugin for Firebase is coming soon.
+Legend-State currently ships with local plugins for Local Storage and IndexedDB on web and `react-native-mmkv` in React Native, and remote plugins for Firebase and Firestore are coming soon.
 
 ## persistObservable
 
@@ -117,7 +117,7 @@ If you are on React Native you will need to install `react-native-mmvk` too:
 
 ## Coming soon
 
-We are working on a remote persistence plugin for Firebase for both web and React Native. It is more complex, because it include conflicts resolution and extensive optimization, so it needs some more work before it's ready for release. Please [let us know](https://github.com/LegendApp/legend-state/issues/5) if you'd like us to hurry up with that.
+We are working on remote persistence plugins for Firebase and Firestore for both web and React Native. They are more complex, because they include conflict resolution and extensive optimization, so they need some more work before they're ready for release. Please [let us know](https://github.com/LegendApp/legend-state/issues/5) if you'd like us to hurry up with that.
 
 We will create a local persistence plugin for IndexedDB on web soon. For React Native we think that [`react-native-mmkv`](https://github.com/mrousavy/react-native-mmkv) is the best and fastest solution, but if you would like to use a different persistence layer, we would happily accept a [Pull Request](https://github.com/LegendApp/legend-state) to add it.
 
@@ -125,7 +125,7 @@ We will create a local persistence plugin for IndexedDB on web soon. For React N
 
 Local persistence plugins are very simple - all you need is `get`, `set`, and `delete`. See [ObservablePersistLocalStorage](https://github.com/LegendApp/legend-state/blob/main/src/persist-plugins/local-storage.ts) for an example of what it looks like. Then you can just pass your provider into `configureObservable`.
 
-Remote persistence plugins are more complex, and we have not quite locked down the API as we're finishing the Firebase plugin and building it into our apps. If you'd like to build your own please [post a GitHub issue](https://github.com/LegendApp/legend-state/issues) and we'll work with you on it.
+Remote persistence plugins are more complex, and we have not quite locked down the API as we're finishing the Firebase and Firestore plugins and building them into our apps. If you'd like to build your own please [post a GitHub issue](https://github.com/LegendApp/legend-state/issues) and we'll work with you on it.
 
 ## Contribute
 

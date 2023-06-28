@@ -22,7 +22,7 @@ obs.onChange(({ value, getPrevious, changes }) => {
 
 ### when and Show tweaked
 
-They were previously checking if the value is "ready", meaning it doesn't count if it's an empty object or empty array. They now do a standard javascript truthiness check as would be expected. For the previous behavior you can use `whenReady` or <Show ifReady={...}>
+They were previously checking if the value is "ready", meaning it doesn't count if it's an empty object or empty array. They now do a standard javascript truthiness check as would be expected. For the previous behavior you can use `whenReady` or `<Show ifReady={...}>`
 
 ### IndexedDB preloader removed
 
