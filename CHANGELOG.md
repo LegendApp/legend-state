@@ -1,3 +1,15 @@
+## 1.3.0
+
+See [https://legendapp.com/open-source/state/experiments/](https://legendapp.com/open-source/state/experiments/) for details about the new features in this version.
+
+- Feat: Ability to globally add functions/properties to observables
+- Feat: (experimental) `enableDirectAccess` enables a property on observables named $ as a shorthand for get/set
+- Feat: (experimental) `enableReactUse` enables a `use()` function on all observables to get the value of an observable and track it for changes within a React component
+- Feat: (experimental) `enableReactDirectRender` replaces `enableLegendStateReact` (will be deprecated in a later version)
+- Change: Reactive props will now start with $ instead of ending with $. Both work for now, but prop$ will be deprecated in a later version.
+- Fix: `afterBatch` was running after all recursive batches rather than just the current batch
+- Fix: Circular reference detection was failing on null values
+
 ## 1.2.11
 
 - Fix: detection of circular references was having false positives if references existed in multiple places in the hierarchy
