@@ -3,7 +3,7 @@ import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './o
 
 export function onChange(
     node: NodeValue,
-    callback: ListenerFn<any>,
+    callback: ListenerFn,
     options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {}
 ): () => void {
     const { initial, immediate, noArgs } = options;

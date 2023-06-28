@@ -32,7 +32,7 @@ import type {
     Observable,
     ObservableObjectOrArray,
     ObservablePrimitive,
-    ObservableWrapper as ObservableRoot,
+    ObservableRoot,
 } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
@@ -63,7 +63,12 @@ const ArrayLoopers = new Set<keyof Array<any>>([
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
 // eslint-disable-next-line @typescript-eslint/ban-types
-const objectFns = new Map<string, Function>([
+export const observableProperties = new Map<
+    string,
+    { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
+>();
+// eslint-disable-next-line @typescript-eslint/ban-types
+export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) => any>([
     ['get', get],
     ['set', set],
     ['peek', peek],
@@ -100,7 +105,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
-    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && isObject(obj)) {
         if (__devUpdateNodes.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
@@ -299,7 +304,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-function getProxy(node: NodeValue, p?: string) {
+export function getProxy(node: NodeValue, p?: string) {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
 
@@ -329,7 +334,7 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        const fn = objectFns.get(p);
+        const fn = observableFns.get(p);
         // If this is an observable function, call it
         if (fn) {
             return function (a: any, b: any, c: any) {
@@ -349,6 +354,11 @@ const proxyHandler: ProxyHandler<any> = {
                         return fn(node, a, b, c);
                 }
             };
+        }
+
+        const property = observableProperties.get(p);
+        if (property) {
+            return property.get(node);
         }
 
         const isValuePrimitive = isPrimitive(value);
@@ -451,15 +461,19 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(node);
         return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, prop) : undefined;
     },
-    set(node: NodeValue, prop: string, value) {
+    set(node: NodeValue, prop: string, value: any) {
         // If this assignment comes from within an observable function it's allowed
         if (node.isSetting) {
             return Reflect.set(node, prop, value);
         }
-
         if (node.isAssigning) {
             setKey(node, prop, value);
             return true;
+        }
+
+        const property = observableProperties.get(prop);
+        if (property) {
+            return property.set(node, value);
         }
 
         if (process.env.NODE_ENV === 'development') {
@@ -685,7 +699,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
             }
 
             // TODO: This is duplicated from proxy handler, how to dedupe with best performance?
-            const fn = objectFns.get(p);
+            const fn = observableFns.get(p);
             if (fn) {
                 // Array call and apply are slow so micro-optimize this hot path.
                 // The observable functions depends on the number of arguments so we have to

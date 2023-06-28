@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "1.2.11",
+    "version": "1.3.0-next.7",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
@@ -17,7 +17,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
+        "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && mkdir dist/types && cp src/types/* dist/types/ && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
         "postbuild": "node postbuild.mjs",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
@@ -76,6 +76,11 @@
             "require": "./history.js",
             "types": "./history.d.ts"
         },
+        "./config/*": {
+            "import": "./config/*.mjs",
+            "require": "./config/*.js",
+            "types": "./config/*.d.ts"
+        },
         "./helpers/*": {
             "import": "./helpers/*.mjs",
             "require": "./helpers/*.js",
@@ -93,6 +98,9 @@
         },
         "./types": {
             "types": "./types.d.ts"
+        },
+        "./types/babel": {
+            "types": "./types/babel.d.ts"
         },
         "./babel": "./babel.js"
     },
@@ -136,7 +144,7 @@
         "rollup": "^3.2.5",
         "ts-jest": "^29.0.5",
         "tslib": "^2.4.1",
-        "typescript": "^4.8.4"
+        "typescript": "^4.9.5"
     },
     "overrides": {
         "react": "18.2.0"

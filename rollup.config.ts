@@ -9,7 +9,7 @@ import pkg from './package.json' assert { type: 'json' };
 const Exclude = new Set(['.DS_Store']);
 
 export default Object.keys(pkg.exports)
-    .filter((exp) => exp !== './types')
+    .filter((exp) => !exp.startsWith('./types'))
     .flatMap((exp) => {
         if (exp.endsWith('json')) return;
 

@@ -305,4 +305,20 @@ describe('Two way Computed', () => {
         ]);
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Computed array sort', () => {
+        const obs = observable({ 1: { t: 1 }, 2: { t: 2 } });
+        const sort = observable(1);
+        const comp = computed(() => {
+            return Object.keys(obs.get()).sort((a, b) => (+a - +b) * sort.get());
+        });
+        const handler = expectChangeHandler(comp);
+
+        expect(comp.get()).toEqual(['1', '2']);
+
+        sort.set(-1);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        expect(comp.get()).toEqual(['2', '1']);
+    });
 });

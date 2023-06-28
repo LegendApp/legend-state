@@ -2,9 +2,14 @@ import { isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
 
-export type ShapeWith$<T> = Partial<T> & {
+type ShapeWithOld$<T> = {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
+// TODOV2: Remove ShapeWithOld
+export type ShapeWith$<T> = Partial<T> &
+    ShapeWithOld$<T> & {
+        [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
+    };
 
 export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
 
@@ -51,8 +56,9 @@ function createReactiveComponent<P = object>(
                     const p = props[key];
 
                     // Convert reactive props
-                    if (key.endsWith('$')) {
-                        const k = key.slice(0, -1);
+                    // TODOV2 Remove the deprecated endsWith option
+                    if (key.startsWith('$') || key.endsWith('$')) {
+                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and Listen to the selector for changes
                         propsOut[k] = useSelector(p);
 

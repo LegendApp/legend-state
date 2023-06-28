@@ -6,13 +6,14 @@ import {
     ObservablePrimitiveClass,
     ObservableReadable,
 } from '@legendapp/state';
+import { useSelector } from '@legendapp/state/react';
 import { createElement, memo } from 'react';
-import { hasSymbol } from './reactive-observer';
-import { useSelector } from './useSelector';
 let isEnabled = false;
 
-export function enableLegendStateReact() {
-    // TODOV2 Deprecate this and change to enableReactDirectRender() instead
+// Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
+export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
+
+export function enableReactDirectRender() {
     if (!isEnabled) {
         isEnabled = true;
 
@@ -68,4 +69,15 @@ export function enableLegendStateReact() {
 
         Object.defineProperties(ObservablePrimitiveClass.prototype, proto);
     }
+}
+
+// Types:
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { ObservableBaseFns } from '@legendapp/state';
+import type { ReactFragment } from 'react';
+
+declare module '@legendapp/state' {
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-unused-vars
+    interface ObservableBaseFns<T> extends ReactFragment {}
 }

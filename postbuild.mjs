@@ -7,7 +7,7 @@ const extensions = ['js', 'js.map', 'mjs', 'mjs.map'];
 
 Object.keys(pkg.exports).forEach((exp) => {
     // Adjust the rollup build to move the /* exports into a folder
-    if (exp.split('/').length > 2) {
+    if (exp.endsWith('*')) {
         const expPath = exp.replace('/*', '');
         const files = fs.readdirSync(path.join('src', expPath));
         const distPath = path.join('dist', expPath);

@@ -4,6 +4,7 @@
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, StrictMode, useReducer, useState } from 'react';
+import { enableReactDirectRender } from '../src/config/enableReactDirectRender';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
@@ -13,6 +14,8 @@ import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
+
+enableReactDirectRender();
 
 describe('useSelector', () => {
     test('useSelector basics', () => {
@@ -289,7 +292,6 @@ describe('For', () => {
         expect(items[0].id).toEqual('1');
     });
     test('Array insert has stable reference 2', () => {
-        enableLegendStateReact();
         type TestObject = { id: string; label: string };
         const obs = observable({
             items: [

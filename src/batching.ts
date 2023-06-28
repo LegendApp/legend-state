@@ -266,20 +266,24 @@ export function endBatch(force?: boolean) {
             // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
             // This can happen with observableComputed for example.
             const after = _afterBatch;
-            _afterBatch = [];
+            if (after.length) {
+                _afterBatch = [];
+            }
             isRunningBatch = true;
 
             runBatch();
 
             isRunningBatch = false;
 
+            // Run after functions at the end of this batch before running the next batch
+            for (let i = 0; i < after.length; i++) {
+                after[i]();
+            }
+
+            // If an endBatch was delayed run it now
             if (didDelayEndBatch) {
                 didDelayEndBatch = false;
                 endBatch(true);
-            }
-
-            for (let i = 0; i < after.length; i++) {
-                after[i]();
             }
         }
     }

@@ -1,13 +1,18 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
+import { configureLegendState } from '../src/config';
+import '../src/config/enableDirectAccess';
+import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { event } from '../src/event';
-import { symbolGetNode } from '../src/globals';
+import { getNodeValue, symbolGetNode } from '../src/globals';
 import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
-import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
+
+enableDirectAccess();
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -1121,6 +1126,18 @@ describe('Array', () => {
         obs.test[1].set(arr[4]);
         obs.test[4].set(tmp);
         expect(obs.test.get()).toEqual([1, 2, 3, 4, 5]);
+    });
+    test('Array swap notifies if not shallow listener', () => {
+        const obs = observable([{ id: 1 }, { id: 2 }]);
+        const handlerItem = expectChangeHandler(obs);
+
+        obs.set([{ id: 2 }, { id: 1 }]);
+
+        expect(handlerItem).toHaveBeenCalledWith(
+            [{ id: 2 }, { id: 1 }],
+            [{ id: 1 }, { id: 2 }],
+            [{ path: [], pathTypes: [], valueAtPath: [{ id: 2 }, { id: 1 }], prevAtPath: [{ id: 1 }, { id: 2 }] }]
+        );
     });
     test('Array set', () => {
         interface Data {
@@ -2470,5 +2487,52 @@ describe('Functions', () => {
         });
         obs.child.test(2);
         expect(count).toEqual(2);
+    });
+});
+
+describe('Extend observableFunctions', () => {
+    test('Extend observableFunctions works', () => {
+        configureLegendState({
+            observableFunctions: {
+                testfn: (node: NodeValue, arg1, arg2) => getNodeValue(node) + arg2,
+            },
+        });
+
+        const obs = observable({ value: 0 });
+
+        // @ts-expect-error Would need to add to types
+        expect(obs.value.testfn(1, 'hi')).toEqual('0hi');
+
+        const prim = observable(0);
+
+        // @ts-expect-error Would need to add to types
+        expect(prim.testfn(1, 'hi')).toEqual('0hi');
+    });
+});
+describe('$', () => {
+    test('$ works like get()', () => {
+        const obs = observable({ value: 'hi' });
+
+        expect(obs.value.$).toEqual('hi');
+    });
+    test('$ works like set()', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.value.$ = 'hello';
+
+        expect(obs.value.$).toEqual('hello');
+        expect(obs.value.get()).toEqual('hello');
+    });
+    test('$ works like set() with objects', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.test2.$ = { t: 'hello' };
+
+        expect(obs.test2.$).toEqual({ t: 'hello' });
+        expect(obs.test2.t.$).toEqual('hello');
+    });
+    test('$ works on primitives', () => {
+        const obs = observable(0);
+        obs.$ = 1;
+
+        expect(obs.$).toEqual(1);
     });
 });
