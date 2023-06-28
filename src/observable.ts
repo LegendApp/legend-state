@@ -33,7 +33,7 @@ import type {
     Observable,
     ObservableObjectOrArray,
     ObservablePrimitive,
-    ObservableWrapper as ObservableRoot,
+    ObservableRoot,
 } from './observableInterfaces';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { onChange } from './onChange';
