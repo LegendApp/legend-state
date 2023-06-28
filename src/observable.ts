@@ -105,7 +105,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
-    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && isObject(obj)) {
         if (__devUpdateNodes.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
