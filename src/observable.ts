@@ -645,7 +645,8 @@ function createObservable<T>(
         });
     }
 
-    if (observableMiddlewares.length) {
+    // If this observable is named and middlewares are setup, hook onChange into the middleware
+    if (name && observableMiddlewares.length) {
         for (let i = 0; i < observableMiddlewares.length; i++) {
             obs.onChange(observableMiddlewares[i]);
         }
