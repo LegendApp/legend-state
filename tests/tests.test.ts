@@ -2536,3 +2536,16 @@ describe('$', () => {
         expect(obs.$).toEqual(1);
     });
 });
+describe('Built-in functions', () => {
+    test('Adding observables should throw', () => {
+        const obs = observable({ x: 0, y: 0 });
+
+        const x = obs.x;
+        const y = obs.y;
+
+        expect(() => {
+            // @ts-expect-error Testing error
+            x + y;
+        }).toThrowError(/toPrimitive is not supported/);
+    });
+});

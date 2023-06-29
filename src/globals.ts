@@ -2,6 +2,7 @@ import { isChildNodeValue, isFunction, isObject } from './is';
 import { NodeValue, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
+export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolIsObservable = Symbol('isObservable');
 export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');

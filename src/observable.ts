@@ -14,6 +14,7 @@ import {
     symbolIsEvent,
     symbolIsObservable,
     symbolOpaque,
+    symbolToPrimitive,
 } from './globals';
 import {
     isActualPrimitive,
@@ -314,8 +315,15 @@ export function getProxy(node: NodeValue, p?: string) {
 
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeValue, p: any) {
-        // Return true if called by isObservable()
+        if (p === symbolToPrimitive) {
+            throw new Error(
+                process.env.NODE_ENV === 'development'
+                    ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
+                    : '[legend-state] observable is not a primitive.'
+            );
+        }
         if (p === symbolIsObservable) {
+            // Return true if called by isObservable()
             return true;
         }
         if (p === symbolIsEvent) {
