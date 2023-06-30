@@ -46,9 +46,9 @@ function createReactiveComponent<P = object>(
         render = render['type'];
     }
     // Unwrap forwardRef on the component
-    if (ReactForwardRefSymbol && (component as any)['$$typeof'] === ReactForwardRefSymbol) {
+    if (ReactForwardRefSymbol && (render as any)['$$typeof'] === ReactForwardRefSymbol) {
         useForwardRef = true;
-        render = (component as any)['render'];
+        render = (render as any)['render'];
         if (process.env.NODE_ENV === 'development' && typeof render !== 'function') {
             throw new Error(`[legend-state] \`render\` property of ForwardRef was not a function`);
         }
