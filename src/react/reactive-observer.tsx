@@ -27,13 +27,24 @@ function createReactiveComponent<P = object>(
         : // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
           typeof forwardRef === 'function' && forwardRef((props: any) => null)['$$typeof'];
 
+    const ReactMemoSymbol = hasSymbol
+        ? Symbol.for('react.memo')
+        : // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
+          typeof forwardRef === 'function' && memo((props) => null)['$$typeof'];
+
     // If this component is already reactive bail out early
     // This can happen with Fast Refresh.
     if ((component as any)['__legend_proxied']) return component;
 
     let useForwardRef = false;
+    let useMemo = false;
     let render = component;
 
+    // Unwrap memo on the component
+    if (ReactMemoSymbol && render['$$typeof'] === ReactMemoSymbol && render['type']) {
+        useMemo = true;
+        render = render['type'];
+    }
     // Unwrap forwardRef on the component
     if (ReactForwardRefSymbol && (component as any)['$$typeof'] === ReactForwardRefSymbol) {
         useForwardRef = true;
@@ -111,7 +122,7 @@ function createReactiveComponent<P = object>(
         ret = proxy;
     }
 
-    return observe ? memo(ret) : ret;
+    return observe || useMemo ? memo(ret) : ret;
 }
 
 export function observer<P = object>(component: FC<P>): FC<P> {
