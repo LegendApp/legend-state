@@ -1,3 +1,7 @@
+## 1.3.1
+
+- Fix: `reactive` was not working with some external packages like NativeBase
+
 ## 1.3.0
 
 See [https://legendapp.com/open-source/state/experiments/](https://legendapp.com/open-source/state/experiments/) for details about the new features in this version.
