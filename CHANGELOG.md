@@ -1,4 +1,4 @@
-## 1.3.1
+## 1.3.2
 
 - Fix: `reactive` was not working with some external packages like NativeBase
 
