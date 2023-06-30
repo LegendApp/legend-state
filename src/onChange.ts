@@ -10,6 +10,7 @@ export function onChange(
     let { trackingType } = options;
 
     // Temporary migration of string to symbol
+    // TODOV2 remove this
     if (trackingType === 'optimize') {
         if (process.env.NODE_ENV === 'development') {
             console.log(

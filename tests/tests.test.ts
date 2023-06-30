@@ -2546,6 +2546,6 @@ describe('Built-in functions', () => {
         expect(() => {
             // @ts-expect-error Testing error
             x + y;
-        }).toThrowError(/toPrimitive is not supported/);
+        }).toThrowError(/observable is not a primitive/);
     });
 });
