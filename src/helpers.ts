@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
-import { isArray, isEmpty, isFunction, isObject, isSymbol } from './is';
+import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
     ObservableChild,
@@ -49,8 +49,16 @@ export function lockObservable(obs: ObservableReadable, value: boolean) {
         root.locked = value;
     }
 }
-export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], value: any) {
+export function setAtPath<T extends object>(
+    obj: T,
+    path: string[],
+    pathTypes: TypeAtPath[],
+    value: any,
+    fullObj?: T,
+    restore?: (path: string[], value: any) => void
+) {
     let o = obj;
+    let oFull = fullObj;
     if (path.length > 0) {
         for (let i = 0; i < path.length; i++) {
             const p = path[i];
@@ -60,10 +68,20 @@ export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], 
                 if (o[p] !== value) {
                     o[p] = value;
                 }
-            } else if (o[p] === undefined || o[p] === null || isSymbol(o[p])) {
+            } else if (o[p] === symbolDelete) {
+                // If this was previously deleted, restore it
+                if (oFull) {
+                    o[p] = oFull[p];
+                    restore?.(path.slice(0, i + 1), o[p]);
+                }
+                break;
+            } else if (o[p] === undefined || o[p] === null) {
                 o[p] = pathTypes[i] === 'array' ? [] : {};
             }
             o = o[p];
+            if (oFull) {
+                oFull = oFull[p];
+            }
         }
     } else {
         obj = value;
