@@ -1,3 +1,7 @@
+## 1.3.4
+
+- Feat: (experimental) `enableDirectPeek` enables a property on observables named _ as a shorthand for peek(), and assigning to it modifies the underlying object without notifying listeners of changes.
+
 ## 1.3.2
 
 - Fix: `reactive` was not working with some external packages like NativeBase

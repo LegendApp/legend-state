@@ -69,6 +69,27 @@ function Component() {
 }
 ```
 
+### enableDirectPeek
+
+This enables accessing and setting the raw value of an observable directly without tracking or notifying listeners. Getting with `._` is a shorthand for `peek()` and assigning to `._` modifies the underlying data without notifying. Modifying data without notifying is likely necessary in only very specific scenarios so use it with care.
+
+```js
+import { observable } from '@legendapp/state';
+import { enableDirectPeek } from '@legendapp/state/config/enableDirectPeek';
+enableDirectPeek()
+
+const obs = observable({ test: 'hi', num: 0 })
+
+// _ is a shorthand for peek()
+const testValue = obs.test._
+
+// Assign to _ to modify the underlying object without notifying listeners
+obs.test._ = 'hello'
+
+// Assign objects too
+obs._ = { test: 'hello' }
+```
+
 
 ## Previous experiments
 
