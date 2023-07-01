@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
-import { isArray, isEmpty, isFunction, isObject } from './is';
+import { isArray, isEmpty, isFunction, isObject, isSymbol } from './is';
 import type {
     NodeValue,
     ObservableChild,
@@ -60,7 +60,7 @@ export function setAtPath(obj: object, path: string[], pathTypes: TypeAtPath[], 
                 if (o[p] !== value) {
                     o[p] = value;
                 }
-            } else if (o[p] === undefined) {
+            } else if (o[p] === undefined || o[p] === null || isSymbol(o[p])) {
                 o[p] = pathTypes[i] === 'array' ? [] : {};
             }
             o = o[p];
