@@ -4,15 +4,17 @@ import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
 import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
+import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, symbolGetNode } from '../src/globals';
-import { isObservable, lockObservable, opaqueObject } from '../src/helpers';
+import { isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
 enableDirectAccess();
+enableDirectPeek();
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -2517,10 +2519,16 @@ describe('$', () => {
     });
     test('$ works like set()', () => {
         const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        const handler = expectChangeHandler(obs.value);
+
         obs.value.$ = 'hello';
 
         expect(obs.value.$).toEqual('hello');
         expect(obs.value.get()).toEqual('hello');
+
+        expect(handler).toHaveBeenCalledWith('hello', 'hi', [
+            { path: [], pathTypes: [], valueAtPath: 'hello', prevAtPath: 'hi' },
+        ]);
     });
     test('$ works like set() with objects', () => {
         const obs = observable({ value: 'hi', test2: { t: 'hi' } });
@@ -2536,6 +2544,37 @@ describe('$', () => {
         expect(obs.$).toEqual(1);
     });
 });
+describe('_', () => {
+    test('_ works like peek()', () => {
+        const obs = observable({ value: 'hi' });
+
+        expect(obs.value._).toEqual('hi');
+    });
+    test('_ works like setting directly with no notifying', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        const handler = expectChangeHandler(obs.value);
+
+        obs.value._ = 'hello';
+
+        expect(obs.value._).toEqual('hello');
+        expect(obs.value.peek()).toEqual('hello');
+
+        expect(handler).not.toHaveBeenCalled();
+    });
+    test('_ works like set() with objects', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.test2._ = { t: 'hello' };
+
+        expect(obs.test2._).toEqual({ t: 'hello' });
+        expect(obs.test2.t._).toEqual('hello');
+    });
+    test('_ works on primitives', () => {
+        const obs = observable(0);
+        obs._ = 1;
+
+        expect(obs._).toEqual(1);
+    });
+});
 describe('Built-in functions', () => {
     test('Adding observables should throw', () => {
         const obs = observable({ x: 0, y: 0 });
@@ -2547,5 +2586,22 @@ describe('Built-in functions', () => {
             // @ts-expect-error Testing error
             x + y;
         }).toThrowError(/observable is not a primitive/);
+    });
+});
+describe('setAtPath', () => {
+    test('At root', () => {
+        const value = {};
+
+        setAtPath(value, [], [], { x: true });
+    });
+    test('At one level deep', () => {
+        const value = {};
+
+        setAtPath(value, ['x'], ['object'], true);
+    });
+    test('Two levels deep', () => {
+        const value = { test: {} };
+
+        setAtPath(value, ['test', 'x'], ['object', 'object'], true);
     });
 });
