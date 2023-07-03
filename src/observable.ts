@@ -569,7 +569,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     const isPrim = isPrimitive(newValue) || newValue instanceof Date;
 
     try {
-        node.isSetting++;
+        node.isSetting = (node.isSetting || 0) + 1;
 
         // Save the new value
         if (isDelete) {
