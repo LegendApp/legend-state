@@ -1,6 +1,6 @@
+import { set } from './ObservableObject';
 import { get, peek, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
 import { isBoolean } from './is';
-import { set } from './observable';
 import type {
     ListenerFn,
     NodeValue,

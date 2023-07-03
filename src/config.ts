@@ -1,6 +1,6 @@
-import { observableFns, observableProperties as _observableProperties } from './observable';
-import type { NodeValue } from './observableInterfaces';
+import { observableProperties as _observableProperties, observableFns } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
+import type { NodeValue } from './observableInterfaces';
 
 export function configureLegendState({
     observableFunctions,
