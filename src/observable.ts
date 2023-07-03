@@ -407,18 +407,19 @@ const proxyHandler: ProxyHandler<any> = {
 
                         // If return value needs to be observable proxies, use our own looping logic and return the proxy when found
                         if (ArrayLoopersReturn.has(p)) {
+                            const isFind = p === 'find';
                             const out = [];
                             for (let i = 0; i < value.length; i++) {
                                 if (cbWrapped(value[i], i, value)) {
                                     const proxy = getProxy(node, i + '');
-                                    if (p === 'find') {
+                                    if (isFind) {
                                         return proxy;
                                     } else {
                                         out.push(proxy);
                                     }
                                 }
                             }
-                            return out;
+                            return isFind ? undefined : out;
                         } else {
                             return value[p](cbWrapped, thisArg);
                         }

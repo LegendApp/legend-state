@@ -1632,6 +1632,12 @@ describe('Array', () => {
         expect(isObservable(obs.test.find((a) => isObservable(a)))).toBe(true);
         expect(obs.test.find((a) => isObservable(a)).text.get()).toBe(1);
     });
+    test('Array.find no result is undefined', () => {
+        const obs = observable({
+            test: [{ text: '0' }],
+        });
+        expect(obs.test.find((a) => a.text.peek() === 'hi')).toBe(undefined);
+    });
     test('Notifies on second element', () => {
         const obs = observable({
             test: [{ text: 1 }, { text: 2 }],
