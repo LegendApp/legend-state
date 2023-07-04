@@ -585,7 +585,9 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         node.root.set(node.root._);
     }
 
-    updateNodesAndNotify(node, newValue, prevValue, childNode, isPrim, isRoot, level);
+    if (newValue !== prevValue) {
+        updateNodesAndNotify(node, newValue, prevValue, childNode, isPrim, isRoot, level);
+    }
 
     return isFunc ? newValue : isRoot ? getProxy(node) : getProxy(node, key);
 }
