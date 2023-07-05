@@ -508,10 +508,10 @@ const proxyHandler: ProxyHandler<any> = {
 };
 
 export function set(node: NodeValue, newValue?: any) {
-    if (!node.parent) {
-        return setKey(node, undefined, newValue);
-    } else {
+    if (node.parent) {
         return setKey(node.parent, node.key, newValue);
+    } else {
+        return setKey(node, undefined, newValue);
     }
 }
 function toggle(node: NodeValue) {

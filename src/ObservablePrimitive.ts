@@ -1,7 +1,7 @@
-import { checkActivate, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
+import { get, peek, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
 import { isBoolean } from './is';
 import { set } from './observable';
-import {
+import type {
     ListenerFn,
     NodeValue,
     ObservableChild,
@@ -10,7 +10,6 @@ import {
     TrackingType,
 } from './observableInterfaces';
 import { onChange } from './onChange';
-import { updateTracking } from './tracking';
 
 interface ObservablePrimitiveState {
     _node: NodeValue;
@@ -38,14 +37,10 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsEvent, {
     value: false,
 });
 ObservablePrimitiveClass.prototype.peek = function () {
-    checkActivate(this._node);
-    return this._node.root._;
+    return peek(this._node);
 };
 ObservablePrimitiveClass.prototype.get = function () {
-    const node = this._node;
-    updateTracking(node);
-
-    return this.peek();
+    return get(this._node);
 };
 // Setters
 ObservablePrimitiveClass.prototype.set = function <T>(value: T | ((prev: T) => T)): ObservableChild<T> {
