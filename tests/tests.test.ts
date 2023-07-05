@@ -22,7 +22,8 @@ function promiseTimeout(time?: number) {
 
 let spiedConsole: jest.SpyInstance;
 
-beforeAll(() => {
+beforeEach(() => {
+    jest.clearAllMocks();
     spiedConsole = jest.spyOn(global.console, 'error').mockImplementation(() => {});
 });
 afterAll(() => {
@@ -2302,15 +2303,6 @@ describe('Primitive <-> Object', () => {
         expect(obs.get()).toEqual('hello');
     });
 });
-describe('Assigning functions', () => {
-    test('Views', () => {
-        const obs = observable({ text: 'hi' } as { text: any; test: any });
-        obs.assign({
-            test: computed(() => obs.text.get() + '!'),
-        });
-        expect(obs.test.get() === 'hi!');
-    });
-});
 describe('Primitive root', () => {
     test('observable root can be primitive', () => {
         const obs = observable(10);
@@ -2446,9 +2438,19 @@ describe('Observe', () => {
     });
 });
 describe('Error detection', () => {
-    test('Circular objects', () => {
+    test('Circular objects in constructor', () => {
         const a: any = {};
         a.c = { a };
+
+        const obs = observable(a);
+
+        expect(console.error).toHaveBeenCalledTimes(1);
+    });
+    test('Circular objects in set', () => {
+        jest.clearAllMocks();
+
+        const a: any = {};
+        a.c = { a: {} };
 
         const obs = observable(a);
 
@@ -2495,6 +2497,44 @@ describe('Functions', () => {
         });
         obs.child.test(2);
         expect(count).toEqual(2);
+    });
+    test('Set does not delete functions', () => {
+        let count = 0;
+        const obs = observable({
+            child: {
+                val: 0,
+                test: (num: number) => {
+                    count = num;
+                },
+            },
+        });
+        obs.child.test(2);
+        expect(count).toEqual(2);
+
+        // @ts-expect-error Blocked by TS but handle it anyway
+        obs.child.set({ val: 1 });
+        obs.child.test(4);
+        expect(count).toEqual(4);
+        expect(obs.child.val.get()).toEqual(1);
+    });
+    test('Function assigned later', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        obs.assign({
+            test: () => 'hi!',
+        });
+        expect(obs.test === 'hi!');
+    });
+    test('Computed in observable', () => {
+        const obs = observable({ text: 'hi', test: computed(() => obs.text.get() + '!') });
+        expect(obs.test.get() === 'hi!');
+    });
+
+    test('Computed assigned later', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        obs.assign({
+            test: computed(() => obs.text.get() + '!'),
+        });
+        expect(obs.test.get() === 'hi!');
     });
 });
 

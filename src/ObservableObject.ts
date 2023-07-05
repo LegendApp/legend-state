@@ -315,6 +315,11 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
+        const fnOrComputed = node.functions?.get(p);
+        if (fnOrComputed) {
+            return fnOrComputed;
+        }
+
         const fn = observableFns.get(p);
         // If this is an observable function, call it
         if (fn) {

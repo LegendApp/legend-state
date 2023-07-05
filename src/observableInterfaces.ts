@@ -368,6 +368,8 @@ interface BaseNodeValue {
     isEvent?: boolean;
     isSetting?: number;
     isAssigning?: number;
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    functions?: Map<string, Function | ObservableComputed<any>>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
