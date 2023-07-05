@@ -7,7 +7,7 @@ import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, symbolGetNode } from '../src/globals';
-import { isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
+import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
@@ -2108,6 +2108,14 @@ describe('Event', () => {
     test('Event is observable', () => {
         const evt = event();
         expect(isObservable(evt)).toEqual(true);
+    });
+    test('Event is event', () => {
+        const evt = event();
+        expect(isEvent(evt)).toEqual(true);
+    });
+    test('Event get', () => {
+        const evt = event();
+        expect(evt.get()).toEqual(undefined);
     });
 });
 describe('Promise values', () => {
