@@ -1,9 +1,11 @@
 import { beginBatch, endBatch } from './batching';
-import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
+import { getNode, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
     ObservableChild,
+    ObservableComputed,
+    ObservableEvent,
     ObservableObject,
     ObservableReadable,
     ObservableWriteable,
@@ -14,7 +16,15 @@ import type {
 } from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
-    return obs && !!obs[symbolIsObservable as any];
+    return obs && !!obs[symbolGetNode as any];
+}
+
+export function isEvent(obs: any): obs is ObservableEvent {
+    return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
+}
+
+export function isComputed(obs: any): obs is ObservableComputed {
+    return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
 }
 
 export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>) {
@@ -24,10 +34,6 @@ export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>) {
     }
 
     return isObservable(c) ? c.get() : c;
-}
-
-export function getNode(obs: ObservableReadable): NodeValue {
-    return (obs as any)[symbolGetNode];
 }
 
 export function getObservableIndex(obs: ObservableReadable): number {

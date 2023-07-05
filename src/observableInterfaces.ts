@@ -364,6 +364,8 @@ interface BaseNodeValue {
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
+    isComputed?: boolean;
+    isEvent?: boolean;
     isSetting?: number;
     isAssigning?: number;
 }

@@ -1,5 +1,5 @@
 import { set } from './ObservableObject';
-import { get, peek, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
+import { get, peek, symbolGetNode } from './globals';
 import { isBoolean } from './is';
 import type {
     ListenerFn,
@@ -27,14 +27,6 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolGetNode, {
     get() {
         return this._node;
     },
-});
-Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsObservable, {
-    configurable: true,
-    value: true,
-});
-Object.defineProperty(ObservablePrimitiveClass.prototype, symbolIsEvent, {
-    configurable: true,
-    value: false,
 });
 ObservablePrimitiveClass.prototype.peek = function () {
     return peek(this._node);

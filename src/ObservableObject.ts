@@ -11,8 +11,6 @@ import {
     peek,
     symbolDelete,
     symbolGetNode,
-    symbolIsEvent,
-    symbolIsObservable,
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
@@ -304,13 +302,6 @@ const proxyHandler: ProxyHandler<any> = {
                     : '[legend-state] observable is not a primitive.'
             );
         }
-        if (p === symbolIsObservable) {
-            // Return true if called by isObservable()
-            return true;
-        }
-        if (p === symbolIsEvent) {
-            return false;
-        }
         if (p === symbolGetNode) {
             return node;
         }
@@ -544,7 +535,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     newValue =
         !node.isAssigning && isFunc
             ? newValue(prevValue)
-            : isObject(newValue) && newValue?.[symbolIsObservable as any]
+            : isObject(newValue) && newValue?.[symbolGetNode as any]
             ? newValue.peek()
             : newValue;
 

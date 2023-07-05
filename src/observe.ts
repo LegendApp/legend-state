@@ -1,5 +1,5 @@
 import { beginBatch, endBatch } from './batching';
-import { symbolIsEvent } from './globals';
+import { isEvent } from './helpers';
 import { isFunction } from './is';
 import { ObserveEvent, ObserveEventCallback, Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';
@@ -54,7 +54,7 @@ export function observe<T>(
         }
 
         // Call the reaction if there is one and the value changed
-        if (reaction && (e.num > 0 || !(selectorOrRun as any)?.[symbolIsEvent]) && e.previous !== e.value) {
+        if (reaction && (e.num > 0 || !isEvent(selectorOrRun as any)) && e.previous !== e.value) {
             reaction(e);
         }
 

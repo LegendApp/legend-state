@@ -47,17 +47,14 @@ export {
     getNodeValue,
     optimized,
     symbolDelete,
-    symbolIsEvent,
-    symbolIsObservable,
+    getNode,
 } from './src/globals';
-/** @internal */
-export { getNode } from './src/helpers';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
 // Internal:
-import { setAtPath, getNode } from './src/helpers';
-import { ensureNodeValue, get, peek, symbolDelete } from './src/globals';
+import { setAtPath } from './src/helpers';
+import { ensureNodeValue, get, getNode, peek, symbolDelete } from './src/globals';
 import { getProxy, set } from './src/ObservableObject';
 
 export const internal = {

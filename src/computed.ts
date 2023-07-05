@@ -1,6 +1,7 @@
 import { set as setBase } from './ObservableObject';
 import { batch } from './batching';
-import { getNode, lockObservable } from './helpers';
+import { getNode } from './globals';
+import { lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
@@ -19,8 +20,8 @@ export function computed<T, T2 = T>(
     const obs = observable<T>();
     lockObservable(obs, true);
 
-    // Lazily activate the observable when get is called
     const node = getNode(obs);
+    node.isComputed = true;
     const setInner = function (val: any) {
         if (val !== obs.peek()) {
             // Update the computed value
@@ -29,6 +30,8 @@ export function computed<T, T2 = T>(
             lockObservable(obs, true);
         }
     };
+
+    // Lazily activate the observable when get is called
     node.root.activate = () => {
         observe(
             compute,

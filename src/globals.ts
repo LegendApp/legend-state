@@ -1,10 +1,8 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, TrackingType } from './observableInterfaces';
+import { NodeValue, ObservableReadable, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
-export const symbolIsObservable = Symbol('isObservable');
-export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
@@ -20,6 +18,10 @@ export function checkActivate(node: NodeValue) {
         root.activate = undefined;
         activate();
     }
+}
+
+export function getNode(obs: ObservableReadable): NodeValue {
+    return obs && (obs as any)[symbolGetNode];
 }
 
 export function get(node: NodeValue, track?: TrackingType) {
