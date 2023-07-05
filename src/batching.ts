@@ -153,6 +153,22 @@ function computeChangesRecursive(
         level,
         whenOptimizedOnlyIf
     );
+    if (node.linkedFromNodes) {
+        for (const linkedFromNode of node.linkedFromNodes) {
+            computeChangesAtNode(
+                changesInBatch,
+                linkedFromNode,
+                value,
+                path,
+                pathTypes,
+                valueAtPath,
+                prevAtPath,
+                immediate,
+                level,
+                whenOptimizedOnlyIf
+            );
+        }
+    }
     // If not root notify up through parents
     if (node.parent) {
         const parent = node.parent;

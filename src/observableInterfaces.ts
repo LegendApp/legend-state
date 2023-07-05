@@ -102,6 +102,8 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<a
     ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveBaseFns<T[K]>, 'get'> & MapGet<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
     ? T[K] & ObservablePrimitiveBaseFns<T[K]>
+    : T[K] extends ObservableComputed
+    ? T[K] & ObservablePrimitiveBaseFns<ObservableValue<T[K]>>
     : T[K] extends OpaqueObject<T[K]>
     ? T[K] & ObservablePrimitiveChildFns<T[K]>
     : T[K] extends Primitive
@@ -365,6 +367,8 @@ interface BaseNodeValue {
     descendantHasListener?: boolean;
     isComputed?: boolean;
     isEvent?: boolean;
+    linkedToNode?: NodeValue;
+    linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
     functions?: Map<string, Function | ObservableComputed<any>>;

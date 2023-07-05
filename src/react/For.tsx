@@ -1,6 +1,6 @@
 import type { Observable, ObservableReadable } from '@legendapp/state';
 import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
-import { createElement, FC, memo, ReactElement, useMemo, useRef } from 'react';
+import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
 

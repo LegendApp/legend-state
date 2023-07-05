@@ -1,7 +1,7 @@
 import { set as setBase } from './ObservableObject';
-import { batch } from './batching';
-import { getNode } from './globals';
-import { lockObservable } from './helpers';
+import { batch, notify } from './batching';
+import { getNode, getNodeValue } from './globals';
+import { isObservable, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
@@ -22,8 +22,32 @@ export function computed<T, T2 = T>(
 
     const node = getNode(obs);
     node.isComputed = true;
+
     const setInner = function (val: any) {
-        if (val !== obs.peek()) {
+        const prevNode = node.linkedToNode;
+        // If it was previously linked to a node remove self
+        // from its linkedFromNodes
+        if (prevNode) {
+            node.linkedToNode.linkedFromNodes.delete(node);
+            node.linkedToNode = undefined;
+        }
+        if (isObservable(val)) {
+            // If the computed is a proxy to another observable
+            // link it to the target observable
+            const linkedNode = getNode(val);
+            node.linkedToNode = linkedNode;
+            if (!linkedNode.linkedFromNodes) {
+                linkedNode.linkedFromNodes = new Set();
+            }
+            linkedNode.linkedFromNodes.add(node);
+
+            // If the target observable is different then notify for the change
+            if (prevNode) {
+                const value = getNodeValue(linkedNode);
+                const prevValue = getNodeValue(prevNode);
+                notify(node, value, prevValue, 0);
+            }
+        } else if (val !== obs.peek()) {
             // Update the computed value
             lockObservable(obs, false);
             setBase(node, val);
@@ -42,7 +66,7 @@ export function computed<T, T2 = T>(
                     setInner(value);
                 }
             },
-            { immediate: true }
+            { immediate: true, retainObservable: true }
         );
     };
 

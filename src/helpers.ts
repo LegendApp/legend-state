@@ -27,13 +27,13 @@ export function isComputed(obs: any): obs is ObservableComputed {
     return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
 }
 
-export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>) {
+export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean) {
     let c = selector as any;
     if (isFunction(c)) {
         c = e ? c(e) : c();
     }
 
-    return isObservable(c) ? c.get() : c;
+    return isObservable(c) && !retainObservable ? c.get() : c;
 }
 
 export function getObservableIndex(obs: ObservableReadable): number {

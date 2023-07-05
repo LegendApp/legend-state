@@ -291,7 +291,7 @@ export function getProxy(node: NodeValue, p?: string) {
 }
 
 const proxyHandler: ProxyHandler<any> = {
-    get(node: NodeValue, p: any) {
+    get(node: NodeValue, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
             throw new Error(
                 process.env.NODE_ENV === 'development'
@@ -301,6 +301,12 @@ const proxyHandler: ProxyHandler<any> = {
         }
         if (p === symbolGetNode) {
             return node;
+        }
+
+        // If this node is linked to another observable then forward to the target's handler.
+        // The exception is onChange because it needs to listen to this node for changes.
+        if (node.linkedToNode && p !== 'onChange') {
+            return proxyHandler.get(node.linkedToNode, p, receiver);
         }
 
         const value = peek(node);

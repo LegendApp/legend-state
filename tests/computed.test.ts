@@ -139,6 +139,16 @@ describe('Two way Computed', () => {
         expect(obs.test.get()).toEqual(true);
         expect(obs.test2.get()).toEqual(true);
     });
+    test('Bound to two, set child', () => {
+        const obs = observable({ test: { a: 'hi' }, test2: false });
+        const comp = computed(
+            () => obs.test.get(),
+            (value) => obs.test.set(value)
+        );
+        expect(comp.a.get()).toEqual('hi');
+        comp.a.set('bye');
+        expect(comp.a.get()).toEqual('bye');
+    });
     test('Bound to array, set', () => {
         const obs = observable([false, false, false, false, false]);
         const comp = computed(
@@ -320,5 +330,108 @@ describe('Two way Computed', () => {
         expect(handler).toHaveBeenCalledTimes(1);
 
         expect(comp.get()).toEqual(['2', '1']);
+    });
+});
+describe('Computed inside observable', () => {
+    test('Computed in observable', () => {
+        const obs = observable({ text: 'hi', test: computed(() => obs.text.get() + '!') });
+        expect(obs.test.get() === 'hi!');
+    });
+    test('Computed assigned later', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        obs.assign({
+            test: computed(() => obs.text.get() + '!'),
+        });
+        expect(obs.test.get() === 'hi!');
+    });
+    test('Computed selected gets correct value', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+            selected: undefined,
+            selectedItem: computed(() => obs.items[obs.selected.get()].get()),
+        });
+        expect(obs.selectedItem.get()).toEqual(undefined);
+        obs.selected.set('test1');
+        expect(obs.selectedItem.get()).toEqual({
+            text: 'hi',
+        });
+        obs.selected.set('test2');
+        expect(obs.selectedItem.get()).toEqual({
+            text: 'hello',
+        });
+    });
+    test('Computed returning an observable is a proxy to it', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+            selected: 'test1',
+            selectedItem: computed(() => obs.items[obs.selected.get()]),
+        });
+        const handlerObs = expectChangeHandler(obs.items);
+        const handlerSelected = expectChangeHandler(obs.selected);
+        const handlerItem = expectChangeHandler(obs.selectedItem);
+
+        obs.selectedItem.text.set('hi!');
+        expect(obs.selectedItem.get()).toEqual({
+            text: 'hi!',
+        });
+        expect(obs.items.test1.get()).toEqual({
+            text: 'hi!',
+        });
+        expect(handlerObs).toHaveBeenCalledWith(
+            { test1: { text: 'hi!' }, test2: { text: 'hello' } },
+            { test1: { text: 'hi' }, test2: { text: 'hello' } },
+            [
+                {
+                    path: ['test1', 'text'],
+                    pathTypes: ['object', 'object'],
+                    prevAtPath: 'hi',
+                    valueAtPath: 'hi!',
+                },
+            ]
+        );
+        expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+        expect(handlerItem).toHaveBeenCalledTimes(1);
+
+        obs.selected.set('test2');
+        expect(obs.selectedItem.get()).toEqual({
+            text: 'hello',
+        });
+        expect(handlerItem).toHaveBeenCalledTimes(2);
+        expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+
+        obs.selectedItem.text.set('hello!');
+        expect(obs.selectedItem.get()).toEqual({
+            text: 'hello!',
+        });
+        expect(obs.items.test1.get()).toEqual({
+            text: 'hi!',
+        });
+        expect(obs.items.test2.get()).toEqual({
+            text: 'hello!',
+        });
+
+        expect(handlerItem).toHaveBeenCalledTimes(3);
+        expect(handlerItem).toHaveBeenCalledWith({ text: 'hello!' }, { text: 'hello' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hello',
+                valueAtPath: 'hello!',
+            },
+        ]);
     });
 });

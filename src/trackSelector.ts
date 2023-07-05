@@ -26,7 +26,7 @@ export function trackSelector<T>(
     } else {
         // Compute the selector inside a tracking context
         beginTracking();
-        value = selector ? computeSelector(selector, observeEvent) : selector;
+        value = selector ? computeSelector(selector, observeEvent, observeOptions?.retainObservable) : selector;
         tracker = tracking.current;
         nodes = tracker.nodes;
         endTracking();

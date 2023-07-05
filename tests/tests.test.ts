@@ -2532,18 +2532,6 @@ describe('Functions', () => {
         });
         expect(obs.test === 'hi!');
     });
-    test('Computed in observable', () => {
-        const obs = observable({ text: 'hi', test: computed(() => obs.text.get() + '!') });
-        expect(obs.test.get() === 'hi!');
-    });
-
-    test('Computed assigned later', () => {
-        const obs = observable({ text: 'hi' } as { text: any; test: any });
-        obs.assign({
-            test: computed(() => obs.text.get() + '!'),
-        });
-        expect(obs.test.get() === 'hi!');
-    });
 });
 
 describe('Extend observableFunctions', () => {
