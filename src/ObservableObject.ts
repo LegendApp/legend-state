@@ -43,12 +43,10 @@ const ArrayLoopers = new Set<keyof Array<any>>([
     'some',
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
-// eslint-disable-next-line @typescript-eslint/ban-types
 export const observableProperties = new Map<
     string,
     { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
 >();
-// eslint-disable-next-line @typescript-eslint/ban-types
 export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) => any>([
     ['get', get],
     ['set', set],
@@ -66,7 +64,6 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
 
-    // eslint-disable-next-line @typescript-eslint/ban-types
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {

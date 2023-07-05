@@ -17,6 +17,7 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 'off', // Since we dont use strictNullChecks
         'react/prop-types': 'off',
         '@typescript-eslint/no-namespace': 'off',
+        '@typescript-eslint/ban-types': 'off',
     },
     settings: {
         react: {

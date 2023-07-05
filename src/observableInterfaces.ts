@@ -96,7 +96,6 @@ export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<any>
     ? T[K]
     : T[K] extends Map<any, any> | WeakMap<any, any>
@@ -368,7 +367,6 @@ interface BaseNodeValue {
     isEvent?: boolean;
     isSetting?: number;
     isAssigning?: number;
-    // eslint-disable-next-line @typescript-eslint/ban-types
     functions?: Map<string, Function | ObservableComputed<any>>;
 }
 

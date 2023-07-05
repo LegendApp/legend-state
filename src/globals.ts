@@ -111,7 +111,6 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
     return idKey;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function extractFunction(node: NodeValue, value: Record<string, any>, key: string) {
     if (!node.functions) {
         node.functions = new Map();

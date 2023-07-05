@@ -3,7 +3,6 @@ import type { NodeValue, TrackingNode, TrackingType } from './observableInterfac
 interface TrackingState {
     nodes?: Map<NodeValue, TrackingNode>;
     traceListeners?: (nodes: Map<NodeValue, TrackingNode>) => void;
-    // eslint-disable-next-line @typescript-eslint/ban-types
     traceUpdates?: (fn: Function) => Function;
 }
 
