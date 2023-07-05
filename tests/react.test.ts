@@ -3,13 +3,13 @@
  */
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
-import { createElement, StrictMode, useReducer, useState } from 'react';
+import { StrictMode, createElement, useReducer, useState } from 'react';
 import { enableReactDirectRender } from '../src/config/enableReactDirectRender';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
-import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { For } from '../src/react/For';
+import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
@@ -262,6 +262,26 @@ describe('useSelector', () => {
         });
         // Goes up by two because it runs, decides to re-render, and runs again
         expect(num).toEqual(6);
+    });
+    test('useSelector renders once when set to the same thing', () => {
+        const obs = observable('hi');
+        let num = 0;
+        renderHook(() => {
+            return useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+        });
+
+        expect(num).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(2);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(2);
     });
 });
 

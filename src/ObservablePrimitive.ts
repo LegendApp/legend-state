@@ -1,6 +1,6 @@
-import { notify } from './batching';
 import { checkActivate, symbolGetNode, symbolIsEvent, symbolIsObservable } from './globals';
-import { isBoolean, isFunction } from './is';
+import { isBoolean } from './is';
+import { set } from './observable';
 import {
     ListenerFn,
     NodeValue,
@@ -49,21 +49,7 @@ ObservablePrimitiveClass.prototype.get = function () {
 };
 // Setters
 ObservablePrimitiveClass.prototype.set = function <T>(value: T | ((prev: T) => T)): ObservableChild<T> {
-    if (isFunction(value)) {
-        value = value(this._node.root._);
-    }
-    if (this._node.root.locked) {
-        throw new Error(
-            process.env.NODE_ENV === 'development'
-                ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
-                : '[legend-state] Modified locked observable'
-        );
-    }
-    const root = this._node.root;
-    const prev = root._;
-    root._ = value;
-    notify(this._node, value, prev, 0);
-    return this as unknown as ObservableChild<T>;
+    return set(this._node, value);
 };
 ObservablePrimitiveClass.prototype.toggle = function (): boolean {
     const value = this.peek();
