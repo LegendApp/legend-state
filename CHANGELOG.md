@@ -1,3 +1,13 @@
+## 1.4.0
+
+- Feat: Returning an observable in a computed creates a two-way link to the target observable.
+- Feat: `computed` is supported as a child of an observable
+- Feat: Functions and computeds in the hierarchy of the constructing object in an observable are extracted into observable metadata so that setting the observable does not delete them.
+
+## 1.3.6
+
+- Fix: Setting a primitive observable to the same value was still notifying listeners
+
 ## 1.3.5
 
 - Fix: array.find was returning `[]` instead of `undefined` when it found no matches
