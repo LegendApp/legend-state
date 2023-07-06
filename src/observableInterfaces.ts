@@ -1,4 +1,4 @@
-import type { symbolOpaque } from './globals';
+import type { symbolGetNode, symbolOpaque } from './globals';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -100,6 +100,8 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
     : T[K] extends Function | Promise<any>
     ? T[K]
+    : T[K] extends ObservableProxy<infer t>
+    ? ObservableProxy<t>
     : T[K] extends Map<any, any> | WeakMap<any, any>
     ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveBaseFns<T[K]>, 'get'> & MapGet<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
@@ -366,6 +368,7 @@ interface BaseNodeValue {
     listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
     isComputed?: boolean;
+    proxyFn?: (key: string) => ObservableReadable;
     isEvent?: boolean;
     linkedToNode?: NodeValue;
     linkedFromNodes?: Set<NodeValue>;
@@ -421,4 +424,8 @@ export interface ObservablePersistenceConfig {
     persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
     saveTimeout?: number;
     dateModifiedKey?: string;
+}
+export interface ObservableProxy<T> {
+    [key: string]: Observable<T>;
+    [symbolGetNode]: NodeValue;
 }

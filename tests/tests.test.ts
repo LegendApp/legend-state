@@ -2450,7 +2450,7 @@ describe('Error detection', () => {
         const a: any = {};
         a.c = { a };
 
-        const obs = observable(a);
+        observable(a);
 
         expect(console.error).toHaveBeenCalledTimes(1);
     });

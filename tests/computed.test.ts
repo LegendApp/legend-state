@@ -6,6 +6,7 @@ import {
     Observable,
     observable,
     ObservableReadable,
+    proxy,
     TrackingType,
 } from '@legendapp/state';
 
@@ -374,7 +375,7 @@ describe('Computed inside observable', () => {
             text: 'hello',
         });
     });
-    test('Computed returning an observable is a proxy to it', () => {
+    test('Computed returning an observable is linked to it', () => {
         type Item = { text: string };
         const obs = observable({
             items: { test1: { text: 'h' }, test2: { text: 'hello' } } as Record<string, Item>,
@@ -462,6 +463,40 @@ describe('Computed inside observable', () => {
                 pathTypes: ['object'],
                 prevAtPath: 'hello',
                 valueAtPath: 'hello!',
+            },
+        ]);
+    });
+});
+describe('proxy', () => {
+    test('proxy', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+            itemText: proxy((key): Observable<string> => {
+                return obs.items[key].text;
+            }),
+        });
+        expect(obs.itemText['test1'].get()).toEqual('hi');
+
+        const handlerItem = expectChangeHandler(obs.items['test1']);
+        const handlerItemText = expectChangeHandler(obs.itemText['test1']);
+
+        obs.itemText['test1'].set('hi!');
+        expect(obs.items['test1'].text.get()).toEqual('hi!');
+
+        expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+        expect(handlerItemText).toHaveBeenCalledWith('hi!', 'hi', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
             },
         ]);
     });

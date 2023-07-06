@@ -19,6 +19,7 @@ export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
 export { observe } from './src/observe';
+export { proxy } from './src/proxy';
 export { when, whenReady } from './src/when';
 export { configureLegendState } from './src/config';
 export * from './src/observableInterfaces';

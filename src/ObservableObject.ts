@@ -305,7 +305,11 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         if (node.isComputed) {
-            checkActivate(node);
+            if (node.proxyFn) {
+                return node.proxyFn(p);
+            } else {
+                checkActivate(node);
+            }
         }
 
         // If this node is linked to another observable then forward to the target's handler.
