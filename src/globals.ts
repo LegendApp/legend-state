@@ -134,7 +134,8 @@ export function extractFunctionsAndComputeds(obj: Record<string, any>, node: Nod
         if (typeof v === 'function') {
             extractFunction(node, obj, k);
         } else if (typeof v == 'object' && v !== null && v !== undefined) {
-            if (getNode(v)?.isComputed) {
+            const childNode = getNode(v);
+            if (childNode?.isComputed) {
                 extractFunction(node, obj, k);
             } else {
                 extractFunctionsAndComputeds(obj[k], getChildNode(node, k));

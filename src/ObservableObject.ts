@@ -1,5 +1,6 @@
 import { beginBatch, endBatch, notify } from './batching';
 import {
+    checkActivate,
     ensureNodeValue,
     extraPrimitiveActivators,
     extraPrimitiveProps,
@@ -301,6 +302,10 @@ const proxyHandler: ProxyHandler<any> = {
         }
         if (p === symbolGetNode) {
             return node;
+        }
+
+        if (node.isComputed) {
+            checkActivate(node);
         }
 
         // If this node is linked to another observable then forward to the target's handler.

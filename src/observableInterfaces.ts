@@ -96,14 +96,14 @@ export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
-type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<any>
+type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
+    ? T[K]
+    : T[K] extends Function | Promise<any>
     ? T[K]
     : T[K] extends Map<any, any> | WeakMap<any, any>
     ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveBaseFns<T[K]>, 'get'> & MapGet<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
     ? T[K] & ObservablePrimitiveBaseFns<T[K]>
-    : T[K] extends ObservableComputed
-    ? T[K] & ObservablePrimitiveBaseFns<ObservableValue<T[K]>>
     : T[K] extends OpaqueObject<T[K]>
     ? T[K] & ObservablePrimitiveChildFns<T[K]>
     : T[K] extends Primitive

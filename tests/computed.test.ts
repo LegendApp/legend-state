@@ -1,4 +1,13 @@
-import { beginBatch, Change, computed, endBatch, observable, ObservableReadable, TrackingType } from '@legendapp/state';
+import {
+    beginBatch,
+    Change,
+    computed,
+    endBatch,
+    Observable,
+    observable,
+    ObservableReadable,
+    TrackingType,
+} from '@legendapp/state';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -334,7 +343,12 @@ describe('Two way Computed', () => {
 });
 describe('Computed inside observable', () => {
     test('Computed in observable', () => {
-        const obs = observable({ text: 'hi', test: computed(() => obs.text.get() + '!') });
+        const obs = observable({
+            text: 'hi',
+            test: computed(() => {
+                return obs.text.get() + '!';
+            }),
+        });
         expect(obs.test.get() === 'hi!');
     });
     test('Computed assigned later', () => {
@@ -361,11 +375,18 @@ describe('Computed inside observable', () => {
         });
     });
     test('Computed returning an observable is a proxy to it', () => {
+        type Item = { text: string };
         const obs = observable({
-            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
-            selected: 'test1',
-            selectedItem: computed(() => obs.items[obs.selected.get()]),
+            items: { test1: { text: 'h' }, test2: { text: 'hello' } } as Record<string, Item>,
+            selected: 'test1' as string,
+            selectedItem: computed((): Observable<Item> => {
+                return obs.items[obs.selected.get()];
+            }),
         });
+
+        // Check that sets works before get is called
+        obs.selectedItem.text.set('hi');
+
         const handlerObs = expectChangeHandler(obs.items);
         const handlerSelected = expectChangeHandler(obs.selected);
         const handlerItem = expectChangeHandler(obs.selectedItem);
@@ -397,9 +418,18 @@ describe('Computed inside observable', () => {
                 valueAtPath: 'hi!',
             },
         ]);
+        expect(handlerSelected).not.toHaveBeenCalled();
         expect(handlerItem).toHaveBeenCalledTimes(1);
 
         obs.selected.set('test2');
+        expect(handlerSelected).toHaveBeenCalledWith('test2', 'test1', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'test1',
+                valueAtPath: 'test2',
+            },
+        ]);
         expect(obs.selectedItem.get()).toEqual({
             text: 'hello',
         });
@@ -424,6 +454,7 @@ describe('Computed inside observable', () => {
             text: 'hello!',
         });
 
+        expect(handlerSelected).toHaveBeenCalledTimes(1);
         expect(handlerItem).toHaveBeenCalledTimes(3);
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hello!' }, { text: 'hello' }, [
             {
