@@ -1,3 +1,4 @@
+import { computed } from './computed';
 import { getNode } from './globals';
 import { lockObservable } from './helpers';
 import { observable } from './observable';
@@ -14,7 +15,7 @@ export function proxy<T>(get: (key: string) => ObservableWriteable<T>): Observab
     node.proxyFn = (key: string) => {
         let target = mapTargets.get(key);
         if (!target) {
-            target = get(key);
+            target = computed(() => get(key));
             mapTargets.set(key, target);
         }
 

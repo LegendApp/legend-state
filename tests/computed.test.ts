@@ -500,4 +500,32 @@ describe('proxy', () => {
             },
         ]);
     });
+    test('proxy with a get()', () => {
+        const obs = observable({
+            selector: 'text',
+            items: { test1: { text: 'hi', othertext: 'bye' }, test2: { text: 'hello', othertext: 'goodbye' } },
+            itemText: proxy((key): Observable<string> => {
+                return obs.items[key][obs.selector.get()];
+            }),
+        });
+        expect(obs.itemText['test1'].get()).toEqual('hi');
+
+        const handlerItem = expectChangeHandler(obs.items['test1']);
+        const handlerItemText = expectChangeHandler(obs.itemText['test1']);
+
+        obs.selector.set('othertext');
+
+        expect(obs.itemText['test1'].get()).toEqual('bye');
+
+        expect(handlerItem).not.toHaveBeenCalled();
+
+        expect(handlerItemText).toHaveBeenCalledWith('bye', 'hi', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'hi',
+                valueAtPath: 'bye',
+            },
+        ]);
+    });
 });
