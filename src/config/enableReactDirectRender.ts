@@ -1,8 +1,6 @@
 import {
-    checkActivate,
     extraPrimitiveActivators,
     extraPrimitiveProps,
-    getNode,
     ObservablePrimitiveClass,
     ObservableReadable,
 } from '@legendapp/state';
@@ -21,11 +19,7 @@ export function enableReactDirectRender() {
         // Add the extra primitive props so that observables can render directly
         // Memoized component to wrap the observable value
         const Text = memo(function Text({ data }: { data: ObservableReadable }) {
-            const value = useSelector(data);
-
-            checkActivate(getNode(data));
-
-            return value;
+            return useSelector(data);
         });
 
         const ReactTypeofSymbol = hasSymbol ? Symbol.for('react.element') : (createElement('a') as any).$$typeof;
