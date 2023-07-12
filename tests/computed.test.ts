@@ -346,7 +346,7 @@ describe('Computed inside observable', () => {
     test('Computed in observable', () => {
         const obs = observable({
             text: 'hi',
-            test: computed(() => {
+            test: computed((): string => {
                 return obs.text.get() + '!';
             }),
         });

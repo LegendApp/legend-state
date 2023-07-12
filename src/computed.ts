@@ -1,9 +1,9 @@
 import { set as setBase } from './ObservableObject';
 import { batch, notify } from './batching';
+import { createObservable } from './createObservable';
 import { getNode, getNodeValue } from './globals';
 import { lockObservable } from './helpers';
 import { isObservable, isPromise } from './is';
-import { observable } from './observable';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
 
@@ -18,7 +18,7 @@ export function computed<T, T2 = T>(
     set?: (value: T2) => void
 ): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
     // Create an observable for this computed variable
-    const obs = observable<T>();
+    const obs = createObservable<T>();
     lockObservable(obs, true);
 
     const node = getNode(obs);

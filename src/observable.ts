@@ -1,54 +1,26 @@
-import { getProxy } from './ObservableObject';
-import { ObservablePrimitiveClass } from './ObservablePrimitive';
-import { __devExtractFunctionsAndComputedsNodes, extractFunctionsAndComputeds } from './globals';
-import { isActualPrimitive, isPromise } from './is';
+import { computed } from './computed';
+import { createObservable } from './createObservable';
+import { isFunction } from './is';
 import type {
-    NodeValue,
     Observable,
-    ObservableObjectOrArray,
+    ObservableComputed,
+    ObservableComputedTwoWay,
     ObservablePrimitive,
-    ObservableRoot,
+    ObservableReadable,
 } from './observableInterfaces';
 
-function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
-function createObservable<T>(
-    value?: T | Promise<T>,
-    makePrimitive?: boolean
-): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
-    const valueIsPromise = isPromise<T>(value);
-    const root: ObservableRoot = {
-        _: valueIsPromise ? undefined : value,
-    };
-
-    const node: NodeValue = {
-        root,
-    };
-
-    const prim = makePrimitive || isActualPrimitive(value);
-
-    const obs = prim
-        ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
-        : (getProxy(node) as ObservableObjectOrArray<T>);
-
-    if (valueIsPromise) {
-        value.catch((error) => {
-            obs.set({ error } as any);
-        });
-        value.then((value) => {
-            obs.set(value);
-        });
-    } else if (!prim) {
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-            __devExtractFunctionsAndComputedsNodes.clear();
-        }
-        extractFunctionsAndComputeds(value, node);
-    }
-
-    return obs;
-}
-
-export function observable<T>(value?: T | Promise<T>): Observable<T> {
-    return createObservable(value) as Observable<T>;
+export function observable<T>(value?: T | Promise<T>): Observable<T>;
+export function observable<T extends ObservableReadable>(compute: () => T | Promise<T>): T;
+export function observable<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
+export function observable<T, T2 = T>(
+    compute: (() => T | Promise<T>) | ObservableReadable<T>,
+    set: (value: T2) => void
+): ObservableComputedTwoWay<T, T2>;
+export function observable<T, T2>(
+    value?: T | Promise<T> | (() => T),
+    set?: (value: T2) => void
+): Observable<T> | ObservableComputed<T> {
+    return isFunction(value) ? computed(value, set) : (createObservable(value) as Observable<T>);
 }
 
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
