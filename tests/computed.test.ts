@@ -208,6 +208,17 @@ describe('Two way Computed', () => {
 
         expect(obs.test.get()).toEqual(true);
     });
+    test('Computed created by observable constructor', () => {
+        const obs = observable({ test: false, test2: false });
+        const comp = observable(
+            () => obs.test.get() && obs.test2.get(),
+            (value) => obs.test.set(value) && obs.test2.set(value)
+        );
+
+        comp.set(true);
+
+        expect(obs.test.get()).toEqual(true);
+    });
     test('Set child of computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(

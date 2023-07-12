@@ -13,7 +13,7 @@ export {
 export {
     trackSelector,
 } from './src/trackSelector';
-export { observable, observablePrimitive } from './src/observable';
+export { observable, observablePrimitive, observable as obs } from './src/observable';
 export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';

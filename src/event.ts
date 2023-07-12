@@ -1,11 +1,11 @@
+import { createObservable } from './createObservable';
 import { getNode, symbolGetNode } from './globals';
-import { observable } from './observable';
 import type { ObservableEvent } from './observableInterfaces';
 
 export function event(): ObservableEvent {
     // event simply wraps around a number observable
     // which increments its value to dispatch change events
-    const obs = observable(0);
+    const obs = createObservable(0);
     const node = getNode(obs);
     node.isEvent = true;
     return {
