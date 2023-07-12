@@ -1,23 +1,19 @@
 import { isEmpty, isFunction } from '@legendapp/state';
-import { BindKeys, reactive } from '@legendapp/state/react';
-import { ComponentClass, FC, ReactElement, ReactNode, createElement, forwardRef } from 'react';
-import type { Selector } from '../observableInterfaces';
-import { useSelector } from './useSelector';
-
-function Obs$({ children }: { children: Selector<ReactNode> }): ReactElement {
-    return useSelector(children) as ReactElement;
-}
+import { BindKeys, Computed, Memo, reactive } from '@legendapp/state/react';
+import { ComponentClass, FC, createElement, forwardRef } from 'react';
 
 const ObsFns = new Map<string, FC | ComponentClass>();
 const ObsFnBinders = new Map<string, BindKeys>();
 
 export interface IObs {
-    $: typeof Obs$;
+    $: typeof Computed;
+    $memo: typeof Memo;
 }
 
 export const Obs: IObs = new Proxy(
     {
-        $: Obs$,
+        $: Computed,
+        $memo: Memo,
     },
     {
         get(target: Record<string, FC>, p: string) {
