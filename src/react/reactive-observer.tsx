@@ -15,6 +15,10 @@ export type ShapeWith$<T> = Partial<T> &
         [K in keyof T as K extends `$:${string & K}` ? K : `$:${string & K}`]?: Selector<T[K]>;
     };
 
+export type ObjectShapeWith$<T> = {
+    [K in keyof T]: T[K] extends FC<infer P> ? FC<ShapeWith$<P>> : T[K];
+};
+
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
@@ -137,4 +141,19 @@ export function reactive<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
 
 export function reactiveObserver<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
+}
+
+export function reactiveComponents<P extends Record<string, FC>>(components: P): ObjectShapeWith$<P> {
+    return new Proxy(
+        {},
+        {
+            get(target, p: string) {
+                if (!target[p]) {
+                    target[p] = createReactiveComponent(components[p], false, true) as FC<ShapeWith$<P>>;
+                }
+
+                return target[p];
+            },
+        }
+    ) as ObjectShapeWith$<P>;
 }
