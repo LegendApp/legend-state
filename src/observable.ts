@@ -5,6 +5,7 @@ import { optimized } from './globals';
 import { opaqueObject } from './helpers';
 import { isFunction } from './is';
 import type {
+    ComputedOptions,
     Observable,
     ObservableComputed,
     ObservableComputedTwoWay,
@@ -15,9 +16,10 @@ import { proxy } from './proxy';
 
 function observableConstructor<T, T2>(
     value?: T | Promise<T> | (() => T),
-    set?: (value: T2) => void
+    set?: (value: T2) => void,
+    options?: ComputedOptions
 ): Observable<T> | ObservableComputed<T> {
-    return isFunction(value) ? computed(value, set) : (createObservable(value) as Observable<T>);
+    return isFunction(value) ? computed(value, set, options) : (createObservable(value) as Observable<T>);
 }
 
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
@@ -41,13 +43,15 @@ declare class ObservableClass {
 }
 
 type IObservable = typeof ObservableClass & {
-    <T>(value?: T | Promise<T>): Observable<T>;
-    <T extends ObservableReadable>(compute: () => T | Promise<T>): T;
-    <T>(compute: () => T | Promise<T>): ObservableComputed<T>;
+    <T>(value: undefined, options?: ComputedOptions): Observable<T>;
+    <T extends ObservableReadable>(compute: () => T | Promise<T>, options?: ComputedOptions): T;
+    <T>(compute: () => T | Promise<T>, options?: ComputedOptions): ObservableComputed<T>;
     <T, T2 = T>(
         compute: (() => T | Promise<T>) | ObservableReadable<T>,
-        set: (value: T2) => void
+        set: (value: T2) => void,
+        options?: ComputedOptions
     ): ObservableComputedTwoWay<T, T2>;
+    <T>(value?: T | Promise<T>, options?: ComputedOptions): Observable<T>;
 };
 
 export const observable: IObservable = observableConstructor as unknown as IObservable;

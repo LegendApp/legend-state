@@ -3,20 +3,27 @@ import { batch, notify } from './batching';
 import { createObservable } from './createObservable';
 import { getNode, getNodeValue } from './globals';
 import { lockObservable } from './helpers';
-import { isObservable, isPromise } from './is';
+import { isFunction, isObservable, isPromise } from './is';
+import type { ComputedOptions } from './observableInterfaces';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
 
-export function computed<T extends ObservableReadable>(compute: () => T | Promise<T>): T;
-export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
+export function computed<T extends ObservableReadable>(compute: () => T | Promise<T>, options?: ComputedOptions): T;
+export function computed<T>(compute: () => T | Promise<T>, options?: ComputedOptions): ObservableComputed<T>;
 export function computed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set: (value: T2) => void
+    set: (value: T2) => void,
+    options?: ComputedOptions
 ): ObservableComputedTwoWay<T, T2>;
 export function computed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set?: (value: T2) => void
+    set?: ((value: T2) => void) | ComputedOptions,
+    options?: ComputedOptions
 ): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
+    if (!options && !isFunction(set)) {
+        options = set;
+        set = undefined;
+    }
     // Create an observable for this computed variable
     const obs = createObservable<T>();
     lockObservable(obs, true);
@@ -56,8 +63,7 @@ export function computed<T, T2 = T>(
         }
     };
 
-    // Lazily activate the observable when get is called
-    node.root.activate = () => {
+    const activate = () => {
         observe(
             compute,
             ({ value }) => {
@@ -71,9 +77,16 @@ export function computed<T, T2 = T>(
         );
     };
 
+    if (options?.activateImmediately) {
+        activate();
+    } else {
+        // Lazily activate the observable when get is called
+        node.root.activate = activate;
+    }
+
     if (set) {
         node.root.set = (value: any) => {
-            batch(() => set(value));
+            batch(() => (set as (value: T2) => void)(value));
         };
     }
 

@@ -429,3 +429,6 @@ export interface ObservableProxy<T> {
     [key: string]: Observable<T>;
     [symbolGetNode]: NodeValue;
 }
+export interface ComputedOptions {
+    activateImmediately?: boolean;
+}
