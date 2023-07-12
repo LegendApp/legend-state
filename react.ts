@@ -1,6 +1,8 @@
 export * from './src/react/Computed';
 export * from './src/react/For';
 export * from './src/react/Memo';
+export { Obs, configureObs } from './src/react/Obs';
+export type { IObs } from './src/react/Obs';
 export * from './src/react/Show';
 export * from './src/react/Switch';
 export * from './src/react/enableLegendStateReact';
