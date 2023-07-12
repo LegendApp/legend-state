@@ -11,6 +11,7 @@ import { Observable } from '../src/observableInterfaces';
 import { For } from '../src/react/For';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { observer } from '../src/react/reactive-observer';
+import { useObs } from '../src/react/useObs';
 import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
@@ -677,6 +678,23 @@ describe('observer', () => {
         act(() => {
             obs$.set(1);
         });
+
+        expect(num).toEqual(2);
+    });
+});
+describe('useObs', () => {
+    test('useObs runs twice in StrictMode, computed activates immediately', () => {
+        let num = 0;
+        function Test() {
+            useObs(() => {
+                num++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
 
         expect(num).toEqual(2);
     });
