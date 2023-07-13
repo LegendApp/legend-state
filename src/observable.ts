@@ -30,11 +30,9 @@ observableConstructor.proxy = proxy;
 observableConstructor.event = event;
 observableConstructor.opaque = opaqueObject;
 observableConstructor.primitive = observablePrimitive;
-observableConstructor.computed = computed;
 observableConstructor.optimized = optimized;
 
 declare class ObservableClass {
-    static computed(...args: Parameters<typeof computed>): ReturnType<typeof computed>;
     static event(...args: Parameters<typeof event>): ReturnType<typeof event>;
     static opaque(...args: Parameters<typeof opaqueObject>): ReturnType<typeof opaqueObject>;
     static primitive(...args: Parameters<typeof observablePrimitive>): ReturnType<typeof observablePrimitive>;
