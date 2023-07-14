@@ -1,6 +1,6 @@
 import { isEmpty, isFunction } from '@legendapp/state';
-import { BindKeys, reactive, ShapeWith$ } from '@legendapp/state/react';
-import { createElement, FC, forwardRef } from 'react';
+import { BindKeys, ShapeWith$, reactive } from '@legendapp/state/react';
+import { FC, createElement, forwardRef } from 'react';
 
 type FCReactiveObject<T> = {
     [K in keyof T]: FC<ShapeWith$<T[K]>>;

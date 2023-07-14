@@ -2,6 +2,8 @@ import { isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
 
+import type { BindKeys } from './reactInterfaces';
+
 type ShapeWithOld$<T> = {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
@@ -12,8 +14,6 @@ export type ShapeWith$<T> = Partial<T> &
     } & {
         [K in keyof T as K extends `$:${string & K}` ? K : `$:${string & K}`]?: Selector<T[K]>;
     };
-
-export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
