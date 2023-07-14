@@ -9,6 +9,8 @@ type ShapeWithOld$<T> = {
 export type ShapeWith$<T> = Partial<T> &
     ShapeWithOld$<T> & {
         [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
+    } & {
+        [K in keyof T as K extends `$:${string & K}` ? K : `$:${string & K}`]?: Selector<T[K]>;
     };
 
 export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
@@ -69,8 +71,8 @@ function createReactiveComponent<P = object>(
                     // Convert reactive props
                     // TODOV2 Remove the deprecated endsWith option
                     if (key.startsWith('$') || key.endsWith('$')) {
-                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
-                        // Return raw value and Listen to the selector for changes
+                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(key.startsWith('$:') ? 2 : 1);
+                        // Return raw value and listen to the selector for changes
                         propsOut[k] = useSelector(p);
 
                         // If this key is one of the bind keys set up a two-way binding
