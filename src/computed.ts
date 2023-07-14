@@ -1,8 +1,8 @@
 import { set as setBase } from './ObservableObject';
 import { batch, notify } from './batching';
 import { getNode, getNodeValue } from './globals';
-import { lockObservable } from './helpers';
-import { isObservable, isPromise } from './is';
+import { isObservable, lockObservable } from './helpers';
+import { isPromise } from './is';
 import { observable } from './observable';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';

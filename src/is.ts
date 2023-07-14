@@ -1,11 +1,4 @@
-import { symbolGetNode } from './globals';
-import type {
-    ChildNodeValue,
-    NodeValue,
-    ObservableComputed,
-    ObservableEvent,
-    ObservableObject,
-} from './observableInterfaces';
+import type { ChildNodeValue, NodeValue } from './observableInterfaces';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -46,16 +39,6 @@ export function isEmpty(obj: object): boolean {
     }
     return true;
 }
-export function isObservable(obs: any): obs is ObservableObject {
-    return obs && !!obs[symbolGetNode as any];
-}
-export function isEvent(obs: any): obs is ObservableEvent {
-    return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
-}
-export function isComputed(obs: any): obs is ObservableComputed {
-    return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
-}
-
 const setPrimitives = new Set(['boolean', 'string', 'number']);
 /** @internal */
 export function isActualPrimitive(arg: unknown): arg is boolean | string | number {

@@ -1,5 +1,4 @@
-import { computeSelector } from './helpers';
-import { isObservable } from './is';
+import { computeSelector, isObservable } from './helpers';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import type { ObserveOptions } from './observe';
 import { setupTracking } from './setupTracking';
