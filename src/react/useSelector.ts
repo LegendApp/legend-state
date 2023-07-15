@@ -46,7 +46,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
                 value,
                 dispose: _dispose,
                 resubscribe: _resubscribe,
-            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true);
+            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true, /*inRender*/ true);
 
             dispose = _dispose;
             resubscribe = _resubscribe;
@@ -57,7 +57,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
 }
 
 export function useSelector<T>(selector: Selector<T>): T {
-    if (tracking.current) {
+    if (tracking.inRender) {
         return computeSelector(selector);
     }
 

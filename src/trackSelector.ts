@@ -9,7 +9,8 @@ export function trackSelector<T>(
     update: () => void,
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
-    createResubscribe?: boolean
+    createResubscribe?: boolean,
+    inRender?: boolean
 ) {
     let nodes;
     let value;
@@ -25,11 +26,11 @@ export function trackSelector<T>(
         resubscribe = createResubscribe && selector.onChange(update, { noArgs: true });
     } else {
         // Compute the selector inside a tracking context
-        beginTracking();
+        beginTracking(inRender);
         value = selector ? computeSelector(selector, observeEvent, observeOptions?.retainObservable) : selector;
         tracker = tracking.current;
         nodes = tracker.nodes;
-        endTracking();
+        endTracking(inRender);
 
         if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
             tracker.traceListeners?.(nodes);
