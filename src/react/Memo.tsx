@@ -1,10 +1,4 @@
-import { memo, ReactElement, ReactNode } from 'react';
-import type { Selector } from 'src/observableInterfaces';
-import { useSelector } from './useSelector';
+import { memo } from 'react';
+import { Computed } from './Computed';
 
-export const Memo = /*#__PURE__*/ memo(
-    function Memo({ children }: { children: Selector<ReactNode> }): ReactElement {
-        return useSelector(children) as ReactElement;
-    },
-    () => true
-);
+export const Memo = memo(Computed, () => true);
