@@ -638,7 +638,7 @@ describe('observer', () => {
         let num = 0;
         const obs$ = observable(0);
         const Test = observer(function Test() {
-            const value = obs$.get();
+            obs$.get();
             num++;
 
             return createElement('div', undefined);
@@ -661,8 +661,8 @@ describe('observer', () => {
         let num = 0;
         const obs$ = observable(0);
         const Test = observer(function Test() {
-            const value = useSelector(obs$);
-            const value2 = useSelector(obs$);
+            useSelector(obs$);
+            useSelector(obs$);
             num++;
 
             return createElement('div', undefined);
