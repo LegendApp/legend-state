@@ -1,4 +1,5 @@
 import {
+    computeSelector,
     isFunction,
     ObservableReadable,
     observe,
@@ -32,22 +33,14 @@ export function useObserve<T>(
         selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
-    }>();
+    }>({});
 
-    if (!ref.current) {
-        ref.current = {
-            dispose: observe(selector, reaction),
-        };
-    }
     ref.current.selector = selector;
     ref.current.reaction = reaction;
 
-    if (!ref.current) {
+    if (!ref.current.dispose) {
         ref.current.dispose = observe<T>(
-            ((e: ObserveEventCallback<T>) => {
-                const { selector } = ref.current as { selector: (e: ObserveEvent<T>) => T | void };
-                return isFunction(selector) ? selector(e) : selector;
-            }) as any,
+            ((e: ObserveEventCallback<T>) => computeSelector(ref.current.selector, e)) as any,
             (e) => ref.current.reaction?.(e),
             options
         );
