@@ -104,14 +104,15 @@ export function adjustLoadData(
     {
         adjustData,
         fieldTransforms,
-    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { load?: (value: any) => any } }
+    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { load?: (value: any) => any } },
+    doUserAdjustData: boolean
 ): Promise<any> | any {
     if (fieldTransforms) {
         const inverted = invertFieldMap(fieldTransforms);
         value = transformObject(value, inverted);
     }
 
-    if (adjustData?.load) {
+    if (doUserAdjustData && adjustData?.load) {
         value = adjustData.load(value);
     }
 
@@ -407,7 +408,7 @@ async function doChange(changeInfo: {
                         // Remote can optionally have data that needs to be merged back into the observable,
                         // for example Firebase may update dateModified with the server timestamp
                         if (changes && !isEmpty(changes)) {
-                            adjustedChanges.push(adjustLoadData(changes, persistOptions.remote));
+                            adjustedChanges.push(adjustLoadData(changes, persistOptions.remote, false));
                         }
                     }
                 }
@@ -535,7 +536,7 @@ async function loadLocal<T>(
                 }
             }
 
-            value = adjustLoadData(value, { adjustData, fieldTransforms });
+            value = adjustLoadData(value, { adjustData, fieldTransforms }, true);
 
             if (isPromise(value)) {
                 value = await value;
@@ -611,7 +612,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                         // Note: value is the constructed value, path is used for setInObservableAtPath
                         // to start the set into the observable from the path
                         if (value !== undefined) {
-                            value = adjustLoadData(value, remote);
+                            value = adjustLoadData(value, remote, true);
                             if (isPromise(value)) {
                                 value = await (value as Promise<T>);
                             }
