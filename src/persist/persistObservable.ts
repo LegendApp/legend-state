@@ -236,7 +236,7 @@ async function prepChange(queuedChange: QueuedChange) {
             // already processed. If a later change modifies a parent of an earlier change (which happens on delete()
             // it should be ignored as it's superseded by the parent modification.
             if (changesPaths.size > 0) {
-                for (let u = 1; u < path.length; u++) {
+                for (let u = 0; u < path.length; u++) {
                     if (changesPaths.has((u === path.length - 1 ? path : path.slice(0, u + 1)).join('/'))) {
                         found = true;
                         break;
