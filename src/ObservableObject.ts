@@ -472,7 +472,8 @@ const proxyHandler: ProxyHandler<any> = {
 
         const property = observableProperties.get(prop);
         if (property) {
-            return property.set(node, value);
+            property.set(node, value);
+            return true;
         }
 
         if (process.env.NODE_ENV === 'development') {

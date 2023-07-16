@@ -2612,6 +2612,13 @@ describe('_', () => {
         expect(obs.test2._).toEqual({ t: 'hello' });
         expect(obs.test2.t._).toEqual('hello');
     });
+    test('_ to set works if value is undefined', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.test2._ = undefined;
+
+        expect(obs.test2._).toEqual(undefined);
+        expect(obs.test2.t._).toEqual(undefined);
+    });
     test('_ works on primitives', () => {
         const obs = observable(0);
         obs._ = 1;
