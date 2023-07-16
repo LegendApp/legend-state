@@ -17,8 +17,8 @@ export function event(): ObservableEvent {
             return obs.onChange(cb);
         },
         get: function () {
-            // Need to return undefined
-            obs.get();
+            // Return the value so that when will be truthy
+            return obs.get();
         },
         // @ts-expect-error eslint doesn't like adding symbols to the object but this does work
         [symbolGetNode]: node,

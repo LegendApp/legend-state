@@ -2115,7 +2115,9 @@ describe('Event', () => {
     });
     test('Event get', () => {
         const evt = event();
-        expect(evt.get()).toEqual(undefined);
+        expect(evt.get()).toEqual(0);
+        evt.fire();
+        expect(evt.get()).toEqual(1);
     });
 });
 describe('Promise values', () => {
