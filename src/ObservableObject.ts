@@ -88,7 +88,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         if (__devUpdateNodes.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj
+                obj,
             );
             return false;
         }
@@ -149,7 +149,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                                         if (keysSeen.has(key)) {
                                             console.warn(
                                                 `[legend-state] Warning: Multiple elements in array have the same ID. Key field: ${idField}, Array:`,
-                                                prevValue
+                                                prevValue,
                                             );
                                         }
                                         keysSeen.add(key);
@@ -297,7 +297,7 @@ const proxyHandler: ProxyHandler<any> = {
             throw new Error(
                 process.env.NODE_ENV === 'development'
                     ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
-                    : '[legend-state] observable is not a primitive.'
+                    : '[legend-state] observable is not a primitive.',
             );
         }
         if (p === symbolGetNode) {
@@ -526,7 +526,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         throw new Error(
             process.env.NODE_ENV === 'development'
                 ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
-                : '[legend-state] Modified locked observable'
+                : '[legend-state] Modified locked observable',
         );
     }
 
@@ -691,7 +691,7 @@ function updateNodesAndNotify(
     childNode?: NodeValue,
     isPrim?: boolean,
     isRoot?: boolean,
-    level?: number
+    level?: number,
 ) {
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for ever property set
@@ -717,7 +717,7 @@ function updateNodesAndNotify(
             newValue,
             prevValue,
             level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
-            whenOptimizedOnlyIf
+            whenOptimizedOnlyIf,
         );
     }
 

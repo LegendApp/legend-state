@@ -13,12 +13,12 @@ export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: Obse
 export function observe<T>(
     selector: Selector<T>,
     reaction?: (e: ObserveEventCallback<T>) => any,
-    options?: ObserveOptions
+    options?: ObserveOptions,
 ): () => void;
 export function observe<T>(
     selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => any),
     reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
-    options?: ObserveOptions
+    options?: ObserveOptions,
 ) {
     let reaction: (e: ObserveEventCallback<T>) => any;
     if (isFunction(reactionOrOptions)) {

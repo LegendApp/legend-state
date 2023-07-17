@@ -13,14 +13,14 @@ function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefin
     React.useReducer = function useReducer<R extends Reducer<any, any>>(
         reducer: R,
         initializerArg: ReducerState<R>,
-        initializer: (arg: ReducerState<R>) => ReducerState<R>
+        initializer: (arg: ReducerState<R>) => ReducerState<R>,
     ) {
         const obs =
             refObs.current ??
             (refObs.current = observable(
                 initializerArg !== undefined && isFunction(initializerArg)
                     ? initializer(initializerArg)
-                    : initializerArg
+                    : initializerArg,
             ) as Observable<TRet>);
         const dispatch = (action: any) => {
             obs.set(reducer(obs.get(), action));
@@ -30,7 +30,7 @@ function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefin
 }
 
 export function createObservableHook<TArgs extends any[], TRet>(
-    fn: (...args: TArgs) => TRet
+    fn: (...args: TArgs) => TRet,
 ): (...args: TArgs) => Observable<TRet> {
     const _useState = React.useState;
     const _useReducer = React.useReducer;

@@ -15,12 +15,12 @@ export function useObserve<T>(run: (e: ObserveEvent<T>) => T | void, options?: O
 export function useObserve<T>(
     selector: Selector<T>,
     reaction?: (e: ObserveEventCallback<T>) => any,
-    options?: ObserveOptions
+    options?: ObserveOptions,
 ): () => void;
 export function useObserve<T>(
     selector: Selector<T> | ((e: ObserveEvent<T>) => any),
     reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
-    options?: ObserveOptions
+    options?: ObserveOptions,
 ): () => void {
     let reaction: (e: ObserveEventCallback<T>) => any;
     if (isFunction(reactionOrOptions)) {
@@ -42,7 +42,7 @@ export function useObserve<T>(
         ref.current.dispose = observe<T>(
             ((e: ObserveEventCallback<T>) => computeSelector(ref.current.selector, e)) as any,
             (e) => ref.current.reaction?.(e),
-            options
+            options,
         );
     }
 

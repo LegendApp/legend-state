@@ -79,12 +79,12 @@ export const Legend = new Proxy(
                     bindables[p] &&
                         ({
                             value: bindables[p],
-                        } as BindKeys)
+                        } as BindKeys),
                 );
             }
             return target[p];
         },
-    }
+    },
 ) as {
     ActivityIndicator: FCReactive<ActivityIndicator, ActivityIndicatorProps>;
     Button: FCReactive<Button, ButtonProps>;

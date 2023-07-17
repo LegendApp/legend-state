@@ -10,7 +10,7 @@ export function trackSelector<T>(
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
     createResubscribe?: boolean,
-    inRender?: boolean
+    inRender?: boolean,
 ) {
     let nodes;
     let value;

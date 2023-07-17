@@ -29,7 +29,7 @@ export function For<T, TProps>({
         each = eachValues;
         if (process.env.NODE_ENV === 'development') {
             console.log(
-                '[legend-state]: "eachValues" prop is deprecated and will be removed in the next major version. Please use "each" prop instead.'
+                '[legend-state]: "eachValues" prop is deprecated and will be removed in the next major version. Please use "each" prop instead.',
             );
         }
     }

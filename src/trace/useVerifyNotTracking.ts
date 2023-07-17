@@ -19,13 +19,13 @@ function traceNodes(name: string, nodes: Map<NodeValue, TrackingNode>) {
                 arr.push(
                     `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
                         isOptimized ? ' (optimized)' : ''
-                    }`
+                    }`,
                 );
             }
             console.error(
                 `[legend-state] ${name ? name + ' ' : ''}tracking ${arr.length} observable${
                     arr.length !== 1 ? 's' : ''
-                } when it should not be:\n${arr.join('\n')}`
+                } when it should not be:\n${arr.join('\n')}`,
             );
         }
     }

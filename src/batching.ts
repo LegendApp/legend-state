@@ -25,7 +25,7 @@ function onActionTimeout() {
     if (_batchMap.size > 0) {
         if (process.env.NODE_ENV === 'development') {
             console.error(
-                'Forcibly completing observableBatcher because end() was never called. This may be due to an uncaught error between begin() and end().'
+                'Forcibly completing observableBatcher because end() was never called. This may be due to an uncaught error between begin() and end().',
             );
         }
         endBatch(/*force*/ true);
@@ -73,7 +73,7 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
         prev,
         /*immediate*/ true,
         level,
-        whenOptimizedOnlyIf
+        whenOptimizedOnlyIf,
     );
     batchNotifyChanges(changesInBatch, /*immediate*/ true);
 
@@ -102,7 +102,7 @@ function computeChangesAtNode(
     prevAtPath: any,
     immediate: boolean,
     level: number,
-    whenOptimizedOnlyIf?: boolean
+    whenOptimizedOnlyIf?: boolean,
 ) {
     // If there are listeners at this node compute the changes that need to be run
     if (immediate ? node.listenersImmediate : node.listeners) {
@@ -138,7 +138,7 @@ function computeChangesRecursive(
     prevAtPath: any,
     immediate: boolean,
     level: number,
-    whenOptimizedOnlyIf?: boolean
+    whenOptimizedOnlyIf?: boolean,
 ) {
     // Do the compute at this node
     computeChangesAtNode(
@@ -151,7 +151,7 @@ function computeChangesRecursive(
         prevAtPath,
         immediate,
         level,
-        whenOptimizedOnlyIf
+        whenOptimizedOnlyIf,
     );
     if (node.linkedFromNodes) {
         for (const linkedFromNode of node.linkedFromNodes) {
@@ -165,7 +165,7 @@ function computeChangesRecursive(
                 prevAtPath,
                 immediate,
                 level,
-                whenOptimizedOnlyIf
+                whenOptimizedOnlyIf,
             );
         }
     }
@@ -184,7 +184,7 @@ function computeChangesRecursive(
                 prevAtPath,
                 immediate,
                 level + 1,
-                whenOptimizedOnlyIf
+                whenOptimizedOnlyIf,
             );
         }
     }

@@ -27,7 +27,7 @@ function createReactiveComponent<P = object>(
     component: FC<P>,
     observe: boolean,
     reactive?: boolean,
-    bindKeys?: BindKeys<P>
+    bindKeys?: BindKeys<P>,
 ) {
     const ReactForwardRefSymbol = hasSymbol
         ? Symbol.for('react.forward_ref')
@@ -159,6 +159,6 @@ export function reactiveComponents<P extends Record<string, FC>>(components: P):
 
                 return target[p];
             },
-        }
+        },
     ) as ObjectShapeWith$<P>;
 }

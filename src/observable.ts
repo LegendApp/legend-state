@@ -13,7 +13,7 @@ import type {
 function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
 function createObservable<T>(
     value?: T | Promise<T>,
-    makePrimitive?: boolean
+    makePrimitive?: boolean,
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const valueIsPromise = isPromise<T>(value);
     const root: ObservableRoot = {

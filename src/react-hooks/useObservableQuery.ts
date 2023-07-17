@@ -27,7 +27,7 @@ import * as React from 'react';
 
 const ensurePreventErrorBoundaryRetry = <TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>(
     options: DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
-    errorResetBoundary: QueryErrorResetBoundaryValue
+    errorResetBoundary: QueryErrorResetBoundaryValue,
 ) => {
     if (options.suspense || options.useErrorBoundary) {
         // Prevent retrying failed query if the error boundary has not been reset yet
@@ -45,7 +45,7 @@ const useClearResetErrorBoundary = (errorResetBoundary: QueryErrorResetBoundaryV
 
 function shouldThrowError<T extends (...args: any[]) => boolean>(
     _useErrorBoundary: boolean | T | undefined,
-    params: Parameters<T>
+    params: Parameters<T>,
 ): boolean {
     // Allow useErrorBoundary function to override throwing behavior on a per-error basis
     if (typeof _useErrorBoundary === 'function') {
@@ -76,7 +76,7 @@ const getHasError = <TData, TError, TQueryFnData, TQueryData, TQueryKey extends 
 
 export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey, TContext>(
     options: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> & { queryClient?: QueryClient },
-    mutationOptions?: UseMutationOptions<TData, TError, void, TContext>
+    mutationOptions?: UseMutationOptions<TData, TError, void, TContext>,
 ) {
     const Observer = QueryObserver;
     const queryClient = options?.queryClient || useQueryClient({ context: options.context });
@@ -113,7 +113,7 @@ export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQue
     useClearResetErrorBoundary(errorResetBoundary);
 
     const [observer] = React.useState(
-        () => new Observer<TQueryFnData, TError, TData, TQueryData, TQueryKey>(queryClient, defaultedOptions)
+        () => new Observer<TQueryFnData, TError, TData, TQueryData, TQueryKey>(queryClient, defaultedOptions),
     );
 
     const result = observer.getOptimisticResult(defaultedOptions);

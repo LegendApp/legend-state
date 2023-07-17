@@ -11,7 +11,7 @@ const bindables = new Set(['input', 'textarea', 'select']);
 const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value, defaultValue: '' } };
 const bindInfoInput: BindKeys = Object.assign(
     { checked: { handler: 'onChange', getValue: (e: { target: { checked: boolean } }) => e.target.checked } },
-    bindInfo
+    bindInfo,
 );
 
 export const Legend = new Proxy(
@@ -33,5 +33,5 @@ export const Legend = new Proxy(
             }
             return target[p];
         },
-    }
+    },
 ) as FCReactiveObject<JSX.IntrinsicElements>;

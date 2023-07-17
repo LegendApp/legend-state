@@ -297,7 +297,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                             key = prefixID + '/' + key;
                         }
                         return requestToPromise(store.delete(key));
-                    })
+                    }),
                 );
             }
             // Clear the table from IDB
@@ -415,7 +415,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         prev: object,
         value: object,
         store: IDBObjectStore,
-        config: PersistOptionsLocal
+        config: PersistOptionsLocal,
     ) {
         const keys = Object.keys(value);
         let lastSet: IDBRequest;
@@ -424,7 +424,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             keys.map((key) => {
                 const val = value[key];
                 return this._setItem(table, key, val, store, config);
-            })
+            }),
         );
         lastSet = sets[sets.length - 1];
 
@@ -437,7 +437,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                         if (value[key] === undefined) {
                             return this._setItem(table, key, null, store, config);
                         }
-                    })
+                    }),
                 )
             ).filter((a) => !!a);
             if (deletes.length > 0) {

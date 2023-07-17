@@ -123,7 +123,7 @@ export function extractFunctionsAndComputeds(obj: Record<string, any>, node: Nod
         if (__devExtractFunctionsAndComputedsNodes.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj
+                obj,
             );
             return false;
         }

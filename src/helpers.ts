@@ -61,7 +61,7 @@ export function setAtPath<T extends object>(
     pathTypes: TypeAtPath[],
     value: any,
     fullObj?: T,
-    restore?: (path: string[], value: any) => void
+    restore?: (path: string[], value: any) => void,
 ) {
     let o = obj;
     let oFull = fullObj;
