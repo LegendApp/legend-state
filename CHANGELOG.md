@@ -2,7 +2,15 @@
 
 - Feat: Returning an observable in a computed creates a two-way link to the target observable.
 - Feat: `computed` is supported as a child of an observable
+- Feat: `proxy` is like a `computed` but given a key, usable by indexing into an object with a string key
 - Feat: Functions and computeds in the hierarchy of the constructing object in an observable are extracted into observable metadata so that setting the observable does not delete them.
+- Feat: `Memo` and `Computed` support observables as children
+- Feat: `reactiveComponents` makes multiple reactive components at once from the children of the target object
+- Feat: Reactive components and `reactive` makes children reactive if it's a functions
+- Fix: `useObserve` updates the compute and set functions when re-run
+- Fix: Direct setting with `_` was not working with falsy values
+- Change: Reactive props will now start with `$:` instead of ending with `$`. Both work for now, but `prop$` will be deprecated in a later version.
+- Perf: `useSelector` skips creating a hook if it's inside an `observer`
 
 ## 1.3.6
 
@@ -28,7 +36,6 @@ See [https://legendapp.com/open-source/state/experiments/](https://legendapp.com
 - Feat: (experimental) `enableDirectAccess` enables a property on observables named $ as a shorthand for get/set
 - Feat: (experimental) `enableReactUse` enables a `use()` function on all observables to get the value of an observable and track it for changes within a React component
 - Feat: (experimental) `enableReactDirectRender` replaces `enableLegendStateReact` (will be deprecated in a later version)
-- Change: Reactive props will now start with $ instead of ending with $. Both work for now, but prop$ will be deprecated in a later version.
 - Fix: `afterBatch` was running after all recursive batches rather than just the current batch
 - Fix: Circular reference detection was failing on null values
 
