@@ -12,6 +12,6 @@ export function useObservable<T>(initialValue?: T | (() => T) | (() => Promise<T
     // Create the observable from the default value
     return useMemo(
         () => observable<T>(isFunction(initialValue as () => T) ? (initialValue as () => T)() : (initialValue as T)),
-        []
+        [],
     );
 }

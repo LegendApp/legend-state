@@ -12,12 +12,12 @@ import { useMemo } from 'react';
  */
 export function usePersistedObservable<T>(
     initialValue?: T | (() => T) | (() => Promise<T>),
-    options?: PersistOptions<T>
+    options?: PersistOptions<T>,
 ): Observable<T> {
     // Create the observable from the default value
     return useMemo(() => {
         const obs = observable<T>(
-            isFunction(initialValue as () => T) ? (initialValue as () => T)() : (initialValue as T)
+            isFunction(initialValue as () => T) ? (initialValue as () => T)() : (initialValue as T),
         );
         if (options) {
             persistObservable<T>(obs as ObservableWriteable<T>, options);

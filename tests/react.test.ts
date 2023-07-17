@@ -10,6 +10,7 @@ import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { For } from '../src/react/For';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
+import { observer } from '../src/react/reactive-observer';
 import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
@@ -43,7 +44,7 @@ describe('useSelector', () => {
     test('useSelector with observable', () => {
         const obs = observable('hi');
         const { result } = renderHook(() => {
-            return useSelector(obs);
+            return useSelector(() => obs.get());
         });
 
         act(() => {
@@ -629,5 +630,54 @@ describe('useObserveEffect', () => {
         render(createElement(App));
 
         expect(num).toEqual(1);
+    });
+});
+
+describe('observer', () => {
+    test('observer basic', () => {
+        let num = 0;
+        const obs$ = observable(0);
+        const Test = observer(function Test() {
+            obs$.get();
+            num++;
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+    });
+
+    test('observer with useSelector inside', () => {
+        let num = 0;
+        const obs$ = observable(0);
+        const Test = observer(function Test() {
+            useSelector(obs$);
+            useSelector(obs$);
+            num++;
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
     });
 });

@@ -55,11 +55,11 @@ export default function () {
                                         jsxExpressionContainer(
                                             arrowFunctionExpression(
                                                 [],
-                                                jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children)
-                                            )
+                                                jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children),
+                                            ),
                                         ),
-                                    ]
-                                )
+                                    ],
+                                ),
                             );
                         }
                     }

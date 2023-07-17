@@ -1,5 +1,6 @@
 import { getProxy } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
+import { __devExtractFunctionsAndComputedsNodes, extractFunctionsAndComputeds } from './globals';
 import { isActualPrimitive, isPromise } from './is';
 import type {
     NodeValue,
@@ -12,7 +13,7 @@ import type {
 function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
 function createObservable<T>(
     value?: T | Promise<T>,
-    makePrimitive?: boolean
+    makePrimitive?: boolean,
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const valueIsPromise = isPromise<T>(value);
     const root: ObservableRoot = {
@@ -23,10 +24,11 @@ function createObservable<T>(
         root,
     };
 
-    const obs =
-        makePrimitive || isActualPrimitive(value)
-            ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
-            : (getProxy(node) as ObservableObjectOrArray<T>);
+    const prim = makePrimitive || isActualPrimitive(value);
+
+    const obs = prim
+        ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
+        : (getProxy(node) as ObservableObjectOrArray<T>);
 
     if (valueIsPromise) {
         value.catch((error) => {
@@ -35,6 +37,11 @@ function createObservable<T>(
         value.then((value) => {
             obs.set(value);
         });
+    } else if (!prim) {
+        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+            __devExtractFunctionsAndComputedsNodes.clear();
+        }
+        extractFunctionsAndComputeds(value, node);
     }
 
     return obs;

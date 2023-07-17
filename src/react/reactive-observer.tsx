@@ -1,6 +1,8 @@
-import { isObservable, Selector } from '@legendapp/state';
+import { isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
+
+import type { BindKeys } from './reactInterfaces';
 
 type ShapeWithOld$<T> = {
     [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
@@ -9,18 +11,23 @@ type ShapeWithOld$<T> = {
 export type ShapeWith$<T> = Partial<T> &
     ShapeWithOld$<T> & {
         [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
+    } & {
+        [K in keyof T as K extends `$:${string & K}` ? K : `$:${string & K}`]?: Selector<T[K]>;
     };
 
-export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
+export type ObjectShapeWith$<T> = {
+    [K in keyof T]: T[K] extends FC<infer P> ? FC<ShapeWith$<P>> : T[K];
+};
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
+// TODOV2: Change bindKeys to an options object, where one of the options is "convertChildren" so that behavior can be optional
 function createReactiveComponent<P = object>(
     component: FC<P>,
     observe: boolean,
     reactive?: boolean,
-    bindKeys?: BindKeys<P>
+    bindKeys?: BindKeys<P>,
 ) {
     const ReactForwardRefSymbol = hasSymbol
         ? Symbol.for('react.forward_ref')
@@ -66,11 +73,15 @@ function createReactiveComponent<P = object>(
                     const key = keys[i];
                     const p = props[key];
 
+                    // Convert children if it's a function
+                    if (key === 'children' && isFunction(p)) {
+                        props[key] = useSelector(p);
+                    }
                     // Convert reactive props
                     // TODOV2 Remove the deprecated endsWith option
-                    if (key.startsWith('$') || key.endsWith('$')) {
-                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
-                        // Return raw value and Listen to the selector for changes
+                    else if (key.startsWith('$') || key.endsWith('$')) {
+                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(key.startsWith('$:') ? 2 : 1);
+                        // Return raw value and listen to the selector for changes
                         propsOut[k] = useSelector(p);
 
                         // If this key is one of the bind keys set up a two-way binding
@@ -135,4 +146,19 @@ export function reactive<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
 
 export function reactiveObserver<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
     return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
+}
+
+export function reactiveComponents<P extends Record<string, FC>>(components: P): ObjectShapeWith$<P> {
+    return new Proxy(
+        {},
+        {
+            get(target, p: string) {
+                if (!target[p]) {
+                    target[p] = createReactiveComponent(components[p], false, true) as FC<ShapeWith$<P>>;
+                }
+
+                return target[p];
+            },
+        },
+    ) as ObjectShapeWith$<P>;
 }

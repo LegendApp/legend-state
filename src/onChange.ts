@@ -4,7 +4,7 @@ import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './o
 export function onChange(
     node: NodeValue,
     callback: ListenerFn,
-    options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {}
+    options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {},
 ): () => void {
     const { initial, immediate, noArgs } = options;
     let { trackingType } = options;
@@ -14,7 +14,7 @@ export function onChange(
     if (trackingType === 'optimize') {
         if (process.env.NODE_ENV === 'development') {
             console.log(
-                '[legend-state]: "optimize" prop is deprecated and will be removed in the next major version. Please import { optimize } from "@legendapp/state" and use that instead.'
+                '[legend-state]: "optimize" prop is deprecated and will be removed in the next major version. Please import { optimize } from "@legendapp/state" and use that instead.',
             );
         }
         trackingType = optimized;

@@ -19,7 +19,7 @@ function traceNodes(name: string, nodes: Map<NodeValue, TrackingNode>) {
                 arr.push(
                     `${arr.length + 1}: ${getNodePath(node)}${shallow ? ' (shallow)' : ''}${
                         isOptimized ? ' (optimized)' : ''
-                    }`
+                    }`,
                 );
             }
         }
@@ -27,7 +27,7 @@ function traceNodes(name: string, nodes: Map<NodeValue, TrackingNode>) {
         console.log(
             `[legend-state] ${name ? name + ' ' : ''}tracking ${arr.length} observable${
                 arr.length !== 1 ? 's' : ''
-            }:\n${arr.join('\n')}`
+            }:\n${arr.join('\n')}`,
         );
     }
 }

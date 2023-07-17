@@ -1,10 +1,8 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, TrackingType } from './observableInterfaces';
+import { NodeValue, ObservableReadable, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
-export const symbolIsObservable = Symbol('isObservable');
-export const symbolIsEvent = Symbol('isEvent');
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
@@ -13,6 +11,9 @@ export const optimized = Symbol('optimized');
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
 export const extraPrimitiveProps = new Map<string | symbol, any>();
 
+export const __devExtractFunctionsAndComputedsNodes =
+    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
+
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     const activate = root.activate;
@@ -20,6 +21,10 @@ export function checkActivate(node: NodeValue) {
         root.activate = undefined;
         activate();
     }
+}
+
+export function getNode(obs: ObservableReadable): NodeValue {
+    return obs && (obs as any)[symbolGetNode];
 }
 
 export function get(node: NodeValue, track?: TrackingType) {
@@ -104,4 +109,37 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
     }
 
     return idKey;
+}
+
+export function extractFunction(node: NodeValue, value: Record<string, any>, key: string) {
+    if (!node.functions) {
+        node.functions = new Map();
+    }
+    node.functions.set(key, value[key]);
+}
+
+export function extractFunctionsAndComputeds(obj: Record<string, any>, node: NodeValue) {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        if (__devExtractFunctionsAndComputedsNodes.has(obj)) {
+            console.error(
+                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
+                obj,
+            );
+            return false;
+        }
+        __devExtractFunctionsAndComputedsNodes.add(obj);
+    }
+    for (const k in obj) {
+        const v = obj[k];
+        if (typeof v === 'function') {
+            extractFunction(node, obj, k);
+        } else if (typeof v == 'object' && v !== null && v !== undefined) {
+            const childNode = getNode(v);
+            if (childNode?.isComputed) {
+                extractFunction(node, obj, k);
+            } else {
+                extractFunctionsAndComputeds(obj[k], getChildNode(node, k));
+            }
+        }
+    }
 }

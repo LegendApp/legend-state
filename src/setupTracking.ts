@@ -5,7 +5,7 @@ export function setupTracking(
     nodes: Map<NodeValue, TrackingNode> | undefined,
     update: ListenerFn,
     noArgs?: boolean,
-    immediate?: boolean
+    immediate?: boolean,
 ) {
     let listeners: (() => void)[] | undefined = [];
 

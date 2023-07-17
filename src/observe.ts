@@ -1,23 +1,24 @@
 import { beginBatch, endBatch } from './batching';
-import { symbolIsEvent } from './globals';
+import { isEvent } from './helpers';
 import { isFunction } from './is';
 import { ObserveEvent, ObserveEventCallback, Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';
 
 export interface ObserveOptions {
     immediate?: boolean; // Ignore batching and run immediately
+    retainObservable?: boolean;
 }
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
 export function observe<T>(
     selector: Selector<T>,
     reaction?: (e: ObserveEventCallback<T>) => any,
-    options?: ObserveOptions
+    options?: ObserveOptions,
 ): () => void;
 export function observe<T>(
     selectorOrRun: Selector<T> | ((e: ObserveEvent<T>) => any),
     reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
-    options?: ObserveOptions
+    options?: ObserveOptions,
 ) {
     let reaction: (e: ObserveEventCallback<T>) => any;
     if (isFunction(reactionOrOptions)) {
@@ -54,7 +55,7 @@ export function observe<T>(
         }
 
         // Call the reaction if there is one and the value changed
-        if (reaction && (e.num > 0 || !(selectorOrRun as any)?.[symbolIsEvent]) && e.previous !== e.value) {
+        if (reaction && (e.num > 0 || !isEvent(selectorOrRun as any)) && e.previous !== e.value) {
             reaction(e);
         }
 

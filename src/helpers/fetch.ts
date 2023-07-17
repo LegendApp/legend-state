@@ -3,7 +3,7 @@ import { observable } from '@legendapp/state';
 export function observableFetch<T>(
     input: RequestInfo | URL,
     init?: RequestInit,
-    valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text'
+    valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text',
 ) {
     const obs = observable<{
         data?: T;

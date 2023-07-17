@@ -3,7 +3,6 @@ import type { NodeValue, TrackingNode, TrackingType } from './observableInterfac
 interface TrackingState {
     nodes?: Map<NodeValue, TrackingNode>;
     traceListeners?: (nodes: Map<NodeValue, TrackingNode>) => void;
-    // eslint-disable-next-line @typescript-eslint/ban-types
     traceUpdates?: (fn: Function) => Function;
 }
 
@@ -13,20 +12,25 @@ const trackingQueue: (TrackingState | undefined)[] = [];
 export const tracking = {
     current: undefined as TrackingState | undefined,
     inRemoteChange: false,
+    inRender: false,
 };
 
-export function beginTracking() {
+export function beginTracking(inRender?: boolean) {
     // Keep a copy of the previous tracking context so it can be restored
     // when this context is complete
     trackingQueue.push(tracking.current);
     trackCount++;
+    tracking.inRender = inRender;
     tracking.current = {};
 }
-export function endTracking() {
+export function endTracking(fromRender?: boolean) {
     // Restore the previous tracking context
     trackCount--;
     if (trackCount < 0) {
         trackCount = 0;
+    }
+    if (fromRender) {
+        tracking.inRender = false;
     }
     tracking.current = trackingQueue.pop();
 }

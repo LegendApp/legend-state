@@ -1,6 +1,6 @@
 import { isEmpty, isFunction } from '@legendapp/state';
-import { BindKeys, reactive, ShapeWith$ } from '@legendapp/state/react';
-import { createElement, FC, forwardRef, LegacyRef } from 'react';
+import { BindKeys, ShapeWith$, reactive } from '@legendapp/state/react';
+import { FC, LegacyRef, createElement, forwardRef } from 'react';
 import {
     ActivityIndicator,
     ActivityIndicatorProps,
@@ -79,12 +79,12 @@ export const Legend = new Proxy(
                     bindables[p] &&
                         ({
                             value: bindables[p],
-                        } as BindKeys)
+                        } as BindKeys),
                 );
             }
             return target[p];
         },
-    }
+    },
 ) as {
     ActivityIndicator: FCReactive<ActivityIndicator, ActivityIndicatorProps>;
     Button: FCReactive<Button, ButtonProps>;

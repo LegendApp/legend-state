@@ -95,7 +95,7 @@ export function transformObjectWithPath(
     obj: object,
     path: string[],
     pathTypes: TypeAtPath[],
-    fieldTransforms: FieldTransforms<any>
+    fieldTransforms: FieldTransforms<any>,
 ) {
     const constructed = constructObjectWithPath(path, obj, pathTypes);
     const transformed = transformObject(constructed, fieldTransforms);

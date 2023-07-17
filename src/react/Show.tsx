@@ -25,7 +25,7 @@ export function Show<T>({ if: if_, ifReady, else: else_, wrap, children }: Props
     const child = useSelector(() => {
         const value = computeSelector(if_ ?? ifReady);
         const child = computeSelector(
-            (ifReady !== undefined ? isObservableValueReady(value) : value) ? children : else_ ? else_ : null
+            (ifReady !== undefined ? isObservableValueReady(value) : value) ? children : else_ ? else_ : null,
         );
         return child;
     });

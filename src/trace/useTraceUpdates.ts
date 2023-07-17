@@ -6,12 +6,10 @@ export function useTraceUpdates(name?: string) {
     }
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 function replaceUpdateFn(name: string | undefined, updateFn: Function) {
     return onChange.bind(undefined, name, updateFn);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 function onChange(name: string | undefined, updateFn: Function, params: ListenerParams<any>) {
     const { changes } = params;
     if (process.env.NODE_ENV === 'development') {

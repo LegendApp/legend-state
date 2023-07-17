@@ -1,6 +1,6 @@
-import { ObserveOptions } from 'src/observe';
 import { computeSelector, isObservable } from './helpers';
 import type { ObserveEvent, Selector } from './observableInterfaces';
+import type { ObserveOptions } from './observe';
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 
@@ -9,7 +9,8 @@ export function trackSelector<T>(
     update: () => void,
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
-    createResubscribe?: boolean
+    createResubscribe?: boolean,
+    inRender?: boolean,
 ) {
     let nodes;
     let value;
@@ -25,11 +26,11 @@ export function trackSelector<T>(
         resubscribe = createResubscribe && selector.onChange(update, { noArgs: true });
     } else {
         // Compute the selector inside a tracking context
-        beginTracking();
-        value = selector ? computeSelector(selector, observeEvent) : selector;
+        beginTracking(inRender);
+        value = selector ? computeSelector(selector, observeEvent, observeOptions?.retainObservable) : selector;
         tracker = tracking.current;
         nodes = tracker.nodes;
-        endTracking();
+        endTracking(inRender);
 
         if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
             tracker.traceListeners?.(nodes);

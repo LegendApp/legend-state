@@ -23,7 +23,7 @@ function toString(params: Record<string, string>) {
 
 const hasWindow = typeof window !== 'undefined';
 const pageHashParams: Observable<Record<string, string>> = observable(
-    hasWindow ? toParams(window.location.hash.slice(1)) : {}
+    hasWindow ? toParams(window.location.hash.slice(1)) : {},
 );
 
 if (hasWindow) {

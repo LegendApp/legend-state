@@ -1,5 +1,6 @@
 import { beginBatch, endBatch, notify } from './batching';
 import {
+    checkActivate,
     ensureNodeValue,
     extraPrimitiveActivators,
     extraPrimitiveProps,
@@ -11,8 +12,6 @@ import {
     peek,
     symbolDelete,
     symbolGetNode,
-    symbolIsEvent,
-    symbolIsObservable,
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
@@ -45,12 +44,10 @@ const ArrayLoopers = new Set<keyof Array<any>>([
     'some',
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
-// eslint-disable-next-line @typescript-eslint/ban-types
 export const observableProperties = new Map<
     string,
     { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
 >();
-// eslint-disable-next-line @typescript-eslint/ban-types
 export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) => any>([
     ['get', get],
     ['set', set],
@@ -68,7 +65,6 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
 function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
     const prevValue = (isArray(target) && target.slice()) || target;
 
-    // eslint-disable-next-line @typescript-eslint/ban-types
     const ret = (target[prop] as Function).apply(target, args);
 
     if (node) {
@@ -92,7 +88,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         if (__devUpdateNodes.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj
+                obj,
             );
             return false;
         }
@@ -153,7 +149,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                                         if (keysSeen.has(key)) {
                                             console.warn(
                                                 `[legend-state] Warning: Multiple elements in array have the same ID. Key field: ${idField}, Array:`,
-                                                prevValue
+                                                prevValue,
                                             );
                                         }
                                         keysSeen.add(key);
@@ -296,23 +292,30 @@ export function getProxy(node: NodeValue, p?: string) {
 }
 
 const proxyHandler: ProxyHandler<any> = {
-    get(node: NodeValue, p: any) {
+    get(node: NodeValue, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
             throw new Error(
                 process.env.NODE_ENV === 'development'
                     ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
-                    : '[legend-state] observable is not a primitive.'
+                    : '[legend-state] observable is not a primitive.',
             );
-        }
-        if (p === symbolIsObservable) {
-            // Return true if called by isObservable()
-            return true;
-        }
-        if (p === symbolIsEvent) {
-            return false;
         }
         if (p === symbolGetNode) {
             return node;
+        }
+
+        if (node.isComputed) {
+            if (node.proxyFn) {
+                return node.proxyFn(p);
+            } else {
+                checkActivate(node);
+            }
+        }
+
+        // If this node is linked to another observable then forward to the target's handler.
+        // The exception is onChange because it needs to listen to this node for changes.
+        if (node.linkedToNode && p !== 'onChange') {
+            return proxyHandler.get(node.linkedToNode, p, receiver);
         }
 
         const value = peek(node);
@@ -423,6 +426,11 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
+        const fnOrComputed = node.functions?.get(p);
+        if (fnOrComputed) {
+            return fnOrComputed;
+        }
+
         // Return an observable proxy to the property
         return getProxy(node, p);
     },
@@ -464,7 +472,8 @@ const proxyHandler: ProxyHandler<any> = {
 
         const property = observableProperties.get(prop);
         if (property) {
-            return property.set(node, value);
+            property.set(node, value);
+            return true;
         }
 
         if (process.env.NODE_ENV === 'development') {
@@ -517,7 +526,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         throw new Error(
             process.env.NODE_ENV === 'development'
                 ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
-                : '[legend-state] Modified locked observable'
+                : '[legend-state] Modified locked observable',
         );
     }
 
@@ -544,7 +553,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     newValue =
         !node.isAssigning && isFunc
             ? newValue(prevValue)
-            : isObject(newValue) && newValue?.[symbolIsObservable as any]
+            : isObject(newValue) && newValue?.[symbolGetNode as any]
             ? newValue.peek()
             : newValue;
 
@@ -682,7 +691,7 @@ function updateNodesAndNotify(
     childNode?: NodeValue,
     isPrim?: boolean,
     isRoot?: boolean,
-    level?: number
+    level?: number,
 ) {
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for ever property set
@@ -708,7 +717,7 @@ function updateNodesAndNotify(
             newValue,
             prevValue,
             level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
-            whenOptimizedOnlyIf
+            whenOptimizedOnlyIf,
         );
     }
 

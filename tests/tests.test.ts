@@ -7,7 +7,7 @@ import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, symbolGetNode } from '../src/globals';
-import { isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
+import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
@@ -22,7 +22,8 @@ function promiseTimeout(time?: number) {
 
 let spiedConsole: jest.SpyInstance;
 
-beforeAll(() => {
+beforeEach(() => {
+    jest.clearAllMocks();
     spiedConsole = jest.spyOn(global.console, 'error').mockImplementation(() => {});
 });
 afterAll(() => {
@@ -2108,6 +2109,16 @@ describe('Event', () => {
         const evt = event();
         expect(isObservable(evt)).toEqual(true);
     });
+    test('Event is event', () => {
+        const evt = event();
+        expect(isEvent(evt)).toEqual(true);
+    });
+    test('Event get', () => {
+        const evt = event();
+        expect(evt.get()).toEqual(0);
+        evt.fire();
+        expect(evt.get()).toEqual(1);
+    });
 });
 describe('Promise values', () => {
     test('Promise value', async () => {
@@ -2302,15 +2313,6 @@ describe('Primitive <-> Object', () => {
         expect(obs.get()).toEqual('hello');
     });
 });
-describe('Assigning functions', () => {
-    test('Views', () => {
-        const obs = observable({ text: 'hi' } as { text: any; test: any });
-        obs.assign({
-            test: computed(() => obs.text.get() + '!'),
-        });
-        expect(obs.test.get() === 'hi!');
-    });
-});
 describe('Primitive root', () => {
     test('observable root can be primitive', () => {
         const obs = observable(10);
@@ -2446,9 +2448,19 @@ describe('Observe', () => {
     });
 });
 describe('Error detection', () => {
-    test('Circular objects', () => {
+    test('Circular objects in constructor', () => {
         const a: any = {};
         a.c = { a };
+
+        observable(a);
+
+        expect(console.error).toHaveBeenCalledTimes(1);
+    });
+    test('Circular objects in set', () => {
+        jest.clearAllMocks();
+
+        const a: any = {};
+        a.c = { a: {} };
 
         const obs = observable(a);
 
@@ -2495,6 +2507,32 @@ describe('Functions', () => {
         });
         obs.child.test(2);
         expect(count).toEqual(2);
+    });
+    test('Set does not delete functions', () => {
+        let count = 0;
+        const obs = observable({
+            child: {
+                val: 0,
+                test: (num: number) => {
+                    count = num;
+                },
+            },
+        });
+        obs.child.test(2);
+        expect(count).toEqual(2);
+
+        // @ts-expect-error Blocked by TS but handle it anyway
+        obs.child.set({ val: 1 });
+        obs.child.test(4);
+        expect(count).toEqual(4);
+        expect(obs.child.val.get()).toEqual(1);
+    });
+    test('Function assigned later', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        obs.assign({
+            test: () => 'hi!',
+        });
+        expect(obs.test === 'hi!');
     });
 });
 
@@ -2573,6 +2611,13 @@ describe('_', () => {
 
         expect(obs.test2._).toEqual({ t: 'hello' });
         expect(obs.test2.t._).toEqual('hello');
+    });
+    test('_ to set works if value is undefined', () => {
+        const obs = observable({ value: 'hi', test2: { t: 'hi' } });
+        obs.test2._ = undefined;
+
+        expect(obs.test2._).toEqual(undefined);
+        expect(obs.test2.t._).toEqual(undefined);
     });
     test('_ works on primitives', () => {
         const obs = observable(0);

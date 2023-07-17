@@ -1,4 +1,4 @@
-import type { symbolOpaque } from './globals';
+import type { symbolGetNode, symbolOpaque } from './globals';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -48,7 +48,7 @@ export interface ObservableBaseFns<T> {
     get(trackingType?: TrackingType): T;
     onChange(
         cb: ListenerFn<T>,
-        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean }
+        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
     ): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
@@ -96,9 +96,12 @@ export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-type Recurse<T, K extends keyof T, TRecurse> = T[K] extends Function | Promise<any>
+type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
+    : T[K] extends Function | Promise<any>
+    ? T[K]
+    : T[K] extends ObservableProxy<infer t>
+    ? ObservableProxy<t>
     : T[K] extends Map<any, any> | WeakMap<any, any>
     ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveBaseFns<T[K]>, 'get'> & MapGet<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
@@ -364,8 +367,14 @@ interface BaseNodeValue {
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
     descendantHasListener?: boolean;
+    isComputed?: boolean;
+    proxyFn?: (key: string) => ObservableReadable;
+    isEvent?: boolean;
+    linkedToNode?: NodeValue;
+    linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
+    functions?: Map<string, Function | ObservableComputed<any>>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -415,4 +424,8 @@ export interface ObservablePersistenceConfig {
     persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
     saveTimeout?: number;
     dateModifiedKey?: string;
+}
+export interface ObservableProxy<T> {
+    [key: string]: Observable<T>;
+    [symbolGetNode]: NodeValue;
 }

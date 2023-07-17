@@ -25,7 +25,7 @@ export interface ParamsUseObservableNextRouter<T extends object> extends ParamsU
     set: (
         value: T,
         previous: T,
-        router: NextRouter
+        router: NextRouter,
     ) => RouteInfo & {
         transitionOptions?: TransitionOptions;
         method?: 'push' | 'replace';
@@ -103,10 +103,10 @@ routes$.onChange(({ value, getPrevious }) => {
 export function useObservableNextRouter(): Observable<ObservableNextRouterState>;
 export function useObservableNextRouter<T extends object>(params: ParamsUseObservableNextRouter<T>): Observable<T>;
 export function useObservableNextRouter(
-    params: ParamsUseObservableNextRouterBase
+    params: ParamsUseObservableNextRouterBase,
 ): Observable<ObservableNextRouterState>;
 export function useObservableNextRouter<T extends object>(
-    params?: ParamsUseObservableNextRouter<T>
+    params?: ParamsUseObservableNextRouter<T>,
 ): Observable<T> | Observable<ObservableNextRouterState> {
     const { subscribe, compute } = params || {};
 

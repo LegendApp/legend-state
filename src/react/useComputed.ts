@@ -12,17 +12,17 @@ export function useComputed<T>(compute: () => T | Promise<T>): ObservableCompute
 export function useComputed<T>(compute: () => T | Promise<T>, deps: any[]): ObservableComputed<T>;
 export function useComputed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set: (value: T2) => void
+    set: (value: T2) => void,
 ): ObservableComputedTwoWay<T, T2>;
 export function useComputed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set: (value: T2) => void,
-    deps: any[]
+    deps: any[],
 ): ObservableComputedTwoWay<T, T2>;
 export function useComputed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set?: ((value: T2) => void) | any[],
-    deps?: any[]
+    deps?: any[],
 ): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
     if (!deps && isArray(set)) {
         deps = set;
@@ -36,8 +36,8 @@ export function useComputed<T, T2 = T>(
         () =>
             computed<T, T2>(
                 () => (isFunction(ref.current.compute) ? ref.current.compute() : ref.current.compute) as T,
-                set ? (value) => ref.current.set(value) : undefined
+                set ? (value) => ref.current.set(value) : undefined,
             ),
-        deps || []
+        deps || [],
     );
 }

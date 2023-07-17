@@ -1,4 +1,4 @@
-import { Selector, trackSelector } from '@legendapp/state';
+import { computeSelector, Selector, tracking, trackSelector } from '@legendapp/state';
 import { useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
@@ -46,7 +46,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
                 value,
                 dispose: _dispose,
                 resubscribe: _resubscribe,
-            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true);
+            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true, /*inRender*/ true);
 
             dispose = _dispose;
             resubscribe = _resubscribe;
@@ -57,6 +57,10 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
 }
 
 export function useSelector<T>(selector: Selector<T>): T {
+    if (tracking.inRender) {
+        return computeSelector(selector);
+    }
+
     const ref = useRef<SelectorFunctions<T>>();
     if (!ref.current) {
         ref.current = createSelectorFunctions<T>();

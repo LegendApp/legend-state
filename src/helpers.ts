@@ -1,9 +1,11 @@
 import { beginBatch, endBatch } from './batching';
-import { symbolDelete, symbolGetNode, symbolIsObservable, symbolOpaque } from './globals';
+import { getNode, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
     ObservableChild,
+    ObservableComputed,
+    ObservableEvent,
     ObservableObject,
     ObservableReadable,
     ObservableWriteable,
@@ -14,20 +16,24 @@ import type {
 } from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
-    return obs && !!obs[symbolIsObservable as any];
+    return obs && !!obs[symbolGetNode as any];
 }
 
-export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>) {
+export function isEvent(obs: any): obs is ObservableEvent {
+    return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
+}
+
+export function isComputed(obs: any): obs is ObservableComputed {
+    return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
+}
+
+export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean) {
     let c = selector as any;
     if (isFunction(c)) {
         c = e ? c(e) : c();
     }
 
-    return isObservable(c) ? c.get() : c;
-}
-
-export function getNode(obs: ObservableReadable): NodeValue {
-    return (obs as any)[symbolGetNode];
+    return isObservable(c) && !retainObservable ? c.get() : c;
 }
 
 export function getObservableIndex(obs: ObservableReadable): number {
@@ -55,7 +61,7 @@ export function setAtPath<T extends object>(
     pathTypes: TypeAtPath[],
     value: any,
     fullObj?: T,
-    restore?: (path: string[], value: any) => void
+    restore?: (path: string[], value: any) => void,
 ) {
     let o = obj;
     let oFull = fullObj;
