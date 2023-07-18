@@ -1,6 +1,8 @@
 export * from './src/react/Computed';
 export * from './src/react/For';
 export * from './src/react/Memo';
+export { Reactive, configureReactive } from './src/react/Reactive';
+export type { IReactive } from './src/react/Reactive';
 export * from './src/react/Show';
 export * from './src/react/Switch';
 export * from './src/react/enableLegendStateReact';
