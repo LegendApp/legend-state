@@ -63,6 +63,7 @@ export function enableReactNativeComponents() {
 
 // Types:
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { IReactive } from '@legendapp/state/react';
 
 declare module '@legendapp/state/react' {
