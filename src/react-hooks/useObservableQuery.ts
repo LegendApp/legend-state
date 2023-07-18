@@ -17,7 +17,7 @@ import {
 } from '@tanstack/query-core';
 import {
     UseBaseQueryOptions,
-    UseBaseQueryResult,
+    type UseBaseQueryResult,
     useIsRestoring,
     UseMutationOptions,
     useQueryClient,
