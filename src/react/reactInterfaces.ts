@@ -2,7 +2,7 @@ import type { FC, LegacyRef, ReactNode } from 'react';
 import type { Selector } from '../observableInterfaces';
 
 export type ShapeWithNew$<T> = Partial<Omit<T, 'children'>> & {
-    [K in keyof T as K extends `$:${string & K}` ? K : `$:${string & K}`]?: Selector<T[K]>;
+    [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
 } & { children?: Selector<ReactNode> };
 
 export type BindKeys<P = any> = Record<keyof P, { handler: keyof P; getValue: (e: any) => any; defaultValue?: any }>;
