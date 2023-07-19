@@ -42,11 +42,7 @@ export default function () {
 
                         const attrs = openingElement.attributes;
 
-                        if (
-                            children.length > 0 &&
-                            children[0].expression?.type !== 'ArrowFunctionExpression' &&
-                            children[0].expression?.type !== 'FunctionExpression'
-                        ) {
+                        if (children.length > 0 && children[0].type === 'JSXElement') {
                             path.replaceWith(
                                 jsxElement(
                                     jsxOpeningElement(jsxIdentifier(name), attrs),
