@@ -14,6 +14,11 @@ const state$ = observable({ settings: { theme: 'dark' } })
 const theme = state$.settings.theme.get();
 state$.settings.theme.set('light')
 
+// observe re-runs when accessed observables change
+observe(() => {
+    console.log(state.settings.theme.get())
+})
+
 const Component = function Component() {
     // use() makes this component re-render whenever it changes
     const theme = state$.settings.theme.use()
@@ -163,3 +168,7 @@ function Component() {
 ## Getting Started
 
 Continue on to [Getting Started](./getting-started) to get started!
+
+## Community
+
+Join us on [Slack](https://join.slack.com/t/legendappcommunity/shared_invite/zt-1mfjknpna-vUL2s1qOuNeZL12~t2RruQ) to get involved with the Legend community.
