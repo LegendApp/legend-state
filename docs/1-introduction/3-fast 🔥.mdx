@@ -12,7 +12,7 @@ Legend-State's **optimized** mode (on the left) optimizes for rendering each row
 
 Legend-State really shines in the **replace all rows** and **swap rows** benchmarks. When the number of elements is unchaged, it does not need to re-render the list and can only render the individual rows that changed. That brings a big speed improvement for drag/drop or when items are moved around in a list.
 
-You can opt into the fast array rendering with the `optimize` prop on the [For](../fine-grained-reactivity#for) component.
+You can opt into the fast array rendering with the `optimized` prop on the [For](../fine-grained-reactivity#for) component. Note that this optimization reuses React nodes rather than replacing them as usual, so it may have unexpected behavior with some types of animations or if you are modifying the DOM externally. For that reason the benchmark considers usage of the `optimized` props as "non-keyed".
 
 ### Startup metrics
 

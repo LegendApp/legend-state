@@ -216,7 +216,7 @@ function List() {
 
 ### Optimized rendering
 
-The `For` component has an `optimized` prop which takes the optimizations even further. It prevents re-rendering the parent component when possible, so if the array length doesn't change it updates React elements in place instead of the whole list rendering. This massively reduces the rendering time when swapping elements, sorting an array, or replacing some individual elements. But because it reuses React nodes rather than replacing them as usual, it may have unexpected behavior with animations or if you are modifying the DOM externally.
+The `For` component has an `optimized` prop which takes the optimizations even further. It prevents re-rendering the parent component when possible, so if the array length doesn't change it updates React elements in place instead of the whole list rendering. This massively reduces the rendering time when swapping elements, sorting an array, or replacing some individual elements. But because it reuses React nodes rather than replacing them as usual, it may have unexpected behavior with some types of animations or if you are modifying the DOM externally.
 
 This is how the fast "replace all rows" and "swap rows" speeds in the [benchmark](../fast#benchmark) are achieved.
 
