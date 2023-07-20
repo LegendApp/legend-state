@@ -1,0 +1,271 @@
+## Hooks for reading state
+
+### useSelector
+
+`useSelector` computes a value and automatically listens to any observables accessed while running, and only re-renders if the computed value changes.
+
+Props:
+- `selector`: Observable or computation function that listens to observables accessed while running
+
+```jsx
+import { observable } from "@legendapp/state"
+import { useSelector } from "@legendapp/state/react"
+
+const state = observable({ selected: 1, theme })
+
+const Component = ({ id }) => {
+    // Only re-renders if the return value changes
+    const isSelected = useSelector(() => id === state.selected.get())
+
+    // Get the raw value of an observable and listen to it
+    const theme = useSelector(state.theme)
+
+    ...
+}
+```
+
+### useObserve
+
+`useObserve` creates an [observe](../reactivity#observe) which you can use to take actions when observables change. This can be effectively similar to `useEffect` for observables, except that it runs when observables change and not because of a deps array changing.
+
+Like `observe`, `useObserve` has an optional second callback parameter which will run after the selector, and does not track changes. This can be useful for observing an `event` or a single `observable`.
+
+Note that `useObserve` runs during component render, not after render like `useEffect`. If you want an observer that runs after render, see [useObserveEffect](#useObserveEffect).
+
+```jsx
+import { event } from "@legendapp/state"
+import { useObserve, useObservable, Reactive } from "@legendapp/state/react"
+
+const eventUpdateTitle = event()
+
+function ProfilePage() {
+    const profile = useObservable({ name: '' })
+
+    // This runs whenever profile changes
+    useObserve(() => {
+        document.title = `${profile.name.get()} - Profile`
+    })
+
+    // Observe a single observable with a callback when it changes
+    useObserve(profile.name, ({ value }) => {
+        document.title = `${e.value} - Profile`
+    })
+
+    // Observe an event with a callback when it changes
+    useObserve(eventUpdateTitle, () => {
+        document.title = `${profile.name.get()} - Profile`
+    })
+
+    return (
+        <div>
+            <span>Name:</span>
+            <Reactive.input $value={profile.name} />
+        </div>
+    )
+}
+```
+
+### useObserveEffect
+
+`useObserveEffect` is the same as [useObserve](#useObserve) except that it doesn't run until the component is mounted.
+
+## observer HOC
+
+The `observer` HOC has two benefits:
+1. It makes the whole component into an observing context - it automatically tracks observables for changes when `get()` is called, even from within hooks. This can be useful if you don't want to use `use()` or if you want to reuse existing functions in your code that use `get()`, to make them track for changes.
+2. Performance: It groups multiple calls to `use()` and `useSelector` into a single hook, which can be a big performance optimization in heavy components with lots of state.
+
+Although you may have heard that HOCs are slow or bad, there is actually no real downside. The performance cost of `observer` and a single `use()` or `useSelector` is exactly the same (and tiny), and `observer` makes components faster with two or more `use()` or `useSelector` calls.
+
+ See [Tracking](../tracking) for more about when it tracks.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { observer } from "@legendapp/state/react"
+
+const state = observable({ count: 0 })
+
+const Component = observer(function Component() {
+    // Accessing state automatically makes this component track changes to re-render
+    const count = state.count.get();
+
+    // Re-renders whenever count changes
+    return <div>{count}</div>
+})
+```
+
+## Hooks for creating local state
+
+### useObservable
+
+The `useObservable` hook can be used to create an observable within a React component. This can be useful when state is specific to the lifetime of the component, or to hold multiple values in local state.
+
+Its observables will be [tracked for re-rendering](../react-basics) the same as any other observable, so use `use()` to track them.
+
+As with
+
+```jsx
+import { observer, useObservable } from "@legendapp/state/react"
+
+const Component = function Component() {
+    const state$ = useObservable({
+        title: 'Title',
+        first: '',
+        last: '',
+        profile: {...}
+    })
+
+    const fullname$ = useObservable(() => `${state$.fname.get()} ${state$.lname.get()}`)
+
+    return (
+        <div>
+            <div>{fullname$}</div>
+            <Input text={state$.first} />
+            <Input text={state$.last} />
+            <Profile name={fullname$} />
+        </div>
+    )
+}
+```
+
+### useComputed
+
+`useComputed` is like `useObservable` and creates a [computed](../reactivity#computed) observable.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { useComputed } from "@legendapp/state/react"
+
+const state$ = observable({ test: 10, test2: 20 })
+
+function Component() {
+    const sum = useComputed(() => state$.test.get() + state$.test2.get())
+
+    return (
+        <div>Sum: {sum}</div>
+    )
+}
+```
+
+### useObservableReducer
+
+`useObservableReducer` works the same way as `useReducer` but sets an observable rather than triggering a render.
+
+```jsx
+import { useObservableReducer } from "@legendapp/state/react"
+
+const Component = () => {
+    // Only re-renders if the return value changes
+    const isSelected = useObservableReducer()
+
+    // Get the value of the reducer
+    const theme = isSelected.get()
+
+    ...
+}
+```
+
+
+### Using with Context
+
+You may prefer passing local state through Context rather than (or in addition to) having a global state. To do that you can simply add the observable to your Context as usual, and consume the Context from child component. The observable itself is a stable object so changing the value of an observable will not cause a re-render.
+
+```jsx
+import { createContext, useContext } from "react"
+import { observer, useObservable } from "@legendapp/state/react"
+
+const StateContext = createContext()
+
+function App() {
+    const state = useObservable({
+        profile: {
+            name: ''
+        }
+    })
+
+    return (
+        <StateContext.Provider value={state}>
+            <div>
+                <Sidebar />
+                <Main />
+            </div>
+        </StateContext.Provider>
+    )
+}
+
+const Sidebar = function Sidebar() {
+    // StateContext will never change so this will never cause a render
+    const state$ = useContext(StateContext)
+
+    // This component never re-renders, but name re-renders itself
+    return (
+        <div>
+            Name: <Memo>{state.profile.name}</Memo>
+        </div>
+    )
+}
+```
+
+## Miscellaneous hooks
+
+### useMount
+
+Using observable hooks we generally avoid the built-in hooks and dependency arrays, so we have a `useMount` hook for convenience, which is just `useEffect` under the hood.
+
+```jsx
+import { useMount } from "@legendapp/state/react"
+
+const Component = () => {
+    useMount(() => console.log('mounted'))
+}
+```
+
+### useUnmount
+
+Like the `useMount` hook, `useUnmount` is just `useEffect` under the hood.
+
+```jsx
+import { useMount } from "@legendapp/state/react"
+
+const Component = () => {
+    useMount(() => console.log('mounted'))
+}
+```
+
+### useEffectOnce
+
+This is `useEffect` with a workaround in development mode to make sure it only runs once.
+
+```jsx
+import { useEffectOnce } from "@legendapp/state/react"
+
+const Component = () => {
+    useEffectOnce(() => {
+        console.log('mounted')
+    }, [])
+}
+```
+
+### useMountOnce
+
+This is `useMount` with a workaround in development mode to make sure it only runs once.
+
+```jsx
+import { useMountOnce } from "@legendapp/state/react"
+
+const Component = () => {
+    useMountOnce(() => console.log('mounted'))
+}
+```
+
+### useUnmountOnce
+
+This is `useEffect` with a workaround in development mode to make sure it only runs once.
+
+```jsx
+import { useUnmountOnce } from "@legendapp/state/react"
+
+const Component = () => {
+    useUnmountOnce(() => console.log('mounted'))
+}
+```

@@ -1,0 +1,134 @@
+Legend-State is designed to have a lean core that allows you and your team to add additional features, so it has configuration functions to add features as you like.
+
+These functions add features and augment the TypeScript interface to add the new functions, so just importing the file adds the interface.
+
+These configuration functions only need to be called once at the entry point of your application, and then they will work anywhere.
+
+### enableReactUse
+
+This adds a `use()` function to all observables, which gets the value and makes the component reactive to the observable changing. It simply runs `useSelector(obs)` under the hood.
+
+```js
+import { enableReactUse } from '@legendapp/state/config/enableReactUse';
+enableReactUse()
+```
+
+Now you can use `use()`.
+
+```jsx
+import { observable } from '@legendapp/state';
+const state$ = observable({ test: 'hi' })
+
+function Component() {
+    // This makes this component responsive to test changing
+    const test = state$.test.use()
+
+    return <div>{test}</div>
+}
+```
+
+### enableReactComponents, enableReactNativeComponents
+
+Legend-State provides reactive versions of all platform components with reactive props. To use these components first enable the version for your platform:
+
+```js
+// React
+import { enableReactComponents } from "@legendapp/state/config/enableReactComponents"
+enableReactComponents()
+
+// React Native
+import { enableReactNativeComponents } from "@legendapp/state/config/enableReactNativeComponents"
+enableReactNativeComponents()
+```
+
+Now you can use `Reactive`.
+
+```jsx
+import { Reactive } from "@legendapp/state/react"
+
+function Component() {
+    return (
+        <Reactive.div
+            $style={() => ({
+                color: state.age.get() > 5 ? 'green' : 'red'
+            })}
+            $className={() => state.age.get() > 5 ? 'kid' : 'baby'}
+        />
+    )
+}
+```
+
+See [Reactive components](../fine-grained-reactivity/#reactive-components) for more details.
+
+### enableDirectAccess
+
+This enables accessing and setting the raw value of an observable directly. It's a shorthand for `get()` and `set(...)`.
+
+```js
+import { enableDirectAccess } from '@legendapp/state/config/enableDirectAccess';
+enableDirectAccess()
+```
+
+Now you can access/modify observables directly.
+
+```js
+import { observable } from '@legendapp/state';
+
+const state = observable({ test: 'hi', num: 0 })
+
+// $ is a shorthand for get()
+const testValue = state.test.$
+
+// Assign to $ as a shorthand for set()
+state.test.$ = 'hello'
+
+// Assign objects too just like you can with set()
+state.$ = { test: 'hello' }
+
+// Incrementing works as you'd expect
+state.$ ++
+```
+### enableDirectPeek
+
+This enables accessing and setting the raw value of an observable directly without tracking or notifying listeners. Getting with `._` is a shorthand for `peek()` and assigning to `._` modifies the underlying data without notifying. Modifying data without notifying is likely necessary in only very specific scenarios so use it with care.
+
+```js
+import { enableDirectPeek } from '@legendapp/state/config/enableDirectPeek';
+enableDirectPeek()
+```
+
+Now you can access/modify observables directly without notifying.
+
+```js
+import { observable } from '@legendapp/state';
+
+const state = observable({ test: 'hi', num: 0 })
+
+// _ is a shorthand for peek()
+const testValue = state.test._
+
+// Assign to _ to modify the underlying object without notifying listeners
+state.test._ = 'hello'
+
+// Assign objects too
+state._ = { test: 'hello' }
+```
+
+### enableReactDirectRender, enableLegendStateReact (Deprecated)
+
+> Note that these are deprecated in favor of using [Memo](../fine-grained-reactivity/#render-an-observableselector-directly). Although it was cool and terse, it was unclear at a glance that the element was reactive. Memo is exactly the same behavior, but more descriptive.
+
+This enables rendering observables directly into React, creates an element that's reactive to the observable changing.
+
+```jsx
+import { observable } from '@legendapp/state';
+import { enableReactDirectRender } from '@legendapp/state/config/enableReactDirectRender';
+enableReactDirectRender()
+
+const state$ = observable({ test: 'hi' })
+
+function Component() {
+    // The observable can now be rendered directly to create a self-reactive elemtn
+    return <div>{state$.test}</div>
+}
+```

@@ -1,0 +1,150 @@
+## Install Legend-State
+
+<Install name="@legendapp/state" uid="getting-started" />
+
+## Core concepts
+
+### Observables
+
+You can put anything in an observable: primitives, deeply nested objects, arrays, functions, etc... Observables work just like normal objects so you can interact with them without any extra complication. Just call `get()` to get a value and `set(...)` to modify it.
+
+```js
+import { observable } from "@legendapp/state"
+
+const state$ = observable({ text: 'hello', obj: { value: 10 } })
+
+const text = state$.text.get() // 'hello'
+state$.obj.value.get() === 10 // true
+
+// Use the set function anywhere
+state$.text.set('hi')
+
+// Easily modify the previous value
+state$.text.set(text => text + ' there')
+```
+
+[Read more](../observable)
+
+### Observing observables
+
+You can subscribe to changes anywhere in the hierarchy of an object with `onChange(...)`, and then any change to that node will call the listener.
+
+```js
+const state$ = observable({ settings: { theme: 'light' }, array: [{text: 'hi'}] })
+
+// Listen to observable directly
+state$.settings.theme.onChange(({ value }) => console.log('Theme is', value))
+```
+
+The core power of Legend-State is the "observing contexts" in which any call to `get()` will subscribe the observer to that node, and the observer will re-run whenever it changes. This includes `observe`, `when`, `computed`, `useSelector`, `observer`, `<Memo>`, `<Computed>`, and reactive props (we'll get to all of that later).
+
+```js
+// This will re-run whenever accessed observables change
+observe(() => {
+    console.log('Theme is', state$.settings.theme.get())
+})
+
+// when waits for a value to become truthy.
+await when(() => state$.settings.theme.get() === 'dark')
+
+// an observable can be computed based on other observables
+const isDark$ = observable(() => state$.settings.theme.get() === 'dark')
+```
+
+[Read more](../reactivity)
+
+### Selectors
+
+Many of the functions in Legend-State take a Selector, which can be either an observable or a function that returns a value based on observables. The selector is run in an observing context so that `get()` tracks an observable for changes. Whenever an observable changes, it re-runs the function.
+
+Using `when` as an example of using Selectors:
+
+```js
+const isSignedIn$ = observable(false)
+const isOnline$ = observable(false)
+
+// A selector can be just an observable, which will be tracked for changes
+await when(isSignedIn$)
+
+// Or selector can be a function which tracks all get() callschanges
+await when(() => isSignedIn$.get() && isOnline$.get())
+```
+
+## Getting started
+
+### 1. Configure your options
+
+Legend-State is designed to have a lean core that allows you and your team to add additional features, so it has configuration functions to add features as you like. If you are using React we recommend at least adding the `use()` function - it is the recommended way to use observables in React as you will see in the examples. You only need to do this once in your app's entry point.
+
+```jsx
+import { enableReactUse } from '@legendapp/state/config/enableReactUse';
+enableReactUse() // This adds the use() function to observables
+```
+
+There are also more options such as enabling getting/setting values directly with a `$` property. See [configuring](../configuring) for more details.
+
+### 2. Create global state
+
+Observables are designed to contain large hierarchy, and many teams like to have one large global store.
+
+```js
+import { observable } from '@legendapp/state';
+
+export const state$ = observable({
+    UI: {
+        windowSize: undefined as { width: number, height: number },
+        activeTab: 'home' as 'home' | 'user' | 'profile',
+        ...
+    },
+    settings: {
+        theme: 'light' as 'light' | 'dark',
+        fontSize: 14,
+        ...
+    },
+    todos: []
+})
+```
+
+Or if you prefer to have multiple individual atoms in multiple files, you can do that too.
+
+```js
+// settings.ts
+export const theme = observable('light')
+export const fontSize = observable(14)
+
+// UIState.ts
+export const uiState = observable({
+    windowSize: undefined as { width: number, height: number },
+    activeTab: 'home' as 'home' | 'user' | 'profile',
+})
+```
+
+### 3. Use in React
+
+Head over to [React Introduction](../react-introduction) for a detailed guide to getting started in React.
+
+### 4. Persistence plugins
+
+Use `persistObservable` to automatically persist state using any kind of local or remote storage. Legend-State includes local providers for Local Storage on web and [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) in React Native, with more local and remote providers coming soon. Use `configureObservablePersistence` to set default providers for all persisted observables, or you can set them individually if they need to be different.
+
+The given observables will be populated with their persisted state immediately after calling `persistObservable`.
+
+```js
+// Global configuration
+configureObservablePersistence({
+    // Use Local Storage on web
+    persistLocal: ObservablePersistLocalStorage
+    // Use react-native-mmkv in React Native
+    persistLocal: ObservablePersistMMKV
+})
+
+const state$ = observable({ store: { bigObject: { ... } } })
+
+// Persist this observable
+persistObservable(state$, {
+    local: 'store' // Unique name
+})
+```
+
+[Read more](../persistence)
+

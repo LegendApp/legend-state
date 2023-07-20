@@ -1,123 +1,254 @@
-You can put any kind of data in observables. Observables don't change the raw data at all, and you can access the raw value at any point with `get()`.
+You can put anything in an observable: primitives, deeply nested objects, arrays, functions, etc... Observables work just like normal objects so you can interact with them without any extra complication. Just call `get()` to get a value and `set(...)` to modify it.
 
 ```js
 import { observable } from "@legendapp/state"
 
-const obs = observable({ text: 'hello' })
+const state$ = observable({ text: 'hello' })
 
-console.log(obs.get())
+console.log(state$.get())
 // { text: 'hello' }
-
-console.log(obs.text.get(), obs.text.get() === 'hello')
-// 'hello', true
 ```
 
-## get()
+An observable's constructor can include functions or [computed](#computed)/[proxy](#proxy) observables.
+
+```js
+import { computed, observable } from "@legendapp/state"
+
+const state$ = observable({
+    fname: 'hello',
+    lname: 'there',
+    setName: (name: string) => {
+        // Create Actions by just adding a function
+        const [fname, lname] = name.split(name)
+        state$.assign({
+            fname,
+            lname
+        })
+    },
+    fullname: computed((): Observable<string> => {
+        // Set up computed observables within your state object
+        // or if you prefer them elsewhere that's cool too 🤟
+        return `${state$.fname.get()} ${state$.lname.get()}`
+    })
+})
+
+console.log(state$.fullname.get())
+// hello there
+```
+
+> Note: In TypeScript, you need to type the return value of nested `computed` functions or the observable will have a type of `any`.
+
+## Observable functions
+
+### get()
 
 Observables use [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) to expose observable functions and track changes, so an observable is a Proxy pointing to the actual data. You can use `get()` to get the actual value of any observable.
 
 ```js
-const obs = observable({ profile: { name: '' } })
 const profile = { name: 'Test user' }
-obs.profile.set(profile)
+const state$ = observable({ profile: profile, test: 0 })
 
-obs.profile.get()             // { name: 'Test user' }
-obs.profile === profile       // ❌ false. The observable is not strictly equal to profile.
-obs.profile.get() === profile // ✅ true. The raw data is exactly what was set.
+// The raw value is unchanged
+state$.profile.get()             // { name: 'Test user' }
+state$.profile === profile       // ❌ false. The observable is not strictly equal to profile.
+state$.profile.get() === profile // ✅ true. The raw data is exactly what was set.
 ```
 
 Accessing properties through the observable will create a Proxy for every property accessed, but it will not do that while accessing the raw data. So you may want to retrieve the raw data before doing expensive computations that do not need to notify.
 
 ```js
-const obs = observable({ data: someHugeThing })
-const { data } = obs.get()
+const state$ = observable({ data: someHugeThing })
+const { data } = state$.get()
 
 // Nothing special happens when working with the raw data
 processData(data)
 ```
 
-Calling `get()` within a tracking context tracks the observable automatically. You can change that behavior with a parameter `true` to track only when keys are added/removed. See [Tracking](../tracking) for more details.
+Calling `get()` within a tracking context tracks the observable automatically. You can change that behavior with a parameter `true` to track only when keys are added/removed. See [observing contexts](../reactivity#observing-contexts) for more details.
 
 ```js
-obs.get(true) // Create a shallow listener
+state$.get(true) // Create a shallow listener
 ```
 
-## peek()
+### peek()
 
 `peek()` returns the raw value in the same way as `get()`, but it does not automatically track it. Use this when you don't want the component/observing context to update when the value changes.
 
-## set()
+### set()
 
 You can use `set()` to modify the observable, at any path within it. You can even `set()` on a node that is currently undefined, and it will fill in the object tree to make it work.
 
 ```js
-const obs = observable({ text: 'hi' })
+const state$ = observable({ text: 'hi' })
 
 // Set directly
-obs.text.set('hello there')
+state$.text.set('hello there')
 
 // Set with a function relative to previous value
-obs.set('text', (prev) => prev + ' there')
+state$.text.set((prev) => prev + ' there')
 
 // Set will automatically fill out objects that were undefined
-obs.otherKey.otherProp.set('hi')
+state$.otherKey.otherProp.set('hi')
 ```
 
-## assign()
+### assign()
 
 Assign is a shallow operation matching `Object.assign`. If you want a deep merge, see [mergeIntoObservable](../helper-functions#mergeintoobservable).
 
 ```js
-const obs = observable({ text: 'hi' })
+const state$ = observable({ text: 'hi' })
 
 // Assign
-obs.assign({ text: 'hi2' })
+state$.assign({ text: 'hi2' })
 ```
 
-## delete()
+### delete()
 
 Observables provide a `delete` function to delete a key from an object.
 
 ```js
-const obs = observable({ text: 'hi' })
+const state$ = observable({ text: 'hi' })
 
 // Delete text
-obs.text.delete()
+state$.text.delete()
 
 // Set the whole value to undefined
-obs.delete()
+state$.delete()
 ```
 
-## Safety
+## Observable Types
 
-Observables are safe so that you cannot directly assign to them, which prevents accidentally overwriting state or accidentaly assigning huge objects into an observable.
+### Computed
+
+`computed` takes a function that accesses other observables, and automatically tracks the observables accessed while computing. So you can return a computed value based on one or multiple observables, and it will update whenever one of them changes.
+
+The compute function is lazy so it won't run until you `get()` the value the first time.
 
 ```js
-const obs = observable({ text: 'hello', num: 10, obj: {} }, /*safe*/ true)
+const state$ = observable({ test: 10, test2: 20 })
 
-obs.text = 'hi'
+// Returning a function makes it computed from other observables
+const computed$ = computed(() => state$.test.get() + state$.test2.get())
+// computed$.get() === 30
+
+state$.test.set(5)
+// computed$.get() === 25
+```
+
+### Two-way computed
+
+`computed` has an optional `set` parameter to run when setting the value. This lets you pass state changes onto the target observables, so the computed observable is bound to the targets in both directions. Without a `set` parameter, a one-way computed is read-only.
+
+```js
+const selected$ = observable([false, false, false])
+const selectedAll$ = computed(
+    // selectedAll is true when every element is selected
+    () => selected$.every(val$ => val$.get()),
+
+    // setting selectedAll sets the value of every element
+    (value) => selected$.forEach(val$ => val$.set(value))
+)
+
+selectedAll$.set(true);
+// selected.get() === [true, true, true]
+```
+
+### Linked observables
+
+If you return an observable in `computed`, it will create a two-way link to the target observable. Any observable operations and listeners on the link will work the same as interacting with the original target.
+
+```js
+const state$ = observable({
+    items: ['hi', 'there', 'hello'],
+    selectedIndex: 0,
+    selectedItem: computed(() => state$.items[state$.selectedIndex.get()])
+})
+
+state$.selectedItem.get() === 'hi' // true
+
+state$.selectedIndex.set(2)
+
+state$.selectedItem.get() === 'hello' // true
+```
+
+### event
+
+`event` works like an observable without a value. You can listen for changes as usual, and dispatch it manually whenever you want. This can be useful for simple events with no value, like onClosed.
+
+```js
+import { event } from "@legendapp/state"
+
+const onClosed = event()
+
+// Simply pass a callback to the `on` function
+onClosed.on(() => { ... })
+
+// Or use it with 'onChange' like other observables
+onClosed.onChange(() => { ... })
+
+// Dispatch the event to call listeners
+onClosed.fire()
+```
+
+### proxy
+
+`proxy` creates an observable object that is indexable by a string key, and creates a computed observable for each key.
+
+```js
+import { observable, proxy } from "@legendapp/state"
+
+const state$ = observable({
+    selector: 'text',
+    items: { test1: { text: 'hi', othertext: 'bye' }, test2: { text: 'hello', othertext: 'goodbye' } },
+    itemText: proxy((key): Observable<string> => {
+        return obs.items[key][obs.selector.get()];
+    }),
+});
+
+const onClosed = event()
+
+// Simply pass a callback to the `on` function
+onClosed.on(() => { ... })
+
+// Or use it with 'onChange' like other observables
+onClosed.onChange(() => { ... })
+
+// Dispatch the event to call listeners
+onClosed.fire()
+```
+
+## Notes
+
+### Safety
+
+Observables are safe so that you cannot directly assign to them, which prevents accidentally overwriting state or accidentally assigning huge objects into an observable.
+
+```js
+const state$ = observable({ text: 'hello', num: 10, obj: {} }, /*safe*/ true)
+
+state$.text = 'hi'
 // ❌ Can't set directly
 
-obs.text.set('hi')
+state$.text.set('hi')
 // ✅ Calling set on a primitive works.
 
-obs = {}
+state$ = {}
 // ❌ Error. This would delete the observable.
 
-obs.obj = {}
+state$.obj = {}
 // ❌ Error. Cannot assign to objects directly directly.
 
-obs.set({ text: 'hi', num: 20 })
+state$.set({ text: 'hi', num: 20 })
 // ✅ Calling set on an object works.
 
-obs.assign({ text: 'hello there' })
+state$.assign({ text: 'hello there' })
 // ✅ Calling assign on an object works.
 
-obs.text.assign({ value: 'hello there' })
+state$.text.assign({ value: 'hello there' })
 // ❌ Error. Cannot call assign on a primitive.
 ```
 
-## undefined
+### undefined
 
 Because observables track nodes [by path](../fast/#proxy-to-path) and not the underlying data, an observable points to a path within an object regardless of its actual value. So it is perfectly fine to access observables when they are currently undefined in the object.
 
@@ -128,7 +259,7 @@ const state = observable({ user: undefined })
 
 when(state.user.uid, (uid) => {
     // Handle login
-}
+})
 ```
 
 Or you could set a value inside an undefined object, and it will fill out the object tree to make it work.
@@ -136,7 +267,32 @@ Or you could set a value inside an undefined object, and it will fill out the ob
 ```jsx
 const state = observable({ user: undefined })
 
+observe(() => {
+    // This will be undefined until the full user profile is set
+    console.log(`Name: ${state.user.profile.name.get()}`)
+})
+
 state.user.profile.name.set('Annyong')
 
 // state == { user: { profile: { name: 'Annyong' } } }
 ```
+
+### Arrays
+
+Observable arrays have all of the normal array functions as you'd expect, but some are modified for observables.
+
+All looping functions set up [shallow tracking](../reactivity#shallow-modifier) automatically, as well as provide the observable in the callback. This includes:
+
+- every
+- filter
+- find
+- findIndex
+- forEach
+- includes
+- join
+- map
+- some
+
+Additionally, `filter` returns an array of observables and `find` returns an observable (or undefined).
+
+If you don't want this extra observable behavior, `get()` or `peek()` the observable to get the raw away to act on.

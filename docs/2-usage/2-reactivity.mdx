@@ -1,19 +1,21 @@
 Listening for changes is the core purpose of observables, so Legend-State provides many options. Critically, you can listen to changes at any level in an object's hierarchy and it will be notified by changes in any children.
 
-## onChange
+## Observing changes
+
+### onChange
 
 `onChange` listens to an observable for any changes anywhere within it. Use this as specifically as possible because it will fire notifications for every change recursively up the tree.
 
 ```js
-const obs = observable({ text: 'hi' })
+const state$ = observable({ text: 'hi' })
 
-obs.text.onChange(({ value }) => console.log('text changed to', value))
-obs.onChange(({ value }) => console.log('obs changed to', value))
+state$.text.onChange(({ value }) => console.log('text changed to', value))
+state$.onChange(({ value }) => console.log('state changed to', value))
 
-obs.text.set('hello')
+state$.text.set('hello')
 
 // Log: text changed to "hello"
-// Log: obs changed to { text: "hello" }
+// Log: state changed to { text: "hello" }
 ```
 
 `onChange` has some extra options for more advanced use:
@@ -26,7 +28,7 @@ obs.text.set('hello')
 
 ```js
 // Full example
-obs.onChange(({ value, getPrevious, changes }) => {
+state$.onChange(({ value, getPrevious, changes }) => {
     const prev = getPrevious();
     changes.forEach(({ path, valueAtPath, prevAtPath }) => {
         console.log(valueAtPath, 'changed at', path, 'from', prevAtPath)
@@ -34,22 +36,22 @@ obs.onChange(({ value, getPrevious, changes }) => {
 }, { initial: true, trackingType: true })
 ```
 
-### Dispose of listeners
+#### Dispose of listeners
 
 Listening to an observable returns a dispose function to stop listening. Just call it when you want to stop listening.
 
 ```js
-const obs = observable({ text: 'hello' })
+const state$ = observable({ text: 'hello' })
 
 const onChange = () => { ... }
 
-const dispose = obs.text.onChange(onChange)
+const dispose = state$.text.onChange(onChange)
 
 // Cancel listening manually
 dispose()
 ```
 
-## observe
+### observe
 
 `observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes.
 
@@ -96,95 +98,131 @@ observe(() => state.isOnline.get() && state.user.get(), (e) => {
 })
 ```
 
-## when
+### when
 
-`when` runs the given function **only once** when the predicate returns a truthy value, and automatically tracks the observables accessed while running the predicate so it will update whenever one of them changes. When the value becomes truthy it will call the function and dispose the listeners. If not given a function it will return a promise that resolves when the predicate returns a truthy value.
+`when` runs the given function **only once** when the predicate returns a truthy value, and automatically tracks the observables accessed while running the predicate so it will update whenever one of them changes. When the value becomes truthy it will call the function and dispose the listeners. If not given a callback function it will return a promise that resolves when the predicate returns a truthy value.
 
 The predicate can either be an observable or a function.
 
 ```js
 import { when } from "@legendapp/state"
 
-const obs = observable({ ok: false })
+const state$ = observable({ ok: false })
 
 // Option 1: Promise
-await when(obs.ok)
+await when(state$.ok)
 
 // Option 2: callback
-const dispose = when(() => obs.ok.get(), () => console.log("Don't worry, it's ok"))
+const dispose = when(() => state$.ok.get(), () => console.log("Don't worry, it's ok"))
 
 // Cancel listening manually
 dispose()
 ```
 
-## whenReady
+### whenReady
 
 `whenReady` is the same as `when` except it waits for objects and arrays to not be empty.
 
 ```js
 import { whenReady } from "@legendapp/state"
 
-const obs = observable({ arr: [] })
+const state$ = observable({ arr: [] })
 
-whenReady(() => obs.arr.get(), () => console.log("Array has some values"))
+whenReady(state$.arr, () => console.log("Array has some values"))
 // Not ready yet
 
-obs.arr.push('hello')
+state$.arr.push('hello')
 
 // "Array has some values"
-
-
 ```
 
-## computed
+## Observing contexts
 
-`computed` automatically tracks the observables accessed while computing, so you can return a computed value based on multiple observables, and it will update whenever one of them changes.
+The core power of Legend-State is the "observing contexts" in which any call to `get()` or array looping will subscribe the observer to track changes in that node, and the observer will re-run whenever it changes. This includes `observe`, `when`, `computed`, `useSelector`, `observer`, `<Memo>`, `<Computed>`, and reactive props.
 
-`computed` is lazy so it won't run the compute function until you `get()` the value the first time.
+These operations track:
+1. Call `get()` on an observable: `settings.get()`
+2. Array looping functions (shallow listener): `arr.map(settings.accounts, () => ...)`
+3. Accessing array length (shallow listener): `if (arr.length > 0) ...`
+4. Object.keys (shallow listener): `Object.keys(settings)`
+
+These operation do not track:
+1. Accessing through an observable: `state.settings`
+2. Call `peek()` on an observable: `settings.peek()`
+
+Some examples of the automatic behavior:
 
 ```js
-import { computed } from "@legendapp/state"
+const state = observable({
+    settings: {
+        theme: 'dark'
+    },
+    chats: {
+        messages: [
+            { id: 0, text: 'hi' }
+        ]
+    }
+})
 
-const obs = observable({ test: 10, test2: 20 })
-const computed = computed(() => obs.test.get() + obs.test2.get())
-// computed.get() === 30
+observe(() => {
+    // Example 1:
+    const theme = state.settings.theme.get()
+    // ✅ Tracking [state.settings.theme] because of get()
 
-obs.test.set(5)
-// computed.get() === 25
+    // Example 2:
+    const settings = state.settings
+    // ❌ Not tracking because it's an object
+
+    const theme = settings.theme.get()
+    // ✅ Tracking [state.settings.theme] because of get()
+
+    // Example 3:
+    const theme$ = state.settings.theme
+    // ❌ Not tracking with no get()
+
+    // Example 4:
+    state.chats.messages.map(m => <Message key={m.get().id} message={m} />)
+    // ✅ Tracking [state.chats.messages (shallow)] because of map()
+
+    // Example 5:
+    Object.keys(state.settings)
+    // ✅ Tracking [state.settings (shallow)]
+})
 ```
 
-### Two-way computed
+The automatic behavior can be modified with two observable functions:
 
-`computed` has an optional `set` parameter to run when setting the value. This lets you pass state changes onto the target observables, so the computed is bound to the targets in both directions. Without a `set` parameter, a one-way computed is read-only.
+<div style={{ maxWidth: 300 }}>
+| Function     | Value      | Tracked |
+| -----------  | ---------- | ------- |
+| `get()`      | raw        | yes     |
+| `get(true)`  | raw        | shallow |
+| `peek()`     | raw        | no      |
+</div>
+
+### get()
+
+`get` returns the raw data of an observable and tracks it, so you can work with it without doing any further tracking. You may want to use `get()` to:
+
+- Get the value of an observable wrapper of a primitive
+- Track this object and not its individual fields. Minimizing the number of listeners is better for performance.
 
 ```js
-const selected = observable([false, false, false])
-const selectedAll = computed(
-    // selectedAll is true when every element is selected
-    () => selected.every(obs => obs.get()),
-    // setting selectedAll sets the value of every element
-    (value) => selected.forEach(obs => obs.set(value))
-)
-
-selectedAll.set(true);
-// selected.get() === [true, true, true]
+    const theme = state.settings.theme.get()
+    // ✅ Tracking [state.settings.theme]
 ```
 
-## event
+### shallow modifier
 
-`event` works like an observable without a value. You can listen for changes as usual, and dispatch it manually whenever you want. This can be useful for simple events with no value, like onClosed.
+`get()` observes recursively by default, so any child changing will cause an update. You can modify it to be a shallow listener by just adding a `true` parameter. This can be useful when a component only needs to re-render if an object's keys or an array's items change.
 
-```js
-import { event } from "@legendapp/state"
+```jsx
+const state = observable({ messages: [] })
 
-const onClosed = event()
+observe(() => {
+    // Only need this to update when messages added/removed
+    const messages = state.messages.get(true)
 
-// Simply pass a callback to the `on` function
-onClosed.on(() => { ... })
-
-// Or use it with 'onChange' like other observables
-onClosed.onChange(() => { ... })
-
-// Dispatch the event to call listeners
-onClosed.fire()
+    console.log('Latest message', messages[0])
+})
 ```

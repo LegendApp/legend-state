@@ -1,6 +1,6 @@
-Legend-State is the result of dozens of experiments and rewrites to build the fastest possible state system. The primary reason it's so fast is that it optimizes for the fewest number of renders - components are only re-rendered when the state they truly care about is changed.
+Legend-State is the result of years of iteration and dozens of experiments and rewrites to build the fastest possible state system. The primary reason it's so fast is that it optimizes for the fewest number of renders - components are only re-rendered when the state they truly care about is changed.
 
-It may seem silly to quibble over milliseconds, but state is a hot path of most applications, so it's important that it be as fast as possible to keep your whole application snappy.
+It may seem silly to quibble over milliseconds, but state is a hot path of most applications, so it's important that it be as fast as possible to keep your whole application snappy. In our case, some Legend users have hundreds of thousands of items flowing through state, so it became the core bottleneck and is very important to optimize.
 
 We'll show results of the popular [krausest](https://github.com/krausest/js-framework-benchmark) benchmark and use that to describe why Legend-State is so fast. This benchmark is a good approximation of real-world performance, but the most important optimization in Legend-State is that it just does less work because it renders less, less often.
 
@@ -8,11 +8,11 @@ We'll show results of the popular [krausest](https://github.com/krausest/js-fram
 
 <img src="/img/dev/state/times.png" style={{ borderRadius: '1rem' }} />
 
-Legend-State's "optimized" mode (on the left) optimizes for rendering each row when it changes, but not the entire list, which is reflected in the fast "partial update" and "select row" benchmarks. That typically incurs an extra upfront cost to set up the listeners in each row, but Legend-State is so optimized that even so it's actually still the fastest in the "create many rows" benchmark.
+Legend-State's **optimized** mode (on the left) optimizes for rendering each row when it changes, but not the entire list, which is reflected in the fast **partial update** and **select row** benchmarks. That typically incurs an extra upfront cost to set up the listeners in each row, but Legend-State is so optimized that even so it's actually still among the fastest in the **create many rows** benchmark.
 
-Legend-State really shines in the "replace all rows" and "swap rows" benchmarks. When no elements are added or removed, it does not need to re-render the list and can only render the individual rows that changed. That brings a big speed improvement for drag/drop or when items are moved around in a list.
+Legend-State really shines in the **replace all rows** and **swap rows** benchmarks. When the number of elements is unchaged, it does not need to re-render the list and can only render the individual rows that changed. That brings a big speed improvement for drag/drop or when items are moved around in a list.
 
-You can opt into the fast array rendering with the "optimize" prop on the [For](../fine-grained-reactivity#for) component.
+You can opt into the fast array rendering with the `optimize` prop on the [For](../fine-grained-reactivity#for) component.
 
 ### Startup metrics
 
@@ -98,5 +98,5 @@ Beyond the architecture optimization, Legend-State also does a lot of micro-opti
 - **isNaN is slow**: This surprised us, but `isNaN` was causing significant slowdown. `+n - +n < 0` is a much faster way to check if a string is a number.
 - **Overloading Object prototype is a no-no**: We tried extending the prototype of the built-in `Object` but that caused a huge slowdown across the board, so that's no good.
 - **Proxy vs. Object.defineProperty**: We also tried using `Object.defineProperty` to add properties to objects, but Proxy is much faster.
-- **Cloning is slow**: Change handlers have a `getPrevious()` function which computes the previous state because cloning objects unnecessarily was wasteful.
+- **Cloning is slow**: Change handlers have a `getPrevious()` function to opt-in to computing the previous state because cloning objects unnecessarily was wasteful.
 - **for of in Set/Map**: `for of` loops are the fastest way to iterate through Set and Map values.

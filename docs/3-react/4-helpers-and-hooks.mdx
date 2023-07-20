@@ -2,8 +2,6 @@ Legend-State includes some helpful observables and hooks for common tasks. These
 
 ## Helper observables
 
-
-
 ### observableFetch
 
 `observableFetch` creates an observable from the results of a `fetch` call, populating these values through the lifecycle of the `fetch`.
@@ -202,7 +200,7 @@ function BottomSheet({ children }) {
     return (
         <MotionDiv$
             style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}
-            animate$={() => ({ y: -height.get() })}
+            $animate={() => ({ y: -height.get() })}
         >
             <div ref={refInner}>
                 {children}
@@ -220,12 +218,12 @@ function BottomSheet({ children }) {
 import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
 
 function Component() {
-    const obs = useObservableQuery({
+    const query$ = useObservableQuery({
         queryKey: ['key'],
         queryFn: () => axios.get(url).then((res) => res.data)
     });
 
-    const { isLoading, error, data, isFetching } = obs.get()
+    const { isLoading, error, data, isFetching } = query$.get()
 
     if (isLoading) return <div>Loading...</div>
 
@@ -247,7 +245,7 @@ import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQu
 
 function Component() {
     const mutateResult = useObservable('')
-    const obs = useObservableQuery(
+    const query$ = useObservableQuery(
         {
             queryKey: ['mutatingData'],
             queryFn: () => axios.get(url).then((res) => res.data.data)
@@ -260,7 +258,7 @@ function Component() {
         }
     )
 
-    const { isLoading, error, data, isFetching } = obs.get()
+    const { isLoading, error, data, isFetching } = query$.get()
 
     if (isLoading) return <div>Loading...</div>
 
@@ -270,7 +268,7 @@ function Component() {
         <div>
             <h2>{data.email}</h2>
             <div>{isFetching ? 'Updating...' : ''}</div>
-            <button onClick={() => obs.data.email.set('testemail')}>Change email</button>
+            <button onClick={() => query$.data.email.set('testemail')}>Change email</button>
             <pre>{mutateResult.get()}</pre>
         </div>
     )
@@ -306,12 +304,12 @@ function Component() {
 `createObservableHook` is a helper to convert an existing hook to return an observable. It works by overriding `useState` and `useReducer` in the hopes of catching and converting them into observable sets. So it may work for some hooks and it may not. Please let us know on [GitHub](https://github.com/LegendApp/legend-state/issues) if it's not working for some hooks.
 
 ```js
-
 import { createObservableHook } from "@legendapp/state/react-hooks/createObservableHook"
 
 const useMyHookObservable = createObservableHook(useMyHook)
 
 function Component() {
-    const obs = useMyHookObservable()
+    const value = useMyHookObservable()
     ...
 }
+```

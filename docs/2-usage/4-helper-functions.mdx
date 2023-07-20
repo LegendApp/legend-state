@@ -7,7 +7,7 @@ This is useful for storing DOM or React elements or other large objects in an ob
 ```js
 import { observable. opaqueObject } from '@legendapp/state'
 
-const obs = observable({ text: 'hi', body: opaqueObject(document.body) })
+const state$ = observable({ text: 'hi', body: opaqueObject(document.body) })
 ```
 
 ## mergeIntoObservable
@@ -18,16 +18,16 @@ If you want to merge a deep object into an observable, `mergeIntoObservable` can
 import { observable } from '@legendapp/state'
 import { mergeIntoObservable } from '@legendapp/state'
 
-const obs = observable({ store: { text: 'hello', other: 'hello there' } })
+const state$ = observable({ store: { text: 'hello', other: 'hello there' } })
 
-obs.store.text.onChange(({ value }) => console.log(`text changed to "${value}"`) )
+state$.store.text.onChange(({ value }) => console.log(`text changed to "${value}"`) )
 
 const newValue = { store: { text: 'hi', other: 'hi there' }}
-mergeIntoObservable(obs, newValue)
+mergeIntoObservable(state$, newValue)
 
 // text changed to "hi"
 
-obs.store === newValue.store // ✅ true
+state$.store === newValue.store // ✅ true
 ```
 
 ## lockObservable
@@ -35,19 +35,18 @@ obs.store === newValue.store // ✅ true
 To ensure that observables are only modified within certain actions, you can lock observables so that they cannot be modified, then unlock them temporarily in your actions. This is used under the hood by `computed`.
 
 ```js
-import { observable } from '@legendapp/state'
-import { lockObservable } from '@legendapp/state'
+import { lockObservable, observable } from '@legendapp/state'
 
-const obs = observable({ state: { ... } })
-lockObservable(obs, true)
+const state$ = observable({ store: { ... } })
+lockObservable(state$, true)
 
 function safeAction() {
     // Unlock it to modify it
-    lockObservable(obs, false)
+    lockObservable(state$, false)
     // Modify it
-    obs.set({ state: { ... } })
+    state$.set({ store: { ... } })
     // Lock it back
-    lockObservable(obs, true)
+    lockObservable(state$, true)
 }
 ```
 

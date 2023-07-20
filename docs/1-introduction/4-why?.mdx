@@ -3,7 +3,7 @@ Legend-State is an evolution of the state system we've been using internally in 
 
 ## Tiny and FAST ⚡️
 
-Legend-State is the [fastest React state library](../fast), designed to be as efficient as possible. It does very little extra work and minimizes renders by only re-rendering components when their observables change. And at only `3kb` it won't hurt your bundle size.
+Legend-State is the [fastest React state library](../fast), designed to be as efficient as possible. It does very little extra work and minimizes renders by only re-rendering components when their observables change. And at only `4kb` it won't hurt your bundle size.
 
 
 ## Feels natural 😌
@@ -11,19 +11,19 @@ Legend-State is the [fastest React state library](../fast), designed to be as ef
 Working with observables is as simple as `get()` and `set()` - they work as you'd expect, and the observable functions are right there on the prototype.
 
 ```jsx
-const obs = observable({ value: 1 })
-obs.value.get()
-obs.value.set(2)
+const state$ = observable({ value: 1 })
+state$.value.get()
+state$.value.set(2)
 
 // Tracks automatically and runs on every change
 observe(() => {
-    console.log(obs.value.get())
+    console.log(state$.value.get())
 })
 ```
 
 ## Fine-grained reactivity
 
-Rendering an observable automatically extracts it as a separate memoized component with its own tracking context under the hood, so it's easy to isolate renders to a single text element.
+Using features like [Memo](../fine-grained-reactivity#Memo) it's easy to isolate renders to the smallest possible change.
 
 <Example name="Primitive">
 ```jsx
@@ -38,7 +38,7 @@ function FineGrained() {
     const count = useObservable(0)
     // The text updates itself so the component doesn't re-render
     return (
-        <div>Count: {count}</div>
+        <div>Count: <Memo>{count}</Memo></div>
     )
 }
 ```
@@ -72,6 +72,12 @@ function MemoExample() {
 })
 ```
 </Example>
+
+## Does not hack React internals 👷
+
+Some libraries hack up React internals to make signals and fine-grained reactivity work, which often doesn't work on all platforms and may break if React internals change.
+
+Legend-State does everything above-board using hooks, with all React functionality built on top of [useSelector](../react-api#useselector), which just uses `useSyncExternalStore`. Check [the source](https://github.com/LegendApp/legend-state/blob/main/src/react/useSelector.ts) to see the lack of hackery.
 
 ## Unopinionated 🤷‍♀️
 

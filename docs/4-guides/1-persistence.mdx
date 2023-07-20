@@ -39,10 +39,10 @@ Then call `persistObservable` for each observable you want to persist.
 ```js
 import { persistObservable } from '@legendapp/state/persist'
 
-const obs = observable({ store: { bigObject: { ... } } })
+const state$ = observable({ store: { bigObject: { ... } } })
 
 // Persist this observable
-persistObservable(obs, {
+persistObservable(state$, {
     local: 'store' // Unique name
 })
 ```
@@ -77,12 +77,12 @@ configureObservablePersistence({
 });
 
 // Mode 1: Persist a dictionary
-const obs = observable({
+const state$ = observable({
     obj1: { id: 'obj1', text: '...' },
     obj2: { id: 'obj2', text: '...' },
  })
 
-persistObservable(obs, {
+persistObservable(state$, {
     local: 'store' // IndexedDB table name
 })
 
@@ -102,7 +102,7 @@ persistObservable(settings, {
 Because IndexedDB is an asynchronous API, you'll need to wait for it to load before you start reading from it. `persistObservable` returns an Observable with load statuses that you can wait for.
 
 ```js
-const status = persistObservable(obs, {
+const status = persistObservable(state$, {
     local: 'store' // IndexedDB table name
 })
 await when(status.isLoadedLocal)

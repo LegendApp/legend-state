@@ -29,8 +29,7 @@ persistObservable(State, {
 `},
 '/App.js': `
 import { useRef } from 'react'
-import { reactive, useObservable } from '@legendapp/state/react'
-import { Legend } from '@legendapp/state/react-components'
+import { reactive, useObservable, Reactive } from '@legendapp/state/react'
 import { motion } from "framer-motion"
 import { State } from './State'
 
@@ -47,8 +46,8 @@ export default function App() {
     <div className="flex absolute inset-0">
       <MotionDiv$
         className="bg-gray-600 text-center pt-2 text-white text-sm"
-        initial$={animPosition}
-        animate$={animPosition}
+        $initial={animPosition}
+        $animate={animPosition}
       >
         Sidebar
       </MotionDiv$>
@@ -57,9 +56,9 @@ export default function App() {
           Renders: {renderCount}
         </div>
         <div>Username:</div>
-        <Legend.input
+        <Reactive.input
           className={classNameInput}
-          value$={State.user.profile.name}
+          $value={State.user.profile.name}
         />
         <div>
           <button
@@ -90,7 +89,7 @@ const classNameError = "text-sm text-red-500 mb-2 h-5 pt-1"
 
 This example uses the [useObservableQuery](../helpers-and-hooks#useobservablequery) hook to create an observable using [TanStack Query](https://tanstack.com/query/) that automatically sends mutations back to the server whenever the observable changes.
 
-It then uses the `Legend` [two-way binding components](../reactive-props#react) to bind those observable directly to the inputs.
+It then uses the `Reactive` [two-way binding components](../reactive-props#react) to bind those observable directly to the inputs.
 
 So in effect this binds the inputs directly to your server data.
 
@@ -106,12 +105,12 @@ export function debounce(fn, time) {
 import axios from 'axios'
 import { useRef } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { enableLegendStateReact, useObservable } from '@legendapp/state/react'
-import { Legend } from '@legendapp/state/react-components'
+import { useObservable, Reactive } from '@legendapp/state/react'
+import { enableReactComponents } from '@legendapp/state/config/enableReactComponents'
 import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
 import { debounce } from './debounce'
 
-enableLegendStateReact()
+enableReactComponents()
 
 const queryClient = new QueryClient()
 
@@ -156,17 +155,17 @@ function Example() {
         Renders: {renderCount}
       </div>
       <div>Name:</div>
-      <Legend.input
+      <Reactive.input
         className={classNameInput}
-        value$={data.first_name}
+        $value={data.first_name}
       />
       <div>Email:</div>
-      <Legend.input
+      <Reactive.input
         className={classNameInput}
-        value$={data.email}
+        $value={data.email}
       />
       <div>
-        Last saved: {lastSaved}
+        Last saved: <Memo>{lastSaved}</Memo>
       </div>
     </div>
   )
@@ -182,10 +181,10 @@ This example uses [useObserve](../hooks#useobserve) to listen to changes in the 
 <Sandbox height={680} width={70} files={{
 '/App.js': `
 import { useRef } from 'react'
-import { enableLegendStateReact, useObservable, useObserve } from '@legendapp/state/react'
-import { Legend } from '@legendapp/state/react-components'
+import { useObservable, useObserve, Reactive } from '@legendapp/state/react'
+import { enableReactComponents } from '@legendapp/state/config/enableReactComponents'
 
-enableLegendStateReact()
+enableReactComponents()
 
 export default function App() {
   const renderCount = ++useRef(0).current
@@ -229,21 +228,21 @@ export default function App() {
         Renders: {renderCount}
       </div>
       <div>Username:</div>
-      <Legend.input
+      <Reactive.input
         className={classNameInput}
-        value$={username}
+        $value={username}
       />
       <div className={classNameError}>
         {usernameError}
       </div>
       <div>Password:</div>
-      <Legend.input
+      <Reactive.input
         type="password"
         className={classNameInput}
-        value$={password}
+        $value={password}
       />
       <div className={classNameError}>
-        {passwordError}
+        <Memo>{passwordError}</Memo>
       </div>
       <div>
         <button
@@ -268,11 +267,11 @@ This example uses the [useFetch](../helpers-and-hooks#usefetch) hook to get data
 <Sandbox height={680} width={70} files={{
 '/App.js': `
 import { useRef } from 'react'
-import { enableLegendStateReact, useComputed, useObservable, useObserve, For, Show } from '@legendapp/state/react'
+import { useComputed, useObservable, useObserve, For, Memo, Reactive, Show } from '@legendapp/state/react'
 import { useFetch } from '@legendapp/state/react-hooks/useFetch'
-import { Legend } from '@legendapp/state/react-components'
+import { enableReactComponents } from '@legendapp/state/config/enableReactComponents'
 
-enableLegendStateReact()
+enableReactComponents()
 
 export default function App() {
   const renderCount = ++useRef(0).current
@@ -311,16 +310,16 @@ export default function App() {
         Renders: {renderCount}
       </div>
       <Show if={userName} else={<div>Loading...</div>}>
-        <div>Chatting with {userName}</div>
+        <div>Chatting with <Memo>{userName}</Memo></div>
       </Show>
       <div className="h-64 p-2 my-3 overflow-auto border border-gray-300 rounded">
-        <For each={messages}>{(message) => <div>{message.text}</div>}</For>
+        <For each={messages}>{(message) => <div><Memo>{message.text}</Memo></div>}</For>
       </div>
       <div className="flex gap-2">
-        <Legend.input
+        <Reactive.input
           className="flex-1 px-2 border border-gray-300 rounded min-w-0"
           placeholder="Enter message"
-          value$={currentMessage}
+          $value={currentMessage}
           onKeyDown={e => e.key === 'Enter' && onClickAdd()}
         />
         <button
@@ -349,13 +348,10 @@ This example also creates a [computed observable](../reactivity#computed) text v
 
 <Sandbox height={580} width={75} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
 '/App.js': `
-import { observable } from '@legendapp/state'
-import { enableLegendStateReact, useComputed } from '@legendapp/state/react'
-import { Legend } from '@legendapp/state/react-components'
 import { useRef } from 'react'
+import { observable } from '@legendapp/state'
+import { useComputed, Memo } from '@legendapp/state/react'
 import { Toggle } from './Toggle'
-
-enableLegendStateReact()
 
 const settings = observable({ enabled: false })
 
@@ -373,7 +369,7 @@ export default function App() {
         Renders: {renderCount}
       </div>
       <div className="pt-8 pb-4">
-        Enabled: {text}
+        Enabled: <Memo>{text}</Memo>
       </div>
       <Toggle value={settings.enabled} />
     </div>
@@ -390,7 +386,7 @@ export function Toggle({ value }) {
   return (
     <MotionDiv$
       className="border border-gray-200 rounded-full select-none"
-      animate$={() => ({
+      $animate={() => ({
         backgroundColor: value.get() ? '#6ACB6C' : '#C4D1E3'
       })}
       style={{ width: 64, height: 32 }}
@@ -399,7 +395,7 @@ export function Toggle({ value }) {
       <MotionDiv$
         className="bg-white rounded-full shadow"
         style={{ width: 24, height: 24, marginTop: 3 }}
-        animate$={() => ({
+        $animate={() => ({
           x: value.get() ? 32 : 6
         })}
       />
@@ -416,7 +412,6 @@ This example uses [Show](../fine-grained-reactivity#show) to show/hide a modal b
 '/App.js': `
 import { observable } from '@legendapp/state'
 import { Show, useComputed, useObservable } from '@legendapp/state/react'
-import { Legend } from '@legendapp/state/react-components'
 import { AnimatePresence } from "framer-motion"
 import { useRef } from 'react'
 import { Modal } from './Modal'
@@ -446,7 +441,6 @@ export default function App() {
 `,
 '/Modal.js': `
 import { reactive, useObservable, Switch } from '@legendapp/state/react'
-import { Legend } from '@legendapp/state/react-components'
 import { motion } from "framer-motion"
 import { useRef } from 'react'
 
@@ -498,7 +492,7 @@ export function Modal({ show }) {
           <MotionButton$
             className="bg-gray-300 rounded-lg px-6 py-2"
             animate={() => ({ opacity: page.get() === 0 ? 0.5 : 1 })}
-            disabled$={() => page.get() === 0}
+            $disabled={() => page.get() === 0}
             onClick={() => page.set(p => p - 1)}
             transition={{ duration: 0.15 }}
           >
@@ -507,7 +501,7 @@ export function Modal({ show }) {
           <MotionButton$
             className="bg-gray-300 rounded-lg px-6 py-2"
             animate={() => ({ opacity: page.get() === 2 ? 0.5 : 1 })}
-            disabled$={() => page.get() === 2}
+            $disabled={() => page.get() === 2}
             onClick={() => page.set(p => p + 1)}
             transition={{ duration: 0.15 }}
           >

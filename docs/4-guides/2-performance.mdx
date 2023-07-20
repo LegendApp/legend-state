@@ -1,30 +1,79 @@
-Legend-State is designed to be high performance so it should be well optimized without having to think about it. But there are some considerations to keep in mind.
+Legend-State is already quite optimized by default, but there are some things to keep in mind to make sure it's as optimized as possible.
 
-Note: This page is under construction after a recent change in how Legend-State is consumed from React. More tips coming soon!
+## Batching
 
-## Batch multiple changes
+You may want to modify multiple observables at once without triggering callbacks for each change. Batching postpones renders and listeners until the end of the batch.
 
-Modifying multiple observables in a row can re-compute computed observables, re-render React components, or write to storage multiple times if [persisting](../persistence). You can delay listener notification until after all writes to notify only once.
-
-See [Batching](../batching) for more details.
+Batching can be done in two ways, wrapping between `beginBatch()` and `endBatch()` or in a callback with `batch(callback)`.
 
 ```js
-import { batch } from "@legendapp/state"
+import { batch, beginBatch, endBatch } from "@legendapp/state"
 
-const obs = observable({ items: [] })
+// Wrap in begin and end
+beginBatch()
+doManyChanges()
+endBatch()
+
+// Or batch with a callback
+batch(() => {
+    doManyChanges()
+})
+```
+
+As we all know, you generally shouldn't optimize pre-emptively. `observable` functions like `assign` already batch changes under the hood, so listeners don't get called until the full change is complete. In many cases like setting unrelated observables you don't need to worry about it.
+
+Batching is important in a few key situations:
+
+### When observables depend on each other
+
+Use `batch` to delay computations/renders until all dependent changes are complete or you might get weird intermediary states.
+
+```js
+const name = observable({ first: '', last: '' })
+
+const fullName = computed(() => `${name.first} ${name.last}`)
+
+observe(() => console.log('fullName = ', fullName.get()))
+
+// Not batched:
+name.first.set('First')
+name.last.set('Last')
+// ❌ fullName notifies its listeners with incomplete state
+// fullName = "First "
+// fullName = "First Last"
+
+// Batched:
+batch(() => {
+    name.first.set('First')
+    name.last.set('Last')
+})
+// ✅ fullName notifies only with final state
+// fullName = "First Last"
+```
+
+### To prevent excessive renders
+
+Making multiple changes in a row can cause the React hook to re-render multiple times when it should wait until changes are complete.
+
+```js
+const state$ = observable({ items: [] })
 
 function addItems() {
     for (let i = 0; i < 1000; i ++) {
-        obs.items.push({ text: `Item ${i}` })
+        state$.items.push({ text: `Item ${i}` })
     }
 }
 
-// ❌ This can notify listeners 1000 times while pushing to the array
+// ❌ This can render 1000 times while pushing to the array
 addItems()
 
-// ✅ This notifies once when all changes are complete
+// ✅ Batching delays until complete and renders once
 batch(addItems)
 ```
+
+### When persisting
+
+If you are using `persistObservable` to automatically persist your changes, you can prevent excessive writes by delaying persistence until changes are complete. Pushing to an array 1000 times could save to storage 1000 times, which could be very slow!
 
 ## Iterating through observables creates Proxies
 
@@ -33,13 +82,151 @@ For most usage this effect is negligible, but may be a concern with huge arrays 
 Accessing objects/arrays in observables creates Proxies to give them the observable functions. If you are iterating through large objects that don't need to be tracked for changes, call `get()` first to access the raw data, skipping all the Proxy creation.
 
 ```js
-const obs = observable({ items: [{ data: { value: 10 }}, ...] })
+const state$ = observable({ items: [{ data: { value: 10 }}, ...] })
 
 let sum = 0
 
 // 🔥 This will create proxies for each element's data and value
-obs.items.forEach(item => sum += item.data.value.get())
+state$.items.forEach(item => sum += item.data.value.get())
 
 // 💨 This will not do anything special
-obs.items.get().forEach(item => sum += item.data.value)
+state$.items.get().forEach(item => sum += item.data.value)
+```
+
+## Arrays
+
+Legend-State is especially optimized for arrays since it was built for [Legend](https://www.legendapp.com) to handle huge lists of data. Here are a few tips to get the best performance out of arrays.
+
+### Arrays of objects require a unique id
+
+To optimize rendering of arrays of objects, Legend-State requires a unique `id` or `key` field on each object. If your data needs to have a different id field, you can use a `${arrayName}_keyExtractor` function next to the array object:
+
+```js
+const data = observable({
+    arr: [],
+    arr_keyExtractor: (item) => item.idObject._id
+})
+```
+
+Under the hood, Legend-State listens to elements by path within the object. Operations like `splice` can change the index of an element which changes its path, so it uses the unique `id` to handle elements being moved and keep observables as stable references to their underlying element. It also optimizes for repositioning items within arrays and only re-renders the changed elements.
+
+### Use the `For` component
+
+The `For` component is optimized for rendering arrays of observable objects so that they are extracted into a separate tracking context and don't re-render the parent.
+
+You can use it in two ways, providing an `item` component or a function as a child.
+
+An `optimized` prop adds additional optimizations, but in an unusual way by re-using React nodes. See [Optimized rendering](#optimized-rendering) for more details.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { For } from "@legendapp/state/react"
+
+const state$ = observable({ arr: [{ id: 1, text: 'hi' }]})
+
+function Row({ item }) {
+    return <div>{item.text}</div>
+}
+function List() {
+    // 1. Use the For component with an item prop
+    return <For each={state$.arr} item={Row} />
+
+    // 2. Use the For component with a render function as the child
+    return (
+        <For each={list}>
+            {item => (
+                <div>
+                    {item.text}
+                </div>
+            )}
+        </div>
+    )
+}
+```
+
+### For doesn't re-render the parent
+
+In this more complex example you can see that as elements are added to and update the array, the parent component does not re-render.
+
+<Example name="Todos">
+```jsx
+import { observable } from "@legendapp/state"
+import { For } from "@legendapp/state/react"
+
+function Item({ item }) {
+    useEffect(() => {
+        item.renders.set(r => r + 1);
+    })
+    return (
+        <div>
+            {item.text}
+        </div>
+    )
+}
+function TodosExample() {
+    const renderCount = ++useRef(0).current
+    const todos = useObservable([])
+
+    const onClickAdd = () =>
+        todos.push({
+            id: ++total,
+            text: 'Item ' + total,
+            renders: 1
+        })
+
+    const onClickUpdate = () => {
+        todos[todos.length - 1].text.set(text => text + '!')
+    }
+
+    return (
+        <div className="flex">
+            <button onClick={onClickAdd}>Add</button>
+            <button onClick={onClickUpdate}>Update</button>
+            <div>Renders: {renderCount}</div>
+
+            <For each={todos} item={Item}>
+        </div>
+    )
+})
+```
+</Example>
+
+### Don't get() observables while mapping
+
+The `map` function automatically sets up a shallow listener, so it will only re-render when the array is changed and not when individual elements are changed. For best performance it's best to let the child component track each item observable.
+
+Make sure that you don't access any observable properties while mapping, like accessing the id for the key, so use `peek()` to prevent tracking. If you do `get()` inside an `observer` component would trigger the outer component to observe every list element.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { For } from "@legendapp/state/react"
+
+const state$ = observable({ arr: [{ id: 1, text: 'hi' }]})
+
+function Row({ item }) {
+    return <div>{item.text}</div>
+}
+function List() {
+    // Be sure to use peek() to make sure you don't track any observable fields here
+    return state$.arr.map(item =>
+        <Row key={item.peek().id} item={item} />
+    )
+}
+```
+
+### Optimized rendering
+
+The `For` component has an `optimized` prop which takes the optimizations even further. It prevents re-rendering the parent component when possible, so if the array length doesn't change it updates React elements in place instead of the whole list rendering. This massively reduces the rendering time when swapping elements, sorting an array, or replacing some individual elements. But because it reuses React nodes rather than replacing them as usual, it may have unexpected behavior with animations or if you are modifying the DOM externally.
+
+This is how the fast "replace all rows" and "swap rows" speeds in the [benchmark](../fast#benchmark) are achieved.
+
+```jsx
+import { For } from "@legendapp/state/react"
+
+...
+
+function List() {
+    // Use the optimized prop
+    return <For each={list} item={Row} optimized />
+}
 ```

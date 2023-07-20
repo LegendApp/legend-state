@@ -1,34 +1,95 @@
-To get the best performance with React it's ideal to make components as small as possible so that state changes re-render the minimum number of components. The methods and components described on this page help you make sure that each change causes only the smallest and fewest renders.
+Legend-State enables a new way of thinking about how React components update: to **observe state changing** rather than observing renders. In this pattern, components render once and individual elements re-render themselves. This enables what we call a "render once" style - components render only the first time and state changes trigger only the tiniest possible re-renders.
 
-See [React Examples](../react-examples) for real-world examples of using these components.
+You can render observable primitives directly in mini self-updating components, use reactive props to update props based on state, or use a set of control-flow components to optimize conditional rendering and arrays to re-render as little as possible.
 
-## Render an observable directly
+Some teams may prefer to use Legend-State in a way that's more canonically React and skip some or all of these concepts, at least at first. But the fine-grained reactivity features can improve performance and reduce the amount of code you need to write. See [Making React fast by default and truly reactive](../../legend-state) for more details.
 
-Render an observable `string` or `number` straight into React and it will automatically be extracted as a separate memoized component with its own tracking context. This does not need the component to be an `observer`.
+## Render an observable/selector directly
 
-You just need to call `enableLegendStateReact()` once at the beginning of your application to enable it.
+Use the `Memo` component to create a mini element that re-renders itself when it changes, without needing the parent component to re-render.
 
 ```jsx
-import { enableLegendStateReact } from "@legendapp/state/react"
+import { Memo } from "@legendapp/state/react"
 
-enableLegendStateReact()
+const count$ = observable(0)
 
-const count = observable(0)
-
-function Optimized() {
-    // This component never re-renders.
-
-    // The {count} element re-renders itself when its value changes.
+// These components never re-render.
+// The Memo element re-renders itself when its value changes.
+function WithObservable() {
     return (
-        <div>Count: {count}</div>
+        <div>
+            Count:
+            <Memo>{count$}</Memo>
+        </div>
+    )
+}
+function WithSelector() {
+    return (
+        <div>
+            <Memo>{() => `Count: ${count$.get()}`}</Memo>
+        </div>
     )
 }
 ```
 
-See [enableLegendStateReact.ts](https://github.com/LegendApp/legend-state/blob/main/src/react/enableLegendStateReact.ts) if you're curious how it works.
+## Reactive components
 
+Legend-State provides reactive versions of all platform components with reactive props. This lets you provide a Selector to props so that the component will update itself whenever the Selector changes.
 
-## Computed
+For input elements it can create a two-way binding to the value, so that the observable is always in sync with the displayed value of the element.
+
+To use these components first enable the version for your platform:
+
+```js
+// React
+import { enableReactComponents } from "@legendapp/state/config/enableReactComponents"
+enableReactComponents()
+
+// React Native
+import { enableReactNativeComponents } from "@legendapp/state/config/enableReactNativeComponents"
+enableReactNativeComponents()
+```
+
+That will populate `Reactive` with reactive versions of the built-in components. This example shows some examples using web components.
+
+```jsx
+import { Reactive } from "@legendapp/state/react"
+
+function Component() {
+    // This component renders only once
+    const state$ = useObservable({ name: '', age: 18 })
+
+    return (
+        <div>
+            // Reactive styling
+            <Reactive.div
+                $style={() => ({
+                    color: state$.age.get() > 5 ? 'green' : 'red'
+                })}
+                $className={() => state$.age.get() > 5 ? 'kid' : 'baby'}
+            />
+            // Reactive children
+            <Reactive.div>
+                {() => (
+                    <div>{state$.age.get() > 5 ? <Kid /> : <Baby />}</div>
+                )}
+            />
+            // Two-way bind to inputs
+            <Reactive.textarea $value={state$.name} />
+            <Reactive.select $value={state$.age}>...</Reactive.select>
+            <Reactive.input
+                $value={state$.name}
+                $className={() => !state$.name.get() && "border-red-500"}
+                $style={() => !state$.name.get() && { borderWidth: 1 }}
+            />
+        </div>
+    )
+}
+```
+
+## Control-flow components
+
+### Computed
 
 Computed extracts children so that their changes do not affect the parent, but the parent's changes will still re-render them. Use this when children use observables that change often without affecting the parent, but also depends on local state in the parent.
 
@@ -37,28 +98,23 @@ This is equivalent to extracting it as a separate component (and passing in all 
 The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
 
 ```jsx
-// With Babel plugin
-<Computed>
-    {state.messages.map(message => (
-        <div key={message.id}>{message.text} {localVar}</div>
-    )}
-</Computed>
-
-// Without Babel plugin
-<Computed>
-    {() => state.messages.map(message => (
-        <div key={message.id}>{message.text} {localVar}</div>
-    )}
-</Computed>
+function Component() {
+    return (
+        <Computed>
+            {() => state$.messages.map(message => (
+                <div key={message.id}>{message.text} {localVar}</div>
+            ))}
+        </Computed>
+    )
+}
 ```
-
-### Example
 
 In this example see that clicking the "Render parent" button renders the parent and increments `value` and the computed children are updated too.
 
 <Example name="Computed">
 ```jsx
-import { Computed } from "@legendapp/state/react"
+import { useRef, useState } from "react"
+import { Computed, useObservable } from "@legendapp/state/react"
 
 function ComputedExample() {
     const renderCount = ++useRef(0).current
@@ -76,44 +132,41 @@ function ComputedExample() {
             <div>Value: {value}</div>
 
             <Computed>
-                <div>Value: {value}</div>
-                <div>Count: {state.count}</div>
+                {() => <>
+                    <div>Value: {value}</div>
+                    <div>Count: {state.count}</div>
+                </>}
             </Computed>
         </div>
     )
-})
+}
 ```
 </Example>
 
-## Memo
+### Memo
 
-Memo is similar to Computed, but it will never re-render from parent changes - only if its own observables change. Use `Memo` when children are truly independent from the parent component. This is equivalent to extracting it as a separate component (and passing in all needed props) with `React.memo`.
+Memo is similar to Computed, but it will never re-render when the parent component renders - only if its own observables change. Use `Memo` when children are truly independent from the parent component. This is equivalent to extracting it as a separate component (and passing in all needed props) with `React.memo`.
 
 The child needs to be a function to be able to extract it into a separate tracking context, but the [Babel plugin](#optionally-add-the-babel-plugin) lets you pass it children directly.
 
 ```jsx
-// With Babel plugin
-<Memo>
-    {state.messages.map(message => (
-        <div key={message.id}>{message.text}</div>
-    )}
-</Memo>
-
-// Without Babel plugin
-<Memo>
-    {() => state.messages.map(message => (
-        <div key={message.id}>{message.text}</div>
-    )}
-</Memo>
+function Component() {
+    return (
+        <Computed>
+            {() => state.messages.map(message => (
+                <div key={message.id}>{message.text} {localVar}</div>
+            ))}
+        </Computed>
+    )
+}
 ```
-
-### Example
 
 This is the same as the Computed example, except that the memoized children are not updated with the parent's value.
 
 <Example name="Memo">
 ```jsx
-import { Memo } from "@legendapp/state/react"
+import { useRef, useState } from "react"
+import { Memo, useObservable } from "@legendapp/state/react"
 
 function MemoExample() {
     const renderCount = ++useRef(0).current
@@ -131,16 +184,18 @@ function MemoExample() {
             <div>Value: {value}</div>
 
             <Memo>
-                <div>Value: {value}</div>
-                <div>Count: {state.count}</div>
+                {() => <>
+                    <div>Value: {value}</div>
+                    <div>Count: {state.count}</div>
+                </>}
             </Memo>
         </div>
     )
-})
+}
 ```
 </Example>
 
-## Show
+### Show
 
 Show renders child components conditionally based on the if/else props, and does not re-render the parent when the condition changes.
 
@@ -156,14 +211,12 @@ Props:
 ```jsx
 <Show
     if={state.show}
-    else={<div>Nothing to see here</div>}
+    else={() => <div>Nothing to see here</div>}
     wrap={AnimatePresence}
 >
-    <Modal />
+    {() => <Modal />}
 </Show>
 ```
-
-### Example
 
 <Example name="Show">
 ```jsx
@@ -180,21 +233,11 @@ function ShowExample() {
             <div>Renders: {renderCount}</div>
             <button onClick={onClick}>Toggle</button>
 
-            <!-- 1. Direct children -->
             <Show
                 if={state.show}
                 else={<div>Nothing to see here</div>}
             >
-                <Modal />
-            </Show>
-
-            <!-- 2. With a function -->
-            <Show
-                if={() => state.show.get()}
-                else={() => <div>Nothing to see here</div>}
-
-            >
-                {() => <div>Modal</div>}
+                {() => <Modal />}
             </Show>
         </div>
     )
@@ -202,7 +245,7 @@ function ShowExample() {
 ```
 </Example>
 
-## Switch
+### Switch
 
 Switch renders one child component conditionally based on the `value` prop, and does not re-render the parent when the condition changes.
 
@@ -219,8 +262,6 @@ Props:
     }}
 </Switch>
 ```
-
-### Example
 
 <Example name="Switch">
 ```jsx
@@ -251,6 +292,45 @@ function SwitchExample() {
 ```
 </Example>
 
+### For
+
+The `For` component is optimized for rendering arrays of observable objects so that they are extracted into a separate tracking context and don't re-render the parent.
+
+An `optimized` prop adds additional optimizations, but in an unusual way by re-using React nodes. See [Optimized rendering](#optimized-rendering) for more details.
+
+Props:
+- `each`: An observable (array, object, or Map)
+- `item`: A render function which receives the item id and item observable
+- `itemProps`: Extra props to pass down to each item
+- `sortValues`: If the `each` parameter is an object or Map, this is a sort function for how to sort the elements. `(A: T, B: T, AKey: string, BKey: string) => number`
+- `children`: You can pass a render function as children instead of in the `item` prop if you prefer.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { For } from "@legendapp/state/react"
+
+const state$ = observable({ arr: [{ id: 1, text: 'hi' }]})
+
+function Row({ item }) {
+    return <div>{item.text}</div>
+}
+function List() {
+    // 1. Use the For component with an item prop
+    return <For each={state$.arr} item={Row} />
+
+    // 2. Use the For component with a render function as the child
+    return (
+        <For each={list} optimized>
+            {item => (
+                <div>
+                    {item.text}
+                </div>
+            )}
+        </div>
+    )
+}
+```
+
 ## Optionally add the Babel plugin
 
 The Babel plugin can make the syntax for Computed and Memo less verbose. But they work fine without Babel if you don't want to or can't use it. The Babel plugin converts the JSX under the hood so you don't need to use functions as children. It basically does this:
@@ -263,21 +343,109 @@ The Babel plugin can make the syntax for Computed and Memo less verbose. But the
 <Computed>{() => <div>Count: {state.count.get()}</div>}</Computed>
 ```
 
-### Install
+## Create your own reactive components
 
-Add `@legendapp/state/babel` to the plugins in your `babel.config.js`:
+### reactive
+
+You can wrap external components in `reactive` to create reactive versions of all of their props, prefixed with `$`. This makes it so that the reactive component can accept reactive props but the target receives regular props as usual. `reactive` creates an HOC that extracts all reactive props and observes them for changes, passing the regular prop down to the component.
+
+In this example, `reactive` adds a `$message` prop which takes a [Selector](../getting-started#Selectors), while the target component receives a normal `message` prop and is only re-rendered when `message` changes.
 
 ```js
-module.exports = {
-    plugins: [
-        ...
-        "@legendapp/state/babel",
-    ],
+import { observable } from "@legendapp/state"
+import { reactive } from "@legendapp/state/react"
+
+const isSignedIn$ = observable(false)
+
+const Component = reactive(function Component({ message }) {
+    return (
+        <div>{message}</div>
+    )
+})
+
+function App() {
+    return (
+        <Component
+            $message={() => isSignedIn$.get() ? 'Hello' : 'Goodbye'}
+        />
+    )
 }
 ```
 
-If you're using typescript you can add a `.d.ts` file to your project with this in it, to expand the types to allow direct children to Computed and Memo.
+In addition to wrapping your own functions, you can wrap external library components to make them reactive. In this example we make a [Framer Motion](https://www.framer.com/motion/) component reactive so that we can update its animations based on observables without needing to re-render the parent component or its children.
 
 ```js
-/// <reference types="@legendapp/state/types" />
+import { reactive } from "@legendapp/state/react"
+import { motion } from "framer-motion"
+
+const ReactiveMotionDiv = reactive(motion.div);
+
+function Component() {
+    // This component renders only once
+    const width$ = useObservable(100)
+
+    return (
+        <ReactiveMotionDiv
+            $animate={() => ({
+                x: width$.get()
+            })}
+        >
+            ...
+        </ReactiveMotionDiv>
+    )
+}
+```
+
+### reactiveObserver
+
+This is a single HOC with the functionality of both `observer` and `reactive`. They both run the same function under the hood, with slightly different options, so this is the optimal way to have one HOC that does both at once.
+
+```js
+import { observable } from "@legendapp/state"
+import { reactiveObserver } from "@legendapp/state/react"
+
+const name$ = observable('Annyong')
+const isSignedIn$ = observable(false)
+
+const Component = reactiveObserver(function Component({ message }) {
+    const name = name$.get()
+
+    return (
+        <div>{message} {name}</div>
+    )
+})
+
+function App() {
+    return (
+        <Component
+            $message={() => isSignedIn$.get() ? 'Hello' : 'Goodbye'}
+        />
+    )
+}
+```
+
+### reactiveComponents
+
+`reactiveComponents` makes multiple reactive components at once. You can use this to create your own internal library of reactive components, or to wrap UI libraries that have multiple components in a namespace like `Modal.Header` and `Modal.Footer`.
+
+```js
+import { reactiveComponents } from "@legendapp/state/react"
+import { motion } from "framer-motion"
+
+const ReactiveMotion = reactiveComponents(motion);
+
+function Component() {
+    // This component renders only once
+    const width$ = useObservable(100)
+
+    return (
+        <ReactiveMotion.div
+            $animate={() => ({
+                x: width$.get()
+            })}
+        >
+            ...
+        </ReactiveMotion.div>
+    )
+}
 ```

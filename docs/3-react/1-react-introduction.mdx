@@ -1,0 +1,227 @@
+This is a high level overview for how to work with Legend-State in React. See [React API](../react-api) for more specific details. Legend-State supports both React and React Native, but most of the examples are in React for ease of showing live demos.
+
+## First configure use()
+
+We recommend adding the `use()` function to your observables - it is the recommended way to work with observables in React as you will see in the examples. You only need to do this once in your app's entry point.
+
+```jsx
+import { enableReactUse } from '@legendapp/state/config/enableReactUse';
+enableReactUse() // This adds the use() function to observables
+```
+
+## Use observable state
+
+Now you can call `use()` on any observable to get its value and automatically re-render whenever it changes. Alternatively, `useSelector(...)` can return a computed value based on one or more observables.
+
+```jsx
+import { observable } from "@legendapp/state"
+
+const state$ = observable({ fname: 'hello', lname: 'there' })
+
+function Component() {
+    // The component re-renders when fname changes
+    const fname = state$.fname.use()
+
+    // The component re-renders when either fname or lname changes
+    const fullname = useSelector(() => `${state$.fname.get()} ${state$.lname.get()}`)
+
+    return <div>{fullname}</div>
+}
+```
+
+## Local state
+
+In addition to using global state, you can create local state with `useObservable` to use immediately or pass down through children or context.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { useObservable } from "@legendapp/state/react"
+
+function App() {
+    const store$ = useObservable({
+        profile: { name: 'hi' }
+    })
+
+    // This component does not use() the store so only Profile will re-render on changes
+
+    return (
+        <div>
+            <Profile profile$={store$.profile} />
+        </div>
+    )
+}
+
+function Profile({ profile$ }) {
+    const name = profile$.name.use()
+
+    return (
+        <div>
+            Name: {name}
+        </div>
+    )
+}
+```
+
+## Fine-grained reactivity
+
+A new (and fun) pattern with Legend-State is to make re-renders fine-grained so that your full components don't re-render at all - focusing updates to our tiny fine-grained components.
+
+The most basic way to optimize renders is to have observable text or numbers render themselves, so their parent component doesn't have to.
+
+<Example name="Easy">
+```jsx
+import { Memo, useObservable } from "@legendapp/state/react"
+
+function MemoExample() {
+    const renderCount = ++useRef(0).current
+    const state$ = useObservable({ count: 0 })
+
+    useInterval(() => {
+        state$.count.set(v => v + 1)
+    }, 500)
+
+    return (
+        <div>
+            <div>Renders: {renderCount}</div>
+            // Memo re-renders itself when count changes
+            <div>Count: <Memo>{state$.count}</Memo></div>
+        </div>
+    )
+}
+```
+</Example>
+
+You can take it even further with the `Reactive` components and control-flow components like `For`, `Show`, and `Switch`. Combining these we can use what we call a "render once" style - components render only the first time and state changes trigger only the tiniest possible re-renders. Especially with very large components, rendering the full component less often can give you a huge performance boost.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { Memo, For, Reactive, Show, Switch } from "@legendapp/state/react"
+
+const state$ = observable({ showModal: false, page: 0, users: [] })
+
+function MemoExample() {
+    // This component itself never re-renders
+
+    return (
+        <div>
+            // Reactive components have reactive props and children which re-render themselves on changes
+            <Reactive.div
+                $className={
+                    state$.showModal.get() ? 'bg-blue-500' : 'bg-red-500'
+                }
+            >
+                {() => `Showing page: ${state$.page.get()}`}
+            </Reactive.div>
+            // Show re-renders itself whenever showModal changes
+            <Show if={state$.showModal}>
+                {() => <Modal />}
+            </Show>
+            // Switch re-renders itself whenever page changes
+            <Switch value={state$.page}>
+                {{
+                    0: <Page0 />,
+                    1: <Page1 />,
+                    2: <Page2 />,
+                }}
+            </Switch>
+            // For optimizes array updates to be much faster
+            <For each={state$.users} item={User} optimized />
+        </div>
+    )
+}
+
+function User({ item }) {
+    return <Memo>{item.name}</Memo>
+}
+
+```
+
+These fine-grained reactivity patterns are inspired by Knockout.js as well as more modern frameworks like Solid and Svelte. They are a great way to optimize your apps, but teams who want a more canonical React experience or easy migration may want to ignore or use them sparingly to optimize specific heavy components.
+
+[Read more](../fine-grained-reactivity)
+
+## Example
+
+<Sandbox height={480} width={64} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
+'/State.js': { active: true, code: `
+import { observable } from '@legendapp/state'
+import { persistObservable } from '@legendapp/state/persist'
+import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
+
+export const State = observable({
+  settings: {
+    showSidebar: false,
+    theme: 'light'
+  },
+  user: {
+    profile: {
+      name: '',
+      avatar: ''
+    },
+    messages: {}
+  }
+})
+
+// Persist state
+persistObservable(State, {
+  local: 'example',
+  persistLocal: ObservablePersistLocalStorage,
+})
+`},
+'/App.js': `
+import { useRef } from 'react'
+import { reactive, useObservable, Reactive } from '@legendapp/state/react'
+import { motion } from "framer-motion"
+import { State } from './State'
+
+const MotionDiv$ = reactive(motion.div)
+
+export default function App() {
+  const renderCount = ++useRef(0).current
+
+  const animPosition = () => ({
+    width: State.settings.showSidebar.get() ? 96 : 0
+  })
+
+  return (
+    <div className="flex absolute inset-0">
+      <MotionDiv$
+        className="bg-gray-600 text-center pt-2 text-white text-sm"
+        $initial={animPosition}
+        $animate={animPosition}
+      >
+        Sidebar
+      </MotionDiv$>
+      <div className="flex-1 p-4">
+        <div className="text-gray-500 text-sm pb-4">
+          Renders: {renderCount}
+        </div>
+        <div>Username:</div>
+        <Reactive.input
+          className={classNameInput}
+          $value={State.user.profile.name}
+        />
+        <div>
+          <button
+            className="bg-gray-300 rounded-lg px-4 py-2 mt-6"
+            onClick={State.settings.showSidebar.toggle}
+          >
+            Toggle sidebar
+          </button>
+        </div>
+        <div>
+          <button
+            className="bg-gray-300 rounded-lg px-4 py-2 mt-6"
+            onClick={() => location.reload()}
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const classNameInput = "border rounded border-gray-300 px-2 py-1 mt-2"
+const classNameError = "text-sm text-red-500 mb-2 h-5 pt-1"
+`}} />
