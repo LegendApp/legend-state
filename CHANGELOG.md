@@ -1,3 +1,9 @@
+## 1.5.0
+
+- Feat: add Reactive components, with configuration for React and React Native, to replace Legend components
+- Fix: Improved types of useObservableQuery -By @sheldon-welinga
+- Fix: babel transform was breaking Memo/Computed with observable child
+
 ## 1.4.0
 
 - Feat: Returning an observable in a computed creates a two-way link to the target observable.
@@ -9,7 +15,7 @@
 - Feat: Reactive components and `reactive` makes children reactive if it's a functions
 - Fix: `useObserve` updates the compute and set functions when re-run
 - Fix: Direct setting with `_` was not working with falsy values
-- Change: Reactive props will now start with `$:` instead of ending with `$`. Both work for now, but `prop$` will be deprecated in a later version.
+- Change: Reactive props will now start with `$` instead of ending with `$`. Both work for now, but `prop$` will be deprecated in a later version.
 - Perf: `useSelector` skips creating a hook if it's inside an `observer`
 
 ## 1.3.6
