@@ -2,7 +2,8 @@ Legend-State is designed to have a lean core that allows you and your team to ad
 
 These functions add features and augment the TypeScript interface to add the new functions, so just importing the file adds the interface.
 
-These configuration functions only need to be called once at the entry point of your application, and then they will work anywhere.
+These configuration functions only need to be called once, before their effects are used, and then they will work anywhere. It should generally be at the top of the file that's the entry point of your app or is imported everywhere, or it could be at the top of a global state file.
+
 
 ### enableReactUse
 
