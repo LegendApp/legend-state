@@ -435,7 +435,7 @@ describe('For', () => {
                     each: obs.items,
                     item: Item,
                     sortValues: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label),
-                })
+                }),
             );
         }
         const { container } = render(createElement(Test));

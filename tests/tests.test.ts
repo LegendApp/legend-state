@@ -121,7 +121,7 @@ describe('Set', () => {
                     valueAtPath: [{ text: 'hi2' }],
                     prevAtPath: [{ text: 'hi' }],
                 },
-            ]
+            ],
         );
 
         const setVal = obs.arr.set([{ text: 'hello' }]);
@@ -132,7 +132,7 @@ describe('Set', () => {
         expect(handler).toHaveBeenCalledWith(
             [{ text: 'hello' }],
             [{ text: 'hi2' }],
-            [{ path: [], pathTypes: [], valueAtPath: [{ text: 'hello' }], prevAtPath: [{ text: 'hi2' }] }]
+            [{ path: [], pathTypes: [], valueAtPath: [{ text: 'hello' }], prevAtPath: [{ text: 'hi2' }] }],
         );
     });
     test('Assign with functions', () => {
@@ -263,7 +263,7 @@ describe('Listeners', () => {
                     valueAtPath: 't2',
                     prevAtPath: 't',
                 },
-            ]
+            ],
         );
     });
     test('Listen calls multiple times', () => {
@@ -281,7 +281,7 @@ describe('Listeners', () => {
                     valueAtPath: 't2',
                     prevAtPath: 't',
                 },
-            ]
+            ],
         );
         obs.test.test2.test3.text.set('t3');
         expect(obs.test.test2.test3.text.get()).toEqual('t3');
@@ -295,7 +295,7 @@ describe('Listeners', () => {
                     valueAtPath: 't3',
                     prevAtPath: 't2',
                 },
-            ]
+            ],
         );
     });
     test('Set calls and maintains deep listeners', () => {
@@ -431,7 +431,7 @@ describe('Listeners', () => {
                     valueAtPath: 'hello',
                     prevAtPath: 'hi',
                 },
-            ]
+            ],
         );
     });
     test('Deep object set primitive undefined', () => {
@@ -455,7 +455,7 @@ describe('Listeners', () => {
                     valueAtPath: undefined,
                     prevAtPath: 'hi',
                 },
-            ]
+            ],
         );
     });
     test('Deep object set undefined', () => {
@@ -541,7 +541,7 @@ describe('Listeners', () => {
                     valueAtPath: { test2: 'hi', test3: 'hi3', test4: 'hi4' },
                     prevAtPath: undefined,
                 },
-            ]
+            ],
         );
     });
     test('Listener promises', async () => {
@@ -573,7 +573,7 @@ describe('Listeners', () => {
                     valueAtPath: 'hi',
                     prevAtPath: '',
                 },
-            ]
+            ],
         );
         expect(handler1).toHaveBeenCalledWith(
             { test2: { test3: { test4: 'hi' } } },
@@ -585,7 +585,7 @@ describe('Listeners', () => {
                     valueAtPath: 'hi',
                     prevAtPath: '',
                 },
-            ]
+            ],
         );
         expect(handler2).toHaveBeenCalledWith({ test3: { test4: 'hi' } }, { test3: { test4: '' } }, [
             {
@@ -701,7 +701,7 @@ describe('Listeners', () => {
                     valueAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] } },
                 },
-            ]
+            ],
         );
         obs.test.t[1000].set({ test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } });
         expect(obs.test.t.get()).toEqual({
@@ -720,7 +720,7 @@ describe('Listeners', () => {
                     valueAtPath: { test1: { text: ['hiz'], text2: 'hiz2' }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
                 },
-            ]
+            ],
         );
     });
     test('Set does not fire if unchanged', () => {
@@ -801,7 +801,7 @@ describe('undefined', () => {
                     valueAtPath: { test4: 'hi4', test5: 'hi5' },
                     prevAtPath: undefined,
                 },
-            ]
+            ],
         );
         obs.test.test2.test3.set(undefined);
         expect(obs.test.test2.test3.get()).toEqual(undefined);
@@ -818,7 +818,7 @@ describe('undefined', () => {
                     valueAtPath: undefined,
                     prevAtPath: { test4: 'hi4', test5: 'hi5' },
                 },
-            ]
+            ],
         );
         obs.test.test2.test3.set({ test4: 'hi6', test5: 'hi7' });
         expect(obs.test.test2.test3.get()).toEqual({ test4: 'hi6', test5: 'hi7' });
@@ -835,7 +835,7 @@ describe('undefined', () => {
                     valueAtPath: { test4: 'hi6', test5: 'hi7' },
                     prevAtPath: undefined,
                 },
-            ]
+            ],
         );
     });
     test('Set deep primitive undefined to value and back', () => {
@@ -1111,7 +1111,7 @@ describe('Array', () => {
                     valueAtPath: [{ text: 'hi' }, { text: 'there' }],
                     prevAtPath: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }],
                 },
-            ]
+            ],
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -1139,7 +1139,7 @@ describe('Array', () => {
         expect(handlerItem).toHaveBeenCalledWith(
             [{ id: 2 }, { id: 1 }],
             [{ id: 1 }, { id: 2 }],
-            [{ path: [], pathTypes: [], valueAtPath: [{ id: 2 }, { id: 1 }], prevAtPath: [{ id: 1 }, { id: 2 }] }]
+            [{ path: [], pathTypes: [], valueAtPath: [{ id: 2 }, { id: 1 }], prevAtPath: [{ id: 1 }, { id: 2 }] }],
         );
     });
     test('Array set', () => {
@@ -1291,7 +1291,7 @@ describe('Array', () => {
                         { id: 5, text: 5 },
                     ],
                 },
-            ]
+            ],
         );
     });
     test('Array with listeners clear', () => {
@@ -1593,7 +1593,7 @@ describe('Array', () => {
                     valueAtPath: [{ id: 2, text: 2 }],
                     prevAtPath: [{ id: 1, text: 1 }],
                 },
-            ]
+            ],
         );
     });
     test('Array set with no ids shallow', () => {
@@ -1616,7 +1616,7 @@ describe('Array', () => {
                     valueAtPath: [{ text: 2 }],
                     prevAtPath: [{ text: 1 }],
                 },
-            ]
+            ],
         );
     });
     test('Array.filter return is observables', () => {
@@ -1787,7 +1787,7 @@ describe('Deep changes keep listeners', () => {
         expect(handler).toHaveBeenCalledWith(
             [1, 2, 3],
             [0, 1, 2],
-            [{ path: [], pathTypes: [], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] }]
+            [{ path: [], pathTypes: [], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] }],
         );
         expect(handler2).toHaveBeenCalledWith({ arr: [1, 2, 3] }, { arr: [0, 1, 2] }, [
             { path: ['arr'], pathTypes: ['array'], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] },
@@ -1813,7 +1813,7 @@ describe('Deep changes keep listeners', () => {
                     valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
                     prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
                 },
-            ]
+            ],
         );
         expect(handler2).toHaveBeenCalledWith(
             { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }], arr_keyExtractor },
@@ -1825,7 +1825,7 @@ describe('Deep changes keep listeners', () => {
                     valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
                     prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
                 },
-            ]
+            ],
         );
     });
     test('Array objects push getPrevious', () => {
@@ -1845,7 +1845,7 @@ describe('Deep changes keep listeners', () => {
                     valueAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
                     prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
                 },
-            ]
+            ],
         );
     });
     test('Array perf', () => {
@@ -2202,7 +2202,7 @@ describe('Batching', () => {
                 { path: ['num2'], pathTypes: ['object'], prevAtPath: 2, valueAtPath: 22 },
                 { path: ['num3'], pathTypes: ['object'], prevAtPath: 3, valueAtPath: 33 },
                 { path: ['obj'], pathTypes: ['object'], prevAtPath: { text: 'hi' }, valueAtPath: { text: 'hello' } },
-            ]
+            ],
         );
     });
     test('Observe function called only once in batch', () => {
@@ -2402,7 +2402,7 @@ describe('Observe', () => {
         let count = 0;
         observe<number>(
             () => obs.get(),
-            (e) => (count = e.value)
+            (e) => (count = e.value),
         );
         obs.set(1);
         expect(count).toEqual(1);
@@ -2418,7 +2418,7 @@ describe('Observe', () => {
             ({ value, previous }) => {
                 count = value;
                 prev = previous;
-            }
+            },
         );
         obs.set(1);
         expect(count).toEqual(1);
@@ -2439,7 +2439,7 @@ describe('Observe', () => {
                 callCount++;
                 count = e.value;
                 obsOther.get();
-            }
+            },
         );
         obs.set(1);
         expect(count).toEqual(1);
