@@ -95,7 +95,7 @@ Beyond the architecture optimization, Legend-State also does a lot of micro-opti
 - **Set vs. array**: Compared to an array, `Set` has a marginal creation cost, but the uniqueness constraint and fast element removal end up making it overall faster for managing Listeners than arrays.
 - **Map vs. object**: `Map` has a marginal creation cost compared to an object, but its operations are generally faster, so it is used for all the caching and comparing changing arrays.
 - **Closures vs. bind**: Closures are surprisingly much faster than `bind`, so Legend-State favors creating small closures when needed.
-- **isNaN is slow**: This surprised us, but `isNaN` was causing significant slowdown. `+n - +n < 0` is a much faster way to check if a string is a number.
+- **isNaN is slow**: This surprised us, but `isNaN` was causing significant slowdown. `+n - +n < 1` is a much faster way to check if a string is a number. [Source](https://github.com/plotly/fast-isnumeric/blob/master/index.js)
 - **Overloading Object prototype is a no-no**: We tried extending the prototype of the built-in `Object` but that caused a huge slowdown across the board, so that's no good.
 - **Proxy vs. Object.defineProperty**: We also tried using `Object.defineProperty` to add properties to objects, but Proxy is much faster.
 - **Cloning is slow**: Change handlers have a `getPrevious()` function to opt-in to computing the previous state because cloning objects unnecessarily was wasteful.
