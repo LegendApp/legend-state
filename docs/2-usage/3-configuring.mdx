@@ -4,7 +4,6 @@ These functions add features and augment the TypeScript interface to add the new
 
 These configuration functions only need to be called once, before their effects are used, and then they will work anywhere. It should generally be at the top of the file that's the entry point of your app or is imported everywhere, or it could be at the top of a global state file.
 
-
 ### enableReactUse
 
 This adds a `use()` function to all observables, which gets the value and makes the component reactive to the observable changing. It simply runs `useSelector(obs)` under the hood.

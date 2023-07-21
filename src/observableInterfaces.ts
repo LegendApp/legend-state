@@ -117,16 +117,16 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     : T[K];
 
 type ObservableFnsRecursiveUnsafe<T> = {
-    [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K]>>;
 };
 type ObservableFnsRecursiveSafe<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObservableObject<T[K]>>;
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K]>>;
 };
 type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
     ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
 
 type ObservableComputedFnsRecursive<T> = {
-    readonly [K in keyof T]: Recurse<T, K, ObservableBaseFns<T[K]>>;
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<T[K]>>;
 };
 
 export interface ObservableEvent {
