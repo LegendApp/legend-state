@@ -1,3 +1,7 @@
+## 1.6.0
+
+- Feat: `set` automatically unwraps promises
+
 ## 1.5.1
 
 - Fix: Optional properties in observables were causing TS warnings
