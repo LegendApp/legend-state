@@ -1,3 +1,7 @@
+## 1.5.1
+
+- Fix: Optional properties in observables were causing TS warnings
+
 ## 1.5.0
 
 - Feat: add Reactive components, with configuration for React and React Native, to replace Legend components
