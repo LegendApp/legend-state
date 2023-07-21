@@ -631,6 +631,29 @@ describe('useObserveEffect', () => {
 
         expect(num).toEqual(1);
     });
+    test('useObserveEffect updates with changes', () => {
+        let num = 0;
+        const state$ = observable(0);
+        function Test() {
+            useObserveEffect(() => {
+                state$.get();
+                num++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+
+        state$.set((v) => v + 1);
+        expect(num).toEqual(2);
+
+        state$.set((v) => v + 1);
+        expect(num).toEqual(3);
+    });
 });
 
 describe('observer', () => {
