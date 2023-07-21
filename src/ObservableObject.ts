@@ -15,7 +15,7 @@ import {
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
-import { isArray, isBoolean, isChildNodeValue, isEmpty, isFunction, isObject, isPrimitive } from './is';
+import { isArray, isBoolean, isChildNodeValue, isEmpty, isFunction, isObject, isPrimitive, isPromise } from './is';
 import type { ChildNodeValue, NodeValue } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
@@ -499,7 +499,9 @@ const proxyHandler: ProxyHandler<any> = {
 };
 
 export function set(node: NodeValue, newValue?: any) {
-    if (node.parent) {
+    if (isPromise(newValue)) {
+        newValue.then((v) => set(node, v)).catch((error) => set(node, { error }));
+    } else if (node.parent) {
         return setKey(node.parent, node.key, newValue);
     } else {
         return setKey(node, undefined, newValue);

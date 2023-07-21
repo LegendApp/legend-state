@@ -2121,10 +2121,48 @@ describe('Event', () => {
     });
 });
 describe('Promise values', () => {
-    test('Promise value', async () => {
+    test('Promise child', async () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
+        await promise;
         expect(obs.promise).resolves.toEqual(10);
+    });
+    test('Promise object becomes value', async () => {
+        const promise = Promise.resolve({ value: 10 });
+        const obs = observable(promise);
+        await promise;
+        expect(obs.value.get()).toEqual(10);
+    });
+    test('Promise primitive becomes value', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable(promise);
+        await promise;
+        expect(obs.get()).toEqual(10);
+    });
+    test('Promise value in set primitive', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable<number>(0);
+        obs.set(promise);
+        await promise;
+        expect(obs.get()).toEqual(10);
+    });
+    test('Promise value in set object', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable<{ promise: number }>({ promise: undefined });
+        obs.promise.set(promise);
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
+    });
+    test('Promise value in set is error if it rejects', async () => {
+        const promise = Promise.reject('test');
+        const obs = observable<{ promise: number }>({ promise: undefined });
+        obs.promise.set(promise);
+        try {
+            await promise;
+        } catch {
+            await promiseTimeout(0);
+        }
+        expect(obs.promise.get()).toEqual({ error: 'test' });
     });
 });
 describe('Batching', () => {

@@ -53,7 +53,7 @@ export interface ObservableBaseFns<T> {
 }
 export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
     delete(): ObservablePrimitiveBaseFns<T>;
-    set(value: T | CallbackSetter<T>): ObservablePrimitiveChild<T>;
+    set(value: T | CallbackSetter<T> | Promise<T>): ObservablePrimitiveChild<T>;
 }
 
 export interface ObservablePrimitiveBooleanFns<T> {
