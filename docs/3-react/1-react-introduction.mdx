@@ -143,7 +143,7 @@ These fine-grained reactivity patterns are inspired by Knockout.js as well as mo
 ## Example
 
 <Sandbox height={480} width={64} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
-'/State.js': { active: true, code: `
+'/State.js': { code: `
 import { observable } from '@legendapp/state'
 import { persistObservable } from '@legendapp/state/persist'
 import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
@@ -168,34 +168,34 @@ persistObservable(State, {
   persistLocal: ObservablePersistLocalStorage,
 })
 `},
-'/App.js': `
-import { useRef } from 'react'
-import { reactive, useObservable, Reactive } from '@legendapp/state/react'
-import { motion } from "framer-motion"
-import { State } from './State'
+'/App.js': { active: true, code: `
+import { useRef } from "react";
+import { reactive, Reactive } from "@legendapp/state/react";
+import { enableReactComponents } from "@legendapp/state/config/enableReactComponents";
+import { motion } from "framer-motion";
+import { State } from "./State";
+enableReactComponents();
 
-const MotionDiv$ = reactive(motion.div)
+const MotionDiv = reactive(motion.div);
 
 export default function App() {
-  const renderCount = ++useRef(0).current
+  const renderCount = ++useRef(0).current;
 
   const animPosition = () => ({
     width: State.settings.showSidebar.get() ? 96 : 0
-  })
+  });
 
   return (
     <div className="flex absolute inset-0">
-      <MotionDiv$
+      <MotionDiv
         className="bg-gray-600 text-center pt-2 text-white text-sm"
         $initial={animPosition}
         $animate={animPosition}
       >
         Sidebar
-      </MotionDiv$>
+      </MotionDiv>
       <div className="flex-1 p-4">
-        <div className="text-gray-500 text-sm pb-4">
-          Renders: {renderCount}
-        </div>
+        <div className="text-gray-500 text-sm pb-4">Renders: {renderCount}</div>
         <div>Username:</div>
         <Reactive.input
           className={classNameInput}
@@ -212,16 +212,16 @@ export default function App() {
         <div>
           <button
             className="bg-gray-300 rounded-lg px-4 py-2 mt-6"
-            onClick={() => location.reload()}
+            onClick={() => window.location.reload()}
           >
             Refresh
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-const classNameInput = "border rounded border-gray-300 px-2 py-1 mt-2"
-const classNameError = "text-sm text-red-500 mb-2 h-5 pt-1"
-`}} />
+const classNameInput = "border rounded border-gray-300 px-2 py-1 mt-2";
+
+`}}} />
