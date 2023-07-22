@@ -343,6 +343,24 @@ The Babel plugin can make the syntax for Computed and Memo less verbose. But the
 <Computed>{() => <div>Count: {state.count.get()}</div>}</Computed>
 ```
 
+To install it, add `@legendapp/state/babel` to the plugins in your `babel.config.js`:
+
+```js
+module.exports = {
+    plugins: [
+        ...
+        "@legendapp/state/babel",
+    ],
+}
+```
+
+If you're using typescript you can add a `.d.ts` file to your project with this in it, to expand the types to allow direct JSX children to Computed and Memo.
+
+```js
+/// <reference types="@legendapp/state/types/babel" />
+```
+
+
 ## Create your own reactive components
 
 ### reactive
