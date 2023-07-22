@@ -37,6 +37,8 @@ interface MMKVConfiguration {
     encryptionKey?: string;
 }
 
+type NonUndefined<T> = Exclude<T, undefined>;
+type Nullable<T> = T | null | undefined;
 export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; // true === shallow
 
 export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
@@ -117,16 +119,16 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     : T[K];
 
 type ObservableFnsRecursiveUnsafe<T> = {
-    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K]>>;
+    [K in keyof T]-?: Recurse<T, K, ObservableObject<NonUndefined<T[K]>>>;
 };
 type ObservableFnsRecursiveSafe<T> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K]>>;
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<NonUndefined<T[K]>>>;
 };
 type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
     ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
 
 type ObservableComputedFnsRecursive<T> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<T[K]>>;
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonUndefined<T[K]>>>;
 };
 
 export interface ObservableEvent {
