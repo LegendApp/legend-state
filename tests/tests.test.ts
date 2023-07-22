@@ -157,7 +157,7 @@ describe('Set', () => {
             },
         });
 
-        let seen: number = undefined;
+        let seen: number | undefined = undefined;
 
         observe(() => {
             seen = store.legend.count.get();
@@ -183,7 +183,7 @@ describe('Set', () => {
         expect(obs[''].get()).toBe('test');
     });
     test('Setting an empty object notifies', () => {
-        const obs = observable({ test: undefined });
+        const obs = observable({ test: undefined as object | undefined });
         const handler = expectChangeHandler(obs.test);
         obs.test.set({});
         expect(handler).toHaveBeenCalledWith({}, undefined, [
@@ -839,7 +839,7 @@ describe('undefined', () => {
         );
     });
     test('Set deep primitive undefined to value and back', () => {
-        const obs = observable({ test: { test2: { test3: undefined } } });
+        const obs = observable({ test: { test2: { test3: undefined as string | undefined } } });
         const handler = expectChangeHandler(obs.test);
         expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
         expect(obs.test.test2.get()).toEqual({ test3: undefined });
@@ -1180,7 +1180,7 @@ describe('Array', () => {
                 { zid: 4, text: 4 },
                 { zid: 5, text: 5 },
             ],
-            test_keyExtractor: (item) => item.zid,
+            test_keyExtractor: (item: { zid: string }) => item.zid,
         });
         const arr = obs.test;
         const tmp = arr[1].get();
@@ -1631,7 +1631,7 @@ describe('Array', () => {
             test: [{ text: 1 }],
         });
         expect(isObservable(obs.test.find((a) => isObservable(a)))).toBe(true);
-        expect(obs.test.find((a) => isObservable(a)).text.get()).toBe(1);
+        expect(obs.test.find((a) => isObservable(a))?.text.get()).toBe(1);
     });
     test('Array.find no result is undefined', () => {
         const obs = observable({
@@ -1798,7 +1798,7 @@ describe('Deep changes keep listeners', () => {
             arr: { _id: number }[];
             arr_keyExtractor: (item: any) => string;
         }
-        const arr_keyExtractor = (el) => el._id;
+        const arr_keyExtractor = (el: { _id: string }) => el._id;
         const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }], arr_keyExtractor });
         const handler = expectChangeHandler(obs.arr);
         const handler2 = expectChangeHandler(obs);
@@ -1849,7 +1849,7 @@ describe('Deep changes keep listeners', () => {
         );
     });
     test('Array perf', () => {
-        const obs = observable({ arr: [] });
+        const obs = observable({ arr: [] as { id: number; value: number }[] });
         for (let i = 0; i < 10000; i++) {
             obs.arr[i].set({ id: i, value: i });
             obs.arr[i].onChange(() => {});
@@ -2148,14 +2148,14 @@ describe('Promise values', () => {
     });
     test('Promise value in set object', async () => {
         const promise = Promise.resolve(10);
-        const obs = observable<{ promise: number }>({ promise: undefined });
+        const obs = observable<{ promise: number | undefined }>({ promise: undefined });
         obs.promise.set(promise);
         await promise;
         expect(obs.promise.get()).toEqual(10);
     });
     test('Promise value in set is error if it rejects', async () => {
         const promise = Promise.reject('test');
-        const obs = observable<{ promise: number }>({ promise: undefined });
+        const obs = observable<{ promise: number | undefined }>({ promise: undefined });
         obs.promise.set(promise);
         try {
             await promise;
@@ -2440,7 +2440,7 @@ describe('Observe', () => {
         let count = 0;
         observe<number>(
             () => obs.get(),
-            (e) => (count = e.value),
+            (e) => (count = e.value!),
         );
         obs.set(1);
         expect(count).toEqual(1);
@@ -2454,7 +2454,7 @@ describe('Observe', () => {
         observe<number>(
             () => obs.get(),
             ({ value, previous }) => {
-                count = value;
+                count = value!;
                 prev = previous;
             },
         );
@@ -2475,7 +2475,7 @@ describe('Observe', () => {
             () => obs.get(),
             (e) => {
                 callCount++;
-                count = e.value;
+                count = e.value!;
                 obsOther.get();
             },
         );

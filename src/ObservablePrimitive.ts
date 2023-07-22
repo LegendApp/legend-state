@@ -9,15 +9,15 @@ interface ObservablePrimitiveState {
     toggle: () => void;
 }
 
-const fns = ['get', 'set', 'peek', 'onChange', 'toggle'];
+const fns: (keyof ObservablePrimitive<any>)[] = ['get', 'set', 'peek', 'onChange', 'toggle'];
 
 export function ObservablePrimitiveClass<T>(this: ObservablePrimitive<T> & ObservablePrimitiveState, node: NodeValue) {
     this._node = node;
 
     // Bind to this
     for (let i = 0; i < fns.length; i++) {
-        const key = fns[i];
-        this[key] = this[key].bind(this);
+        const key: keyof typeof this = fns[i];
+        this[key] = (this[key] as Function).bind(this);
     }
 }
 

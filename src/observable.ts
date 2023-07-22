@@ -39,9 +39,11 @@ function createObservable<T>(
         });
     } else if (!prim) {
         if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-            __devExtractFunctionsAndComputedsNodes.clear();
+            __devExtractFunctionsAndComputedsNodes!.clear();
         }
-        extractFunctionsAndComputeds(value, node);
+        if (value) {
+            extractFunctionsAndComputeds(value, node);
+        }
     }
 
     return obs;
