@@ -236,7 +236,7 @@ state$ = {}
 // ❌ Error. This would delete the observable.
 
 state$.obj = {}
-// ❌ Error. Cannot assign to objects directly directly.
+// ❌ Error. Cannot assign to objects directly.
 
 state$.set({ text: 'hi', num: 20 })
 // ✅ Calling set on an object works.
@@ -295,4 +295,4 @@ All looping functions set up [shallow tracking](../reactivity#shallow-modifier) 
 
 Additionally, `filter` returns an array of observables and `find` returns an observable (or undefined).
 
-If you don't want this extra observable behavior, `get()` or `peek()` the observable to get the raw away to act on.
+If you don't want this extra observable behavior, `get()` or `peek()` the observable to get the raw array to act on.
