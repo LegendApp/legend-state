@@ -23,6 +23,7 @@ import type { ObservableBaseFns } from '@legendapp/state';
 
 declare module '@legendapp/state' {
     interface ObservableBaseFns<T> {
-        $: T;
+        set $(value: T | null | undefined);
+        get $(): T;
     }
 }
