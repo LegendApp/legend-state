@@ -196,7 +196,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
     changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
         const listeners = immediate ? node.listenersImmediate : node.listeners;
         if (listeners) {
-            let listenerParams: ListenerParams;
+            let listenerParams: ListenerParams | undefined;
             // Need to convert to an array here instead of using a for...of loop because listeners can change while iterating
             const arr = Array.from(listeners);
             for (let i = 0; i < arr.length; i++) {

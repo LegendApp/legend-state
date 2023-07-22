@@ -117,10 +117,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     const keys: string[] = obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
     const keysPrev: string[] = prevValue ? (isMap ? Array.from(prevValue.keys()) : Object.keys(prevValue)) : [];
 
-    let idField: string | ((value: any) => string);
+    let idField: string | ((value: any) => string) | undefined;
     let isIdFieldFunction;
     let hasADiff = false;
-    let retValue: boolean;
+    let retValue: boolean | undefined;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
@@ -133,8 +133,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     isIdFieldFunction = isFunction(idField);
                     prevChildrenById = new Map();
                     moved = [];
-                    const keysSeen =
-                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && new Set();
+                    const keysSeen: Set<string> =
+                        process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+                            ? new Set()
+                            : (undefined as unknown as Set<string>);
                     if (parent.children) {
                         for (let i = 0; i < prevValue.length; i++) {
                             const p = prevValue[i];
@@ -162,7 +164,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 }
             }
         }
-    } else if (prevValue && (!obj || obj.hasOwnProperty)) {
+    } else if (prevValue && (!obj || isObject(obj))) {
         // For keys that have been removed from object, notify and update children recursively
         const lengthPrev = keysPrev.length;
         for (let i = 0; i < lengthPrev; i++) {
@@ -195,7 +197,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         if (parent.descendantHasListener || !hasADiff) {
             for (let i = 0; i < length; i++) {
                 const key = keys[i];
-                const value = isMap ? obj.get(key) : obj[key];
+                const value = isMap ? obj.get(key) : (obj as any)[key];
                 const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
                 let isDiff = value !== prev;
@@ -245,7 +247,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         } else {
                             // Always need to updateNodes so we notify through all children
                             const updatedNodes =
-                                (!hasADiff || child.descendantHasListener) && updateNodes(child, value, prev);
+                                (!hasADiff || !!child.descendantHasListener) && updateNodes(child, value, prev);
                             hasADiff = hasADiff || updatedNodes;
                         }
                     }
@@ -315,7 +317,7 @@ const proxyHandler: ProxyHandler<any> = {
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
         if (node.linkedToNode && p !== 'onChange') {
-            return proxyHandler.get(node.linkedToNode, p, receiver);
+            return proxyHandler.get!(node.linkedToNode, p, receiver);
         }
 
         const value = peek(node);
@@ -571,7 +573,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
             parentValue[key] = newValue;
         }
     } finally {
-        node.isSetting--;
+        node.isSetting!--;
     }
 
     if (node.root.locked && node.root.set) {
@@ -680,7 +682,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
                         return fn(node, a, b, c);
                 }
             } else {
-                return value[p](a, b);
+                return (value as any)[p](a, b);
             }
         };
     }

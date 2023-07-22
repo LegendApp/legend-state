@@ -29,7 +29,7 @@ export function computed<T, T2 = T>(
         // If it was previously linked to a node remove self
         // from its linkedFromNodes
         if (prevNode) {
-            node.linkedToNode.linkedFromNodes.delete(node);
+            prevNode.linkedFromNodes!.delete(node);
             node.linkedToNode = undefined;
         }
         if (isObservable(val)) {
