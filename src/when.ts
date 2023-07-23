@@ -3,7 +3,7 @@ import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
 function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {
-    let value: T;
+    let value: T | undefined;
     // Create a wrapping fn that calls the effect if predicate returns true
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);

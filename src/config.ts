@@ -24,8 +24,8 @@ export function configureLegendState({
             _observableProperties.set(key, fns);
             Object.defineProperty(ObservablePrimitiveClass.prototype, key, {
                 configurable: true,
-                get(...args: any[]) {
-                    return fns.get.call(this, this._node, ...args);
+                get() {
+                    return fns.get.call(this, this._node);
                 },
                 set(value: any) {
                     return fns.set.call(this, this._node, value);

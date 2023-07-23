@@ -88,8 +88,8 @@ export function ensureNodeValue(node: NodeValue) {
     return value;
 }
 
-export function findIDKey(obj: unknown | undefined, node: NodeValue): string | ((value: any) => string) {
-    let idKey: string | ((value: any) => string) = isObject(obj)
+export function findIDKey(obj: unknown | undefined, node: NodeValue): string | ((value: any) => string) | undefined {
+    let idKey: string | ((value: any) => string) | undefined = isObject(obj)
         ? 'id' in obj
             ? 'id'
             : 'key' in obj
@@ -120,14 +120,14 @@ export function extractFunction(node: NodeValue, value: Record<string, any>, key
 
 export function extractFunctionsAndComputeds(obj: Record<string, any>, node: NodeValue) {
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-        if (__devExtractFunctionsAndComputedsNodes.has(obj)) {
+        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
                 obj,
             );
             return false;
         }
-        __devExtractFunctionsAndComputedsNodes.add(obj);
+        __devExtractFunctionsAndComputedsNodes!.add(obj);
     }
     for (const k in obj) {
         const v = obj[k];

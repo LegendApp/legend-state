@@ -63,8 +63,8 @@ export function setAtPath<T extends object>(
     fullObj?: T,
     restore?: (path: string[], value: any) => void,
 ) {
-    let o = obj;
-    let oFull = fullObj;
+    let o: Record<string, any> = obj;
+    let oFull: Record<string, any> | undefined = fullObj;
     if (path.length > 0) {
         for (let i = 0; i < path.length; i++) {
             const p = path[i];
@@ -96,7 +96,7 @@ export function setAtPath<T extends object>(
     return obj;
 }
 export function setInObservableAtPath(obs: ObservableWriteable, path: string[], value: any, mode: 'assign' | 'set') {
-    let o = obs;
+    let o: Record<string, any> = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
@@ -137,7 +137,7 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
             (isTargetArr && isArray(source) && targetValue.length > 0)
         ) {
             for (const key in source) {
-                const sourceValue = source[key];
+                const sourceValue = (source as Record<string, any>)[key];
                 if (sourceValue === symbolDelete) {
                     needsSet && target[key]?.delete
                         ? target[key].delete()
@@ -145,15 +145,17 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
                 } else {
                     const isObj = isObject(sourceValue);
                     const isArr = !isObj && isArray(sourceValue);
-                    const targetChild = target[key];
+                    const targetChild = (target as Record<string, any>)[key];
                     if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
                         if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
-                            target[key] = sourceValue;
+                            (target as Record<string, any>)[key] = sourceValue;
                         } else {
                             _mergeIntoObservable(targetChild, sourceValue);
                         }
                     } else {
-                        needsSet ? targetChild.set(sourceValue) : ((target[key] as any) = sourceValue);
+                        needsSet
+                            ? targetChild.set(sourceValue)
+                            : (((target as Record<string, any>)[key] as any) = sourceValue);
                     }
                 }
             }
@@ -167,7 +169,7 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
 export function constructObjectWithPath(path: string[], value: any, pathTypes: TypeAtPath[]): object {
     let out;
     if (path.length > 0) {
-        let o = (out = {});
+        let o: Record<string, any> = (out = {});
         for (let i = 0; i < path.length; i++) {
             const p = path[i];
             o[p] = i === path.length - 1 ? value : pathTypes[i] === 'array' ? [] : {};

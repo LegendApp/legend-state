@@ -13,7 +13,7 @@ export function event(): ObservableEvent {
             // Notify increments the value so that the observable changes
             obs.set((v) => v + 1);
         },
-        on: function (cb?: () => void) {
+        on: function (cb: () => void) {
             return obs.onChange(cb);
         },
         get: function () {

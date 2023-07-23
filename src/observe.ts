@@ -26,7 +26,7 @@ export function observe<T>(
     } else {
         options = reactionOrOptions;
     }
-    let dispose: () => void;
+    let dispose: (() => void) | undefined;
     const e: ObserveEventCallback<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
     const update = function () {
@@ -76,6 +76,6 @@ export function observe<T>(
         e.onCleanup = undefined;
         e.onCleanupReaction?.();
         e.onCleanupReaction = undefined;
-        dispose();
+        dispose!();
     };
 }
