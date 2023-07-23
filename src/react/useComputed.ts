@@ -36,7 +36,7 @@ export function useComputed<T, T2 = T>(
         () =>
             computed<T, T2>(
                 () => (isFunction(ref.current.compute) ? ref.current.compute() : ref.current.compute) as T,
-                set ? (value) => ref.current.set(value) : undefined,
+                (set ? (value) => ref.current.set!(value) : undefined) as (value: T2) => void,
             ),
         deps || [],
     );

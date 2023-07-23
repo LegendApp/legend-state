@@ -22,7 +22,7 @@ export function useObserve<T>(
     reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
     options?: ObserveOptions,
 ): () => void {
-    let reaction: (e: ObserveEventCallback<T>) => any;
+    let reaction: ((e: ObserveEventCallback<T>) => any) | undefined;
     if (isFunction(reactionOrOptions)) {
         reaction = reactionOrOptions;
     } else {
@@ -48,6 +48,7 @@ export function useObserve<T>(
 
     useUnmountOnce(() => {
         ref.current?.dispose?.();
+        // @ts-expect-error This is fine to clear the ref to make sure it doesn't run anymore
         ref.current = undefined;
     });
 

@@ -46,9 +46,9 @@ function createReactiveComponent<P = object>(
     let render = component;
 
     // Unwrap memo on the component
-    if (ReactMemoSymbol && render['$$typeof'] === ReactMemoSymbol && render['type']) {
+    if (ReactMemoSymbol && (render as any)['$$typeof'] === ReactMemoSymbol && (render as any)['type']) {
         useMemo = true;
-        render = render['type'];
+        render = (render as any)['type'];
     }
     // Unwrap forwardRef on the component
     if (ReactForwardRefSymbol && (render as any)['$$typeof'] === ReactForwardRefSymbol) {
@@ -150,7 +150,7 @@ export function reactiveComponents<P extends Record<string, FC>>(components: P):
     return new Proxy(
         {},
         {
-            get(target, p: string) {
+            get(target: Record<string, any>, p: string) {
                 if (!target[p]) {
                     target[p] = createReactiveComponent(components[p], false, true) as FC<ShapeWith$<P>>;
                 }

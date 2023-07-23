@@ -36,7 +36,7 @@ export function configureReactive({
     components,
     binders,
 }: {
-    components?: Record<string, FC | ComponentClass>;
+    components?: Record<string, FC | ComponentClass<any>>;
     binders?: Record<string, BindKeys>;
 }) {
     if (components) {

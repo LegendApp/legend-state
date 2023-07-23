@@ -21,7 +21,7 @@ export function useObserveEffect<T>(
     reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
     options?: ObserveOptions,
 ): void {
-    let reaction: (e: ObserveEventCallback<T>) => any;
+    let reaction: ((e: ObserveEventCallback<T>) => any) | undefined;
     if (isFunction(reactionOrOptions)) {
         reaction = reactionOrOptions;
     } else {

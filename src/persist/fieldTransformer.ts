@@ -13,9 +13,9 @@ let validateMap: (map: Record<string, any>) => void;
 
 export function transformPath(path: string[], pathTypes: TypeAtPath[], map: Record<string, any>): string[] {
     const data: Record<string, any> = {};
-    let d = data;
+    let d: Record<string, any> | null = data;
     for (let i = 0; i < path.length; i++) {
-        d = d[path[i]] = i === path.length - 1 ? null : pathTypes[i] === 'array' ? [] : {};
+        d = d![path[i]] = i === path.length - 1 ? null : pathTypes[i] === 'array' ? [] : {};
     }
     let value = transformObject(data, map);
     const pathOut = [];
@@ -74,7 +74,7 @@ export function transformObject(dataIn: Record<string, any>, map: Record<string,
                                 v = transformObject(v, map[key + '_obj']);
                             } else if (map[key + '_dict']) {
                                 const mapChild = map[key + '_dict'];
-                                const out = {};
+                                const out: Record<string, any> = {};
                                 for (const keyChild in v) {
                                     out[keyChild] = transformObject(v[keyChild], mapChild);
                                 }
@@ -117,7 +117,7 @@ export function invertFieldMap(obj: Record<string, any>) {
             target[key] = invertFieldMap(val);
         } else if (key.endsWith('_obj') || key.endsWith('_dict') || key.endsWith('_arr') || key.endsWith('_val')) {
             const keyMapped = obj[key.replace(/_obj|_dict|_arr|_val$/, '')];
-            const suffix = key.match(/_obj|_dict|_arr|_val$/)[0];
+            const suffix = key.match(/_obj|_dict|_arr|_val$/)![0];
             target[keyMapped + suffix] = invertFieldMap(val);
         } else if (typeof val === 'string') {
             target[val] = key;

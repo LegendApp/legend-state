@@ -63,14 +63,14 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
             }
             return storage;
         } else {
-            return this.storages.get(symbolDefault);
+            return this.storages.get(symbolDefault)!;
         }
     }
     private async setValue(table: string, value: any, config: PersistOptionsLocal) {
         this.data[table] = value;
         this.save(table, config);
     }
-    private save(table: string, config: PersistOptionsLocal | undefined) {
+    private save(table: string, config: PersistOptionsLocal) {
         const storage = this.getStorage(config);
         const v = this.data[table];
         if (v !== undefined) {

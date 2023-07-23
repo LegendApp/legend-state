@@ -28,10 +28,10 @@ export function Switch<T>({
     children,
 }: {
     value?: Selector<T>;
-    children: Record<any, () => ReactNode>;
+    children: Partial<Record<any, () => ReactNode>>;
 }): ReactElement {
     // Select from an object of cases
-    return ((children as Record<any, () => ReactNode>)[useSelector(value)]?.() ??
+    return ((children as Record<any, () => ReactNode>)[useSelector(value)!]?.() ??
         (children as Record<any, () => ReactNode>)['default']?.() ??
         null) as ReactElement;
 }

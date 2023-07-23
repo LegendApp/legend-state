@@ -18,7 +18,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private tableData: Record<string, any> = {};
     private tableMetadata: Record<string, any> = {};
     private tablesAdjusted: Map<string, Observable<boolean>> = new Map();
-    private db: IDBDatabase;
+    private db: IDBDatabase | undefined;
     private isSaveTaskQueued = false;
     private pendingSaves = new Map<
         PersistOptionsLocal,
@@ -30,13 +30,13 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         this.doSave = this.doSave.bind(this);
     }
 
-    public initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
+    public async initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
         if (typeof indexedDB === 'undefined') return;
         if (process.env.NODE_ENV === 'development' && !config?.indexedDB) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
 
-        const { databaseName, version, tableNames } = config.indexedDB;
+        const { databaseName, version, tableNames } = config!.indexedDB!;
         const openRequest = indexedDB.open(databaseName, version);
 
         openRequest.onerror = () => {
@@ -45,7 +45,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
         openRequest.onupgradeneeded = () => {
             const db = openRequest.result;
-            const { tableNames } = config.indexedDB;
+            const { tableNames } = config!.indexedDB!;
             // Create a table for each name with "id" as the key
             tableNames.forEach((table) => {
                 if (!db.objectStoreNames.contains(table)) {
@@ -77,7 +77,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     }
     public loadTable(table: string, config: PersistOptionsLocal): void | Promise<void> {
         if (!this.tableData[table]) {
-            const transaction = this.db.transaction(table, 'readonly');
+            const transaction = this.db!.transaction(table, 'readonly');
 
             return this.initTable(table, transaction).then(() => this.loadTable(table, config));
         }
@@ -87,7 +87,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         if (prefix) {
             const tableName = prefix ? table + '/' + prefix : table;
             if (this.tablesAdjusted.has(tableName)) {
-                const promise = when(this.tablesAdjusted.get(tableName));
+                const promise = when(this.tablesAdjusted.get(tableName)!);
                 if (isPromise(promise)) {
                     return promise as unknown as Promise<void>;
                 }
@@ -99,7 +99,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 let promises: Promise<any>[];
                 if (data) {
                     const keys = Object.keys(data);
-                    promises = keys.map((key) => {
+                    promises = keys.map(async (key) => {
                         const value = data[key];
 
                         if (isPromise(value)) {
@@ -113,7 +113,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                     });
                 }
                 if (hasPromise) {
-                    return Promise.all(promises).then(() => {
+                    return Promise.all(promises!).then(() => {
                         obsLoaded.set(true);
                     });
                 } else {
@@ -175,7 +175,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         if (!this.pendingSaves.has(config)) {
             this.pendingSaves.set(config, {});
         }
-        const pendingSaves = this.pendingSaves.get(config);
+        const pendingSaves = this.pendingSaves.get(config)!;
 
         const realTable = table;
         const prefixID = config.indexedDB?.prefixID;
@@ -230,7 +230,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const promisesQueued = this.promisesQueued;
         this.promisesQueued = [];
         const promises: Promise<IDBRequest>[] = [];
-        let lastPut: IDBRequest;
+        let lastPut: IDBRequest | undefined;
         this.pendingSaves.forEach((pendingSaves, config) => {
             Object.keys(pendingSaves).forEach((table) => {
                 const pendingTable = pendingSaves[table];
@@ -272,8 +272,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         let data = this.tableData[tableName];
         const itemID = configIDB?.itemID;
         if (data && configIDB?.itemID) {
-            const dataTemp = data[itemID];
-            delete data[itemID];
+            const dataTemp = data[itemID!];
+            delete data[itemID!];
             data = dataTemp;
         } else {
             delete this.tableData[tableName];
@@ -370,7 +370,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         });
     }
     private transactionStore(table: string) {
-        const transaction = this.db.transaction(table, 'readwrite');
+        const transaction = this.db!.transaction(table, 'readwrite');
         return transaction.objectStore(table);
     }
     private _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptionsLocal) {
@@ -413,12 +413,12 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private async _setTable(
         table: string,
         prev: object,
-        value: object,
+        value: Record<string, any>,
         store: IDBObjectStore,
         config: PersistOptionsLocal,
     ) {
         const keys = Object.keys(value);
-        let lastSet: IDBRequest;
+        let lastSet: IDBRequest | undefined;
         // Do a set for each key in the object
         const sets = await Promise.all(
             keys.map((key) => {
@@ -444,6 +444,6 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
                 lastSet = deletes[deletes.length - 1];
             }
         }
-        return lastSet;
+        return lastSet!;
     }
 }

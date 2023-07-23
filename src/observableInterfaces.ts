@@ -92,7 +92,7 @@ export interface ListenerParams<T = any> {
     getPrevious: () => T;
     changes: Change[];
 }
-export type ListenerFn<T = any> = (params?: ListenerParams<T>) => void;
+export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
 type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
@@ -250,7 +250,7 @@ export interface ObservablePersistState {
     isEnabledRemote: boolean;
     remoteError?: Error;
     dateModified?: number;
-    clearLocal: () => Promise<void>;
+    clearLocal: (() => Promise<void>) | undefined;
     sync: () => Promise<void>;
     getPendingChanges: () =>
         | Record<

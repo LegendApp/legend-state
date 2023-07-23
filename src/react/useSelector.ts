@@ -11,8 +11,8 @@ interface SelectorFunctions<T> {
 function createSelectorFunctions<T>(): SelectorFunctions<T> {
     let version = 0;
     let notify: () => void;
-    let dispose: () => void;
-    let resubscribe: () => void;
+    let dispose: (() => void) | undefined;
+    let resubscribe: (() => void) | undefined;
 
     const _update = () => {
         version++;

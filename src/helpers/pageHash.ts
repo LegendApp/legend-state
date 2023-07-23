@@ -20,9 +20,9 @@ if (hasWindow) {
             const hash = '#' + value;
             const setter = _options?.setter || 'hash';
             if (setter === 'pushState') {
-                history.pushState(null, null, hash);
+                history.pushState(null, null as any, hash);
             } else if (setter === 'replaceState') {
-                history.replaceState(null, null, hash);
+                history.replaceState(null, null as any, hash);
             } else {
                 location.hash = hash;
             }
@@ -38,4 +38,4 @@ if (hasWindow) {
     window.addEventListener('hashchange', cb);
 }
 
-export { pageHash, configurePageHash };
+export { configurePageHash, pageHash };
