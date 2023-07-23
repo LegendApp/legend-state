@@ -76,7 +76,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
         parentValue[key] = prevValue;
 
         // Then set with the new value so it notifies with the correct prevValue
-        setKey(node.parent ?? node, hasParent ? key : undefined, target);
+        setKey(node.parent ?? node, key, target);
     }
 
     // Return the original value
@@ -506,7 +506,7 @@ export function set(node: NodeValue, newValue?: any) {
     } else if (node.parent) {
         return setKey(node.parent, node.key, newValue);
     } else {
-        return setKey(node, undefined, newValue);
+        return setKey(node, '_', newValue);
     }
 }
 function toggle(node: NodeValue) {
@@ -537,10 +537,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     const isDelete = newValue === symbolDelete;
     if (isDelete) newValue = undefined;
 
-    const isRoot = !node.parent && key === undefined;
-    if (isRoot) {
-        key = '_';
-    }
+    const isRoot = !node.parent && key === '_';
 
     // Get the child node for updating and notifying
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
@@ -615,15 +612,15 @@ function deleteFn(node: NodeValue, key?: string) {
         key = node.key;
         node = node.parent;
     }
-    setKey(node, key as string, symbolDelete, /*level*/ -1);
+    setKey(node, key ?? '_', symbolDelete, /*level*/ -1);
 }
 
-function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>);
-function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
-    const vProp = value?.[p];
+function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {
+    const vProp = (value as any)?.[p];
     if (isFunction(vProp)) {
         return function (a: any, b: any, c: any) {
             const l = arguments.length;
+            const valueMap = value as Map<any, any>;
 
             if (p === 'get') {
                 if (l > 0 && typeof a !== 'boolean' && a !== optimized) {
@@ -631,8 +628,8 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
                 }
             } else if (p === 'set') {
                 if (l === 2) {
-                    const prev = value.get(a);
-                    const ret = value.set(a, b);
+                    const prev = valueMap.get(a);
+                    const ret = valueMap.set(a, b);
                     if (prev !== b) {
                         updateNodesAndNotify(getChildNode(node, a), b, prev);
                     }
@@ -641,7 +638,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
             } else if (p === 'delete') {
                 if (l > 0) {
                     // Support Set by just returning a if it doesn't have get, meaning it's not a Map
-                    const prev = value.get ? value.get(a) : a;
+                    const prev = (value as Map<any, any>).get ? valueMap.get(a) : a;
                     const ret = value.delete(a);
                     if (ret) {
                         updateNodesAndNotify(getChildNode(node, a), undefined, prev);
@@ -649,9 +646,9 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any>) {
                     return ret;
                 }
             } else if (p === 'clear') {
-                const prev = new Map(value);
-                const size = value.size;
-                value.clear();
+                const prev = new Map(valueMap);
+                const size = valueMap.size;
+                valueMap.clear();
                 if (size) {
                     updateNodesAndNotify(node, value, prev);
                 }
