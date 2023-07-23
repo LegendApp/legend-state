@@ -9,7 +9,7 @@
             "esnext"
         ],
         "skipLibCheck": true,
-        "strict": false,
+        "strict": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
         "incremental": true,
