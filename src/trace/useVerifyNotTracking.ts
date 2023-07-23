@@ -1,15 +1,15 @@
 import { NodeValue, optimized, tracking, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 
-export function useVerifyNotTracking(name?: string) {
+export function useVerifyNotTracking(this: any, name?: string) {
     if (process.env.NODE_ENV === 'development') {
-        tracking.current.traceListeners = traceNodes.bind(this, name);
+        tracking.current!.traceListeners = traceNodes.bind(this, name);
     }
 }
 
-function traceNodes(name: string, nodes: Map<NodeValue, TrackingNode>) {
+function traceNodes(name: string | undefined, nodes: Map<NodeValue, TrackingNode>) {
     if (process.env.NODE_ENV === 'development') {
-        tracking.current.traceListeners = undefined;
+        tracking.current!.traceListeners = undefined;
         const arr: string[] = [];
         if (nodes) {
             for (const tracked of nodes.values()) {

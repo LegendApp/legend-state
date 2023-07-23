@@ -18,7 +18,7 @@ export default function () {
                 imported = {};
             },
             ImportDeclaration: {
-                enter(path) {
+                enter(path: { node: any; replaceWith: (param: any) => any }) {
                     if (path.node.source.value === '@legendapp/state/react') {
                         const specifiers = path.node.specifiers;
                         for (let i = 0; i < specifiers.length; i++) {
@@ -31,7 +31,7 @@ export default function () {
                 },
             },
             JSXElement: {
-                enter(path) {
+                enter(path: { node: any; replaceWith: (param: any) => any }) {
                     const openingElement = path.node.openingElement;
 
                     const children_ = path.node.children;

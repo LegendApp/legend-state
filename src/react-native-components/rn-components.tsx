@@ -1,6 +1,6 @@
 import { isEmpty, isFunction } from '@legendapp/state';
 import { BindKeys, ShapeWith$, reactive } from '@legendapp/state/react';
-import { FC, LegacyRef, createElement, forwardRef } from 'react';
+import { ComponentClass, FC, LegacyRef, createElement, forwardRef } from 'react';
 import {
     ActivityIndicator,
     ActivityIndicatorProps,
@@ -44,7 +44,7 @@ const bindables: BindKeys = {
     Switch: { handler: 'onValueChange', getValue: (e) => e, defaultValue: false },
 };
 
-const Components = {
+const Components: Record<string, FC | ComponentClass<any>> = {
     ActivityIndicator: ActivityIndicator,
     Button: Button,
     FlatList: FlatList,

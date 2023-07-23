@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
 interface SelectorFunctions<T> {
-    subscribe: (onStoreChange: () => void) => void;
+    subscribe: (onStoreChange: () => void) => () => void;
     getVersion: () => number;
     run: (selector: Selector<T>) => T;
 }

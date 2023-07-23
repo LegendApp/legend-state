@@ -100,15 +100,15 @@ routes$.onChange(({ value, getPrevious }) => {
     }
 });
 
-export function useObservableNextRouter(): Observable<ObservableNextRouterState>;
-export function useObservableNextRouter<T extends object>(params: ParamsUseObservableNextRouter<T>): Observable<T>;
+// export function useObservableNextRouter(): Observable<ObservableNextRouterState>;
+// export function useObservableNextRouter<T extends object>(params: ParamsUseObservableNextRouter<T>): Observable<T>;
 export function useObservableNextRouter(
     params: ParamsUseObservableNextRouterBase,
 ): Observable<ObservableNextRouterState>;
 export function useObservableNextRouter<T extends object>(
-    params?: ParamsUseObservableNextRouter<T>,
+    params?: ParamsUseObservableNextRouter<T> | ParamsUseObservableNextRouterBase,
 ): Observable<T> | Observable<ObservableNextRouterState> {
-    const { subscribe, compute } = params || {};
+    const { subscribe, compute } = (params as ParamsUseObservableNextRouter<T>) || {};
 
     try {
         // Use the useRouter hook if we're on the client side and want to subscribe to changes.
@@ -122,7 +122,7 @@ export function useObservableNextRouter<T extends object>(
     // on a new page or if the user just changes it on the current page.
     // It's better for performance than creating new observables or hooks for every use, since there may be
     // many uses of useObservableRouter in the lifecycle of a page.
-    routeParams = params;
+    routeParams = params as ParamsUseObservableNextRouter<T>;
 
     // Get the pathname and hash
     const { asPath, pathname, query } = router;
