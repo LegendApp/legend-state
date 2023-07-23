@@ -104,7 +104,7 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     : T[K] extends ObservableProxy<infer t>
     ? ObservableProxy<t>
     : T[K] extends Map<any, any> | WeakMap<any, any>
-    ? Omit<T[K], 'get'> & Omit<ObservablePrimitiveBaseFns<T[K]>, 'get'> & MapGet<T[K]>
+    ? ObservableMap<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
     ? T[K] & ObservablePrimitiveBaseFns<T[K]>
     : T[K] extends OpaqueObject<T[K]>
@@ -325,6 +325,10 @@ export interface ObservableRoot {
 export type Primitive = boolean | string | number | Date;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
+export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get'> &
+    Omit<ObservablePrimitiveBaseFns<T>, 'get'> &
+    MapGet<T>;
+export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
@@ -347,7 +351,8 @@ export type ObservableReadable<T = any> =
     | ObservableBaseFns<T>
     | ObservablePrimitiveBaseFns<T>
     | ObservablePrimitiveChildFns<T>
-    | ObservableObjectFns<T>;
+    | ObservableObjectFns<T>
+    | ObservableMapIfMap<T>;
 
 export type ObservableWriteable<T = any> = ObservableReadable<T> & {
     set: (value: T | ((prev: T) => T)) => void;

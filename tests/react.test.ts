@@ -18,6 +18,8 @@ import { useSelector } from '../src/react/useSelector';
 
 enableReactDirectRender();
 
+type TestObject = { id: string; label: string };
+
 describe('useSelector', () => {
     test('useSelector basics', () => {
         const obs = observable('hi');
@@ -297,7 +299,11 @@ describe('For', () => {
             return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
-            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: obs.items, item: Item }),
+            );
         }
         const { container } = render(createElement(Test));
 
@@ -313,7 +319,6 @@ describe('For', () => {
         expect(items[0].id).toEqual('1');
     });
     test('Array insert has stable reference 2', () => {
-        type TestObject = { id: string; label: string };
         const obs = observable({
             items: [
                 { id: 'B', label: 'B' },
@@ -325,7 +330,11 @@ describe('For', () => {
             return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
-            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: obs.items, item: Item }),
+            );
         }
         const { container } = render(createElement(Test));
 
@@ -358,21 +367,18 @@ describe('For', () => {
             items: [
                 { id: 'B', label: 'B' },
                 { id: 'A', label: 'A' },
-            ] as Array<{ id: string; label: string }>,
+            ] as TestObject[],
         });
-        function Item({
-            item,
-        }: {
-            item: Observable<{
-                id: number;
-                label: string;
-            }>;
-        }) {
+        function Item({ item }: { item: Observable<TestObject> }) {
             const data = useSelector(item);
             return createElement('li', { id: getObservableIndex(item) }, data.label);
         }
         function Test() {
-            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: obs.items, item: Item }),
+            );
         }
         const { container } = render(createElement(Test));
 
@@ -383,24 +389,21 @@ describe('For', () => {
     });
     test('For with Map', () => {
         const obs = observable({
-            items: new Map<string, { label: string }>([
-                ['m2', { label: 'B' }],
-                ['m1', { label: 'A' }],
+            items: new Map<string, TestObject>([
+                ['m2', { label: 'B', id: 'B' }],
+                ['m1', { label: 'A', id: 'A' }],
             ]),
         });
-        function Item({
-            item,
-        }: {
-            item: Observable<{
-                id: number;
-                label: string;
-            }>;
-        }) {
+        function Item({ item }: { item: Observable<TestObject> }) {
             const data = useSelector(item);
             return createElement('li', { id: data.label }, data.label);
         }
         function Test() {
-            return createElement('div', undefined, createElement(For, { each: obs.items, item: Item }));
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: obs.items, item: Item }),
+            );
         }
         const { container } = render(createElement(Test));
 
@@ -411,19 +414,12 @@ describe('For', () => {
     });
     test('For with Map sorted', () => {
         const obs = observable({
-            items: new Map<string, { label: string }>([
-                ['m2', { label: 'B' }],
-                ['m1', { label: 'A' }],
+            items: new Map<string, TestObject>([
+                ['m2', { label: 'B', id: 'B' }],
+                ['m1', { label: 'A', id: 'A' }],
             ]),
         });
-        function Item({
-            item,
-        }: {
-            item: Observable<{
-                id: number;
-                label: string;
-            }>;
-        }) {
+        function Item({ item }: { item: Observable<TestObject> }) {
             const data = useSelector(item);
             return createElement('li', { id: data.label }, data.label);
         }
@@ -431,10 +427,10 @@ describe('For', () => {
             return createElement(
                 'div',
                 undefined,
-                createElement(For, {
+                createElement(For as typeof For<TestObject, {}>, {
                     each: obs.items,
                     item: Item,
-                    sortValues: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label),
+                    sortValues: (a: TestObject, b: TestObject) => a.label.localeCompare(b.label),
                 }),
             );
         }
@@ -456,7 +452,7 @@ describe('useObservableReducer', () => {
             { id: 2, text: 'Lennon Wall pic', done: false },
         ];
 
-        function tasksReducer(tasks, action) {
+        function tasksReducer(tasks: any[], action: any) {
             switch (action.type) {
                 case 'added': {
                     return [

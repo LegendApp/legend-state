@@ -94,7 +94,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
         __devUpdateNodes.add(obj);
     }
-    if ((isObject(obj) && obj[symbolOpaque as any]) || (isObject(prevValue) && prevValue[symbolOpaque as any])) {
+    if (
+        (isObject(obj) && (obj as Record<any, any>)[symbolOpaque as any]) ||
+        (isObject(prevValue) && prevValue[symbolOpaque as any])
+    ) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners || parent.listenersImmediate) {

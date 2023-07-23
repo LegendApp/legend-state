@@ -14,7 +14,7 @@ describe('Tracking', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
         obs.test.test2.test3.get();
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
     });
     test('peek() does not observe', () => {
         const obs = observable({ test: { test2: { test3: 'hi' } } });
@@ -33,7 +33,7 @@ describe('Tracking', () => {
         const obs = observable({ test: 'hi' });
         obs.test.get();
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
     });
     test('object access does not observe', () => {
         const obs = observable({ test: { text: 'hi' } });
@@ -46,9 +46,9 @@ describe('Tracking', () => {
 
         obs.test.get();
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
         expect(nodes[0].track).toEqual(undefined);
     });
     test('get() shallow', () => {
@@ -56,25 +56,25 @@ describe('Tracking', () => {
 
         obs.test.get(true);
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
         expect(nodes[0].track).toEqual(true);
     });
     test('primitive get access observes', () => {
         const obs = observable({ test: 'hi' });
         obs.test.get();
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
     });
     test('Object.keys(obs) observes shallow', () => {
         const obs = observable({ test: { text: 'hi' } });
 
         Object.keys(obs);
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
         expect(nodes[0].track).toEqual(true);
@@ -84,9 +84,9 @@ describe('Tracking', () => {
 
         Object.entries(obs);
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
 
         expect(nodes[0].node.key).toEqual(undefined);
         expect(nodes[0].track).toEqual(true);
@@ -96,9 +96,9 @@ describe('Tracking', () => {
 
         obs.test['a'].get();
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
 
         expect(nodes[0].node.key).toEqual('a');
     });
@@ -107,7 +107,7 @@ describe('Tracking', () => {
 
         evt.get();
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
     });
     test('Array map observes arary', () => {
         const obs = observable({
@@ -119,9 +119,9 @@ describe('Tracking', () => {
 
         obs.arr.map((it) => it);
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
 
         expect(nodes[0].node.key).toEqual('arr');
     });
@@ -132,9 +132,9 @@ describe('Tracking', () => {
 
         obs.arr.length;
 
-        expect(tracking.current.nodes.size).toEqual(1);
+        expect(tracking.current!.nodes!.size).toEqual(1);
 
-        const nodes = [...tracking.current.nodes.values()];
+        const nodes = [...tracking.current!.nodes!.values()];
 
         expect(nodes[0].node.key).toEqual('arr');
         expect(nodes[0].track).toEqual(true);

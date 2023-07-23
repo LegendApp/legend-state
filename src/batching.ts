@@ -225,7 +225,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                             listenersNotified.add(listener);
                         }
 
-                        listener(listenerParams);
+                        listener(listenerParams!);
                     }
                 }
             }
