@@ -130,7 +130,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value)
+            (value) => obs.test.set(value) && obs.test2.set(value),
         );
         expect(comp.get()).toEqual(false);
         obs.test.set(true);
@@ -142,7 +142,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value)
+            (value) => obs.test.set(value) && obs.test2.set(value),
         );
         expect(comp.get()).toEqual(false);
         comp.set(true);
@@ -153,7 +153,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: { a: 'hi' }, test2: false });
         const comp = computed(
             () => obs.test.get(),
-            (value) => obs.test.set(value)
+            (value) => obs.test.set(value),
         );
         expect(comp.a.get()).toEqual('hi');
         comp.a.set('bye');
@@ -163,7 +163,7 @@ describe('Two way Computed', () => {
         const obs = observable([false, false, false, false, false]);
         const comp = computed(
             () => obs.every((val) => val.get()),
-            (value) => obs.forEach((child) => child.set(value))
+            (value) => obs.forEach((child) => child.set(value)),
         );
         expect(comp.get()).toEqual(false);
         comp.set(true);
@@ -175,7 +175,7 @@ describe('Two way Computed', () => {
         const handler = expectChangeHandler(obs);
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value)
+            (value) => obs.test.set(value) && obs.test2.set(value),
         );
         expect(comp.get()).toEqual(false);
         comp.set(true);
@@ -201,7 +201,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value)
+            (value) => obs.test.set(value) && obs.test2.set(value),
         );
 
         comp.set(true);
@@ -217,7 +217,7 @@ describe('Two way Computed', () => {
             ({ computedValue }) => {
                 obs.test.set(computedValue);
                 obs.test2.set(computedValue);
-            }
+            },
         );
         expect(comp.get()).toEqual({ computedValue: false });
         comp.computedValue.set(true);
@@ -236,7 +236,7 @@ describe('Two way Computed', () => {
             },
             ({ computedValue }) => {
                 obs.test.set(computedValue);
-            }
+            },
         );
         comp.computedValue.set(true);
         expect(comp.get()).toEqual({ computedValue: true, computedValue2: false });
@@ -248,7 +248,7 @@ describe('Two way Computed', () => {
 
         const comp = computed(
             () => obs.get() + '',
-            (value: string) => obs.set(+value)
+            (value: string) => obs.set(+value),
         );
 
         const increment = (cur: number) => {
@@ -346,7 +346,7 @@ describe('Computed inside observable', () => {
     test('Computed in observable', () => {
         const obs = observable({
             text: 'hi',
-            test: computed(() => {
+            test: computed((): string => {
                 return obs.text.get() + '!';
             }),
         });
@@ -361,9 +361,9 @@ describe('Computed inside observable', () => {
     });
     test('Computed selected gets correct value', () => {
         const obs = observable({
-            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
-            selected: undefined,
-            selectedItem: computed(() => obs.items[obs.selected.get()].get()),
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
+            selected: undefined as unknown as string,
+            selectedItem: computed((): { text: string } => obs.items[obs.selected.get()].get()),
         });
         expect(obs.selectedItem.get()).toEqual(undefined);
         obs.selected.set('test1');
@@ -409,7 +409,7 @@ describe('Computed inside observable', () => {
                     prevAtPath: 'hi',
                     valueAtPath: 'hi!',
                 },
-            ]
+            ],
         );
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
             {
@@ -470,7 +470,7 @@ describe('Computed inside observable', () => {
 describe('proxy', () => {
     test('proxy', () => {
         const obs = observable({
-            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             itemText: proxy((key): Observable<string> => {
                 return obs.items[key].text;
             }),
@@ -503,8 +503,11 @@ describe('proxy', () => {
     test('proxy with a get()', () => {
         const obs = observable({
             selector: 'text',
-            items: { test1: { text: 'hi', othertext: 'bye' }, test2: { text: 'hello', othertext: 'goodbye' } },
-            itemText: proxy((key): Observable<string> => {
+            items: {
+                test1: { text: 'hi', othertext: 'bye' },
+                test2: { text: 'hello', othertext: 'goodbye' },
+            } as Record<string, Record<string, string>>,
+            itemText: proxy((key: string): Observable<string> => {
                 return obs.items[key][obs.selector.get()];
             }),
         });

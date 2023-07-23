@@ -13,13 +13,13 @@ class LocalStorageMock {
     clear() {
         this.store = {};
     }
-    getItem(key) {
+    getItem(key: string) {
         return this.store[key] || null;
     }
-    setItem(key, value) {
+    setItem(key: string, value: any) {
         this.store[key] = String(value);
     }
-    removeItem(key) {
+    removeItem(key: string) {
         delete this.store[key];
     }
 }
@@ -32,30 +32,30 @@ function reset() {
     global.localStorage.clear();
     const persist = mapPersistences.get(ObservablePersistLocalStorage)?.persist as ObservablePersistLocal;
     if (persist) {
-        persist.deleteTable('jestlocal', undefined);
+        persist.deleteTable('jestlocal', undefined as any);
     }
 }
 
 export async function recursiveReplaceStrings<T extends string | object | number | boolean>(
     value: T,
-    replacer: (val: string) => string
+    replacer: (val: string) => string,
 ): Promise<T> {
     if (isArray(value)) {
         await Promise.all(
             value.map((v, i) =>
                 recursiveReplaceStrings(v, replacer).then((val) => {
-                    value[i] = val;
-                })
-            )
+                    (value as any[])[i] = val;
+                }),
+            ),
         );
     }
     if (isObject(value)) {
         await Promise.all(
             Object.keys(value).map((k) =>
-                recursiveReplaceStrings(value[k], replacer).then((val) => {
-                    value[k] = val;
-                })
-            )
+                recursiveReplaceStrings((value as Record<string, any>)[k], replacer).then((val) => {
+                    (value as Record<string, any>)[k] = val;
+                }),
+            ),
         );
     }
     if (isString(value)) {

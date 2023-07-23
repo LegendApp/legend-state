@@ -31,7 +31,7 @@ export function enableReactDirectRender() {
         extraPrimitiveActivators.set(Symbol.toPrimitive, true);
 
         // eslint-disable-next-line no-inner-declarations
-        function set(key, value) {
+        function set(key: string, value: any) {
             s.set(key, value);
             proto[key] = { configurable: true, value };
         }

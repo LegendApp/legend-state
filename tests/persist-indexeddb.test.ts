@@ -27,14 +27,14 @@ async function reset() {
 
     if (persist) {
         await persist.deleteTable(TableName, { name: TableName });
-        await persist.initialize(persistLocalOptions);
+        await persist.initialize!(persistLocalOptions);
     }
 }
 async function expectIDB(value: any) {
     const out = await new Promise((resolve) => {
         const request = indexedDB.open(
             persistLocalOptions.indexedDB.databaseName,
-            persistLocalOptions.indexedDB.version
+            persistLocalOptions.indexedDB.version,
         );
         request.onsuccess = () => {
             const db = request.result;
@@ -89,7 +89,7 @@ describe('Persist IDB', () => {
         obs['test'].set({ id: 'test', text: 'hi' });
 
         const persist = mapPersistences.get(ObservablePersistIndexedDB)?.persist as ObservablePersistLocal;
-        await persist.initialize(persistLocalOptions);
+        await persist.initialize!(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
 
@@ -115,7 +115,7 @@ describe('Persist IDB', () => {
         expectIDB([{ id: 'test', text: 'hi' }]);
 
         const persist = mapPersistences.get(ObservablePersistIndexedDB)?.persist as ObservablePersistLocal;
-        await persist.initialize(persistLocalOptions);
+        await persist.initialize!(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
         const state2 = persistObservable(obs2, {
@@ -141,7 +141,7 @@ describe('Persist IDB', () => {
 
         expectIDB([{ id: 'test2', text: 'hi' }]);
 
-        await persist.initialize(persistLocalOptions);
+        await persist.initialize!(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
         const state2 = persistObservable(obs2, {
