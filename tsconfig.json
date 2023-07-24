@@ -18,42 +18,23 @@
         "isolatedModules": true,
         "jsx": "preserve",
         "stripInternal": true,
-        "baseUrl": ".",
         "rootDirs": [
             "./src",
         ],
         "declaration": true,
         "sourceMap": true,
         "paths": {
-            "react": [
-                "node_modules/react"
-            ],
-            "react-native": [
-                "node_modules/react-native"
-            ],
-            "react-native-mmkv": [
-                "node_modules/react-native-mmkv"
-            ],
-            "next": [
-                "node_modules/next"
-            ],
-            "next/router": [
-                "node_modules/next/router"
-            ],
-            "@babel/types": [
-                "node_modules/@babel/types"
-            ],
             "@legendapp/state": [
-                "index"
+                "./index"
             ],
             "@legendapp/state/persist": [
-                "persist"
+                "./persist"
             ],
             "@legendapp/state/react": [
-                "react"
+                "./react"
             ],
             "@legendapp/state/helpers/fetch": [
-                "src/helpers/fetch"
+                "./src/helpers/fetch"
             ],
         },
         "resolveJsonModule": true
