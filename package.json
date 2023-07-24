@@ -90,7 +90,10 @@
         "./types/babel": {
             "types": "./src/types/babel.ts"
         },
-        "./babel": "./babel.js"
+        "./babel": {
+            "import": "./dist/esm/babel.js",
+            "require": "./dist/cjs/babel.js"
+        }
     },
     "devDependencies": {
         "@babel/types": "^7.20.2",
