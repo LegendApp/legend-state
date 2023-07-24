@@ -1,7 +1,7 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "module": "Node16",
+        "module": "ES2020",
         "outDir": "dist/esm"
     }
 }
