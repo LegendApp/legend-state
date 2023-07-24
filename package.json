@@ -45,8 +45,8 @@
             "require": "./dist/cjs/index.js"
         },
         "./persist": {
-            "import": "./persist.mjs",
-            "require": "./persist.js"
+            "import": "./dist/esm/persist.js",
+            "require": "./dist/cjs/persist.js"
         },
         "./react": {
             "import": "./dist/esm/react.js",
@@ -54,7 +54,7 @@
         },
         "./react-components": {
             "import": "./dist/esm/react-components.js",
-            "require": "./react-components.js"
+            "require": "./dist/cjs/react-components.js"
         },
         "./react-native-components": {
             "import": "./dist/esm/react-native-components.js",
