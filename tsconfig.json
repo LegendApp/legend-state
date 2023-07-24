@@ -46,7 +46,6 @@
     "exclude": [
         "node_modules",
         "dist",
-        "types.d.ts",
-        "src/types"
+        "types.d.ts"
     ],
 }
