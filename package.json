@@ -4,9 +4,9 @@
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
-    "main": "./index.js",
-    "module": "./index.mjs",
-    "types": "./index.d.ts",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
+    "types": "./src/index.ts",
     "files": [
         "**"
     ],
@@ -44,65 +44,65 @@
     "exports": {
         "./package.json": "./package.json",
         ".": {
-            "import": "./index.mjs",
-            "require": "./index.js",
-            "types": "./index.d.ts"
+            "import": "./dist/esm/index.js",
+            "require": "./dist/cjs/index.js",
+            "types": "./src/index.ts"
         },
         "./persist": {
             "import": "./persist.mjs",
             "require": "./persist.js",
-            "types": "./persist.d.ts"
+            "types": "./src/persist.ts"
         },
         "./react": {
-            "import": "./react.mjs",
-            "require": "./react.js",
-            "types": "./react.d.ts"
+            "import": "./dist/esm/react.js",
+            "require": "./dist/cjs/react.js",
+            "types": "./src/react.ts"
         },
         "./react-components": {
-            "import": "./react-components.mjs",
+            "import": "./dist/esm/react-components.js",
             "require": "./react-components.js",
-            "types": "./react-components.d.ts"
+            "types": "./src/react-components.ts"
         },
         "./react-native-components": {
-            "import": "./react-native-components.mjs",
-            "require": "./react-native-components.js",
-            "types": "./react-native-components.d.ts"
+            "import": "./dist/esm/react-native-components.js",
+            "require": "./dist/cjs/react-native-components.js",
+            "types": "./src/react-native-components.ts"
         },
         "./trace": {
-            "import": "./trace.mjs",
-            "require": "./trace.js",
-            "types": "./trace.d.ts"
+            "import": "./dist/esm/trace.js",
+            "require": "./dist/cjs/trace.js",
+            "types": "./src/trace.ts"
         },
         "./history": {
-            "import": "./history.mjs",
-            "require": "./history.js",
-            "types": "./history.d.ts"
+            "import": "./dist/esm/history.js",
+            "require": "./dist/cjs/history.js",
+            "types": "./src/history.ts"
         },
         "./config/*": {
-            "import": "./config/*.mjs",
-            "require": "./config/*.js",
-            "types": "./config/*.d.ts"
+            "import": "./dist/esm/config/*.js",
+            "require": "./dist/cjs/config/*.js",
+            "types": "./src/config/*.ts"
         },
         "./helpers/*": {
-            "import": "./helpers/*.mjs",
-            "require": "./helpers/*.js",
-            "types": "./helpers/*.d.ts"
+            "import": "./dist/esm/helpers/*.js",
+            "require": "./dist/cjs/helpers/*.js",
+            "types": "./src/helpers/*.ts"
         },
         "./persist-plugins/*": {
-            "import": "./persist-plugins/*.mjs",
-            "require": "./persist-plugins/*.js",
-            "types": "./persist-plugins/*.d.ts"
+            "import": "./dist/esm/persist-plugins/*.js",
+            "require": "./dist/cjs/persist-plugins/*.js",
+            "types": "./src/persist-plugins/*.ts"
         },
         "./react-hooks/*": {
-            "import": "./react-hooks/*.mjs",
-            "require": "./react-hooks/*.js",
-            "types": "./react-hooks/*.d.ts"
+            "import": "./dist/esm/react-hooks/*.js",
+            "require": "./dist/cjs/react-hooks/*.js",
+            "types": "./src/react-hooks/*.ts"
         },
         "./types": {
             "types": "./types.d.ts"
         },
         "./types/babel": {
-            "types": "./types/babel.d.ts"
+            "types": "./src/types/babel.ts"
         },
         "./babel": "./babel.js"
     },
