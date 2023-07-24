@@ -17,7 +17,9 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && mkdir dist/types && cp src/types/* dist/types/ && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
+        "build:cjs": "tsc",
+        "build:esm": "tsc --project tsconfig.esm.json",
+        "build": "npm run lint:check && npm run build:cjs && npm run build:esm",
         "postbuild": "node postbuild.mjs",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",

@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
-        "outDir": "dist",
+        "outDir": "dist/cjs",
         "target": "es2018",
-        "module": "ES2015",
+        "module": "CommonJS",
         "lib": [
             "dom",
             "dom.iterable",
@@ -43,9 +43,6 @@
             "@babel/types": [
                 "node_modules/@babel/types"
             ],
-            "@tanstack/react-query": [
-                "node_modules/@tanstack/react-query"
-            ],
             "@legendapp/state": [
                 "index"
             ],
@@ -59,8 +56,7 @@
                 "src/helpers/fetch"
             ],
         },
-        "resolveJsonModule": true,
-        "noEmit": true
+        "resolveJsonModule": true
     },
     "include": [
         "**/*.ts",
