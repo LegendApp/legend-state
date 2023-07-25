@@ -3,7 +3,6 @@
     "version": "1.6.2",
     "description": "legend-state",
     "sideEffects": false,
-    "private": true,
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
     "files": [
