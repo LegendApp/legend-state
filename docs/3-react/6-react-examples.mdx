@@ -33,7 +33,7 @@ import { reactive, useObservable, Reactive } from '@legendapp/state/react'
 import { motion } from "framer-motion"
 import { State } from './State'
 
-const MotionDiv$ = reactive(motion.div)
+const MotionDiv = reactive(motion.div)
 
 export default function App() {
   const renderCount = ++useRef(0).current
@@ -44,13 +44,13 @@ export default function App() {
 
   return (
     <div className="flex absolute inset-0">
-      <MotionDiv$
+      <MotionDiv
         className="bg-gray-600 text-center pt-2 text-white text-sm"
         $initial={animPosition}
         $animate={animPosition}
       >
         Sidebar
-      </MotionDiv$>
+      </MotionDiv>
       <div className="flex-1 p-4">
         <div className="text-gray-500 text-sm pb-4">
           Renders: {renderCount}
@@ -105,7 +105,7 @@ export function debounce(fn, time) {
 import axios from 'axios'
 import { useRef } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useObservable, Reactive } from '@legendapp/state/react'
+import { useObservable, Reactive, Memo } from '@legendapp/state/react'
 import { enableReactComponents } from '@legendapp/state/config/enableReactComponents'
 import { useObservableQuery } from '@legendapp/state/react-hooks/useObservableQuery'
 import { debounce } from './debounce'
@@ -181,7 +181,7 @@ This example uses [useObserve](../hooks#useobserve) to listen to changes in the 
 <Sandbox height={680} width={70} files={{
 '/App.js': `
 import { useRef } from 'react'
-import { useObservable, useObserve, Reactive } from '@legendapp/state/react'
+import { useObservable, useObserve, Reactive, Memo, Show } from '@legendapp/state/react'
 import { enableReactComponents } from '@legendapp/state/config/enableReactComponents'
 
 enableReactComponents()
@@ -194,6 +194,7 @@ export default function App() {
   const usernameError = useObservable('')
   const passwordError = useObservable('')
   const didSave = useObservable(false)
+  const successMessage = useObservable('')
 
   useObserve(() => {
     if (didSave.get()) {
@@ -206,7 +207,7 @@ export default function App() {
       passwordError.set(
         pass.length < 10 ?
           'Password must be > 10 characters' :
-          !pass.match(/^(?=.*\d)$/) ?
+          !pass.match(/\\d/) ?
             'Password must include a number' :
             ''
       )
@@ -219,6 +220,8 @@ export default function App() {
 
     if (!usernameError.get() && !passwordError.get()) {
       console.log('Submit form')
+      passwordError.delete();
+      successMessage.set('Saved!')
     }
   }
 
@@ -233,7 +236,7 @@ export default function App() {
         $value={username}
       />
       <div className={classNameError}>
-        {usernameError}
+        <Memo>{usernameError}</Memo>
       </div>
       <div>Password:</div>
       <Reactive.input
@@ -244,6 +247,13 @@ export default function App() {
       <div className={classNameError}>
         <Memo>{passwordError}</Memo>
       </div>
+      <Show if={successMessage}>
+        {() => (
+          <div>
+            {successMessage.get()}
+          </div>
+        )}
+      </Show>
       <div>
         <button
           className="bg-gray-300 rounded-lg px-4 py-2 mt-6"
@@ -380,11 +390,11 @@ export default function App() {
 import { reactive } from '@legendapp/state/react'
 import { motion } from "framer-motion"
 
-const MotionDiv$ = reactive(motion.div)
+const MotionDiv = reactive(motion.div)
 
 export function Toggle({ value }) {
   return (
-    <MotionDiv$
+    <MotionDiv
       className="border border-gray-200 rounded-full select-none"
       $animate={() => ({
         backgroundColor: value.get() ? '#6ACB6C' : '#C4D1E3'
@@ -392,14 +402,14 @@ export function Toggle({ value }) {
       style={{ width: 64, height: 32 }}
       onClick={value.toggle}
     >
-      <MotionDiv$
+      <MotionDiv
         className="bg-white rounded-full shadow"
         style={{ width: 24, height: 24, marginTop: 3 }}
         $animate={() => ({
           x: value.get() ? 32 : 6
         })}
       />
-    </MotionDiv$>
+    </MotionDiv>
   )
 }
 `}}} />
@@ -444,7 +454,7 @@ import { reactive, useObservable, Switch } from '@legendapp/state/react'
 import { motion } from "framer-motion"
 import { useRef } from 'react'
 
-const MotionDiv$ = reactive(motion.div)
+const MotionDiv = reactive(motion.div)
 const MotionButton$ = reactive(motion.button)
 
 const TransitionBounce = {
