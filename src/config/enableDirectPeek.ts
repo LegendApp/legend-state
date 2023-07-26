@@ -8,14 +8,7 @@ export function enableDirectPeek() {
                     return internal.peek(node);
                 },
                 set(node, value) {
-                    if (node.parent) {
-                        internal.ensureNodeValue(node);
-                        const parentValue = internal.peek(node.parent);
-                        parentValue[node.key] = value;
-                        return value;
-                    } else {
-                        node.root._ = value;
-                    }
+                    internal.setNodeValue(node, value);
                 },
             },
         },
