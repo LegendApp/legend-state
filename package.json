@@ -67,21 +67,21 @@
             "import": "./dist/esm/history.js",
             "require": "./dist/cjs/history.js"
         },
-        "./config/*": {
-            "import": "./dist/esm/config/*.js",
-            "require": "./dist/cjs/config/*.js"
+        "./config/": {
+            "import": "./dist/esm/config/",
+            "require": "./dist/cjs/config/"
         },
-        "./helpers/*": {
-            "import": "./dist/esm/helpers/*.js",
-            "require": "./dist/cjs/helpers/*.js"
+        "./helpers/": {
+            "import": "./dist/esm/helpers/",
+            "require": "./dist/cjs/helpers/"
         },
-        "./persist-plugins/*": {
-            "import": "./dist/esm/persist-plugins/*.js",
-            "require": "./dist/cjs/persist-plugins/*.js"
+        "./persist-plugins/": {
+            "import": "./dist/esm/persist-plugins/",
+            "require": "./dist/cjs/persist-plugins/"
         },
-        "./react-hooks/*": {
-            "import": "./dist/esm/react-hooks/*.js",
-            "require": "./dist/cjs/react-hooks/*.js"
+        "./react-hooks/": {
+            "import": "./dist/esm/react-hooks/",
+            "require": "./dist/cjs/react-hooks/"
         },
         "./types": {
             "types": "./types.d.ts"
@@ -154,7 +154,8 @@
     },
     "homepage": "https://github.com/LegendApp/legend-state#readme",
     "publishConfig": {
-        "registry": "https://registry.npmjs.org/"
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
     },
     "commitlint": {
         "extends": [
