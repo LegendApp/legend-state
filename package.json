@@ -68,20 +68,20 @@
             "require": "./dist/cjs/history.js"
         },
         "./config/": {
-            "import": "./dist/esm/config/",
-            "require": "./dist/cjs/config/"
+            "import": "./dist/esm/src/config/",
+            "require": "./dist/cjs/src/config/"
         },
         "./helpers/": {
-            "import": "./dist/esm/helpers/",
-            "require": "./dist/cjs/helpers/"
+            "import": "./dist/esm/src/helpers/",
+            "require": "./dist/cjs/src/helpers/"
         },
         "./persist-plugins/": {
-            "import": "./dist/esm/persist-plugins/",
-            "require": "./dist/cjs/persist-plugins/"
+            "import": "./dist/esm/src/persist-plugins/",
+            "require": "./dist/cjs/src/persist-plugins/"
         },
         "./react-hooks/": {
-            "import": "./dist/esm/react-hooks/",
-            "require": "./dist/cjs/react-hooks/"
+            "import": "./dist/esm/src/react-hooks/",
+            "require": "./dist/cjs/src/react-hooks/"
         },
         "./types": {
             "types": "./types.d.ts"
