@@ -423,6 +423,7 @@ export interface ObservablePersistenceConfigLocalOptions {
         version: number;
         tableNames: string[];
     };
+    storage?: Storage;
 }
 export interface ObservablePersistenceConfig {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
