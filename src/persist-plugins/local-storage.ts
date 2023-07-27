@@ -11,8 +11,10 @@ const MetadataSuffix = '__m';
 export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     private data: Record<string, any> = {};
 
-    private storage: Storage = localStorage;
+    private storage: Storage = global.localStorage;
+
     public async initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
+        if (typeof Storage === 'undefined') return;
         this.storage  = config?.storage || this.storage;
     }
     public getTable(table: string) {
