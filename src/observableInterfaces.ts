@@ -355,8 +355,8 @@ export type ObservableReadable<T = any> =
     | ObservableMapIfMap<T>;
 
 export type ObservableWriteable<T = any> = ObservableReadable<T> & {
-    set: (value: T | ((prev: T) => T)) => void;
-    delete?: () => void;
+    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): any;
+    delete?: () => any;
 };
 
 export interface NodeValueListener {
