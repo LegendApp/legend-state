@@ -30,7 +30,7 @@ const Component = ({ id }) => {
 
 Like `observe`, `useObserve` has an optional second callback parameter which will run after the selector, and does not track changes. This can be useful for observing an `event` or a single `observable`.
 
-Note that `useObserve` runs during component render, not after render like `useEffect`. If you want an observer that runs after render, see [useObserveEffect](#useObserveEffect).
+Note that `useObserve` runs during component render, not after render like `useEffect`. If you want an observer that runs after render, see [useObserveEffect](#useobserveeffect).
 
 ```jsx
 import { event } from "@legendapp/state"
@@ -67,7 +67,7 @@ function ProfilePage() {
 
 ### useObserveEffect
 
-`useObserveEffect` is the same as [useObserve](#useObserve) except that it doesn't run until the component is mounted.
+`useObserveEffect` is the same as [useObserve](#useobserve) except that it doesn't run until the component is mounted.
 
 ## observer HOC
 
