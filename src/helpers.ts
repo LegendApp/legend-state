@@ -1,5 +1,5 @@
 import { beginBatch, endBatch } from './batching';
-import { getNode, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
+import { getNode, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
@@ -192,4 +192,9 @@ export function deconstructObjectWithPath(path: string[], value: any): object {
 }
 export function isObservableValueReady(value: any) {
     return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
+}
+
+export function setSilently(obs: ObservableReadable, newValue: any) {
+    const node = getNode(obs);
+    return setNodeValue(node, newValue).newValue;
 }
