@@ -1,3 +1,7 @@
+## 1.7.1
+
+Fix: the change to add SessionStorage was crashing when run server-side in Next.js
+
 ## 1.7.0
 
 - Feat: Add `ObservablePersistSessionStorage`. -By @minorgod https://github.com/LegendApp/legend-state/pull/164
