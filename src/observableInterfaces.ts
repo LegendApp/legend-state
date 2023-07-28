@@ -310,7 +310,7 @@ export declare type FieldTransformsInner<T> = {
         [K in keyof ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
     };
 
-export type Selector<T> = ObservableReadable<T> | (() => T) | T;
+export type Selector<T> = ObservableReadable<T> | ObservableEvent | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
@@ -355,8 +355,8 @@ export type ObservableReadable<T = any> =
     | ObservableMapIfMap<T>;
 
 export type ObservableWriteable<T = any> = ObservableReadable<T> & {
-    set: (value: T | ((prev: T) => T)) => void;
-    delete?: () => void;
+    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): any;
+    delete?: () => any;
 };
 
 export interface NodeValueListener {

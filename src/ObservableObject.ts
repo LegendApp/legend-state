@@ -1,7 +1,6 @@
 import { beginBatch, endBatch, notify } from './batching';
 import {
     checkActivate,
-    ensureNodeValue,
     extraPrimitiveActivators,
     extraPrimitiveProps,
     findIDKey,
@@ -10,6 +9,7 @@ import {
     getNodeValue,
     optimized,
     peek,
+    setNodeValue,
     symbolDelete,
     symbolGetNode,
     symbolOpaque,
@@ -537,54 +537,23 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         );
     }
 
-    const isDelete = newValue === symbolDelete;
-    if (isDelete) newValue = undefined;
-
     const isRoot = !node.parent && key === '_';
 
     // Get the child node for updating and notifying
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
-    // Get the value of the parent
-    const parentValue = isRoot ? node.root : ensureNodeValue(node);
-
-    // Save the previous value first
-    const prevValue = parentValue[key];
+    // Set the raw value on the parent object
+    const { newValue: savedValue, prevValue } = setNodeValue(childNode, newValue);
 
     const isFunc = isFunction(newValue);
 
-    // Compute newValue if newValue is a function or an observable
-    newValue =
-        !node.isAssigning && isFunc
-            ? newValue(prevValue)
-            : isObject(newValue) && newValue?.[symbolGetNode as any]
-            ? newValue.peek()
-            : newValue;
+    const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
 
-    const isPrim = isPrimitive(newValue) || newValue instanceof Date;
-
-    try {
-        node.isSetting = (node.isSetting || 0) + 1;
-
-        // Save the new value
-        if (isDelete) {
-            delete parentValue[key];
-        } else {
-            parentValue[key] = newValue;
-        }
-    } finally {
-        node.isSetting!--;
+    if (savedValue !== prevValue) {
+        updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
     }
 
-    if (node.root.locked && node.root.set) {
-        node.root.set(node.root._);
-    }
-
-    if (newValue !== prevValue) {
-        updateNodesAndNotify(node, newValue, prevValue, childNode, isPrim, isRoot, level);
-    }
-
-    return isFunc ? newValue : isRoot ? getProxy(node) : getProxy(node, key);
+    return isFunc ? savedValue : isRoot ? getProxy(node) : getProxy(node, key);
 }
 
 function assign(node: NodeValue, value: any) {
