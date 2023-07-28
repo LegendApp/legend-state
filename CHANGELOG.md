@@ -1,3 +1,28 @@
+## 1.7.0
+
+- Feat: Add `ObservablePersistSessionStorage`. -By @minorgod https://github.com/LegendApp/legend-state/pull/164
+
+## 1.6.4
+
+- Types: `Selector` now allows `ObservableEvent`
+- Types: `ObservableWriteable` was not exactly correct after the change to add Promise to `set`
+
+## 1.6.3
+
+- Fix: `useObservableNextRouter` was throwing warnings on some route changes
+- Fix: `enableDirectPeek` set now matches normal set behavior with promise and function extraction and all
+- Types: Package is now built in TypeScript strict mode
+
+## 1.6.2
+
+- Types: Improved types of Computed, Memo, and the babel transform
+- Types: Improved handling of null and undefined in observables
+
+## 1.6.1
+
+- Types: Improve handling of optional properties in observable constructor
+- Types: Add missing Promise type in set function
+
 ## 1.6.0
 
 - Feat: `set` automatically unwraps promises
@@ -9,7 +34,7 @@
 ## 1.5.0
 
 - Feat: add Reactive components, with configuration for React and React Native, to replace Legend components
-- Fix: Improved types of useObservableQuery -By @sheldon-welinga
+- Fix: Improved types of useObservableQuery -By @sheldon-welinga https://github.com/LegendApp/legend-state/pull/146
 - Fix: babel transform was breaking Memo/Computed with observable child
 
 ## 1.4.0
