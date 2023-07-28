@@ -3,14 +3,17 @@ import { setAtPath } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
 
-export class ObservablePersistLocalStorage implements ObservablePersistLocal {
+class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     private data: Record<string, any> = {};
-
+    private storage: Storage;
+    constructor(storage: Storage) {
+        this.storage = storage;
+    }
     public getTable(table: string) {
-        if (typeof localStorage === 'undefined') return undefined;
+        if (typeof this.storage === 'undefined') return undefined;
         if (this.data[table] === undefined) {
             try {
-                const value = localStorage.getItem(table);
+                const value = this.storage.getItem(table);
                 this.data[table] = value ? JSON.parse(value) : undefined;
             } catch {
                 console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
@@ -40,7 +43,7 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
     }
     public deleteTable(table: string) {
         delete this.data[table];
-        localStorage.removeItem(table);
+        this.storage.removeItem(table);
     }
     public deleteMetadata(table: string) {
         this.deleteTable(table + MetadataSuffix);
@@ -51,14 +54,24 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         this.save(table);
     }
     private save(table: string) {
-        if (typeof localStorage === 'undefined') return;
+        if (typeof this.storage === 'undefined') return;
 
         const v = this.data[table];
 
         if (v !== undefined && v !== null) {
-            localStorage.setItem(table, JSON.stringify(v));
+            this.storage.setItem(table, JSON.stringify(v));
         } else {
-            localStorage.removeItem(table);
+            this.storage.removeItem(table);
         }
+    }
+}
+export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(localStorage);
+    }
+}
+export class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(sessionStorage);
     }
 }
