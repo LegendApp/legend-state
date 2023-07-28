@@ -1,8 +1,4 @@
-import type {
-    Change,
-    ObservablePersistLocal,
-    PersistMetadata
-} from '@legendapp/state';
+import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
 import { setAtPath } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
