@@ -13,7 +13,6 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     constructor(storage: Storage) {
         this.storage = storage;
     }
-    // All of your changes except the initialize function
     public getTable(table: string) {
         if (typeof this.storage === 'undefined') return undefined;
         if (this.data[table] === undefined) {
