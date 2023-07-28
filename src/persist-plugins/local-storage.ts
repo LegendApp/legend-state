@@ -5,12 +5,12 @@ const MetadataSuffix = '__m';
 
 class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     private data: Record<string, any> = {};
-    private storage: Storage;
-    constructor(storage: Storage) {
+    private storage: Storage | undefined;
+    constructor(storage: Storage | undefined) {
         this.storage = storage;
     }
     public getTable(table: string) {
-        if (typeof this.storage === 'undefined') return undefined;
+        if (!this.storage) return undefined;
         if (this.data[table] === undefined) {
             try {
                 const value = this.storage.getItem(table);
@@ -42,6 +42,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
         return this.setValue(table + MetadataSuffix, metadata);
     }
     public deleteTable(table: string) {
+        if (!this.storage) return undefined;
         delete this.data[table];
         this.storage.removeItem(table);
     }
@@ -54,7 +55,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
         this.save(table);
     }
     private save(table: string) {
-        if (typeof this.storage === 'undefined') return;
+        if (!this.storage) return undefined;
 
         const v = this.data[table];
 
@@ -67,11 +68,11 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
 }
 export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
     constructor() {
-        super(localStorage);
+        super(typeof localStorage !== 'undefined' ? localStorage : undefined);
     }
 }
 export class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
     constructor() {
-        super(sessionStorage);
+        super(typeof sessionStorage !== 'undefined' ? sessionStorage : undefined);
     }
 }

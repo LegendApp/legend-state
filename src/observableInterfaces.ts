@@ -205,7 +205,7 @@ export interface PersistMetadata {
 }
 
 export interface ObservablePersistLocal {
-    initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): Promise<void>;
+    initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): void | Promise<void>;
     getTable<T = any>(table: string, config: PersistOptionsLocal): T;
     getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
