@@ -1,6 +1,5 @@
 import type {
     Change,
-    ObservablePersistenceConfig,
     ObservablePersistLocal,
     PersistMetadata
 } from '@legendapp/state';
@@ -8,15 +7,13 @@ import { setAtPath } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
 
-export class ObservablePersistLocalStorage implements ObservablePersistLocal {
+class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     private data: Record<string, any> = {};
-
-    private storage: Storage = global.localStorage;
-
-    public async initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
-        if (typeof Storage === 'undefined') return;
-        this.storage  = config?.storage || this.storage;
+    private storage: Storage;
+    constructor(storage: Storage) {
+        this.storage = storage;
     }
+    // All of your changes except the initialize function
     public getTable(table: string) {
         if (typeof this.storage === 'undefined') return undefined;
         if (this.data[table] === undefined) {
@@ -71,5 +68,15 @@ export class ObservablePersistLocalStorage implements ObservablePersistLocal {
         } else {
             this.storage.removeItem(table);
         }
+    }
+}
+export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(localStorage);
+    }
+}
+export class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(sessionStorage);
     }
 }

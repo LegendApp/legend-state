@@ -1,7 +1,7 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { ObservablePersistLocal } from '../src/observableInterfaces';
-import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
+import { ObservablePersistSessionStorage } from '../src/persist-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 
@@ -30,7 +30,7 @@ function promiseTimeout(time?: number) {
 
 function reset() {
     global.sessionStorage.clear();
-    const persist = mapPersistences.get(ObservablePersistLocalStorage)?.persist as ObservablePersistLocal;
+    const persist = mapPersistences.get(ObservablePersistSessionStorage)?.persist as ObservablePersistLocal;
     if (persist) {
         persist.deleteTable('jestlocal', undefined as any);
     }
@@ -69,10 +69,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
 global.sessionStorage = new LocalStorageMock();
 
 configureObservablePersistence({
-    persistLocal: ObservablePersistLocalStorage,
-    persistLocalOptions: {
-        storage: global.sessionStorage
-    },
+    persistLocal: ObservablePersistSessionStorage,
     saveTimeout: 500,
 });
 
