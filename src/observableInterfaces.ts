@@ -431,7 +431,8 @@ export interface ObservablePersistenceConfig {
     saveTimeout?: number;
     dateModifiedKey?: string;
 }
-export interface ObservableProxy<T> {
-    [key: string]: Observable<T>;
+export type ObservableProxy<T extends Record<string, any>> = {
+    [K in keyof T]: Observable<T[K]>;
+} & {
     [symbolGetNode]: NodeValue;
-}
+};
