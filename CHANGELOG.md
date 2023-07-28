@@ -1,3 +1,7 @@
+## 1.7.3
+
+- Types: Improved types of proxy so it can have complex mapped types
+
 ## 1.7.2
 
 - Fix: opaqueObject was not blocking looping through objects in constructor https://github.com/LegendApp/legend-state/issues/163
