@@ -181,7 +181,7 @@ export function extractFunctionsAndComputeds(obj: Record<string, any>, node: Nod
             const childNode = getNode(v);
             if (childNode?.isComputed) {
                 extractFunction(node, obj, k);
-            } else {
+            } else if (!v[symbolOpaque]) {
                 extractFunctionsAndComputeds(obj[k], getChildNode(node, k));
             }
         }
