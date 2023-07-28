@@ -1,3 +1,7 @@
+## 1.7.2
+
+- Fix: opaqueObject was not blocking looping through objects in constructor https://github.com/LegendApp/legend-state/issues/163
+
 ## 1.7.1
 
 Fix: the change to add SessionStorage was crashing when run server-side in Next.js
