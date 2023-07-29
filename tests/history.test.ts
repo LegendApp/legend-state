@@ -1,6 +1,6 @@
-import { beginBatch, endBatch } from '../src/batching';
-import { trackHistory } from '../src/history/trackHistory';
-import { observable } from '../src/observable';
+import { beginBatch, endBatch } from '../src/lib/batching';
+import { trackHistory } from '../src/lib/history/trackHistory';
+import { observable } from '../src/lib/observable';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));

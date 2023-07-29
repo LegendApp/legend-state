@@ -1,6 +1,6 @@
 import { symbolDelete } from '@legendapp/state';
-import { isObservable, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
-import { observable } from '../src/observable';
+import { isObservable, isObservableValueReady, mergeIntoObservable } from '../src/lib/helpers';
+import { observable } from '../src/lib/observable';
 
 describe('mergeIntoObservable', () => {
     test('merge onto empty object', () => {

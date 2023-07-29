@@ -3,6 +3,6 @@
     "testEnvironment": "node",
     "modulePathIgnorePatterns": ["<rootDir>/dist"],
     "moduleNameMapper": {
-        "@legendapp/state": "<rootDir>/index"
+        "@legendapp/state": "<rootDir>/src/index"
     }
 }

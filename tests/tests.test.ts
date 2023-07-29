@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { batch, beginBatch, endBatch } from '../src/batching';
-import { computed } from '../src/computed';
-import { configureLegendState } from '../src/config';
+import { batch, beginBatch, endBatch } from '../src/lib/batching';
+import { computed } from '../src/lib/computed';
+import { configureLegendState } from '../src/lib/config';
 import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
-import { event } from '../src/event';
-import { getNodeValue, symbolGetNode } from '../src/globals';
-import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
-import { observable, observablePrimitive } from '../src/observable';
-import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
-import { observe } from '../src/observe';
-import { when } from '../src/when';
+import { event } from '../src/lib/event';
+import { getNodeValue, symbolGetNode } from '../src/lib/globals';
+import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/lib/helpers';
+import { observable, observablePrimitive } from '../src/lib/observable';
+import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/lib/observableInterfaces';
+import { observe } from '../src/lib/observe';
+import { when } from '../src/lib/when';
 
 enableDirectAccess();
 enableDirectPeek();

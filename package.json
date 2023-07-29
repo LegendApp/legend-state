@@ -15,7 +15,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build:cjs": "tsc",
+        "build:cjs": "tsc --project tsconfig.cjs.json",
         "build:esm": "tsc --project tsconfig.esm.json",
         "build": "npm run lint:check && npm run build:cjs && npm run build:esm",
         "test": "jest",

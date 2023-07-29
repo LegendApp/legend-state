@@ -1,6 +1,5 @@
 {
     "compilerOptions": {
-        "outDir": "dist/cjs",
         "target": "es2018",
         "module": "CommonJS",
         "lib": [
@@ -26,28 +25,28 @@
         "sourceMap": true,
         "paths": {
             "@legendapp/state": [
-                "./index"
+                "./src/index"
             ],
             "@legendapp/state/persist": [
-                "./persist"
+                "./src/persist"
             ],
             "@legendapp/state/react": [
-                "./react"
+                "./src/react"
             ],
             "@legendapp/state/helpers/fetch": [
-                "./src/helpers/fetch"
+                "./src/lib/helpers/fetch"
             ],
         },
         "resolveJsonModule": true
     },
     "include": [
-        "**/*.ts",
-        "**/*.tsx"
+        "src/",
+        "tests/"
     ],
     "exclude": [
         "node_modules",
         "dist",
         "types.d.ts",
-        "src/types"
+        "src/lib/types"
     ],
 }
