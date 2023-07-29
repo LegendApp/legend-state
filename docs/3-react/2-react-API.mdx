@@ -33,14 +33,14 @@ Using `{ suspend: true }` as the second parameter makes the component work with 
 import { useObservable, useSelector } from '@legendapp/state/react'
 import { Suspense } from 'react'
 
-function Test({ state$ }: { state$: Observable<string> }) {
+function Test({ state$ }) {
     const value = useSelector(state$, { suspend: true })
     return <div>{value}</div>
 }
 
 export default function App() {
     const state$ = useObservable(
-        new Promise<string>((resolve) => {
+        new Promise((resolve) => {
             setTimeout(() => {
                 resolve('hello')
             }, 1000)
@@ -55,7 +55,6 @@ export default function App() {
         </div>
     )
 }
-
 ```
 
 ### useObserve
