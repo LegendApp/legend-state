@@ -1,6 +1,6 @@
 import { computeSelector, isPromise, Selector, tracking, trackSelector } from '@legendapp/state';
 import { useRef } from 'react';
-import { UseSelectorOptions } from 'src/react/reactInterfaces';
+import { UseSelectorOptions } from './reactInterfaces';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
 interface SelectorFunctions<T> {
