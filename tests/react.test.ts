@@ -5,16 +5,16 @@ import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { StrictMode, createElement, useReducer, useState } from 'react';
 import { enableReactDirectRender } from '../src/config/enableReactDirectRender';
-import { getObservableIndex } from '../src/helpers';
-import { observable } from '../src/observable';
-import { Observable } from '../src/observableInterfaces';
-import { For } from '../src/react/For';
-import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
-import { observer } from '../src/react/reactive-observer';
-import { useObservableReducer } from '../src/react/useObservableReducer';
-import { useObserve } from '../src/react/useObserve';
-import { useObserveEffect } from '../src/react/useObserveEffect';
-import { useSelector } from '../src/react/useSelector';
+import { getObservableIndex } from '../src/lib/helpers';
+import { observable } from '../src/lib/observable';
+import { Observable } from '../src/lib/observableInterfaces';
+import { For } from '../src/lib/react/For';
+import { enableLegendStateReact } from '../src/lib/react/enableLegendStateReact';
+import { observer } from '../src/lib/react/reactive-observer';
+import { useObservableReducer } from '../src/lib/react/useObservableReducer';
+import { useObserve } from '../src/lib/react/useObserve';
+import { useObserveEffect } from '../src/lib/react/useObserveEffect';
+import { useSelector } from '../src/lib/react/useSelector';
 
 enableReactDirectRender();
 

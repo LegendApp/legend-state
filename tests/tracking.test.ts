@@ -1,6 +1,6 @@
-import { event } from '../src/event';
-import { observable } from '../src/observable';
-import { beginTracking, endTracking, tracking } from '../src/tracking';
+import { event } from '../src/lib/event';
+import { observable } from '../src/lib/observable';
+import { beginTracking, endTracking, tracking } from '../src/lib/tracking';
 
 beforeEach(() => {
     beginTracking();

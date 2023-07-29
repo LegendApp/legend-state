@@ -1,11 +1,11 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
-import { observable } from '../src/observable';
-import type { ObservablePersistLocal } from '../src/observableInterfaces';
+import { observable } from '../src/lib/observable';
+import type { ObservablePersistLocal } from '../src/lib/observableInterfaces';
 import { ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
-import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
-import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
-import { when } from '../src/when';
+import { configureObservablePersistence } from '../src/lib/persist/configureObservablePersistence';
+import { mapPersistences, persistObservable } from '../src/lib/persist/persistObservable';
+import { when } from '../src/lib/when';
 
 const TableName = 'jestlocal';
 const persistLocalOptions = {

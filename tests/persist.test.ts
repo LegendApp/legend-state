@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { adjustSaveData } from '../src/persist/persistObservable';
+import { adjustSaveData } from '../src/lib/persist/persistObservable';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));

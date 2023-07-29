@@ -2,11 +2,10 @@
     "name": "@legendapp/state",
     "version": "1.8.0",
     "description": "legend-state",
+    "type": "module",
     "sideEffects": false,
-    "private": true,
-    "main": "./index.js",
-    "module": "./index.mjs",
-    "types": "./index.d.ts",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
     "files": [
         "**"
     ],
@@ -17,19 +16,20 @@
     "scripts": {
         "clean": "rimraf dist",
         "prebuild": "npm run clean",
-        "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && cp types.d.ts dist/types.d.ts && mkdir dist/types && cp src/types/* dist/types/ && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
-        "postbuild": "node postbuild.mjs",
+        "build:cjs": "tsc --project tsconfig.cjs.json",
+        "build:esm": "tsc --project tsconfig.esm.json",
+        "build": "npm run lint:check && npm run build:cjs && npm run build:esm",
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
-        "publish:manual": "npm run build && cd dist && npm publish",
-        "publish:minor": "npm version minor && cd dist && npm publish",
-        "publish:patch": "npm version patch && cd dist && npm publish",
-        "publish:prepatch": "npm version prepatch --preid=next && cd dist && npm publish --tag next",
-        "publish:preminor": "npm version preminor --preid=next && cd dist && npm publish --tag next",
-        "publish:rcrelease": "npm version prerelease --preid=rc && cd dist && npm publish --tag rc",
-        "publish:nextrelease": "npm version prerelease --preid=next && cd dist && npm publish --tag next",
-        "publish:betarelease": "npm version prerelease --preid=beta && cd dist && npm publish",
+        "publish:manual": "npm run build && npm publish",
+        "publish:minor": "npm version minor && npm publish",
+        "publish:patch": "npm version patch && npm publish",
+        "publish:prepatch": "npm version prepatch --preid=next && npm publish --tag next",
+        "publish:preminor": "npm version preminor --preid=next && npm publish --tag next",
+        "publish:rcrelease": "npm version prerelease --preid=rc && npm publish --tag rc",
+        "publish:nextrelease": "npm version prerelease --preid=next && npm publish --tag next",
+        "publish:betarelease": "npm version prerelease --preid=beta && npm publish",
         "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
         "checksize": "npm run checksize:core && npm run checksize:react",
@@ -40,69 +40,60 @@
         "release": "release-it"
     },
     "exports": {
-        "./package.json": "./package.json",
         ".": {
-            "import": "./index.mjs",
-            "require": "./index.js",
-            "types": "./index.d.ts"
+            "import": "./dist/esm/index.js",
+            "require": "./dist/cjs/index.js"
         },
         "./persist": {
-            "import": "./persist.mjs",
-            "require": "./persist.js",
-            "types": "./persist.d.ts"
+            "import": "./dist/esm/persist.js",
+            "require": "./dist/cjs/persist.js"
         },
         "./react": {
-            "import": "./react.mjs",
-            "require": "./react.js",
-            "types": "./react.d.ts"
+            "import": "./dist/esm/react.js",
+            "require": "./dist/cjs/react.js"
         },
         "./react-components": {
-            "import": "./react-components.mjs",
-            "require": "./react-components.js",
-            "types": "./react-components.d.ts"
+            "import": "./dist/esm/react-components.js",
+            "require": "./dist/cjs/react-components.js"
         },
         "./react-native-components": {
-            "import": "./react-native-components.mjs",
-            "require": "./react-native-components.js",
-            "types": "./react-native-components.d.ts"
+            "import": "./dist/esm/react-native-components.js",
+            "require": "./dist/cjs/react-native-components.js"
         },
         "./trace": {
-            "import": "./trace.mjs",
-            "require": "./trace.js",
-            "types": "./trace.d.ts"
+            "import": "./dist/esm/trace.js",
+            "require": "./dist/cjs/trace.js"
         },
         "./history": {
-            "import": "./history.mjs",
-            "require": "./history.js",
-            "types": "./history.d.ts"
+            "import": "./dist/esm/history.js",
+            "require": "./dist/cjs/history.js"
         },
-        "./config/*": {
-            "import": "./config/*.mjs",
-            "require": "./config/*.js",
-            "types": "./config/*.d.ts"
+        "./config/": {
+            "import": "./dist/esm/src/config/",
+            "require": "./dist/cjs/src/config/"
         },
-        "./helpers/*": {
-            "import": "./helpers/*.mjs",
-            "require": "./helpers/*.js",
-            "types": "./helpers/*.d.ts"
+        "./helpers/": {
+            "import": "./dist/esm/src/helpers/",
+            "require": "./dist/cjs/src/helpers/"
         },
-        "./persist-plugins/*": {
-            "import": "./persist-plugins/*.mjs",
-            "require": "./persist-plugins/*.js",
-            "types": "./persist-plugins/*.d.ts"
+        "./persist-plugins/": {
+            "import": "./dist/esm/src/persist-plugins/",
+            "require": "./dist/cjs/src/persist-plugins/"
         },
-        "./react-hooks/*": {
-            "import": "./react-hooks/*.mjs",
-            "require": "./react-hooks/*.js",
-            "types": "./react-hooks/*.d.ts"
+        "./react-hooks/": {
+            "import": "./dist/esm/src/react-hooks/",
+            "require": "./dist/cjs/src/react-hooks/"
         },
         "./types": {
             "types": "./types.d.ts"
         },
         "./types/babel": {
-            "types": "./types/babel.d.ts"
+            "types": "./src/types/babel.ts"
         },
-        "./babel": "./babel.js"
+        "./babel": {
+            "import": "./dist/esm/babel.js",
+            "require": "./dist/cjs/babel.js"
+        }
     },
     "devDependencies": {
         "@babel/types": "^7.20.2",
@@ -110,9 +101,6 @@
         "@evilmartians/lefthook": "^1.3.3",
         "@jest/globals": "^29.6.1",
         "@release-it/conventional-changelog": "^5.1.1",
-        "@rollup/plugin-commonjs": "^23.0.2",
-        "@rollup/plugin-node-resolve": "^15.0.1",
-        "@rollup/plugin-typescript": "^9.0.2",
         "@swc/cli": "^0.1.57",
         "@swc/core": "^1.3.14",
         "@tanstack/react-query": "^4.14.6",
@@ -142,7 +130,6 @@
         "react-test-renderer": "^18.2.0",
         "release-it": "^15.7.0",
         "rimraf": "^3.0.2",
-        "rollup": "^3.2.5",
         "ts-jest": "^29.1.1",
         "tslib": "^2.4.1",
         "typescript": "^5.1.6"
@@ -168,7 +155,8 @@
     },
     "homepage": "https://github.com/LegendApp/legend-state#readme",
     "publishConfig": {
-        "registry": "https://registry.npmjs.org/"
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
     },
     "commitlint": {
         "extends": [
