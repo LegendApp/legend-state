@@ -1,5 +1,6 @@
-import { computeSelector, Selector, tracking, trackSelector } from '@legendapp/state';
+import { computeSelector, isPromise, Selector, tracking, trackSelector } from '@legendapp/state';
 import { useRef } from 'react';
+import { UseSelectorOptions } from 'src/react/reactInterfaces';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
 interface SelectorFunctions<T> {
@@ -56,7 +57,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
     };
 }
 
-export function useSelector<T>(selector: Selector<T>): T {
+export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
     if (tracking.inRender) {
         return computeSelector(selector);
     }
@@ -67,9 +68,19 @@ export function useSelector<T>(selector: Selector<T>): T {
     }
     const { subscribe, getVersion, run } = ref.current;
 
-    const value = run(selector);
+    const value = run(selector) as any;
 
     useSyncExternalStore(subscribe, getVersion, getVersion);
+
+    // Suspense support
+    // Note: We may want to change the throw to React.use when React updates their guidances on Suspense.
+    if (options?.suspend) {
+        if (isPromise(value)) {
+            throw value;
+        } else if (value?.error) {
+            throw value.error;
+        }
+    }
 
     return value;
 }

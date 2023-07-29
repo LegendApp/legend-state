@@ -17,3 +17,7 @@ export type FCReactive<P, P2> = P &
             ref?: LegacyRef<P> | undefined;
         }
     >;
+
+export interface UseSelectorOptions {
+    suspend?: boolean;
+}
