@@ -6,6 +6,7 @@
 
 Props:
 - `selector`: Observable or computation function that listens to observables accessed while running
+- `options`: `{ suspend: boolean }`: Enable suspend when the value is a Promise and you're using it within React.Suspense.
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -22,6 +23,39 @@ const Component = ({ id }) => {
 
     ...
 }
+```
+
+#### Using with React Suspense
+
+Using `{ suspend: true }` as the second parameter makes the component work with Suspense. If the observable is a Promise, Suspense will render the fallback until it resolves to a value.
+
+```jsx
+import { useObservable, useSelector } from '@legendapp/state/react'
+import { Suspense } from 'react'
+
+function Test({ state$ }: { state$: Observable<string> }) {
+    const value = useSelector(state$, { suspend: true })
+    return <div>{value}</div>
+}
+
+export default function App() {
+    const state$ = useObservable(
+        new Promise<string>((resolve) => {
+            setTimeout(() => {
+                resolve('hello')
+            }, 1000)
+        })
+    )
+    return (
+        <div>
+            <div>Suspense test</div>
+            <Suspense fallback={<div>Loading...</div>}>
+                <Test state$={state$} />
+            </Suspense>
+        </div>
+    )
+}
+
 ```
 
 ### useObserve

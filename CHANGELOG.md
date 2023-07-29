@@ -1,3 +1,7 @@
+## 1.8.0
+
+- Feat: Support Suspense with `useSelector(state, { suspend: true })` or `state.use({ suspend: true })`
+
 ## 1.7.3
 
 - Types: Improved types of proxy so it can have complex mapped types
