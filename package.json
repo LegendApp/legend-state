@@ -2,6 +2,7 @@
     "name": "@legendapp/state",
     "version": "1.8.0",
     "description": "legend-state",
+    "type": "module",
     "sideEffects": false,
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
