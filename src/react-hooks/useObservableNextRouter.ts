@@ -1,4 +1,4 @@
-import { isEmpty, observable, Observable } from '@legendapp/state';
+import { isEmpty, observable, Observable, setSilently } from '@legendapp/state';
 import Router, { NextRouter, useRouter } from 'next/router';
 
 type ParsedUrlQuery = { [key: string]: string | string[] | undefined };
@@ -52,56 +52,53 @@ function isShallowEqual(query1: ParsedUrlQuery, query2: ParsedUrlQuery) {
     return true;
 }
 
-let isSettingRoutes = false;
 const routes$ = observable({});
 let routeParams = {} as ParamsUseObservableNextRouter<any>;
 let router: NextRouter;
 
 routes$.onChange(({ value, getPrevious }) => {
     // Only run this if being manually changed by the user
-    if (!isSettingRoutes) {
-        let setter = routeParams?.set;
-        if (!setter) {
-            if ((value as any).pathname) {
-                setter = () => value;
-            } else {
-                console.error('[legend-state]: Must provide a set method to useObservableNextRouter');
-            }
+    let setter = routeParams?.set;
+    if (!setter) {
+        if ((value as any).pathname) {
+            setter = () => value;
+        } else {
+            console.error('[legend-state]: Must provide a set method to useObservableNextRouter');
         }
-        const setReturn = setter(value, getPrevious(), router);
-        const { pathname, hash, query } = setReturn;
-        let { transitionOptions, method } = setReturn;
+    }
+    const setReturn = setter(value, getPrevious(), router);
+    const { pathname, hash, query } = setReturn;
+    let { transitionOptions, method } = setReturn;
 
-        method = method || routeParams?.method;
-        transitionOptions = transitionOptions || routeParams?.transitionOptions;
+    method = method || routeParams?.method;
+    transitionOptions = transitionOptions || routeParams?.transitionOptions;
 
-        const prevHash = router.asPath.split('#')[1] || '';
+    const prevHash = router.asPath.split('#')[1] || '';
 
-        const change: RouteInfo = {};
-        // Only include changes that were meant to be changed. For example the user may have
-        // only changed the hash so we don't need to push a pathname change.
-        if (pathname !== undefined && pathname !== router.pathname) {
-            change.pathname = pathname;
-        }
-        if (hash !== undefined && hash !== prevHash) {
-            change.hash = hash;
-        }
-        if (query !== undefined && !isShallowEqual(query, router.query)) {
-            change.query = query;
-        }
-        // Only push if there are changes
-        if (!isEmpty(change)) {
-            if (method === 'replace') {
-                router.replace(change, undefined, transitionOptions);
-            } else {
-                router.push(change, undefined, transitionOptions);
-            }
+    const change: RouteInfo = {};
+    // Only include changes that were meant to be changed. For example the user may have
+    // only changed the hash so we don't need to push a pathname change.
+    if (pathname !== undefined && pathname !== router.pathname) {
+        change.pathname = pathname;
+    }
+    if (hash !== undefined && hash !== prevHash) {
+        change.hash = hash;
+    }
+    if (query !== undefined && !isShallowEqual(query, router.query)) {
+        change.query = query;
+    }
+    // Only push if there are changes
+    if (!isEmpty(change)) {
+        if (method === 'replace') {
+            router.replace(change, undefined, transitionOptions);
+        } else {
+            router.push(change, undefined, transitionOptions);
         }
     }
 });
 
-// export function useObservableNextRouter(): Observable<ObservableNextRouterState>;
-// export function useObservableNextRouter<T extends object>(params: ParamsUseObservableNextRouter<T>): Observable<T>;
+export function useObservableNextRouter(): Observable<ObservableNextRouterState>;
+export function useObservableNextRouter<T extends object>(params: ParamsUseObservableNextRouter<T>): Observable<T>;
 export function useObservableNextRouter(
     params: ParamsUseObservableNextRouterBase,
 ): Observable<ObservableNextRouterState>;
@@ -133,12 +130,7 @@ export function useObservableNextRouter<T extends object>(
     const obj = compute ? compute(computeParams) : computeParams;
 
     // Set the object without triggering router.push
-    try {
-        isSettingRoutes = true;
-        routes$.set(obj);
-    } finally {
-        isSettingRoutes = false;
-    }
+    setSilently(routes$, obj);
 
     // Return the observable with the computed values
     return routes$ as Observable<T>;

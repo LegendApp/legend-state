@@ -2424,6 +2424,15 @@ describe('Opaque object', () => {
         obs.test.opaque.value.subvalue = false;
         expect(handler).not.toHaveBeenCalled();
     });
+    test('Opaque object does not error on circular references', () => {
+        const circular = { value: { subvalue: true, circularProblem: undefined } };
+        // @ts-expect-error Doing this on purpose
+        circular.value.circularProblem = circular;
+        const obs = observable({ circ: opaqueObject(circular) });
+        expect(console.error).toHaveBeenCalledTimes(0);
+
+        expect(obs.get().circ.value.subvalue).toEqual(true);
+    });
 });
 describe('Observe', () => {
     test('Observe basic', () => {

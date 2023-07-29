@@ -10,6 +10,7 @@ export {
     opaqueObject,
     setAtPath,
     setInObservableAtPath,
+    setSilently
 } from './src/helpers';
 export {
     trackSelector,
@@ -55,7 +56,7 @@ export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
 // Internal:
 import { setAtPath } from './src/helpers';
-import { ensureNodeValue, get, getNode, peek, symbolDelete } from './src/globals';
+import { ensureNodeValue, get, getNode, peek, symbolDelete, setNodeValue } from './src/globals';
 import { getProxy, set } from './src/ObservableObject';
 
 export const internal = {
@@ -66,5 +67,6 @@ export const internal = {
     peek,
     set,
     setAtPath,
+    setNodeValue,
     symbolDelete,
 };
