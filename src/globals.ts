@@ -16,11 +16,7 @@ export const __devExtractFunctionsAndComputedsNodes =
 
 export function checkActivate(node: NodeValue) {
     const root = node.root;
-    const activate = root.activate;
-    if (activate) {
-        root.activate = undefined;
-        activate();
-    }
+    root.activate?.();
 }
 
 export function getNode(obs: ObservableReadable): NodeValue {
