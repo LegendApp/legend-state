@@ -58,6 +58,7 @@ export function computed<T, T2 = T>(
 
     // Lazily activate the observable when get is called
     node.root.activate = () => {
+        node.root.activate = undefined;
         observe(
             compute,
             ({ value }) => {
