@@ -318,6 +318,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableRoot {
     _: any;
     locked?: boolean;
+    computedChildrenNeedingActivation?: NodeValue[];
     set?: (value: any) => void;
     activate?: () => void;
 }
@@ -380,6 +381,7 @@ interface BaseNodeValue {
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
+    computedChildOfNode?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
 }
 
