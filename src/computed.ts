@@ -49,9 +49,18 @@ export function computed<T, T2 = T>(
                 notify(node, value, prevValue, 0);
             }
         } else if (val !== obs.peek()) {
-            // Update the computed value
+            // Unlock computed node before setting the value
             lockObservable(obs, false);
+
+            // Update the computed value
             setBase(node, val);
+
+            // If the computed is a child of an observable set the value on it
+            if (node.computedChildOfNode) {
+                setBase(node.computedChildOfNode, val);
+            }
+
+            // Re-lock the computed node
             lockObservable(obs, true);
         }
     };
