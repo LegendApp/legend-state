@@ -3,6 +3,7 @@ import {
     Change,
     computed,
     endBatch,
+    isObservable,
     Observable,
     observable,
     ObservableReadable,
@@ -465,6 +466,101 @@ describe('Computed inside observable', () => {
                 valueAtPath: 'hello!',
             },
         ]);
+    });
+    test('Computed in observable sets raw data', () => {
+        const obs = observable({
+            text: 'hi',
+            test: computed((): string => {
+                return obs.text.get() + '!';
+            }),
+        });
+
+        expect(obs.test.get()).toEqual('hi!');
+        expect(obs.get().test).toEqual('hi!');
+        expect(isObservable(obs.get().test)).toBe(false);
+    });
+    test('Computed in observable gets activated by accessing root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: computed((): string => {
+                return obs.text.get() + '!';
+            }),
+        });
+        const value = obs.get();
+        expect(isObservable(value.test)).toBe(false);
+        expect(value.test === 'hi!');
+    });
+    test('Computed in observable notifies to root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: computed((): string => {
+                return obs.text.get() + '!';
+            }),
+        });
+        obs.test.get();
+        const handler = expectChangeHandler(obs);
+        obs.text.set('hello');
+        expect(handler).toHaveBeenCalledWith({ text: 'hello', test: 'hello!' }, { text: 'hi', test: 'hi!' }, [
+            {
+                path: ['test'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi!',
+                valueAtPath: 'hello!',
+            },
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hello',
+            },
+        ]);
+    });
+    test('Accessing through proxy goes to computed and not parent object', () => {
+        const test = computed((): { child: string } => {
+            return { child: obs.text.get() + '!' };
+        });
+        const obs = observable({
+            text: 'hi',
+            test,
+        });
+        const handler = expectChangeHandler(test.child);
+        const handler2 = expectChangeHandler(obs.test);
+        const handlerRoot = expectChangeHandler(obs);
+        obs.text.set('hello');
+        expect(handler).toHaveBeenCalledWith('hello!', 'hi!', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'hi!',
+                valueAtPath: 'hello!',
+            },
+        ]);
+        expect(handler2).toHaveBeenCalledWith({ child: 'hello!' }, { child: 'hi!' }, [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: { child: 'hi!' },
+                valueAtPath: { child: 'hello!' },
+            },
+        ]);
+        expect(handlerRoot).toHaveBeenCalledWith(
+            { text: 'hello', test: { child: 'hello!' } },
+            { text: 'hi', test: { child: 'hi!' } },
+            [
+                {
+                    path: ['test'],
+                    pathTypes: ['object'],
+                    prevAtPath: { child: 'hi!' },
+                    valueAtPath: { child: 'hello!' },
+                },
+                {
+                    path: ['text'],
+                    pathTypes: ['object'],
+                    prevAtPath: 'hi',
+                    valueAtPath: 'hello',
+                },
+            ],
+        );
     });
 });
 describe('proxy', () => {
