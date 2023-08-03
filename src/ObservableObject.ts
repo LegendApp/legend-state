@@ -84,7 +84,11 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
 }
 
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
-    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && isObject(obj)) {
+    if (
+        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+        typeof __devUpdateNodes !== 'undefined' &&
+        isObject(obj)
+    ) {
         if (__devUpdateNodes.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
@@ -104,7 +108,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 notify(parent, obj, prevValue, 0);
             }
         }
-        if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+        if (
+            (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+            typeof __devUpdateNodes !== 'undefined' &&
+            obj !== undefined
+        ) {
             __devUpdateNodes.delete(obj);
         }
         return isDiff;
@@ -282,7 +290,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         retValue = true;
     }
 
-    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && obj !== undefined) {
+    if (
+        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+        typeof __devUpdateNodes !== 'undefined' &&
+        obj !== undefined
+    ) {
         __devUpdateNodes.delete(obj);
     }
     return retValue ?? false;
@@ -674,7 +686,10 @@ function updateNodesAndNotify(
     let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree
     if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        if (
+            (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+            typeof __devUpdateNodes !== 'undefined'
+        ) {
             __devUpdateNodes.clear();
         }
         hasADiff = updateNodes(childNode, newValue, prevValue);
