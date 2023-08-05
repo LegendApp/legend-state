@@ -291,7 +291,9 @@ export function endBatch(force?: boolean) {
 
             isRunningBatch = false;
 
-            // Run after functions at the end of this batch before running the next batch
+            // Run after functions at the end of this batch before running the next batch.
+            // This needs to run before the delayed endBatch because the after functions need
+            // to run before any side effects of the batch
             for (let i = 0; i < after.length; i++) {
                 after[i]();
             }
