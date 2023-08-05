@@ -1,5 +1,5 @@
 import type { Observable } from '@legendapp/state';
-import { useObservable } from '@legendapp/state/react';
+import { useObservable } from './useObservable';
 import { useEffectOnce } from './useEffectOnce';
 
 export function useIsMounted(): Observable<boolean> {
