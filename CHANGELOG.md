@@ -1,3 +1,7 @@
+## 1.8.1
+- Feat: Added findIDKey and optimized to internal
+- Fix: Added more safety around dev-only assertions because they were throwing errors in some build systems
+
 ## 1.8.0
 
 - Feat: Support Suspense with `useSelector(state, { suspend: true })` or `state.use({ suspend: true })`
