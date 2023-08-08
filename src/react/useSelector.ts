@@ -58,6 +58,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
 }
 
 export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
+    // Short-circuit to skip creating the hook if the parent component is an observer
     if (tracking.inRender) {
         return computeSelector(selector);
     }
