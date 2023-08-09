@@ -622,6 +622,27 @@ describe('Computed inside observable', () => {
         expect(observedValue).toEqual({ sub: { num: 8 } });
         expect(obs$.get()).toEqual({ sub: { num: 8 } });
     });
+    test('linked observable sets value on parent', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(() => sub$),
+        });
+
+        expect(obs$.get()).toEqual({ sub: { num: 0 } });
+
+        obs$.sub.num.set(4);
+
+        let observedValue;
+        observe(() => {
+            observedValue = obs$.get();
+        });
+
+        expect(observedValue).toEqual({ sub: { num: 4 } });
+        expect(obs$.get()).toEqual({ sub: { num: 4 } });
+    });
 });
 describe('proxy', () => {
     test('proxy', () => {
