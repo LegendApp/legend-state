@@ -11,16 +11,12 @@ export const optimized = Symbol('optimized');
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
 export const extraPrimitiveProps = new Map<string | symbol, any>();
 
-export const __devExtractFunctionsAndComputedsNodes =
-    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
-
 export const globalState = {
     isLoadingLocal: false,
     isLoadingRemote: false,
     isMerging: false,
     noDepWarn: false,
 };
-
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     root.activate?.();
@@ -186,35 +182,5 @@ export function extractFunction(
             node.root.computedChildrenNeedingActivation = [];
         }
         node.root.computedChildrenNeedingActivation.push(computedChildNode);
-    }
-}
-
-export function extractFunctionsAndComputeds(obj: Record<string, any>, node: NodeValue) {
-    if (
-        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
-    ) {
-        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
-            console.error(
-                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj,
-            );
-            return false;
-        }
-        __devExtractFunctionsAndComputedsNodes!.add(obj);
-    }
-    for (const k in obj) {
-        const v = obj[k];
-        if (typeof v === 'function') {
-            extractFunction(node, k, v);
-        } else if (typeof v == 'object' && v !== null && v !== undefined) {
-            const childNode = getNode(v);
-            if (childNode?.isComputed) {
-                extractFunction(node, k, v, childNode);
-                delete obj[k];
-            } else if (!v[symbolOpaque]) {
-                extractFunctionsAndComputeds(obj[k], getChildNode(node, k));
-            }
-        }
     }
 }

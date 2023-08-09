@@ -2124,14 +2124,20 @@ describe('Promise values', () => {
     test('Promise child', async () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
-        await promise;
         expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.status.get()).toEqual('pending');
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
     });
     test('Promise object becomes value', async () => {
-        const promise = Promise.resolve({ value: 10 });
+        const promise = Promise.resolve({ child: 10 });
         const obs = observable(promise);
+
+        expect(obs.get().status).toEqual('pending');
+        expect(obs.status.get()).toEqual('pending');
         await promise;
-        expect(obs.value.get()).toEqual(10);
+        expect(obs.get()).toEqual({ child: 10 });
+        expect(obs.child.get()).toEqual(10);
     });
     test('Promise primitive becomes value', async () => {
         const promise = Promise.resolve(10);
@@ -2363,11 +2369,12 @@ describe('Observable with promise', () => {
             resolver = resolve;
         });
         const obs = observable(promise);
-        expect(obs.get()).toEqual(undefined);
+        expect(obs.get().status).toEqual('pending');
         if (resolver) {
             resolver(10);
         }
         await promiseTimeout(0);
+        expect(obs.get().status).toEqual(undefined);
         expect(obs.get()).toEqual(10);
     });
     test('when with promise observable', async () => {
@@ -2377,7 +2384,7 @@ describe('Observable with promise', () => {
         });
         const obs = observable(promise);
 
-        expect(obs.get()).toEqual(undefined);
+        expect(obs.get().status).toEqual('pending');
 
         const fn = jest.fn();
         when(() => obs.get() === 10, fn);

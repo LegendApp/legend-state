@@ -1,5 +1,5 @@
 import { computeSelector, isPromise, Selector, tracking, trackSelector } from '@legendapp/state';
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { UseSelectorOptions } from 'src/react/reactInterfaces';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
@@ -74,12 +74,13 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     useSyncExternalStore(subscribe, getVersion, getVersion);
 
     // Suspense support
-    // Note: We may want to change the throw to React.use when React updates their guidances on Suspense.
-    if (options?.suspend) {
+    if (options?.suspense) {
         if (isPromise(value)) {
-            throw value;
-        } else if (value?.error) {
-            throw value.error;
+            if (React.use) {
+                React.use(value);
+            } else {
+                throw value;
+            }
         }
     }
 

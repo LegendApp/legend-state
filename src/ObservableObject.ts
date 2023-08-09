@@ -17,7 +17,7 @@ import {
     symbolToPrimitive,
 } from './globals';
 import { isArray, isBoolean, isChildNodeValue, isEmpty, isFunction, isObject, isPrimitive, isPromise } from './is';
-import type { ChildNodeValue, NodeValue } from './observableInterfaces';
+import type { ChildNodeValue, NodeValue, PromiseInfo } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -720,4 +720,14 @@ function updateNodesAndNotify(
     }
 
     endBatch();
+}
+
+export function extractPromise(node: NodeValue, value: Promise<any>) {
+    (value as PromiseInfo).status = 'pending';
+    value.catch((error) => {
+        set(node, { error, status: 'rejected' } as PromiseInfo);
+    });
+    value.then((value) => {
+        set(node, value);
+    });
 }

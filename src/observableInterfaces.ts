@@ -100,7 +100,9 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
-    : T[K] extends Function | Promise<any>
+    : T[K] extends Promise<infer t>
+    ? Observable<t & PromiseInfo>
+    : T[K] extends Function
     ? T[K]
     : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
     ? ObservableProxyTwoWay<t, t2>
@@ -463,3 +465,7 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
 } & ObservableBaseFns<T> & {
         [symbolGetNode]: NodeValue;
     };
+export type PromiseInfo = {
+    error?: any;
+    status?: 'pending' | 'rejected';
+};
