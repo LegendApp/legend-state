@@ -64,6 +64,8 @@ export function computed<T, T2 = T>(
 
             // Re-lock the computed node
             lockObservable(obs, true);
+        } else if (node.computedChildOfNode) {
+            setNodeValue(node.computedChildOfNode, val);
         }
 
         isSetAfterActivated = true;
