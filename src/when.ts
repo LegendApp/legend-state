@@ -1,4 +1,5 @@
 import { computeSelector, isObservableValueReady } from './helpers';
+import { isPromise } from './is';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
@@ -8,7 +9,7 @@ function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => an
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
 
-        if (checkReady ? isObservableValueReady(ret) : ret) {
+        if (!isPromise(ret) && (checkReady ? isObservableValueReady(ret) : ret)) {
             value = ret;
             // If value is truthy then run the effect
             effect?.(ret);
@@ -22,7 +23,9 @@ function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => an
 
     // If first run resulted in a truthy value just return it.
     // It will have set e.cancel so no need to dispose
-    if (value !== undefined) {
+    if (isPromise(value)) {
+        return effect ? (value as Promise<T>).then(effect) : value;
+    } else if (value !== undefined) {
         return Promise.resolve(value);
     } else {
         // Wrap it in a promise

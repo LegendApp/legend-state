@@ -2170,6 +2170,32 @@ describe('Promise values', () => {
         }
         expect(obs.promise.get()).toEqual({ error: 'test' });
     });
+    test('when callback works with promises', async () => {
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        const obs = observable<number>(promise);
+        let didWhen = false;
+        when(obs, () => {
+            didWhen = true;
+        });
+        expect(didWhen).toBe(false);
+        resolver!(10);
+        await obs;
+        expect(didWhen).toBe(true);
+    });
+    test('when works with promises', async () => {
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        const obs = observable<number>(promise);
+        let didWhen = false;
+        when(obs).then(() => {
+            didWhen = true;
+        });
+        expect(didWhen).toBe(false);
+        resolver!(10);
+        await obs;
+        expect(didWhen).toBe(true);
+    });
 });
 describe('Batching', () => {
     test('Assign is batched', async () => {
