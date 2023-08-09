@@ -1,6 +1,6 @@
 import { set as setBase } from './ObservableObject';
 import { batch, notify } from './batching';
-import { getNode, getNodeValue } from './globals';
+import { getNode, getNodeValue, setNodeValue } from './globals';
 import { isObservable, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
@@ -23,6 +23,7 @@ export function computed<T, T2 = T>(
 
     const node = getNode(obs);
     node.isComputed = true;
+    let isSetAfterActivated = false;
 
     const setInner = function (val: any) {
         const prevNode = node.linkedToNode;
@@ -52,17 +53,20 @@ export function computed<T, T2 = T>(
             // Unlock computed node before setting the value
             lockObservable(obs, false);
 
+            const setter = isSetAfterActivated ? setBase : setNodeValue;
             // Update the computed value
-            setBase(node, val);
+            setter(node, val);
 
             // If the computed is a child of an observable set the value on it
             if (node.computedChildOfNode) {
-                setBase(node.computedChildOfNode, val);
+                setter(node.computedChildOfNode, val);
             }
 
             // Re-lock the computed node
             lockObservable(obs, true);
         }
+
+        isSetAfterActivated = true;
     };
 
     // Lazily activate the observable when get is called
