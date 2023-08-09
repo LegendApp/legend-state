@@ -593,6 +593,35 @@ describe('Computed inside observable', () => {
 
         expect(num).toEqual(1);
     });
+    test('Setting through two-way sets values on parent', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(
+                () => sub$.get(),
+                (x) => sub$.set(x),
+            ),
+        });
+
+        let observedValue;
+        observe(() => {
+            observedValue = obs$.get();
+        });
+
+        expect(observedValue).toEqual({ sub: { num: 0 } });
+
+        obs$.sub.set({ num: 4 });
+
+        expect(observedValue).toEqual({ sub: { num: 4 } });
+        expect(obs$.get()).toEqual({ sub: { num: 4 } });
+
+        obs$.sub.set({ num: 8 });
+
+        expect(observedValue).toEqual({ sub: { num: 8 } });
+        expect(obs$.get()).toEqual({ sub: { num: 8 } });
+    });
 });
 describe('proxy', () => {
     test('proxy', () => {
