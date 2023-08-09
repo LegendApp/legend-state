@@ -7,6 +7,7 @@ import {
     Observable,
     observable,
     ObservableReadable,
+    observe,
     proxy,
     TrackingType,
 } from '@legendapp/state';
@@ -44,6 +45,19 @@ describe('Computed', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => obs.test.get() + obs.test2.get());
         expect(comp.get()).toEqual(30);
+    });
+    test('Observing computed runs once', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = computed(() => obs.test.get() + obs.test2.get());
+        let num = 0;
+        let observedValue;
+        observe(() => {
+            observedValue = comp.get();
+            num++;
+        });
+
+        expect(num).toEqual(1);
+        expect(observedValue).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
@@ -561,6 +575,23 @@ describe('Computed inside observable', () => {
                 },
             ],
         );
+    });
+    test('observe sub computed runs once', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(() => sub$.get()),
+        });
+
+        let num = 0;
+        observe(() => {
+            obs$.sub.get();
+            num++;
+        });
+
+        expect(num).toEqual(1);
     });
 });
 describe('proxy', () => {
