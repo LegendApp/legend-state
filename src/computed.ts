@@ -103,5 +103,5 @@ export function computed<T, T2 = T>(
         };
     }
 
-    return obs as ObservableComputed<T>;
+    return obs as any;
 }
