@@ -13,6 +13,7 @@ export const extraPrimitiveProps = new Map<string | symbol, any>();
 
 export const __devExtractFunctionsAndComputedsNodes =
     process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
+
 export const globalState = {
     isMerging: false,
 };
@@ -186,7 +187,10 @@ export function extractFunction(
 }
 
 export function extractFunctionsAndComputeds(obj: Record<string, any>, node: NodeValue) {
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    if (
+        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
+    ) {
         if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
