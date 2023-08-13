@@ -1,3 +1,6 @@
+## 1.9.0
+- Feat: Nested computeds set their value on the raw object so that `get()` on the parent will include the values of child computeds
+
 ## 1.8.1
 - Feat: Added findIDKey and optimized to internal
 - Fix: Added more safety around dev-only assertions because they were throwing errors in some build systems
