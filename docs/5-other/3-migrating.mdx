@@ -2,9 +2,9 @@
 
 Version 2.0 is still pre-release, but version 1.9 will display deprecation warnings for features that have changed.
 
-### enableLegendStateReact => Memo
+### enableLegendStateReact, enableReactDirectRender => Memo
 
-`enableLegendStateReact` was fragile, hard to find in files, and the React team advised against it. So instead we are using the `Memo` component. See [Render an observableselector directly](../fine-grained-reactivity/#render-an-observableselector-directly) for more details. So please remove usage of `enableLegendStateReact()` as well as any usage of direct rendering. Version 1.9.0 will console.warn whenever it is used, to help you find where it's used. In version 2.0.0 it will show TypeScript errors and React will throw runtime errors.
+The direct rendering enabled by `enableLegendStateReact` and `enableReactDirectRender` was fragile, hard to find in files, and the React team advised against it. So instead we are using the `Memo` component. See [Render an observableselector directly](../fine-grained-reactivity/#render-an-observableselector-directly) for more details. So please remove usage of `enableLegendStateReact()` as well as any usage of direct rendering. Version 1.9.0 will console.warn whenever it is used, to help you find where it's used. In version 2.0.0 it will show TypeScript errors and React will throw runtime errors.
 
 ```jsx
 // Remove this:
