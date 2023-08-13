@@ -2291,6 +2291,72 @@ describe('Batching', () => {
         expect(callCount).toEqual(2);
         expect(val).toEqual('hi2hello2');
     });
+    test('After batch works correctly', () => {
+        const obs = observable({ a: 'hi', b: 'hello' });
+        let didAfterBatch: boolean | undefined;
+        let didStartBatch = false;
+        observe(() => {
+            obs.get();
+            expect(didAfterBatch).toEqual(didStartBatch ? false : undefined);
+        });
+        batch(
+            () => {
+                didStartBatch = true;
+                didAfterBatch = false;
+                obs.a.set('hi2');
+                obs.b.set('hello2');
+            },
+            () => {
+                didAfterBatch = true;
+            },
+        );
+        observe(() => {
+            obs.get();
+            expect(didAfterBatch).toEqual(true);
+        });
+    });
+    test('After batch works recursively', () => {
+        const obs = observable({ a: 'hi' });
+        const obs2 = observable({ a: 'hi' });
+        const obs3 = observable({ a: 'hi' });
+        let didStartBatch2 = false;
+        let didAfterBatch2: boolean | undefined;
+        observe(() => {
+            const a = obs3.a.get();
+            if (a === 'hi2') {
+                expect(didAfterBatch2).toEqual(true);
+            }
+        });
+        observe(() => {
+            const a = obs2.a.get();
+            if (a === 'hi2') {
+                expect(didAfterBatch2).toEqual(false);
+                obs3.a.set('hi2');
+            }
+        });
+        observe(() => {
+            if (obs.a.get() === 'hi2') {
+                batch(
+                    () => {
+                        didStartBatch2 = true;
+                        didAfterBatch2 = false;
+                        obs2.a.set('hi2');
+                        expect(didAfterBatch2).toEqual(didStartBatch2 ? false : undefined);
+                    },
+                    () => {
+                        didAfterBatch2 = true;
+                    },
+                );
+            }
+        });
+        observe(() => {
+            obs2.get();
+            expect(didAfterBatch2).toEqual(didStartBatch2 ? false : undefined);
+        });
+        batch(() => {
+            obs.a.set('hi2');
+        });
+    });
 });
 describe('Observable with promise', () => {
     test('Promise', async () => {

@@ -16,7 +16,7 @@ export {
     trackSelector,
 } from './src/trackSelector';
 export { observable, observablePrimitive } from './src/observable';
-export { batch, beginBatch, endBatch, afterBatch } from './src/batching';
+export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { event } from './src/event';
 export { observe } from './src/observe';
