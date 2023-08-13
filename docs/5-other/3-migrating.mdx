@@ -1,3 +1,45 @@
+## 1.* to 2.0
+
+Version 2.0 is still pre-release, but version 1.9 will display deprecation warnings for features that have changed.
+
+### enableLegendStateReact => Memo
+
+`enableLegendStateReact` was fragile, hard to find in files, and the React team advised against it. So instead we are using the `Memo` component. See [Render an observableselector directly](../fine-grained-reactivity/#render-an-observableselector-directly) for more details. So please remove usage of `enableLegendStateReact()` as well as any usage of direct rendering. Version 1.9.0 will console.warn whenever it is used, to help you find where it's used. In version 2.0.0 it will show TypeScript errors and React will throw runtime errors.
+
+```jsx
+// Remove this:
+enableLegendStateReact()
+
+function Component() {
+    const text$ = useObservable('test')
+    return (
+        <>
+            Change this: {text$}
+            To this: <Memo>{text$}</Memo>
+        </>
+    )
+}
+```
+
+### Reactive props changed to start with $
+
+Reactive props previously ended with $ and have been changed to start with $, because it has a better UX with autocomplete and is easier to visually scan for.
+
+```jsx
+function Component() {
+    const text$ = useObservable('test')
+    return (
+        <Reactive.div
+            // Change this
+            className$={() => '...'}
+            // to this
+            $className={() => '...'}
+        >...
+        </Reactive.div>
+    )
+}
+```
+
 ## 0.23 to 1.0
 
 ### onChange changed

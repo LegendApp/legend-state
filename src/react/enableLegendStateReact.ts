@@ -9,8 +9,13 @@ import { hasSymbol } from './reactive-observer';
 import { useSelector } from './useSelector';
 let isEnabled = false;
 
+// TODOV2 Delete this file
 export function enableLegendStateReact() {
-    // TODOV2 Deprecate this and change to enableReactDirectRender() instead
+    if (process.env.NODE_ENV === 'development') {
+        console.warn(
+            '[legend-state] enableLegendStateReact is deprecated and will be removed in version 2.0. Please convert it from {value} to <Memo>{value}</Memo>. See https://legendapp.com/open-source/state/migrating for more details.',
+        );
+    }
     if (!isEnabled) {
         isEnabled = true;
 
