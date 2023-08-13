@@ -7,6 +7,7 @@ import {
     get,
     getChildNode,
     getNodeValue,
+    globalState,
     optimized,
     peek,
     setNodeValue,
@@ -542,11 +543,18 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     }
 
     if (node.root.locked && !node.root.set) {
-        throw new Error(
-            process.env.NODE_ENV === 'development'
-                ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
-                : '[legend-state] Modified locked observable',
-        );
+        // This happens when modifying a locked observable such as a computed.
+        // If merging this could be happening deep in a hierarchy so we don't want to throw errors so we'll just do nothing.
+        // This could happen during persistence local load for example.
+        if (globalState.isMerging) {
+            return;
+        } else {
+            throw new Error(
+                process.env.NODE_ENV === 'development'
+                    ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
+                    : '[legend-state] Modified locked observable',
+            );
+        }
     }
 
     const isRoot = !node.parent && key === '_';

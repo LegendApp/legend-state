@@ -1,5 +1,5 @@
 import { beginBatch, endBatch } from './batching';
-import { getNode, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
+import { getNode, globalState, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
@@ -116,7 +116,9 @@ export function setInObservableAtPath(obs: ObservableWriteable, path: string[], 
 }
 export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     beginBatch();
+    globalState.isMerging = true;
     const value = _mergeIntoObservable(target, ...sources);
+    globalState.isMerging = false;
     endBatch();
     return value;
 }

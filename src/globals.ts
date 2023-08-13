@@ -13,6 +13,9 @@ export const extraPrimitiveProps = new Map<string | symbol, any>();
 
 export const __devExtractFunctionsAndComputedsNodes =
     process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
+export const globalState = {
+    isMerging: false,
+};
 
 export function checkActivate(node: NodeValue) {
     const root = node.root;
