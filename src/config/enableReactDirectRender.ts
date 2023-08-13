@@ -12,6 +12,11 @@ let isEnabled = false;
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
 export function enableReactDirectRender() {
+    if (process.env.NODE_ENV === 'development') {
+        console.warn(
+            '[legend-state] enableReactDirectRender is deprecated and will be removed in version 2.0. Please convert it from {value} to <Memo>{value}</Memo>. See https://legendapp.com/open-source/state/migrating for more details.',
+        );
+    }
     if (!isEnabled) {
         isEnabled = true;
 
