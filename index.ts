@@ -1,4 +1,4 @@
-export { afterBatch, batch, beginBatch, endBatch } from './src/batching';
+export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
 export { event } from './src/event';
