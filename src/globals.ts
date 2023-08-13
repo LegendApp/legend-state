@@ -1,5 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableReadable, TrackingType } from './observableInterfaces';
+import { NodeValue, ObservableComputed, ObservableReadable, TrackingType } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -14,12 +14,16 @@ export const extraPrimitiveProps = new Map<string | symbol, any>();
 export const __devExtractFunctionsAndComputedsNodes =
     process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
 
+export const globalState = {
+    isMerging: false,
+};
+
 export function checkActivate(node: NodeValue) {
     const root = node.root;
-    const activate = root.activate;
-    if (activate) {
-        root.activate = undefined;
-        activate();
+    root.activate?.();
+    if (root.computedChildrenNeedingActivation) {
+        root.computedChildrenNeedingActivation.forEach(checkActivate);
+        delete root.computedChildrenNeedingActivation;
     }
 }
 
@@ -155,15 +159,38 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
     return idKey;
 }
 
-export function extractFunction(node: NodeValue, value: Record<string, any>, key: string) {
+export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function, computedChildNode?: never): void;
+export function extractFunction(
+    node: NodeValue,
+    key: string,
+    fnOrComputed: ObservableComputed,
+    computedChildNode: NodeValue,
+): void;
+export function extractFunction(
+    node: NodeValue,
+    key: string,
+    fnOrComputed: Function | ObservableComputed,
+    computedChildNode: NodeValue | undefined,
+): void {
     if (!node.functions) {
         node.functions = new Map();
     }
-    node.functions.set(key, value[key]);
+    node.functions.set(key, fnOrComputed);
+
+    if (computedChildNode) {
+        computedChildNode.computedChildOfNode = getChildNode(node, key);
+        if (!node.root.computedChildrenNeedingActivation) {
+            node.root.computedChildrenNeedingActivation = [];
+        }
+        node.root.computedChildrenNeedingActivation.push(computedChildNode);
+    }
 }
 
 export function extractFunctionsAndComputeds(obj: Record<string, any>, node: NodeValue) {
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    if (
+        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
+    ) {
         if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
             console.error(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
@@ -176,11 +203,11 @@ export function extractFunctionsAndComputeds(obj: Record<string, any>, node: Nod
     for (const k in obj) {
         const v = obj[k];
         if (typeof v === 'function') {
-            extractFunction(node, obj, k);
+            extractFunction(node, k, v);
         } else if (typeof v == 'object' && v !== null && v !== undefined) {
             const childNode = getNode(v);
             if (childNode?.isComputed) {
-                extractFunction(node, obj, k);
+                extractFunction(node, k, v, childNode);
             } else if (!v[symbolOpaque]) {
                 extractFunctionsAndComputeds(obj[k], getChildNode(node, k));
             }

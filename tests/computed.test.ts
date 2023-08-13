@@ -3,9 +3,11 @@ import {
     Change,
     computed,
     endBatch,
+    isObservable,
     Observable,
     observable,
     ObservableReadable,
+    observe,
     proxy,
     TrackingType,
 } from '@legendapp/state';
@@ -43,6 +45,19 @@ describe('Computed', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => obs.test.get() + obs.test2.get());
         expect(comp.get()).toEqual(30);
+    });
+    test('Observing computed runs once', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = computed(() => obs.test.get() + obs.test2.get());
+        let num = 0;
+        let observedValue;
+        observe(() => {
+            observedValue = comp.get();
+            num++;
+        });
+
+        expect(num).toEqual(1);
+        expect(observedValue).toEqual(30);
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
@@ -465,6 +480,168 @@ describe('Computed inside observable', () => {
                 valueAtPath: 'hello!',
             },
         ]);
+    });
+    test('Computed in observable sets raw data', () => {
+        const obs = observable({
+            text: 'hi',
+            test: computed((): string => {
+                return obs.text.get() + '!';
+            }),
+        });
+
+        expect(obs.test.get()).toEqual('hi!');
+        expect(obs.get().test).toEqual('hi!');
+        expect(isObservable(obs.get().test)).toBe(false);
+    });
+    test('Computed in observable gets activated by accessing root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: computed((): string => {
+                return obs.text.get() + '!';
+            }),
+        });
+        const value = obs.get();
+        expect(isObservable(value.test)).toBe(false);
+        expect(value.test === 'hi!');
+    });
+    test('Computed in observable notifies to root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: computed((): string => {
+                return obs.text.get() + '!';
+            }),
+        });
+        obs.test.get();
+        const handler = expectChangeHandler(obs);
+        obs.text.set('hello');
+        expect(handler).toHaveBeenCalledWith({ text: 'hello', test: 'hello!' }, { text: 'hi', test: 'hi!' }, [
+            {
+                path: ['test'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi!',
+                valueAtPath: 'hello!',
+            },
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hello',
+            },
+        ]);
+    });
+    test('Accessing through proxy goes to computed and not parent object', () => {
+        const test = computed((): { child: string } => {
+            return { child: obs.text.get() + '!' };
+        });
+        const obs = observable({
+            text: 'hi',
+            test,
+        });
+        const handler = expectChangeHandler(test.child);
+        const handler2 = expectChangeHandler(obs.test);
+        const handlerRoot = expectChangeHandler(obs);
+        obs.text.set('hello');
+        expect(handler).toHaveBeenCalledWith('hello!', 'hi!', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'hi!',
+                valueAtPath: 'hello!',
+            },
+        ]);
+        expect(handler2).toHaveBeenCalledWith({ child: 'hello!' }, { child: 'hi!' }, [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: { child: 'hi!' },
+                valueAtPath: { child: 'hello!' },
+            },
+        ]);
+        expect(handlerRoot).toHaveBeenCalledWith(
+            { text: 'hello', test: { child: 'hello!' } },
+            { text: 'hi', test: { child: 'hi!' } },
+            [
+                {
+                    path: ['test'],
+                    pathTypes: ['object'],
+                    prevAtPath: { child: 'hi!' },
+                    valueAtPath: { child: 'hello!' },
+                },
+                {
+                    path: ['text'],
+                    pathTypes: ['object'],
+                    prevAtPath: 'hi',
+                    valueAtPath: 'hello',
+                },
+            ],
+        );
+    });
+    test('observe sub computed runs once', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(() => sub$.get()),
+        });
+
+        let num = 0;
+        observe(() => {
+            obs$.sub.get();
+            num++;
+        });
+
+        expect(num).toEqual(1);
+    });
+    test('Setting through two-way sets values on parent', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(
+                () => sub$.get(),
+                (x) => sub$.set(x),
+            ),
+        });
+
+        let observedValue;
+        observe(() => {
+            observedValue = obs$.get();
+        });
+
+        expect(observedValue).toEqual({ sub: { num: 0 } });
+
+        obs$.sub.set({ num: 4 });
+
+        expect(observedValue).toEqual({ sub: { num: 4 } });
+        expect(obs$.get()).toEqual({ sub: { num: 4 } });
+
+        obs$.sub.set({ num: 8 });
+
+        expect(observedValue).toEqual({ sub: { num: 8 } });
+        expect(obs$.get()).toEqual({ sub: { num: 8 } });
+    });
+    test('linked observable sets value on parent', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(() => sub$),
+        });
+
+        expect(obs$.get()).toEqual({ sub: { num: 0 } });
+
+        obs$.sub.num.set(4);
+
+        let observedValue;
+        observe(() => {
+            observedValue = obs$.get();
+        });
+
+        expect(observedValue).toEqual({ sub: { num: 4 } });
+        expect(obs$.get()).toEqual({ sub: { num: 4 } });
     });
 });
 describe('proxy', () => {

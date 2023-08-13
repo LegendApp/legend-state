@@ -1,3 +1,4 @@
+import { computed } from '../src/computed';
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { ObservablePersistLocal } from '../src/observableInterfaces';
@@ -208,5 +209,48 @@ describe('Persist primitives', () => {
         });
 
         expect(obs2.get()).toEqual('hello');
+    });
+});
+
+describe('Persist computed', () => {
+    test('Persist nested computed', async () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: computed(() => sub$.num.get()),
+        });
+
+        persistObservable(obs$, {
+            local: 'jestlocal',
+        });
+
+        sub$.num.set(1);
+
+        await promiseTimeout(0);
+
+        const localValue = global.localStorage.getItem('jestlocal')!;
+
+        // Should have saved to local storage
+        expect(JSON.parse(localValue)).toEqual({ sub: 1 });
+
+        // obs2 should not load sub and instead use the computed value
+        const sub2$ = observable({
+            num: 2,
+        });
+        const obs2$ = observable({
+            sub: computed(() => sub2$.num.get()),
+        });
+
+        persistObservable(obs2$, {
+            local: 'jestlocal',
+        });
+
+        expect(obs2$.get()).toEqual({ sub: 2 });
+
+        // Ensure computed is still hooked up
+        sub2$.num.set(3);
+        expect(obs2$.get()).toEqual({ sub: 3 });
     });
 });

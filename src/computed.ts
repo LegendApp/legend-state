@@ -1,11 +1,12 @@
 import { set as setBase } from './ObservableObject';
 import { batch, notify } from './batching';
-import { getNode, getNodeValue } from './globals';
+import { getNode, getNodeValue, setNodeValue } from './globals';
 import { isObservable, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
 import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
+import { onChange } from './onChange';
 
 export function computed<T extends ObservableReadable>(compute: () => T | Promise<T>): T;
 export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
@@ -23,6 +24,7 @@ export function computed<T, T2 = T>(
 
     const node = getNode(obs);
     node.isComputed = true;
+    let isSetAfterActivated = false;
 
     const setInner = function (val: any) {
         const prevNode = node.linkedToNode;
@@ -41,6 +43,15 @@ export function computed<T, T2 = T>(
                 linkedNode.linkedFromNodes = new Set();
             }
             linkedNode.linkedFromNodes.add(node);
+            if (node.computedChildOfNode) {
+                onChange(
+                    linkedNode,
+                    ({ value }) => {
+                        setNodeValue(node.computedChildOfNode!, value);
+                    },
+                    { initial: true },
+                );
+            }
 
             // If the target observable is different then notify for the change
             if (prevNode) {
@@ -49,15 +60,30 @@ export function computed<T, T2 = T>(
                 notify(node, value, prevValue, 0);
             }
         } else if (val !== obs.peek()) {
-            // Update the computed value
+            // Unlock computed node before setting the value
             lockObservable(obs, false);
-            setBase(node, val);
+
+            const setter = isSetAfterActivated ? setBase : setNodeValue;
+            // Update the computed value
+            setter(node, val);
+
+            // If the computed is a child of an observable set the value on it
+            if (node.computedChildOfNode) {
+                setter(node.computedChildOfNode, val);
+            }
+
+            // Re-lock the computed node
             lockObservable(obs, true);
+        } else if (node.computedChildOfNode) {
+            setNodeValue(node.computedChildOfNode, val);
         }
+
+        isSetAfterActivated = true;
     };
 
     // Lazily activate the observable when get is called
     node.root.activate = () => {
+        node.root.activate = undefined;
         observe(
             compute,
             ({ value }) => {
