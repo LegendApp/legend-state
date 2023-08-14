@@ -2,13 +2,26 @@ import { computed } from './computed';
 import { getNode } from './globals';
 import { lockObservable } from './helpers';
 import { observable } from './observable';
-import { ObservableProxy, Observable as ObservableWriteable } from './observableInterfaces';
+import {
+    ObservableProxy,
+    ObservableProxyLink,
+    ObservableProxyTwoWay,
+    Observable as ObservableWriteable,
+} from './observableInterfaces';
 
+export function proxy<T, T2 = T>(
+    get: (key: string) => T,
+    set: (key: string, value: T2) => void,
+): ObservableProxyTwoWay<Record<string, T>, T2>;
 export function proxy<T extends Record<string, any>>(
     get: <K extends keyof T>(key: K) => ObservableWriteable<T[K]>,
-): ObservableProxy<T>;
-export function proxy<T>(get: (key: string) => ObservableWriteable<T>): ObservableProxy<Record<string, T>>;
-export function proxy<T extends Record<string, any>>(get: (key: any) => ObservableWriteable<any>): ObservableProxy<T> {
+): ObservableProxyLink<T>;
+export function proxy<T>(get: (key: string) => ObservableWriteable<T>): ObservableProxyLink<Record<string, T>>;
+export function proxy<T>(get: (key: string) => T): ObservableProxy<Record<string, T>>;
+export function proxy<T extends Record<string, any>, T2 = T>(
+    get: (key: any) => ObservableWriteable<any>,
+    set?: (key: any, value: T2) => void,
+): any {
     // Create an observable for this computed variable
     const obs = observable();
     lockObservable(obs, true);
@@ -19,12 +32,13 @@ export function proxy<T extends Record<string, any>>(get: (key: any) => Observab
     node.proxyFn = (key: string) => {
         let target = mapTargets.get(key);
         if (!target) {
-            target = computed(() => get(key));
+            // Note: Coercing typescript to allow undefined for set in computed because we don't want the public interface to allow undefined
+            target = computed(() => get(key), (set ? (value) => set(key, value as T2) : undefined)!);
             mapTargets.set(key, target);
         }
 
         return target;
     };
 
-    return obs as unknown as ObservableProxy<T>;
+    return obs;
 }
