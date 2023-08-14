@@ -110,7 +110,7 @@ The `observer` HOC has two benefits:
 
 Although you may have heard that HOCs are slow or bad, there is actually no real downside. The performance cost of `observer` and a single `use()` or `useSelector` is exactly the same (and tiny), and `observer` makes components faster with two or more `use()` or `useSelector` calls.
 
- See [Tracking](../tracking) for more about when it tracks.
+See [Tracking](../reactivity#observing-contexts) for more about when it tracks.
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -133,7 +133,7 @@ const Component = observer(function Component() {
 
 The `useObservable` hook can be used to create an observable within a React component. This can be useful when state is specific to the lifetime of the component, or to hold multiple values in local state.
 
-Its observables will be [tracked for re-rendering](../react-basics) the same as any other observable, so use `use()` to track them.
+Its observables will not be automatically tracked for re-rendering, so you can track them [the same as any other observable](../react-introduction#use-observable-state).
 
 As with
 

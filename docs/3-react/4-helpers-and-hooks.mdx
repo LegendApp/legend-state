@@ -183,7 +183,7 @@ function Component() {
 }
 ```
 
-One example of where this could be useful is to drive animations. This example measures the size of an inner element to animate a bottom sheet from the bottom to its height. It uses [framer-motion](https://www.framer.com/motion) and [reactive](../reactive-props#make-your-own) to be able to drive animations with observable values.
+One example of where this could be useful is to drive animations. This example measures the size of an inner element to animate a bottom sheet from the bottom to its height. It uses [framer-motion](https://www.framer.com/motion) and [reactive](../fine-grained-reactivity#reactive) to be able to drive animations with observable values.
 
 ```jsx
 import { reactive } from "@legendapp/state/react"
@@ -279,7 +279,7 @@ See [an interactive CodeSandbox](https://codesandbox.io/s/legend-state-useobserv
 
 ### usePersistedObservable
 
-`usePersistedObservable` returns an observable like [useObservable](../hooks#useobservable) with options to automatically persist it, the same as [persistObservable](../persistence).
+`usePersistedObservable` returns an observable like [useObservable](../react-api#useobservable) with options to automatically persist it, the same as [persistObservable](../persistence).
 
 ```jsx
 import { usePersistedObservable } from "@legendapp/state/react-hooks/usePersistedObservable"

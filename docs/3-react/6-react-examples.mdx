@@ -89,7 +89,7 @@ const classNameError = "text-sm text-red-500 mb-2 h-5 pt-1"
 
 This example uses the [useObservableQuery](../helpers-and-hooks#useobservablequery) hook to create an observable using [TanStack Query](https://tanstack.com/query/) that automatically sends mutations back to the server whenever the observable changes.
 
-It then uses the `Reactive` [two-way binding components](../reactive-props#react) to bind those observable directly to the inputs.
+It then uses the `Reactive` [two-way binding components](../fine-grained-reactivity#reactive-components) to bind those observable directly to the inputs.
 
 So in effect this binds the inputs directly to your server data.
 
@@ -176,7 +176,7 @@ const classNameInput = "border rounded border-gray-300 px-2 py-1 mt-2 mb-4"
 
 ## Form validating
 
-This example uses [useObserve](../hooks#useobserve) to listen to changes in the form state to update the error messages as you type. It waits for the first click of the Save button for a better user experience.
+This example uses [useObserve](../react-api#useobserve) to listen to changes in the form state to update the error messages as you type. It waits for the first click of the Save button for a better user experience.
 
 <Sandbox height={680} width={70} files={{
 '/App.js': `
@@ -272,7 +272,7 @@ const classNameError = "text-sm text-red-500 mb-2 h-5 pt-1"
 
 ## List of messages
 
-This example uses the [useFetch](../helpers-and-hooks#usefetch) hook to get data from a server as an observable, [useComputed](../hooks#usecomputed) to create a computed observable, and [For](../fine-grained-reactivity#for) to display the array of messages in a high-performance way.
+This example uses the [useFetch](../helpers-and-hooks#usefetch) hook to get data from a server as an observable, [useComputed](../react-api#usecomputed) to create a computed observable, and [For](../fine-grained-reactivity#for) to display the array of messages in a high-performance way.
 
 <Sandbox height={680} width={70} files={{
 '/App.js': `
@@ -352,9 +352,9 @@ function generateID() {
 
 ## Animations with reactive props
 
-This example uses [reactive](../reactive-props#make-your-own) to make a version of `motion.div` with [reactive props](../reactive-props) that can animate using observable values. Animating with reactive props is faster than re-rendering the whole component because when the tracked observable changes it triggers a render of only the `motion.div`, so it doesn't need to re-render the parent or children.
+This example uses [reactive](../fine-grained-reactivity#reactive) to make a version of `motion.div` with [reactive props](../fine-grained-reactivity#reactive-components) that can animate using observable values. Animating with reactive props is faster than re-rendering the whole component because when the tracked observable changes it triggers a render of only the `motion.div`, so it doesn't need to re-render the parent or children.
 
-This example also creates a [computed observable](../reactivity#computed) text value from the boolean and renders it directly in JSX, which (under the hood) creates a reactive text element that re-renders itself when it changes.
+This example also creates a [computed observable](../observable#computed) text value from the boolean and renders it directly in JSX, which (under the hood) creates a reactive text element that re-renders itself when it changes.
 
 <Sandbox height={580} width={75} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
 '/App.js': `
