@@ -706,7 +706,7 @@ function updateNodesAndNotify(
         }
     }
 
-    if (isPrim || !newValue || isEmpty(newValue) ? newValue !== prevValue : hasADiff) {
+    if (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff) {
         // Notify for this element if something inside it has changed
         notify(
             isPrim && isRoot ? node : childNode,
