@@ -645,7 +645,77 @@ describe('Computed inside observable', () => {
     });
 });
 describe('proxy', () => {
-    test('proxy', () => {
+    test('proxy plain', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
+            itemText: proxy((key): string => {
+                return obs.items[key].text.get();
+            }),
+        });
+        expect(obs.itemText['test1'].get()).toEqual('hi');
+
+        const handlerItem = expectChangeHandler(obs.items['test1']);
+        const handlerItemText = expectChangeHandler(obs.itemText['test1']);
+
+        obs.items['test1'].text.set('hi!');
+        expect(obs.items['test1'].text.get()).toEqual('hi!');
+        expect(obs.itemText['test1'].get()).toEqual('hi!');
+
+        expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+        expect(handlerItemText).toHaveBeenCalledWith('hi!', 'hi', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+    });
+    test('proxy two-way', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
+            itemText: proxy(
+                (key): string => {
+                    return obs.items[key].text.get();
+                },
+                (key, value) => {
+                    obs.items[key].text.set(value);
+                },
+            ),
+        });
+        expect(obs.itemText['test1'].get()).toEqual('hi');
+
+        const handlerItem = expectChangeHandler(obs.items['test1']);
+        const handlerItemText = expectChangeHandler(obs.itemText['test1']);
+
+        obs.itemText['test1'].set('hi!');
+        expect(obs.items['test1'].text.get()).toEqual('hi!');
+
+        expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+        expect(handlerItemText).toHaveBeenCalledWith('hi!', 'hi', [
+            {
+                path: [],
+                pathTypes: [],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+    });
+    test('proxy link', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             itemText: proxy((key): Observable<string> => {
@@ -677,7 +747,7 @@ describe('proxy', () => {
             },
         ]);
     });
-    test('proxy with a get()', () => {
+    test('proxy link with a get()', () => {
         const obs = observable({
             selector: 'text',
             items: {

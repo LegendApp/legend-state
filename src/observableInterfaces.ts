@@ -101,8 +101,12 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
     : T[K] extends Function | Promise<any>
     ? T[K]
+    : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
+    ? ObservableProxyTwoWay<t, t2>
     : T[K] extends ObservableProxy<infer t>
     ? ObservableProxy<t>
+    : T[K] extends ObservableProxyLink<infer t>
+    ? ObservableProxyLink<t>
     : T[K] extends Map<any, any> | WeakMap<any, any>
     ? ObservableMap<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
@@ -434,7 +438,17 @@ export interface ObservablePersistenceConfig {
     dateModifiedKey?: string;
 }
 export type ObservableProxy<T extends Record<string, any>> = {
+    [K in keyof T]: ObservableComputed<T[K]>;
+} & {
+    [symbolGetNode]: NodeValue;
+};
+export type ObservableProxyLink<T extends Record<string, any>> = {
     [K in keyof T]: Observable<T[K]>;
+} & {
+    [symbolGetNode]: NodeValue;
+};
+export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
+    [K in keyof T]: ObservableComputedTwoWay<T[K], T2>;
 } & {
     [symbolGetNode]: NodeValue;
 };
