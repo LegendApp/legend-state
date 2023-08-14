@@ -12,6 +12,8 @@ export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
 export const extraPrimitiveProps = new Map<string | symbol, any>();
 
 export const globalState = {
+    isLoadingLocal: false,
+    isLoadingRemote: false,
     isMerging: false,
 };
 export function checkActivate(node: NodeValue) {
