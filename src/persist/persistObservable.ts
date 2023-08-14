@@ -19,6 +19,7 @@ import {
     batch,
     constructObjectWithPath,
     deconstructObjectWithPath,
+    internal,
     isEmpty,
     isPromise,
     isString,
@@ -26,7 +27,6 @@ import {
     observable,
     setAtPath,
     setInObservableAtPath,
-    tracking,
     when,
 } from '@legendapp/state';
 import { observablePersistConfiguration } from './configureObservablePersistence';
@@ -41,7 +41,6 @@ export const mapPersistences: WeakMap<
 > = new WeakMap();
 
 export const persistState = observable({ inRemoteSync: false });
-let isMergingLocalData = false;
 const metadatas = new WeakMap<ObservableReadable<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
@@ -440,8 +439,8 @@ function onObsChange<T>(
     persistOptions: PersistOptions<T>,
     { changes }: ListenerParams,
 ) {
-    if (!isMergingLocalData) {
-        const inRemoteChange = tracking.inRemoteChange;
+    if (!internal.globalState.isLoadingLocal) {
+        const inRemoteChange = internal.globalState.isLoadingRemote;
         const isApplyingPending = localState.isApplyingPending;
         // Queue changes in a microtask so that multiple changes within a frame get run together
         _queuedChanges.push({
@@ -465,10 +464,10 @@ export function onChangeRemote(cb: () => void) {
         () => {
             // Remote changes should only update local state
             persistState.inRemoteSync.set(true);
-            tracking.inRemoteChange = true;
+            internal.globalState.isLoadingRemote = true;
 
             batch(cb, () => {
-                tracking.inRemoteChange = false;
+                internal.globalState.isLoadingRemote = false;
                 persistState.inRemoteSync.set(false);
             });
         },
@@ -556,14 +555,14 @@ async function loadLocal<T>(
 
             batch(
                 () => {
-                    // isMergingLocalData prevents saving remotely when two different persistences
+                    // isLoadingLocal prevents saving remotely when two different persistences
                     // are set on the same observable
-                    isMergingLocalData = true;
+                    internal.globalState.isLoadingLocal = true;
                     // We want to merge the local data on top of any initial state the object is created with
                     mergeIntoObservable(obs, value);
                 },
                 () => {
-                    isMergingLocalData = false;
+                    internal.globalState.isLoadingLocal = false;
                 },
             );
         }

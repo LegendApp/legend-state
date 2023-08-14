@@ -15,6 +15,8 @@ export const __devExtractFunctionsAndComputedsNodes =
     process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
 
 export const globalState = {
+    isLoadingLocal: false,
+    isLoadingRemote: false,
     isMerging: false,
 };
 

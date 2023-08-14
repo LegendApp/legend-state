@@ -11,7 +11,6 @@ const trackingQueue: (TrackingState | undefined)[] = [];
 
 export const tracking = {
     current: undefined as TrackingState | undefined,
-    inRemoteChange: false,
     inRender: false as boolean | undefined,
 };
 

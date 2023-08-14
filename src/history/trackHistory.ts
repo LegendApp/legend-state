@@ -1,10 +1,10 @@
 import {
-    constructObjectWithPath,
-    mergeIntoObservable,
-    observable,
     ObservableReadable,
     ObservableWriteable,
-    tracking,
+    constructObjectWithPath,
+    internal,
+    mergeIntoObservable,
+    observable,
 } from '@legendapp/state';
 
 // This type is purely for documentation.
@@ -19,7 +19,7 @@ export function trackHistory<T>(
     obs.onChange(({ changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
-        if (!tracking.inRemoteChange) {
+        if (!internal.globalState.isLoadingRemote && !internal.globalState.isLoadingLocal) {
             const time: TimestampAsString = Date.now().toString();
 
             // Save to history observable by date, with the previous value
