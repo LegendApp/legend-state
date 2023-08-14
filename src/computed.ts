@@ -34,6 +34,9 @@ export function computed<T, T2 = T>(
             prevNode.linkedFromNodes!.delete(node);
             node.linkedToNode = undefined;
         }
+
+        const childNode = node.computedChildOfNode;
+
         if (isObservable(val)) {
             // If the computed is a proxy to another observable
             // link it to the target observable
@@ -68,14 +71,22 @@ export function computed<T, T2 = T>(
             setter(node, val);
 
             // If the computed is a child of an observable set the value on it
-            if (node.computedChildOfNode) {
-                setter(node.computedChildOfNode, val);
+            if (childNode) {
+                let didUnlock = false;
+                if (childNode.root.locked) {
+                    childNode.root.locked = false;
+                    didUnlock = true;
+                }
+                setter(childNode, val);
+                if (didUnlock) {
+                    childNode.root.locked = true;
+                }
             }
 
             // Re-lock the computed node
             lockObservable(obs, true);
-        } else if (node.computedChildOfNode) {
-            setNodeValue(node.computedChildOfNode, val);
+        } else if (childNode) {
+            setNodeValue(childNode, val);
         }
 
         isSetAfterActivated = true;

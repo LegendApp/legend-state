@@ -322,14 +322,6 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        if (node.isComputed) {
-            if (node.proxyFn) {
-                return node.proxyFn(p);
-            } else {
-                checkActivate(node);
-            }
-        }
-
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
         if (node.linkedToNode && p !== 'onChange') {
@@ -365,6 +357,14 @@ const proxyHandler: ProxyHandler<any> = {
                         return fn(node, a, b, c);
                 }
             };
+        }
+
+        if (node.isComputed) {
+            if (node.proxyFn && !fn) {
+                return node.proxyFn(p);
+            } else {
+                checkActivate(node);
+            }
         }
 
         const property = observableProperties.get(p);

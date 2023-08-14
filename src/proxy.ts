@@ -1,5 +1,6 @@
+import { notify } from './batching';
 import { computed } from './computed';
-import { getNode } from './globals';
+import { extractFunction, getChildNode, getNode, setNodeValue } from './globals';
 import { lockObservable } from './helpers';
 import { observable } from './observable';
 import {
@@ -8,6 +9,7 @@ import {
     ObservableProxyTwoWay,
     Observable as ObservableWriteable,
 } from './observableInterfaces';
+import { onChange } from './onChange';
 
 export function proxy<T, T2 = T>(
     get: (key: string) => T,
@@ -23,7 +25,7 @@ export function proxy<T extends Record<string, any>, T2 = T>(
     set?: (key: any, value: T2) => void,
 ): any {
     // Create an observable for this computed variable
-    const obs = observable();
+    const obs = observable({});
     lockObservable(obs, true);
 
     const mapTargets = new Map<string, any>();
@@ -35,6 +37,16 @@ export function proxy<T extends Record<string, any>, T2 = T>(
             // Note: Coercing typescript to allow undefined for set in computed because we don't want the public interface to allow undefined
             target = computed(() => get(key), (set ? (value) => set(key, value as T2) : undefined)!);
             mapTargets.set(key, target);
+            extractFunction(node, key, target, getNode(target));
+            if (node.computedChildOfNode) {
+                onChange(getNode(target), ({ value, getPrevious }) => {
+                    const previous = getPrevious();
+                    // Set the raw value on the proxy's parent
+                    setNodeValue(node.computedChildOfNode!, node.root._);
+                    // Notify the proxy
+                    notify(getChildNode(node, key), value, previous, 0);
+                });
+            }
         }
 
         return target;
