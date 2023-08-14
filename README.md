@@ -18,7 +18,7 @@ state$.settings.theme.set('light')
 
 // observe re-runs when accessed observables change
 observe(() => {
-    console.log(state.settings.theme.get())
+    console.log(state$.settings.theme.get())
 })
 
 const Component = function Component() {
