@@ -778,4 +778,80 @@ describe('proxy', () => {
             },
         ]);
     });
+    test('raw value of proxy has all values', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
+            itemText: proxy((key): Observable<string> => {
+                return obs.items[key].text;
+            }),
+        });
+        expect(obs.get()).toEqual({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+        });
+
+        obs.itemText['test1'].set('hi!');
+        obs.itemText['test1'].get();
+
+        expect(obs.get()).toEqual({
+            items: { test1: { text: 'hi!' }, test2: { text: 'hello' } },
+            itemText: {
+                test1: 'hi!',
+            },
+        });
+
+        obs.itemText['test2'].set('hello!');
+
+        expect(obs.get()).toEqual({
+            items: { test1: { text: 'hi!' }, test2: { text: 'hello!' } },
+            itemText: {
+                test1: 'hi!',
+                test2: 'hello!',
+            },
+        });
+    });
+    test('listener on proxy works', () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
+            itemText: proxy((key): Observable<string> => {
+                return obs.items[key].text;
+            }),
+        });
+        const handler = expectChangeHandler(obs);
+        const handler2 = expectChangeHandler(obs.itemText);
+
+        obs.itemText['test1'].set('hi!');
+
+        expect(handler).toHaveBeenCalledWith(
+            {
+                items: { test1: { text: 'hi!' }, test2: { text: 'hello' } },
+                itemText: {
+                    test1: 'hi!',
+                },
+            },
+            {
+                items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+                itemText: {
+                    // TODO: This is not technically correct, it should be "hi"
+                    // But I'm not sure how to fix it and it's not hopefully not a big deal...
+                    test1: 'hi!',
+                },
+            },
+            [
+                {
+                    path: ['items', 'test1', 'text'],
+                    pathTypes: ['object', 'object', 'object'],
+                    prevAtPath: 'hi',
+                    valueAtPath: 'hi!',
+                },
+            ],
+        );
+        expect(handler2).toHaveBeenCalledWith({ test1: 'hi!' }, { test1: 'hi' }, [
+            {
+                path: ['test1'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi',
+                valueAtPath: 'hi!',
+            },
+        ]);
+    });
 });

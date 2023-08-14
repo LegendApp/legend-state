@@ -35,6 +35,7 @@ export function extractFunctionsAndComputeds(node: NodeValue, obj: Record<string
             const childNode = getNode(v);
             if (childNode?.isComputed) {
                 extractFunction(node, k, v, childNode);
+                delete obj[k];
             } else if (!v[symbolOpaque]) {
                 extractFunctionsAndComputeds(getChildNode(node, k), obj[k]);
             }

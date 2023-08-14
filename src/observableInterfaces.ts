@@ -441,19 +441,19 @@ export interface ObservablePersistenceConfig {
 }
 export type ObservableProxy<T extends Record<string, any>> = {
     [K in keyof T]: ObservableComputed<T[K]>;
-} & {
-    [symbolGetNode]: NodeValue;
-};
+} & ObservableBaseFns<T> & {
+        [symbolGetNode]: NodeValue;
+    };
 export type ObservableProxyLink<T extends Record<string, any>> = {
     [K in keyof T]: Observable<T[K]>;
-} & {
-    [symbolGetNode]: NodeValue;
-};
+} & ObservableBaseFns<T> & {
+        [symbolGetNode]: NodeValue;
+    };
 export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
     [K in keyof T]: ObservableComputedTwoWay<T[K], T2>;
-} & {
-    [symbolGetNode]: NodeValue;
-};
+} & ObservableBaseFns<T> & {
+        [symbolGetNode]: NodeValue;
+    };
 export type PromiseInfo = {
     error?: any;
     status?: 'pending' | 'rejected';
