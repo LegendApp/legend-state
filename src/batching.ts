@@ -32,6 +32,16 @@ function onActionTimeout() {
     }
 }
 
+function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
+    for (let i = 0; i < mainArr.length; i++) {
+        if (mainArr[i] !== subsetArr[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function createPreviousHandlerInner(value: any, changes: Change[]) {
     // Clones the current state and inject the previous data at the changed path
     let clone = value ? JSON.parse(JSON.stringify(value)) : {};
@@ -116,7 +126,10 @@ function computeChangesAtNode(
         const changeInBatch = changesInBatch.get(node);
         // If the node itself has been changed then we can ignore all the child changes
         if (changeInBatch && path.length > 0) {
-            changeInBatch.changes.push(change);
+            const { changes } = changeInBatch;
+            if (!isArraySubset(changes[0].path, change.path)) {
+                changes.push(change);
+            }
         } else {
             changesInBatch.set(node, {
                 level,
