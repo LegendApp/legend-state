@@ -155,7 +155,9 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ..
                             _mergeIntoObservable(targetChild, sourceValue);
                         }
                     } else {
-                        needsSet
+                        // TODO: It should not be possible for targetChild to be a non-observable, but it was happening in Legend.
+                        // It would be good to track down why that was happening and remove this check.
+                        needsSet && isFunction(targetChild.set)
                             ? targetChild.set(sourceValue)
                             : (((target as Record<string, any>)[key] as any) = sourceValue);
                     }
