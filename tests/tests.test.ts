@@ -2250,6 +2250,102 @@ describe('Batching', () => {
         endBatch();
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Setting a child within a batch modifies the existing change', async () => {
+        const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
+        const handler = expectChangeHandler(obs);
+        beginBatch();
+        obs.set({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+        obs.obj.text.set('hello2');
+        endBatch();
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith(
+            {
+                num1: 11,
+                num2: 22,
+                num3: 33,
+                obj: { text: 'hello2' },
+            },
+            {
+                num1: 1,
+                num2: 2,
+                num3: 3,
+                obj: { text: 'hi' },
+            },
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: {
+                        num1: 11,
+                        num2: 22,
+                        num3: 33,
+                        obj: { text: 'hello2' },
+                    },
+                    prevAtPath: {
+                        num1: 1,
+                        num2: 2,
+                        num3: 3,
+                        obj: { text: 'hi' },
+                    },
+                },
+            ],
+        );
+    });
+    test('Setting a child within a batch modifies the existing change when it`s a deep child', async () => {
+        const obs = observable({ parent: { num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } } });
+        const handler = expectChangeHandler(obs);
+        beginBatch();
+        obs.parent.set({
+            num1: 11,
+            num2: 22,
+            num3: 33,
+            obj: { text: 'hello' },
+        });
+        obs.parent.obj.text.set('hello2');
+        endBatch();
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith(
+            {
+                parent: {
+                    num1: 11,
+                    num2: 22,
+                    num3: 33,
+                    obj: { text: 'hello2' },
+                },
+            },
+            {
+                parent: {
+                    num1: 1,
+                    num2: 2,
+                    num3: 3,
+                    obj: { text: 'hi' },
+                },
+            },
+            [
+                {
+                    path: ['parent'],
+                    pathTypes: ['object'],
+                    valueAtPath: {
+                        num1: 11,
+                        num2: 22,
+                        num3: 33,
+                        obj: { text: 'hello2' },
+                    },
+                    prevAtPath: {
+                        num1: 1,
+                        num2: 2,
+                        num3: 3,
+                        obj: { text: 'hi' },
+                    },
+                },
+            ],
+        );
+    });
     test('Assign getPrevious is correct', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
         const handler = expectChangeHandler(obs);
