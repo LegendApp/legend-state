@@ -117,55 +117,47 @@ export function setInObservableAtPath(obs: ObservableWriteable, path: string[], 
 export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
     beginBatch();
     globalState.isMerging = true;
-    const value = _mergeIntoObservable(target, ...sources);
+    for (let i = 0; i < sources.length; i++) {
+        target = _mergeIntoObservable(target, sources[i]);
+    }
     globalState.isMerging = false;
     endBatch();
-    return value;
+    return target;
 }
-function _mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
-    if (!sources.length) return target;
+function _mergeIntoObservable<T extends ObservableObject | object>(target: T, source: any): T {
+    const needsSet = isObservable(target);
+    const targetValue = needsSet ? target.peek() : target;
 
-    for (let u = 0; u < sources.length; u++) {
-        const source = sources[u];
+    const isTargetArr = isArray(targetValue);
+    const isTargetObj = !isTargetArr && isObject(targetValue);
 
-        const needsSet = isObservable(target);
-        const targetValue = needsSet ? target.peek() : target;
-
-        const isTargetArr = isArray(targetValue);
-        const isTargetObj = !isTargetArr && isObject(targetValue);
-
-        if (
-            (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
-            (isTargetArr && isArray(source) && targetValue.length > 0)
-        ) {
-            for (const key in source) {
-                const sourceValue = (source as Record<string, any>)[key];
-                if (sourceValue === symbolDelete) {
-                    needsSet && target[key]?.delete
-                        ? target[key].delete()
-                        : delete (target as Record<string, any>)[key];
-                } else {
-                    const isObj = isObject(sourceValue);
-                    const isArr = !isObj && isArray(sourceValue);
-                    const targetChild = (target as Record<string, any>)[key];
-                    if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
-                        if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
-                            (target as Record<string, any>)[key] = sourceValue;
-                        } else {
-                            _mergeIntoObservable(targetChild, sourceValue);
-                        }
+    if (
+        (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
+        (isTargetArr && isArray(source) && targetValue.length > 0)
+    ) {
+        for (const key in source) {
+            const sourceValue = (source as Record<string, any>)[key];
+            if (sourceValue === symbolDelete) {
+                needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
+            } else {
+                const isObj = isObject(sourceValue);
+                const isArr = !isObj && isArray(sourceValue);
+                const targetChild = (target as Record<string, any>)[key];
+                if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
+                    if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
+                        (target as Record<string, any>)[key] = sourceValue;
                     } else {
-                        // TODO: It should not be possible for targetChild to be a non-observable, but it was happening in Legend.
-                        // It would be good to track down why that was happening and remove this check.
-                        needsSet && isFunction(targetChild.set)
-                            ? targetChild.set(sourceValue)
-                            : (((target as Record<string, any>)[key] as any) = sourceValue);
+                        _mergeIntoObservable(targetChild, sourceValue);
                     }
+                } else {
+                    needsSet
+                        ? targetChild.set(sourceValue)
+                        : (((target as Record<string, any>)[key] as any) = sourceValue);
                 }
             }
-        } else if (source !== undefined) {
-            needsSet ? target.set(source) : ((target as any) = source);
         }
+    } else if (source !== undefined) {
+        needsSet ? target.set(source) : ((target as any) = source);
     }
 
     return target;
