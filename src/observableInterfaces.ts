@@ -390,7 +390,6 @@ interface BaseNodeValue {
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
-    descendantHasListener?: boolean;
     isComputed?: boolean;
     proxyFn?: (key: string) => ObservableReadable;
     isEvent?: boolean;
