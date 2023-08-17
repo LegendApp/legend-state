@@ -722,10 +722,11 @@ function updateNodesAndNotify(
 
 export function extractPromise(node: NodeValue, value: Promise<any>) {
     (value as PromiseInfo).status = 'pending';
-    value.catch((error) => {
-        set(node, { error, status: 'rejected' } as PromiseInfo);
-    });
-    value.then((value) => {
+    value
+        .then((value) => {
         set(node, value);
+        })
+        .catch((error) => {
+            set(node, { error, status: 'rejected' } as PromiseInfo);
     });
 }
