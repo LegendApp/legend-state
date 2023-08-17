@@ -83,7 +83,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         parentNode.root.set(parentNode.root._);
     }
 
-    return { prevValue, newValue };
+    return { prevValue, newValue, parentValue };
 }
 
 const arrNodeKeys: string[] = [];

@@ -1,6 +1,10 @@
-import { extractPromise, getProxy } from './ObservableObject';
+import {
+    __devExtractFunctionsAndComputedsNodes,
+    extractFunctionsAndComputeds,
+    extractPromise,
+    getProxy,
+} from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
-import { extractFunction, getChildNode, getNode, symbolOpaque } from './globals';
 import { isActualPrimitive, isPromise } from './is';
 import type {
     Observable,
@@ -10,41 +14,6 @@ import type {
     PromiseInfo,
 } from './observableInterfaces';
 import { NodeValue } from './observableInterfaces';
-
-export const __devExtractFunctionsAndComputedsNodes =
-    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
-
-export function extractFunctionsAndComputeds(node: NodeValue, obj: Record<string, any>) {
-    if (
-        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
-    ) {
-        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
-            console.error(
-                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj,
-            );
-            return false;
-        }
-        __devExtractFunctionsAndComputedsNodes!.add(obj);
-    }
-    for (const k in obj) {
-        const v = obj[k];
-        if (isPromise(v)) {
-            extractPromise(getChildNode(node, k), v);
-        } else if (typeof v === 'function') {
-            extractFunction(node, k, v);
-        } else if (typeof v == 'object' && v !== null && v !== undefined) {
-            const childNode = getNode(v);
-            if (childNode?.isComputed) {
-                extractFunction(node, k, v, childNode);
-                delete obj[k];
-            } else if (!v[symbolOpaque]) {
-                extractFunctionsAndComputeds(getChildNode(node, k), obj[k]);
-            }
-        }
-    }
-}
 
 function createObservable<T>(value?: Promise<T>, makePrimitive?: true): ObservablePrimitive<T & PromiseInfo>;
 function createObservable<T>(value?: T, makePrimitive?: true): ObservablePrimitive<T>;

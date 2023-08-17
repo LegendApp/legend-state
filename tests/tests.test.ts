@@ -2129,6 +2129,30 @@ describe('Promise values', () => {
         await promise;
         expect(obs.promise.get()).toEqual(10);
     });
+    test('Promise child works when set later', async () => {
+        const obs = observable({ promise: undefined as unknown as Promise<number> });
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        expect(obs.promise.status.get()).toEqual(undefined);
+        obs.promise.set(promise);
+        expect(obs.promise.status.get()).toEqual('pending');
+        // @ts-expect-error Fake error
+        resolver(10);
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
+    });
+    test('Promise child works when assigned later', async () => {
+        const obs = observable({ promise: undefined as unknown as Promise<number> });
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        expect(obs.promise.status.get()).toEqual(undefined);
+        obs.assign({ promise });
+        expect(obs.promise.status.get()).toEqual('pending');
+        // @ts-expect-error Fake error
+        resolver(10);
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
+    });
     test('Promise object becomes value', async () => {
         const promise = Promise.resolve({ child: 10 });
         const obs = observable(promise);
@@ -2168,7 +2192,7 @@ describe('Promise values', () => {
         } catch {
             await promiseTimeout(0);
         }
-        expect(obs.promise.get()).toEqual({ error: 'test' });
+        expect(obs.promise.get()).toEqual({ error: 'test', status: 'rejected' });
     });
     test('when callback works with promises', async () => {
         let resolver: (value: number) => void;
