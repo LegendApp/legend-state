@@ -9,6 +9,7 @@ import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { For } from '../src/react/For';
+import { Show } from '../src/react/Show';
 import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { observer } from '../src/react/reactive-observer';
 import { useObservableReducer } from '../src/react/useObservableReducer';
@@ -440,6 +441,58 @@ describe('For', () => {
         expect(items.length).toEqual(2);
         expect(items[0].id).toEqual('A');
         expect(items[1].id).toEqual('B');
+    });
+});
+describe('Show', () => {
+    test('Show works correctly', async () => {
+        const obs = observable({
+            ok: false,
+        });
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                // @ts-expect-error Not sure why it wants children in props
+                createElement(Show, { if: obs.ok }, () => createElement('span', undefined, 'hi')),
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('span');
+        expect(items.length).toEqual(0);
+
+        act(() => {
+            obs.ok.set(true);
+        });
+
+        items = container.querySelectorAll('span');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi');
+    });
+    test('Show with function expecting value', async () => {
+        const obs = observable({
+            value: '',
+        });
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                // @ts-expect-error Not sure why it wants children in props
+                createElement(Show, { if: obs.value }, (value) => createElement('span', undefined, value)),
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('span');
+        expect(items.length).toEqual(0);
+
+        act(() => {
+            obs.value.set('test');
+        });
+
+        items = container.querySelectorAll('span');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('test');
     });
 });
 
