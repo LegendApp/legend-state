@@ -1,7 +1,15 @@
+## 1.10.0
+- Feat: `proxy` supports three modes like computed: proxy to a computed plain object, proxy to an observable, proxy to a two-way computed
+- Feat: `proxy` sets raw values on parents and notifies when proxied children change
+- Fix: optimize batching so that modifying a child after modifying its parent merges into the existing change rather than creating a new change
+- Fix: `Show` was not passing value to children when children is a function
+
 ## 1.9.0
+
 - Feat: Nested computeds set their value on the raw object so that `get()` on the parent will include the values of child computeds
 
 ## 1.8.1
+
 - Feat: Added findIDKey and optimized to internal
 - Fix: Added more safety around dev-only assertions because they were throwing errors in some build systems
 
