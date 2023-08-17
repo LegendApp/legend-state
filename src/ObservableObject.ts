@@ -206,7 +206,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         const isArrDiff = hasADiff;
         let didMove = false;
 
-        if (parent.descendantHasListener || !hasADiff) {
             for (let i = 0; i < length; i++) {
                 const key = keys[i];
                 const value = isMap ? obj.get(key) : (obj as any)[key];
@@ -258,8 +257,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             hasADiff = true;
                         } else {
                             // Always need to updateNodes so we notify through all children
-                            const updatedNodes =
-                                (!hasADiff || !!child.descendantHasListener) && updateNodes(child, value, prev);
+                        const updatedNodes = updateNodes(child, value, prev);
                             hasADiff = hasADiff || updatedNodes;
                         }
                     }
