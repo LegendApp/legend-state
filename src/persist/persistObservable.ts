@@ -586,7 +586,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         isLoadedRemote: false,
         isEnabledLocal: true,
         isEnabledRemote: true,
-        clearLocal: undefined,
+        clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
     });

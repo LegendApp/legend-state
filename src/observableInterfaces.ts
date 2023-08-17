@@ -256,7 +256,7 @@ export interface ObservablePersistState {
     isEnabledRemote: boolean;
     remoteError?: Error;
     dateModified?: number;
-    clearLocal: (() => Promise<void>) | undefined;
+    clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
     getPendingChanges: () =>
         | Record<
