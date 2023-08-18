@@ -81,7 +81,7 @@ function ProfilePage() {
 
     // Observe a single observable with a callback when it changes
     useObserve(profile.name, ({ value }) => {
-        document.title = `${e.value} - Profile`
+        document.title = `${value} - Profile`
     })
 
     // Observe an event with a callback when it changes
