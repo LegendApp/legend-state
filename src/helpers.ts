@@ -135,7 +135,10 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, so
         (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
         (isTargetArr && isArray(source) && targetValue.length > 0)
     ) {
-        for (const key in source) {
+        const keys: string[] = Object.keys(source);
+
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
             const sourceValue = (source as Record<string, any>)[key];
             if (sourceValue === symbolDelete) {
                 needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
