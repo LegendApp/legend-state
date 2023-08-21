@@ -610,7 +610,9 @@ function deleteFn(node: NodeValue, key?: string) {
 
 function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {
     const vProp = (value as any)?.[p];
-    if (isFunction(vProp)) {
+    if (p === 'size') {
+        return getProxy(node, p);
+    } else if (isFunction(vProp)) {
         return function (a: any, b: any, c: any) {
             const l = arguments.length;
             const valueMap = value as Map<any, any>;

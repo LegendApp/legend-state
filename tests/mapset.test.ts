@@ -101,9 +101,42 @@ describe('Map is observable', () => {
         ]);
         const handler = expectChangeHandler(obs.test);
         obs.test.clear();
+        const child = obs.test.get('asdf');
         expect(handler).toHaveBeenCalledWith(new Map(), prev, [
             { path: [], pathTypes: [], prevAtPath: prev, valueAtPath: new Map() },
         ]);
+    });
+    test('Map gets value', () => {
+        const obsWithChild = observable({
+            test: new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+        });
+        const obs = observable(
+            new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+        );
+
+        const valueChild = obsWithChild.test.get('key').get();
+        expect(valueChild).toEqual('value');
+
+        const value = obs.get('key').get();
+        expect(value).toEqual('value');
+    });
+    test('Map size', () => {
+        const obs = observable(
+            new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+        );
+
+        const size = obs.size.get();
+
+        expect(size).toEqual(2);
     });
 });
 
@@ -123,5 +156,9 @@ describe('Set default behavior', () => {
         expect(handler).toHaveBeenCalledWith(new Set(['key', 'key2']), new Set(['key']), [
             { path: [], pathTypes: [], prevAtPath: new Set(['key']), valueAtPath: new Set(['key', 'key2']) },
         ]);
+    });
+    test('Set size is observable', () => {
+        const obs = observable({ test: new Set(['key']) });
+        expect(obs.test.size.get()).toEqual(1);
     });
 });
