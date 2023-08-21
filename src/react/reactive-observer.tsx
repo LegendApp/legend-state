@@ -4,13 +4,13 @@ import { useSelector } from './useSelector';
 
 import type { BindKeys } from './reactInterfaces';
 
-type ShapeWithOld$<T> = {
-    [K in keyof T as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
+type ShapeWithOld$<T, T2 extends keyof T = keyof T> = {
+    [K in T2 as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
 };
 // TODOV2: Remove ShapeWithOld
-export type ShapeWith$<T> = Partial<T> &
-    ShapeWithOld$<T> & {
-        [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
+export type ShapeWith$<T, T2 extends keyof T = keyof T> = Partial<T> &
+    ShapeWithOld$<T, T2> & {
+        [K in T2 as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
     };
 
 export type ObjectShapeWith$<T> = {
@@ -146,8 +146,8 @@ export function observer<P = object>(component: FC<P>): FC<P> {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
-    return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P>>;
+export function reactive<P = object, P2 extends keyof P = keyof P>(component: FC<P>, bindKeys?: BindKeys<P>) {
+    return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P, P2>>;
 }
 
 export function reactiveObserver<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
