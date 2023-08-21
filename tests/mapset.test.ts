@@ -101,7 +101,6 @@ describe('Map is observable', () => {
         ]);
         const handler = expectChangeHandler(obs.test);
         obs.test.clear();
-        const child = obs.test.get('asdf');
         expect(handler).toHaveBeenCalledWith(new Map(), prev, [
             { path: [], pathTypes: [], prevAtPath: prev, valueAtPath: new Map() },
         ]);
