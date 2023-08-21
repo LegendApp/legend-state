@@ -1,6 +1,9 @@
 import {
     extraPrimitiveActivators,
     extraPrimitiveProps,
+    getNode,
+    internal,
+    isObservable,
     ObservablePrimitiveClass,
     ObservableReadable,
 } from '@legendapp/state';
@@ -8,11 +11,21 @@ import { useSelector } from '@legendapp/state/react';
 import { createElement, memo } from 'react';
 let isEnabled = false;
 
+function getNodePath(node: NodeValue) {
+    const arr: (string | number)[] = [];
+    let n = node;
+    while (n?.key !== undefined) {
+        arr.splice(0, 0, n.key);
+        n = n.parent;
+    }
+    return arr.join('.');
+}
+
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
 export function enableReactDirectRender() {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && !internal.globalState.noWarnings) {
         console.warn(
             '[legend-state] enableReactDirectRender is deprecated and will be removed in version 2.0. Please convert it from {value} to <Memo>{value}</Memo>. See https://legendapp.com/open-source/state/migrating for more details.',
         );
@@ -24,6 +37,15 @@ export function enableReactDirectRender() {
         // Add the extra primitive props so that observables can render directly
         // Memoized component to wrap the observable value
         const Text = memo(function Text({ data }: { data: ObservableReadable }) {
+            if (process.env.NODE_ENV === 'development' && !internal.globalState.noWarnings) {
+                if (isObservable(data)) {
+                    console.warn(
+                        `[legend-state] enableLegendStateReact is deprecated and will be removed in version 2.0. Please convert rendering of observable with path ${getNodePath(
+                            getNode(data),
+                        )} to <Memo>{value}</Memo>. See https://legendapp.com/open-source/state/migrating for more details.`,
+                    );
+                }
+            }
             return useSelector(data);
         });
 
@@ -73,7 +95,7 @@ export function enableReactDirectRender() {
 // Types:
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { ObservableBaseFns } from '@legendapp/state';
+import type { NodeValue } from '@legendapp/state';
 import type { ReactFragment } from 'react';
 
 declare module '@legendapp/state' {

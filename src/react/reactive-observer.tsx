@@ -1,4 +1,4 @@
-import { isFunction, isObservable, Selector } from '@legendapp/state';
+import { internal, isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
 
@@ -78,7 +78,11 @@ function createReactiveComponent<P = object>(
                     // Convert reactive props
                     // TODOV2 Remove the deprecated endsWith option and also remove the types
                     else if (key.startsWith('$') || key.endsWith('$')) {
-                        if (process.env.NODE_ENV === 'development' && key.endsWith('$')) {
+                        if (
+                            process.env.NODE_ENV === 'development' &&
+                            !internal.globalState.noWarnings &&
+                            key.endsWith('$')
+                        ) {
                             console.warn(
                                 `[legend-state] Reactive props will be changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
                                     '$',
