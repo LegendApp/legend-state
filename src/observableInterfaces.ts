@@ -43,6 +43,7 @@ export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; /
 export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;
     get(): T;
+    size: ObservableChild<number>;
 }
 export interface ObservableBaseFns<T> {
     peek(): T;
@@ -109,6 +110,8 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? ObservableProxyLink<t>
     : T[K] extends Map<any, any> | WeakMap<any, any>
     ? ObservableMap<T[K]>
+    : T[K] extends Set<any> | WeakSet<any>
+    ? ObservableSet<T[K]>
     : T[K] extends Set<any> | WeakSet<any>
     ? T[K] & ObservablePrimitiveBaseFns<T[K]>
     : T[K] extends OpaqueObject<T[K]>
@@ -330,9 +333,11 @@ export interface ObservableRoot {
 export type Primitive = boolean | string | number | Date;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
-export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get'> &
-    Omit<ObservablePrimitiveBaseFns<T>, 'get'> &
+export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
+    Omit<ObservablePrimitiveBaseFns<T>, 'get' | 'size'> &
     MapGet<T>;
+export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
+    Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
 export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
@@ -341,7 +346,13 @@ export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>
     : ObservablePrimitiveChildFns<T>;
 
-export type ObservableObjectOrArray<T> = T extends any[] ? ObservableArray<T> : ObservableObject<T>;
+export type ObservableObjectOrArray<T> = T extends Map<any, any> | WeakMap<any, any>
+    ? ObservableMap<T>
+    : T extends Set<any> | WeakSet<any>
+    ? ObservableSet<T>
+    : T extends any[]
+    ? ObservableArray<T>
+    : ObservableObject<T>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
 export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveBaseFns<T2>;

@@ -100,7 +100,7 @@ export function getNodeValue(node: NodeValue): any {
     let child = node.root._;
     for (let i = count - 1; child && i >= 0; i--) {
         const key = arrNodeKeys[i] as any;
-        child = child instanceof Map || child instanceof WeakMap ? child.get(key) : child[key];
+        child = key !== 'size' && (child instanceof Map || child instanceof WeakMap) ? child.get(key) : child[key];
     }
     return child;
 }
