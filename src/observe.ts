@@ -76,6 +76,6 @@ export function observe<T>(
         e.onCleanup = undefined;
         e.onCleanupReaction?.();
         e.onCleanupReaction = undefined;
-        dispose!();
+        dispose?.();
     };
 }
