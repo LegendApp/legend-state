@@ -1,4 +1,14 @@
+## 1.10.2
+
+- Types: Improve types of useObservableQuery - By @bram209 https://github.com/LegendApp/legend-state/pull/182
+
+## 1.10.1
+
+- Types: Types of Map and Set were not correct if at the root of an observable
+- Fix: `size` property of Map was not an observable
+
 ## 1.10.0
+
 - Feat: `proxy` supports three modes like computed: proxy to a computed plain object, proxy to an observable, proxy to a two-way computed
 - Feat: `proxy` sets raw values on parents and notifies when proxied children change
 - Fix: optimize batching so that modifying a child after modifying its parent merges into the existing change rather than creating a new change
