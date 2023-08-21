@@ -75,7 +75,14 @@ const getHasError = <TData, TError, TQueryFnData, TQueryData, TQueryKey extends 
     );
 };
 
-export function useObservableQuery<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey, TContext>(
+export function useObservableQuery<
+    TQueryFnData,
+    TError,
+    TData = TQueryFnData,
+    TQueryData = TQueryFnData,
+    TQueryKey extends QueryKey = QueryKey,
+    TContext = unknown,
+>(
     options: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> & { queryClient?: QueryClient },
     mutationOptions?: UseMutationOptions<TData, TError, void, TContext>,
 ): ObservableObject<UseBaseQueryResult<TData, TError>> {
