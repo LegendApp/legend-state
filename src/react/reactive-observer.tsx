@@ -72,7 +72,7 @@ function createReactiveComponent<P = object>(
                     const p = props[key];
 
                     // Convert children if it's a function
-                    if (key === 'children' && isFunction(p)) {
+                    if (key === 'children' && (isFunction(p) || isObservable(p))) {
                         props[key] = useSelector(p);
                     }
                     // Convert reactive props
