@@ -647,21 +647,23 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                                         const p = key.split('/').filter((p) => p !== '');
                                         const { v, t } = pending[key];
 
-                                        (value as any) = setAtPath(
-                                            value as any,
-                                            p,
-                                            t,
-                                            v,
-                                            obs.peek(),
-                                            (path: string[], value: any) => {
-                                                delete pending[key];
-                                                pending[path.join('/')] = {
-                                                    p: null,
-                                                    v: value,
-                                                    t: t.slice(0, path.length),
-                                                };
-                                            },
-                                        );
+                                        if ((value as any)[p[0]] !== undefined) {
+                                            (value as any) = setAtPath(
+                                                value as any,
+                                                p,
+                                                t,
+                                                v,
+                                                obs.peek(),
+                                                (path: string[], value: any) => {
+                                                    delete pending[key];
+                                                    pending[path.join('/')] = {
+                                                        p: null,
+                                                        v: value,
+                                                        t: t.slice(0, path.length),
+                                                    };
+                                                },
+                                            );
+                                        }
                                     });
                                 }
 
