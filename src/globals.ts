@@ -174,7 +174,7 @@ export function extractFunction(
     node.functions.set(key, fnOrComputed);
 
     if (computedChildNode) {
-        computedChildNode.computedChildOfNode = getChildNode(node, key);
+        computedChildNode.parentOther = getChildNode(node, key);
         if (!node.root.toActivate) {
             node.root.toActivate = [];
         }

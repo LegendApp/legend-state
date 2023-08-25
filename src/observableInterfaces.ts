@@ -396,7 +396,7 @@ interface BaseNodeValue {
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
-    computedChildOfNode?: NodeValue;
+    parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
 }
 
