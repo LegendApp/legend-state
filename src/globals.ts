@@ -12,7 +12,6 @@ export const globalState = {
     isLoadingLocal: false,
     isLoadingRemote: false,
     isMerging: false,
-    noDepWarn: false,
 };
 export function checkActivate(node: NodeValue) {
     const root = node.root;
