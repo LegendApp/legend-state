@@ -1,4 +1,4 @@
-import { internal, isFunction, isObservable, Selector } from '@legendapp/state';
+import { isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { useSelector } from './useSelector';
 
@@ -78,18 +78,19 @@ function createReactiveComponent<P = object>(
                     // Convert reactive props
                     // TODOV2 Remove the deprecated endsWith option and also remove the types
                     else if (key.startsWith('$') || key.endsWith('$')) {
-                        if (
-                            process.env.NODE_ENV === 'development' &&
-                            !internal.globalState.noDepWarn &&
-                            key.endsWith('$')
-                        ) {
-                            console.warn(
-                                `[legend-state] Reactive props will be changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
-                                    '$',
-                                    '',
-                                )}. See https://legendapp.com/open-source/state/migrating for more details.`,
-                            );
-                        }
+                        // TODOV3 Add this warning and then remove the deprecated endsWith option
+                        // if (
+                        //     process.env.NODE_ENV === 'development' &&
+                        //     !internal.globalState.noDepWarn &&
+                        //     key.endsWith('$')
+                        // ) {
+                        //     console.warn(
+                        //         `[legend-state] Reactive props will be changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
+                        //             '$',
+                        //             '',
+                        //         )}. See https://legendapp.com/open-source/state/migrating for more details.`,
+                        //     );
+                        // }
                         const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and listen to the selector for changes
                         propsOut[k] = useSelector(p);
