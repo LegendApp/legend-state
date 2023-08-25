@@ -1,3 +1,7 @@
+## 1.11.0
+
+- This version displays deprecation warnings to prepare for version 2.0 release which will remove the deprecated features. See https://legendapp.com/open-source/state/migrating/ for details on migration or disabling the warning.
+
 ## 1.10.3
 
 - Fix: Reactive elements were not supporting observable children
