@@ -8,9 +8,6 @@ export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
 
-export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
-export const extraPrimitiveProps = new Map<string | symbol, any>();
-
 export const globalState = {
     isLoadingLocal: false,
     isLoadingRemote: false,

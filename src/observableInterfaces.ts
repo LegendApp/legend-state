@@ -386,7 +386,6 @@ export interface NodeValueListener {
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
-    isActivatedPrimitive?: boolean;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;

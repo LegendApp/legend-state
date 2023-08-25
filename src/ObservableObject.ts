@@ -1,8 +1,6 @@
 import { beginBatch, endBatch, notify } from './batching';
 import {
     checkActivate,
-    extraPrimitiveActivators,
-    extraPrimitiveProps,
     extractFunction,
     findIDKey,
     get,
@@ -371,20 +369,6 @@ const proxyHandler: ProxyHandler<any> = {
         const property = observableProperties.get(p);
         if (property) {
             return property.get(node);
-        }
-
-        const isValuePrimitive = isPrimitive(value);
-
-        // If accessing a key that doesn't already exist, and this node has been activated with extra keys
-        // then return the values that were set. This is used by enableLegendStateReact for example.
-        if (value === undefined || value === null || isValuePrimitive) {
-            if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
-                node.isActivatedPrimitive = true;
-                const vPrim = extraPrimitiveProps.get(p);
-                if (vPrim !== undefined) {
-                    return isFunction(vPrim) ? vPrim(getProxy(node)) : vPrim;
-                }
-            }
         }
 
         const vProp = value?.[p];
