@@ -216,7 +216,7 @@ export interface ObservablePersistenceConfigLocalOptions {
 }
 export interface ObservablePersistenceConfig {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote> | ObservablePersistRemoteSimple<any>;
     persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
     saveTimeout?: number;
     dateModifiedKey?: string;
@@ -225,7 +225,7 @@ export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote> | ObservablePersistRemoteSimple<T>;
 }
 
 export interface PersistMetadata {
@@ -244,32 +244,44 @@ export interface ObservablePersistLocal {
     setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
-export interface ObservablePersistRemoteSaveParams<T, T2> {
+export interface ObservablePersistRemoteSaveParams<T> {
     state: Observable<ObservablePersistState>;
     obs: Observable<T>;
     options: PersistOptions<T>;
     path: string[];
     pathTypes: TypeAtPath[];
-    valueAtPath: T2;
+    valueAtPath: unknown;
     prevAtPath: any;
+    value: T;
 }
-export interface ObservablePersistRemoteListenParams<T> {
+export interface ObservablePersistRemoteGetParams<T> {
     state: Observable<ObservablePersistState>;
     obs: ObservableReadable<T>;
     options: PersistOptions<T>;
     dateModified?: number;
     onLoad: () => void;
     onChange: (params: {
-        value: T;
-        path: string[];
-        pathTypes: TypeAtPath[];
-        mode: 'assign' | 'set' | 'dateModified';
+        value: unknown;
+        path?: string[];
+        pathTypes?: TypeAtPath[];
+        mode?: 'assign' | 'set' | 'dateModified';
         dateModified: number | undefined;
     }) => void | Promise<void>;
 }
 export interface ObservablePersistRemote {
-    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<{ changes?: object; dateModified?: number }>;
-    listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
+    get<T>(params: ObservablePersistRemoteGetParams<T>): void;
+    save<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<{ changes?: object; dateModified?: number }>;
+}
+
+export interface ObservablePersistRemoteSimple<T> {
+    get(params: { dateModified?: number }): Promise<T>;
+    set(value: {
+        value: T;
+        valueAtPath: any;
+        prevAtPath: any;
+        path: string[];
+        pathTypes: string[];
+    }): Promise<{ changes?: object | undefined; dateModified?: number }>;
 }
 
 export interface ObservablePersistState {
@@ -452,7 +464,6 @@ export interface ObserveEventCallback<T> {
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }
-
 export type ObservableProxy<T extends Record<string, any>> = {
     [K in keyof T]: ObservableComputed<T[K]>;
 } & ObservableBaseFns<T> & {

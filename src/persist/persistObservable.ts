@@ -7,12 +7,14 @@ import type {
     ObservableObject,
     ObservablePersistLocal,
     ObservablePersistRemote,
+    ObservablePersistRemoteSimple,
     ObservablePersistState,
     ObservableReadable,
     ObservableWriteable,
     PersistMetadata,
     PersistOptions,
     PersistOptionsLocal,
+    PersistOptionsRemote,
     TypeAtPath,
 } from '@legendapp/state';
 import {
@@ -21,6 +23,7 @@ import {
     deconstructObjectWithPath,
     internal,
     isEmpty,
+    isObject,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -31,6 +34,7 @@ import {
 } from '@legendapp/state';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
+import { observablePersistRemoteSimple } from './observablePersistRemoteSimple';
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
@@ -363,6 +367,8 @@ async function doChange(
             () => obsState.isLoadedRemote.get() || (configRemote!.allowSaveIfError && obsState.remoteError.get()),
         );
 
+        const value = obs.peek();
+
         const saves = await Promise.all(
             changesRemote.map(async (change) => {
                 const { path, valueAtPath, prevAtPath, pathTypes, pathStr } = change;
@@ -377,6 +383,7 @@ async function doChange(
                         pathTypes,
                         valueAtPath,
                         prevAtPath,
+                        value,
                     })
                     .then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
             }),
@@ -570,7 +577,8 @@ async function loadLocal<T>(
 }
 
 export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions: PersistOptions<T>) {
-    const { remote, local } = persistOptions;
+    let { remote } = persistOptions as { remote: PersistOptionsRemote<T> };
+    const { local } = persistOptions;
     const remotePersistence = persistOptions.persistRemote! || observablePersistConfiguration?.persistRemote;
     const localState: LocalState = {};
 
@@ -588,15 +596,26 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         loadLocal(obs, persistOptions, obsState, localState);
     }
 
-    if (remote) {
+    if (remote || remotePersistence) {
         if (!remotePersistence) {
             throw new Error('Remote persistence is not configured');
         }
-        // Ensure there's only one instance of the persistence plugin
-        if (!mapPersistences.has(remotePersistence)) {
-            mapPersistences.set(remotePersistence, { persist: new remotePersistence() });
+        if (!remote) {
+            remote = {};
         }
-        localState.persistenceRemote = mapPersistences.get(remotePersistence)!.persist as ObservablePersistRemote;
+        if (isObject(remotePersistence)) {
+            localState.persistenceRemote = observablePersistRemoteSimple(
+                remotePersistence as ObservablePersistRemoteSimple<T>,
+            );
+        } else {
+            // Ensure there's only one instance of the persistence plugin
+            if (!mapPersistences.has(remotePersistence)) {
+                mapPersistences.set(remotePersistence, {
+                    persist: new (remotePersistence as ClassConstructor<ObservablePersistRemote, any[]>)(),
+                });
+            }
+            localState.persistenceRemote = mapPersistences.get(remotePersistence)!.persist as ObservablePersistRemote;
+        }
 
         let isSynced = false;
         const sync = async () => {
@@ -604,7 +623,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                 isSynced = true;
                 localState.onSaveRemote = persistOptions.remote?.onSaveRemote;
                 const dateModified = metadatas.get(obs)?.modified;
-                localState.persistenceRemote!.listen({
+                localState.persistenceRemote!.get({
                     state: obsState,
                     obs,
                     options: persistOptions,
@@ -612,7 +631,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
                     },
-                    onChange: async ({ value, path, pathTypes, mode, dateModified }) => {
+                    onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
                         // Note: value is the constructed value, path is used for setInObservableAtPath
                         // to start the set into the observable from the path
                         if (value !== undefined) {
