@@ -1,3 +1,7 @@
+## 1.10.3
+
+- Fix: Reactive elements were not supporting observable children
+
 ## 1.10.2
 
 - Types: Improve types of useObservableQuery - By @bram209 https://github.com/LegendApp/legend-state/pull/182
