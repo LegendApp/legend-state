@@ -1,21 +1,24 @@
 import type {
-    ObservablePersistRemote,
+    ObservablePersistRemoteClass,
+    ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSaveParams,
-    ObservablePersistRemoteSimple,
 } from '@legendapp/state';
 
-export function observablePersistRemoteSimple<T>({ get, set }: ObservablePersistRemoteSimple<T>) {
+export function observablePersistRemoteFunctionsAdapter<T>({
+    get,
+    set,
+}: ObservablePersistRemoteFunctions<T>): ObservablePersistRemoteClass {
     const ret = {
         async get(params: ObservablePersistRemoteGetParams<T>) {
             const value = (await get(params)) as T;
             params.onChange({ value, dateModified: Date.now() });
             params.onLoad();
         },
-    } as ObservablePersistRemote;
+    } as ObservablePersistRemoteClass;
 
     if (set) {
-        ret.save = async (params: ObservablePersistRemoteSaveParams<any>) => {
+        ret.set = async (params: ObservablePersistRemoteSaveParams<any>) => {
             return set?.(params);
         };
     }

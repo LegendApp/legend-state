@@ -6,8 +6,8 @@ import type {
     Observable,
     ObservableObject,
     ObservablePersistLocal,
-    ObservablePersistRemote,
-    ObservablePersistRemoteSimple,
+    ObservablePersistRemoteClass,
+    ObservablePersistRemoteFunctions,
     ObservablePersistState,
     ObservableReadable,
     ObservableWriteable,
@@ -34,12 +34,12 @@ import {
 } from '@legendapp/state';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
-import { observablePersistRemoteSimple } from './observablePersistRemoteSimple';
+import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
 
 export const mapPersistences: WeakMap<
-    ClassConstructor<ObservablePersistLocal | ObservablePersistRemote>,
+    ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
     {
-        persist: ObservablePersistLocal | ObservablePersistRemote;
+        persist: ObservablePersistLocal | ObservablePersistRemoteClass;
         initialized?: Observable<boolean>;
     }
 > = new WeakMap();
@@ -50,7 +50,7 @@ const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
-    persistenceRemote?: ObservablePersistRemote;
+    persistenceRemote?: ObservablePersistRemoteClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     onSaveRemote?: () => void;
     isApplyingPending?: boolean;
@@ -390,7 +390,7 @@ async function doChange(
                 const { path, valueAtPath, prevAtPath, pathTypes, pathStr } = change;
 
                 // Save to remote persistence
-                return persistenceRemote!.save!({
+                return persistenceRemote!.set!({
                     obs,
                     state: obsState,
                     options: persistOptions,
@@ -620,17 +620,18 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
             remote = {};
         }
         if (isObject(remotePersistence)) {
-            localState.persistenceRemote = observablePersistRemoteSimple(
-                remotePersistence as ObservablePersistRemoteSimple<T>,
+            localState.persistenceRemote = observablePersistRemoteFunctionsAdapter(
+                remotePersistence as ObservablePersistRemoteFunctions<T>,
             );
         } else {
             // Ensure there's only one instance of the persistence plugin
             if (!mapPersistences.has(remotePersistence)) {
                 mapPersistences.set(remotePersistence, {
-                    persist: new (remotePersistence as ClassConstructor<ObservablePersistRemote, any[]>)(),
+                    persist: new (remotePersistence as ClassConstructor<ObservablePersistRemoteClass, any[]>)(),
                 });
             }
-            localState.persistenceRemote = mapPersistences.get(remotePersistence)!.persist as ObservablePersistRemote;
+            localState.persistenceRemote = mapPersistences.get(remotePersistence)!
+                .persist as ObservablePersistRemoteClass;
         }
 
         let isSynced = false;

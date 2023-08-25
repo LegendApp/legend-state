@@ -1,10 +1,7 @@
-import { ObservablePersistRemoteSimple, isString, type ObservablePersistRemoteSaveParams } from '@legendapp/state';
+import { ObservablePersistRemoteFunctions, isString, type ObservablePersistRemoteSaveParams } from '@legendapp/state';
 
-export function persistFetch(
-    get: string | RequestInfo,
-    set?: string | RequestInfo,
-): ObservablePersistRemoteSimple<any> {
-    const ret: ObservablePersistRemoteSimple<any> = {
+export function persistFetch(get: string | RequestInfo, set?: string | RequestInfo): ObservablePersistRemoteFunctions {
+    const ret: ObservablePersistRemoteFunctions = {
         get() {
             return fetch(get);
         },

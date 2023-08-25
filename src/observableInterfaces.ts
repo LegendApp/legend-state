@@ -216,7 +216,7 @@ export interface ObservablePersistenceConfigLocalOptions {
 }
 export interface ObservablePersistenceConfig {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote> | ObservablePersistRemoteSimple<any>;
+    persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions;
     persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
     saveTimeout?: number;
     dateModifiedKey?: string;
@@ -225,7 +225,7 @@ export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote> | ObservablePersistRemoteSimple<T>;
+    persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
 }
 
 export interface PersistMetadata {
@@ -268,12 +268,12 @@ export interface ObservablePersistRemoteGetParams<T> {
         dateModified: number | undefined;
     }) => void | Promise<void>;
 }
-export interface ObservablePersistRemote {
+export interface ObservablePersistRemoteClass {
     get<T>(params: ObservablePersistRemoteGetParams<T>): void;
-    save?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
+    set?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
 }
 
-export interface ObservablePersistRemoteSimple<T> {
+export interface ObservablePersistRemoteFunctions<T = any> {
     get(params: ObservablePersistRemoteGetParams<T>): Promise<T>;
     set?(
         params: ObservablePersistRemoteSaveParams<T>,
