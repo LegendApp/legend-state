@@ -270,7 +270,7 @@ export interface ObservablePersistRemoteGetParams<T> {
 }
 export interface ObservablePersistRemote {
     get<T>(params: ObservablePersistRemoteGetParams<T>): void;
-    save<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<{ changes?: object; dateModified?: number }>;
+    save?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<{ changes?: object; dateModified?: number }>;
 }
 
 export interface ObservablePersistRemoteSimple<T> {

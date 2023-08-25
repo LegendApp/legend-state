@@ -219,10 +219,12 @@ async function prepChange(queuedChange: QueuedChange) {
     const { obsState, changes, localState, persistOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
     const local = persistOptions.local;
+    const { persistenceRemote } = localState;
     const { config: configLocal } = parseLocalConfig(local!);
     const configRemote = persistOptions.remote;
     const saveLocal = local && !configLocal.readonly && !isApplyingPending && obsState.isEnabledLocal.peek();
-    const saveRemote = !inRemoteChange && configRemote && !configRemote.readonly && obsState.isEnabledRemote.peek();
+    const saveRemote =
+        !inRemoteChange && persistenceRemote && !configRemote?.readonly && obsState.isEnabledRemote.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !obsState.isLoadedLocal.peek()) {
@@ -282,7 +284,12 @@ async function prepChange(queuedChange: QueuedChange) {
                 }
 
                 if (saveRemote) {
-                    const promiseAdjustRemote = adjustSaveData(valueAtPath, path as string[], pathTypes, configRemote);
+                    const promiseAdjustRemote = adjustSaveData(
+                        valueAtPath,
+                        path as string[],
+                        pathTypes,
+                        configRemote || {},
+                    );
 
                     promisesAdjustData.push(
                         doInOrder(promiseAdjustRemote, ({ path: pathAdjusted, value: valueAdjusted }) => {
@@ -383,18 +390,16 @@ async function doChange(
                 const { path, valueAtPath, prevAtPath, pathTypes, pathStr } = change;
 
                 // Save to remote persistence
-                return persistenceRemote!
-                    .save({
-                        obs,
-                        state: obsState,
-                        options: persistOptions,
-                        path: path,
-                        pathTypes,
-                        valueAtPath,
-                        prevAtPath,
-                        value,
-                    })
-                    .then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
+                return persistenceRemote!.save!({
+                    obs,
+                    state: obsState,
+                    options: persistOptions,
+                    path: path,
+                    pathTypes,
+                    valueAtPath,
+                    prevAtPath,
+                    value,
+                }).then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
             }),
         );
 

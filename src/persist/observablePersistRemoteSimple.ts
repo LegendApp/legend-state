@@ -6,14 +6,19 @@ import type {
 } from '@legendapp/state';
 
 export function observablePersistRemoteSimple<T>({ get, set }: ObservablePersistRemoteSimple<T>) {
-    return {
+    const ret = {
         async get(params: ObservablePersistRemoteGetParams<T>) {
             const value = (await get(params)) as T;
             params.onChange({ value, dateModified: Date.now() });
             params.onLoad();
         },
-        async save(params: ObservablePersistRemoteSaveParams<T>) {
-            return set ? set(params) : {};
-        },
     } as ObservablePersistRemote;
+
+    if (set) {
+        ret.save = async (params: ObservablePersistRemoteSaveParams<any>) => {
+            return set?.(params);
+        };
+    }
+
+    return ret;
 }
