@@ -10,6 +10,15 @@ So there are two migration strategies:
 
 These are all things that were changed over time between 1.0 and 2.0 so depending on when you started using Legend-State you may already be doing it the new way.
 
+### disableDeprecationWarnings
+
+If you don't want to be bothered by deprecation these warnings right now, you can use `disableDeprecationWarnings()` and come back to this later. This function will be removed in 2.0.
+
+```js
+import { disableDeprecationWarnings } from "@legendapp/state/config/disableDeprecationWarnings"
+disableDeprecationWarnings()
+```
+
 ### enableLegendStateReact, enableReactDirectRender => Memo
 
 The direct rendering enabled by `enableLegendStateReact` and `enableReactDirectRender` was fragile, hard to find in files, and the React team advised against it. So instead we are using the `Memo` component. See [Render an observable directly](../fine-grained-reactivity/#render-an-observableselector-directly) for more details.
