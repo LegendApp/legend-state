@@ -38,7 +38,7 @@ interface MMKVConfiguration {
 }
 
 type Nullable<T> = T | null | undefined;
-export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; // true === shallow
+export type TrackingType = undefined | true | symbol; // true === shallow
 
 export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;

@@ -6,7 +6,7 @@ import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
-import { getNodeValue, symbolGetNode } from '../src/globals';
+import { getNodeValue, optimized, symbolGetNode } from '../src/globals';
 import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
@@ -324,23 +324,6 @@ describe('Listeners', () => {
 
         const handler = expectChangeHandler(obs.test, true);
         const handler2 = expectChangeHandler(obs, true);
-
-        obs.test.test2.test3.set('hello');
-        expect(handler).not.toHaveBeenCalled();
-        obs.test.set({ test2: { test3: 'hello' } });
-        expect(handler).toHaveBeenCalledTimes(0);
-        obs.test.set({ test5: 'hi' } as any);
-        expect(handler).toHaveBeenCalledTimes(1);
-        // Assign adding a new property does notify
-        obs.test.assign({ test4: 'hello' } as any);
-        expect(handler).toHaveBeenCalledTimes(2);
-        expect(handler2).toHaveBeenCalledTimes(0);
-    });
-    test('Shallow listener with string', () => {
-        const obs = observable({ test: { test2: { test3: 'hi' } } });
-
-        const handler = expectChangeHandler(obs.test, 'shallow');
-        const handler2 = expectChangeHandler(obs, 'shallow');
 
         obs.test.test2.test3.set('hello');
         expect(handler).not.toHaveBeenCalled();
@@ -1550,7 +1533,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, { trackingType: 'optimize' });
+        obs.test.onChange(handlerShallow, { trackingType: optimized });
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();
