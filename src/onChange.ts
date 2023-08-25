@@ -1,4 +1,4 @@
-import { checkActivate, getNodeValue, optimized } from './globals';
+import { checkActivate, getNodeValue, globalState, optimized } from './globals';
 import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -12,9 +12,9 @@ export function onChange(
     // Temporary migration of string to symbol
     // TODOV2 remove this
     if (trackingType === 'optimize') {
-        if (process.env.NODE_ENV === 'development') {
-            console.log(
-                '[legend-state]: "optimize" prop is deprecated and will be removed in the next major version. Please import { optimize } from "@legendapp/state" and use that instead.',
+        if (process.env.NODE_ENV === 'development' && !globalState.noDepWarn) {
+            console.warn(
+                '[legend-state]: "optimize" prop is deprecated and will be removed in version 2.0. Please import { optimize } from "@legendapp/state" and use that instead.',
             );
         }
         trackingType = optimized;

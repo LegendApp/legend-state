@@ -1,4 +1,4 @@
-import { isEmpty, isFunction } from '@legendapp/state';
+import { internal, isEmpty, isFunction } from '@legendapp/state';
 import { BindKeys, ShapeWith$, reactive } from '@legendapp/state/react';
 import { ComponentClass, FC, LegacyRef, createElement, forwardRef } from 'react';
 import {
@@ -27,6 +27,12 @@ import {
     View,
     ViewProps,
 } from 'react-native';
+
+if (process.env.NODE_ENV === 'development' && !internal.globalState.noDepWarn) {
+    console.warn(
+        '[legend-state]: react-native-components are deprecated and will be removed in version 2.0. Please use the new Reactive components instead: http://www.legendapp.com/open-source/state/fine-grained-reactivity/#reactive-components.',
+    );
+}
 
 type FCReactive<P, P2> = P &
     FC<

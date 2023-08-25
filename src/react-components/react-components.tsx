@@ -1,6 +1,12 @@
-import { isEmpty, isFunction } from '@legendapp/state';
+import { internal, isEmpty, isFunction } from '@legendapp/state';
 import { BindKeys, ShapeWith$, reactive } from '@legendapp/state/react';
 import { FC, createElement, forwardRef } from 'react';
+
+if (process.env.NODE_ENV === 'development' && !internal.globalState.noDepWarn) {
+    console.warn(
+        '[legend-state]: react-components are deprecated and will be removed in version 2.0. Please use the new Reactive components instead: http://www.legendapp.com/open-source/state/fine-grained-reactivity/#reactive-components.',
+    );
+}
 
 type FCReactiveObject<T> = {
     [K in keyof T]: FC<ShapeWith$<T[K]>>;

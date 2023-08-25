@@ -1,5 +1,5 @@
 import type { Observable, ObservableObject, ObservableReadable } from '@legendapp/state';
-import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
+import { findIDKey, getNode, internal, isArray, isFunction, optimized } from '@legendapp/state';
 import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -27,9 +27,9 @@ export function For<T, TProps>({
 
     if (eachValues) {
         each = eachValues;
-        if (process.env.NODE_ENV === 'development') {
-            console.log(
-                '[legend-state]: "eachValues" prop is deprecated and will be removed in the next major version. Please use "each" prop instead.',
+        if (process.env.NODE_ENV === 'development' && !internal.globalState.noDepWarn) {
+            console.warn(
+                '[legend-state]: "eachValues" prop is deprecated and will be removed in version 2.0. Please use "each" prop instead.',
             );
         }
     }

@@ -19,6 +19,8 @@ configureObservablePersistence({
     persistLocal: ObservablePersistIndexedDB,
     persistLocalOptions,
 });
+jest.setTimeout(50);
+
 async function reset() {
     // eslint-disable-next-line no-global-assign
     indexedDB = new IDBFactory();

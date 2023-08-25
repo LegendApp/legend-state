@@ -1,6 +1,10 @@
 import {
     extraPrimitiveActivators,
     extraPrimitiveProps,
+    getNode,
+    internal,
+    isObservable,
+    NodeValue,
     ObservablePrimitiveClass,
     ObservableReadable,
 } from '@legendapp/state';
@@ -9,8 +13,23 @@ import { hasSymbol } from './reactive-observer';
 import { useSelector } from './useSelector';
 let isEnabled = false;
 
+function getNodePath(node: NodeValue) {
+    const arr: (string | number)[] = [];
+    let n = node;
+    while (n?.key !== undefined) {
+        arr.splice(0, 0, n.key);
+        n = n.parent;
+    }
+    return arr.join('.');
+}
+
+// TODOV2 Delete this file
 export function enableLegendStateReact() {
-    // TODOV2 Deprecate this and change to enableReactDirectRender() instead
+    if (process.env.NODE_ENV === 'development' && !internal.globalState.noDepWarn) {
+        console.warn(
+            '[legend-state] enableLegendStateReact is deprecated and will be removed in version 2.0. Please convert rendering observables from {value} to <Memo>{value}</Memo>. See https://legendapp.com/open-source/state/migrating for more details.',
+        );
+    }
     if (!isEnabled) {
         isEnabled = true;
 
@@ -18,6 +37,15 @@ export function enableLegendStateReact() {
         // Add the extra primitive props so that observables can render directly
         // Memoized component to wrap the observable value
         const Text = memo(function Text({ data }: { data: ObservableReadable }) {
+            if (process.env.NODE_ENV === 'development' && !internal.globalState.noDepWarn) {
+                if (isObservable(data)) {
+                    console.warn(
+                        `[legend-state] enableLegendStateReact is deprecated and will be removed in version 2.0. Please convert rendering of observable with path ${getNodePath(
+                            getNode(data),
+                        )} to <Memo>{value}</Memo>. See https://legendapp.com/open-source/state/migrating for more details.`,
+                    );
+                }
+            }
             return useSelector(data);
         });
 
