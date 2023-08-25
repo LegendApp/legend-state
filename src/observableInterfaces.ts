@@ -274,14 +274,10 @@ export interface ObservablePersistRemote {
 }
 
 export interface ObservablePersistRemoteSimple<T> {
-    get(params: { dateModified?: number }): Promise<T>;
-    set?(value: {
-        value: T;
-        valueAtPath: any;
-        prevAtPath: any;
-        path: string[];
-        pathTypes: string[];
-    }): Promise<{ changes?: object | undefined; dateModified?: number }>;
+    get(params: ObservablePersistRemoteGetParams<T>): Promise<T>;
+    set?(
+        params: ObservablePersistRemoteSaveParams<T>,
+    ): Promise<{ changes?: object | undefined; dateModified?: number }>;
 }
 
 export interface ObservablePersistState {
