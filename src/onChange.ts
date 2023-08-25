@@ -13,8 +13,8 @@ export function onChange(
     // TODOV2 remove this
     if (trackingType === 'optimize') {
         if (process.env.NODE_ENV === 'development' && !globalState.noDepWarn) {
-            console.log(
-                '[legend-state]: "optimize" prop is deprecated and will be removed in the next major version. Please import { optimize } from "@legendapp/state" and use that instead.',
+            console.warn(
+                '[legend-state]: "optimize" prop is deprecated and will be removed in version 2.0. Please import { optimize } from "@legendapp/state" and use that instead.',
             );
         }
         trackingType = optimized;
