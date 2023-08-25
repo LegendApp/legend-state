@@ -13,7 +13,7 @@ export function observablePersistRemoteSimple<T>({ get, set }: ObservablePersist
             onLoad();
         },
         async save({ valueAtPath, prevAtPath, path, pathTypes, value }: ObservablePersistRemoteSaveParams<T>) {
-            return set({ valueAtPath, path, pathTypes, prevAtPath, value });
+            return set ? set({ valueAtPath, path, pathTypes, prevAtPath, value }) : {};
         },
     } as ObservablePersistRemote;
 }

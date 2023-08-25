@@ -59,8 +59,15 @@ interface LocalState {
 
 type ChangeWithPathStr = Change & { pathStr: string };
 
-function parseLocalConfig(config: string | PersistOptionsLocal): { table: string; config: PersistOptionsLocal } {
-    return isString(config) ? { table: config, config: { name: config } } : { table: config.name, config };
+function parseLocalConfig(config: string | PersistOptionsLocal | undefined): {
+    table: string;
+    config: PersistOptionsLocal;
+} {
+    return config
+        ? isString(config)
+            ? { table: config, config: { name: config } }
+            : { table: config.name, config }
+        : ({} as { table: string; config: PersistOptionsLocal });
 }
 
 function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
@@ -148,7 +155,9 @@ async function updateMetadataImmediate<T>(
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
         metadatas.set(obs, metadata);
-        await persistenceLocal!.setMetadata(table, metadata, config);
+        if (persistenceLocal) {
+            await persistenceLocal!.setMetadata(table, metadata, config);
+        }
 
         if (modified) {
             obsState.dateModified.set(modified);
@@ -730,7 +739,7 @@ export function persistObservable<T>(obs: ObservableWriteable<T>, persistOptions
         }
     }
 
-    when(obsState.isLoadedLocal, function (this: any) {
+    when(!local || obsState.isLoadedLocal, function (this: any) {
         obs.onChange(
             onObsChange.bind(this, obs as Observable<any>, obsState, localState, persistOptions as PersistOptions),
         );

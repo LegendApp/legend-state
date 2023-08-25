@@ -275,7 +275,7 @@ export interface ObservablePersistRemote {
 
 export interface ObservablePersistRemoteSimple<T> {
     get(params: { dateModified?: number }): Promise<T>;
-    set(value: {
+    set?(value: {
         value: T;
         valueAtPath: any;
         prevAtPath: any;
