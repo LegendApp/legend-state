@@ -327,7 +327,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableRoot {
     _: any;
     locked?: boolean;
-    computedChildrenNeedingActivation?: NodeValue[];
+    toActivate?: NodeValue[];
     set?: (value: any) => void;
     activate?: () => void;
 }

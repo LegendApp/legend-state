@@ -20,9 +20,9 @@ export const globalState = {
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     root.activate?.();
-    if (root.computedChildrenNeedingActivation) {
-        root.computedChildrenNeedingActivation.forEach(checkActivate);
-        delete root.computedChildrenNeedingActivation;
+    if (root.toActivate) {
+        root.toActivate.forEach(checkActivate);
+        delete root.toActivate;
     }
 }
 
@@ -178,9 +178,9 @@ export function extractFunction(
 
     if (computedChildNode) {
         computedChildNode.computedChildOfNode = getChildNode(node, key);
-        if (!node.root.computedChildrenNeedingActivation) {
-            node.root.computedChildrenNeedingActivation = [];
+        if (!node.root.toActivate) {
+            node.root.toActivate = [];
         }
-        node.root.computedChildrenNeedingActivation.push(computedChildNode);
+        node.root.toActivate.push(computedChildNode);
     }
 }
