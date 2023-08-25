@@ -1,3 +1,7 @@
+## 1.11.1
+
+- Removed the deprecation warning about reactive props since that might affect a lot of people and we can migrate that more slowly.
+
 ## 1.11.0
 
 - This version displays deprecation warnings to prepare for version 2.0 release which will remove the deprecated features. See https://legendapp.com/open-source/state/migrating/ for details on migration or disabling the warning.
