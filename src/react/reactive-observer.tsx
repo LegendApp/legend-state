@@ -71,7 +71,20 @@ function createReactiveComponent<P = object>(
                         props[key] = useSelector(p);
                     }
                     // Convert reactive props
-                    else if (key.startsWith('$')) {
+                    else if (key.startsWith('$') || key.endsWith('$')) {
+                        // TODOV3 Add this warning and then remove the deprecated endsWith option
+                        // if (
+                        //     process.env.NODE_ENV === 'development' &&
+                        //     !internal.globalState.noDepWarn &&
+                        //     key.endsWith('$')
+                        // ) {
+                        //     console.warn(
+                        //         `[legend-state] Reactive props will be changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
+                        //             '$',
+                        //             '',
+                        //         )}. See https://legendapp.com/open-source/state/migrating for more details.`,
+                        //     );
+                        // }
                         const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and listen to the selector for changes
                         propsOut[k] = useSelector(p);
