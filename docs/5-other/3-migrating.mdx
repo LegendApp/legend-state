@@ -82,7 +82,9 @@ function Component() {
 
 ### Reactive props changed to start with $
 
-In an earlier version reactive props ended with $ and were changed in version 1.3.0 to allow starting with $, because it has a better UX with autocomplete and is easier to visually scan for. Both have been supported but version 2.0 will remove support for the suffix version.
+In an earlier version reactive props ended with $ and were changed in version 1.3.0 to allow starting with $, because it has a better UX with autocomplete and is easier to visually scan for. Both have been supported but version 2.0 will remove type support for the suffix version. It will still work in code so it doesn't break your apps, but we will fully remove it in 3.0 and suggest you at least start using the new pattern.
+
+A recommended way to find and replace all of instances of the old method is to find `$=` in all files.
 
 ```jsx
 function Component() {
