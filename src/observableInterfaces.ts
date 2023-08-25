@@ -270,14 +270,14 @@ export interface ObservablePersistRemoteGetParams<T> {
 }
 export interface ObservablePersistRemote {
     get<T>(params: ObservablePersistRemoteGetParams<T>): void;
-    save?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<{ changes?: object; dateModified?: number }>;
+    save?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
 }
 
 export interface ObservablePersistRemoteSimple<T> {
     get(params: ObservablePersistRemoteGetParams<T>): Promise<T>;
     set?(
         params: ObservablePersistRemoteSaveParams<T>,
-    ): Promise<{ changes?: object | undefined; dateModified?: number }>;
+    ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
 }
 
 export interface ObservablePersistState {

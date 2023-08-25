@@ -399,7 +399,9 @@ async function doChange(
                     valueAtPath,
                     prevAtPath,
                     value,
-                }).then(({ changes, dateModified }) => ({ changes, dateModified, pathStr }));
+                }).then((saved) =>
+                    saved ? { changes: saved.changes, dateModified: saved.dateModified, pathStr } : undefined,
+                );
             }),
         );
 
