@@ -211,8 +211,7 @@ export interface ObservablePersistenceConfigLocalOptions {
     };
     asyncStorage?: {
         AsyncStorage: AsyncStorageStatic;
-        preloadAllKeys?: boolean;
-        preloadKeys?: string[];
+        preload?: boolean | string[];
     };
 }
 export interface ObservablePersistenceConfig {

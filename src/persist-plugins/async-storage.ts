@@ -4,7 +4,7 @@ import type {
     ObservablePersistenceConfigLocalOptions,
     PersistMetadata,
 } from '@legendapp/state';
-import { setAtPath } from '@legendapp/state';
+import { isArray, setAtPath } from '@legendapp/state';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
 const MetadataSuffix = '__m';
@@ -20,14 +20,14 @@ export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
         const storageConfig = config.asyncStorage;
         if (storageConfig) {
             AsyncStorage = storageConfig.AsyncStorage;
-            const { preloadAllKeys, preloadKeys } = storageConfig;
+            const { preload } = storageConfig;
             try {
-                if (preloadAllKeys) {
+                if (preload === true) {
                     // If preloadAllKeys, load all keys and preload tables on startup
                     tables = await AsyncStorage.getAllKeys();
-                } else if (preloadKeys) {
+                } else if (isArray(preload)) {
                     // If preloadKeys, preload load the tables on startup
-                    tables = preloadKeys;
+                    tables = preload;
                 }
                 if (tables) {
                     const values = await AsyncStorage.multiGet(tables);
