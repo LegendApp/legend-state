@@ -221,11 +221,11 @@ export interface ObservablePersistenceConfig {
     saveTimeout?: number;
     dateModifiedKey?: string;
 }
-export interface PersistOptions<T = any> {
+export interface PersistOptions<T = any, TState = {}> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
+    persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T, TState>;
 }
 
 export interface PersistMetadata {
@@ -254,10 +254,10 @@ export interface ObservablePersistRemoteSaveParams<T> {
     prevAtPath: any;
     value: T;
 }
-export interface ObservablePersistRemoteGetParams<T> {
-    state: Observable<ObservablePersistState>;
+export interface ObservablePersistRemoteGetParams<T, TState = {}> {
+    state: Observable<ObservablePersistState & TState>;
     obs: ObservableReadable<T>;
-    options: PersistOptions<T>;
+    options: PersistOptions<T, TState>;
     dateModified?: number;
     onLoad: () => void;
     onChange: (params: {
@@ -268,13 +268,13 @@ export interface ObservablePersistRemoteGetParams<T> {
         dateModified?: number | undefined;
     }) => void | Promise<void>;
 }
-export interface ObservablePersistRemoteClass {
-    get<T>(params: ObservablePersistRemoteGetParams<T>): void;
+export interface ObservablePersistRemoteClass<TState = {}> {
+    get<T>(params: ObservablePersistRemoteGetParams<T, TState>): void;
     set?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
 }
 
-export interface ObservablePersistRemoteFunctions<T = any> {
-    get(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
+export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
+    get(params: ObservablePersistRemoteGetParams<T, TState>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSaveParams<T>,
     ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
