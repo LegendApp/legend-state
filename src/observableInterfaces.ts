@@ -265,7 +265,7 @@ export interface ObservablePersistRemoteGetParams<T> {
         path?: string[];
         pathTypes?: TypeAtPath[];
         mode?: 'assign' | 'set' | 'dateModified';
-        dateModified: number | undefined;
+        dateModified?: number | undefined;
     }) => void | Promise<void>;
 }
 export interface ObservablePersistRemoteClass {
@@ -274,7 +274,7 @@ export interface ObservablePersistRemoteClass {
 }
 
 export interface ObservablePersistRemoteFunctions<T = any> {
-    get(params: ObservablePersistRemoteGetParams<T>): Promise<T>;
+    get(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSaveParams<T>,
     ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
