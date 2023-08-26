@@ -1,3 +1,4 @@
+import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { symbolGetNode, symbolOpaque } from './globals';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
@@ -199,6 +200,27 @@ export interface PersistOptionsRemote<T = any> {
     };
     onBeforeSaveRemote?: () => void;
     onSaveRemote?: () => void;
+}
+export interface ObservablePersistenceConfigLocalOptions {
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
+    indexedDB?: {
+        databaseName: string;
+        version: number;
+        tableNames: string[];
+    };
+    asyncStorage?: {
+        AsyncStorage: AsyncStorageStatic;
+        preloadAllKeys?: boolean;
+        preloadKeys?: string[];
+    };
+}
+export interface ObservablePersistenceConfig {
+    persistLocal?: ClassConstructor<ObservablePersistLocal>;
+    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
+    saveTimeout?: number;
+    dateModifiedKey?: string;
 }
 export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;
@@ -431,22 +453,7 @@ export interface ObserveEventCallback<T> {
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }
-export interface ObservablePersistenceConfigLocalOptions {
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
-    indexedDB?: {
-        databaseName: string;
-        version: number;
-        tableNames: string[];
-    };
-}
-export interface ObservablePersistenceConfig {
-    persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote>;
-    persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
-    saveTimeout?: number;
-    dateModifiedKey?: string;
-}
+
 export type ObservableProxy<T extends Record<string, any>> = {
     [K in keyof T]: ObservableComputed<T[K]>;
 } & ObservableBaseFns<T> & {

@@ -144,7 +144,7 @@ async function updateMetadataImmediate<T>(
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
         metadatas.set(obs, metadata);
-        await persistenceLocal!.updateMetadata(table, metadata, config);
+        await persistenceLocal!.setMetadata(table, metadata, config);
 
         if (modified) {
             obsState.dateModified.set(modified);
@@ -497,7 +497,7 @@ async function loadLocal<T>(
             mapPersistences.set(localPersistence, mapValue);
             if (persistenceLocal.initialize) {
                 const initializePromise = persistenceLocal.initialize?.(
-                    observablePersistConfiguration.persistLocalOptions,
+                    observablePersistConfiguration.persistLocalOptions || {},
                 );
                 if (isPromise(initializePromise)) {
                     await initializePromise;
@@ -539,13 +539,6 @@ async function loadLocal<T>(
         if (value !== null && value !== undefined) {
             // eslint-disable-next-line prefer-const
             let { adjustData, fieldTransforms } = config;
-            if (fieldTransforms) {
-                const valueLoaded = persistenceLocal.getTableTransformed?.(table, config);
-                if (valueLoaded) {
-                    value = valueLoaded;
-                    fieldTransforms = undefined;
-                }
-            }
 
             value = adjustLoadData(value, { adjustData, fieldTransforms }, true);
 
