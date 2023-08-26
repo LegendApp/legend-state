@@ -218,11 +218,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                 const { track, noArgs, listener } = listenerFn;
                 if (!listenersNotified.has(listener)) {
                     const ok =
-                        track === true || track === 'shallow'
-                            ? level <= 0
-                            : track === optimized
-                            ? whenOptimizedOnlyIf && level <= 0
-                            : true;
+                        track === true ? level <= 0 : track === optimized ? whenOptimizedOnlyIf && level <= 0 : true;
 
                     // Notify if listener is not shallow or if this is the first level
                     if (ok) {

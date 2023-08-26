@@ -8,21 +8,17 @@ export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
 
-export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
-export const extraPrimitiveProps = new Map<string | symbol, any>();
-
 export const globalState = {
     isLoadingLocal: false,
     isLoadingRemote: false,
     isMerging: false,
-    noDepWarn: false,
 };
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     root.activate?.();
-    if (root.computedChildrenNeedingActivation) {
-        root.computedChildrenNeedingActivation.forEach(checkActivate);
-        delete root.computedChildrenNeedingActivation;
+    if (root.toActivate) {
+        root.toActivate.forEach(checkActivate);
+        delete root.toActivate;
     }
 }
 
@@ -177,10 +173,10 @@ export function extractFunction(
     node.functions.set(key, fnOrComputed);
 
     if (computedChildNode) {
-        computedChildNode.computedChildOfNode = getChildNode(node, key);
-        if (!node.root.computedChildrenNeedingActivation) {
-            node.root.computedChildrenNeedingActivation = [];
+        computedChildNode.parentOther = getChildNode(node, key);
+        if (!node.root.toActivate) {
+            node.root.toActivate = [];
         }
-        node.root.computedChildrenNeedingActivation.push(computedChildNode);
+        node.root.toActivate.push(computedChildNode);
     }
 }

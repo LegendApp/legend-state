@@ -38,11 +38,11 @@ export function proxy<T extends Record<string, any>, T2 = T>(
             target = computed(() => get(key), (set ? (value) => set(key, value as T2) : undefined)!);
             mapTargets.set(key, target);
             extractFunction(node, key, target, getNode(target));
-            if (node.computedChildOfNode) {
+            if (node.parentOther) {
                 onChange(getNode(target), ({ value, getPrevious }) => {
                     const previous = getPrevious();
                     // Set the raw value on the proxy's parent
-                    setNodeValue(node.computedChildOfNode!, node.root._);
+                    setNodeValue(node.parentOther!, node.root._);
                     // Notify the proxy
                     notify(getChildNode(node, key), value, previous, 0);
                 });

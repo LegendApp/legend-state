@@ -5,7 +5,6 @@ export { Reactive, configureReactive } from './src/react/Reactive';
 export type { IReactive } from './src/react/Reactive';
 export * from './src/react/Show';
 export * from './src/react/Switch';
-export * from './src/react/enableLegendStateReact';
 export * from './src/react/reactInterfaces';
 export * from './src/react/reactive-observer';
 export * from './src/react/useComputed';
@@ -18,13 +17,3 @@ export * from './src/react/useObserve';
 export * from './src/react/useObserveEffect';
 export * from './src/react/useSelector';
 export * from './src/react/useUnmount';
-
-// TODOV2: Remove this and document how to import it manually in upgrade notes
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { ObservableBaseFns } from '@legendapp/state';
-import type { ReactFragment } from 'react';
-
-declare module '@legendapp/state' {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-unused-vars
-    export interface ObservableBaseFns<T> extends ReactFragment {}
-}

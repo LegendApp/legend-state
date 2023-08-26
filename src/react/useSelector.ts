@@ -1,7 +1,7 @@
 import { computeSelector, isPromise, Selector, tracking, trackSelector } from '@legendapp/state';
 import React, { useRef } from 'react';
-import { UseSelectorOptions } from 'src/react/reactInterfaces';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import type { UseSelectorOptions } from './reactInterfaces';
 
 interface SelectorFunctions<T> {
     subscribe: (onStoreChange: () => void) => () => void;

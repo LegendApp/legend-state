@@ -1,5 +1,5 @@
 import type { Observable, ObservableObject, ObservableReadable } from '@legendapp/state';
-import { findIDKey, getNode, internal, isArray, isFunction, optimized } from '@legendapp/state';
+import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
 import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -8,7 +8,6 @@ const autoMemoCache = new Map<FC<any>, FC<any>>();
 
 export function For<T, TProps>({
     each,
-    eachValues,
     optimized: isOptimized,
     item,
     itemProps,
@@ -23,22 +22,11 @@ export function For<T, TProps>({
     sortValues?: (A: T, B: T, AKey: string, BKey: string) => number;
     children?: (value: Observable<T>) => ReactElement;
 }): ReactElement | null {
-    if (!each && !eachValues) return null;
-
-    if (eachValues) {
-        each = eachValues;
-        if (process.env.NODE_ENV === 'development' && !internal.globalState.noDepWarn) {
-            console.warn(
-                '[legend-state]: "eachValues" prop is deprecated and will be removed in version 2.0. Please use "each" prop instead.',
-            );
-        }
-    }
-
-    const obs = each || eachValues;
+    if (!each) return null;
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const value = useSelector(() => obs!.get(isOptimized ? optimized : true));
+    const value = useSelector(() => each!.get(isOptimized ? optimized : true));
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
@@ -70,7 +58,7 @@ export function For<T, TProps>({
     if (isArr) {
         // Get the appropriate id field
         const v0 = value[0] as any;
-        const node = getNode(obs!);
+        const node = getNode(each!);
         const length = (value as any[]).length;
 
         const idField =

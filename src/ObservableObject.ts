@@ -1,8 +1,6 @@
 import { beginBatch, endBatch, notify } from './batching';
 import {
     checkActivate,
-    extraPrimitiveActivators,
-    extraPrimitiveProps,
     extractFunction,
     findIDKey,
     get,
@@ -86,6 +84,10 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     return ret;
 }
 
+function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean) {
+    return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
+}
+
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
@@ -128,8 +130,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
     const isMap = obj instanceof Map;
 
-    const keys: string[] = obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
-    const keysPrev: string[] = prevValue ? (isMap ? Array.from(prevValue.keys()) : Object.keys(prevValue)) : [];
+    const keys: string[] = getKeys(obj, isArr, isMap);
+    const keysPrev: string[] = getKeys(prevValue, isArr, isMap);
+    const length = (keys || obj)?.length || 0;
+    const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
     let idField: string | ((value: any) => string) | undefined;
     let isIdFieldFunction;
@@ -202,14 +206,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     }
 
     if (obj && !isPrimitive(obj)) {
-        const length = keys.length;
-
-        hasADiff = hasADiff || keys?.length !== keysPrev?.length;
+        hasADiff = hasADiff || length !== lengthPrev;
         const isArrDiff = hasADiff;
         let didMove = false;
 
         for (let i = 0; i < length; i++) {
-            const key = keys[i];
+            const key = isArr ? i + '' : keys[i];
             const value = isMap ? obj.get(key) : (obj as any)[key];
             const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
@@ -371,20 +373,6 @@ const proxyHandler: ProxyHandler<any> = {
         const property = observableProperties.get(p);
         if (property) {
             return property.get(node);
-        }
-
-        const isValuePrimitive = isPrimitive(value);
-
-        // If accessing a key that doesn't already exist, and this node has been activated with extra keys
-        // then return the values that were set. This is used by enableLegendStateReact for example.
-        if (value === undefined || value === null || isValuePrimitive) {
-            if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
-                node.isActivatedPrimitive = true;
-                const vPrim = extraPrimitiveProps.get(p);
-                if (vPrim !== undefined) {
-                    return isFunction(vPrim) ? vPrim(getProxy(node)) : vPrim;
-                }
-            }
         }
 
         const vProp = value?.[p];

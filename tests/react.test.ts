@@ -4,20 +4,16 @@
 import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { StrictMode, createElement, useReducer, useState } from 'react';
-import { enableReactDirectRender } from '../src/config/enableReactDirectRender';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableInterfaces';
 import { For } from '../src/react/For';
 import { Show } from '../src/react/Show';
-import { enableLegendStateReact } from '../src/react/enableLegendStateReact';
 import { observer } from '../src/react/reactive-observer';
 import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
-
-enableReactDirectRender();
 
 type TestObject = { id: string; label: string };
 
@@ -557,32 +553,6 @@ describe('useObservableReducer', () => {
             { id: 2, text: 'Lennon Wall pic', done: false },
             { id: 3, text: 'test', done: false },
         ]);
-    });
-});
-
-describe('Render direct', () => {
-    enableLegendStateReact();
-    test('Render direct primitive', () => {
-        const obs = observable('hi');
-        function Test() {
-            return createElement('div', undefined, obs);
-        }
-        const { container } = render(createElement(Test));
-
-        const items = container.querySelectorAll('div');
-        expect(items.length).toEqual(1);
-        expect(items[0].textContent).toEqual('hi');
-    });
-    test('Render direct object', () => {
-        const obs = observable({ test: 'hi' });
-        function Test() {
-            return createElement('div', undefined, obs.test);
-        }
-        const { container } = render(createElement(Test));
-
-        const items = container.querySelectorAll('div');
-        expect(items.length).toEqual(1);
-        expect(items[0].textContent).toEqual('hi');
     });
 });
 

@@ -38,7 +38,7 @@ interface MMKVConfiguration {
 }
 
 type Nullable<T> = T | null | undefined;
-export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; // true === shallow
+export type TrackingType = undefined | true | symbol; // true === shallow
 
 export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;
@@ -327,7 +327,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableRoot {
     _: any;
     locked?: boolean;
-    computedChildrenNeedingActivation?: NodeValue[];
+    toActivate?: NodeValue[];
     set?: (value: any) => void;
     activate?: () => void;
 }
@@ -386,7 +386,6 @@ export interface NodeValueListener {
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
-    isActivatedPrimitive?: boolean;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
@@ -397,7 +396,7 @@ interface BaseNodeValue {
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
-    computedChildOfNode?: NodeValue;
+    parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
 }
 
