@@ -214,15 +214,14 @@ export interface PersistMetadata {
 }
 
 export interface ObservablePersistLocal {
-    initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): void | Promise<void>;
-    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
-    getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
-    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
-    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
-    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    initialize?(config: ObservablePersistenceConfigLocalOptions): void | Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
+    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
+    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
+    setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
+    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
 export interface ObservablePersistRemoteSaveParams<T, T2> {
     state: Observable<ObservablePersistState>;
