@@ -11,15 +11,19 @@ function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => an
 
         if (!isPromise(ret) && (checkReady ? isObservableValueReady(ret) : ret)) {
             value = ret;
-            // If value is truthy then run the effect
-            effect?.(ret);
 
-            // Set cancel so that observe does not track
+            // Set cancel so that observe does not track anymore
             e.cancel = true;
         }
+
+        return value;
+    }
+    function doEffect() {
+        // If value is truthy then run the effect
+        effect?.(value!);
     }
     // Run in an observe
-    observe(run);
+    observe(run, doEffect);
 
     // If first run resulted in a truthy value just return it.
     // It will have set e.cancel so no need to dispose
