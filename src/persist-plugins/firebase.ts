@@ -482,7 +482,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
             const saveResults = pendingSaveResults.get(syncPath);
 
-            log?.('saved', { value, saves: saveResults?.saved });
+            log?.('Saved', { value, saves: saveResults?.saved });
 
             if (saveResults) {
                 const { saved } = saveResults;
