@@ -196,7 +196,7 @@ export interface PersistOptionsRemote<T = any> {
         save?: (value: T) => T | Promise<T>;
     };
     firebase?: {
-        syncPath: (uid: string) => `/${string}/`;
+        syncPath: (uid: string | undefined) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
         dateModifiedKey?: string;

@@ -23,8 +23,22 @@ import {
     whenReady,
 } from '@legendapp/state';
 import { internal as internalPersist, transformObject, transformPath } from '@legendapp/state/persist';
-import type { User } from 'firebase/auth';
+import { getAuth, type User } from 'firebase/auth';
 import type { DataSnapshot } from 'firebase/database';
+import {
+    DatabaseReference,
+    Unsubscribe,
+    getDatabase,
+    onChildAdded,
+    onChildChanged,
+    onValue,
+    orderByChild,
+    query,
+    ref,
+    serverTimestamp,
+    startAt,
+    update,
+} from 'firebase/database';
 const { symbolDelete } = internal;
 const { observablePersistConfiguration } = internalPersist;
 
@@ -35,8 +49,10 @@ function getDateModifiedKey(dateModifiedKey: string | undefined) {
     return dateModifiedKey || observablePersistConfiguration.dateModifiedKey || '@';
 }
 
-export interface FirebaseFns {
-    getCurrentUser: () => string;
+const isInitialized = observable(false);
+
+interface FirebaseFns {
+    getCurrentUser: () => string | undefined;
     ref: (path: string) => any;
     orderByChild: (ref: any, child: string, startAt: number) => any;
     once: (query: any, callback: (snapshot: DataSnapshot) => unknown, onError: (error: Error) => void) => () => void;
@@ -52,12 +68,12 @@ export interface FirebaseFns {
     ) => () => void;
     serverTimestamp: () => any;
     update: (object: object) => Promise<void>;
-    onAuthStateChanged: (cb: (user: User) => void) => void;
+    onAuthStateChanged: (cb: (user: User | null) => void) => void;
 }
 
 type LocalState<T> = { changes: object | T; timeout?: any };
 
-export const symbolSaveValue = Symbol('___obsSaveValue');
+const symbolSaveValue = Symbol('___obsSaveValue');
 
 interface SaveInfo {
     [symbolSaveValue]: any;
@@ -94,7 +110,7 @@ interface SaveState {
     >;
 }
 
-export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
+class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected _batch: Record<string, any> = {};
     private fns: FirebaseFns;
     private _pathsLoadStatus = observable<
@@ -130,14 +146,21 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
         this.user = observablePrimitive<string>();
         this.SaveTimeout = observablePersistConfiguration?.saveTimeout ?? 500;
 
-        this.fns.onAuthStateChanged((user) => {
-            this.user.set(user?.uid);
+        when(isInitialized, () => {
+            this.fns.onAuthStateChanged((user) => {
+                this.user.set(user?.uid);
+            });
         });
     }
     public async get<T>(params: ObservablePersistRemoteGetParams<T>) {
         const { obs, options } = params;
-        const { requireAuth } = options.remote!;
-        let { waitForLoad } = options.remote!;
+        const { remote } = options;
+        if (!remote || !remote.firebase) {
+            // If the plugin is set globally but it has no firebase options this plugin can't do anything
+            return;
+        }
+        const { requireAuth } = remote;
+        let { waitForLoad } = remote;
 
         if (requireAuth) {
             await whenReady(this.user);
@@ -378,11 +401,19 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
             }
         }
     }
-    public async set<T>({ options, path, valueAtPath, pathTypes, obs }: ObservablePersistRemoteSetParams<T>): Promise<{
-        changes?: object;
-        dateModified?: number;
-    }> {
-        const { requireAuth, waitForSave, saveTimeout, firebase } = options.remote!;
+    public async set<T>({ options, path, valueAtPath, pathTypes, obs }: ObservablePersistRemoteSetParams<T>): Promise<
+        | {
+              changes?: object;
+              dateModified?: number;
+          }
+        | undefined
+    > {
+        const { remote } = options;
+        // If the plugin is set globally but it has no firebase options this plugin can't do anything
+        if (!remote || !remote.firebase) {
+            return;
+        }
+        const { requireAuth, waitForSave, saveTimeout, firebase } = remote;
         const { log } = firebase!;
 
         if (requireAuth) {
@@ -897,7 +928,7 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
     }
 }
 
-export function splitLargeObject(obj: Record<string, any>, limit: number): Record<string, any>[] {
+function splitLargeObject(obj: Record<string, any>, limit: number): Record<string, any>[] {
     const parts: Record<string, any>[] = [{}];
     let sizeCount = 0;
 
@@ -940,4 +971,36 @@ export function splitLargeObject(obj: Record<string, any>, limit: number): Recor
 
     recursiveSplit(obj);
     return parts;
+}
+
+export class ObservablePersistFirebase extends ObservablePersistFirebaseBase {
+    constructor() {
+        super({
+            getCurrentUser: () => getAuth().currentUser?.uid,
+            ref: (path: string) => ref(getDatabase(), path),
+            orderByChild: (ref: DatabaseReference, child: string, start: number) =>
+                query(ref, orderByChild(child), startAt(start)),
+            update: (object: object) => update(ref(getDatabase()), object),
+            once: (ref: DatabaseReference, callback, callbackError) => {
+                let unsubscribe: Unsubscribe | undefined;
+                const cb = (snap: DataSnapshot) => {
+                    if (unsubscribe) {
+                        unsubscribe();
+                        unsubscribe = undefined;
+                    }
+                    callback(snap);
+                };
+                unsubscribe = onValue(ref, cb, callbackError);
+                return unsubscribe;
+            },
+            onChildAdded,
+            onChildChanged,
+            serverTimestamp,
+            onAuthStateChanged: (cb) => getAuth().onAuthStateChanged(cb),
+        });
+    }
+}
+
+export function initializeLegendFirebase() {
+    isInitialized.set(true);
 }
