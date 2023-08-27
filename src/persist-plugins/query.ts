@@ -5,6 +5,7 @@ import {
     type ObservablePersistRemoteSaveParams,
 } from '@legendapp/state';
 import {
+    InfiniteQueryObserver,
     MutationObserver,
     QueryClient,
     QueryKey,
@@ -12,6 +13,7 @@ import {
     UseBaseQueryOptions,
     UseMutationOptions,
     notifyManager,
+    useQueryClient,
 } from '@tanstack/react-query';
 
 type ObservableQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey> = Omit<
@@ -19,17 +21,36 @@ type ObservableQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey e
     'queryKey'
 > & { queryKey?: TQueryKey | (() => TQueryKey) };
 
-export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>(
-    queryClient: QueryClient,
-    options: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
-    mutationOptions?: UseMutationOptions<TData, TError, void>,
-    Observer?: typeof QueryObserver,
-): ObservablePersistRemoteFunctions<
+type Params<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey> = {
+    query: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>;
+    mutation?: UseMutationOptions<TData, TError, void>;
+    type?: 'Query' | 'Infinite';
+} & (
+    | {
+          queryClient: QueryClient;
+          useContext?: false | undefined | never;
+      }
+    | {
+          queryClient?: QueryClient;
+          useContext?: true;
+      }
+);
+
+export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>({
+    query: options,
+    mutation: mutationOptions,
+    type = 'Query',
+    queryClient,
+    useContext,
+}: Params<TQueryFnData, TError, TData, TQueryData, TQueryKey>): ObservablePersistRemoteFunctions<
     TObs,
     { query: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> }
 > {
+    if (useContext) {
+        queryClient = queryClient || useQueryClient();
+    }
     // Set up the defaults like useBaseQuery does
-    const defaultedOptions = queryClient.defaultQueryOptions(
+    const defaultedOptions = queryClient!.defaultQueryOptions(
         options as UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
     );
 
@@ -46,7 +67,7 @@ export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQue
         defaultedOptions.onSettled = notifyManager.batchCalls(defaultedOptions.onSettled);
     }
 
-    Observer = Observer || QueryObserver;
+    const Observer = type === 'Query' ? QueryObserver : (InfiniteQueryObserver as typeof QueryObserver);
 
     const ret: ObservablePersistRemoteFunctions<
         unknown,
@@ -93,7 +114,7 @@ export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQue
             updateQueryOptions(defaultedOptions);
 
             // Create the observer
-            observer = new Observer!<TQueryFnData, TError, TData, TQueryData, TQueryKey>(queryClient, latestOptions);
+            observer = new Observer!<TQueryFnData, TError, TData, TQueryData, TQueryKey>(queryClient!, latestOptions);
 
             // Get the initial optimistic results if it's already cached
             const result = observer!.getOptimisticResult(latestOptions);
@@ -120,7 +141,7 @@ export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQue
     };
 
     if (mutationOptions) {
-        const mutator = new MutationObserver(queryClient, mutationOptions);
+        const mutator = new MutationObserver(queryClient!, mutationOptions);
         // When the observable changes call the mutator function
         ret.set = async ({ value }: ObservablePersistRemoteSaveParams<any>) => {
             mutator.mutate(value);
