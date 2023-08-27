@@ -49,8 +49,6 @@ function getDateModifiedKey(dateModifiedKey: string | undefined) {
     return dateModifiedKey || observablePersistConfiguration.dateModifiedKey || '@';
 }
 
-const isInitialized = observable(false);
-
 interface FirebaseFns {
     getCurrentUser: () => string | undefined;
     ref: (path: string) => any;
@@ -146,10 +144,8 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         this.user = observablePrimitive<string>();
         this.SaveTimeout = observablePersistConfiguration?.saveTimeout ?? 500;
 
-        when(isInitialized, () => {
-            this.fns.onAuthStateChanged((user) => {
-                this.user.set(user?.uid);
-            });
+        this.fns.onAuthStateChanged((user) => {
+            this.user.set(user?.uid);
         });
     }
     public async get<T>(params: ObservablePersistRemoteGetParams<T>) {
@@ -999,8 +995,4 @@ export class ObservablePersistFirebase extends ObservablePersistFirebaseBase {
             onAuthStateChanged: (cb) => getAuth().onAuthStateChanged(cb),
         });
     }
-}
-
-export function initializeLegendFirebase() {
-    isInitialized.set(true);
 }
