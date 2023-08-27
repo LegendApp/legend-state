@@ -200,6 +200,7 @@ export interface PersistOptionsRemote<T = any> {
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
         dateModifiedKey?: string;
+        log?: (message?: any, ...optionalParams: any[]) => void;
     };
     onBeforeSaveRemote?: () => void;
     onSaveRemote?: () => void;

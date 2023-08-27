@@ -1,6 +1,5 @@
 import {
     Observable,
-    ObservableEvent,
     ObservablePersistRemoteClass,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
@@ -10,7 +9,6 @@ import {
     TypeAtPath,
     constructObjectWithPath,
     deconstructObjectWithPath,
-    event,
     hasOwnProperty,
     internal,
     isArray,
@@ -79,7 +77,7 @@ interface SaveState {
     timeout?: any;
     pendingSaves: Map<string, PendingSaves>;
     savingSaves?: Map<string, PendingSaves>;
-    eventSaved?: ObservableEvent;
+    eventSaved?: Observable<true | Error | undefined>;
     numSavesPending: number;
     pendingSaveResults: Map<
         string,
@@ -94,7 +92,6 @@ interface SaveState {
             }[];
         }
     >;
-    onSaveError?: (err: Error) => void;
 }
 
 export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
@@ -139,7 +136,7 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
     }
     public async get<T>(params: ObservablePersistRemoteGetParams<T>) {
         const { obs, options } = params;
-        const { requireAuth, onSaveError } = options.remote!;
+        const { requireAuth } = options.remote!;
         let { waitForLoad } = options.remote!;
 
         if (requireAuth) {
@@ -156,7 +153,6 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
         const saveState: SaveState = {
             pendingSaveResults: new Map(),
             pendingSaves: new Map(),
-            onSaveError,
             numSavesPending: 0,
         };
         this.saveStates.set(obs, saveState);
@@ -386,73 +382,74 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
         changes?: object;
         dateModified?: number;
     }> {
-        const { requireAuth, waitForSave, saveTimeout, onBeforeSaveRemote, onSaveError } = options.remote!;
+        const { requireAuth, waitForSave, saveTimeout, firebase } = options.remote!;
+        const { log } = firebase!;
 
         if (requireAuth) {
             await whenReady(this.user);
         }
 
-        try {
-            if (valueAtPath === undefined) {
-                valueAtPath = null;
+        if (valueAtPath === undefined) {
+            valueAtPath = null;
+        }
+
+        const value = constructObjectWithPath(path as string[], clone(valueAtPath), pathTypes) as unknown as T;
+        const pathCloned = path.slice() as string[];
+        const syncPath = options.remote!.firebase!.syncPath(this.fns.getCurrentUser());
+
+        log?.('Saving', value);
+
+        const status$ = this._pathsLoadStatus[syncPath];
+        if (!status$.canSave.peek()) {
+            // Wait for load
+            await when(status$.canSave);
+        }
+
+        if (waitForSave) {
+            await (isObservable(waitForSave)
+                ? whenReady(waitForSave)
+                : isFunction(waitForSave)
+                ? waitForSave(value, pathCloned)
+                : waitForSave);
+        }
+
+        const saveState = this.saveStates.get(obs)!;
+
+        const { pendingSaveResults, pendingSaves } = saveState;
+
+        if (!pendingSaves.has(syncPath)) {
+            pendingSaves.set(syncPath, { options, saves: {} });
+            pendingSaveResults.set(syncPath, { saved: [] });
+        }
+        const pending = pendingSaves.get(syncPath)!.saves;
+
+        this._updatePendingSave(pathCloned, value as unknown as object, pending);
+
+        if (!saveState.eventSaved) {
+            saveState.eventSaved = observablePrimitive();
+        }
+        // Keep the current eventSaved. This will get reassigned once the timeout activates.
+        const eventSaved = saveState.eventSaved;
+
+        const timeout = saveTimeout ?? this.SaveTimeout;
+
+        if (timeout) {
+            if (saveState.timeout) {
+                clearTimeout(saveState.timeout);
             }
+            saveState.timeout = setTimeout(this._onTimeoutSave.bind(this, saveState), timeout);
+        } else {
+            this._onTimeoutSave(saveState);
+        }
 
-            const value = constructObjectWithPath(path as string[], clone(valueAtPath), pathTypes) as unknown as T;
-            const pathCloned = path.slice() as string[];
-            const syncPath = options.remote!.firebase!.syncPath(this.fns.getCurrentUser());
+        const savedOrError = await when(eventSaved);
 
-            if (__DEV__) {
-                console.log('Saving', value);
-            }
-
-            const status$ = this._pathsLoadStatus[syncPath];
-            if (!status$.canSave.peek()) {
-                // Wait for load
-                await when(status$.canSave);
-            }
-
-            if (waitForSave) {
-                await (isObservable(waitForSave)
-                    ? whenReady(waitForSave)
-                    : isFunction(waitForSave)
-                    ? waitForSave(value, pathCloned)
-                    : waitForSave);
-            }
-
-            const saveState = this.saveStates.get(obs)!;
-
-            const { pendingSaveResults, pendingSaves } = saveState;
-
-            if (!pendingSaves.has(syncPath)) {
-                pendingSaves.set(syncPath, { options, saves: {} });
-                pendingSaveResults.set(syncPath, { saved: [] });
-            }
-            const pending = pendingSaves.get(syncPath)!.saves;
-
-            this._updatePendingSave(pathCloned, value as unknown as object, pending);
-
-            if (!saveState.eventSaved) {
-                saveState.eventSaved = event();
-            }
-            // Keep the current eventSaved. This will get reassigned once the timeout activates.
-            const eventSaved = saveState.eventSaved;
-
-            const timeout = saveTimeout ?? this.SaveTimeout;
-
-            if (timeout) {
-                if (saveState.timeout) {
-                    clearTimeout(saveState.timeout);
-                }
-                saveState.timeout = setTimeout(this._onTimeoutSave.bind(this, saveState, onBeforeSaveRemote), timeout);
-            } else {
-                this._onTimeoutSave(saveState, onBeforeSaveRemote);
-            }
-
-            await when(eventSaved);
-
+        if (savedOrError === true) {
             this.retryListens();
 
             const saveResults = pendingSaveResults.get(syncPath);
+
+            log?.('saved', { value, saves: saveResults?.saved });
 
             if (saveResults) {
                 const { saved } = saveResults;
@@ -496,9 +493,10 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
                     };
                 }
             }
-        } catch (err) {
-            onSaveError?.(err as Error);
+        } else {
+            throw savedOrError;
         }
+
         return {};
     }
     private _constructBatch(
@@ -543,8 +541,9 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
 
         return batches;
     }
-    private async _onTimeoutSave(saveState: SaveState, onBeforeSaveRemote: (() => void) | undefined) {
-        const { pendingSaves, onSaveError, eventSaved } = saveState;
+    private async _onTimeoutSave(saveState: SaveState) {
+        const { pendingSaves, eventSaved } = saveState;
+
         saveState.timeout = undefined;
         saveState.eventSaved = undefined;
         saveState.numSavesPending++;
@@ -561,11 +560,6 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
             saveState.pendingSaves = new Map();
 
             if (batches.length > 0) {
-                onBeforeSaveRemote?.();
-                if (__DEV__) {
-                    console.log('batches', batches);
-                }
-
                 const promises: Promise<{ didSave?: boolean; error?: any }>[] = [];
                 for (let i = 0; i < batches.length; i++) {
                     const batch = batches[i];
@@ -576,18 +570,15 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
                 const errors = results.filter((result) => result.error);
                 if (errors.length === 0) {
                     saveState.numSavesPending--;
-                    eventSaved?.fire();
+                    eventSaved?.set(true);
                 } else {
-                    onSaveError?.(errors[0].error);
+                    eventSaved?.set(errors[0].error);
                 }
             }
         }
     }
     private async _saveBatch(batch: Record<string, any>): Promise<any> {
         const length = JSON.stringify(batch).length;
-        if (__DEV__) {
-            console.log({ length });
-        }
 
         let error: Error | undefined = undefined;
         // Firebase has a maximum limit of 16MB per save so we constrain our saves to
@@ -595,40 +586,25 @@ export class ObsPersistFirebaseBase implements ObservablePersistRemoteClass {
         if (length > 12e6) {
             const parts = splitLargeObject(batch, 6e6);
             let didSave = true;
-            if (__DEV__) {
-                console.log('parts', parts);
-            }
+
             // TODO: Option for logging
             for (let i = 0; i < parts.length; i++) {
                 const ret = await this._saveBatch(parts[i]);
                 if (ret.error) {
-                    if (__DEV__) {
-                        console.error('error', ret, parts[i]);
-                    }
                     error = ret.error;
                 } else {
-                    if (__DEV__) {
-                        console.log('saved batch', ret);
-                    }
-
                     didSave = didSave && ret.didSave;
                 }
             }
             return error ? { error } : { didSave };
         } else {
-            // TODO: Option for number of retries
             for (let i = 0; i < 3; i++) {
                 try {
                     await this.fns.update(batch);
-                    if (__DEV__) {
-                        console.log('saved', batch);
-                    }
                     return { didSave: true };
                 } catch (err) {
                     error = err as Error;
-                    if (__DEV__) {
-                        console.error(err, batch);
-                    }
+
                     await new Promise<void>((resolve) => setTimeout(resolve, 500));
                 }
             }

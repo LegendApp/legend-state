@@ -52,7 +52,6 @@ interface LocalState<TState = {}> {
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemoteClass<TState>;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
-    onSaveRemote?: () => void;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -181,7 +180,7 @@ function updateMetadata<T, TState = {}>(
     );
 }
 
-interface QueuedChange<T = any, TState = {}> {
+interface QueuedChange<T = any, TState = any> {
     inRemoteChange: boolean;
     isApplyingPending: boolean;
     obs: Observable<T>;
@@ -380,10 +379,12 @@ async function doChange(
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
         await when(
-            () => obsState.isLoadedRemote.get() || (configRemote!.allowSaveIfError && obsState.remoteError.get()),
+            () => obsState.isLoadedRemote.get() || (configRemote?.allowSaveIfError && obsState.remoteError.get()),
         );
 
         const value = obs.peek();
+
+        configRemote?.onSaveRemote?.();
 
         const saves = await Promise.all(
             changesRemote.map(async (change) => {
@@ -399,9 +400,11 @@ async function doChange(
                     valueAtPath,
                     prevAtPath,
                     value,
-                }).then((saved) =>
-                    saved ? { changes: saved.changes, dateModified: saved.dateModified, pathStr } : undefined,
-                );
+                })
+                    .then((saved) =>
+                        saved ? { changes: saved.changes, dateModified: saved.dateModified, pathStr } : undefined,
+                    )
+                    .catch((err) => configRemote?.onSaveError?.(err));
             }),
         );
 
@@ -450,7 +453,7 @@ async function doChange(
                     updateMetadata(obs, localState, obsState, persistOptions, metadata);
                 }
             }
-            localState.onSaveRemote?.();
+            configRemote?.onSaveRemote?.();
         }
     }
 }
@@ -641,7 +644,6 @@ export function persistObservable<T, TState = {}>(
         const sync = async () => {
             if (!isSynced) {
                 isSynced = true;
-                localState.onSaveRemote = persistOptions.remote?.onSaveRemote;
                 const dateModified = metadatas.get(obs)?.modified;
                 localState.persistenceRemote!.get({
                     state: obsState,
