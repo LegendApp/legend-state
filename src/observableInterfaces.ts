@@ -197,6 +197,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
     };
+    offlineStrategy?: false | 'retry';
     onLoadError?: (error: Error) => void;
     onSaveError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;

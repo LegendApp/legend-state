@@ -351,8 +351,9 @@ async function doChange(
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
     const configRemote = persistOptions.remote;
+    const shouldSaveMetadata = local && configRemote?.offlineStrategy === 'retry';
 
-    if (changesRemote.length > 0) {
+    if (changesRemote.length > 0 && shouldSaveMetadata) {
         // First save pending changes before saving local or remote
         await updateMetadataImmediate(obs, localState, obsState, persistOptions, {
             pending: localState.pendingChanges,
@@ -449,7 +450,7 @@ async function doChange(
                     onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
                 }
 
-                if (local && !isEmpty(metadata)) {
+                if (shouldSaveMetadata && !isEmpty(metadata)) {
                     updateMetadata(obs, localState, obsState, persistOptions, metadata);
                 }
             }
