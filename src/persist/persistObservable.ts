@@ -384,7 +384,7 @@ async function doChange(
 
         const value = obs.peek();
 
-        configRemote?.onSaveRemote?.();
+        configRemote?.onBeforeSaveRemote?.();
 
         const saves = await Promise.all(
             changesRemote.map(async (change) => {
