@@ -2,7 +2,6 @@ import type {
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
-    ObservablePersistRemoteSaveParams,
 } from '@legendapp/state';
 
 export function observablePersistRemoteFunctionsAdapter<T = {}, TState = {}>({
@@ -18,9 +17,7 @@ export function observablePersistRemoteFunctionsAdapter<T = {}, TState = {}>({
     } as ObservablePersistRemoteClass;
 
     if (set) {
-        ret.set = async (params: ObservablePersistRemoteSaveParams<any>) => {
-            return set?.(params);
-        };
+        ret.set = set as ObservablePersistRemoteClass['set'];
     }
 
     return ret;
