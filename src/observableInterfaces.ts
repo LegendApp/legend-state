@@ -244,7 +244,7 @@ export interface ObservablePersistLocal {
     setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
-export interface ObservablePersistRemoteSaveParams<T> {
+export interface ObservablePersistRemoteSetParams<T> {
     state: Observable<ObservablePersistState>;
     obs: Observable<T>;
     options: PersistOptions<T>;
@@ -270,13 +270,13 @@ export interface ObservablePersistRemoteGetParams<T, TState = {}> {
 }
 export interface ObservablePersistRemoteClass<TState = {}> {
     get<T>(params: ObservablePersistRemoteGetParams<T, TState>): void;
-    set?<T>(params: ObservablePersistRemoteSaveParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
+    set?<T>(params: ObservablePersistRemoteSetParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
 }
 
 export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
     get(params: ObservablePersistRemoteGetParams<T, TState>): T | Promise<T>;
     set?(
-        params: ObservablePersistRemoteSaveParams<T>,
+        params: ObservablePersistRemoteSetParams<T>,
     ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
 }
 

@@ -1,4 +1,4 @@
-import { ObservablePersistRemoteFunctions, isString, type ObservablePersistRemoteSaveParams } from '@legendapp/state';
+import { ObservablePersistRemoteFunctions, isString, type ObservablePersistRemoteSetParams } from '@legendapp/state';
 
 interface PersistFetchProps {
     get: string | RequestInfo;
@@ -22,7 +22,7 @@ export function persistFetch({
     };
 
     if (set) {
-        ret.set = async ({ value }: ObservablePersistRemoteSaveParams<any>) => {
+        ret.set = async ({ value }: ObservablePersistRemoteSetParams<any>) => {
             const requestInfo = isString(set) ? ({ url: set } as RequestInfo) : set;
             await fetch(Object.assign({ method: 'POST' }, requestInfo, { body: JSON.stringify(value) }), setInit);
             // Return undefined to indicate no changes

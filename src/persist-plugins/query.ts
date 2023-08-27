@@ -2,7 +2,7 @@ import {
     ObservablePersistRemoteFunctions,
     isFunction,
     observe,
-    type ObservablePersistRemoteSaveParams,
+    type ObservablePersistRemoteSetParams,
 } from '@legendapp/state';
 import {
     InfiniteQueryObserver,
@@ -143,7 +143,7 @@ export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQue
     if (mutationOptions) {
         const mutator = new MutationObserver(queryClient!, mutationOptions);
         // When the observable changes call the mutator function
-        ret.set = async ({ value }: ObservablePersistRemoteSaveParams<any>) => {
+        ret.set = async ({ value }: ObservablePersistRemoteSetParams<any>) => {
             mutator.mutate(value);
         };
     }
