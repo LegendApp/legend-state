@@ -46,7 +46,7 @@ function clone(obj: any) {
     return obj === undefined || obj === null ? obj : JSON.parse(JSON.stringify(obj));
 }
 function getDateModifiedKey(dateModifiedKey: string | undefined) {
-    return dateModifiedKey || observablePersistConfiguration.dateModifiedKey || '@';
+    return dateModifiedKey || observablePersistConfiguration.persistRemoteOptions?.dateModifiedKey || '@';
 }
 
 interface FirebaseFns {
@@ -142,7 +142,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     constructor(fns: FirebaseFns) {
         this.fns = fns;
         this.user = observablePrimitive<string>();
-        this.SaveTimeout = observablePersistConfiguration?.saveTimeout ?? 500;
+        this.SaveTimeout = observablePersistConfiguration?.persistRemoteOptions?.saveTimeout ?? 500;
 
         this.fns.onAuthStateChanged((user) => {
             this.user.set(user?.uid);
@@ -276,8 +276,15 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         onLoadParams: { waiting: number; onLoad: () => void },
     ) {
         const { options } = params;
-        const { once, fieldTransforms, onLoadError, allowSaveIfError, firebase } = options.remote!;
-        const { syncPath, dateModifiedKey: dateModifiedKeyOption } = firebase!;
+        const {
+            once,
+            fieldTransforms,
+            onLoadError,
+            allowSaveIfError,
+            firebase,
+            dateModifiedKey: dateModifiedKeyOption,
+        } = options.remote!;
+        const { syncPath } = firebase!;
 
         let didError = false;
         const dateModifiedKey = getDateModifiedKey(dateModifiedKeyOption);
@@ -532,8 +539,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         saves: SaveInfoDictionary,
         ...path: string[]
     ) {
-        const { fieldTransforms, firebase } = options.remote!;
-        const { dateModifiedKey: dateModifiedKeyOption } = firebase!;
+        const { fieldTransforms, dateModifiedKey: dateModifiedKeyOption } = options.remote!;
         const dateModifiedKey = getDateModifiedKey(dateModifiedKeyOption);
 
         let valSave = saves[symbolSaveValue as any];

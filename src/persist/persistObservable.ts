@@ -186,7 +186,7 @@ interface QueuedChange<T = any, TState = any> {
     obs: Observable<T>;
     obsState: ObservableObject<ObservablePersistState>;
     localState: LocalState<TState>;
-    persistOptions: PersistOptions<T>;
+    persistOptions: PersistOptions<T, TState>;
     changes: ListenerParams['changes'];
 }
 
@@ -599,6 +599,14 @@ export function persistObservable<T, TState = {}>(
     obs: ObservableWriteable<T>,
     persistOptions: PersistOptions<T, TState>,
 ): ObservableObject<ObservablePersistState & TState> {
+    // Merge remote persist options with clobal options
+    if (persistOptions.remote) {
+        persistOptions.remote = Object.assign(
+            {},
+            observablePersistConfiguration.persistRemoteOptions,
+            persistOptions.remote,
+        );
+    }
     let { remote } = persistOptions as { remote: PersistOptionsRemote<T> };
     const { local } = persistOptions;
     const remotePersistence = persistOptions.persistRemote! || observablePersistConfiguration?.persistRemote;

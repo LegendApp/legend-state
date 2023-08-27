@@ -70,7 +70,6 @@ global.sessionStorage = new LocalStorageMock();
 
 configureObservablePersistence({
     persistLocal: ObservablePersistSessionStorage,
-    saveTimeout: 500,
 });
 
 beforeEach(() => {

@@ -179,18 +179,15 @@ export interface PersistOptionsLocal<T = any> {
     };
     options?: any;
 }
-export interface PersistOptionsRemote<T = any> {
+export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
-    saveTimeout?: number;
     waitForLoad?: Promise<any> | ObservableReadable<any>;
     waitForSave?: Promise<any> | ObservableReadable<any> | ((value: any, path: string[]) => Promise<any>);
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSaveIfError?: boolean;
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
     adjustData?: {
         load?: (value: T) => T | Promise<T>;
         save?: (value: T) => T | Promise<T>;
@@ -199,13 +196,14 @@ export interface PersistOptionsRemote<T = any> {
         syncPath: (uid: string | undefined) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
-        dateModifiedKey?: string;
     };
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
     onBeforeSaveRemote?: () => void;
     onSaveRemote?: () => void;
-}
-export interface ObservablePersistenceConfigLocalOptions {
+};
+export interface ObservablePersistenceConfigLocalGlobalOptions {
     onLoadError?: (error: Error) => void;
     onSaveError?: (error: Error) => void;
     indexedDB?: {
@@ -218,12 +216,21 @@ export interface ObservablePersistenceConfigLocalOptions {
         preload?: boolean | string[];
     };
 }
+export interface ObservablePersistenceConfigRemoteGlobalOptions {
+    saveTimeout?: number;
+    dateModifiedKey?: string;
+    offlineStrategy?: false | 'retry';
+    onLoadError?: (error: Error) => void;
+    onSaveError?: (error: Error) => void;
+    log?: (message?: any, ...optionalParams: any[]) => void;
+    onBeforeSaveRemote?: () => void;
+    onSaveRemote?: () => void;
+}
 export interface ObservablePersistenceConfig {
     persistLocal?: ClassConstructor<ObservablePersistLocal>;
     persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions;
-    persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
-    saveTimeout?: number;
-    dateModifiedKey?: string;
+    persistLocalOptions?: ObservablePersistenceConfigLocalGlobalOptions;
+    persistRemoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
 }
 export interface PersistOptions<T = any, TState = {}> {
     local?: string | PersistOptionsLocal<T>;
@@ -239,7 +246,7 @@ export interface PersistMetadata {
 }
 
 export interface ObservablePersistLocal {
-    initialize?(config: ObservablePersistenceConfigLocalOptions): void | Promise<void>;
+    initialize?(config: ObservablePersistenceConfigLocalGlobalOptions): void | Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
     getTable<T = any>(table: string, config: PersistOptionsLocal): T;
     set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;

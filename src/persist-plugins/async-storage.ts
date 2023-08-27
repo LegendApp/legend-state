@@ -1,7 +1,7 @@
 import type {
     Change,
     ObservablePersistLocal,
-    ObservablePersistenceConfigLocalOptions,
+    ObservablePersistenceConfigLocalGlobalOptions,
     PersistMetadata,
 } from '@legendapp/state';
 import { isArray, setAtPath } from '@legendapp/state';
@@ -15,7 +15,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
     private data: Record<string, any> = {};
 
     // Init
-    public async initialize(config: ObservablePersistenceConfigLocalOptions) {
+    public async initialize(config: ObservablePersistenceConfigLocalGlobalOptions) {
         let tables: readonly string[] = [];
         const storageConfig = config.asyncStorage;
         if (storageConfig) {
