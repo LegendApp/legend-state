@@ -50,6 +50,7 @@ function getDateModifiedKey(dateModifiedKey: string | undefined) {
 }
 
 interface FirebaseFns {
+    isInitialized: () => boolean;
     getCurrentUser: () => string | undefined;
     ref: (path: string) => any;
     orderByChild: (ref: any, child: string, startAt: number) => any;
@@ -110,7 +111,7 @@ interface SaveState {
 
 class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected _batch: Record<string, any> = {};
-    private fns: FirebaseFns;
+    protected fns: FirebaseFns;
     private _pathsLoadStatus = observable<
         Record<
             string,
@@ -144,9 +145,17 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         this.user = observablePrimitive<string>();
         this.SaveTimeout = observablePersistConfiguration?.persistRemoteOptions?.saveTimeout ?? 500;
 
-        this.fns.onAuthStateChanged((user) => {
-            this.user.set(user?.uid);
-        });
+        if (this.fns.isInitialized()) {
+            this.fns.onAuthStateChanged((user) => {
+                this.user.set(user?.uid);
+            });
+        } else if (
+            process.env.NODE_ENV === 'development' &&
+            (typeof window !== 'undefined' || (typeof navigator !== 'undefined' && navigator.product === 'ReactNative'))
+        ) {
+            // Warn only in web or react-native. If running on a server this shouldn't work.
+            console.warn('[legend-state] Firebase is not initialized. Remote persistence will not work.');
+        }
     }
     public async get<T>(params: ObservablePersistRemoteGetParams<T>) {
         const { obs, options } = params;
@@ -977,6 +986,13 @@ function splitLargeObject(obj: Record<string, any>, limit: number): Record<strin
 export class ObservablePersistFirebase extends ObservablePersistFirebaseBase {
     constructor() {
         super({
+            isInitialized: () => {
+                try {
+                    return !!getAuth().app;
+                } catch {
+                    return false;
+                }
+            },
             getCurrentUser: () => getAuth().currentUser?.uid,
             ref: (path: string) => ref(getDatabase(), path),
             orderByChild: (ref: DatabaseReference, child: string, start: number) =>
