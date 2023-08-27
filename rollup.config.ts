@@ -29,6 +29,8 @@ export default Object.keys(pkg.exports)
             '@legendapp/state/persist',
             '@legendapp/state/react',
             '@legendapp/state/helpers/fetch',
+            'firebase/auth',
+            'firebase/database',
         ];
 
         if (!f) f = 'index';
