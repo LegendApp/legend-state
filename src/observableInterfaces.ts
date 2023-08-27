@@ -150,6 +150,9 @@ export type QueryByModified<T> =
     | boolean
     | {
           [K in keyof T]?: QueryByModified<T[K]>;
+      }
+    | {
+          '*'?: boolean;
       };
 
 export type TypeAtPath = 'object' | 'array';
