@@ -409,8 +409,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (!remote || !remote.firebase) {
             return;
         }
-        const { requireAuth, waitForSave, saveTimeout, firebase } = remote;
-        const { log } = firebase!;
+        const { requireAuth, waitForSave, saveTimeout, log } = remote;
 
         if (requireAuth) {
             await whenReady(this.user);
