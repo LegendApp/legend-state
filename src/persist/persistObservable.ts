@@ -23,7 +23,9 @@ import {
     deconstructObjectWithPath,
     internal,
     isEmpty,
+    isFunction,
     isObject,
+    isObservable,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -175,7 +177,7 @@ function updateMetadata<T, TState = {}>(
         clearTimeout(localState.timeoutSaveMetadata);
     }
     localState.timeoutSaveMetadata = setTimeout(
-        () => updateMetadataImmediate(obs, localState, obsState, persistOptions, newMetadata),
+        () => updateMetadataImmediate(obs, localState, obsState, persistOptions as PersistOptions<T, any>, newMetadata),
         30,
     );
 }
@@ -597,9 +599,23 @@ async function loadLocal<T>(
 }
 
 export function persistObservable<T, TState = {}>(
-    obs: ObservableWriteable<T>,
+    observable: ObservableWriteable<T>,
     persistOptions: PersistOptions<T, TState>,
-): ObservableObject<ObservablePersistState & TState> {
+): [Observable<T>, ObservableObject<ObservablePersistState & TState>];
+export function persistObservable<T, TState = {}>(
+    initial: T | (() => T) | (() => Promise<T>),
+    persistOptions: PersistOptions<T, TState>,
+): [Observable<T>, ObservableObject<ObservablePersistState & TState>];
+export function persistObservable<T, TState = {}>(
+    initialOrObservable: ObservableWriteable<T> | T | (() => T) | (() => Promise<T>),
+    persistOptions: PersistOptions<T, TState>,
+): [Observable<T>, ObservableObject<ObservablePersistState & TState>] {
+    const obs = (
+        isObservable(initialOrObservable)
+            ? initialOrObservable
+            : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
+    ) as Observable<T>;
+
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {
         persistOptions.remote = Object.assign({}, observablePersistConfiguration.remoteOptions, persistOptions.remote);
@@ -653,7 +669,7 @@ export function persistObservable<T, TState = {}>(
                 localState.persistenceRemote!.get({
                     state: obsState,
                     obs,
-                    options: persistOptions,
+                    options: persistOptions as PersistOptions<T, any>,
                     dateModified,
                     onLoad: () => {
                         obsState.isLoadedRemote.set(true);
@@ -712,7 +728,7 @@ export function persistObservable<T, TState = {}>(
                             }
                         }
                         if (dateModified && local) {
-                            updateMetadata(obs, localState, obsState, persistOptions, {
+                            updateMetadata(obs, localState, obsState, persistOptions as PersistOptions<T, any>, {
                                 modified: dateModified,
                             });
                         }
@@ -759,9 +775,15 @@ export function persistObservable<T, TState = {}>(
 
     when(!local || obsState.isLoadedLocal, function (this: any) {
         obs.onChange(
-            onObsChange.bind(this, obs as Observable<any>, obsState, localState, persistOptions as PersistOptions),
+            onObsChange.bind(
+                this,
+                obs as Observable<any>,
+                obsState,
+                localState,
+                persistOptions as PersistOptions<any, any>,
+            ),
         );
     });
 
-    return obsState as any;
+    return [obs, obsState as any];
 }

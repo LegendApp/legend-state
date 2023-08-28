@@ -56,7 +56,7 @@ describe('Persist IDB', () => {
     test('Persist IDB save', async () => {
         const obs = observable<Record<string, any>>({});
 
-        const state = persistObservable(obs, {
+        const [, state] = persistObservable(obs, {
             local: TableName,
         });
 
@@ -69,7 +69,7 @@ describe('Persist IDB', () => {
     test('Persist IDB save deep', async () => {
         const obs = observable<Record<string, any>>({});
 
-        const state = persistObservable(obs, {
+        const [, state] = persistObservable(obs, {
             local: TableName,
         });
 
@@ -82,7 +82,7 @@ describe('Persist IDB', () => {
     test('Persist IDB get after save', async () => {
         const obs = observable<Record<string, any>>({});
 
-        const state = persistObservable(obs, {
+        const [, state] = persistObservable(obs, {
             local: TableName,
         });
 
@@ -95,7 +95,7 @@ describe('Persist IDB', () => {
 
         const obs2 = observable<Record<string, any>>({});
 
-        const state2 = persistObservable(obs2, {
+        const [, state2] = persistObservable(obs2, {
             local: TableName,
         });
 
@@ -106,7 +106,7 @@ describe('Persist IDB', () => {
     test('Persist IDB save root', async () => {
         const obs = observable<Record<string, any>>({});
 
-        const state = persistObservable(obs, {
+        const [, state] = persistObservable(obs, {
             local: TableName,
         });
 
@@ -120,7 +120,7 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = persistObservable(obs2, {
+        const [, state2] = persistObservable(obs2, {
             local: TableName,
         });
 
@@ -133,7 +133,7 @@ describe('Persist IDB', () => {
 
         const obs = observable<Record<string, any>>({});
 
-        const state = persistObservable(obs, {
+        const [, state] = persistObservable(obs, {
             local: TableName,
         });
 
@@ -146,7 +146,7 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistLocalOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = persistObservable(obs2, {
+        const [, state2] = persistObservable(obs2, {
             local: TableName,
         });
 

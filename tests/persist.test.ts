@@ -1,9 +1,26 @@
 import 'fake-indexeddb/auto';
-import { adjustSaveData } from '../src/persist/persistObservable';
+import { adjustSaveData, persistObservable } from '../src/persist/persistObservable';
+import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
+
+describe('Creating', () => {
+    test('Create with object', () => {
+        const [obs$, state$] = persistObservable(
+            { test: 'hi' },
+            {
+                pluginLocal: ObservablePersistLocalStorage,
+                local: 'jestlocal',
+            },
+        );
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+
+        expect(state$.isLoadedLocal.get()).toEqual(true);
+    });
+});
 
 describe('Adjusting data', () => {
     test('adjustSaveData with adjustData', () => {
