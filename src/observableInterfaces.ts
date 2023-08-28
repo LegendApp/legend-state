@@ -228,16 +228,16 @@ export interface ObservablePersistenceConfigRemoteGlobalOptions {
     onSaveRemote?: () => void;
 }
 export interface ObservablePersistenceConfig {
-    persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions;
-    persistLocalOptions?: ObservablePersistenceConfigLocalGlobalOptions;
-    persistRemoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
+    pluginLocal?: ClassConstructor<ObservablePersistLocal>;
+    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions;
+    localOptions?: ObservablePersistenceConfigLocalGlobalOptions;
+    remoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
 }
 export interface PersistOptions<T = any, TState = {}> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
-    persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T, TState>;
+    pluginLocal?: ClassConstructor<ObservablePersistLocal>;
+    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T, TState>;
 }
 
 export interface PersistMetadata {

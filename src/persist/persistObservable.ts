@@ -509,7 +509,7 @@ async function loadLocal<T>(
 ) {
     const { local } = persistOptions;
     const localPersistence: ClassConstructor<ObservablePersistLocal> =
-        persistOptions.persistLocal! || observablePersistConfiguration.persistLocal;
+        persistOptions.pluginLocal! || observablePersistConfiguration.pluginLocal;
 
     if (local) {
         const { table, config } = parseLocalConfig(local);
@@ -524,7 +524,7 @@ async function loadLocal<T>(
             mapPersistences.set(localPersistence, mapValue);
             if (persistenceLocal.initialize) {
                 const initializePromise = persistenceLocal.initialize?.(
-                    observablePersistConfiguration.persistLocalOptions || {},
+                    observablePersistConfiguration.localOptions || {},
                 );
                 if (isPromise(initializePromise)) {
                     await initializePromise;
@@ -602,15 +602,11 @@ export function persistObservable<T, TState = {}>(
 ): ObservableObject<ObservablePersistState & TState> {
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {
-        persistOptions.remote = Object.assign(
-            {},
-            observablePersistConfiguration.persistRemoteOptions,
-            persistOptions.remote,
-        );
+        persistOptions.remote = Object.assign({}, observablePersistConfiguration.remoteOptions, persistOptions.remote);
     }
     let { remote } = persistOptions as { remote: PersistOptionsRemote<T> };
     const { local } = persistOptions;
-    const remotePersistence = persistOptions.persistRemote! || observablePersistConfiguration?.persistRemote;
+    const remotePersistence = persistOptions.pluginRemote! || observablePersistConfiguration?.pluginRemote;
     const localState: LocalState = {};
 
     const obsState = observable<ObservablePersistState>({

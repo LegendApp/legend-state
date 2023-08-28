@@ -16,8 +16,8 @@ const persistLocalOptions = {
     },
 };
 configureObservablePersistence({
-    persistLocal: ObservablePersistIndexedDB,
-    persistLocalOptions,
+    pluginLocal: ObservablePersistIndexedDB,
+    localOptions: persistLocalOptions,
 });
 jest.setTimeout(50);
 

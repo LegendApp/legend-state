@@ -46,7 +46,7 @@ function clone(obj: any) {
     return obj === undefined || obj === null ? obj : JSON.parse(JSON.stringify(obj));
 }
 function getDateModifiedKey(dateModifiedKey: string | undefined) {
-    return dateModifiedKey || observablePersistConfiguration.persistRemoteOptions?.dateModifiedKey || '@';
+    return dateModifiedKey || observablePersistConfiguration.remoteOptions?.dateModifiedKey || '@';
 }
 
 interface FirebaseFns {
@@ -143,7 +143,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     constructor(fns: FirebaseFns) {
         this.fns = fns;
         this.user = observablePrimitive<string>();
-        this.SaveTimeout = observablePersistConfiguration?.persistRemoteOptions?.saveTimeout ?? 500;
+        this.SaveTimeout = observablePersistConfiguration?.remoteOptions?.saveTimeout ?? 500;
 
         if (this.fns.isInitialized()) {
             this.fns.onAuthStateChanged((user) => {

@@ -12,7 +12,7 @@ describe('Persist remote with functions', () => {
     test('Persist remote fns basic', async () => {
         const obs = observable({ test: { x: 'hi' } });
         const state = persistObservable(obs, {
-            persistRemote: {
+            pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
                     return new Promise((resolve) => {
@@ -34,7 +34,7 @@ describe('Persist remote with functions', () => {
         let setTo: { dateModified: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
         const state = persistObservable(obs$, {
-            persistRemote: {
+            pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
                     return new Promise((resolve) => {
@@ -73,7 +73,7 @@ describe('Persist remote with functions', () => {
         const obs$ = observable({ test: { x: 'hi' } });
         const didSave$ = observable(false);
         const state = persistObservable(obs$, {
-            persistRemote: {
+            pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
                     return new Promise((resolve) => {
