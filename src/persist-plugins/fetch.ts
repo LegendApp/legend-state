@@ -8,7 +8,7 @@ interface PersistFetchProps {
     valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
 }
 
-export function persistFetch({
+export function persistPluginFetch({
     get,
     set,
     getInit,

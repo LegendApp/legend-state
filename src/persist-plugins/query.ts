@@ -36,7 +36,7 @@ type Params<TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>
       }
 );
 
-export function persistQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>({
+export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>({
     query: options,
     mutation: mutationOptions,
     type = 'Query',
