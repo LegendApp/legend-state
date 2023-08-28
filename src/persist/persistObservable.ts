@@ -353,7 +353,7 @@ async function doChange(
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
     const configRemote = persistOptions.remote;
-    const shouldSaveMetadata = local && configRemote?.offlineStrategy === 'retry';
+    const shouldSaveMetadata = local && configRemote?.offlineBehavior === 'retry';
 
     if (changesRemote.length > 0 && shouldSaveMetadata) {
         // First save pending changes before saving local or remote
