@@ -1,11 +1,4 @@
-import {
-    isFunction,
-    observable,
-    Observable,
-    ObservableObject,
-    ObservablePersistState,
-    PersistOptions,
-} from '@legendapp/state';
+import { Observable, ObservableObject, ObservablePersistState, PersistOptions } from '@legendapp/state';
 import { persistObservable } from '@legendapp/state/persist';
 import { useMemo } from 'react';
 

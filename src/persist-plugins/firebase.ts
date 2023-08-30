@@ -7,6 +7,7 @@ import {
     PersistOptions,
     QueryByModified,
     TypeAtPath,
+    batch,
     constructObjectWithPath,
     deconstructObjectWithPath,
     hasOwnProperty,
@@ -109,19 +110,16 @@ interface SaveState {
     >;
 }
 
+interface LoadStatus {
+    startedLoading: boolean;
+    numLoading: number;
+    numWaitingCanSave: number;
+}
+
 class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected _batch: Record<string, any> = {};
     protected fns: FirebaseFns;
-    private _pathsLoadStatus = observable<
-        Record<
-            string,
-            {
-                startedLoading: boolean;
-                isLoaded: boolean;
-                canSave: boolean;
-            }
-        >
-    >({});
+    private _pathsLoadStatus = observable<Record<string, LoadStatus>>({});
     private SaveTimeout;
     private user: Observable<string>;
     private listenErrors: Map<
@@ -136,6 +134,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             retry: number;
             saveState: SaveState;
             onLoadParams: { waiting: number; onLoad: () => void };
+            status$: Observable<LoadStatus>;
         }
     > = new Map();
     private saveStates = new Map<ObservableReadable<any>, SaveState>();
@@ -164,7 +163,10 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             // If the plugin is set globally but it has no firebase options this plugin can't do anything
             return;
         }
-        const { requireAuth } = remote;
+        const {
+            requireAuth,
+            firebase: { syncPath },
+        } = remote;
         let { waitForLoad } = remote;
 
         if (requireAuth) {
@@ -187,6 +189,14 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const { queryByModified } = options.remote!.firebase!;
 
+        const pathFirebase = syncPath(this.fns.getCurrentUser());
+
+        const status$ = this._pathsLoadStatus[pathFirebase].set({
+            startedLoading: false,
+            numLoading: 0,
+            numWaitingCanSave: 0,
+        });
+
         const onLoadParams = {
             waiting: 0,
             onLoad: () => {
@@ -201,11 +211,11 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
             // without modified
 
-            this.iterateListen(obs, params, saveState, [], [], queryByModified, onLoadParams);
+            this.iterateListen(obs, params, saveState, [], [], queryByModified, onLoadParams, status$);
         } else {
             const dateModified = queryByModified === true ? params.dateModified! : undefined;
 
-            this._listen(obs, params, saveState, [], [], queryByModified, dateModified, onLoadParams);
+            this._listen(obs, params, saveState, [], [], queryByModified, dateModified, onLoadParams, status$);
         }
     }
     private iterateListen<T>(
@@ -216,6 +226,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         pathTypes: TypeAtPath[],
         queryByModified: QueryByModified<any>,
         onLoadParams: { waiting: number; onLoad: () => void },
+        status$: Observable<LoadStatus>,
     ) {
         const { options } = params;
 
@@ -230,7 +241,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 let dateModified: number | undefined = undefined;
 
                 if (isObject(q)) {
-                    this.iterateListen(o, params, saveState, pathChild, pathTypesChild, q, onLoadParams);
+                    this.iterateListen(o, params, saveState, pathChild, pathTypesChild, q, onLoadParams, status$);
                 } else {
                     if (q === true || q === '*') {
                         dateModified = params.dateModified!;
@@ -245,6 +256,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         queryByModified,
                         dateModified,
                         onLoadParams,
+                        status$,
                     );
                 }
             }
@@ -254,8 +266,17 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         // If a listen failed but save succeeded, the save should have fixed
         // the permission problem so try again
         this.listenErrors.forEach((listenError) => {
-            const { params, path, pathTypes, dateModified, queryByModified, unsubscribes, saveState, onLoadParams } =
-                listenError;
+            const {
+                params,
+                path,
+                pathTypes,
+                dateModified,
+                queryByModified,
+                unsubscribes,
+                saveState,
+                onLoadParams,
+                status$,
+            } = listenError;
             listenError.retry++;
             if (listenError.retry < 10) {
                 unsubscribes.forEach((cb) => cb());
@@ -268,6 +289,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                     queryByModified,
                     dateModified,
                     onLoadParams,
+                    status$,
                 );
             } else {
                 this.listenErrors.delete(listenError);
@@ -283,6 +305,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         queryByModified: QueryByModified<any> | undefined,
         dateModified: number | undefined,
         onLoadParams: { waiting: number; onLoad: () => void },
+        status$: Observable<LoadStatus>,
     ) {
         const { options } = params;
         const {
@@ -305,18 +328,15 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const pathFirebase = syncPath(this.fns.getCurrentUser()) + path.join('/');
 
-        const status$ = this._pathsLoadStatus[pathFirebase].set({
-            startedLoading: false,
-            isLoaded: false,
-            canSave: false,
-        });
-
         let refPath = this.fns.ref(pathFirebase);
         if (dateModified && !isNaN(dateModified)) {
             refPath = this.fns.orderByChild(refPath, dateModifiedKey, dateModified + 1);
         }
 
         const unsubscribes: (() => void)[] = [];
+
+        status$.numLoading.set((v) => v + 1);
+        status$.numWaitingCanSave.set((v) => v + 1);
 
         const _onError = (err: Error) => {
             if (!didError) {
@@ -335,11 +355,12 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         retry: 0,
                         saveState,
                         onLoadParams,
+                        status$,
                     });
                     params.state.remoteError.set(err);
                     onLoadError?.(err);
                     if (allowSaveIfError) {
-                        status$.canSave.set(true);
+                        status$.numWaitingCanSave.set((v) => v - 1);
                     }
                 }
             }
@@ -357,6 +378,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 params as ObservablePersistRemoteGetParams<any>,
                 localState,
                 saveState,
+                status$,
             );
             unsubscribes.push(this.fns.onChildAdded(refPath, cb));
             unsubscribes.push(this.fns.onChildChanged(refPath, cb));
@@ -377,6 +399,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                     queryByModified,
                     onLoadParams.onLoad,
                     params as ObservablePersistRemoteGetParams<any>,
+                    status$,
                 ),
                 _onError,
             ),
@@ -442,9 +465,9 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         log?.('Saving', value);
 
         const status$ = this._pathsLoadStatus[syncPath];
-        if (!status$.canSave.peek()) {
+        if (status$.numWaitingCanSave.peek() > 0) {
             // Wait for load
-            await when(status$.canSave);
+            await when(() => status$.numWaitingCanSave.get() < 1);
         }
 
         if (waitForSave) {
@@ -703,6 +726,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         queryByModified: QueryByModified<any> | undefined,
         onLoad: () => void,
         params: ObservablePersistRemoteGetParams<T>,
+        status$: Observable<LoadStatus>,
         snapshot: DataSnapshot,
     ) {
         const { onChange } = params;
@@ -713,7 +737,6 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         params.state.remoteError.delete();
         this.listenErrors.delete(obs);
 
-        const status$ = this._pathsLoadStatus[pathFirebase];
         status$.startedLoading.set(true);
         if (outerValue && isObject(outerValue)) {
             let value;
@@ -740,9 +763,9 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             }
         }
         onLoad();
-        status$.assign({
-            canSave: true,
-            isLoaded: true,
+        batch(() => {
+            status$.numLoading.set((v) => v - 1);
+            status$.numWaitingCanSave.set((v) => v - 1);
         });
     }
     private async _onChange<T>(
@@ -754,17 +777,17 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         params: ObservablePersistRemoteGetParams<T>,
         localState: LocalState<T>,
         saveState: SaveState,
+        status$: Observable<LoadStatus>,
         snapshot: DataSnapshot,
     ) {
-        const status$ = this._pathsLoadStatus[pathFirebase];
-        const { isLoaded, startedLoading } = status$.peek();
+        const { numLoading, startedLoading } = status$.peek();
 
-        if (!isLoaded) {
+        if (numLoading > 0) {
             // If onceValue has not been called yet, then skip onChange because it will come later
             if (!startedLoading) return;
 
             // Wait for load
-            await when(status$.isLoaded);
+            await when(() => status$.numLoading.get() < 1);
         }
 
         const { onChange, state } = params;
