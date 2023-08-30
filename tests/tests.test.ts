@@ -198,6 +198,11 @@ describe('Set', () => {
             { path: [], pathTypes: [], valueAtPath: null, prevAtPath: undefined },
         ]);
     });
+    test('Set with function does not overwrite it', () => {
+        const obs = observable({ test: 1 });
+        obs.test.set((v) => v + 1);
+        obs.test.set((v) => v + 1);
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
