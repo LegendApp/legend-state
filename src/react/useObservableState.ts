@@ -2,7 +2,7 @@ import { isFunction, observable, type Observable } from '@legendapp/state';
 import { useMemo } from 'react';
 import { useSelector } from './useSelector';
 
-export function useObservableState<T>(initialValue?: T | (() => T) | (() => Promise<T>)): [T, Observable<T>] {
+export function useObservableState<T>(initialValue?: T | (() => T) | (() => Promise<T>)): [Observable<T>, T] {
     // Create a memoized observable
     return useMemo(
         () =>
@@ -14,13 +14,14 @@ export function useObservableState<T>(initialValue?: T | (() => T) | (() => Prom
                     ),
                     // Second element of the array just needs to exist for the Proxy to access it
                     // but we can't ensure it's updated with the real value, and it doesn't really matter since it's proxied,
-                    // so just make it undefined
+                    // so just make it undefined. Alternatively the Proxy handler could manually return 2 for the "length" prop
+                    // but this seems easier and less code.
                     undefined,
                 ],
                 proxyHandler,
             ),
         [],
-    ) as [T, Observable<T>];
+    ) as [Observable<T>, T];
 }
 
 const proxyHandler: ProxyHandler<any[]> = {
