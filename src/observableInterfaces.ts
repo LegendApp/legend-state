@@ -184,7 +184,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     once?: boolean;
     requireAuth?: boolean;
     waitForLoad?: Promise<any> | ObservableReadable<any>;
-    waitForSave?: Promise<any> | ObservableReadable<any> | ((value: any, path: string[]) => Promise<any>);
+    waitForSave?: Promise<any> | ObservableReadable<any>;
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSaveIfError?: boolean;
@@ -257,13 +257,10 @@ export interface ObservablePersistLocal {
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
 export interface ObservablePersistRemoteSetParams<T> {
-    state: Observable<ObservablePersistState>;
+    syncState: Observable<ObservablePersistState>;
     obs: Observable<T>;
     options: PersistOptions<T>;
-    path: string[];
-    pathTypes: TypeAtPath[];
-    valueAtPath: unknown;
-    prevAtPath: any;
+    changes: Change[];
     value: T;
 }
 export interface ObservablePersistRemoteGetParams<T, TState = {}> {
@@ -282,7 +279,9 @@ export interface ObservablePersistRemoteGetParams<T, TState = {}> {
 }
 export interface ObservablePersistRemoteClass<TState = {}> {
     get<T>(params: ObservablePersistRemoteGetParams<T, TState>): void;
-    set?<T>(params: ObservablePersistRemoteSetParams<T>): Promise<void | { changes?: object; dateModified?: number }>;
+    set?<T>(
+        params: ObservablePersistRemoteSetParams<T>,
+    ): Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
 }
 
 export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {

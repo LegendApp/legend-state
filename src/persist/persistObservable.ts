@@ -133,7 +133,7 @@ export function adjustLoadData(
 async function updateMetadataImmediate<T, TState = {}>(
     obs: ObservableReadable<any>,
     localState: LocalState<TState>,
-    obsState: ObservableObject<ObservablePersistState>,
+    syncState: ObservableObject<ObservablePersistState>,
     persistOptions: PersistOptions<T>,
     newMetadata: PersistMetadata,
 ) {
@@ -161,7 +161,7 @@ async function updateMetadataImmediate<T, TState = {}>(
         }
 
         if (modified) {
-            obsState.dateModified.set(modified);
+            syncState.dateModified.set(modified);
         }
     }
 }
@@ -169,7 +169,7 @@ async function updateMetadataImmediate<T, TState = {}>(
 function updateMetadata<T, TState = {}>(
     obs: ObservableReadable<any>,
     localState: LocalState<TState>,
-    obsState: ObservableObject<ObservablePersistState>,
+    syncState: ObservableObject<ObservablePersistState>,
     persistOptions: PersistOptions<T, TState>,
     newMetadata: PersistMetadata,
 ) {
@@ -177,7 +177,8 @@ function updateMetadata<T, TState = {}>(
         clearTimeout(localState.timeoutSaveMetadata);
     }
     localState.timeoutSaveMetadata = setTimeout(
-        () => updateMetadataImmediate(obs, localState, obsState, persistOptions as PersistOptions<T, any>, newMetadata),
+        () =>
+            updateMetadataImmediate(obs, localState, syncState, persistOptions as PersistOptions<T, any>, newMetadata),
         30,
     );
 }
@@ -186,7 +187,7 @@ interface QueuedChange<T = any, TState = any> {
     inRemoteChange: boolean;
     isApplyingPending: boolean;
     obs: Observable<T>;
-    obsState: ObservableObject<ObservablePersistState>;
+    syncState: ObservableObject<ObservablePersistState>;
     localState: LocalState<TState>;
     persistOptions: PersistOptions<T, TState>;
     changes: ListenerParams['changes'];
@@ -217,18 +218,18 @@ async function processQueuedChanges() {
 }
 
 async function prepChange(queuedChange: QueuedChange) {
-    const { obsState, changes, localState, persistOptions, inRemoteChange, isApplyingPending } = queuedChange;
+    const { syncState, changes, localState, persistOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
     const local = persistOptions.local;
     const { persistenceRemote } = localState;
     const { config: configLocal } = parseLocalConfig(local!);
     const configRemote = persistOptions.remote;
-    const saveLocal = local && !configLocal.readonly && !isApplyingPending && obsState.isEnabledLocal.peek();
+    const saveLocal = local && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
     const saveRemote =
-        !inRemoteChange && persistenceRemote && !configRemote?.readonly && obsState.isEnabledRemote.peek();
+        !inRemoteChange && persistenceRemote && !configRemote?.readonly && syncState.isEnabledRemote.peek();
 
     if (saveLocal || saveRemote) {
-        if (saveLocal && !obsState.isLoadedLocal.peek()) {
+        if (saveLocal && !syncState.isLoadedLocal.peek()) {
             console.error(
                 '[legend-state] WARNING: An observable was changed before being loaded from persistence',
                 local,
@@ -347,7 +348,7 @@ async function doChange(
     if (!changeInfo) return;
 
     const { queuedChange, changesLocal, changesRemote } = changeInfo;
-    const { obs, obsState, localState, persistOptions } = queuedChange;
+    const { obs, syncState, localState, persistOptions } = queuedChange;
     const { persistenceLocal, persistenceRemote } = localState;
 
     const local = persistOptions.local;
@@ -357,7 +358,7 @@ async function doChange(
 
     if (changesRemote.length > 0 && shouldSaveMetadata) {
         // First save pending changes before saving local or remote
-        await updateMetadataImmediate(obs, localState, obsState, persistOptions, {
+        await updateMetadataImmediate(obs, localState, syncState, persistOptions, {
             pending: localState.pendingChanges,
         });
     }
@@ -382,88 +383,73 @@ async function doChange(
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
         await when(
-            () => obsState.isLoadedRemote.get() || (configRemote?.allowSaveIfError && obsState.remoteError.get()),
+            () => syncState.isLoadedRemote.get() || (configRemote?.allowSaveIfError && syncState.remoteError.get()),
         );
 
         const value = obs.peek();
 
         configRemote?.onBeforeSaveRemote?.();
 
-        const saves = await Promise.all(
-            changesRemote.map(async (change) => {
-                const { path, valueAtPath, prevAtPath, pathTypes, pathStr } = change;
-
-                // Save to remote persistence
-                return persistenceRemote!.set!({
-                    obs,
-                    state: obsState,
-                    options: persistOptions,
-                    path: path,
-                    pathTypes,
-                    valueAtPath,
-                    prevAtPath,
-                    value,
-                })
-                    .then((saved) =>
-                        saved ? { changes: saved.changes, dateModified: saved.dateModified, pathStr } : undefined,
-                    )
-                    .catch((err) => configRemote?.onSaveError?.(err));
-            }),
-        );
+        const saved = await persistenceRemote!.set!({
+            obs,
+            syncState: syncState,
+            options: persistOptions,
+            changes: changesRemote,
+            value,
+        }).catch((err) => configRemote?.onSaveError?.(err));
 
         // If this remote save changed anything then update persistence and metadata
         // Because save happens after a timeout and they're batched together, some calls to save will
         // return saved data and others won't, so those can be ignored.
-        if (saves.filter(Boolean).length > 0) {
-            if (local) {
-                const metadata: PersistMetadata = {};
-                const pending = persistenceLocal!.getMetadata(table, configLocal)?.pending;
-                let adjustedChanges: any[] = [];
+        if (saved) {
+            const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
+            const { changes, dateModified } = saved;
+            if (pathStrs.length > 0) {
+                if (local) {
+                    const metadata: PersistMetadata = {};
+                    const pending = persistenceLocal!.getMetadata(table, configLocal)?.pending;
+                    let adjustedChanges: any[] = [];
 
-                for (let i = 0; i < saves.length; i++) {
-                    const save = saves[i];
-                    if (save) {
-                        const { changes, dateModified, pathStr } = save;
+                    for (let i = 0; i < pathStrs.length; i++) {
+                        const pathStr = pathStrs[i];
                         // Clear pending for this path
                         if (pending?.[pathStr]) {
-                            // Remove pending from the saved object
-                            delete pending[pathStr];
                             // Remove pending from local state
-                            delete localState.pendingChanges![pathStr];
+                            delete pending[pathStr];
                             metadata.pending = pending;
                         }
+                    }
 
-                        if (dateModified) {
-                            metadata.modified = dateModified;
-                        }
+                    if (dateModified) {
+                        metadata.modified = dateModified;
+                    }
 
-                        // Remote can optionally have data that needs to be merged back into the observable,
-                        // for example Firebase may update dateModified with the server timestamp
-                        if (changes && !isEmpty(changes)) {
-                            adjustedChanges.push(adjustLoadData(changes, persistOptions.remote!, false));
+                    // Remote can optionally have data that needs to be merged back into the observable,
+                    // for example Firebase may update dateModified with the server timestamp
+                    if (changes && !isEmpty(changes)) {
+                        adjustedChanges.push(adjustLoadData(changes, persistOptions.remote!, false));
+                    }
+
+                    if (adjustedChanges.length > 0) {
+                        if (adjustedChanges.some((change) => isPromise(change))) {
+                            adjustedChanges = await Promise.all(adjustedChanges);
                         }
+                        onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
+                    }
+
+                    if (shouldSaveMetadata && !isEmpty(metadata)) {
+                        updateMetadata(obs, localState, syncState, persistOptions, metadata);
                     }
                 }
-
-                if (adjustedChanges.length > 0) {
-                    if (adjustedChanges.some((change) => isPromise(change))) {
-                        adjustedChanges = await Promise.all(adjustedChanges);
-                    }
-                    onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
-                }
-
-                if (shouldSaveMetadata && !isEmpty(metadata)) {
-                    updateMetadata(obs, localState, obsState, persistOptions, metadata);
-                }
+                configRemote?.onSaveRemote?.();
             }
-            configRemote?.onSaveRemote?.();
         }
     }
 }
 
 function onObsChange<T, TState = {}>(
     obs: Observable<T>,
-    obsState: ObservableObject<ObservablePersistState>,
+    syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T, TState>,
     { changes }: ListenerParams,
@@ -474,7 +460,7 @@ function onObsChange<T, TState = {}>(
         // Queue changes in a microtask so that multiple changes within a frame get run together
         _queuedChanges.push({
             obs: obs as Observable<any>,
-            obsState,
+            syncState,
             localState,
             persistOptions,
             changes,
@@ -506,7 +492,7 @@ export function onChangeRemote(cb: () => void) {
 async function loadLocal<T>(
     obs: ObservableWriteable<T>,
     persistOptions: PersistOptions<any, any>,
-    obsState: ObservableObject<ObservablePersistState>,
+    syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
 ) {
     const { local } = persistOptions;
@@ -561,7 +547,7 @@ async function loadLocal<T>(
         if (metadata) {
             metadatas.set(obs, metadata);
             localState.pendingChanges = metadata.pending;
-            obsState.dateModified.set(metadata.modified);
+            syncState.dateModified.set(metadata.modified);
         }
 
         // Merge the data from local persistence into the default state
@@ -589,13 +575,13 @@ async function loadLocal<T>(
             );
         }
 
-        obsState.peek().clearLocal = () =>
+        syncState.peek().clearLocal = () =>
             Promise.all([
                 persistenceLocal.deleteTable(table, config),
                 persistenceLocal.deleteMetadata(table, config),
             ]) as unknown as Promise<void>;
     }
-    obsState.isLoadedLocal.set(true);
+    syncState.isLoadedLocal.set(true);
 }
 
 export function persistObservable<T, TState = {}>(
@@ -625,7 +611,7 @@ export function persistObservable<T, TState = {}>(
     const remotePersistence = persistOptions.pluginRemote! || observablePersistConfiguration?.pluginRemote;
     const localState: LocalState = {};
 
-    const obsState = observable<ObservablePersistState>({
+    const syncState = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoadedRemote: false,
         isEnabledLocal: true,
@@ -636,7 +622,7 @@ export function persistObservable<T, TState = {}>(
     });
 
     if (local) {
-        loadLocal(obs, persistOptions, obsState, localState);
+        loadLocal(obs, persistOptions, syncState, localState);
     }
 
     if (remote || remotePersistence) {
@@ -667,12 +653,12 @@ export function persistObservable<T, TState = {}>(
                 isSynced = true;
                 const dateModified = metadatas.get(obs)?.modified;
                 localState.persistenceRemote!.get({
-                    state: obsState,
+                    state: syncState,
                     obs,
                     options: persistOptions as PersistOptions<T, any>,
                     dateModified,
                     onLoad: () => {
-                        obsState.isLoadedRemote.set(true);
+                        syncState.isLoadedRemote.set(true);
                     },
                     onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
                         // Note: value is the constructed value, path is used for setInObservableAtPath
@@ -728,7 +714,7 @@ export function persistObservable<T, TState = {}>(
                             }
                         }
                         if (dateModified && local) {
-                            updateMetadata(obs, localState, obsState, persistOptions as PersistOptions<T, any>, {
+                            updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T, any>, {
                                 modified: dateModified,
                             });
                         }
@@ -737,7 +723,7 @@ export function persistObservable<T, TState = {}>(
 
                 // Wait for remote to be ready before saving pending
                 await when(
-                    () => obsState.isLoadedRemote.get() || (remote.allowSaveIfError && obsState.remoteError.get()),
+                    () => syncState.isLoadedRemote.get() || (remote.allowSaveIfError && syncState.remoteError.get()),
                 );
 
                 const pending = localState.pendingChanges;
@@ -755,7 +741,7 @@ export function persistObservable<T, TState = {}>(
                     }
 
                     // Send the changes into onObsChange so that they get persisted remotely
-                    onObsChange(obs as Observable, obsState, localState, persistOptions, {
+                    onObsChange(obs as Observable, syncState, localState, persistOptions, {
                         value: obs.peek(),
                         // TODO getPrevious if any remote persistence layers need it
                         getPrevious: () => undefined,
@@ -767,23 +753,23 @@ export function persistObservable<T, TState = {}>(
         };
 
         if (remote.manual) {
-            obsState.assign({ sync });
+            syncState.assign({ sync });
         } else {
-            when(() => !local || obsState.isLoadedLocal.get(), sync);
+            when(() => !local || syncState.isLoadedLocal.get(), sync);
         }
     }
 
-    when(!local || obsState.isLoadedLocal, function (this: any) {
+    when(!local || syncState.isLoadedLocal, function (this: any) {
         obs.onChange(
             onObsChange.bind(
                 this,
                 obs as Observable<any>,
-                obsState,
+                syncState,
                 localState,
                 persistOptions as PersistOptions<any, any>,
             ),
         );
     });
 
-    return [obs, obsState as any];
+    return [obs, syncState as any];
 }

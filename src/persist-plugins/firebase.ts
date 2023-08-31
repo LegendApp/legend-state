@@ -13,7 +13,6 @@ import {
     hasOwnProperty,
     internal,
     isArray,
-    isFunction,
     isObject,
     isObservable,
     mergeIntoObservable,
@@ -101,6 +100,7 @@ interface SaveState {
             saved: {
                 value: any;
                 path: string[];
+                pathTypes: TypeAtPath[];
                 dateModified: number | undefined;
                 dateModifiedKey: string | undefined;
                 dateModifiedKeyOption: string | undefined;
@@ -436,10 +436,11 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             }
         }
     }
-    public async set<T>({ options, path, valueAtPath, pathTypes, obs }: ObservablePersistRemoteSetParams<T>): Promise<
+    public async set<T>({ options, changes, obs }: ObservablePersistRemoteSetParams<T>): Promise<
         | {
               changes?: object;
               dateModified?: number;
+              pathStrs?: string[];
           }
         | undefined
     > {
@@ -454,15 +455,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             await whenReady(this.user);
         }
 
-        if (valueAtPath === undefined) {
-            valueAtPath = null;
-        }
-
-        const value = constructObjectWithPath(path as string[], clone(valueAtPath), pathTypes) as unknown as T;
-        const pathCloned = path.slice() as string[];
         const syncPath = options.remote!.firebase!.syncPath(this.fns.getCurrentUser());
-
-        log?.('Saving', value);
 
         const status$ = this._pathsLoadStatus[syncPath];
         if (status$.numWaitingCanSave.peek() > 0) {
@@ -471,11 +464,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
 
         if (waitForSave) {
-            await (isObservable(waitForSave)
-                ? whenReady(waitForSave)
-                : isFunction(waitForSave)
-                ? waitForSave(value, pathCloned)
-                : waitForSave);
+            await (isObservable(waitForSave) ? whenReady(waitForSave) : waitForSave);
         }
 
         const saveState = this.saveStates.get(obs)!;
@@ -488,7 +477,20 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
         const pending = pendingSaves.get(syncPath)!.saves;
 
-        this._updatePendingSave(pathCloned, value as unknown as object, pending);
+        log?.('Saving', changes);
+
+        for (let i = 0; i < changes.length; i++) {
+            let { valueAtPath } = changes[i];
+            const { pathTypes, path } = changes[i];
+            if (valueAtPath === undefined) {
+                valueAtPath = null;
+            }
+
+            const value = constructObjectWithPath(path as string[], clone(valueAtPath), pathTypes) as unknown as T;
+            const pathCloned = path.slice() as string[];
+
+            this._updatePendingSave(pathCloned, value as unknown as object, pending);
+        }
 
         if (!saveState.eventSaved) {
             saveState.eventSaved = observablePrimitive();
@@ -514,8 +516,6 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
             const saveResults = pendingSaveResults.get(syncPath);
 
-            log?.('Saved', { value, saves: saveResults?.saved });
-
             if (saveResults) {
                 const { saved } = saveResults;
                 if (saved?.length) {
@@ -528,9 +528,10 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                     let maxModified = 0;
 
                     // Compile a changes object of all the dateModified
-                    const changes = {};
+                    const changesOut = {};
                     for (let i = 0; i < saved.length; i++) {
-                        const { dateModified, path, dateModifiedKeyOption, dateModifiedKey, value } = saved[i];
+                        const { dateModified, path, pathTypes, dateModifiedKeyOption, dateModifiedKey, value } =
+                            saved[i];
                         if (dateModified) {
                             maxModified = Math.max(dateModified, maxModified);
                             if (dateModifiedKeyOption) {
@@ -538,7 +539,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                                 // Don't resurrect deleted items
                                 if (deconstructed !== (symbolDelete as any)) {
                                     Object.assign(
-                                        changes,
+                                        changesOut,
                                         constructObjectWithPath(
                                             path,
                                             {
@@ -552,10 +553,14 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         }
                     }
 
-                    return {
-                        changes,
+                    const ret = {
+                        changes: changesOut,
                         dateModified: maxModified || undefined,
                     };
+
+                    log?.('Saved', ret);
+
+                    return ret;
                 }
             }
         } else {
@@ -803,6 +808,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             let { value, dateModified } = this._convertFBTimestamps(val, dateModifiedKey!, dateModifiedKeyOption!);
 
             const pathChild = path.concat(key);
+            const pathTypesChild = pathTypes.concat('object');
             const constructed = constructObjectWithPath(pathChild, value, pathTypes);
 
             if (
@@ -810,6 +816,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                     pathFirebase,
                     constructed,
                     pathChild,
+                    pathTypesChild,
                     dateModified,
                     dateModifiedKey,
                     dateModifiedKeyOption,
@@ -915,6 +922,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         syncPath: string,
         value: object,
         pathChild: string[],
+        pathTypesChild: TypeAtPath[],
         dateModified: number | undefined,
         dateModifiedKey: string | undefined,
         dateModifiedKeyOption: string | undefined,
@@ -949,6 +957,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         value,
                         dateModified,
                         path: pathChild,
+                        pathTypes: pathTypesChild,
                         dateModifiedKey,
                         dateModifiedKeyOption,
                         onChange,
