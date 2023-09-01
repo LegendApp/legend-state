@@ -383,12 +383,12 @@ async function doChange(
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
         await when(
-            () => syncState.isLoadedRemote.get() || (configRemote?.allowSaveIfError && syncState.remoteError.get()),
+            () => syncState.isLoadedRemote.get() || (configRemote?.allowSetIfError && syncState.remoteError.get()),
         );
 
         const value = obs.peek();
 
-        configRemote?.onBeforeSaveRemote?.();
+        configRemote?.onBeforeSet?.();
 
         const saved = await persistenceRemote!.set!({
             obs,
@@ -396,7 +396,7 @@ async function doChange(
             options: persistOptions,
             changes: changesRemote,
             value,
-        }).catch((err) => configRemote?.onSaveError?.(err));
+        }).catch((err) => configRemote?.onSetError?.(err));
 
         // If this remote save changed anything then update persistence and metadata
         // Because save happens after a timeout and they're batched together, some calls to save will
@@ -441,7 +441,7 @@ async function doChange(
                         updateMetadata(obs, localState, syncState, persistOptions, metadata);
                     }
                 }
-                configRemote?.onSaveRemote?.();
+                configRemote?.onSet?.();
             }
         }
     }
@@ -657,7 +657,7 @@ export function persistObservable<T, TState = {}>(
                     obs,
                     options: persistOptions as PersistOptions<T, any>,
                     dateModified,
-                    onLoad: () => {
+                    onGet: () => {
                         syncState.isLoadedRemote.set(true);
                     },
                     onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
@@ -723,7 +723,7 @@ export function persistObservable<T, TState = {}>(
 
                 // Wait for remote to be ready before saving pending
                 await when(
-                    () => syncState.isLoadedRemote.get() || (remote.allowSaveIfError && syncState.remoteError.get()),
+                    () => syncState.isLoadedRemote.get() || (remote.allowSetIfError && syncState.remoteError.get()),
                 );
 
                 const pending = localState.pendingChanges;

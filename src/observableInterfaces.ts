@@ -183,11 +183,11 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     readonly?: boolean;
     once?: boolean;
     requireAuth?: boolean;
-    waitForLoad?: Promise<any> | ObservableReadable<any>;
-    waitForSave?: Promise<any> | ObservableReadable<any>;
+    waitForGet?: Promise<any> | ObservableReadable<any>;
+    waitForSet?: Promise<any> | ObservableReadable<any>;
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
-    allowSaveIfError?: boolean;
+    allowSetIfError?: boolean;
     adjustData?: {
         load?: (value: T) => T | Promise<T>;
         save?: (value: T) => T | Promise<T>;
@@ -198,15 +198,15 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
         ignoreKeys?: string[];
     };
     offlineBehavior?: false | 'retry';
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
-    onBeforeSaveRemote?: () => void;
-    onSaveRemote?: () => void;
+    onBeforeSet?: () => void;
+    onSet?: () => void;
 };
 export interface ObservablePersistenceConfigLocalGlobalOptions {
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
     indexedDB?: {
         databaseName: string;
         version: number;
@@ -218,14 +218,14 @@ export interface ObservablePersistenceConfigLocalGlobalOptions {
     };
 }
 export interface ObservablePersistenceConfigRemoteGlobalOptions {
-    saveTimeout?: number;
+    syncTimeout?: number;
     dateModifiedKey?: string;
     offlineBehavior?: false | 'retry';
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
-    onBeforeSaveRemote?: () => void;
-    onSaveRemote?: () => void;
+    onBeforeSet?: () => void;
+    onSet?: () => void;
 }
 export interface ObservablePersistenceConfig {
     pluginLocal?: ClassConstructor<ObservablePersistLocal>;
@@ -268,7 +268,7 @@ export interface ObservablePersistRemoteGetParams<T, TState = {}> {
     obs: ObservableReadable<T>;
     options: PersistOptions<T, TState>;
     dateModified?: number;
-    onLoad: () => void;
+    onGet: () => void;
     onChange: (params: {
         value: unknown;
         path?: string[];

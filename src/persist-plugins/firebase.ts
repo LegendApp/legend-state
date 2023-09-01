@@ -120,7 +120,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected _batch: Record<string, any> = {};
     protected fns: FirebaseFns;
     private _pathsLoadStatus = observable<Record<string, LoadStatus>>({});
-    private SaveTimeout;
+    private SyncTimeout;
     private user: Observable<string>;
     private listenErrors: Map<
         any,
@@ -142,7 +142,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     constructor(fns: FirebaseFns) {
         this.fns = fns;
         this.user = observablePrimitive<string>();
-        this.SaveTimeout = observablePersistConfiguration?.remoteOptions?.saveTimeout ?? 500;
+        this.SyncTimeout = observablePersistConfiguration?.remoteOptions?.syncTimeout ?? 500;
 
         if (this.fns.isInitialized()) {
             this.fns.onAuthStateChanged((user) => {
@@ -167,7 +167,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             requireAuth,
             firebase: { syncPath },
         } = remote;
-        let { waitForLoad } = remote;
+        let { waitForGet: waitForLoad } = remote;
 
         if (requireAuth) {
             await whenReady(this.user);
@@ -202,7 +202,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             onLoad: () => {
                 onLoadParams.waiting--;
                 if (onLoadParams.waiting === 0) {
-                    params.onLoad();
+                    params.onGet();
                 }
             },
         };
@@ -311,8 +311,8 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const {
             once,
             fieldTransforms,
-            onLoadError,
-            allowSaveIfError,
+            onGetError: onLoadError,
+            allowSetIfError: allowSaveIfError,
             firebase,
             dateModifiedKey: dateModifiedKeyOption,
         } = options.remote!;
@@ -449,7 +449,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (!remote || !remote.firebase) {
             return;
         }
-        const { requireAuth, waitForSave, saveTimeout, log } = remote;
+        const { requireAuth, waitForSet: waitForSave, syncTimeout, log } = remote;
 
         if (requireAuth) {
             await whenReady(this.user);
@@ -498,7 +498,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         // Keep the current eventSaved. This will get reassigned once the timeout activates.
         const eventSaved = saveState.eventSaved;
 
-        const timeout = saveTimeout ?? this.SaveTimeout;
+        const timeout = syncTimeout ?? this.SyncTimeout;
 
         if (timeout) {
             if (saveState.timeout) {

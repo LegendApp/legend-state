@@ -94,7 +94,7 @@ describe('Persist remote with functions', () => {
                 },
             },
             remote: {
-                onSaveRemote() {
+                onSet() {
                     didSave$.set(true);
                 },
             },
