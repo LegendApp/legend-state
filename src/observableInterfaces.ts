@@ -181,8 +181,6 @@ export interface PersistOptionsLocal<T = any> {
 }
 export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
-    once?: boolean;
-    requireAuth?: boolean;
     waitForGet?: Promise<any> | ObservableReadable<any>;
     waitForSet?: Promise<any> | ObservableReadable<any>;
     manual?: boolean;
@@ -196,6 +194,8 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
         syncPath: (uid: string | undefined) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
+        requireAuth?: boolean;
+        mode?: 'once' | 'realtime';
     };
     offlineBehavior?: false | 'retry';
     onGetError?: (error: Error) => void;

@@ -163,10 +163,11 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             return;
         }
         const {
-            requireAuth,
             firebase: { syncPath },
             waitForGet,
         } = remote;
+
+        const { requireAuth, queryByModified } = options.remote!.firebase!;
 
         // If requireAuth wait for user to be signed in
         if (requireAuth) {
@@ -184,8 +185,6 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             numSavesPending: 0,
         };
         this.saveStates.set(obs, saveState);
-
-        const { queryByModified } = options.remote!.firebase!;
 
         const pathFirebase = syncPath(this.fns.getCurrentUser());
 
@@ -304,14 +303,13 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     ) {
         const { options } = params;
         const {
-            once,
             fieldTransforms,
             onGetError: onLoadError,
             allowSetIfError: allowSaveIfError,
             firebase,
             dateModifiedKey: dateModifiedKeyOption,
         } = options.remote!;
-        const { syncPath } = firebase!;
+        const { syncPath, mode } = firebase!;
 
         let didError = false;
         const dateModifiedKey = getDateModifiedKey(dateModifiedKeyOption);
@@ -361,7 +359,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             }
         };
 
-        if (!once) {
+        if (mode !== 'once') {
             const localState: LocalState<T> = { changes: {} as T };
             const cb = this._onChange.bind(
                 this,
@@ -444,13 +442,15 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (!remote || !remote.firebase) {
             return;
         }
-        const { requireAuth, waitForSet, syncTimeout, log } = remote;
+        const { waitForSet, syncTimeout, log, firebase } = remote;
+
+        const { requireAuth, syncPath: syncPathFn } = firebase;
 
         if (requireAuth) {
             await whenReady(this.user);
         }
 
-        const syncPath = options.remote!.firebase!.syncPath(this.fns.getCurrentUser());
+        const syncPath = syncPathFn(this.fns.getCurrentUser());
 
         const status$ = this._pathsLoadStatus[syncPath];
         if (status$.numWaitingCanSave.peek() > 0) {
@@ -553,7 +553,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         dateModified: maxModified || undefined,
                     };
 
-                    log?.('verbose', 'Saved', ret);
+                    log?.('verbose', 'Saved', changes, ret);
 
                     return ret;
                 }
