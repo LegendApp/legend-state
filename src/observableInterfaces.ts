@@ -223,7 +223,7 @@ export interface ObservablePersistenceConfigRemoteGlobalOptions {
     offlineBehavior?: false | 'retry';
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
-    log?: (message?: any, ...optionalParams: any[]) => void;
+    log?: (logLevel: 'verbose' | 'warning' | 'error', message: any, ...optionalParams: any[]) => void;
     onBeforeSet?: () => void;
     onSet?: () => void;
 }

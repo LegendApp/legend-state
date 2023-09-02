@@ -477,7 +477,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
         const pending = pendingSaves.get(syncPath)!.saves;
 
-        log?.('Saving', changes);
+        log?.('verbose', 'Saving', changes);
 
         for (let i = 0; i < changes.length; i++) {
             let { valueAtPath } = changes[i];
@@ -558,7 +558,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         dateModified: maxModified || undefined,
                     };
 
-                    log?.('Saved', ret);
+                    log?.('verbose', 'Saved', ret);
 
                     return ret;
                 }
