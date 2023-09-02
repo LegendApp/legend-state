@@ -1,17 +1,32 @@
 This is a high level overview for how to work with Legend-State in React. See [React API](../react-api) for more specific details. Legend-State supports both React and React Native, but most of the examples are in React for ease of showing live demos.
 
-## First configure use()
+## Component reactivity
 
-We recommend adding the `use()` function to your observables - it is the recommended way to work with observables in React as you will see in the examples. You only need to do this once in your app's entry point.
+The first step to working with observables in React is to make your components re-render when observable values change. Legend-State has three ways for your components to update themselves based on observables. This applies to all observables, whether in global state or local within a component.
+
+### 1. use()
+
+We recommend adding the `use()` function to your observables - it is the easiest way to work with observables in React as you will see in the examples. You only need to do this once in your app's entry point.
 
 ```jsx
-import { enableReactUse } from '@legendapp/state/config/enableReactUse';
+import { enableReactUse } from '@legendapp/state/config/enableReactUse'
+import { observable } from "@legendapp/state"
+
 enableReactUse() // This adds the use() function to observables
+
+const name$ = observable('Annyong')
+
+function Component() {
+    // The component re-renders when name changes
+    const name = name$.use()
+
+    return <div>{name}</div>
+}
 ```
 
-## Use observable state
+### 2. useSelector()
 
-Now you can call `use()` on any observable to get its value and automatically re-render whenever it changes. Alternatively, `useSelector(...)` can return a computed value based on one or more observables.
+ `useSelector` returns the value of an observable or a function and updates the component when its value changes. You can use it for more complex cases to compute a value based on observables, or if you prefer it to `.use()` or . See [useSelector](../react-api#useselector) for more in-depth details.
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -19,15 +34,36 @@ import { observable } from "@legendapp/state"
 const state$ = observable({ fname: 'hello', lname: 'there' })
 
 function Component() {
-    // The component re-renders when fname changes
-    const fname = state$.fname.use()
-
-    // The component re-renders when either fname or lname changes
+    // Re-render when fname changes
+    const fname = useSelector(state$.fname)
+    // Re-render when the computed value of fullname changes
     const fullname = useSelector(() => `${state$.fname.get()} ${state$.lname.get()}`)
 
-    return <div>{fullname}</div>
+    return <div>{fname} {fullname}</div>
 }
 ```
+
+### 3. observer HOC
+
+The [observer HOC](../react-api/#observer-hoc) turns the component into an [observing context](../reactivity#observing-contexts) so that any `.get()` calls will be observed to trigger re-render when they change. That can be useful for reusing existing functions that use `.get()`. It also optimizes by grouping all `use()` calls together instead of creating multiple hooks. In practice that's a micro-optimization that's only really useful in huge components.
+
+This is a more advanced feature so we suggest that you start with `use()` and `useSelector`, and return to `observer` as you're getting more comfortable with Legend-State.
+
+```jsx
+import { observable } from "@legendapp/state"
+import { observer } from "@legendapp/state/react"
+
+const state = observable({ count: 0 })
+
+const Component = observer(function Component() {
+    // Accessing state automatically makes this component track changes to re-render
+    const count = state.count.get();
+
+    // Re-renders whenever count changes
+    return <div>{count}</div>
+})
+```
+
 
 ## Local state
 
@@ -142,6 +178,10 @@ These fine-grained reactivity patterns are inspired by Knockout.js as well as mo
 
 ## Example
 
+This example shows:
+1. State persisted to local storage
+2. Reactive components
+
 <Sandbox height={480} width={64} options={{ showTabs: true }} deps={{ 'framer-motion': '7.6.6' }} files={{
 '/State.js': { code: `
 import { observable } from '@legendapp/state'
@@ -181,16 +221,16 @@ const MotionDiv = reactive(motion.div);
 export default function App() {
   const renderCount = ++useRef(0).current;
 
-  const animPosition = () => ({
-    width: State.settings.showSidebar.get() ? 96 : 0
-  });
-
   return (
     <div className="flex absolute inset-0">
       <MotionDiv
         className="bg-gray-600 text-center pt-2 text-white text-sm"
-        $initial={animPosition}
-        $animate={animPosition}
+        $initial={() => ({
+            width: State.settings.showSidebar.get() ? 96 : 0
+        })}
+        $animate={() => ({
+            width: State.settings.showSidebar.get() ? 96 : 0
+        })}
       >
         Sidebar
       </MotionDiv>

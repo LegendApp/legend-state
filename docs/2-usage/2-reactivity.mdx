@@ -1,61 +1,105 @@
-Listening for changes is the core purpose of observables, so Legend-State provides many options. Critically, you can listen to changes at any level in an object's hierarchy and it will be notified by changes in any children.
+Listening for changes is the core purpose of observables, so Legend-State provides many options. You can listen to changes at any level in an object's hierarchy and it will be notified by changes in any children.
 
-## Observing changes
+## Observing contexts
 
-### onChange
+The core power of Legend-State is the "observing contexts". Calling `get()` within an observing context will track changes in that node, and re-run itself whenever it changes.
 
-`onChange` listens to an observable for any changes anywhere within it. Use this as specifically as possible because it will fire notifications for every change recursively up the tree.
+Most functions in Legend-State take what we call a "Selector", which either a single observable or a function that calls `get()` on some observables and returns a value.
+
+### What tracks
+
+`get()` is the primary way to access observables and track for changes, but there are actually a few ways:
+1. Call `get()` on an observable: `settings.get()`
+2. Array looping functions (shallow listener): `arr.map(settings.accounts, () => ...)`
+3. Accessing array length (shallow listener): `if (arr.length > 0) ...`
+4. Object.keys (shallow listener): `Object.keys(settings)`
+
+These operation do not track:
+1. Accessing through an observable: `state.settings`
+2. Call `peek()` on an observable: `settings.peek()`
+
+### Observing examples
 
 ```js
-const state$ = observable({ text: 'hi' })
+const state = observable({
+    settings: {
+        theme: 'dark'
+    },
+    chats: {
+        messages: [
+            { id: 0, text: 'hi' }
+        ]
+    }
+})
 
-state$.text.onChange(({ value }) => console.log('text changed to', value))
-state$.onChange(({ value }) => console.log('state changed to', value))
+observe(() => {
+    // Example 1:
+    const theme = state.settings.theme.get()
+    // ✅ Tracking [state.settings.theme] because of get()
 
-state$.text.set('hello')
+    // Example 2:
+    const settings = state.settings
+    // ❌ Not tracking because it's an object
 
-// Log: text changed to "hello"
-// Log: state changed to { text: "hello" }
+    const theme = settings.theme.get()
+    // ✅ Tracking [state.settings.theme] because of get()
+
+    // Example 3:
+    const theme$ = state.settings.theme
+    // ❌ Not tracking with no get()
+
+    // Example 4:
+    state.chats.messages.map(m => <Message key={m.get().id} message={m} />)
+    // ✅ Tracking [state.chats.messages (shallow)] because of map()
+
+    // Example 5:
+    Object.keys(state.settings)
+    // ✅ Tracking [state.settings (shallow)]
+})
 ```
 
-`onChange` has some extra options for more advanced use:
+The automatic behavior can be modified with two observable functions:
 
-1. `getPrevious`: Function to compare with the previous value. It is a function to let you opt into getting the previous value if needed, because it has some performance cost in cloning the object to compute the previous value.
-2. `changes`: Array of all of the changes to this observable in the latest batch. This is intended mainly for internal usage by the persistence plugins to know what to sync/update and the history plugin to track all changes, but it may be good for other uses too.
-3. `trackingType`: Whether to track only shallow changes
-4. `initial`: Whether to run the callback immediately with the current value
-5. `immediate`: Whether to run the callback immediately instead of within a batch. This is used internally by `computed` to make sure its value is always correct, but it may be useful for other specific uses.
+<div style={{ maxWidth: 300 }}>
+| Function     | Tracked |
+| -----------  | ------- |
+| `get()`      | yes     |
+| `get(true)`  | shallow |
+| `peek()`     | no      |
+</div>
+
+### get()
+
+`get` returns the raw data of an observable and tracks it, so you can work with it without doing any further tracking. You may want to use `get()` to:
+
+- Get the value of an observable wrapper of a primitive
+- Track this object and not its individual fields. Minimizing the number of listeners is better for performance.
 
 ```js
-// Full example
-state$.onChange(({ value, getPrevious, changes }) => {
-    const prev = getPrevious();
-    changes.forEach(({ path, valueAtPath, prevAtPath }) => {
-        console.log(valueAtPath, 'changed at', path, 'from', prevAtPath)
-    })
-}, { initial: true, trackingType: true })
+    const theme = state.settings.theme.get()
+    // ✅ Tracking [state.settings.theme]
 ```
 
-#### Dispose of listeners
+### shallow modifier
 
-Listening to an observable returns a dispose function to stop listening. Just call it when you want to stop listening.
+`get()` observes recursively by default, so any child changing will cause an update. You can modify it to be a shallow listener by just adding a `true` parameter. This can be useful when a component only needs to re-render if an object's keys or an array's items change.
 
-```js
-const state$ = observable({ text: 'hello' })
+```jsx
+const state = observable({ messages: [] })
 
-const onChange = () => { ... }
+observe(() => {
+    // Only need this to update when messages added/removed
+    const messages = state.messages.get(true)
 
-const dispose = state$.text.onChange(onChange)
-
-// Cancel listening manually
-dispose()
+    console.log('Latest message', messages[0])
+})
 ```
 
 ### observe
 
 `observe` can run arbitrary code when observables change, and automatically tracks the observables accessed while running, so it will update whenever any accessed observable changes.
 
-This can be useful to use multiple observables at once, for the benefit of cleanup effects, or if you just like it more than [onChange](#onchange) 😎.
+This can be useful to use multiple observables at once, for the benefit of cleanup effects, or if you just like it more than [onChange](#onchange).
 
 The callback parameter has some useful properties:
 - `num`: How many times it's run. Use this to do something only the first time or not the first time.
@@ -136,93 +180,51 @@ state$.arr.push('hello')
 // "Array has some values"
 ```
 
-## Observing contexts
+### onChange
 
-The core power of Legend-State is the "observing contexts" in which any call to `get()` or array looping will subscribe the observer to track changes in that node, and the observer will re-run whenever it changes. This includes `observe`, `when`, `computed`, `useSelector`, `observer`, `<Memo>`, `<Computed>`, and reactive props.
-
-These operations track:
-1. Call `get()` on an observable: `settings.get()`
-2. Array looping functions (shallow listener): `arr.map(settings.accounts, () => ...)`
-3. Accessing array length (shallow listener): `if (arr.length > 0) ...`
-4. Object.keys (shallow listener): `Object.keys(settings)`
-
-These operation do not track:
-1. Accessing through an observable: `state.settings`
-2. Call `peek()` on an observable: `settings.peek()`
-
-Some examples of the automatic behavior:
+`onChange` listens to an observable for any changes anywhere within it. Use this as specifically as possible because it will fire notifications for every change recursively up the tree.
 
 ```js
-const state = observable({
-    settings: {
-        theme: 'dark'
-    },
-    chats: {
-        messages: [
-            { id: 0, text: 'hi' }
-        ]
-    }
-})
+const state$ = observable({ text: 'hi' })
 
-observe(() => {
-    // Example 1:
-    const theme = state.settings.theme.get()
-    // ✅ Tracking [state.settings.theme] because of get()
+state$.text.onChange(({ value }) => console.log('text changed to', value))
+state$.onChange(({ value }) => console.log('state changed to', value))
 
-    // Example 2:
-    const settings = state.settings
-    // ❌ Not tracking because it's an object
+state$.text.set('hello')
 
-    const theme = settings.theme.get()
-    // ✅ Tracking [state.settings.theme] because of get()
-
-    // Example 3:
-    const theme$ = state.settings.theme
-    // ❌ Not tracking with no get()
-
-    // Example 4:
-    state.chats.messages.map(m => <Message key={m.get().id} message={m} />)
-    // ✅ Tracking [state.chats.messages (shallow)] because of map()
-
-    // Example 5:
-    Object.keys(state.settings)
-    // ✅ Tracking [state.settings (shallow)]
-})
+// Log: text changed to "hello"
+// Log: state changed to { text: "hello" }
 ```
 
-The automatic behavior can be modified with two observable functions:
+`onChange` has some extra options for more advanced use:
 
-<div style={{ maxWidth: 300 }}>
-| Function     | Value      | Tracked |
-| -----------  | ---------- | ------- |
-| `get()`      | raw        | yes     |
-| `get(true)`  | raw        | shallow |
-| `peek()`     | raw        | no      |
-</div>
-
-### get()
-
-`get` returns the raw data of an observable and tracks it, so you can work with it without doing any further tracking. You may want to use `get()` to:
-
-- Get the value of an observable wrapper of a primitive
-- Track this object and not its individual fields. Minimizing the number of listeners is better for performance.
+1. `getPrevious`: Function to compare with the previous value. It is a function to let you opt into getting the previous value if needed, because it has some performance cost in cloning the object to compute the previous value.
+2. `changes`: Array of all of the changes to this observable in the latest batch. This is intended mainly for internal usage by the persistence plugins to know what to sync/update and the history plugin to track all changes, but it may be good for other uses too.
+3. `trackingType`: Whether to track only shallow changes
+4. `initial`: Whether to run the callback immediately with the current value
+5. `immediate`: Whether to run the callback immediately instead of within a batch. This is used internally by `computed` to make sure its value is always correct, but it may be useful for other specific uses.
 
 ```js
-    const theme = state.settings.theme.get()
-    // ✅ Tracking [state.settings.theme]
+// Full example
+state$.onChange(({ value, getPrevious, changes }) => {
+    const prev = getPrevious();
+    changes.forEach(({ path, valueAtPath, prevAtPath }) => {
+        console.log(valueAtPath, 'changed at', path, 'from', prevAtPath)
+    })
+}, { initial: true, trackingType: true })
 ```
 
-### shallow modifier
+#### Dispose of listeners
 
-`get()` observes recursively by default, so any child changing will cause an update. You can modify it to be a shallow listener by just adding a `true` parameter. This can be useful when a component only needs to re-render if an object's keys or an array's items change.
+Listening to an observable returns a dispose function to stop listening. Just call it when you want to stop listening.
 
-```jsx
-const state = observable({ messages: [] })
+```js
+const state$ = observable({ text: 'hello' })
 
-observe(() => {
-    // Only need this to update when messages added/removed
-    const messages = state.messages.get(true)
+const onChange = () => { ... }
 
-    console.log('Latest message', messages[0])
-})
+const dispose = state$.text.onChange(onChange)
+
+// Cancel listening manually
+dispose()
 ```
