@@ -1,5 +1,6 @@
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { symbolGetNode, symbolOpaque } from './globals';
+import { DatabaseReference, Query } from 'firebase/database';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -191,6 +192,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     transform?: PersistTransform<T>;
     firebase?: {
         refPath: (uid: string | undefined) => `/${string}/`;
+        query?: (ref: DatabaseReference) => DatabaseReference | Query;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
         requireAuth?: boolean;

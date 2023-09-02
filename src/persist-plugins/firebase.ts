@@ -309,7 +309,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             firebase,
             dateModifiedKey: dateModifiedKeyOption,
         } = options.remote!;
-        const { refPath, mode } = firebase!;
+        const { refPath, query, mode } = firebase!;
 
         let didError = false;
         const dateModifiedKey = getDateModifiedKey(dateModifiedKeyOption);
@@ -322,6 +322,9 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const pathFirebase = refPath(this.fns.getCurrentUser()) + path.join('/');
 
         let ref = this.fns.ref(pathFirebase);
+        if (query) {
+            ref = query(ref) as DatabaseReference;
+        }
         if (dateModified && !isNaN(dateModified)) {
             ref = this.fns.orderByChild(ref, dateModifiedKey, dateModified + 1);
         }
