@@ -51,7 +51,7 @@ function getDateModifiedKey(dateModifiedKey: string | undefined) {
 interface FirebaseFns {
     isInitialized: () => boolean;
     getCurrentUser: () => string | undefined;
-    ref: (path: string) => any;
+    ref: (path: string) => DatabaseReference;
     orderByChild: (ref: any, child: string, startAt: number) => any;
     once: (query: any, callback: (snapshot: DataSnapshot) => unknown, onError: (error: Error) => void) => () => void;
     onChildAdded: (
@@ -163,7 +163,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             return;
         }
         const {
-            firebase: { syncPath },
+            firebase: { refPath },
             waitForGet,
         } = remote;
 
@@ -186,7 +186,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         };
         this.saveStates.set(obs, saveState);
 
-        const pathFirebase = syncPath(this.fns.getCurrentUser());
+        const pathFirebase = refPath(this.fns.getCurrentUser());
 
         const status$ = this._pathsLoadStatus[pathFirebase].set({
             startedLoading: false,
@@ -309,7 +309,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             firebase,
             dateModifiedKey: dateModifiedKeyOption,
         } = options.remote!;
-        const { syncPath, mode } = firebase!;
+        const { refPath, mode } = firebase!;
 
         let didError = false;
         const dateModifiedKey = getDateModifiedKey(dateModifiedKeyOption);
@@ -319,11 +319,11 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             path = transformPath(path, pathTypes, fieldTransforms);
         }
 
-        const pathFirebase = syncPath(this.fns.getCurrentUser()) + path.join('/');
+        const pathFirebase = refPath(this.fns.getCurrentUser()) + path.join('/');
 
-        let refPath = this.fns.ref(pathFirebase);
+        let ref = this.fns.ref(pathFirebase);
         if (dateModified && !isNaN(dateModified)) {
-            refPath = this.fns.orderByChild(refPath, dateModifiedKey, dateModified + 1);
+            ref = this.fns.orderByChild(ref, dateModifiedKey, dateModified + 1);
         }
 
         const unsubscribes: (() => void)[] = [];
@@ -373,15 +373,15 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 saveState,
                 status$,
             );
-            unsubscribes.push(this.fns.onChildAdded(refPath, cb));
-            unsubscribes.push(this.fns.onChildChanged(refPath, cb));
+            unsubscribes.push(this.fns.onChildAdded(ref, cb));
+            unsubscribes.push(this.fns.onChildChanged(ref, cb));
         }
 
         onLoadParams.waiting++;
 
         unsubscribes.push(
             this.fns.once(
-                refPath,
+                ref,
                 this._onceValue.bind(
                     this,
                     path,
@@ -444,15 +444,15 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
         const { waitForSet, syncTimeout, log, firebase } = remote;
 
-        const { requireAuth, syncPath: syncPathFn } = firebase;
+        const { requireAuth, refPath: refPathFn } = firebase;
 
         if (requireAuth) {
             await whenReady(this.user);
         }
 
-        const syncPath = syncPathFn(this.fns.getCurrentUser());
+        const refPath = refPathFn(this.fns.getCurrentUser());
 
-        const status$ = this._pathsLoadStatus[syncPath];
+        const status$ = this._pathsLoadStatus[refPath];
         if (status$.numWaitingCanSave.peek() > 0) {
             // Wait for all listened paths to load before we can save
             await when(() => status$.numWaitingCanSave.get() < 1);
@@ -466,11 +466,11 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const { pendingSaveResults, pendingSaves } = saveState;
 
-        if (!pendingSaves.has(syncPath)) {
-            pendingSaves.set(syncPath, { options, saves: {} });
-            pendingSaveResults.set(syncPath, { saved: [] });
+        if (!pendingSaves.has(refPath)) {
+            pendingSaves.set(refPath, { options, saves: {} });
+            pendingSaveResults.set(refPath, { saved: [] });
         }
-        const pending = pendingSaves.get(syncPath)!.saves;
+        const pending = pendingSaves.get(refPath)!.saves;
 
         log?.('verbose', 'Saving', changes);
 
@@ -509,14 +509,14 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (savedOrError === true) {
             this.retryListens();
 
-            const saveResults = pendingSaveResults.get(syncPath);
+            const saveResults = pendingSaveResults.get(refPath);
 
             if (saveResults) {
                 const { saved } = saveResults;
                 if (saved?.length) {
                     // Only want to return from saved one time
                     if (saveState.numSavesPending === 0) {
-                        pendingSaveResults.delete(syncPath);
+                        pendingSaveResults.delete(refPath);
                     } else {
                         saveResults.saved = [];
                     }
@@ -597,7 +597,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     private _constructBatchesForSave(pendingSaves: Map<string, PendingSaves>) {
         const batches: object[] = [];
         pendingSaves.forEach(({ options, saves }) => {
-            const basePath = options.remote!.firebase!.syncPath(this.fns.getCurrentUser());
+            const basePath = options.remote!.firebase!.refPath(this.fns.getCurrentUser());
             const batch = {};
             this._constructBatch(options, batch, basePath, saves);
             batches.push(batch);
@@ -914,7 +914,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         return value;
     }
     private addValuesToPendingSaves(
-        syncPath: string,
+        refPath: string,
         value: object,
         pathChild: string[],
         pathTypesChild: TypeAtPath[],
@@ -926,7 +926,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     ) {
         const { pendingSaveResults, savingSaves } = saveState;
         let found = false;
-        const pathArr = syncPath.split('/');
+        const pathArr = refPath.split('/');
         for (let i = pathArr.length - 1; !found && i >= 0; i--) {
             const p = pathArr[i];
             if (p === '') continue;

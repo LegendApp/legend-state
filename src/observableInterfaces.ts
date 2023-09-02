@@ -190,7 +190,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     allowSetIfError?: boolean;
     transform?: PersistTransform<T>;
     firebase?: {
-        syncPath: (uid: string | undefined) => `/${string}/`;
+        refPath: (uid: string | undefined) => `/${string}/`;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
         requireAuth?: boolean;
