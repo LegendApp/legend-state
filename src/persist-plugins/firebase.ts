@@ -14,7 +14,6 @@ import {
     internal,
     isArray,
     isObject,
-    isObservable,
     mergeIntoObservable,
     observable,
     observablePrimitive,
@@ -166,18 +165,17 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const {
             requireAuth,
             firebase: { syncPath },
+            waitForGet,
         } = remote;
-        let { waitForGet: waitForLoad } = remote;
 
+        // If requireAuth wait for user to be signed in
         if (requireAuth) {
             await whenReady(this.user);
         }
 
-        if (waitForLoad) {
-            if (isObservable(waitForLoad)) {
-                waitForLoad = whenReady(waitForLoad);
-            }
-            await waitForLoad;
+        // If waitForGet wait for it
+        if (waitForGet) {
+            await whenReady(waitForGet);
         }
 
         const saveState: SaveState = {
@@ -208,9 +206,6 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         };
 
         if (isObject(queryByModified)) {
-            // TODO: Track which paths were handled and then afterwards listen to the non-handled ones
-            // without modified
-
             this.iterateListen(obs, params, saveState, [], [], queryByModified, onLoadParams, status$);
         } else {
             const dateModified = queryByModified === true ? params.dateModified! : undefined;
@@ -449,7 +444,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (!remote || !remote.firebase) {
             return;
         }
-        const { requireAuth, waitForSet: waitForSave, syncTimeout, log } = remote;
+        const { requireAuth, waitForSet, syncTimeout, log } = remote;
 
         if (requireAuth) {
             await whenReady(this.user);
@@ -459,12 +454,12 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const status$ = this._pathsLoadStatus[syncPath];
         if (status$.numWaitingCanSave.peek() > 0) {
-            // Wait for load
+            // Wait for all listened paths to load before we can save
             await when(() => status$.numWaitingCanSave.get() < 1);
         }
 
-        if (waitForSave) {
-            await (isObservable(waitForSave) ? whenReady(waitForSave) : waitForSave);
+        if (waitForSet) {
+            await whenReady(waitForSet);
         }
 
         const saveState = this.saveStates.get(obs)!;
@@ -970,13 +965,13 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     }
 }
 
+function estimateSize(value: any): number {
+    return ('' + value).length + 2; // Convert to string and account for quotes in JSON.
+}
+
 function splitLargeObject(obj: Record<string, any>, limit: number): Record<string, any>[] {
     const parts: Record<string, any>[] = [{}];
     let sizeCount = 0;
-
-    function estimateSize(value: any): number {
-        return ('' + value).length + 2; // Convert to string and account for quotes in JSON.
-    }
 
     function recursiveSplit(innerObj: Record<string, any>, path: string[] = []) {
         for (const key in innerObj) {
@@ -1015,6 +1010,8 @@ function splitLargeObject(obj: Record<string, any>, limit: number): Record<strin
     return parts;
 }
 
+// This is the web version of all the firebase functions. It passes them in as arguments so that it could
+// support firebase on other platforms.
 export class ObservablePersistFirebase extends ObservablePersistFirebaseBase {
     constructor() {
         super({
