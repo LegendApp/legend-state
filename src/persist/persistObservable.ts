@@ -15,6 +15,7 @@ import type {
     PersistOptions,
     PersistOptionsLocal,
     PersistOptionsRemote,
+    PersistTransform,
     TypeAtPath,
 } from '@legendapp/state';
 import {
@@ -75,17 +76,14 @@ function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
     return isPromise(arg1) ? arg1.then(arg2) : arg2(arg1);
 }
 
-export function adjustSaveData(
+export function transformOutData(
     value: any,
     path: string[],
     pathTypes: TypeAtPath[],
-    {
-        adjustData,
-        fieldTransforms,
-    }: { adjustData?: { save?: (value: any) => any }; fieldTransforms?: FieldTransforms<any> },
+    { transform, fieldTransforms }: { transform?: PersistTransform; fieldTransforms?: FieldTransforms<any> },
 ): { value: any; path: string[] } | Promise<{ value: any; path: string[] }> {
-    if (fieldTransforms || adjustData?.save) {
-        const transform = () => {
+    if (fieldTransforms || transform?.out) {
+        const transformFn = () => {
             if (fieldTransforms) {
                 const { obj, path: pathTransformed } = transformObjectWithPath(value, path, pathTypes, fieldTransforms);
                 value = obj;
@@ -95,36 +93,33 @@ export function adjustSaveData(
             return { value, path };
         };
 
-        if (adjustData?.save) {
+        if (transform?.out) {
             const constructed = constructObjectWithPath(path, value, pathTypes);
-            const saved = adjustData.save(constructed);
+            const saved = transform.out(constructed);
             const deconstruct = (toDeconstruct: boolean) => {
                 value = deconstructObjectWithPath(path, toDeconstruct);
-                return transform();
+                return transformFn();
             };
             return doInOrder(saved, deconstruct);
         }
-        return transform();
+        return transformFn();
     }
 
     return { value, path };
 }
 
-export function adjustLoadData(
+export function transformLoadData(
     value: any,
-    {
-        adjustData,
-        fieldTransforms,
-    }: { fieldTransforms?: FieldTransforms<any>; adjustData?: { load?: (value: any) => any } },
-    doUserAdjustData: boolean,
+    { transform, fieldTransforms }: { fieldTransforms?: FieldTransforms<any>; transform?: PersistTransform },
+    doUserTransform: boolean,
 ): Promise<any> | any {
     if (fieldTransforms) {
         const inverted = invertFieldMap(fieldTransforms);
         value = transformObject(value, inverted);
     }
 
-    if (doUserAdjustData && adjustData?.load) {
-        value = adjustData.load(value);
+    if (doUserTransform && transform?.in) {
+        value = transform.in(value);
     }
 
     return value;
@@ -201,9 +196,9 @@ async function processQueuedChanges() {
     _queuedChanges = [];
 
     // Note: Summary of the order of operations these functions:
-    // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous adjustData.
+    // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous transform.
     // We need to prepare all of the changes in the queue before saving so that the saves happen in the correct order,
-    // since some may take longer to adjustSaveData than others.
+    // since some may take longer to transformSaveData than others.
     const changes = await Promise.all(queuedChanges.map(prepChange));
     // 2. Save pending to the metadata table first. If this is the only operation that succeeds, it would try to save
     // the current value again on next load, which isn't too bad.
@@ -239,7 +234,7 @@ async function prepChange(queuedChange: QueuedChange) {
         const changesLocal: ChangeWithPathStr[] = [];
         const changesRemote: ChangeWithPathStr[] = [];
         const changesPaths = new Set<string>();
-        let promisesAdjustData: (void | Promise<any>)[] = [];
+        let promisesTransform: (void | Promise<any>)[] = [];
 
         // Reverse order
         for (let i = changes.length - 1; i >= 0; i--) {
@@ -266,18 +261,23 @@ async function prepChange(queuedChange: QueuedChange) {
 
                 const { prevAtPath, valueAtPath, pathTypes } = changes[i];
                 if (saveLocal) {
-                    const promiseAdjustLocal = adjustSaveData(valueAtPath, path as string[], pathTypes, configLocal);
+                    const promiseTransformLocal = transformOutData(
+                        valueAtPath,
+                        path as string[],
+                        pathTypes,
+                        configLocal,
+                    );
 
-                    promisesAdjustData.push(
-                        doInOrder(promiseAdjustLocal, ({ path: pathAdjusted, value: valueAdjusted }) => {
+                    promisesTransform.push(
+                        doInOrder(promiseTransformLocal, ({ path: pathTransformed, value: valueTransformed }) => {
                             // If path includes undefined there was a null in fieldTransforms so don't need to save it
-                            if (!pathAdjusted.includes(undefined as unknown as string)) {
-                                // Prepare the local change with the adjusted path/value
+                            if (!pathTransformed.includes(undefined as unknown as string)) {
+                                // Prepare the local change with the transformed path/value
                                 changesLocal.push({
-                                    path: pathAdjusted,
+                                    path: pathTransformed,
                                     pathTypes,
                                     prevAtPath,
-                                    valueAtPath: valueAdjusted,
+                                    valueAtPath: valueTransformed,
                                     pathStr,
                                 });
                             }
@@ -286,17 +286,17 @@ async function prepChange(queuedChange: QueuedChange) {
                 }
 
                 if (saveRemote) {
-                    const promiseAdjustRemote = adjustSaveData(
+                    const promiseTransformRemote = transformOutData(
                         valueAtPath,
                         path as string[],
                         pathTypes,
                         configRemote || {},
                     );
 
-                    promisesAdjustData.push(
-                        doInOrder(promiseAdjustRemote, ({ path: pathAdjusted, value: valueAdjusted }) => {
+                    promisesTransform.push(
+                        doInOrder(promiseTransformRemote, ({ path: pathTransformed, value: valueTransformed }) => {
                             // If path includes undefined there was a null in fieldTransforms so don't need to save it
-                            if (!pathAdjusted.includes(undefined as unknown as string)) {
+                            if (!pathTransformed.includes(undefined as unknown as string)) {
                                 // Prepare pending changes
                                 if (!localState.pendingChanges) {
                                     localState.pendingChanges = {};
@@ -307,16 +307,16 @@ async function prepChange(queuedChange: QueuedChange) {
                                     localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
                                 }
 
-                                // Pending value is the unadjusted value because it gets loaded without adjustment
-                                // and forwarded through to onObsChange where it gets adjusted before save
+                                // Pending value is the untransformed value because it gets loaded without transformment
+                                // and forwarded through to onObsChange where it gets transformed before save
                                 localState.pendingChanges[pathStr].v = valueAtPath;
 
-                                // Prepare the remote change with the adjusted path/value
+                                // Prepare the remote change with the transformed path/value
                                 changesRemote.push({
-                                    path: pathAdjusted,
+                                    path: pathTransformed,
                                     pathTypes,
                                     prevAtPath,
-                                    valueAtPath: valueAdjusted,
+                                    valueAtPath: valueTransformed,
                                     pathStr,
                                 });
                             }
@@ -326,10 +326,10 @@ async function prepChange(queuedChange: QueuedChange) {
             }
         }
 
-        // If there's any adjustData promises, wait for them before saving
-        promisesAdjustData = promisesAdjustData.filter(Boolean);
-        if (promisesAdjustData.length > 0) {
-            await Promise.all(promisesAdjustData);
+        // If there's any transform promises, wait for them before saving
+        promisesTransform = promisesTransform.filter(Boolean);
+        if (promisesTransform.length > 0) {
+            await Promise.all(promisesTransform);
         }
 
         return { queuedChange, changesLocal, changesRemote };
@@ -408,7 +408,7 @@ async function doChange(
                 if (local) {
                     const metadata: PersistMetadata = {};
                     const pending = persistenceLocal!.getMetadata(table, configLocal)?.pending;
-                    let adjustedChanges: any[] = [];
+                    let transformedChanges: any[] = [];
 
                     for (let i = 0; i < pathStrs.length; i++) {
                         const pathStr = pathStrs[i];
@@ -427,14 +427,14 @@ async function doChange(
                     // Remote can optionally have data that needs to be merged back into the observable,
                     // for example Firebase may update dateModified with the server timestamp
                     if (changes && !isEmpty(changes)) {
-                        adjustedChanges.push(adjustLoadData(changes, persistOptions.remote!, false));
+                        transformedChanges.push(transformLoadData(changes, persistOptions.remote!, false));
                     }
 
-                    if (adjustedChanges.length > 0) {
-                        if (adjustedChanges.some((change) => isPromise(change))) {
-                            adjustedChanges = await Promise.all(adjustedChanges);
+                    if (transformedChanges.length > 0) {
+                        if (transformedChanges.some((change) => isPromise(change))) {
+                            transformedChanges = await Promise.all(transformedChanges);
                         }
-                        onChangeRemote(() => mergeIntoObservable(obs, ...adjustedChanges));
+                        onChangeRemote(() => mergeIntoObservable(obs, ...transformedChanges));
                     }
 
                     if (shouldSaveMetadata && !isEmpty(metadata)) {
@@ -552,10 +552,9 @@ async function loadLocal<T>(
 
         // Merge the data from local persistence into the default state
         if (value !== null && value !== undefined) {
-            // eslint-disable-next-line prefer-const
-            let { adjustData, fieldTransforms } = config;
+            const { transform, fieldTransforms } = config;
 
-            value = adjustLoadData(value, { adjustData, fieldTransforms }, true);
+            value = transformLoadData(value, { transform, fieldTransforms }, true);
 
             if (isPromise(value)) {
                 value = await value;
@@ -664,7 +663,7 @@ export function persistObservable<T, TState = {}>(
                         // Note: value is the constructed value, path is used for setInObservableAtPath
                         // to start the set into the observable from the path
                         if (value !== undefined) {
-                            value = adjustLoadData(value, remote, true);
+                            value = transformLoadData(value, remote, true);
                             if (isPromise(value)) {
                                 value = await (value as Promise<T>);
                             }

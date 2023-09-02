@@ -164,12 +164,14 @@ export interface Change {
     prevAtPath: any;
 }
 
+export interface PersistTransform<T = any> {
+    in?: (value: T) => T | Promise<T>;
+    out?: (value: T) => T | Promise<T>;
+}
+
 export interface PersistOptionsLocal<T = any> {
     name: string;
-    adjustData?: {
-        load?: (value: T) => T | Promise<T>;
-        save?: (value: T) => T | Promise<T>;
-    };
+    transform?: PersistTransform<T>;
     fieldTransforms?: FieldTransforms<T>;
     readonly?: boolean;
     mmkv?: MMKVConfiguration;
@@ -186,10 +188,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSetIfError?: boolean;
-    adjustData?: {
-        load?: (value: T) => T | Promise<T>;
-        save?: (value: T) => T | Promise<T>;
-    };
+    transform?: PersistTransform<T>;
     firebase?: {
         syncPath: (uid: string | undefined) => `/${string}/`;
         queryByModified?: QueryByModified<T>;

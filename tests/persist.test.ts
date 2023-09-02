@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { adjustSaveData, persistObservable } from '../src/persist/persistObservable';
+import { transformOutData, persistObservable } from '../src/persist/persistObservable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 
 function promiseTimeout(time?: number) {
@@ -23,10 +23,10 @@ describe('Creating', () => {
 });
 
 describe('Adjusting data', () => {
-    test('adjustSaveData with adjustData', () => {
-        const adjusted = adjustSaveData({ id: 'id', text: 'a' }, [], [], {
-            adjustData: {
-                save: (value) => {
+    test('transformOutData with transform', () => {
+        const adjusted = transformOutData({ id: 'id', text: 'a' }, [], [], {
+            transform: {
+                out: (value) => {
                     value.text = 'b';
                     return value;
                 },
@@ -35,10 +35,10 @@ describe('Adjusting data', () => {
 
         expect(adjusted).toEqual({ path: [], value: { id: 'id', text: 'b' } });
     });
-    test('adjustSaveData with adjustData and fieldTransforms', () => {
-        const adjusted = adjustSaveData({ id: 'id', text: 'a' }, [], [], {
-            adjustData: {
-                save: (value) => {
+    test('transformOutData with transform and fieldTransforms', () => {
+        const adjusted = transformOutData({ id: 'id', text: 'a' }, [], [], {
+            transform: {
+                out: (value) => {
                     value.text = 'b';
                     return value;
                 },
@@ -51,10 +51,10 @@ describe('Adjusting data', () => {
 
         expect(adjusted).toEqual({ path: [], value: { id: 'id', t: 'b' } });
     });
-    test('adjustSaveData with adjustData and fieldTransforms and path', () => {
-        const adjusted = adjustSaveData({ id: 'id', text: 'a' }, ['path'], ['object'], {
-            adjustData: {
-                save: (value) => {
+    test('transformOutData with transform and fieldTransforms and path', () => {
+        const adjusted = transformOutData({ id: 'id', text: 'a' }, ['path'], ['object'], {
+            transform: {
+                out: (value) => {
                     value.path.text = 'b';
                     return value;
                 },
@@ -69,10 +69,10 @@ describe('Adjusting data', () => {
 
         expect(adjusted).toEqual({ path: ['path'], value: { id: 'id', t: 'b' } });
     });
-    test('adjustSaveData with adjustData promise and fieldTransforms and path', async () => {
-        const adjusted = await adjustSaveData({ id: 'id', text: 'a' }, ['path'], ['object'], {
-            adjustData: {
-                save: async (value) => {
+    test('transformOutData with transform promise and fieldTransforms and path', async () => {
+        const adjusted = await transformOutData({ id: 'id', text: 'a' }, ['path'], ['object'], {
+            transform: {
+                out: async (value) => {
                     value.path.text = 'b';
                     await promiseTimeout(10);
                     return value;
