@@ -4,7 +4,12 @@ import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
 function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {
+    if (isPromise<T>(predicate)) {
+        return effect ? predicate.then((val) => effect!(val)) : predicate;
+    }
+
     let value: T | undefined;
+
     // Create a wrapping fn that calls the effect if predicate returns true
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
@@ -27,8 +32,8 @@ function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => an
 
     // If first run resulted in a truthy value just return it.
     // It will have set e.cancel so no need to dispose
-    if (isPromise(value)) {
-        return effect ? (value as Promise<T>).then(effect) : value;
+    if (isPromise<T>(value)) {
+        return effect ? value.then(effect) : value;
     } else if (value !== undefined) {
         return Promise.resolve(value);
     } else {

@@ -1986,6 +1986,16 @@ describe('when', () => {
         expect(when(obs.val, () => 'test')).resolves.toEqual('test');
         obs.val.set(true);
     });
+    test('when with promise', async () => {
+        let didResolve = false;
+        const promise = new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 10);
+        });
+        when(promise, () => (didResolve = true));
+        expect(didResolve).toEqual(false);
+        await promiseTimeout(20);
+        expect(didResolve).toEqual(true);
+    });
 });
 describe('Shallow', () => {
     test('Shallow set primitive', () => {
