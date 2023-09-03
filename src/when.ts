@@ -4,8 +4,9 @@ import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
 function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {
+    // If predicate is a regular Promise skip all the observable stuff
     if (isPromise<T>(predicate)) {
-        return effect ? predicate.then((val) => effect!(val)) : predicate;
+        return effect ? predicate.then(effect) : predicate;
     }
 
     let value: T | undefined;

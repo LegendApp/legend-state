@@ -17,3 +17,4 @@ export * from './src/react/useObserve';
 export * from './src/react/useObserveEffect';
 export * from './src/react/useSelector';
 export * from './src/react/useUnmount';
+export * from './src/react/useWhen';
