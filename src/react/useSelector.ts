@@ -1,6 +1,7 @@
-import { computeSelector, isPromise, Selector, tracking, trackSelector } from '@legendapp/state';
+import { computeSelector, isPromise, Selector, trackSelector } from '@legendapp/state';
 import React, { useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { reactGlobals } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
 
 interface SelectorFunctions<T> {
@@ -47,7 +48,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
                 value,
                 dispose: _dispose,
                 resubscribe: _resubscribe,
-            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true, /*inRender*/ true);
+            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true);
 
             dispose = _dispose;
             resubscribe = _resubscribe;
@@ -59,7 +60,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
 
 export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
     // Short-circuit to skip creating the hook if the parent component is an observer
-    if (tracking.inRender) {
+    if (reactGlobals.inObserver) {
         return computeSelector(selector);
     }
 
