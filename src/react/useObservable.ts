@@ -10,8 +10,5 @@ import { useMemo } from 'react';
  */
 export function useObservable<T>(initialValue?: T | (() => T) | (() => Promise<T>)): Observable<T> {
     // Create the observable from the default value
-    return useMemo(
-        () => observable<T>(isFunction(initialValue as () => T) ? (initialValue as () => T)() : (initialValue as T)),
-        [],
-    );
+    return useMemo(() => observable<T>((isFunction(initialValue) ? initialValue() : initialValue) as T), []);
 }
