@@ -1,8 +1,8 @@
 import { isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
-import { useSelector } from './useSelector';
-
+import { reactGlobals } from './react-globals';
 import type { BindKeys } from './reactInterfaces';
+import { useSelector } from './useSelector';
 
 export type ShapeWith$<T, T2 extends keyof T = keyof T> = Partial<T> & {
     [K in T2 as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
@@ -120,7 +120,14 @@ function createReactiveComponent<P = object>(
 
             // If observing wrap the whole render in a useSelector to listen to it
             if (observe) {
-                return useSelector(() => Reflect.apply(target, thisArg, argArray));
+                return useSelector(() => {
+                    reactGlobals.inObserver = true;
+                    try {
+                        return Reflect.apply(target, thisArg, argArray);
+                    } finally {
+                        reactGlobals.inObserver = false;
+                    }
+                });
             } else {
                 return Reflect.apply(target, thisArg, argArray);
             }

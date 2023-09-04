@@ -1,6 +1,6 @@
 import type { ChildNodeValue, NodeValue } from './observableInterfaces';
 
-const hasOwnProperty = Object.prototype.hasOwnProperty;
+export const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 export function isArray(obj: unknown): obj is Array<any> {
     return Array.isArray(obj);

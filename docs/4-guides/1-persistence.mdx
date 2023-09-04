@@ -1,36 +1,71 @@
-A primary goal of Legend-State is to make automatic persistence easy. We use Legend-State as the sync systems in [Bravely](https://bravely.io) and [Legend](https://legendapp.com).
+> Note: This documentation is for Legend-State version 2.0 beta. The interfaces for persistence are changing between versions 1 and 2, so if you are starting with persistence we recommend you upgrade to the beta version of 2.0.
 
-Persistence plugins listen for all changes within an object and write them to local or remote storage.
+A primary goal of Legend-State is to make automatic persistence easy and very robust, as it's meant to be used to power all storage and sync of complex apps - it's the backbone of both [Legend](https://legendapp.com) and [Bravely](https://bravely.io). It's designed to support offline-first apps: any changes made while offline can be persisted between sessions to be retried in a future session when connected. To do this, the persistence system simply subscribes to changes on an observable, then on change goes through a multi-step flow to ensure that changes are persisted.
 
-Legend-State currently ships with local plugins for Local Storage and IndexedDB on web and `react-native-mmkv` in React Native, and remote plugins for Firebase and Firestore are coming soon.
+1. Save the pending changes to the metadata table in local persistence
+2. Save the changes to local persistence
+3. Save the changes to remote persistence
+4. On remote save, set any needed changes (like dateModified) back into the observable
+5. Clear the pending changes in the metadata table in local persistence
+
+It also includes options to transform data in and/or out, and has event handlers for every step in the lifecycle.
+
+
+<Install name="@legendapp/state@beta" />
 
 ## persistObservable
 
-`persistObservable` can be used to automatically persist the given observable. It will be saved whenever you change anything anywhere within the observable, and the observable will be filled with the local state right after calling `persistObservable`.
+`persistObservable` can be used to automatically persist an observable, both locally and remotely. It will be saved whenever you change anything anywhere within the observable, and the observable will be filled with the local state right after calling `persistObservable`.
 
 The second parameter to `persistObservable` provides some options:
 
-- `local`: A unique name for this observable in storage
-- `localPersistence`: The persistence plugin to use. This defaults to use the globally configured storage or Local Storage for web.
+- `local`: A unique name for this observable in storage or options to configure it
+- `pluginLocal`: The local persistence plugin to use. This defaults to use the globally configured pluginLocal.
+- `remote`: Options to configure remote persistence
+- `pluginRemote`: The persistence plugin to use. This defaults to use the globally configured pluginRemote.
 
 First you most likely want to set a global configuration for which plugins to use, though it can also be configured per observable.
 
+
+## Local Persistence Plugins
+
+Web:
 ```js
 import { configureObservablePersistence } from '@legendapp/state/persist'
-// Web
+
 import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
+// OR
 import { ObservablePersistLocalIndexedDB } from '@legendapp/state/persist-plugins/indexeddb'
-// React Native
-import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv'
 
 // Global configuration
 configureObservablePersistence({
-    // Use Local Storage on web
-    persistLocal: ObservablePersistLocalStorage
-    // Or IndexedDB on web
-    persistLocal: ObservablePersistLocalIndexedDB
+    // Use Local Storage
+    pluginLocal: ObservablePersistLocalStorage
+    // Or IndexedDB
+    pluginLocal: ObservablePersistLocalIndexedDB
+})
+```
+
+React Native:
+```js
+import { configureObservablePersistence } from '@legendapp/state/persist'
+
+import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv'
+// OR
+import { ObservablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage'
+
+// Global configuration
+configureObservablePersistence({
     // Use react-native-mmkv in React Native
-    persistLocal: ObservablePersistMMKV
+    pluginLocal: ObservablePersistMMKV
+    // Use AsyncStorage in React Native
+    pluginLocal: ObservablePersistAsyncStorage,
+    localOptions: {
+        asyncStorage: {
+            // The AsyncStorage plugin needs to be given the implementation of AsyncStorage
+            AsyncStorage
+        }
+    }
 })
 ```
 
@@ -74,7 +109,7 @@ configureObservablePersistence({
             ],
         },
     },
-});
+})
 
 // Mode 1: Persist a dictionary
 const state$ = observable({
@@ -111,22 +146,163 @@ await when(status.isLoadedLocal)
 
 ### React Native
 
-If you are on React Native you will need to install `react-native-mmkv` too:
+If you are on React Native you will need to install `react-native-mmkv` or `@react-native-async-storage/async-storage`:
 
 <Install name="react-native-mmkv" />
 
-## Coming soon
+or
 
-We are working on remote persistence plugins for Firebase and Firestore for both web and React Native. They are more complex, because they include conflict resolution and extensive optimization, so they need some more work before they're ready for release. Please [let us know](https://github.com/LegendApp/legend-state/issues/5) if you'd like us to hurry up with that.
+<Install name="@react-native-async-storage/async-storage" />
 
-We will create a local persistence plugin for IndexedDB on web soon. For React Native we think that [`react-native-mmkv`](https://github.com/mrousavy/react-native-mmkv) is the best and fastest solution, but if you would like to use a different persistence layer, we would happily accept a [Pull Request](https://github.com/LegendApp/legend-state) to add it.
+## Remote Persistence
+
+Legend-State includes a few remote persistence plugins, and it's very easy to make a custom remote persistence plugin. When using the remote plugins there are some options that can be very useful.
+
+- `transform`: Transform data as it loads in from the remote source or out as it saves to the remote source. You could use this to encrypt the data or transform it into some other format.
+- `offlineBehavior`: `false` | `'retry'` determines whether to persist changes to retry them on the next load
+- `onBeforeSet`: Called before saving to the remote
+- `onGetError`: Called if load from remote fails
+- `onSet`: Called after successful save to the remote
+- `onSetError`: Called if save to remote fails
+- `waitForGet`: A Promise or Observable to wait for before getting from remote
+- `waitForSet`: A Promise or Observable to wait for before setting to remote
+- `manual`: If true it will not get immediately, but will wait for you to call sync() on the returned syncState
+
+Returns an array of:
+1. `observable`: The persisted observable. If given an initialValue object, `persistObservable` will create an observable from it. Or if given an observable it will persist it.
+2. `syncState`: An observable with many statuses of local and remote persistence
+
+```js
+const [obs$, syncState$] = persistObservable(settings, {
+    pluginRemote: ...,
+    remote: {
+        transform: {
+            in: (value) => decrypt(value),
+            out: (value) => encrypt(value),
+        },
+        onSaveError: (err) => console.log(err),
+    }
+})
+```
+
+> This documentation is still under construction. The TypeScript types should hopefully be pretty clear for now, and we will update these docs soon!
+
+### Generic remote persistence
+
+All you need to make a remote persistence plugin is a `get` and a `set` function. You could use this to load/save each observable in a different way or build your own custom plugins.
+
+- `get()`: Return a value or a Promise of a value
+- `set({ value, changes })`: Save the value somewhere, return a Promise.
+
+```js
+import { persistObservable } from "@legendapp/state/persist"
+import { persistPluginQuery } from "@legendapp/state/persist-plugins/query"
+
+const [obs$, syncState$] = persistObservable({ initialValue: 'hello' }, {
+  pluginRemote: {
+    get: ({ onChange }) => {
+        const getFn = () => fetch('https://url.to.get')
+                            .then((res) => res.json())
+
+        // Set a timer to poll every 10 seconds
+        setInterval(async () => {
+            const value = getFn()
+            onChange({ value })
+        }, 10000)
+
+        // Return the initial value
+        return getFn()
+    },
+    set: async ({ value, changes }) => {
+        await fetch('https://url.to.set', { method: 'POST', body: JSON.stringify(value) })
+    }
+  }
+})
+```
+
+### Fetch plugin
+
+Try it in a [sandbox](https://codesandbox.io/s/legend-state-persist-fetch-jl723s?file=/src/App.tsx).
+
+```js
+import { persistObservable } from "@legendapp/state/persist"
+import { persistPluginQuery } from "@legendapp/state/persist-plugins/query"
+
+const state$ = observable({ name: '' })
+
+const [, syncState$] = persistObservable(state$}, {
+  pluginRemote: persistPluginFetch({
+    get: 'https://url.to.get',
+    set: 'https://url.to.set'
+  })
+})
+```
+
+### TanStack Query Plugin
+
+Try it in a [sandbox](https://codesandbox.io/s/legend-state-persist-query-dh4j59?file=/src/App.tsx).
+
+```js
+import { persistObservable } from "@legendapp/state/persist"
+import { persistPluginQuery } from "@legendapp/state/persist-plugins/query"
+
+const page$ = observable(1)
+
+const [obs$, syncState$] = persistObservable({ initialValue: 'hello' }, {
+  pluginRemote: persistPluginQuery({
+    queryClient,
+    query: {
+      queryKey: ["key", page$.get()],
+      queryFn: () => {
+        return fetch(
+          "https://url.to.get?page=" + page$.get()
+        ).then((res) => res.json())
+      }
+    }
+  })
+})
+```
+
+### Firebase Realtime Database Plugin
+
+The Firebase Realtime Database plugin has some extra options. The only required option is `refPath` which is the ref path in the database. It also has some other useful options:
+
+- `refPath`: Given the user's UID (if available) return a string of the Firebase path
+- `requireAuth`: Wait until we have an active Firebase Auth user before loading
+- `query`: Given the reference to the refPath, you can adjust it further
+- `mode`: "once" | "realtime" - defaults to "realtime". "once" gets the value once and does not setup any listeners.
+
+```js
+import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
+import { ObservablePersistFirebase } from '@legendapp/state/persist-plugins/firebase'
+import { persistObservable } from '@legendapp/state/persist'
+
+persistObservable(state.user, {
+    pluginLocal: ObservablePersistLocalStorage,
+    local: {
+        name: 'user',
+    },
+    pluginRemote: ObservablePersistFirebase,
+    remote: {
+        transform: {
+            in: (value) => decrypt(value),
+            out: (value) => encrypt(value),
+        },
+        onSaveError: (err) => console.error(err),
+        firebase: {
+            refPath: (uid) => `/users/${uid}/`,
+            requireAuth: true,
+        },
+    },
+})
+```
 
 ## Roll your own plugin
 
 Local persistence plugins are very simple - all you need is `get`, `set`, and `delete`. See [ObservablePersistLocalStorage](https://github.com/LegendApp/legend-state/blob/main/src/persist-plugins/local-storage.ts) for an example of what it looks like. Then you can just pass your provider into `configureObservable`.
 
-Remote persistence plugins are more complex, and we have not quite locked down the API as we're finishing the Firebase and Firestore plugins and building them into our apps. If you'd like to build your own please [post a GitHub issue](https://github.com/LegendApp/legend-state/issues) and we'll work with you on it.
+Remote persistence plugins just need `get` and `set` functions. If you'd like to contribute your own please [post a GitHub issue](https://github.com/LegendApp/legend-state/issues) and we'll work with you on it.
 
 ## Contribute
 
-The plugin system is designed to be used for all sorts of providers, so please [request additional providers](https://github.com/LegendApp/legend-state/issues) or ideally even submit a PR with an additional plugin provider. If you do build your own plugin, please let us know as we'd love to include it as an officially supported plugin.
+The plugin system is designed to be used for all sorts of providers, so please [request additional providers](https://github.com/LegendApp/legend-state/issues) or ideally even submit a PR with an additional plugin provider. If you do build your own plugin, please let us know as we'd love to have a library of many officially supported plugins.

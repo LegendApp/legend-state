@@ -15,19 +15,20 @@ export const useEffectOnce = (effect: () => void | (() => void)) => {
             // It's possible that this is not safe in 100% of cases, but I'm not sure what the
             // dangerous cases would be. The side effect is that the listener is still active
             // until the end of the frame, but that's probably not a problem.
-            refDispose.current.num++;
+            const { current } = refDispose;
+            current.num++;
             const dispose = () => {
-                if (refDispose.current.dispose && refDispose.current.num < 2) {
-                    (refDispose.current.dispose as () => void)();
-                    refDispose.current.dispose = undefined;
+                if (current.dispose && current.num < 2) {
+                    (current.dispose as () => void)();
+                    current.dispose = undefined;
                 }
-                refDispose.current.num--;
+                current.num--;
             };
-            if (refDispose.current.dispose === undefined) {
+            if (current.dispose === undefined) {
                 const ret = effect() ?? null;
                 // If ret is a function, then it's a dispose function.
                 if (ret && isFunction(ret)) {
-                    refDispose.current.dispose = ret;
+                    current.dispose = ret;
                     return () => queueMicrotask(dispose);
                 }
             } else {

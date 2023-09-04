@@ -17,6 +17,7 @@ export {
     setSilently,
 } from './src/helpers';
 export {
+    hasOwnProperty,
     isArray,
     isBoolean,
     isEmpty,

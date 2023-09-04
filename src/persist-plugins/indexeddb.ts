@@ -30,7 +30,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         this.doSave = this.doSave.bind(this);
     }
 
-    public async initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
+    public async initialize(config: ObservablePersistenceConfig['localOptions']) {
         if (typeof indexedDB === 'undefined') return;
         if (process.env.NODE_ENV === 'development' && !config?.indexedDB) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');

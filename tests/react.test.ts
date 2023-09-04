@@ -14,6 +14,7 @@ import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
+import { useObservableState } from '../src/react/useObservableState';
 
 type TestObject = { id: string; label: string };
 
@@ -721,5 +722,59 @@ describe('observer', () => {
         });
 
         expect(num).toEqual(2);
+    });
+});
+describe('useObservableState', () => {
+    test('useObservableState does not select if value not accessed', () => {
+        let num = 0;
+        let obs$: Observable<number>;
+        const Test = function Test() {
+            const [obsLocal$] = useObservableState(0);
+            num++;
+
+            obs$ = obsLocal$;
+
+            return createElement('div', undefined);
+        };
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(1);
+    });
+    test('useObservableState select if value accessed', () => {
+        let num = 0;
+        let obs$: Observable<number>;
+        let value = 0;
+        const Test = function Test() {
+            const [obsLocal$, valueLocal] = useObservableState(0);
+            num++;
+
+            obs$ = obsLocal$;
+            value = valueLocal;
+
+            return createElement('div', undefined);
+        };
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(value).toEqual(0);
+
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(value).toEqual(1);
     });
 });

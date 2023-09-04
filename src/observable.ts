@@ -15,7 +15,7 @@ import type {
 } from './observableInterfaces';
 import { NodeValue } from './observableInterfaces';
 
-function createObservable<T>(value?: Promise<T>, makePrimitive?: true): ObservablePrimitive<T & PromiseInfo>;
+function createObservable<T>(value: Promise<T>, makePrimitive?: true): ObservablePrimitive<T & PromiseInfo>;
 function createObservable<T>(value?: T, makePrimitive?: true): ObservablePrimitive<T>;
 function createObservable<T>(
     value?: Promise<T>,
@@ -51,13 +51,13 @@ function createObservable<T>(value?: T, makePrimitive?: boolean): ObservablePrim
     return obs;
 }
 
-export function observable<T>(value?: Promise<T>): Observable<T & PromiseInfo>;
+export function observable<T>(value: Promise<T>): Observable<T & PromiseInfo>;
 export function observable<T>(value?: T): Observable<T>;
 export function observable<T>(value?: T | Promise<T>): Observable<T & PromiseInfo> {
     return createObservable(value) as Observable<T & PromiseInfo>;
 }
 
-export function observablePrimitive<T>(value?: Promise<T>): ObservablePrimitive<T & PromiseInfo>;
+export function observablePrimitive<T>(value: Promise<T>): ObservablePrimitive<T & PromiseInfo>;
 export function observablePrimitive<T>(value?: T): ObservablePrimitive<T>;
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T & PromiseInfo> {
     return createObservable(value, /*makePrimitive*/ true) as ObservablePrimitive<T & PromiseInfo>;

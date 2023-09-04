@@ -560,7 +560,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
     }
 
-    extractFunctionOrComputed(node, parentValue, key, newValue);
+    extractFunctionOrComputed(node, parentValue, key, savedValue);
 
     return isFunc ? savedValue : isRoot ? getProxy(node) : getProxy(node, key);
 }

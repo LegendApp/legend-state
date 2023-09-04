@@ -70,8 +70,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
 global.localStorage = new LocalStorageMock();
 
 configureObservablePersistence({
-    persistLocal: ObservablePersistLocalStorage,
-    saveTimeout: 16,
+    pluginLocal: ObservablePersistLocalStorage,
 });
 
 beforeEach(() => {

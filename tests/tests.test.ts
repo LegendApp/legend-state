@@ -198,6 +198,11 @@ describe('Set', () => {
             { path: [], pathTypes: [], valueAtPath: null, prevAtPath: undefined },
         ]);
     });
+    test('Set with function does not overwrite it', () => {
+        const obs = observable({ test: 1 });
+        obs.test.set((v) => v + 1);
+        obs.test.set((v) => v + 1);
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
@@ -1980,6 +1985,16 @@ describe('when', () => {
         const obs = observable({ val: false });
         expect(when(obs.val, () => 'test')).resolves.toEqual('test');
         obs.val.set(true);
+    });
+    test('when with promise', async () => {
+        let didResolve = false;
+        const promise = new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 10);
+        });
+        when(promise, () => (didResolve = true));
+        expect(didResolve).toEqual(false);
+        await promiseTimeout(20);
+        expect(didResolve).toEqual(true);
     });
 });
 describe('Shallow', () => {
