@@ -119,7 +119,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected _batch: Record<string, any> = {};
     protected fns: FirebaseFns;
     private _pathsLoadStatus = observable<Record<string, LoadStatus>>({});
-    private SyncTimeout;
+    private SaveTimeout;
     private user: Observable<string>;
     private listenErrors: Map<
         any,
@@ -141,7 +141,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     constructor(fns: FirebaseFns) {
         this.fns = fns;
         this.user = observablePrimitive<string>();
-        this.SyncTimeout = observablePersistConfiguration?.remoteOptions?.syncTimeout ?? 500;
+        this.SaveTimeout = observablePersistConfiguration?.remoteOptions?.saveTimeout ?? 500;
 
         if (this.fns.isInitialized()) {
             this.fns.onAuthStateChanged((user) => {
@@ -445,7 +445,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (!remote || !remote.firebase) {
             return;
         }
-        const { waitForSet, syncTimeout, log, firebase } = remote;
+        const { waitForSet, saveTimeout, log, firebase } = remote;
 
         const { requireAuth, refPath: refPathFn } = firebase;
 
@@ -496,7 +496,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         // Keep the current eventSaved. This will get reassigned once the timeout activates.
         const eventSaved = saveState.eventSaved;
 
-        const timeout = syncTimeout ?? this.SyncTimeout;
+        const timeout = saveTimeout ?? this.SaveTimeout;
 
         if (timeout) {
             if (saveState.timeout) {
@@ -793,7 +793,13 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             await when(() => status$.numLoading.get() < 1);
         }
 
-        const { onChange, state } = params;
+        const {
+            onChange,
+            state,
+            options: { remote },
+        } = params;
+
+        const { changeTimeout } = remote!;
 
         // Skip changes if disabled
         if (state.isEnabledRemote.peek() === false) return;
@@ -830,7 +836,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                     const changes = localState.changes;
                     localState.changes = {};
                     onChange({ value: changes as T, path, pathTypes, mode: 'assign', dateModified });
-                }, 300);
+                }, changeTimeout || 300);
             }
         }
     }

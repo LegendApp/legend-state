@@ -191,7 +191,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     allowSetIfError?: boolean;
     transform?: PersistTransform<T>;
     firebase?: {
-        refPath: (uid: string | undefined) => `/${string}/`;
+        refPath: (uid: string | undefined) => string;
         query?: (ref: DatabaseReference) => DatabaseReference | Query;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
@@ -199,6 +199,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
         mode?: 'once' | 'realtime';
     };
     offlineBehavior?: false | 'retry';
+    changeTimeout?: number;
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
@@ -219,7 +220,7 @@ export interface ObservablePersistenceConfigLocalGlobalOptions {
     };
 }
 export interface ObservablePersistenceConfigRemoteGlobalOptions {
-    syncTimeout?: number;
+    saveTimeout?: number;
     dateModifiedKey?: string;
     offlineBehavior?: false | 'retry';
     onGetError?: (error: Error) => void;
