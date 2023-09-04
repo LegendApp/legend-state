@@ -22,7 +22,7 @@
         "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
-        "publish:betarelease": "npm version prerelease --preid=beta && cd dist && npm publish",
+        "publish:betarelease": "npm version prerelease --preid=beta && cd dist && npm publish --tag beta",
         "publish:manual": "npm run build && cd dist && npm publish",
         "publish:minor": "npm version minor && cd dist && npm publish",
         "publish:nextrelease": "npm version prerelease --preid=next && cd dist && npm publish --tag next",
