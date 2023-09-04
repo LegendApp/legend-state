@@ -194,6 +194,32 @@ All you need to make a remote persistence plugin is a `get` and a `set` function
 - `get()`: Return a value or a Promise of a value
 - `set({ value, changes })`: Save the value somewhere, return a Promise.
 
+```js
+import { persistObservable } from "@legendapp/state/persist"
+import { persistPluginQuery } from "@legendapp/state/persist-plugins/query"
+
+const [obs$, syncState$] = persistObservable({ initialValue: 'hello' }, {
+  pluginRemote: {
+    get: ({ onChange }) => {
+        const getFn = () => fetch('https://url.to.get')
+                            .then((res) => res.json())
+
+        // Set a timer to poll every 10 seconds
+        setInterval(async () => {
+            const value = getFn()
+            onChange({ value })
+        }, 10000)
+
+        // Return the initial value
+        return getFn()
+    },
+    set: async ({ value, changes }) => {
+        await fetch('https://url.to.set', { method: 'POST', body: JSON.stringify(value) })
+    }
+  }
+})
+```
+
 ### Fetch plugin
 
 Try it in a [sandbox](https://codesandbox.io/s/legend-state-persist-fetch-jl723s?file=/src/App.tsx).
@@ -202,12 +228,14 @@ Try it in a [sandbox](https://codesandbox.io/s/legend-state-persist-fetch-jl723s
 import { persistObservable } from "@legendapp/state/persist"
 import { persistPluginQuery } from "@legendapp/state/persist-plugins/query"
 
-const [, state] = persistObservable({ initialValue: 'hello' }, {
+const state$ = observable({ name: '' })
+
+const [, syncState$] = persistObservable(state$}, {
   pluginRemote: persistPluginFetch({
     get: 'https://url.to.get',
     set: 'https://url.to.set'
   })
-});
+})
 ```
 
 ### TanStack Query Plugin
@@ -220,7 +248,7 @@ import { persistPluginQuery } from "@legendapp/state/persist-plugins/query"
 
 const page$ = observable(1)
 
-const [, state] = persistObservable({ initialValue: 'hello' }, {
+const [obs$, syncState$] = persistObservable({ initialValue: 'hello' }, {
   pluginRemote: persistPluginQuery({
     queryClient,
     query: {
@@ -228,11 +256,11 @@ const [, state] = persistObservable({ initialValue: 'hello' }, {
       queryFn: () => {
         return fetch(
           "https://url.to.get?page=" + page$.get()
-        ).then((res) => res.json());
+        ).then((res) => res.json())
       }
     }
   })
-});
+})
 ```
 
 ### Firebase Realtime Database Plugin
@@ -245,8 +273,8 @@ The Firebase Realtime Database plugin has some extra options. The only required 
 - `mode`: "once" | "realtime" - defaults to "realtime". "once" gets the value once and does not setup any listeners.
 
 ```js
-import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage';
-import { ObservablePersistFirebase } from '@legendapp/state/persist-plugins/firebase';
+import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
+import { ObservablePersistFirebase } from '@legendapp/state/persist-plugins/firebase'
 import { persistObservable } from '@legendapp/state/persist'
 
 persistObservable(state.user, {
@@ -266,7 +294,7 @@ persistObservable(state.user, {
             requireAuth: true,
         },
     },
-});
+})
 ```
 
 ## Roll your own plugin
