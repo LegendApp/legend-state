@@ -1,4 +1,4 @@
-Legend-State is a super fast and powerful state library for JavaScript apps with four primary goals:
+Legend-State is a super fast and powerful state library for modern JavaScript apps with four primary goals:
 
 ### 1. <span className="text-lg">🦄</span> As easy as possible to use
 
@@ -37,7 +37,7 @@ See [Fast 🔥](./fast) for more details of why Legend-State is so fast.
 
 ### 3. 🔥 Fine-grained reactivity for minimal renders
 
-Legend-State lets you make your renders super fine-grained, so your apps will be much faster because React has to do less work. The best way to be fast is to render less, less often.
+Legend-State lets you make your renders super fine-grained allowing only the leaves of your component tree to re-render when required, thus making your apps go faster 🔥, and removing unnecessary overhead from React's render cycle.
 
 <Example name="Primitive">
 ```jsx
@@ -74,9 +74,9 @@ function FineGrained() {
 
 ### 4. 💾 Powerful persistence
 
-Legend-State includes a powerful persistence plugin system for local caching and remote sync. It easily enables offline-first apps by tracking changes made while offline that save when coming online, managing conflict resolution, and syncing only small diffs. We use Legend-State as the sync systems in [Legend](https://legendapp.com) and [Bravely](https://bravely.io), so it is by necessity very full featured while being simple to set up.
+Legend-State includes a powerful [persistence plugin system](../persistence) for local caching and remote sync. It easily enables offline-first apps by tracking changes made while offline that save when coming online, managing conflict resolution, and syncing only small diffs. We use Legend-State as the sync systems in [Legend](https://legendapp.com) and [Bravely](https://bravely.io), so it is by necessity very full featured while being simple to set up.
 
-Local persistence plugins for the browser and React Native are included, and a remote sync plugin for Firebase will be ready soon.
+Local persistence plugins for the browser and React Native are included, and a remote sync plugin for Firebase (coming soon).
 
 ```js
 import { ObservablePersistLocalStorage } from '@legendapp/state/persist-plugins/local-storage'
@@ -172,3 +172,7 @@ Continue on to [Getting Started](./getting-started) to get started!
 ## Community
 
 Join us on [Slack](https://join.slack.com/t/legendappcommunity/shared_invite/zt-1mfjknpna-vUL2s1qOuNeZL12~t2RruQ) to get involved with the Legend community.
+
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guide](https://github.com/LegendApp/legend-state) on Github
