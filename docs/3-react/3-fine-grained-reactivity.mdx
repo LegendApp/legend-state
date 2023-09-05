@@ -336,7 +336,7 @@ Props:
 - `item`: A render function which receives the item id, and item observable or undefined
 - `itemProps`: Extra props to pass down to each item
 - `sortValues`: If the `each` parameter is an object or Map, this is a sort function for how to sort the elements. `(A: T, B: T, AKey: string, BKey: string) => number`
-- `children`: A rende function or, you can pass a render function as children instead of in the `item` prop if you prefer.
+- `children`: A render function or, you can pass a render function as children instead of in the `item` prop if you prefer.
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -380,7 +380,7 @@ To install it, add `@legendapp/state/babel` to the plugins in your `babel.config
 
 ```js
 module.exports = {
-    plugins: [...'@legendapp/state/babel'],
+    plugins: ['@legendapp/state/babel'],
 }
 ```
 
@@ -409,7 +409,11 @@ const Component = reactive(function Component({ message }) {
 })
 
 function App() {
-    return <Component $message={() => (isSignedIn$.get() ? 'Hello' : 'Goodbye')} />
+    return (
+        <Component
+            $message={() => (isSignedIn$.get() ? 'Hello' : 'Goodbye')}
+        />
+    )
 }
 ```
 
@@ -459,7 +463,11 @@ const Component = reactiveObserver(function Component({ message }) {
 })
 
 function App() {
-    return <Component $message={() => (isSignedIn$.get() ? 'Hello' : 'Goodbye')} />
+    return (
+        <Component
+            $message={() => (isSignedIn$.get() ? 'Hello' : 'Goodbye')}
+        />
+    )
 }
 ```
 
