@@ -1,4 +1,4 @@
-export { afterBatch, batch, beginBatch, endBatch } from './src/batching';
+export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
 export { event } from './src/event';
@@ -17,6 +17,7 @@ export {
     setSilently,
 } from './src/helpers';
 export {
+    hasOwnProperty,
     isArray,
     isBoolean,
     isEmpty,
@@ -39,16 +40,7 @@ export { beginTracking, endTracking, tracking, updateTracking } from './src/trac
 /** @internal */
 export { setupTracking } from './src/setupTracking';
 /** @internal */
-export {
-    checkActivate,
-    extraPrimitiveActivators,
-    extraPrimitiveProps,
-    findIDKey,
-    getNode,
-    getNodeValue,
-    optimized,
-    symbolDelete,
-} from './src/globals';
+export { checkActivate, findIDKey, getNode, getNodeValue, optimized, symbolDelete } from './src/globals';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 

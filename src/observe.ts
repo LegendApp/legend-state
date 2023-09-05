@@ -11,7 +11,7 @@ export interface ObserveOptions {
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
 export function observe<T>(
-    selector: Selector<T>,
+    selector: Selector<T> | ((e: ObserveEvent<T>) => any),
     reaction?: (e: ObserveEventCallback<T>) => any,
     options?: ObserveOptions,
 ): () => void;
@@ -54,6 +54,8 @@ export function observe<T>(
             e.onCleanupReaction = undefined;
         }
 
+        endBatch();
+
         // Call the reaction if there is one and the value changed
         if (reaction && (e.num > 0 || !isEvent(selectorOrRun as any)) && e.previous !== e.value) {
             reaction(e);
@@ -64,8 +66,6 @@ export function observe<T>(
 
         // Increment the counter
         e.num++;
-
-        endBatch();
     };
 
     update();

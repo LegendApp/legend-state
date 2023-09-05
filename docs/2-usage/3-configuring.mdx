@@ -113,22 +113,3 @@ state.test._ = 'hello'
 // Assign objects too
 state._ = { test: 'hello' }
 ```
-
-### enableReactDirectRender, enableLegendStateReact (Deprecated)
-
-> Note that these are deprecated in favor of using [Memo](../fine-grained-reactivity/#render-an-observableselector-directly). Although it was cool and terse, it was unclear at a glance that the element was reactive. Memo is exactly the same behavior, but more descriptive.
-
-This enables rendering observables directly into React, creates an element that's reactive to the observable changing.
-
-```jsx
-import { observable } from '@legendapp/state';
-import { enableReactDirectRender } from '@legendapp/state/config/enableReactDirectRender';
-enableReactDirectRender()
-
-const state$ = observable({ test: 'hi' })
-
-function Component() {
-    // The observable can now be rendered directly to create a self-reactive elemtn
-    return <div>{state$.test}</div>
-}
-```

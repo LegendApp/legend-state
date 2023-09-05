@@ -35,7 +35,7 @@ export function computed<T, T2 = T>(
             node.linkedToNode = undefined;
         }
 
-        const childNode = node.computedChildOfNode;
+        const { parentOther } = node;
 
         if (isObservable(val)) {
             // If the computed is a proxy to another observable
@@ -46,11 +46,11 @@ export function computed<T, T2 = T>(
                 linkedNode.linkedFromNodes = new Set();
             }
             linkedNode.linkedFromNodes.add(node);
-            if (node.computedChildOfNode) {
+            if (node.parentOther) {
                 onChange(
                     linkedNode,
                     ({ value }) => {
-                        setNodeValue(node.computedChildOfNode!, value);
+                        setNodeValue(node.parentOther!, value);
                     },
                     { initial: true },
                 );
@@ -71,22 +71,22 @@ export function computed<T, T2 = T>(
             setter(node, val);
 
             // If the computed is a child of an observable set the value on it
-            if (childNode) {
+            if (parentOther) {
                 let didUnlock = false;
-                if (childNode.root.locked) {
-                    childNode.root.locked = false;
+                if (parentOther.root.locked) {
+                    parentOther.root.locked = false;
                     didUnlock = true;
                 }
-                setter(childNode, val);
+                setter(parentOther, val);
                 if (didUnlock) {
-                    childNode.root.locked = true;
+                    parentOther.root.locked = true;
                 }
             }
 
             // Re-lock the computed node
             lockObservable(obs, true);
-        } else if (childNode) {
-            setNodeValue(childNode, val);
+        } else if (parentOther) {
+            setNodeValue(parentOther, val);
         }
 
         isSetAfterActivated = true;
@@ -114,5 +114,5 @@ export function computed<T, T2 = T>(
         };
     }
 
-    return obs as ObservableComputed<T>;
+    return obs as any;
 }

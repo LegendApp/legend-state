@@ -1,17 +1,12 @@
 import { isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
+import { reactGlobals } from './react-globals';
+import type { BindKeys } from './reactInterfaces';
 import { useSelector } from './useSelector';
 
-import type { BindKeys } from './reactInterfaces';
-
-type ShapeWithOld$<T, T2 extends keyof T = keyof T> = {
-    [K in T2 as K extends `${string & K}$` ? K : `${string & K}$`]?: Selector<T[K]>;
+export type ShapeWith$<T, T2 extends keyof T = keyof T> = Partial<T> & {
+    [K in T2 as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
 };
-// TODOV2: Remove ShapeWithOld
-export type ShapeWith$<T, T2 extends keyof T = keyof T> = Partial<T> &
-    ShapeWithOld$<T, T2> & {
-        [K in T2 as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
-    };
 
 export type ObjectShapeWith$<T> = {
     [K in keyof T]: T[K] extends FC<infer P> ? FC<ShapeWith$<P>> : T[K];
@@ -76,7 +71,6 @@ function createReactiveComponent<P = object>(
                         props[key] = useSelector(p);
                     }
                     // Convert reactive props
-                    // TODOV2 Remove the deprecated endsWith option and also remove the types
                     else if (key.startsWith('$') || key.endsWith('$')) {
                         // TODOV3 Add this warning and then remove the deprecated endsWith option
                         // if (
@@ -126,7 +120,14 @@ function createReactiveComponent<P = object>(
 
             // If observing wrap the whole render in a useSelector to listen to it
             if (observe) {
-                return useSelector(() => Reflect.apply(target, thisArg, argArray));
+                return useSelector(() => {
+                    reactGlobals.inObserver = true;
+                    try {
+                        return Reflect.apply(target, thisArg, argArray);
+                    } finally {
+                        reactGlobals.inObserver = false;
+                    }
+                });
             } else {
                 return Reflect.apply(target, thisArg, argArray);
             }

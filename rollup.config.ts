@@ -22,12 +22,15 @@ export default Object.keys(pkg.exports)
             'react',
             'react-native',
             'react-native-mmkv',
+            '@react-native-async-storage/async-storage',
             '@tanstack/react-query',
             '@tanstack/query-core',
             '@legendapp/state',
             '@legendapp/state/persist',
             '@legendapp/state/react',
             '@legendapp/state/helpers/fetch',
+            'firebase/auth',
+            'firebase/database',
         ];
 
         if (!f) f = 'index';
@@ -87,8 +90,8 @@ export default Object.keys(pkg.exports)
                     !Exclude.has(file) &&
                     create(
                         path.join('./src', expPath, file.replace(/\.ts$/, '')),
-                        path.join(expPath, 'temp', file.replace(/\.ts$/, ''))
-                    )
+                        path.join(expPath, 'temp', file.replace(/\.ts$/, '')),
+                    ),
             );
             return mapped;
         } else {

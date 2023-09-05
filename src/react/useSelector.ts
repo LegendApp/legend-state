@@ -1,7 +1,8 @@
-import { computeSelector, isPromise, Selector, tracking, trackSelector } from '@legendapp/state';
-import { useRef } from 'react';
-import { UseSelectorOptions } from 'src/react/reactInterfaces';
+import { computeSelector, isPromise, Selector, trackSelector } from '@legendapp/state';
+import React, { useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { reactGlobals } from './react-globals';
+import type { UseSelectorOptions } from './reactInterfaces';
 
 interface SelectorFunctions<T> {
     subscribe: (onStoreChange: () => void) => () => void;
@@ -47,7 +48,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
                 value,
                 dispose: _dispose,
                 resubscribe: _resubscribe,
-            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true, /*inRender*/ true);
+            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true);
 
             dispose = _dispose;
             resubscribe = _resubscribe;
@@ -59,7 +60,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
 
 export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
     // Short-circuit to skip creating the hook if the parent component is an observer
-    if (tracking.inRender) {
+    if (reactGlobals.inObserver) {
         return computeSelector(selector);
     }
 
@@ -74,12 +75,13 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     useSyncExternalStore(subscribe, getVersion, getVersion);
 
     // Suspense support
-    // Note: We may want to change the throw to React.use when React updates their guidances on Suspense.
-    if (options?.suspend) {
+    if (options?.suspense) {
         if (isPromise(value)) {
-            throw value;
-        } else if (value?.error) {
-            throw value.error;
+            if (React.use) {
+                React.use(value);
+            } else {
+                throw value;
+            }
         }
     }
 

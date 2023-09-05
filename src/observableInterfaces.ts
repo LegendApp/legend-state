@@ -1,4 +1,6 @@
+import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { symbolGetNode, symbolOpaque } from './globals';
+import { DatabaseReference, Query } from 'firebase/database';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -38,7 +40,7 @@ interface MMKVConfiguration {
 }
 
 type Nullable<T> = T | null | undefined;
-export type TrackingType = undefined | true | 'shallow' | 'optimize' | symbol; // true === shallow
+export type TrackingType = undefined | true | symbol; // true === shallow
 
 export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;
@@ -100,7 +102,9 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
-    : T[K] extends Function | Promise<any>
+    : T[K] extends Promise<infer t>
+    ? Observable<t & PromiseInfo>
+    : T[K] extends Function
     ? T[K]
     : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
     ? ObservableProxyTwoWay<t, t2>
@@ -147,6 +151,9 @@ export type QueryByModified<T> =
     | boolean
     | {
           [K in keyof T]?: QueryByModified<T[K]>;
+      }
+    | {
+          '*'?: boolean;
       };
 
 export type TypeAtPath = 'object' | 'array';
@@ -158,12 +165,14 @@ export interface Change {
     prevAtPath: any;
 }
 
+export interface PersistTransform<T = any> {
+    in?: (value: T) => T | Promise<T>;
+    out?: (value: T) => T | Promise<T>;
+}
+
 export interface PersistOptionsLocal<T = any> {
     name: string;
-    adjustData?: {
-        load?: (value: T) => T | Promise<T>;
-        save?: (value: T) => T | Promise<T>;
-    };
+    transform?: PersistTransform<T>;
     fieldTransforms?: FieldTransforms<T>;
     readonly?: boolean;
     mmkv?: MMKVConfiguration;
@@ -173,36 +182,64 @@ export interface PersistOptionsLocal<T = any> {
     };
     options?: any;
 }
-export interface PersistOptionsRemote<T = any> {
+export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
-    once?: boolean;
-    requireAuth?: boolean;
-    saveTimeout?: number;
-    waitForLoad?: Promise<any> | ObservableReadable<any>;
-    waitForSave?: Promise<any> | ObservableReadable<any> | ((value: any, path: string[]) => Promise<any>);
+    waitForGet?: Promise<any> | ObservableReadable<any>;
+    waitForSet?: Promise<any> | ObservableReadable<any>;
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
-    allowSaveIfError?: boolean;
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
-    adjustData?: {
-        load?: (value: T) => T | Promise<T>;
-        save?: (value: T) => T | Promise<T>;
-    };
+    allowSetIfError?: boolean;
+    transform?: PersistTransform<T>;
     firebase?: {
-        syncPath: (uid: string) => `/${string}/`;
+        refPath: (uid: string | undefined) => string;
+        query?: (ref: DatabaseReference) => DatabaseReference | Query;
         queryByModified?: QueryByModified<T>;
         ignoreKeys?: string[];
-        dateModifiedKey?: string;
+        requireAuth?: boolean;
+        mode?: 'once' | 'realtime';
     };
-    onBeforeSaveRemote?: () => void;
-    onSaveRemote?: () => void;
+    offlineBehavior?: false | 'retry';
+    changeTimeout?: number;
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
+    log?: (message?: any, ...optionalParams: any[]) => void;
+    onBeforeSet?: () => void;
+    onSet?: () => void;
+};
+export interface ObservablePersistenceConfigLocalGlobalOptions {
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
+    indexedDB?: {
+        databaseName: string;
+        version: number;
+        tableNames: string[];
+    };
+    asyncStorage?: {
+        AsyncStorage: AsyncStorageStatic;
+        preload?: boolean | string[];
+    };
 }
-export interface PersistOptions<T = any> {
+export interface ObservablePersistenceConfigRemoteGlobalOptions {
+    saveTimeout?: number;
+    dateModifiedKey?: string;
+    offlineBehavior?: false | 'retry';
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
+    log?: (logLevel: 'verbose' | 'warning' | 'error', message: any, ...optionalParams: any[]) => void;
+    onBeforeSet?: () => void;
+    onSet?: () => void;
+}
+export interface ObservablePersistenceConfig {
+    pluginLocal?: ClassConstructor<ObservablePersistLocal>;
+    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions;
+    localOptions?: ObservablePersistenceConfigLocalGlobalOptions;
+    remoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
+}
+export interface PersistOptions<T = any, TState = {}> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
-    persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote>;
+    pluginLocal?: ClassConstructor<ObservablePersistLocal>;
+    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T, TState>;
 }
 
 export interface PersistMetadata {
@@ -212,42 +249,48 @@ export interface PersistMetadata {
 }
 
 export interface ObservablePersistLocal {
-    initialize?(config: ObservablePersistenceConfig['persistLocalOptions']): void | Promise<void>;
-    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
-    getTableTransformed?<T = any>(table: string, config: PersistOptionsLocal): T;
-    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
-    updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
-    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
-    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    initialize?(config: ObservablePersistenceConfigLocalGlobalOptions): void | Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
+    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
+    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
+    setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
+    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
-export interface ObservablePersistRemoteSaveParams<T, T2> {
-    state: Observable<ObservablePersistState>;
+export interface ObservablePersistRemoteSetParams<T> {
+    syncState: Observable<ObservablePersistState>;
     obs: Observable<T>;
     options: PersistOptions<T>;
-    path: string[];
-    pathTypes: TypeAtPath[];
-    valueAtPath: T2;
-    prevAtPath: any;
+    changes: Change[];
+    value: T;
 }
-export interface ObservablePersistRemoteListenParams<T> {
-    state: Observable<ObservablePersistState>;
+export interface ObservablePersistRemoteGetParams<T, TState = {}> {
+    state: Observable<ObservablePersistState & TState>;
     obs: ObservableReadable<T>;
-    options: PersistOptions<T>;
+    options: PersistOptions<T, TState>;
     dateModified?: number;
-    onLoad: () => void;
+    onGet: () => void;
     onChange: (params: {
-        value: T;
-        path: string[];
-        pathTypes: TypeAtPath[];
-        mode: 'assign' | 'set' | 'dateModified';
-        dateModified: number | undefined;
+        value: unknown;
+        path?: string[];
+        pathTypes?: TypeAtPath[];
+        mode?: 'assign' | 'set' | 'dateModified';
+        dateModified?: number | undefined;
     }) => void | Promise<void>;
 }
-export interface ObservablePersistRemote {
-    save<T, T2>(params: ObservablePersistRemoteSaveParams<T, T2>): Promise<{ changes?: object; dateModified?: number }>;
-    listen<T>(params: ObservablePersistRemoteListenParams<T>): void;
+export interface ObservablePersistRemoteClass<TState = {}> {
+    get<T>(params: ObservablePersistRemoteGetParams<T, TState>): void;
+    set?<T>(
+        params: ObservablePersistRemoteSetParams<T>,
+    ): Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
+}
+
+export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
+    get(params: ObservablePersistRemoteGetParams<T, TState>): T | Promise<T>;
+    set?(
+        params: ObservablePersistRemoteSetParams<T>,
+    ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
 }
 
 export interface ObservablePersistState {
@@ -325,7 +368,7 @@ export type ObservableListenerDispose = () => void;
 export interface ObservableRoot {
     _: any;
     locked?: boolean;
-    computedChildrenNeedingActivation?: NodeValue[];
+    toActivate?: NodeValue[];
     set?: (value: any) => void;
     activate?: () => void;
 }
@@ -384,11 +427,9 @@ export interface NodeValueListener {
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
-    isActivatedPrimitive?: boolean;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
-    descendantHasListener?: boolean;
     isComputed?: boolean;
     proxyFn?: (key: string) => ObservableReadable;
     isEvent?: boolean;
@@ -396,7 +437,7 @@ interface BaseNodeValue {
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
-    computedChildOfNode?: NodeValue;
+    parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
 }
 
@@ -432,22 +473,6 @@ export interface ObserveEventCallback<T> {
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }
-export interface ObservablePersistenceConfigLocalOptions {
-    onLoadError?: (error: Error) => void;
-    onSaveError?: (error: Error) => void;
-    indexedDB?: {
-        databaseName: string;
-        version: number;
-        tableNames: string[];
-    };
-}
-export interface ObservablePersistenceConfig {
-    persistLocal?: ClassConstructor<ObservablePersistLocal>;
-    persistRemote?: ClassConstructor<ObservablePersistRemote>;
-    persistLocalOptions?: ObservablePersistenceConfigLocalOptions;
-    saveTimeout?: number;
-    dateModifiedKey?: string;
-}
 export type ObservableProxy<T extends Record<string, any>> = {
     [K in keyof T]: ObservableComputed<T[K]>;
 } & ObservableBaseFns<T> & {
@@ -463,3 +488,7 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
 } & ObservableBaseFns<T> & {
         [symbolGetNode]: NodeValue;
     };
+export type PromiseInfo = {
+    error?: any;
+    status?: 'pending' | 'rejected';
+};

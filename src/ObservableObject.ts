@@ -1,11 +1,11 @@
 import { beginBatch, endBatch, notify } from './batching';
 import {
     checkActivate,
-    extraPrimitiveActivators,
-    extraPrimitiveProps,
+    extractFunction,
     findIDKey,
     get,
     getChildNode,
+    getNode,
     getNodeValue,
     globalState,
     optimized,
@@ -17,7 +17,7 @@ import {
     symbolToPrimitive,
 } from './globals';
 import { isArray, isBoolean, isChildNodeValue, isEmpty, isFunction, isObject, isPrimitive, isPromise } from './is';
-import type { ChildNodeValue, NodeValue } from './observableInterfaces';
+import type { ChildNodeValue, NodeValue, PromiseInfo } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -84,6 +84,10 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     return ret;
 }
 
+function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean) {
+    return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
+}
+
 function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
@@ -126,8 +130,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
     const isMap = obj instanceof Map;
 
-    const keys: string[] = obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
-    const keysPrev: string[] = prevValue ? (isMap ? Array.from(prevValue.keys()) : Object.keys(prevValue)) : [];
+    const keys: string[] = getKeys(obj, isArr, isMap);
+    const keysPrev: string[] = getKeys(prevValue, isArr, isMap);
+    const length = (keys || obj)?.length || 0;
+    const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
     let idField: string | ((value: any) => string) | undefined;
     let isIdFieldFunction;
@@ -200,86 +206,83 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     }
 
     if (obj && !isPrimitive(obj)) {
-        const length = keys.length;
-
-        hasADiff = hasADiff || keys?.length !== keysPrev?.length;
+        hasADiff = hasADiff || length !== lengthPrev;
         const isArrDiff = hasADiff;
         let didMove = false;
 
-        if (parent.descendantHasListener || !hasADiff) {
-            for (let i = 0; i < length; i++) {
-                const key = keys[i];
-                const value = isMap ? obj.get(key) : (obj as any)[key];
-                const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
+        for (let i = 0; i < length; i++) {
+            const key = isArr ? i + '' : keys[i];
+            const value = isMap ? obj.get(key) : (obj as any)[key];
+            const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
-                let isDiff = value !== prev;
+            let isDiff = value !== prev;
+            if (isDiff) {
+                extractFunctionOrComputed(parent, obj, key, value);
+
+                const id =
+                    idField && value
+                        ? isIdFieldFunction
+                            ? (idField as (value: any) => string)(value)
+                            : value[idField as string]
+                        : undefined;
+
+                let child = getChildNode(parent, key);
+
+                // Detect moves within an array. Need to move the original proxy to the new position to keep
+                // the proxy stable, so that listeners to this node will be unaffected by the array shift.
+                if (isArr && id !== undefined) {
+                    // Find the previous position of this element in the array
+                    const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
+                    if (!prevChild) {
+                        // This id was not in the array before so it does not need to notify children
+                        isDiff = false;
+                        hasADiff = true;
+                    } else if (prevChild !== undefined && prevChild.key !== key) {
+                        const valuePrevChild = prevValue[prevChild.key];
+                        // If array length changed then move the original node to the current position.
+                        // That should be faster than notifying every single element that
+                        // it's in a new position.
+                        if (isArrDiff) {
+                            child = prevChild;
+                            parent.children!.delete(child.key);
+                            child.key = key;
+                            moved!.push([key, child]);
+                        }
+
+                        didMove = true;
+
+                        // And check for diff against the previous value in the previous position
+                        isDiff = valuePrevChild !== value;
+                    }
+                }
+
                 if (isDiff) {
-                    const id =
-                        idField && value
-                            ? isIdFieldFunction
-                                ? (idField as (value: any) => string)(value)
-                                : value[idField as string]
-                            : undefined;
-
-                    let child = getChildNode(parent, key);
-
-                    // Detect moves within an array. Need to move the original proxy to the new position to keep
-                    // the proxy stable, so that listeners to this node will be unaffected by the array shift.
-                    if (isArr && id !== undefined) {
-                        // Find the previous position of this element in the array
-                        const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
-                        if (!prevChild) {
-                            // This id was not in the array before so it does not need to notify children
-                            isDiff = false;
-                            hasADiff = true;
-                        } else if (prevChild !== undefined && prevChild.key !== key) {
-                            const valuePrevChild = prevValue[prevChild.key];
-                            // If array length changed then move the original node to the current position.
-                            // That should be faster than notifying every single element that
-                            // it's in a new position.
-                            if (isArrDiff) {
-                                child = prevChild;
-                                parent.children!.delete(child.key);
-                                child.key = key;
-                                moved!.push([key, child]);
-                            }
-
-                            didMove = true;
-
-                            // And check for diff against the previous value in the previous position
-                            isDiff = valuePrevChild !== value;
-                        }
+                    // Array has a new / modified element
+                    // If object iterate through its children
+                    if (isPrimitive(value)) {
+                        hasADiff = true;
+                    } else {
+                        // Always need to updateNodes so we notify through all children
+                        const updatedNodes = updateNodes(child, value, prev);
+                        hasADiff = hasADiff || updatedNodes;
                     }
-
-                    if (isDiff) {
-                        // Array has a new / modified element
-                        // If object iterate through its children
-                        if (isPrimitive(value)) {
-                            hasADiff = true;
-                        } else {
-                            // Always need to updateNodes so we notify through all children
-                            const updatedNodes =
-                                (!hasADiff || !!child.descendantHasListener) && updateNodes(child, value, prev);
-                            hasADiff = hasADiff || updatedNodes;
-                        }
-                    }
-                    if (isDiff || !isArrDiff) {
-                        // Notify for this child if this element is different and it has listeners
-                        // Or if the position changed in an array whose length did not change
-                        // But do not notify child if the parent is an array with changing length -
-                        // the array's listener will cover it
-                        if (child.listeners || child.listenersImmediate) {
-                            notify(child, value, prev, 0, !isArrDiff);
-                        }
+                }
+                if (isDiff || !isArrDiff) {
+                    // Notify for this child if this element is different and it has listeners
+                    // Or if the position changed in an array whose length did not change
+                    // But do not notify child if the parent is an array with changing length -
+                    // the array's listener will cover it
+                    if (child.listeners || child.listenersImmediate) {
+                        notify(child, value, prev, 0, !isArrDiff);
                     }
                 }
             }
+        }
 
-            if (moved) {
-                for (let i = 0; i < moved.length; i++) {
-                    const [key, child] = moved[i];
-                    parent.children!.set(key, child);
-                }
+        if (moved) {
+            for (let i = 0; i < moved.length; i++) {
+                const [key, child] = moved[i];
+                parent.children!.set(key, child);
             }
         }
 
@@ -370,20 +373,6 @@ const proxyHandler: ProxyHandler<any> = {
         const property = observableProperties.get(p);
         if (property) {
             return property.get(node);
-        }
-
-        const isValuePrimitive = isPrimitive(value);
-
-        // If accessing a key that doesn't already exist, and this node has been activated with extra keys
-        // then return the values that were set. This is used by enableLegendStateReact for example.
-        if (value === undefined || value === null || isValuePrimitive) {
-            if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
-                node.isActivatedPrimitive = true;
-                const vPrim = extraPrimitiveProps.get(p);
-                if (vPrim !== undefined) {
-                    return isFunction(vPrim) ? vPrim(getProxy(node)) : vPrim;
-                }
-            }
         }
 
         const vProp = value?.[p];
@@ -517,9 +506,7 @@ const proxyHandler: ProxyHandler<any> = {
 };
 
 export function set(node: NodeValue, newValue?: any) {
-    if (isPromise(newValue)) {
-        newValue.then((v) => set(node, v)).catch((error) => set(node, { error }));
-    } else if (node.parent) {
+    if (node.parent) {
         return setKey(node.parent, node.key, newValue);
     } else {
         return setKey(node, '_', newValue);
@@ -563,15 +550,17 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
 
     // Set the raw value on the parent object
-    const { newValue: savedValue, prevValue } = setNodeValue(childNode, newValue);
+    const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
 
-    const isFunc = isFunction(newValue);
+    const isFunc = isFunction(savedValue);
 
     const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
 
     if (savedValue !== prevValue) {
         updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
     }
+
+    extractFunctionOrComputed(node, parentValue, key, savedValue);
 
     return isFunc ? savedValue : isRoot ? getProxy(node) : getProxy(node, key);
 }
@@ -720,4 +709,56 @@ function updateNodesAndNotify(
     }
 
     endBatch();
+}
+
+export function extractPromise(node: NodeValue, value: Promise<any>) {
+    (value as PromiseInfo).status = 'pending';
+    value
+        .then((value) => {
+            set(node, value);
+        })
+        .catch((error) => {
+            set(node, { error, status: 'rejected' } as PromiseInfo);
+        });
+}
+
+export const __devExtractFunctionsAndComputedsNodes =
+    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
+
+export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, any>, k: string, v: any) {
+    if (isPromise(v)) {
+        extractPromise(getChildNode(node, k), v);
+    } else if (typeof v === 'function') {
+        extractFunction(node, k, v);
+    } else if (typeof v == 'object' && v !== null && v !== undefined) {
+        const childNode = getNode(v);
+        if (childNode?.isComputed) {
+            extractFunction(node, k, v, childNode);
+            delete obj[k];
+        } else {
+            return true;
+        }
+    }
+}
+
+export function extractFunctionsAndComputeds(node: NodeValue, obj: Record<string, any>) {
+    if (
+        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
+    ) {
+        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
+            console.error(
+                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
+                obj,
+            );
+            return false;
+        }
+        __devExtractFunctionsAndComputedsNodes!.add(obj);
+    }
+    for (const k in obj) {
+        const v = obj[k];
+        if (v && extractFunctionOrComputed(node, obj, k, v) && !v[symbolOpaque]) {
+            extractFunctionsAndComputeds(getChildNode(node, k), v);
+        }
+    }
 }
