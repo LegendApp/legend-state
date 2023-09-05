@@ -226,14 +226,18 @@ Props:
 </Show>
 ```
 
+<br />
+
 ```jsx
 import { Show } from '@legendapp/state/react'
 import { computed } from '@legendapp/state'
-function ShowExampleWithComputed() {
+import { AnimatePresence } from 'framer-motion'
+
+function ShowExampleWithSelector() {
     const state = useObservable({ collection: [] })
     return (
         <Show
-            if={computed(() => state.collection.get().length > 0)}
+            if={() => state.collection.get().length > 0}
             else={() => <div>Nothing to see here</div>}
             wrap={AnimatePresence}
         >
