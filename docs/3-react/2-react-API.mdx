@@ -258,10 +258,10 @@ const Component = () => {
 Like the `useMount` hook, `useUnmount` is just `useEffect` under the hood.
 
 ```jsx
-import { useMount } from "@legendapp/state/react"
+import { useUnmount } from "@legendapp/state/react"
 
 const Component = () => {
-    useMount(() => console.log('mounted'))
+    useUnmount(() => console.log('unmounted'))
 }
 ```
 
