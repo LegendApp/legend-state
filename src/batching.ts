@@ -1,5 +1,5 @@
-import { getNodeValue, optimized } from './globals';
-import { isArray } from './is';
+import { getChildNode, getNodeValue, optimized } from './globals';
+import { isArray, isNumber } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {
@@ -200,6 +200,33 @@ function computeChangesRecursive(
                 level + 1,
                 whenOptimizedOnlyIf,
             );
+
+            if (parent.arrayIDsByIndex) {
+                const id = parent.arrayIDsByIndex.get(node.key);
+                if (id !== undefined) {
+                    const idNode = parent.children?.get(id);
+                    if (idNode) {
+                        let idNodeAtPath = idNode;
+                        for (let i = 0; i < path.length; i++) {
+                            idNodeAtPath = getChildNode(idNodeAtPath, path[i]);
+                        }
+                        const parentValueByID = getNodeValue(idNodeAtPath.parent);
+
+                        computeChangesRecursive(
+                            changesInBatch,
+                            idNodeAtPath,
+                            parentValueByID,
+                            [],
+                            [],
+                            valueAtPath,
+                            prevAtPath,
+                            immediate,
+                            0,
+                            whenOptimizedOnlyIf,
+                        );
+                    }
+                }
+            }
         }
     }
 }

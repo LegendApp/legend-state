@@ -89,7 +89,7 @@ type RemoveIndex<T> = {
     [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
 };
 export type ObservableArrayOverride<T> = Omit<RemoveIndex<Array<T>>, ArrayOverrideFnNames> &
-    Pick<Array<Observable<T>>, ArrayOverrideFnNames> & { [n: number]: Observable<T> };
+    Pick<Array<Observable<T>>, ArrayOverrideFnNames> & { [n: number | string]: Observable<T> };
 export interface ListenerParams<T = any> {
     value: T;
     getPrevious: () => T;
@@ -426,6 +426,8 @@ export interface NodeValueListener {
 
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
+    arrayIDsByIndex?: Map<string, string>;
+    arrayIDsByID?: Map<string, string>;
     proxy?: object;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
@@ -437,6 +439,7 @@ interface BaseNodeValue {
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
+    isKeyedInArray?: boolean;
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
 }

@@ -1,5 +1,11 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableComputed, ObservableReadable, TrackingType } from './observableInterfaces';
+import {
+    ChildNodeValue,
+    NodeValue,
+    ObservableComputed,
+    ObservableReadable,
+    TrackingType,
+} from './observableInterfaces';
 import { updateTracking } from './tracking';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -87,7 +93,9 @@ export function getNodeValue(node: NodeValue): any {
     let count = 0;
     let n: NodeValue = node;
     while (isChildNodeValue(n)) {
-        arrNodeKeys[count++] = n.key;
+        arrNodeKeys[count++] = n.isKeyedInArray
+            ? ((n.parent.arrayIDsByID?.get(n.key) ?? -1) as unknown as string)
+            : n.key;
         n = n.parent;
     }
     let child = node.root._;
@@ -98,7 +106,7 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export function getChildNode(node: NodeValue, key: string): NodeValue {
+export function getChildNode(node: NodeValue, key: string): ChildNodeValue {
     // Get the child by key
     let child = node.children?.get(key);
 

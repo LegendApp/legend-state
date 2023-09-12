@@ -1640,6 +1640,135 @@ describe('Array', () => {
         expect(handler2).toHaveBeenCalledWith(22, 2, [{ path: [], pathTypes: [], prevAtPath: 2, valueAtPath: 22 }]);
     });
 });
+describe('Arrays by ID', () => {
+    test('Basic array by id', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+        expect(obs.arr['id0'].get()).toEqual({ id: 'id0', text: 'hi' });
+        expect(obs.arr['id1'].get()).toEqual({ id: 'id1', text: 'hello' });
+    });
+    test('Splicing array makes id undefined', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+        expect(obs.arr['id0'].get()).toEqual({ id: 'id0', text: 'hi' });
+        expect(obs.arr['id1'].get()).toEqual({ id: 'id1', text: 'hello' });
+
+        obs.arr.splice(1, 1);
+        expect(obs.arr['id0'].get()).toEqual({ id: 'id0', text: 'hi' });
+        expect(obs.arr['id1'].get()).toEqual(undefined);
+    });
+    test('Splicing array makes id undefined 2', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+        expect(obs.arr['id0'].get()).toEqual({ id: 'id0', text: 'hi' });
+        expect(obs.arr['id1'].get()).toEqual({ id: 'id1', text: 'hello' });
+
+        obs.arr.splice(0, 1);
+        expect(obs.arr['id0'].get()).toEqual(undefined);
+        expect(obs.arr['id1'].get()).toEqual({ id: 'id1', text: 'hello' });
+    });
+    test('Splicing array notifies ids', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+
+        const handler0 = expectChangeHandler(obs.arr['id0']);
+        const handler1 = expectChangeHandler(obs.arr['id1']);
+
+        obs.arr.splice(0, 1);
+
+        expect(handler0).toHaveBeenCalledWith(undefined, { id: 'id0', text: 'hi' }, [
+            { path: [], pathTypes: [], valueAtPath: undefined, prevAtPath: { id: 'id0', text: 'hi' } },
+        ]);
+        expect(handler1).toHaveBeenCalledTimes(0);
+    });
+    test('Splicing array notifies ids 2', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+
+        const handler0 = expectChangeHandler(obs.arr['id0']);
+        const handler1 = expectChangeHandler(obs.arr['id1']);
+
+        obs.arr.splice(1, 1);
+
+        expect(handler0).toHaveBeenCalledTimes(0);
+        expect(handler1).toHaveBeenCalledWith(undefined, { id: 'id1', text: 'hello' }, [
+            { path: [], pathTypes: [], valueAtPath: undefined, prevAtPath: { id: 'id1', text: 'hello' } },
+        ]);
+    });
+    test('Modifying array element notifies it', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+
+        const handler0 = expectChangeHandler(obs.arr['id0']);
+        const handler1 = expectChangeHandler(obs.arr['id1']);
+
+        obs.arr[1].text.set('hello2');
+
+        expect(handler0).toHaveBeenCalledTimes(0);
+        expect(handler1).toHaveBeenCalledWith({ id: 'id1', text: 'hello2' }, { id: 'id1', text: 'hello' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                valueAtPath: 'hello2',
+                prevAtPath: 'hello',
+            },
+        ]);
+    });
+});
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
         const obs = observable({ test: { test2: { test3: 'hello' } } });

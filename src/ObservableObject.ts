@@ -130,6 +130,9 @@ export function updateNodes(
 
     const isArr = isArray(obj);
 
+    const arrayIDsByID = isArr ? new Map<string, string>() : undefined;
+    const arrayIDsByIndex = isArr ? new Map<string, string>() : undefined;
+
     let prevChildrenById: Map<string, ChildNodeValue> | undefined;
     let moved: [string, ChildNodeValue][] | undefined;
 
@@ -145,48 +148,64 @@ export function updateNodes(
     let hasADiff = false;
     let retValue: boolean | undefined;
 
-    if (isArr && isArray(prevValue)) {
-        // Construct a map of previous indices for computing move
-        if (prevValue.length > 0) {
-            const firstPrevValue = prevValue[0];
-            if (firstPrevValue !== undefined) {
-                idField = findIDKey(firstPrevValue, parent);
+    if (isArr) {
+        if (isArray(prevValue)) {
+            // Construct a map of previous indices for computing move
+            if (prevValue.length > 0) {
+                const firstPrevValue = prevValue[0];
+                if (firstPrevValue !== undefined) {
+                    idField = findIDKey(firstPrevValue, parent);
 
-                if (idField) {
-                    isIdFieldFunction = isFunction(idField);
-                    prevChildrenById = new Map();
-                    moved = [];
-                    const keysSeen: Set<string> =
-                        process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-                            ? new Set()
-                            : (undefined as unknown as Set<string>);
-                    if (parent.children) {
-                        for (let i = 0; i < prevValue.length; i++) {
-                            const p = prevValue[i];
-                            if (p) {
-                                const child = parent.children.get(i + '');
-                                if (child) {
-                                    const key = isIdFieldFunction
-                                        ? (idField as (value: any) => string)(p)
-                                        : p[idField as string];
+                    if (idField) {
+                        isIdFieldFunction = isFunction(idField);
+                        prevChildrenById = new Map();
+                        moved = [];
+                        const keysSeen: Set<string> =
+                            process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+                                ? new Set()
+                                : (undefined as unknown as Set<string>);
+                        if (parent.children) {
+                            for (let i = 0; i < prevValue.length; i++) {
+                                const p = prevValue[i];
+                                if (p) {
+                                    const child = parent.children.get(i + '');
+                                    if (child) {
+                                        const key = isIdFieldFunction
+                                            ? (idField as (value: any) => string)(p)
+                                            : p[idField as string];
 
-                                    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-                                        if (keysSeen.has(key)) {
-                                            console.warn(
-                                                `[legend-state] Warning: Multiple elements in array have the same ID. Key field: ${idField}, Array:`,
-                                                prevValue,
-                                            );
+                                        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                                            if (keysSeen.has(key)) {
+                                                console.warn(
+                                                    `[legend-state] Warning: Multiple elements in array have the same ID. Key field: ${idField}, Array:`,
+                                                    prevValue,
+                                                );
+                                            }
+                                            keysSeen.add(key);
                                         }
-                                        keysSeen.add(key);
+                                        prevChildrenById.set(key, child);
                                     }
-                                    prevChildrenById.set(key, child);
+
+                                    // if (!(obj as any[])[i]) {
+                                    //     const key = isIdFieldFunction
+                                    //         ? (idField as (value: any) => string)(p)
+                                    //         : p[idField as string];
+                                    //     if (key !== undefined) {
+                                    //         const childByKey = parent.children?.get(key);
+                                    //         if (childByKey) {
+                                    //             if (childByKey.listeners || childByKey.listenersImmediate) {
+                                    //                 debugger;
+                                    //                 notify(childByKey, undefined, p, 0);
+                                    //             }
+                                    //         }
+                                    //     }
+                                    // }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
         } else {
             idField = findIDKey(obj[0], parent);
         }
@@ -224,19 +243,38 @@ export function updateNodes(
             const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
             let isDiff = value !== prev;
+
+            const id =
+                idField && value
+                    ? isIdFieldFunction
+                        ? (idField as (value: any) => string)(value)
+                        : value[idField as string]
+                    : undefined;
+            if (id !== undefined && isArr) {
+                arrayIDsByID!.set(id, i + '');
+                arrayIDsByIndex!.set(i + '', id);
+            }
             if (isDiff) {
                 if (extractFunctionOrComputed(parent, obj, key, value) === 1) {
                     continue;
                 }
 
-                const id =
-                    idField && value
-                        ? isIdFieldFunction
-                            ? (idField as (value: any) => string)(value)
-                            : value[idField as string]
-                        : undefined;
-
                 let child = getChildNode(parent, key);
+
+                // if (id !== undefined) {
+                //     const childById = parent.children?.get(id);
+                //     if (childById) {
+                //         if (childById.listeners || childById.listenersImmediate) {
+                //             const prevIndex = parent.arrayIDs?.get(id);
+                //             if (prevIndex !== undefined) {
+                //                 const prevById = prevValue[+prevIndex];
+                //                 if (value !== prevById) {
+                //                     notify(childById, value, prev, 0, !isArrDiff);
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
 
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
@@ -285,6 +323,14 @@ export function updateNodes(
                     if (child.listeners || child.listenersImmediate) {
                         notify(child, value, prev, 0, !isArrDiff);
                     }
+                    if (id !== undefined) {
+                        const childById = parent.children?.get(id);
+                        if (childById) {
+                            if (childById.listeners || childById.listenersImmediate) {
+                                notify(childById, value, prev, 0, !isArrDiff);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -304,6 +350,23 @@ export function updateNodes(
         retValue = true;
     }
 
+    if (parent.arrayIDsByID) {
+        for (const [key, idx] of parent.arrayIDsByID) {
+            if (!arrayIDsByID || !arrayIDsByID.has(key)) {
+                const childById = parent.children?.get(key);
+                if (childById) {
+                    if (childById.listeners || childById.listenersImmediate) {
+                        const prev = prevValue[idx];
+                        notify(childById, undefined, prev, 0);
+                    }
+                }
+            }
+        }
+    }
+
+    parent.arrayIDsByID = arrayIDsByID;
+    parent.arrayIDsByIndex = arrayIDsByIndex;
+
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         typeof __devUpdateNodes !== 'undefined' &&
@@ -314,9 +377,14 @@ export function updateNodes(
     return retValue ?? false;
 }
 
-export function getProxy(node: NodeValue, p?: string) {
+export function getProxy(node: NodeValue, p?: string, isKeyedInArray?: boolean) {
     // Get the child node if p prop
-    if (p !== undefined) node = getChildNode(node, p);
+    if (p !== undefined) {
+        node = getChildNode(node, p);
+        if (isKeyedInArray) {
+            node.isKeyedInArray = true;
+        }
+    }
 
     // Create a proxy if not already cached and return it
     return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
@@ -391,9 +459,10 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
+        const isArr = isArray(value);
         // Handle function calls
         if (isFunction(vProp)) {
-            if (isArray(value)) {
+            if (isArr) {
                 if (ArrayModifiers.has(p)) {
                     // Call the wrapped modifier function
                     return (...args: any[]) => collectionSetter(node, value, p, ...args);
@@ -435,7 +504,7 @@ const proxyHandler: ProxyHandler<any> = {
         // Accessing primitive returns the raw value
         if (isPrimitive(vProp)) {
             // Update that this primitive node was accessed for observers
-            if (isArray(value) && p === 'length') {
+            if (isArr && p === 'length') {
                 updateTracking(node, true);
                 // } else if (!isPrimitive(value)) {
                 //     updateTracking(getChildNode(node, p));
@@ -448,8 +517,10 @@ const proxyHandler: ProxyHandler<any> = {
             return fnOrComputed;
         }
 
+        const isKeyedInArray = isArr && !(+p - +p < 1);
+
         // Return an observable proxy to the property
-        return getProxy(node, p);
+        return getProxy(node, p, isKeyedInArray);
     },
     // Forward all proxy properties to the target's value
     getPrototypeOf(node: NodeValue) {
