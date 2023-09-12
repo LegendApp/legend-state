@@ -88,7 +88,12 @@ function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean,
     return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
 }
 
-function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
+export function updateNodes(
+    parent: NodeValue,
+    obj: Record<any, any> | Array<any> | undefined,
+    prevValue: any,
+    shouldNotify: boolean,
+): boolean {
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         typeof __devUpdateNodes !== 'undefined' &&
@@ -108,7 +113,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         (isObject(prevValue) && prevValue[symbolOpaque as any])
     ) {
         const isDiff = obj !== prevValue;
-        if (isDiff) {
+        if (isDiff && shouldNotify) {
             if (parent.listeners || parent.listenersImmediate) {
                 notify(parent, obj, prevValue, 0);
             }
@@ -182,6 +187,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 }
             }
         }
+        } else {
+            idField = findIDKey(obj[0], parent);
+        }
     } else if (prevValue && (!obj || isObject(obj))) {
         // For keys that have been removed from object, notify and update children recursively
         const lengthPrev = keysPrev.length;
@@ -194,10 +202,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 const prev = isMap ? prevValue.get(key) : prevValue[key];
                 if (prev !== undefined) {
                     if (!isPrimitive(prev)) {
-                        updateNodes(child, undefined, prev);
+                        updateNodes(child, undefined, prev, shouldNotify);
                     }
 
-                    if (child.listeners || child.listenersImmediate) {
+                    if (shouldNotify && (child.listeners || child.listenersImmediate)) {
                         notify(child, undefined, prev, 0);
                     }
                 }
@@ -217,7 +225,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
             let isDiff = value !== prev;
             if (isDiff) {
-                extractFunctionOrComputed(parent, obj, key, value);
+                if (extractFunctionOrComputed(parent, obj, key, value) === 1) {
+                    continue;
+                }
 
                 const id =
                     idField && value
@@ -263,11 +273,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         hasADiff = true;
                     } else {
                         // Always need to updateNodes so we notify through all children
-                        const updatedNodes = updateNodes(child, value, prev);
+                        const updatedNodes = updateNodes(child, value, prev, shouldNotify);
                         hasADiff = hasADiff || updatedNodes;
                     }
                 }
-                if (isDiff || !isArrDiff) {
+                if (shouldNotify && (isDiff || !isArrDiff)) {
                     // Notify for this child if this element is different and it has listeners
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
@@ -691,7 +701,7 @@ function updateNodesAndNotify(
         ) {
             __devUpdateNodes.clear();
         }
-        hasADiff = updateNodes(childNode, newValue, prevValue);
+        hasADiff = updateNodes(childNode, newValue, prevValue, true);
         if (isArray(newValue)) {
             whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
         }
@@ -722,43 +732,24 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
         });
 }
 
-export const __devExtractFunctionsAndComputedsNodes =
-    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
-
-export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, any>, k: string, v: any) {
+// Returns: void if not an object
+//          1 if extracted
+//          2 if object that needs further extraction
+export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, any>, k: string, v: any): void | 1 | 2 {
     if (isPromise(v)) {
         extractPromise(getChildNode(node, k), v);
+        return 1;
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
+        return 1;
     } else if (typeof v == 'object' && v !== null && v !== undefined) {
         const childNode = getNode(v);
         if (childNode?.isComputed) {
             extractFunction(node, k, v, childNode);
             delete obj[k];
+            return 1;
         } else {
-            return true;
-        }
-    }
-}
-
-export function extractFunctionsAndComputeds(node: NodeValue, obj: Record<string, any>) {
-    if (
-        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
-    ) {
-        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
-            console.error(
-                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj,
-            );
-            return false;
-        }
-        __devExtractFunctionsAndComputedsNodes!.add(obj);
-    }
-    for (const k in obj) {
-        const v = obj[k];
-        if (v && extractFunctionOrComputed(node, obj, k, v) && !v[symbolOpaque]) {
-            extractFunctionsAndComputeds(getChildNode(node, k), v);
+            return 2;
         }
     }
 }

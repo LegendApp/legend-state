@@ -1,9 +1,4 @@
-import {
-    __devExtractFunctionsAndComputedsNodes,
-    extractFunctionsAndComputeds,
-    extractPromise,
-    getProxy,
-} from './ObservableObject';
+import { extractPromise, getProxy, updateNodes } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { isActualPrimitive, isPromise } from './is';
 import type {
@@ -40,11 +35,8 @@ function createObservable<T>(value?: T, makePrimitive?: boolean): ObservablePrim
     if (valueIsPromise) {
         extractPromise(node, value);
     } else if (!prim) {
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-            __devExtractFunctionsAndComputedsNodes!.clear();
-        }
         if (value) {
-            extractFunctionsAndComputeds(node, value);
+            updateNodes(node, value, undefined, false);
         }
     }
 
