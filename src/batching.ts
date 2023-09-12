@@ -210,12 +210,12 @@ function computeChangesRecursive(
                         for (let i = 0; i < path.length; i++) {
                             idNodeAtPath = getChildNode(idNodeAtPath, path[i]);
                         }
-                        const parentValueByID = getNodeValue(idNodeAtPath.parent);
+                        const valueByID = getNodeValue(idNodeAtPath);
 
                         computeChangesRecursive(
                             changesInBatch,
                             idNodeAtPath,
-                            parentValueByID,
+                            valueByID,
                             [],
                             [],
                             valueAtPath,

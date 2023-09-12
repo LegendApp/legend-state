@@ -1528,6 +1528,7 @@ describe('Arrays by ID', () => {
                 prevAtPath: { id: 'id0', text: 'hi' },
             },
         ]);
+        expect(handler0).toHaveBeenCalledTimes(1);
         expect(handler1).toHaveBeenCalledTimes(0);
     });
     test('Splicing array notifies ids', () => {
@@ -1548,6 +1549,7 @@ describe('Arrays by ID', () => {
 
         obs.arr.splice(0, 1);
 
+        expect(handler0).toHaveBeenCalledTimes(1);
         expect(handler0).toHaveBeenCalledWith(undefined, { id: 'id0', text: 'hi' }, [
             { path: [], pathTypes: [], valueAtPath: undefined, prevAtPath: { id: 'id0', text: 'hi' } },
         ]);
@@ -1572,6 +1574,7 @@ describe('Arrays by ID', () => {
         obs.arr.splice(1, 1);
 
         expect(handler0).toHaveBeenCalledTimes(0);
+        expect(handler1).toHaveBeenCalledTimes(1);
         expect(handler1).toHaveBeenCalledWith(undefined, { id: 'id1', text: 'hello' }, [
             { path: [], pathTypes: [], valueAtPath: undefined, prevAtPath: { id: 'id1', text: 'hello' } },
         ]);
@@ -1592,9 +1595,39 @@ describe('Arrays by ID', () => {
         const handler0 = expectChangeHandler(obs.arr['id0']);
         const handler1 = expectChangeHandler(obs.arr['id1']);
 
+        obs.arr[1].set({ id: 'id1', text: 'hello2' });
+
+        expect(handler0).toHaveBeenCalledTimes(0);
+        expect(handler1).toHaveBeenCalledTimes(1);
+        expect(handler1).toHaveBeenCalledWith({ id: 'id1', text: 'hello2' }, { id: 'id1', text: 'hello' }, [
+            {
+                path: [],
+                pathTypes: [],
+                valueAtPath: { id: 'id1', text: 'hello2' },
+                prevAtPath: { id: 'id1', text: 'hello' },
+            },
+        ]);
+    });
+    test('Modifying array element child notifies it', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+
+        const handler0 = expectChangeHandler(obs.arr['id0']);
+        const handler1 = expectChangeHandler(obs.arr['id1']);
+
         obs.arr[1].text.set('hello2');
 
         expect(handler0).toHaveBeenCalledTimes(0);
+        expect(handler1).toHaveBeenCalledTimes(1);
         expect(handler1).toHaveBeenCalledWith({ id: 'id1', text: 'hello2' }, { id: 'id1', text: 'hello' }, [
             {
                 path: ['text'],

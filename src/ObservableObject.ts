@@ -183,7 +183,7 @@ export function updateNodes(
             const value = isMap ? obj.get(key) : (obj as any)[key];
             const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
-            let isDiff = value !== prev;
+            const isDiff = value !== prev;
 
             const id =
                 idField && value
@@ -205,16 +205,11 @@ export function updateNodes(
 
                 const child = getChildNode(parent, key);
 
-                // Detect moves within an array. Need to move the original proxy to the new position to keep
-                // the proxy stable, so that listeners to this node will be unaffected by the array shift.
+                // Detect moves within an array.
                 if (isArr && id !== undefined) {
                     // Find the previous position of this element in the array
                     const idx = parent.arrayIDsByID?.get(id);
-                    if (idx === undefined) {
-                        // This id was not in the array before so it does not need to notify children
-                        isDiff = false;
-                        hasADiff = true;
-                    } else if (+idx !== i) {
+                    if (idx && +idx !== i) {
                         // This id was in the array and moved to a different index
                         didMove = true;
                     }
@@ -238,20 +233,6 @@ export function updateNodes(
                     // the array's listener will cover it
                     if (child.listeners || child.listenersImmediate) {
                         notify(child, value, prev, 0, !isArrDiff);
-                    }
-                    if (id !== undefined) {
-                        const childById = parent.children?.get(id);
-                        if (childById) {
-                            if (childById.listeners || childById.listenersImmediate) {
-                                const idx = parent.arrayIDsByID?.get(id);
-                                if (idx !== undefined) {
-                                    const prevByID = prevValue[idx];
-                                    if (value !== prevByID) {
-                                        notify(childById, value, prevByID, 0, !isArrDiff);
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
