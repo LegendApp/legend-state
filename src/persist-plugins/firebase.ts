@@ -305,7 +305,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const {
             fieldTransforms,
             onGetError: onLoadError,
-            allowSetIfError: allowSaveIfError,
+            allowSetIfError,
             firebase,
             dateModifiedKey: dateModifiedKeyOption,
         } = options.remote!;
@@ -355,7 +355,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                     });
                     params.state.remoteError.set(err);
                     onLoadError?.(err);
-                    if (allowSaveIfError) {
+                    if (allowSetIfError) {
                         status$.numWaitingCanSave.set((v) => v - 1);
                     }
                 }
