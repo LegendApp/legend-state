@@ -185,21 +185,6 @@ export function updateNodes(
                                         }
                                         prevChildrenById.set(key, child);
                                     }
-
-                                    // if (!(obj as any[])[i]) {
-                                    //     const key = isIdFieldFunction
-                                    //         ? (idField as (value: any) => string)(p)
-                                    //         : p[idField as string];
-                                    //     if (key !== undefined) {
-                                    //         const childByKey = parent.children?.get(key);
-                                    //         if (childByKey) {
-                                    //             if (childByKey.listeners || childByKey.listenersImmediate) {
-                                    //                 debugger;
-                                    //                 notify(childByKey, undefined, p, 0);
-                                    //             }
-                                    //         }
-                                    //     }
-                                    // }
                                 }
                             }
                         }
@@ -260,21 +245,6 @@ export function updateNodes(
                 }
 
                 let child = getChildNode(parent, key);
-
-                // if (id !== undefined) {
-                //     const childById = parent.children?.get(id);
-                //     if (childById) {
-                //         if (childById.listeners || childById.listenersImmediate) {
-                //             const prevIndex = parent.arrayIDs?.get(id);
-                //             if (prevIndex !== undefined) {
-                //                 const prevById = prevValue[+prevIndex];
-                //                 if (value !== prevById) {
-                //                     notify(childById, value, prev, 0, !isArrDiff);
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
 
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
