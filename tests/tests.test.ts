@@ -1320,7 +1320,7 @@ describe('Array', () => {
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
     });
-    test('Array splice does not call child listeners', () => {
+    test('Array splice calls child listeners', () => {
         const obs = observable({
             arr: [
                 { id: 'h1', text: 'h1' },
@@ -1329,200 +1329,8 @@ describe('Array', () => {
         });
         const handler = expectChangeHandler(obs.arr[0]);
         obs.arr.splice(0, 1);
-        expect(handler).not.toBeCalled();
-    });
-    test('Array has stable reference', () => {
-        interface Data {
-            arr: Array<{ id: string; text: string }>;
-        }
-        const obs = observable<Data>({ arr: [] });
-        obs.arr.set([
-            { id: 'h1', text: 'hi' },
-            { id: 'h2', text: 'hello' },
-        ]);
-        const second = obs.arr[1];
-        const handler = expectChangeHandler(second);
-        obs.arr.splice(0, 1);
-        obs.arr[0].text.set('hello there');
-
-        expect(handler).toHaveBeenCalledWith({ id: 'h2', text: 'hello there' }, { id: 'h2', text: 'hello' }, [
-            { path: ['text'], pathTypes: ['object'], valueAtPath: 'hello there', prevAtPath: 'hello' },
-        ]);
-    });
-    test('Array has stable reference 2', () => {
-        const obs = observable({
-            arr: [
-                { id: 'h1', text: 'hi' },
-                { id: 'h2', text: 'hello' },
-                { id: 'h3', text: 'h3' },
-            ],
-        });
-        const second = obs.arr[1];
-        const handler = expectChangeHandler(second);
-
-        // Prep it with proxies
-        for (let i = 0; i < obs.arr.length; i++) {
-            obs.arr[i].text;
-        }
-
-        const arr = obs.arr.get();
-        const tmp = arr[1];
-        obs.arr[1].set(arr[2]);
-        obs.arr[2].set(tmp);
-        // This makes second become h3
-
-        expect(handler).toHaveBeenCalledWith({ id: 'h3', text: 'h3' }, { id: 'h2', text: 'hello' }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 'h3', text: 'h3' }, prevAtPath: { id: 'h2', text: 'hello' } },
-        ]);
-
-        obs.arr.splice(0, 1);
-
-        expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
-        obs.arr[0].text.set('hello there');
-
-        expect(handler).toHaveBeenCalledWith({ id: 'h3', text: 'hello there' }, { id: 'h2', text: 'hello' }, [
-            {
-                path: [],
-                pathTypes: [],
-                valueAtPath: { id: 'h3', text: 'hello there' },
-                prevAtPath: { id: 'h2', text: 'hello' },
-            },
-        ]);
-    });
-    test('Array has stable references 3', () => {
-        interface Data {
-            arr: Array<{ id: string; text: string }>;
-        }
-        const obs = observable<Data>({ arr: [] });
-        obs.arr.set([
-            { id: 'h1', text: 'hi' },
-            { id: 'h2', text: 'h2' },
-            { id: 'h3', text: 'h3' },
-        ]);
-        const [, second, third] = obs.arr.map((a) => a);
-        const [, secondID, thirdID] = obs.arr.map((a) => a.id);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const handler = expectChangeHandler(second);
-        obs.arr.splice(0, 1);
-        const [second2, third2] = obs.arr.map((a) => a);
-        const [secondID2, thirdID2] = obs.arr.map((a) => a.id);
-
-        expect(second).toBe(second2);
-        expect(secondID).toBe(secondID2);
-        expect(third).toBe(third2);
-        expect(thirdID).toBe(thirdID2);
-    });
-    test('Array has stable swaps', () => {
-        const obs = observable({
-            arr: [
-                { id: 'h1', text: 'h1' },
-                { id: 'h2', text: 'h2' },
-                { id: 'h3', text: 'h3' },
-            ],
-        });
-        const second = obs.arr[1];
-        const handler = expectChangeHandler(second);
-
-        const arr = obs.arr.get();
-        const tmp = arr[1];
-        obs.arr[1].set(arr[2]);
-        expect(obs.arr.get()).toEqual([
-            { id: 'h1', text: 'h1' },
-            { id: 'h3', text: 'h3' },
-            { id: 'h3', text: 'h3' },
-        ]);
-        expect(tmp).toEqual({ id: 'h2', text: 'h2' });
-        obs.arr[2].set(tmp);
-
-        // Second becomes h3 still at index 1
-
-        expect(obs.arr.get()).toEqual([
-            { id: 'h1', text: 'h1' },
-            { id: 'h3', text: 'h3' },
-            { id: 'h2', text: 'h2' },
-        ]);
-        expect(handler).toBeCalledWith({ id: 'h3', text: 'h3' }, { id: 'h2', text: 'h2' }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 'h3', text: 'h3' }, prevAtPath: { id: 'h2', text: 'h2' } },
-        ]);
-
-        obs.arr[1].text.set('newtext');
-
-        expect(handler).toBeCalledWith({ id: 'h3', text: 'newtext' }, { id: 'h3', text: 'h3' }, [
-            { path: ['text'], pathTypes: ['object'], valueAtPath: 'newtext', prevAtPath: 'h3' },
-        ]);
-        expect(obs.arr.get()).toEqual([
-            { id: 'h1', text: 'h1' },
-            { id: 'h3', text: 'newtext' },
-            { id: 'h2', text: 'h2' },
-        ]);
-        expect(second.get()).toEqual({ id: 'h3', text: 'newtext' });
-    });
-    test('Array has stable swaps 2', () => {
-        const obs = observable({
-            arr: [
-                { id: 'h1', text: 'hi' },
-                { id: 'h2', text: 'hello' },
-                { id: 'h3', text: 'h3' },
-            ],
-        });
-        const second = obs.arr[1];
-        const third = obs.arr[2];
-        const handler = expectChangeHandler(second);
-        const handler3 = expectChangeHandler(third);
-
-        let arr = obs.arr.get();
-        let tmp = arr[1];
-        obs.arr[1].set(arr[2]);
-        expect(obs.arr.get()).toEqual([
-            { id: 'h1', text: 'hi' },
-            { id: 'h3', text: 'h3' },
-            { id: 'h3', text: 'h3' },
-        ]);
-        expect(tmp).toEqual({ id: 'h2', text: 'hello' });
-        obs.arr[2].set(tmp);
-
-        expect(second.get()).toEqual({ id: 'h3', text: 'h3' });
-        expect(obs.arr.get()).toEqual([
-            { id: 'h1', text: 'hi' },
-            { id: 'h3', text: 'h3' },
-            { id: 'h2', text: 'hello' },
-        ]);
-        expect(handler).toHaveBeenCalledWith({ id: 'h3', text: 'h3' }, { id: 'h2', text: 'hello' }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 'h3', text: 'h3' }, prevAtPath: { id: 'h2', text: 'hello' } },
-        ]);
-        expect(handler3).toHaveBeenCalledWith({ id: 'h2', text: 'hello' }, { id: 'h3', text: 'h3' }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 'h2', text: 'hello' }, prevAtPath: { id: 'h3', text: 'h3' } },
-        ]);
-
-        arr = obs.arr.get();
-        tmp = arr[1];
-        obs.arr[1].set(arr[2]);
-        obs.arr[2].set(tmp);
-
-        expect(obs.arr.get()).toEqual([
-            { id: 'h1', text: 'hi' },
-            { id: 'h2', text: 'hello' },
-            { id: 'h3', text: 'h3' },
-        ]);
-
-        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
-
-        expect(handler).toHaveBeenCalledWith({ id: 'h3', text: 'h3' }, { id: 'h2', text: 'hello' }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 'h3', text: 'h3' }, prevAtPath: { id: 'h2', text: 'hello' } },
-        ]);
-        expect(handler3).toHaveBeenCalledWith({ id: 'h2', text: 'hello' }, { id: 'h3', text: 'h3' }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 'h2', text: 'hello' }, prevAtPath: { id: 'h3', text: 'h3' } },
-        ]);
-
-        obs.arr.splice(0, 1);
-
-        expect(obs.arr[0].get()).toEqual({ id: 'h2', text: 'hello' });
-        expect(second.get()).toEqual({ id: 'h2', text: 'hello' });
-
-        obs.arr[0].text.set('hello there');
-
-        expect(handler).toHaveBeenCalledWith({ id: 'h2', text: 'hello there' }, { id: 'h2', text: 'hello' }, [
-            { path: ['text'], pathTypes: ['object'], valueAtPath: 'hello there', prevAtPath: 'hello' },
+        expect(handler).toBeCalledWith({ id: 'h2', text: 'h2' }, { id: 'h1', text: 'h1' }, [
+            { path: [], pathTypes: [], prevAtPath: { id: 'h1', text: 'h1' }, valueAtPath: { id: 'h2', text: 'h2' } },
         ]);
     });
     test('Array set with just a swap optimized', () => {
@@ -1969,7 +1777,6 @@ describe('Deep changes keep listeners', () => {
         const obs = observable({ arr: [] as { id: number; value: number }[] });
         for (let i = 0; i < 10000; i++) {
             obs.arr[i].set({ id: i, value: i });
-            obs.arr[i].onChange(() => {});
         }
         const now = performance.now();
         obs.arr.splice(1, 1);

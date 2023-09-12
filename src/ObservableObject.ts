@@ -244,7 +244,7 @@ export function updateNodes(
                     continue;
                 }
 
-                let child = getChildNode(parent, key);
+                const child = getChildNode(parent, key);
 
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
@@ -256,21 +256,7 @@ export function updateNodes(
                         isDiff = false;
                         hasADiff = true;
                     } else if (prevChild !== undefined && prevChild.key !== key) {
-                        const valuePrevChild = prevValue[prevChild.key];
-                        // If array length changed then move the original node to the current position.
-                        // That should be faster than notifying every single element that
-                        // it's in a new position.
-                        if (isArrDiff) {
-                            child = prevChild;
-                            parent.children!.delete(child.key);
-                            child.key = key;
-                            moved!.push([key, child]);
-                        }
-
                         didMove = true;
-
-                        // And check for diff against the previous value in the previous position
-                        isDiff = valuePrevChild !== value;
                     }
                 }
 
@@ -279,7 +265,7 @@ export function updateNodes(
                     // If object iterate through its children
                     if (isPrimitive(value)) {
                         hasADiff = true;
-                    } else {
+                    } else if (!didMove || child.descendantHasListener) {
                         // Always need to updateNodes so we notify through all children
                         const updatedNodes = updateNodes(child, value, prev, shouldNotify);
                         hasADiff = hasADiff || updatedNodes;
@@ -297,7 +283,13 @@ export function updateNodes(
                         const childById = parent.children?.get(id);
                         if (childById) {
                             if (childById.listeners || childById.listenersImmediate) {
-                                notify(childById, value, prev, 0, !isArrDiff);
+                                const idx = parent.arrayIDsByID?.get(id);
+                                if (idx !== undefined) {
+                                    const prevByID = prevValue[idx];
+                                    if (value !== prevByID) {
+                                        notify(childById, value, prevByID, 0, !isArrDiff);
+                                    }
+                                }
                             }
                         }
                     }

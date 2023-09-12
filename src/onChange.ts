@@ -28,6 +28,12 @@ export function onChange(
 
     listeners.add(listener);
 
+    let parent = node;
+    while (parent && !parent.descendantHasListener) {
+        parent.descendantHasListener = true;
+        parent = parent.parent!;
+    }
+
     if (initial) {
         const value = getNodeValue(node);
         callback({
