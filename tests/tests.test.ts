@@ -1502,6 +1502,34 @@ describe('Arrays by ID', () => {
         expect(obs.arr['id0'].get()).toEqual(undefined);
         expect(obs.arr['id1'].get()).toEqual({ id: 'id1', text: 'hello' });
     });
+    test('Splicing array notifies indices', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+
+        const handler0 = expectChangeHandler(obs.arr[0]);
+        const handler1 = expectChangeHandler(obs.arr[1]);
+
+        obs.arr.splice(0, 1);
+
+        expect(handler0).toHaveBeenCalledWith({ id: 'id1', text: 'hello' }, { id: 'id0', text: 'hi' }, [
+            {
+                path: [],
+                pathTypes: [],
+                valueAtPath: { id: 'id1', text: 'hello' },
+                prevAtPath: { id: 'id0', text: 'hi' },
+            },
+        ]);
+        expect(handler1).toHaveBeenCalledTimes(0);
+    });
     test('Splicing array notifies ids', () => {
         interface Data {
             arr: { id: string; text: string }[];

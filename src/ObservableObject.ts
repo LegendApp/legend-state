@@ -133,9 +133,6 @@ export function updateNodes(
     const arrayIDsByID = isArr ? new Map<string, string>() : undefined;
     const arrayIDsByIndex = isArr ? new Map<string, string>() : undefined;
 
-    let prevChildrenById: Map<string, ChildNodeValue> | undefined;
-    let moved: [string, ChildNodeValue][] | undefined;
-
     const isMap = obj instanceof Map;
 
     const keys: string[] = getKeys(obj, isArr, isMap);
@@ -149,52 +146,10 @@ export function updateNodes(
     let retValue: boolean | undefined;
 
     if (isArr) {
-        if (isArray(prevValue)) {
-            // Construct a map of previous indices for computing move
-            if (prevValue.length > 0) {
-                const firstPrevValue = prevValue[0];
-                if (firstPrevValue !== undefined) {
-                    idField = findIDKey(firstPrevValue, parent);
+        idField = findIDKey(prevValue?.[0] || obj?.[0], parent);
+    }
 
-                    if (idField) {
-                        isIdFieldFunction = isFunction(idField);
-                        prevChildrenById = new Map();
-                        moved = [];
-                        const keysSeen: Set<string> =
-                            process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-                                ? new Set()
-                                : (undefined as unknown as Set<string>);
-                        if (parent.children) {
-                            for (let i = 0; i < prevValue.length; i++) {
-                                const p = prevValue[i];
-                                if (p) {
-                                    const child = parent.children.get(i + '');
-                                    if (child) {
-                                        const key = isIdFieldFunction
-                                            ? (idField as (value: any) => string)(p)
-                                            : p[idField as string];
-
-                                        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-                                            if (keysSeen.has(key)) {
-                                                console.warn(
-                                                    `[legend-state] Warning: Multiple elements in array have the same ID. Key field: ${idField}, Array:`,
-                                                    prevValue,
-                                                );
-                                            }
-                                            keysSeen.add(key);
-                                        }
-                                        prevChildrenById.set(key, child);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            idField = findIDKey(obj[0], parent);
-        }
-    } else if (prevValue && (!obj || isObject(obj))) {
+    if (prevValue && (!obj || isObject(obj))) {
         // For keys that have been removed from object, notify and update children recursively
         const lengthPrev = keysPrev.length;
         for (let i = 0; i < lengthPrev; i++) {
@@ -223,7 +178,8 @@ export function updateNodes(
         let didMove = false;
 
         for (let i = 0; i < length; i++) {
-            const key = isArr ? i + '' : keys[i];
+            const indexStr = i + '';
+            const key = isArr ? indexStr : keys[i];
             const value = isMap ? obj.get(key) : (obj as any)[key];
             const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
 
@@ -235,11 +191,14 @@ export function updateNodes(
                         ? (idField as (value: any) => string)(value)
                         : value[idField as string]
                     : undefined;
+
             if (id !== undefined && isArr) {
-                arrayIDsByID!.set(id, i + '');
-                arrayIDsByIndex!.set(i + '', id);
+                arrayIDsByID!.set(id, indexStr);
+                arrayIDsByIndex!.set(indexStr, id);
             }
+
             if (isDiff) {
+                // If this is a Promise or observable we can skip this
                 if (extractFunctionOrComputed(parent, obj, key, value) === 1) {
                     continue;
                 }
@@ -250,12 +209,13 @@ export function updateNodes(
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
                 if (isArr && id !== undefined) {
                     // Find the previous position of this element in the array
-                    const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
-                    if (!prevChild) {
+                    const idx = parent.arrayIDsByID?.get(id);
+                    if (idx === undefined) {
                         // This id was not in the array before so it does not need to notify children
                         isDiff = false;
                         hasADiff = true;
-                    } else if (prevChild !== undefined && prevChild.key !== key) {
+                    } else if (+idx !== i) {
+                        // This id was in the array and moved to a different index
                         didMove = true;
                     }
                 }
@@ -297,13 +257,6 @@ export function updateNodes(
             }
         }
 
-        if (moved) {
-            for (let i = 0; i < moved.length; i++) {
-                const [key, child] = moved[i];
-                parent.children!.set(key, child);
-            }
-        }
-
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
         retValue = hasADiff || didMove;
@@ -313,17 +266,19 @@ export function updateNodes(
     }
 
     if (parent.arrayIDsByID) {
-        for (const [key, idx] of parent.arrayIDsByID) {
+        // If this array had ids before then notify for any ids that are no longer in it
+        parent.arrayIDsByID.forEach((idx, key) => {
             if (!arrayIDsByID || !arrayIDsByID.has(key)) {
                 const childById = parent.children?.get(key);
                 if (childById) {
                     if (childById.listeners || childById.listenersImmediate) {
                         const prev = prevValue[idx];
+                        // Notify ids that were removed
                         notify(childById, undefined, prev, 0);
                     }
                 }
             }
-        }
+        });
     }
 
     parent.arrayIDsByID = arrayIDsByID;
