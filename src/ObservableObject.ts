@@ -93,7 +93,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     return ret;
 }
 
-function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean) {
+function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean): string[] {
     return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
 }
 
@@ -144,8 +144,10 @@ export function updateNodes(
 
     const isMap = obj instanceof Map;
 
-    const keys: string[] = getKeys(obj, isArr, isMap);
-    const keysPrev: string[] = getKeys(prevValue, isArr, isMap);
+    const keys = getKeys(obj, isArr, isMap);
+    const keysSet = new Set(keys);
+    const keysPrev = getKeys(prevValue, isArr, isMap);
+    const keysPrevSet = new Set(keysPrev);
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
@@ -163,7 +165,7 @@ export function updateNodes(
         const lengthPrev = keysPrev.length;
         for (let i = 0; i < lengthPrev; i++) {
             const key = keysPrev[i];
-            if (!keys.includes(key)) {
+            if (!keysSet.has(key)) {
                 hasADiff = true;
                 const child = getChildNode(parent, key);
 
@@ -235,7 +237,7 @@ export function updateNodes(
                     if (shouldNotify && value !== undefined && (isArr || prev === undefined)) {
                         elementsAdded =
                             elementsAdded ||
-                            (isArr ? id === undefined || !parent.arrayIDsByID!.has(id) : !keysPrev.includes(key));
+                            (isArr ? id === undefined || !parent.arrayIDsByID!.has(id) : !keysPrevSet.has(key));
                     }
                     // Array has a new / modified element
                     // If object iterate through its children
