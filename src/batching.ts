@@ -140,7 +140,8 @@ function computeChangesRecursive(
     prevAtPath: any,
     immediate: boolean,
     level: number,
-    keysAdded?: boolean,
+    keysAdded: boolean | undefined,
+    recursive?: boolean,
 ) {
     // Do the compute at this node
     computeChangesAtNode(
@@ -187,10 +188,11 @@ function computeChangesRecursive(
                 immediate,
                 level + 1,
                 keysAdded,
+                recursive,
             );
 
-            if (parent.ids) {
-                const id = parent.ids.byIndex.get(node.key);
+            if (!recursive && parent.ids) {
+                const id = parent.ids.byIndex.get(node.key) ?? parent.ids.byID.get(node.key);
                 if (id !== undefined) {
                     const idNode = parent.children?.get(id);
                     if (idNode) {
@@ -211,6 +213,7 @@ function computeChangesRecursive(
                             immediate,
                             0,
                             keysAdded,
+                            /*recursive*/ true,
                         );
                     }
                 }

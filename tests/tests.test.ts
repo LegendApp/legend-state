@@ -1756,6 +1756,48 @@ describe('Arrays by ID', () => {
             },
         ]);
     });
+    test('Setting array elements by id works correctly', () => {
+        interface Data {
+            arr: { id: string; text: string }[];
+            arr_key: string;
+        }
+        const obs = observable<Data>({
+            arr: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+            ],
+            arr_key: 'id',
+        });
+
+        const handler0 = expectChangeHandler(obs.arr['id0']);
+        const handler1 = expectChangeHandler(obs.arr['id1']);
+        const handler11 = expectChangeHandler(obs.arr[1]);
+
+        obs.arr['id1'].text.set('hello2');
+
+        expect(obs.arr.get()).toEqual([
+            { id: 'id0', text: 'hi' },
+            { id: 'id1', text: 'hello2' },
+        ]);
+        expect(handler0).toHaveBeenCalledTimes(0);
+        expect(handler1).toHaveBeenCalledTimes(1);
+        expect(handler1).toHaveBeenCalledWith({ id: 'id1', text: 'hello2' }, { id: 'id1', text: 'hello' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                valueAtPath: 'hello2',
+                prevAtPath: 'hello',
+            },
+        ]);
+        expect(handler11).toHaveBeenCalledWith({ id: 'id1', text: 'hello2' }, { id: 'id1', text: 'hello' }, [
+            {
+                path: ['text'],
+                pathTypes: ['object'],
+                valueAtPath: 'hello2',
+                prevAtPath: 'hello',
+            },
+        ]);
+    });
     test('Setting array elements by index updates byID', () => {
         const obs = observable({ arr: [] as { id: string; value: number }[] });
         for (let i = 0; i < 2; i++) {
