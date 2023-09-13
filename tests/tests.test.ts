@@ -1367,7 +1367,7 @@ describe('Array', () => {
             ],
         });
         const handler = jest.fn();
-        obs.test.onChange(handler, { trackingType: true });
+        obs.test.onChange(handler, { shallow: true });
         obs.test[0].onChange(() => {});
         obs.test[1].onChange(() => {});
         obs.test[2].onChange(() => {});
@@ -1419,7 +1419,7 @@ describe('Array', () => {
         });
         const handler = jest.fn();
         obs.test.onChange(handler);
-        // obs.test.onChange(handlerShallow, { trackingType: true});
+        // obs.test.onChange(handlerShallow, { shallow: true});
         const handlerShallow = expectChangeHandler(obs.test);
         const handlerItem = expectChangeHandler(obs.test[1]);
 
@@ -2117,7 +2117,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ val: false });
         const handler = jest.fn();
-        obs.onChange(handler, { trackingType: true });
+        obs.onChange(handler, { shallow: true });
         obs.val.set(true);
         expect(handler).not.toHaveBeenCalled();
         obs.val2.set(10);
@@ -2126,7 +2126,7 @@ describe('Shallow', () => {
     test('Shallow deep object', () => {
         const obs = observable({ val: { val2: { val3: 'hi' } } });
         const handler = jest.fn();
-        obs.onChange(handler, { trackingType: true });
+        obs.onChange(handler, { shallow: true });
         obs.val.val2.val3.set('hello');
         expect(handler).not.toHaveBeenCalled();
     });
@@ -2137,7 +2137,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ data: [], selected: 0 });
         const handler = jest.fn();
-        obs.data.onChange(handler, { trackingType: true });
+        obs.data.onChange(handler, { shallow: true });
         obs.data.set([{ text: 1 }, { text: 2 }]);
         expect(handler).toHaveBeenCalledTimes(1);
         // Setting an index in an array should not notify the array
@@ -2150,7 +2150,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
         const handler = jest.fn();
-        obs.test.onChange(handler, { trackingType: true });
+        obs.test.onChange(handler, { shallow: true });
 
         obs.test.key2.delete();
 
@@ -2172,7 +2172,7 @@ describe('Shallow', () => {
         const obs = observable<Data>({ arr: [{ text: 'hello' }, { text: 'hello2' }] });
         const handler = jest.fn();
         const handler2 = jest.fn();
-        obs.arr.onChange(handler, { trackingType: true });
+        obs.arr.onChange(handler, { shallow: true });
         obs.arr.onChange(handler2);
 
         obs.arr.splice(1, 1);
@@ -2195,7 +2195,7 @@ describe('Shallow', () => {
         }
         const obs = observable<Data>({ test: { text: 'hi' } });
         const handler = jest.fn();
-        obs.test.onChange(handler, { trackingType: true });
+        obs.test.onChange(handler, { shallow: true });
 
         obs.test.set(undefined);
 

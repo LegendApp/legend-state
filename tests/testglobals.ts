@@ -1,10 +1,10 @@
-import { ListenerParams, ObservableReadable, TrackingType } from '@legendapp/state';
+import { ListenerParams, ObservableReadable } from '@legendapp/state';
 
 export function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
 
-export function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
+export function expectChangeHandler<T>(obs: ObservableReadable<T>, shallow?: boolean) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: ListenerParams<T>) {
@@ -19,7 +19,7 @@ export function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: Track
         ret(value, prev, changes);
     }
 
-    obs.onChange(handler, { trackingType: track });
+    obs.onChange(handler, { shallow });
 
     return ret;
 }

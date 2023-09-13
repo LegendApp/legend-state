@@ -40,7 +40,6 @@ interface MMKVConfiguration {
 }
 
 type Nullable<T> = T | null | undefined;
-export type TrackingType = undefined | true | symbol; // true === shallow
 
 export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;
@@ -49,10 +48,10 @@ export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
 }
 export interface ObservableBaseFns<T> {
     peek(): T;
-    get(trackingType?: TrackingType): T;
+    get(shallow?: boolean): T;
     onChange(
         cb: ListenerFn<T>,
-        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
+        options?: { shallow?: boolean; initial?: boolean; immediate?: boolean; noArgs?: boolean },
     ): ObservableListenerDispose;
 }
 export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
@@ -420,7 +419,7 @@ export type ObservableWriteable<T = any> = ObservableReadable<T> & {
 };
 
 export interface NodeValueListener {
-    track: TrackingType;
+    shallow?: boolean;
     noArgs?: boolean;
     listener: ListenerFn;
 }
@@ -461,7 +460,7 @@ export type NodeValue = RootNodeValue | ChildNodeValue;
 /** @internal */
 export interface TrackingNode {
     node: NodeValue;
-    track: TrackingType;
+    shallow?: boolean;
     num: number;
 }
 export interface ObserveEvent<T> {

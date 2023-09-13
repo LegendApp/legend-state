@@ -1,4 +1,4 @@
-import type { NodeValue, TrackingNode, TrackingType } from './observableInterfaces';
+import type { NodeValue, TrackingNode } from './observableInterfaces';
 
 interface TrackingState {
     nodes?: Map<NodeValue, TrackingNode>;
@@ -29,7 +29,7 @@ export function endTracking() {
     tracking.current = trackingQueue.pop();
 }
 
-export function updateTracking(node: NodeValue, track?: TrackingType) {
+export function updateTracking(node: NodeValue, shallow?: boolean) {
     if (trackCount) {
         const tracker = tracking.current;
         if (tracker) {
@@ -39,10 +39,10 @@ export function updateTracking(node: NodeValue, track?: TrackingType) {
 
             const existing = tracker.nodes.get(node);
             if (existing) {
-                existing.track = existing.track || track;
+                existing.shallow = existing.shallow || shallow;
                 existing.num++;
             } else {
-                tracker.nodes.set(node, { node, track, num: 1 });
+                tracker.nodes.set(node, { node, shallow, num: 1 });
             }
         }
     }

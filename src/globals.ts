@@ -1,18 +1,11 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import {
-    ChildNodeValue,
-    NodeValue,
-    ObservableComputed,
-    ObservableReadable,
-    TrackingType,
-} from './observableInterfaces';
+import { ChildNodeValue, NodeValue, ObservableComputed, ObservableReadable } from './observableInterfaces';
 import { updateTracking } from './tracking';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
-export const optimized = Symbol('optimized');
 
 export const globalState = {
     isLoadingLocal: false,
@@ -32,9 +25,9 @@ export function getNode(obs: ObservableReadable): NodeValue {
     return obs && (obs as any)[symbolGetNode];
 }
 
-export function get(node: NodeValue, track?: TrackingType) {
+export function get(node: NodeValue, shallow?: boolean) {
     // Track by default
-    updateTracking(node, track);
+    updateTracking(node, shallow);
 
     return peek(node);
 }

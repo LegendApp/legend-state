@@ -43,7 +43,7 @@ export function For<T, TProps>({
                         setRenderNum((v) => v + 1);
                     }
                 },
-                { trackingType: true },
+                { shallow: true },
             );
             return 0;
         });

@@ -40,23 +40,13 @@ export { beginTracking, endTracking, tracking, updateTracking } from './src/trac
 /** @internal */
 export { setupTracking } from './src/setupTracking';
 /** @internal */
-export { checkActivate, findIDKey, getNode, getNodeValue, optimized, symbolDelete } from './src/globals';
+export { checkActivate, findIDKey, getNode, getNodeValue, symbolDelete } from './src/globals';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
 // Internal:
 import { getProxy, set } from './src/ObservableObject';
-import {
-    ensureNodeValue,
-    findIDKey,
-    get,
-    getNode,
-    globalState,
-    optimized,
-    peek,
-    setNodeValue,
-    symbolDelete,
-} from './src/globals';
+import { ensureNodeValue, findIDKey, get, getNode, globalState, peek, setNodeValue, symbolDelete } from './src/globals';
 import { setAtPath } from './src/helpers';
 
 export const internal = {
@@ -66,7 +56,6 @@ export const internal = {
     getNode,
     getProxy,
     globalState,
-    optimized,
     peek,
     set,
     setAtPath,

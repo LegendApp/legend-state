@@ -1,13 +1,13 @@
 import { checkActivate, getNodeValue } from './globals';
-import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
+import type { ListenerFn, NodeValue, NodeValueListener } from './observableInterfaces';
 
 export function onChange(
     node: NodeValue,
     callback: ListenerFn,
-    options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {},
+    options: { shallow?: boolean; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {},
 ): () => void {
     const { initial, immediate, noArgs } = options;
-    const { trackingType } = options;
+    const { shallow } = options;
 
     let listeners = immediate ? node.listenersImmediate : node.listeners;
     if (!listeners) {
@@ -22,7 +22,7 @@ export function onChange(
 
     const listener: NodeValueListener = {
         listener: callback,
-        track: trackingType,
+        shallow,
         noArgs,
     };
 

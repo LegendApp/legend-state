@@ -230,9 +230,9 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
             const arr = Array.from(listeners);
             for (let i = 0; i < arr.length; i++) {
                 const listenerFn = arr[i];
-                const { track, noArgs, listener } = listenerFn;
+                const { shallow, noArgs, listener } = listenerFn;
                 if (!listenersNotified.has(listener)) {
-                    const ok = track === true ? level <= 0 : true;
+                    const ok = shallow ? level <= 0 : true;
 
                     // Notify if listener is not shallow or if this is the first level
                     if (ok) {
@@ -245,7 +245,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                             };
                         }
 
-                        if (!track) {
+                        if (!shallow) {
                             listenersNotified.add(listener);
                         }
 

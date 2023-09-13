@@ -8,7 +8,6 @@ import {
     getNode,
     getNodeValue,
     globalState,
-    optimized,
     peek,
     setNodeValue,
     symbolDelete,
@@ -613,7 +612,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<a
             const valueMap = value as Map<any, any>;
 
             if (p === 'get') {
-                if (l > 0 && typeof a !== 'boolean' && a !== optimized) {
+                if (l > 0 && typeof a !== 'boolean') {
                     return getProxy(node, a);
                 }
             } else if (p === 'set') {
