@@ -86,9 +86,7 @@ export function getNodeValue(node: NodeValue): any {
     let count = 0;
     let n: NodeValue = node;
     while (isChildNodeValue(n)) {
-        arrNodeKeys[count++] = n.isKeyedInArray
-            ? ((n.parent.arrayIDsByID?.get(n.key) ?? -1) as unknown as string)
-            : n.key;
+        arrNodeKeys[count++] = n.isKeyedInArray ? ((n.parent.ids?.byID?.get(n.key) ?? -1) as unknown as string) : n.key;
         n = n.parent;
     }
     let child = node.root._;

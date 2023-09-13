@@ -44,7 +44,7 @@ export function getObservableIndex(obs: ObservableReadable): number {
     if (isNum) {
         return n;
     } else {
-        const idx = node.parent?.arrayIDsByID?.get(node.key);
+        const idx = node.parent?.ids?.byID.get(node.key);
         if (idx !== undefined) {
             return +idx;
         } else {

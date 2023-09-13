@@ -426,8 +426,10 @@ export interface NodeValueListener {
 
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
-    arrayIDsByIndex?: Map<string, string>;
-    arrayIDsByID?: Map<string, string>;
+    ids?: {
+        byIndex: Map<string, string>;
+        byID: Map<string, string>;
+    };
     proxy?: object;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;

@@ -139,8 +139,9 @@ export function updateNodes(
 
     const isArr = isArray(obj);
 
-    const arrayIDsByID = isArr ? new Map<string, string>() : undefined;
-    const arrayIDsByIndex = isArr ? new Map<string, string>() : undefined;
+    const parentIDsById = parent.ids?.byID;
+    const idsByID = isArr ? new Map<string, string>() : undefined;
+    const idsByIndex = isArr ? new Map<string, string>() : undefined;
 
     const isMap = obj instanceof Map;
 
@@ -209,8 +210,8 @@ export function updateNodes(
             }
 
             if (id !== undefined && isArr) {
-                arrayIDsByID!.set(id, indexStr);
-                arrayIDsByIndex!.set(indexStr, id);
+                idsByID!.set(id, indexStr);
+                idsByIndex!.set(indexStr, id);
             }
 
             if (isDiff) {
@@ -224,7 +225,7 @@ export function updateNodes(
                 // Detect moves within an array.
                 if (isArr && id !== undefined) {
                     // Find the previous position of this element in the array
-                    const idx = parent.arrayIDsByID?.get(id);
+                    const idx = parentIDsById?.get(id);
                     if (idx && +idx !== i) {
                         // This id was in the array and moved to a different index
                         didMove = true;
@@ -237,7 +238,7 @@ export function updateNodes(
                     if (shouldNotify && value !== undefined && (isArr || prev === undefined)) {
                         elementsAdded =
                             elementsAdded ||
-                            (isArr ? id === undefined || !parent.arrayIDsByID!.has(id) : !keysPrevSet.has(key));
+                            (isArr ? id === undefined || !parentIDsById!.has(id) : !keysPrevSet.has(key));
                     }
                     // Array has a new / modified element
                     // If object iterate through its children
@@ -275,10 +276,10 @@ export function updateNodes(
         retValue = true;
     }
 
-    if (parent.arrayIDsByID) {
+    if (parentIDsById) {
         // If this array had ids before then notify for any ids that are no longer in it
-        parent.arrayIDsByID.forEach((idx, key) => {
-            if (!arrayIDsByID || !arrayIDsByID.has(key)) {
+        parentIDsById.forEach((idx, key) => {
+            if (!idsByID || !idsByID.has(key)) {
                 const childById = parent.children?.get(key);
                 if (childById) {
                     if (childById.listeners || childById.listenersImmediate) {
@@ -291,8 +292,12 @@ export function updateNodes(
         });
     }
 
-    parent.arrayIDsByID = arrayIDsByID;
-    parent.arrayIDsByIndex = arrayIDsByIndex;
+    if (idsByID) {
+        parent.ids = {
+            byID: idsByID,
+            byIndex: idsByIndex!,
+        };
+    }
 
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
@@ -570,8 +575,14 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
             const isIdFieldFunction = isFunction(idField);
             const id = isIdFieldFunction ? idField(newValue) : (newValue as Record<string, any>)[idField as string];
             if (id !== undefined) {
-                node.arrayIDsByID!.set(id, key);
-                node.arrayIDsByIndex!.set(key, id);
+                if (!node.ids) {
+                    node.ids = {
+                        byID: new Map(),
+                        byIndex: new Map(),
+                    };
+                }
+                node.ids.byID!.set(id, key);
+                node.ids.byIndex!.set(key, id);
             }
         }
     }

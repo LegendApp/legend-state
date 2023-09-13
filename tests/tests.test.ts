@@ -1756,12 +1756,12 @@ describe('Arrays by ID', () => {
             },
         ]);
     });
-    test('Setting array elements by index updates arrayIDsByID', () => {
+    test('Setting array elements by index updates byID', () => {
         const obs = observable({ arr: [] as { id: string; value: number }[] });
         for (let i = 0; i < 2; i++) {
             obs.arr[i].set({ id: 'id' + i, value: i });
         }
-        expect(getNode(obs.arr).arrayIDsByID!.size).toEqual(2);
+        expect(getNode(obs.arr).ids!.byID.size).toEqual(2);
     });
 });
 describe('Deep changes keep listeners', () => {

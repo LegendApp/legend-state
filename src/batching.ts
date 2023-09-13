@@ -189,8 +189,8 @@ function computeChangesRecursive(
                 keysAdded,
             );
 
-            if (parent.arrayIDsByIndex) {
-                const id = parent.arrayIDsByIndex.get(node.key);
+            if (parent.ids) {
+                const id = parent.ids.byIndex.get(node.key);
                 if (id !== undefined) {
                     const idNode = parent.children?.get(id);
                     if (idNode) {
