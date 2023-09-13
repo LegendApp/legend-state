@@ -3,12 +3,10 @@ import {
     checkActivate,
     extractFunction,
     findIDKey,
-    get,
     getChildNode,
     getNode,
     getNodeValue,
     globalState,
-    peek,
     setNodeValue,
     symbolDelete,
     symbolGetNode,
@@ -16,6 +14,7 @@ import {
     symbolToPrimitive,
 } from './globals';
 import {
+    hasOwnProperty,
     isArray,
     isBoolean,
     isChildNodeValue,
@@ -101,7 +100,6 @@ export function updateNodes(
     parent: NodeValue,
     obj: Record<any, any> | Array<any> | undefined,
     prevValue: any,
-    shouldNotify: boolean,
 ): { hasADiff: boolean; elementsAdded: boolean } {
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
@@ -122,7 +120,7 @@ export function updateNodes(
         (isObject(prevValue) && prevValue[symbolOpaque as any])
     ) {
         const isDiff = obj !== prevValue;
-        if (isDiff && shouldNotify) {
+        if (isDiff) {
             if (parent.listeners || parent.listenersImmediate) {
                 notify(parent, obj, prevValue, 0);
             }
@@ -173,10 +171,10 @@ export function updateNodes(
                 const prev = isMap ? prevValue.get(key) : prevValue[key];
                 if (prev !== undefined) {
                     if (!isPrimitive(prev)) {
-                        updateNodes(child, undefined, prev, shouldNotify);
+                        updateNodes(child, undefined, prev);
                     }
 
-                    if (shouldNotify && (child.listeners || child.listenersImmediate)) {
+                    if (child.listeners || child.listenersImmediate) {
                         notify(child, undefined, prev, 0);
                     }
                 }
@@ -186,7 +184,7 @@ export function updateNodes(
 
     let elementsAdded = isArr && length > lengthPrev;
 
-    if (obj && !isPrimitive(obj)) {
+    if (obj && !isPrimitive(obj) && !parent.lazy) {
         hasADiff = hasADiff || length !== lengthPrev;
         let didMove = false;
 
@@ -235,7 +233,7 @@ export function updateNodes(
                 let childElementsAdded = false;
 
                 if (isDiff) {
-                    if (shouldNotify && value !== undefined && (isArr || prev === undefined)) {
+                    if (value !== undefined && (isArr || prev === undefined)) {
                         elementsAdded =
                             elementsAdded ||
                             (isArr ? id === undefined || !parentIDsById!.has(id) : !keysPrevSet.has(key));
@@ -250,13 +248,12 @@ export function updateNodes(
                             child,
                             value,
                             prev,
-                            shouldNotify,
                         );
                         childElementsAdded = elementsAddedChild;
                         hasADiff = hasADiff || hasADiffChild;
                     }
                 }
-                if (shouldNotify && isDiff) {
+                if (isDiff) {
                     // Notify for this child if this element is different and it has listeners
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
@@ -722,7 +719,7 @@ function updateNodesAndNotify(
         ) {
             __devUpdateNodes.clear();
         }
-        const updated = updateNodes(childNode, newValue, prevValue, true);
+        const updated = updateNodes(childNode, newValue, prevValue);
         hasADiff = updated.hasADiff;
         elementsAdded = updated.elementsAdded;
     }
@@ -740,18 +737,6 @@ function updateNodesAndNotify(
 
     endBatch();
 }
-
-export function extractPromise(node: NodeValue, value: Promise<any>) {
-    (value as PromiseInfo).status = 'pending';
-    value
-        .then((value) => {
-            set(node, value);
-        })
-        .catch((error) => {
-            set(node, { error, status: 'rejected' } as PromiseInfo);
-        });
-}
-
 // Returns: void if not an object
 //          1 if extracted
 //          2 if object that needs further extraction
@@ -766,10 +751,72 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         const childNode = getNode(v);
         if (childNode?.isComputed) {
             extractFunction(node, k, v, childNode);
+            if (obj === undefined) {
+                obj = getNodeValue(node);
+            }
             delete obj[k];
             return 1;
         } else {
             return 2;
         }
     }
+}
+export function extractPromise(node: NodeValue, value: Promise<any>) {
+    (value as PromiseInfo).status = 'pending';
+    value
+        .then((value) => {
+            set(node, value);
+        })
+        .catch((error) => {
+            set(node, { error, status: 'rejected' } as PromiseInfo);
+        });
+}
+export function computeArray(node: NodeValue, value: any[]) {
+    if (value.length > 0) {
+        const idField = findIDKey(value[0], node);
+        if (idField) {
+            const isIdFieldFunction = isFunction(idField);
+            for (let i = 0; i < value.length; i++) {
+                const newValue = value[i];
+                const id = isIdFieldFunction ? idField(newValue) : (newValue as Record<string, any>)[idField as string];
+                if (id !== undefined) {
+                    if (!node.ids) {
+                        node.ids = {
+                            byID: new Map(),
+                            byIndex: new Map(),
+                        };
+                    }
+                    node.ids.byID!.set(id, i + '');
+                    node.ids.byIndex!.set(i + '', id);
+                }
+            }
+        }
+    }
+}
+export function get(node: NodeValue, shallow?: boolean) {
+    // get tracks by default
+    updateTracking(node, shallow);
+
+    return peek(node);
+}
+export function peek(node: NodeValue) {
+    const value = getNodeValue(node);
+
+    // If node is not yet lazily computed go do that
+    if (node.lazy) {
+        delete node.lazy;
+        if (isArray(value)) {
+            computeArray(node, value);
+        }
+        for (const key in value) {
+            if (hasOwnProperty.call(value, key)) {
+                extractFunctionOrComputed(node, value, key, value[key]);
+            }
+        }
+    }
+
+    // Check if computed needs to activate
+    checkActivate(node);
+
+    return value;
 }

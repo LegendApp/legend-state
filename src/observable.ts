@@ -24,6 +24,7 @@ function createObservable<T>(value?: T, makePrimitive?: boolean): ObservablePrim
 
     const node: NodeValue = {
         root,
+        lazy: true,
     };
 
     const prim = makePrimitive || isActualPrimitive(value);
@@ -34,10 +35,6 @@ function createObservable<T>(value?: T, makePrimitive?: boolean): ObservablePrim
 
     if (valueIsPromise) {
         extractPromise(node, value);
-    } else if (!prim) {
-        if (value) {
-            updateNodes(node, value, undefined, false);
-        }
     }
 
     return obs;

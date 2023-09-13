@@ -445,6 +445,7 @@ interface BaseNodeValue {
     isKeyedInArray?: boolean;
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
+    lazy?: boolean;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
