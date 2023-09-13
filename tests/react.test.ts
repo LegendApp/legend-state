@@ -288,9 +288,9 @@ describe('useSelector', () => {
 
 describe('For', () => {
     test('Array insert has stable reference', async () => {
-        type TestObject = { id: number; label: string };
+        type TestObject = { id: string; label: string };
         const obs = observable({
-            items: [{ id: 0, label: '0' }] as TestObject[],
+            items: [{ id: 'id0', label: '0' }] as TestObject[],
         });
         function Item({ item }: { item: Observable<TestObject> }) {
             const data = useSelector(item);
@@ -309,12 +309,12 @@ describe('For', () => {
         expect(items.length).toEqual(1);
 
         act(() => {
-            obs.items.splice(0, 0, { id: 1, label: '1' });
+            obs.items.splice(0, 0, { id: 'id1', label: '1' });
         });
 
         items = container.querySelectorAll('li');
         expect(items.length).toEqual(2);
-        expect(items[0].id).toEqual('1');
+        expect(items[0].id).toEqual('id1');
     });
     test('Array insert has stable reference 2', () => {
         const obs = observable({

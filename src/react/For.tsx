@@ -73,7 +73,7 @@ export function For<T, TProps>({
             if (value[i]) {
                 const val = value[i];
                 const key = (isIdFieldFunction ? idField(val) : (val as Record<string, any>)[idField as string]) ?? i;
-                const props = { key, id: key, item: (each as Observable<any[]>)[i] };
+                const props = { key, id: key, item: (each as Observable<any[]>)[key] };
 
                 out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
             }
