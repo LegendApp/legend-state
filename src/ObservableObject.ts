@@ -195,7 +195,7 @@ export function updateNodes(
 
             const isDiff = value !== prev;
 
-            let id =
+            const id =
                 idField && value
                     ? isIdFieldFunction
                         ? (idField as (value: any) => string)(value)
@@ -203,7 +203,6 @@ export function updateNodes(
                     : undefined;
 
             if (id !== undefined && isNumber(id)) {
-                id = id + '';
             }
 
             if (id !== undefined && isArr) {
@@ -561,6 +560,18 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     const isFunc = isFunction(savedValue);
 
     const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
+
+    if (isArray(parentValue) && parentValue.length > 0) {
+        const idField = findIDKey(parentValue[0], node);
+        if (idField) {
+            const isIdFieldFunction = isFunction(idField);
+            const id = isIdFieldFunction ? idField(newValue) : (newValue as Record<string, any>)[idField as string];
+            if (id !== undefined) {
+                node.arrayIDsByID!.set(id, key);
+                node.arrayIDsByIndex!.set(key, id);
+            }
+        }
+    }
 
     if (savedValue !== prevValue) {
         updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);

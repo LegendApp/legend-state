@@ -6,7 +6,7 @@ import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
-import { getNodeValue, symbolGetNode } from '../src/globals';
+import { getNode, getNodeValue, symbolGetNode } from '../src/globals';
 import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { NodeValue } from '../src/observableInterfaces';
@@ -1236,11 +1236,11 @@ describe('Array', () => {
     test('Array swap with objects and then remove', () => {
         const obs = observable({
             test: [
-                { zid: 1, text: 1 },
-                { zid: 2, text: 2 },
-                { zid: 3, text: 3 },
-                { zid: 4, text: 4 },
-                { zid: 5, text: 5 },
+                { zid: 'z' + 1, text: 1 },
+                { zid: 'z' + 2, text: 2 },
+                { zid: 'z' + 3, text: 3 },
+                { zid: 'z' + 4, text: 4 },
+                { zid: 'z' + 5, text: 5 },
             ],
             test_keyExtractor: (item: { zid: string }) => item.zid,
         });
@@ -1249,7 +1249,7 @@ describe('Array', () => {
         obs.test[1].set(arr[4].peek());
         obs.test[4].set(tmp);
         obs.test.splice(0, 1);
-        expect(obs.test[0].get()).toEqual({ zid: 5, text: 5 });
+        expect(obs.test[0].get()).toEqual({ zid: 'z' + 5, text: 5 });
     });
     test('Array swap if empty', () => {
         interface Data {
@@ -1749,6 +1749,13 @@ describe('Arrays by ID', () => {
             },
         ]);
     });
+    test('Setting array elements by index updates arrayIDsByID', () => {
+        const obs = observable({ arr: [] as { id: string; value: number }[] });
+        for (let i = 0; i < 2; i++) {
+            obs.arr[i].set({ id: 'id' + i, value: i });
+        }
+        expect(getNode(obs.arr).arrayIDsByID!.size).toEqual(2);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
@@ -1950,10 +1957,12 @@ describe('Deep changes keep listeners', () => {
         );
     });
     test('Array perf', () => {
-        const obs = observable({ arr: [] as { id: number; value: number }[] });
+        const obs = observable({ arr: [] as { id: string; value: number }[] });
+        const arr = [];
         for (let i = 0; i < 10000; i++) {
-            obs.arr[i].set({ id: i, value: i });
+            arr.push({ id: 'id' + i, value: i });
         }
+        obs.arr.set(arr);
         const now = performance.now();
         obs.arr.splice(1, 1);
         const then = performance.now();
