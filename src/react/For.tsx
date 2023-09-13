@@ -1,6 +1,6 @@
 import type { Observable, ObservableObject, ObservableReadable } from '@legendapp/state';
-import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
-import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
+import { findIDKey, getNode, isArray, isFunction } from '@legendapp/state';
+import { FC, ReactElement, createElement, memo, useMemo, useRef, useState } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
 
@@ -8,7 +8,7 @@ const autoMemoCache = new Map<FC<any>, FC<any>>();
 
 export function For<T, TProps>({
     each,
-    optimized: isOptimized,
+    optimized,
     item,
     itemProps,
     sortValues,
@@ -24,9 +24,30 @@ export function For<T, TProps>({
 }): ReactElement | null {
     if (!each) return null;
 
-    // Get the raw value with a shallow listener so this list only re-renders
-    // when the array length changes
-    const value = useSelector(() => each!.get(isOptimized ? optimized : true));
+    // Non-optimized uses shallow tracking
+    const value = optimized ? each!.peek() : useSelector(() => each.get(true));
+
+    if (optimized) {
+        // optimized mode only re-renders if keys are added
+        const [, setRenderNum] = useState(() => {
+            each!.onChange(
+                ({ changes }) => {
+                    let isOk = false;
+                    for (let i = 0; i < changes.length; i++) {
+                        const change = changes[i];
+                        if (change.path.length === 0 && change.keysAdded) {
+                            isOk = true;
+                        }
+                    }
+                    if (isOk) {
+                        setRenderNum((v) => v + 1);
+                    }
+                },
+                { trackingType: true },
+            );
+            return 0;
+        });
+    }
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
@@ -70,13 +91,11 @@ export function For<T, TProps>({
         const isIdFieldFunction = isFunction(idField);
 
         for (let i = 0; i < length; i++) {
-            if (value[i]) {
-                const val = value[i];
-                const key = (isIdFieldFunction ? idField(val) : (val as Record<string, any>)[idField as string]) ?? i;
-                const props = { key, id: key, item: (each as Observable<any[]>)[key] };
+            const val = value[i];
+            const key = (isIdFieldFunction ? idField(val) : (val as Record<string, any>)[idField as string]) ?? i;
+            const props = { key, id: key, item: (each as Observable<any[]>)[key] };
 
-                out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
-            }
+            out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
         }
     } else {
         // Render the values of the object / Map

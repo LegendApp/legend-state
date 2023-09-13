@@ -11,10 +11,10 @@ import { For } from '../src/react/For';
 import { Show } from '../src/react/Show';
 import { observer } from '../src/react/reactive-observer';
 import { useObservableReducer } from '../src/react/useObservableReducer';
+import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
-import { useObservableState } from '../src/react/useObservableState';
 
 type TestObject = { id: string; label: string };
 

@@ -1,5 +1,9 @@
 import { ListenerParams, ObservableReadable, TrackingType } from '@legendapp/state';
 
+export function promiseTimeout(time?: number) {
+    return new Promise((resolve) => setTimeout(resolve, time || 0));
+}
+
 export function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
     const ret = jest.fn();
 

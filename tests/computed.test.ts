@@ -1,9 +1,5 @@
 import { beginBatch, computed, endBatch, isObservable, Observable, observable, observe, proxy } from '@legendapp/state';
-import { expectChangeHandler } from './testglobals';
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
+import { expectChangeHandler, promiseTimeout } from './testglobals';
 
 let spiedConsole: jest.SpyInstance;
 
