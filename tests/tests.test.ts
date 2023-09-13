@@ -6,12 +6,13 @@ import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
-import { getNodeValue, optimized, symbolGetNode } from '../src/globals';
+import { getNodeValue, symbolGetNode } from '../src/globals';
 import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
-import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { NodeValue } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
+import { expectChangeHandler } from './testglobals';
 
 enableDirectAccess();
 enableDirectPeek();
@@ -29,20 +30,6 @@ beforeEach(() => {
 afterAll(() => {
     spiedConsole.mockRestore();
 });
-
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
-    const ret = jest.fn();
-
-    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
-        const prev = getPrevious();
-
-        ret(value, prev, changes);
-    }
-
-    obs.onChange(handler, { trackingType: track });
-
-    return ret;
-}
 
 describe('Set', () => {
     test('Set', () => {
@@ -120,6 +107,7 @@ describe('Set', () => {
                     pathTypes: [],
                     valueAtPath: [{ text: 'hi2' }],
                     prevAtPath: [{ text: 'hi' }],
+                    keysAdded: true,
                 },
             ],
         );
@@ -132,7 +120,15 @@ describe('Set', () => {
         expect(handler).toHaveBeenCalledWith(
             [{ text: 'hello' }],
             [{ text: 'hi2' }],
-            [{ path: [], pathTypes: [], valueAtPath: [{ text: 'hello' }], prevAtPath: [{ text: 'hi2' }] }],
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: [{ text: 'hello' }],
+                    prevAtPath: [{ text: 'hi2' }],
+                    keysAdded: true,
+                },
+            ],
         );
     });
     test('Assign with functions', () => {
@@ -483,6 +479,7 @@ describe('Listeners', () => {
                     test2: 'hi',
                 },
                 prevAtPath: null,
+                keysAdded: true,
             },
         ]);
     });
@@ -508,7 +505,13 @@ describe('Listeners', () => {
         const handler = expectChangeHandler(obs);
         obs.test.set({ test2: 'hi' });
         expect(handler).toHaveBeenCalledWith({ test: { test2: 'hi' } }, { test: undefined }, [
-            { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
+            {
+                path: ['test'],
+                pathTypes: ['object'],
+                valueAtPath: { test2: 'hi' },
+                prevAtPath: undefined,
+                keysAdded: true,
+            },
         ]);
     });
     test('Set with object should only fire listeners once', () => {
@@ -528,6 +531,7 @@ describe('Listeners', () => {
                     pathTypes: ['object'],
                     valueAtPath: { test2: 'hi', test3: 'hi3', test4: 'hi4' },
                     prevAtPath: undefined,
+                    keysAdded: true,
                 },
             ],
         );
@@ -656,6 +660,7 @@ describe('Listeners', () => {
                 pathTypes: ['object', 'object'],
                 valueAtPath: { test1: { text: ['hi'] } },
                 prevAtPath: undefined,
+                keysAdded: true,
             },
         ]);
         expect(Object.keys(obs.test.t[1000])).toEqual(['test1']);
@@ -688,6 +693,7 @@ describe('Listeners', () => {
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test1: { text: ['hi'] }, test2: { text: ['hi2'] } },
                     prevAtPath: { test1: { text: ['hi'] } },
+                    keysAdded: true,
                 },
             ],
         );
@@ -788,6 +794,7 @@ describe('undefined', () => {
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test4: 'hi4', test5: 'hi5' },
                     prevAtPath: undefined,
+                    keysAdded: true,
                 },
             ],
         );
@@ -822,6 +829,7 @@ describe('undefined', () => {
                     pathTypes: ['object', 'object'],
                     valueAtPath: { test4: 'hi6', test5: 'hi7' },
                     prevAtPath: undefined,
+                    keysAdded: true,
                 },
             ],
         );
@@ -1059,7 +1067,11 @@ describe('Array', () => {
         const handler = expectChangeHandler(obs);
 
         obs.push(1);
-        expect(handler).toHaveBeenCalledWith([1], [], [{ path: [], pathTypes: [], valueAtPath: [1], prevAtPath: [] }]);
+        expect(handler).toHaveBeenCalledWith(
+            [1],
+            [],
+            [{ path: [], pathTypes: [], valueAtPath: [1], prevAtPath: [], keysAdded: true }],
+        );
     });
     test('Array functions', () => {
         const obs = observable({ arr: [] });
@@ -1078,8 +1090,21 @@ describe('Array', () => {
         obs.test.push('hello');
         expect(obs.test.get()).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith({ test: ['hi', 'hello'] }, { test: ['hi'] }, [
-            { path: ['test'], pathTypes: ['array'], valueAtPath: ['hi', 'hello'], prevAtPath: ['hi'] },
+            { path: ['test'], pathTypes: ['array'], valueAtPath: ['hi', 'hello'], prevAtPath: ['hi'], keysAdded: true },
         ]);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Array push listen to array', () => {
+        const obs = observable({ test: ['hi'] });
+        const handler = expectChangeHandler(obs.test);
+
+        obs.test.push('hello');
+        expect(obs.test.get()).toEqual(['hi', 'hello']);
+        expect(handler).toHaveBeenCalledWith(
+            ['hi', 'hello'],
+            ['hi'],
+            [{ path: [], pathTypes: [], valueAtPath: ['hi', 'hello'], prevAtPath: ['hi'], keysAdded: true }],
+        );
         expect(handler).toHaveBeenCalledTimes(1);
     });
     test('Array splice', () => {
@@ -1098,6 +1123,55 @@ describe('Array', () => {
                     pathTypes: ['array'],
                     valueAtPath: [{ text: 'hi' }, { text: 'there' }],
                     prevAtPath: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }],
+                    keysAdded: true, // This is true because they have no id so it can't know
+                },
+            ],
+        );
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('Array splice with id', () => {
+        const obs = observable({
+            test: [
+                { id: 'id0', text: 'hi' },
+                { id: 'id1', text: 'hello' },
+                { id: 'id2', text: 'there' },
+            ],
+        });
+        const handler = expectChangeHandler(obs);
+        const last = obs.test[2].get();
+        obs.test.splice(1, 1);
+        expect(obs.test.get()).toEqual([
+            { id: 'id0', text: 'hi' },
+            { id: 'id2', text: 'there' },
+        ]);
+        expect(obs.test[1].get()).toBe(last);
+        expect(handler).toHaveBeenCalledWith(
+            {
+                test: [
+                    { id: 'id0', text: 'hi' },
+                    { id: 'id2', text: 'there' },
+                ],
+            },
+            {
+                test: [
+                    { id: 'id0', text: 'hi' },
+                    { id: 'id1', text: 'hello' },
+                    { id: 'id2', text: 'there' },
+                ],
+            },
+            [
+                {
+                    path: ['test'],
+                    pathTypes: ['array'],
+                    valueAtPath: [
+                        { id: 'id0', text: 'hi' },
+                        { id: 'id2', text: 'there' },
+                    ],
+                    prevAtPath: [
+                        { id: 'id0', text: 'hi' },
+                        { id: 'id1', text: 'hello' },
+                        { id: 'id2', text: 'there' },
+                    ],
                 },
             ],
         );
@@ -1344,9 +1418,9 @@ describe('Array', () => {
             ],
         });
         const handler = jest.fn();
-        const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, { trackingType: optimized });
+        // obs.test.onChange(handlerShallow, { trackingType: true});
+        const handlerShallow = expectChangeHandler(obs.test);
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();
@@ -1367,7 +1441,43 @@ describe('Array', () => {
         expect(handlerItem).toHaveBeenCalledWith({ id: 5, text: 5 }, { id: 2, text: 2 }, [
             { path: [], pathTypes: [], valueAtPath: { id: 5, text: 5 }, prevAtPath: { id: 2, text: 2 } },
         ]);
-        expect(handlerShallow).not.toHaveBeenCalled();
+        // Importantly here it is not called with elementsAdded
+        expect(handlerShallow).toHaveBeenCalledWith(
+            [
+                { id: 1, text: 1 },
+                { id: 5, text: 5 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 2, text: 2 },
+            ],
+            [
+                { id: 1, text: 1 },
+                { id: 2, text: 2 },
+                { id: 3, text: 3 },
+                { id: 4, text: 4 },
+                { id: 5, text: 5 },
+            ],
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    prevAtPath: [
+                        { id: 1, text: 1 },
+                        { id: 2, text: 2 },
+                        { id: 3, text: 3 },
+                        { id: 4, text: 4 },
+                        { id: 5, text: 5 },
+                    ],
+                    valueAtPath: [
+                        { id: 1, text: 1 },
+                        { id: 5, text: 5 },
+                        { id: 3, text: 3 },
+                        { id: 4, text: 4 },
+                        { id: 2, text: 2 },
+                    ],
+                },
+            ],
+        );
     });
     test('Array set with different ids shallow', () => {
         const obs = observable({
@@ -1388,6 +1498,7 @@ describe('Array', () => {
                     pathTypes: [],
                     valueAtPath: [{ id: 2, text: 2 }],
                     prevAtPath: [{ id: 1, text: 1 }],
+                    keysAdded: true,
                 },
             ],
         );
@@ -1411,6 +1522,7 @@ describe('Array', () => {
                     pathTypes: [],
                     valueAtPath: [{ text: 2 }],
                     prevAtPath: [{ text: 1 }],
+                    keysAdded: true,
                 },
             ],
         );
@@ -1773,10 +1885,10 @@ describe('Deep changes keep listeners', () => {
         expect(handler).toHaveBeenCalledWith(
             [1, 2, 3],
             [0, 1, 2],
-            [{ path: [], pathTypes: [], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] }],
+            [{ path: [], pathTypes: [], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2], keysAdded: true }],
         );
         expect(handler2).toHaveBeenCalledWith({ arr: [1, 2, 3] }, { arr: [0, 1, 2] }, [
-            { path: ['arr'], pathTypes: ['array'], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2] },
+            { path: ['arr'], pathTypes: ['array'], valueAtPath: [1, 2, 3], prevAtPath: [0, 1, 2], keysAdded: true },
         ]);
     });
     test('Array objects getPrevious', () => {
@@ -1798,6 +1910,7 @@ describe('Deep changes keep listeners', () => {
                     pathTypes: [],
                     valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
                     prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    keysAdded: true,
                 },
             ],
         );
@@ -1810,6 +1923,7 @@ describe('Deep changes keep listeners', () => {
                     pathTypes: ['array'],
                     valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
                     prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    keysAdded: true,
                 },
             ],
         );
@@ -1830,6 +1944,7 @@ describe('Deep changes keep listeners', () => {
                     pathTypes: [],
                     valueAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
                     prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    keysAdded: true,
                 },
             ],
         );

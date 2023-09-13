@@ -1,16 +1,5 @@
-import {
-    beginBatch,
-    Change,
-    computed,
-    endBatch,
-    isObservable,
-    Observable,
-    observable,
-    ObservableReadable,
-    observe,
-    proxy,
-    TrackingType,
-} from '@legendapp/state';
+import { beginBatch, computed, endBatch, isObservable, Observable, observable, observe, proxy } from '@legendapp/state';
+import { expectChangeHandler } from './testglobals';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
@@ -25,20 +14,6 @@ beforeAll(() => {
 afterAll(() => {
     spiedConsole.mockRestore();
 });
-
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
-    const ret = jest.fn();
-
-    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
-        const prev = getPrevious();
-
-        ret(value, prev, changes);
-    }
-
-    obs.onChange(handler, { trackingType: track });
-
-    return ret;
-}
 
 describe('Computed', () => {
     test('Basic computed', () => {

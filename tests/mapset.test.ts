@@ -1,21 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { expectChangeHandler } from './testglobals';
 import { isObservable } from '../src/helpers';
 import { observable } from '../src/observable';
-import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
-
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
-    const ret = jest.fn();
-
-    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
-        const prev = getPrevious();
-
-        ret(value, prev, changes);
-    }
-
-    obs.onChange(handler, { trackingType: track });
-
-    return ret;
-}
 
 describe('Map default behavior', () => {
     test('Map get', () => {

@@ -163,6 +163,7 @@ export interface Change {
     pathTypes: TypeAtPath[];
     valueAtPath: any;
     prevAtPath: any;
+    keysAdded?: boolean | undefined;
 }
 
 export interface PersistTransform<T = any> {

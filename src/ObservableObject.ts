@@ -16,8 +16,18 @@ import {
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
-import { isArray, isBoolean, isChildNodeValue, isEmpty, isFunction, isObject, isPrimitive, isPromise } from './is';
-import type { ChildNodeValue, NodeValue, PromiseInfo } from './observableInterfaces';
+import {
+    isArray,
+    isBoolean,
+    isChildNodeValue,
+    isEmpty,
+    isFunction,
+    isNumber,
+    isObject,
+    isPrimitive,
+    isPromise,
+} from './is';
+import type { NodeValue, PromiseInfo } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -93,7 +103,7 @@ export function updateNodes(
     obj: Record<any, any> | Array<any> | undefined,
     prevValue: any,
     shouldNotify: boolean,
-): boolean {
+): { hasADiff: boolean; elementsAdded: boolean } {
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         typeof __devUpdateNodes !== 'undefined' &&
@@ -104,7 +114,7 @@ export function updateNodes(
                 '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
                 obj,
             );
-            return false;
+            return { hasADiff: false, elementsAdded: false };
         }
         __devUpdateNodes.add(obj);
     }
@@ -125,7 +135,7 @@ export function updateNodes(
         ) {
             __devUpdateNodes.delete(obj);
         }
-        return isDiff;
+        return { hasADiff: isDiff, elementsAdded: true };
     }
 
     const isArr = isArray(obj);
@@ -172,9 +182,10 @@ export function updateNodes(
         }
     }
 
+    let elementsAdded = isArr && length > lengthPrev;
+
     if (obj && !isPrimitive(obj)) {
         hasADiff = hasADiff || length !== lengthPrev;
-        const isArrDiff = hasADiff;
         let didMove = false;
 
         for (let i = 0; i < length; i++) {
@@ -185,12 +196,16 @@ export function updateNodes(
 
             const isDiff = value !== prev;
 
-            const id =
+            let id =
                 idField && value
                     ? isIdFieldFunction
                         ? (idField as (value: any) => string)(value)
                         : value[idField as string]
                     : undefined;
+
+            if (id !== undefined && isNumber(id)) {
+                id = id + '';
+            }
 
             if (id !== undefined && isArr) {
                 arrayIDsByID!.set(id, indexStr);
@@ -215,24 +230,37 @@ export function updateNodes(
                     }
                 }
 
+                let childElementsAdded = false;
+
                 if (isDiff) {
+                    if (shouldNotify && value !== undefined && (isArr || prev === undefined)) {
+                        elementsAdded =
+                            elementsAdded ||
+                            (isArr ? id === undefined || !parent.arrayIDsByID!.has(id) : !keysPrev.includes(key));
+                    }
                     // Array has a new / modified element
                     // If object iterate through its children
                     if (isPrimitive(value)) {
                         hasADiff = true;
                     } else if (!didMove || child.descendantHasListener) {
                         // Always need to updateNodes so we notify through all children
-                        const updatedNodes = updateNodes(child, value, prev, shouldNotify);
-                        hasADiff = hasADiff || updatedNodes;
+                        const { hasADiff: hasADiffChild, elementsAdded: elementsAddedChild } = updateNodes(
+                            child,
+                            value,
+                            prev,
+                            shouldNotify,
+                        );
+                        childElementsAdded = elementsAddedChild;
+                        hasADiff = hasADiff || hasADiffChild;
                     }
                 }
-                if (shouldNotify && (isDiff || !isArrDiff)) {
+                if (shouldNotify && isDiff) {
                     // Notify for this child if this element is different and it has listeners
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
                     // the array's listener will cover it
                     if (child.listeners || child.listenersImmediate) {
-                        notify(child, value, prev, 0, !isArrDiff);
+                        notify(child, value, prev, 0, childElementsAdded);
                     }
                 }
             }
@@ -272,7 +300,7 @@ export function updateNodes(
     ) {
         __devUpdateNodes.delete(obj);
     }
-    return retValue ?? false;
+    return { hasADiff: retValue ?? false, elementsAdded };
 }
 
 export function getProxy(node: NodeValue, p?: string, isKeyedInArray?: boolean) {
@@ -661,7 +689,7 @@ function updateNodesAndNotify(
     beginBatch();
 
     let hasADiff = isPrim;
-    let whenOptimizedOnlyIf = false;
+    let elementsAdded = false;
     // If new value is an object or array update notify down the tree
     if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
         if (
@@ -670,10 +698,9 @@ function updateNodesAndNotify(
         ) {
             __devUpdateNodes.clear();
         }
-        hasADiff = updateNodes(childNode, newValue, prevValue, true);
-        if (isArray(newValue)) {
-            whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
-        }
+        const updated = updateNodes(childNode, newValue, prevValue, true);
+        hasADiff = updated.hasADiff;
+        elementsAdded = updated.elementsAdded;
     }
 
     if (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff) {
@@ -683,7 +710,7 @@ function updateNodesAndNotify(
             newValue,
             prevValue,
             level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
-            whenOptimizedOnlyIf,
+            elementsAdded,
         );
     }
 

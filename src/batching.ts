@@ -1,17 +1,16 @@
-import { getChildNode, getNodeValue, optimized } from './globals';
-import { isArray, isNumber } from './is';
+import { getChildNode, getNodeValue } from './globals';
+import { isArray } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {
     value: any;
     prev: any;
     level: number;
-    whenOptimizedOnlyIf?: boolean;
+    keysAdded?: boolean;
 }
 interface ChangeInBatch {
     value: any;
     level: number;
-    whenOptimizedOnlyIf?: boolean;
     changes: Change[];
 }
 let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -71,30 +70,19 @@ function createPreviousHandler(value: any, changes: Change[]) {
     };
 }
 
-export function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
+export function notify(node: NodeValue, value: any, prev: any, level: number, keysAdded?: boolean) {
     // Run immediate listeners if there are any
     const changesInBatch = new Map<NodeValue, ChangeInBatch>();
-    computeChangesRecursive(
-        changesInBatch,
-        node,
-        value,
-        [],
-        [],
-        value,
-        prev,
-        /*immediate*/ true,
-        level,
-        whenOptimizedOnlyIf,
-    );
+    computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, /*immediate*/ true, level, keysAdded);
     batchNotifyChanges(changesInBatch, /*immediate*/ true);
 
     // Update the current batch
     const existing = _batchMap.get(node);
     if (existing) {
         existing.value = value;
-        // TODO: level, whenOptimizedOnlyIf
+        // TODO: level, keysAdded
     } else {
-        _batchMap.set(node, { value, prev, level, whenOptimizedOnlyIf });
+        _batchMap.set(node, { value, prev, level, keysAdded: keysAdded });
     }
 
     // If not in a batch run it immediately
@@ -113,7 +101,7 @@ function computeChangesAtNode(
     prevAtPath: any,
     immediate: boolean,
     level: number,
-    whenOptimizedOnlyIf?: boolean,
+    keysAdded?: boolean,
 ) {
     // If there are listeners at this node compute the changes that need to be run
     if (immediate ? node.listenersImmediate : node.listeners) {
@@ -122,6 +110,7 @@ function computeChangesAtNode(
             pathTypes,
             valueAtPath,
             prevAtPath,
+            keysAdded,
         };
 
         const changeInBatch = changesInBatch.get(node);
@@ -135,7 +124,6 @@ function computeChangesAtNode(
             changesInBatch.set(node, {
                 level,
                 value,
-                whenOptimizedOnlyIf,
                 changes: [change],
             });
         }
@@ -152,7 +140,7 @@ function computeChangesRecursive(
     prevAtPath: any,
     immediate: boolean,
     level: number,
-    whenOptimizedOnlyIf?: boolean,
+    keysAdded?: boolean,
 ) {
     // Do the compute at this node
     computeChangesAtNode(
@@ -165,7 +153,7 @@ function computeChangesRecursive(
         prevAtPath,
         immediate,
         level,
-        whenOptimizedOnlyIf,
+        keysAdded,
     );
     if (node.linkedFromNodes) {
         for (const linkedFromNode of node.linkedFromNodes) {
@@ -179,7 +167,7 @@ function computeChangesRecursive(
                 prevAtPath,
                 immediate,
                 level,
-                whenOptimizedOnlyIf,
+                keysAdded,
             );
         }
     }
@@ -198,7 +186,7 @@ function computeChangesRecursive(
                 prevAtPath,
                 immediate,
                 level + 1,
-                whenOptimizedOnlyIf,
+                keysAdded,
             );
 
             if (parent.arrayIDsByIndex) {
@@ -222,7 +210,7 @@ function computeChangesRecursive(
                             prevAtPath,
                             immediate,
                             0,
-                            whenOptimizedOnlyIf,
+                            keysAdded,
                         );
                     }
                 }
@@ -234,7 +222,7 @@ function computeChangesRecursive(
 function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
     const listenersNotified = new Set<ListenerFn>();
     // For each change in the batch, notify all of the listeners
-    changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
+    changesInBatch.forEach(({ changes, level, value }, node) => {
         const listeners = immediate ? node.listenersImmediate : node.listeners;
         if (listeners) {
             let listenerParams: ListenerParams | undefined;
@@ -244,8 +232,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                 const listenerFn = arr[i];
                 const { track, noArgs, listener } = listenerFn;
                 if (!listenersNotified.has(listener)) {
-                    const ok =
-                        track === true ? level <= 0 : track === optimized ? whenOptimizedOnlyIf && level <= 0 : true;
+                    const ok = track === true ? level <= 0 : true;
 
                     // Notify if listener is not shallow or if this is the first level
                     if (ok) {
@@ -279,8 +266,8 @@ export function runBatch() {
     // First compute all of the changes at each node. It's important to do this first before
     // running all the notifications because createPreviousHandler depends on knowing
     // all of the changes happening at the node.
-    map.forEach(({ value, prev, level, whenOptimizedOnlyIf }, node) => {
-        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, false, level, whenOptimizedOnlyIf);
+    map.forEach(({ value, prev, level, keysAdded }, node) => {
+        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, false, level, keysAdded);
     });
 
     // Once all changes are computed, notify all listeners for each node with the computed changes.
