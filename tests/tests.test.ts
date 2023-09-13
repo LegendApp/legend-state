@@ -1193,29 +1193,36 @@ describe('Array', () => {
         expect(obs.test.get()).toEqual([1, 2, 3, 4, 5]);
     });
     test('Array swap notifies if not shallow listener', () => {
-        const obs = observable([{ id: 1 }, { id: 2 }]);
+        const obs = observable([{ id: 'id' + 1 }, { id: 'id' + 2 }]);
         const handlerItem = expectChangeHandler(obs);
 
-        obs.set([{ id: 2 }, { id: 1 }]);
+        obs.set([{ id: 'id' + 2 }, { id: 'id' + 1 }]);
 
         expect(handlerItem).toHaveBeenCalledWith(
-            [{ id: 2 }, { id: 1 }],
-            [{ id: 1 }, { id: 2 }],
-            [{ path: [], pathTypes: [], valueAtPath: [{ id: 2 }, { id: 1 }], prevAtPath: [{ id: 1 }, { id: 2 }] }],
+            [{ id: 'id' + 2 }, { id: 'id' + 1 }],
+            [{ id: 'id' + 1 }, { id: 'id' + 2 }],
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: [{ id: 'id' + 2 }, { id: 'id' + 1 }],
+                    prevAtPath: [{ id: 'id' + 1 }, { id: 'id' + 2 }],
+                },
+            ],
         );
     });
     test('Array set', () => {
         interface Data {
-            test: Array<{ id: number }>;
+            test: Array<{ id: string }>;
         }
         const obs = observable<Data>({ test: [] });
         const arr = [];
         for (let i = 0; i < 1000; i++) {
-            arr[i] = { id: i };
+            arr[i] = { id: 'id' + i };
         }
         obs.test.set(arr);
         expect(obs.test.length).toEqual(1000);
-        expect(obs.test[3].id.get()).toEqual(3);
+        expect(obs.test[3].id.get()).toEqual('id' + 3);
     });
     test('Array swap with objects', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
@@ -1286,11 +1293,11 @@ describe('Array', () => {
     test('Array splice fire events', () => {
         const obs = observable({
             test: [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { id: 'id' + 1, text: 1 },
+                { id: 'id' + 2, text: 2 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 5, text: 5 },
             ],
         });
         const handler = expectChangeHandler(obs.test);
@@ -1300,57 +1307,57 @@ describe('Array', () => {
         obs.test[3].onChange(() => {});
         obs.test[4].onChange(() => {});
         obs.test.splice(0, 1);
-        expect(obs.test[0].get()).toEqual({ id: 2, text: 2 });
+        expect(obs.test[0].get()).toEqual({ id: 'id' + 2, text: 2 });
         expect(obs.test.get()).toEqual([
-            { id: 2, text: 2 },
-            { id: 3, text: 3 },
-            { id: 4, text: 4 },
-            { id: 5, text: 5 },
+            { id: 'id' + 2, text: 2 },
+            { id: 'id' + 3, text: 3 },
+            { id: 'id' + 4, text: 4 },
+            { id: 'id' + 5, text: 5 },
         ]);
         expect(obs.test.get()).toEqual([
-            { id: 2, text: 2 },
-            { id: 3, text: 3 },
-            { id: 4, text: 4 },
-            { id: 5, text: 5 },
+            { id: 'id' + 2, text: 2 },
+            { id: 'id' + 3, text: 3 },
+            { id: 'id' + 4, text: 4 },
+            { id: 'id' + 5, text: 5 },
         ]);
         expect(obs.test.length).toEqual(4);
         expect(obs.test.map((a) => a.get())).toEqual([
-            { id: 2, text: 2 },
-            { id: 3, text: 3 },
-            { id: 4, text: 4 },
-            { id: 5, text: 5 },
+            { id: 'id' + 2, text: 2 },
+            { id: 'id' + 3, text: 3 },
+            { id: 'id' + 4, text: 4 },
+            { id: 'id' + 5, text: 5 },
         ]);
         expect(handler).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledWith(
             [
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { id: 'id' + 2, text: 2 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 5, text: 5 },
             ],
             [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { id: 'id' + 1, text: 1 },
+                { id: 'id' + 2, text: 2 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 5, text: 5 },
             ],
             [
                 {
                     path: [],
                     pathTypes: [],
                     valueAtPath: [
-                        { id: 2, text: 2 },
-                        { id: 3, text: 3 },
-                        { id: 4, text: 4 },
-                        { id: 5, text: 5 },
+                        { id: 'id' + 2, text: 2 },
+                        { id: 'id' + 3, text: 3 },
+                        { id: 'id' + 4, text: 4 },
+                        { id: 'id' + 5, text: 5 },
                     ],
                     prevAtPath: [
-                        { id: 1, text: 1 },
-                        { id: 2, text: 2 },
-                        { id: 3, text: 3 },
-                        { id: 4, text: 4 },
-                        { id: 5, text: 5 },
+                        { id: 'id' + 1, text: 1 },
+                        { id: 'id' + 2, text: 2 },
+                        { id: 'id' + 3, text: 3 },
+                        { id: 'id' + 4, text: 4 },
+                        { id: 'id' + 5, text: 5 },
                     ],
                 },
             ],
@@ -1359,11 +1366,11 @@ describe('Array', () => {
     test('Array with listeners clear', () => {
         const obs = observable({
             test: [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { id: 'id' + 1, text: 1 },
+                { id: 'id' + 2, text: 2 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 5, text: 5 },
             ],
         });
         const handler = jest.fn();
@@ -1410,11 +1417,11 @@ describe('Array', () => {
     test('Array set with just a swap optimized', () => {
         const obs = observable({
             test: [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { id: 'id' + 1, text: 1 },
+                { id: 'id' + 2, text: 2 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 5, text: 5 },
             ],
         });
         const handler = jest.fn();
@@ -1430,50 +1437,50 @@ describe('Array', () => {
         obs.test.set(arr);
 
         expect(obs.test.get()).toEqual([
-            { id: 1, text: 1 },
-            { id: 5, text: 5 },
-            { id: 3, text: 3 },
-            { id: 4, text: 4 },
-            { id: 2, text: 2 },
+            { id: 'id' + 1, text: 1 },
+            { id: 'id' + 5, text: 5 },
+            { id: 'id' + 3, text: 3 },
+            { id: 'id' + 4, text: 4 },
+            { id: 'id' + 2, text: 2 },
         ]);
 
         expect(handler).toHaveBeenCalled();
-        expect(handlerItem).toHaveBeenCalledWith({ id: 5, text: 5 }, { id: 2, text: 2 }, [
-            { path: [], pathTypes: [], valueAtPath: { id: 5, text: 5 }, prevAtPath: { id: 2, text: 2 } },
+        expect(handlerItem).toHaveBeenCalledWith({ id: 'id' + 5, text: 5 }, { id: 'id' + 2, text: 2 }, [
+            { path: [], pathTypes: [], valueAtPath: { id: 'id' + 5, text: 5 }, prevAtPath: { id: 'id' + 2, text: 2 } },
         ]);
         // Importantly here it is not called with elementsAdded
         expect(handlerShallow).toHaveBeenCalledWith(
             [
-                { id: 1, text: 1 },
-                { id: 5, text: 5 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 2, text: 2 },
+                { id: 'id' + 1, text: 1 },
+                { id: 'id' + 5, text: 5 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 2, text: 2 },
             ],
             [
-                { id: 1, text: 1 },
-                { id: 2, text: 2 },
-                { id: 3, text: 3 },
-                { id: 4, text: 4 },
-                { id: 5, text: 5 },
+                { id: 'id' + 1, text: 1 },
+                { id: 'id' + 2, text: 2 },
+                { id: 'id' + 3, text: 3 },
+                { id: 'id' + 4, text: 4 },
+                { id: 'id' + 5, text: 5 },
             ],
             [
                 {
                     path: [],
                     pathTypes: [],
                     prevAtPath: [
-                        { id: 1, text: 1 },
-                        { id: 2, text: 2 },
-                        { id: 3, text: 3 },
-                        { id: 4, text: 4 },
-                        { id: 5, text: 5 },
+                        { id: 'id' + 1, text: 1 },
+                        { id: 'id' + 2, text: 2 },
+                        { id: 'id' + 3, text: 3 },
+                        { id: 'id' + 4, text: 4 },
+                        { id: 'id' + 5, text: 5 },
                     ],
                     valueAtPath: [
-                        { id: 1, text: 1 },
-                        { id: 5, text: 5 },
-                        { id: 3, text: 3 },
-                        { id: 4, text: 4 },
-                        { id: 2, text: 2 },
+                        { id: 'id' + 1, text: 1 },
+                        { id: 'id' + 5, text: 5 },
+                        { id: 'id' + 3, text: 3 },
+                        { id: 'id' + 4, text: 4 },
+                        { id: 'id' + 2, text: 2 },
                     ],
                 },
             ],
@@ -1481,23 +1488,23 @@ describe('Array', () => {
     });
     test('Array set with different ids shallow', () => {
         const obs = observable({
-            test: [{ id: 1, text: 1 }],
+            test: [{ id: 'id' + 1, text: 1 }],
         });
         const handler = expectChangeHandler(obs.test, true);
 
-        obs.test.set([{ id: 2, text: 2 }]);
+        obs.test.set([{ id: 'id' + 2, text: 2 }]);
 
-        expect(obs.test.get()).toEqual([{ id: 2, text: 2 }]);
+        expect(obs.test.get()).toEqual([{ id: 'id' + 2, text: 2 }]);
 
         expect(handler).toHaveBeenCalledWith(
-            [{ id: 2, text: 2 }],
-            [{ id: 1, text: 1 }],
+            [{ id: 'id' + 2, text: 2 }],
+            [{ id: 'id' + 1, text: 1 }],
             [
                 {
                     path: [],
                     pathTypes: [],
-                    valueAtPath: [{ id: 2, text: 2 }],
-                    prevAtPath: [{ id: 1, text: 1 }],
+                    valueAtPath: [{ id: 'id' + 2, text: 2 }],
+                    prevAtPath: [{ id: 'id' + 1, text: 1 }],
                     keysAdded: true,
                 },
             ],
@@ -1900,36 +1907,39 @@ describe('Deep changes keep listeners', () => {
     });
     test('Array objects getPrevious', () => {
         interface Data {
-            arr: { _id: number }[];
+            arr: { _id: string }[];
             arr_keyExtractor: (item: any) => string;
         }
         const arr_keyExtractor = (el: { _id: string }) => el._id;
-        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }], arr_keyExtractor });
+        const obs = observable<Data>({
+            arr: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }],
+            arr_keyExtractor,
+        });
         const handler = expectChangeHandler(obs.arr);
         const handler2 = expectChangeHandler(obs);
-        obs.arr.set([{ _id: 1 }, { _id: 2 }, { _id: 3 }]);
+        obs.arr.set([{ _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }]);
         expect(handler).toHaveBeenCalledWith(
-            [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
-            [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+            [{ _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }],
+            [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }],
             [
                 {
                     path: [],
                     pathTypes: [],
-                    valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
-                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    valueAtPath: [{ _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }],
+                    prevAtPath: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }],
                     keysAdded: true,
                 },
             ],
         );
         expect(handler2).toHaveBeenCalledWith(
-            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }], arr_keyExtractor },
-            { arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] },
+            { arr: [{ _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }], arr_keyExtractor },
+            { arr: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }] },
             [
                 {
                     path: ['arr'],
                     pathTypes: ['array'],
-                    valueAtPath: [{ _id: 1 }, { _id: 2 }, { _id: 3 }],
-                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    valueAtPath: [{ _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }],
+                    prevAtPath: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }],
                     keysAdded: true,
                 },
             ],
@@ -1937,26 +1947,26 @@ describe('Deep changes keep listeners', () => {
     });
     test('Array objects push getPrevious', () => {
         interface Data {
-            arr: { _id: number }[];
+            arr: { _id: string }[];
         }
-        const obs = observable<Data>({ arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] });
+        const obs = observable<Data>({ arr: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }] });
         const handler = expectChangeHandler(obs.arr);
-        obs.arr.push({ _id: 3 });
+        obs.arr.push({ _id: 'id' + 3 });
         expect(handler).toHaveBeenCalledWith(
-            [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
-            [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+            [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }],
+            [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }],
             [
                 {
                     path: [],
                     pathTypes: [],
-                    valueAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
-                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    valueAtPath: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }, { _id: 'id' + 3 }],
+                    prevAtPath: [{ _id: 'id' + 0 }, { _id: 'id' + 1 }, { _id: 'id' + 2 }],
                     keysAdded: true,
                 },
             ],
         );
     });
-    test('Array perf', () => {
+    test('Array perf splice', () => {
         const obs = observable({ arr: [] as { id: string; value: number }[] });
         const arr = [];
         for (let i = 0; i < 10000; i++) {
@@ -1965,6 +1975,32 @@ describe('Deep changes keep listeners', () => {
         obs.arr.set(arr);
         const now = performance.now();
         obs.arr.splice(1, 1);
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(30);
+    });
+    test('Array perf insert', () => {
+        const obs = observable({ arr: [] as { id: string; value: number }[] });
+        const arr = [];
+        for (let i = 0; i < 10000; i++) {
+            arr.push({ id: 'id' + i, value: i });
+        }
+        obs.arr.set(arr);
+        const now = performance.now();
+        obs.arr.splice(1, 0, { id: 'id' + 10000, value: 10000 });
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(30);
+    });
+    test('Array perf push', () => {
+        const obs = observable({ arr: [] as { id: string; value: number }[] });
+        const arr = [];
+        for (let i = 0; i < 10000; i++) {
+            arr.push({ id: 'id' + i, value: i });
+        }
+        obs.arr.set(arr);
+        const now = performance.now();
+        obs.arr.push({ id: 'id' + 10000, value: 10000 });
         const then = performance.now();
 
         expect(then - now).toBeLessThan(30);

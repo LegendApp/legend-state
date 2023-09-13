@@ -203,6 +203,7 @@ export function updateNodes(
                     : undefined;
 
             if (id !== undefined && isNumber(id)) {
+                console.log('[legend-state] keys in arrays need to be a string that is not a number');
             }
 
             if (id !== undefined && isArr) {

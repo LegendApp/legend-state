@@ -497,9 +497,9 @@ describe('useObservableReducer', () => {
     test('useObservableReducer test1', () => {
         let nextId = 3;
         const initialTasks = [
-            { id: 0, text: 'Visit Kafka Museum', done: true },
-            { id: 1, text: 'Watch a puppet show', done: false },
-            { id: 2, text: 'Lennon Wall pic', done: false },
+            { id: 'id' + 0, text: 'Visit Kafka Museum', done: true },
+            { id: 'id' + 1, text: 'Watch a puppet show', done: false },
+            { id: 'id' + 2, text: 'Lennon Wall pic', done: false },
         ];
 
         function tasksReducer(tasks: any[], action: any) {
@@ -537,22 +537,22 @@ describe('useObservableReducer', () => {
         const [observableTasks, dispatch] = result.current;
 
         expect(observableTasks.get()).toEqual([
-            { id: 0, text: 'Visit Kafka Museum', done: true },
-            { id: 1, text: 'Watch a puppet show', done: false },
-            { id: 2, text: 'Lennon Wall pic', done: false },
+            { id: 'id' + 0, text: 'Visit Kafka Museum', done: true },
+            { id: 'id' + 1, text: 'Watch a puppet show', done: false },
+            { id: 'id' + 2, text: 'Lennon Wall pic', done: false },
         ]);
 
         dispatch({
             type: 'added',
-            id: nextId++,
+            id: 'id' + nextId++,
             text: 'test',
         });
 
         expect(observableTasks.get()).toEqual([
-            { id: 0, text: 'Visit Kafka Museum', done: true },
-            { id: 1, text: 'Watch a puppet show', done: false },
-            { id: 2, text: 'Lennon Wall pic', done: false },
-            { id: 3, text: 'test', done: false },
+            { id: 'id' + 0, text: 'Visit Kafka Museum', done: true },
+            { id: 'id' + 1, text: 'Watch a puppet show', done: false },
+            { id: 'id' + 2, text: 'Lennon Wall pic', done: false },
+            { id: 'id' + 3, text: 'test', done: false },
         ]);
     });
 });

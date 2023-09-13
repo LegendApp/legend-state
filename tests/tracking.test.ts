@@ -112,8 +112,8 @@ describe('Tracking', () => {
     test('Array map observes arary', () => {
         const obs = observable({
             arr: [
-                { id: 1, text: 'hi1' },
-                { id: 2, text: 'hi2' },
+                { id: 'id' + 1, text: 'hi1' },
+                { id: 'id' + 2, text: 'hi2' },
             ],
         });
 
@@ -127,7 +127,7 @@ describe('Tracking', () => {
     });
     test('Array length observes array shallow', () => {
         const obs = observable({
-            arr: [{ id: 1, text: 'hi1' }],
+            arr: [{ id: 'id' + 1, text: 'hi1' }],
         });
 
         obs.arr.length;
