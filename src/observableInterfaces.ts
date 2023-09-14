@@ -96,7 +96,7 @@ export interface ListenerParams<T = any> {
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
-type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
+type StripPrimitiveProps<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
@@ -124,14 +124,20 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? TRecurse
     : T[K];
 
-type ObservableFnsRecursiveUnsafe<T> = {
-    [K in keyof T]-?: Recurse<T, K, ObservableObject<NonNullable<T[K]>>>;
+type ObservableFnsRecursiveUnsafe<T, Nullable> = {
+    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], Nullable>>;
 };
-type ObservableFnsRecursiveSafe<T> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<NonNullable<T[K]>>>;
+
+type ObservableFnsRecursiveSafe<T, Nullable> = {
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], Nullable>>;
 };
-type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
-    ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
+
+type MakeNullable<T, Nullable> = {
+    [K in keyof T]: T[K] | Nullable;
+};
+
+type ObservableFnsRecursive<T, Nullable> = ObservableFnsRecursiveSafe<StripPrimitiveProps<T>, Nullable> &
+    ObservableFnsRecursiveUnsafe<MakeNullable<PrimitiveKeys<T>, Nullable>, Nullable>;
 
 type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
@@ -340,7 +346,20 @@ export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
 export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
-export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
+export type ObservableObject<T = any, Nullable = never> = ObservableFnsRecursive<
+    NonNullable<T>,
+    PickNullableAndUndefined<T | Nullable>
+> &
+    ObservableObjectFns<T | Nullable>;
+
+export type PickNullableAndUndefined<T> = T extends null
+    ? T extends undefined
+        ? null | undefined
+        : null
+    : T extends undefined
+    ? undefined
+    : never;
+
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>
