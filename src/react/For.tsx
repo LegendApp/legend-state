@@ -15,7 +15,6 @@ export function For<T, TProps>({
     children,
 }: {
     each?: ObservableReadable<T[] | Record<any, T> | Map<any, T>>;
-    eachValues?: ObservableReadable<Record<any, T> | Map<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T>; id?: string } & TProps>;
     itemProps?: TProps;
