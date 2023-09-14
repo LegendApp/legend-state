@@ -1,6 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableComputed, ObservableReadable, TrackingType } from './observableInterfaces';
-import { updateTracking } from './tracking';
+import { NodeValue, ObservableComputed, ObservableReadable } from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -13,6 +12,7 @@ export const globalState = {
     isLoadingRemote: false,
     isMerging: false,
 };
+
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     root.activate?.();
@@ -24,18 +24,6 @@ export function checkActivate(node: NodeValue) {
 
 export function getNode(obs: ObservableReadable): NodeValue {
     return obs && (obs as any)[symbolGetNode];
-}
-
-export function get(node: NodeValue, track?: TrackingType) {
-    // Track by default
-    updateTracking(node, track);
-
-    return peek(node);
-}
-
-export function peek(node: NodeValue) {
-    checkActivate(node);
-    return getNodeValue(node);
 }
 
 export function setNodeValue(node: NodeValue, newValue: any) {
@@ -108,6 +96,7 @@ export function getChildNode(node: NodeValue, key: string): NodeValue {
             root: node.root,
             parent: node,
             key,
+            lazy: true,
         };
         if (!node.children) {
             node.children = new Map();

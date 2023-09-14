@@ -3,21 +3,29 @@ import {
     checkActivate,
     extractFunction,
     findIDKey,
-    get,
     getChildNode,
     getNode,
     getNodeValue,
     globalState,
     optimized,
-    peek,
     setNodeValue,
     symbolDelete,
     symbolGetNode,
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
-import { isArray, isBoolean, isChildNodeValue, isEmpty, isFunction, isObject, isPrimitive, isPromise } from './is';
-import type { ChildNodeValue, NodeValue, PromiseInfo } from './observableInterfaces';
+import {
+    hasOwnProperty,
+    isArray,
+    isBoolean,
+    isChildNodeValue,
+    isEmpty,
+    isFunction,
+    isObject,
+    isPrimitive,
+    isPromise,
+} from './is';
+import type { ChildNodeValue, NodeValue, PromiseInfo, TrackingType } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -84,7 +92,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     return ret;
 }
 
-function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean) {
+function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean): string[] {
     return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
 }
 
@@ -130,8 +138,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
     const isMap = obj instanceof Map;
 
-    const keys: string[] = getKeys(obj, isArr, isMap);
-    const keysPrev: string[] = getKeys(prevValue, isArr, isMap);
+    const keys = getKeys(obj, isArr, isMap);
+    const keysPrev = getKeys(prevValue, isArr, isMap);
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
@@ -205,7 +213,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
     }
 
-    if (obj && !isPrimitive(obj)) {
+    if (obj && !isPrimitive(obj) && !parent.lazy) {
         hasADiff = hasADiff || length !== lengthPrev;
         const isArrDiff = hasADiff;
         let didMove = false;
@@ -217,8 +225,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
             let isDiff = value !== prev;
             if (isDiff) {
-                extractFunctionOrComputed(parent, obj, key, value);
-
                 const id =
                     idField && value
                         ? isIdFieldFunction
@@ -722,9 +728,6 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
         });
 }
 
-export const __devExtractFunctionsAndComputedsNodes =
-    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
-
 export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, any>, k: string, v: any) {
     if (isPromise(v)) {
         extractPromise(getChildNode(node, k), v);
@@ -741,24 +744,28 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
     }
 }
 
-export function extractFunctionsAndComputeds(node: NodeValue, obj: Record<string, any>) {
-    if (
-        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
-    ) {
-        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
-            console.error(
-                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj,
-            );
-            return false;
+export function get(node: NodeValue, track?: TrackingType) {
+    // Track by default
+    updateTracking(node, track);
+
+    return peek(node);
+}
+
+export function peek(node: NodeValue) {
+    const value = getNodeValue(node);
+
+    // If node is not yet lazily computed go do that
+    if (node.lazy) {
+        delete node.lazy;
+        for (const key in value) {
+            if (hasOwnProperty.call(value, key)) {
+                extractFunctionOrComputed(node, value, key, value[key]);
+            }
         }
-        __devExtractFunctionsAndComputedsNodes!.add(obj);
     }
-    for (const k in obj) {
-        const v = obj[k];
-        if (v && extractFunctionOrComputed(node, obj, k, v) && !v[symbolOpaque]) {
-            extractFunctionsAndComputeds(getChildNode(node, k), v);
-        }
-    }
+
+    // Check if computed needs to activate
+    checkActivate(node);
+
+    return value;
 }

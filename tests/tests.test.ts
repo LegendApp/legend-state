@@ -2218,6 +2218,20 @@ describe('Promise values', () => {
         await obs;
         expect(didWhen).toBe(true);
     });
+    test('Promise child stays pending until activated', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable({ promise });
+        await promise;
+        // Still pending because it was not activated
+        expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.status.get()).toEqual('pending');
+
+        // This get activates it but it takes a frame for it to equal the value
+        expect(obs.promise.get()).not.toEqual(10);
+        await promiseTimeout();
+        // Now it equals the value
+        expect(obs.promise.get()).toEqual(10);
+    });
 });
 describe('Batching', () => {
     test('Assign is batched', async () => {
@@ -2712,14 +2726,6 @@ describe('Observe', () => {
     });
 });
 describe('Error detection', () => {
-    test('Circular objects in constructor', () => {
-        const a: any = {};
-        a.c = { a };
-
-        observable(a);
-
-        expect(console.error).toHaveBeenCalledTimes(1);
-    });
     test('Circular objects in set', () => {
         jest.clearAllMocks();
 
@@ -2727,6 +2733,8 @@ describe('Error detection', () => {
         a.c = { a: {} };
 
         const obs = observable(a);
+        // Have to activate it first for it to error
+        obs.c.get();
 
         const aa: any = {};
         aa.c = { a: aa };

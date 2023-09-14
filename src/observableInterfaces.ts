@@ -439,6 +439,7 @@ interface BaseNodeValue {
     isAssigning?: number;
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
+    lazy?: boolean;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
