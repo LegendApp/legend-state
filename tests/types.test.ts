@@ -81,7 +81,7 @@ describe('Types', () => {
 
                 // Not sure if this is the desired behavior, what does legend state return in this scenario?
                 it('should infer nested value as both optional and nullable if their ancestors are', () => {
-                    type State = Observable<{ foo?: { bar: { value: number } } | null }>;
+                    type State = Observable<{ foo?: { bar: { value: number } | null } }>;
                     expectTypeOf<State['foo']['bar']['value']['get']>().returns.toEqualTypeOf<
                         number | undefined | null
                     >();
