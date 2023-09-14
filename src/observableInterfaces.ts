@@ -124,20 +124,20 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? TRecurse
     : T[K];
 
-type ObservableFnsRecursiveUnsafe<T, Nullable> = {
-    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], Nullable>>;
+type ObservableFnsRecursiveUnsafe<T, NullableMarker> = {
+    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
 };
 
-type ObservableFnsRecursiveSafe<T, Nullable> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], Nullable>>;
+type ObservableFnsRecursiveSafe<T, NullableMarker> = {
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
 };
 
-type MakeNullable<T, Nullable> = {
-    [K in keyof T]: T[K] | Nullable;
+type MarkValuesNullable<T, NullableMarker> = {
+    [K in keyof T]: T[K] | NullableMarker;
 };
 
-type ObservableFnsRecursive<T, Nullable> = ObservableFnsRecursiveSafe<StripPrimitiveProps<T>, Nullable> &
-    ObservableFnsRecursiveUnsafe<MakeNullable<PrimitiveKeys<T>, Nullable>, Nullable>;
+type ObservableFnsRecursive<T, NullableMarker> = ObservableFnsRecursiveSafe<StripPrimitiveProps<T>, NullableMarker> &
+    ObservableFnsRecursiveUnsafe<MarkValuesNullable<PrimitiveKeys<T>, NullableMarker>, NullableMarker>;
 
 type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
@@ -346,11 +346,11 @@ export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
 export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
-export type ObservableObject<T = any, Nullable = never> = ObservableFnsRecursive<
+export type ObservableObject<T = any, NullableMarker = never> = ObservableFnsRecursive<
     NonNullable<T>,
-    Extract<T | Nullable, null | undefined>
+    Extract<T | NullableMarker, null | undefined>
 > &
-    ObservableObjectFns<T | Nullable>;
+    ObservableObjectFns<T | NullableMarker>;
 
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
