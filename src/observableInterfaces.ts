@@ -330,7 +330,7 @@ export interface ObservableRoot {
     activate?: () => void;
 }
 
-export type Primitive = boolean | string | number | Date;
+export type Primitive = boolean | string | number | Date | undefined | null | symbol | bigint;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
 export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
