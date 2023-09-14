@@ -348,17 +348,9 @@ export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> 
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any, Nullable = never> = ObservableFnsRecursive<
     NonNullable<T>,
-    PickNullableAndUndefined<T | Nullable>
+    Extract<T | Nullable, null | undefined>
 > &
     ObservableObjectFns<T | Nullable>;
-
-export type PickNullableAndUndefined<T> = T extends null
-    ? T extends undefined
-        ? null | undefined
-        : null
-    : T extends undefined
-    ? undefined
-    : never;
 
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]

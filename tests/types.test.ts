@@ -6,7 +6,6 @@ import {
     ObservableObject,
     ObservablePrimitive,
 } from '../src/observableInterfaces';
-import { useObservableQuery } from 'src/react-hooks/useObservableQuery';
 
 describe('Types', () => {
     describe('observable', () => {
