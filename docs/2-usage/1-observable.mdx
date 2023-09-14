@@ -25,7 +25,7 @@ const state$ = observable({
             lname
         })
     },
-    fullname: computed((): Observable<string> => {
+    fullname: computed((): string => {
         // Set up computed observables within your state object
         // or if you prefer them elsewhere that's cool too 🤟
         return `${state$.fname.get()} ${state$.lname.get()}`
