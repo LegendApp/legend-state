@@ -10,6 +10,8 @@ import type {
     ObservableRoot,
 } from './observableInterfaces';
 
+function createObservable<T>(): Observable<T | undefined>;
+function createObservable<T>(value: T | Promise<T>, makePrimitive?: true): Observable<T>;
 function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
 function createObservable<T>(
     value?: T | Promise<T>,
@@ -49,10 +51,14 @@ function createObservable<T>(
     return obs;
 }
 
+export function observable<T>(): Observable<T | undefined>;
+export function observable<T>(value: T | Promise<T>): Observable<T>;
 export function observable<T>(value?: T | Promise<T>): Observable<T> {
     return createObservable(value) as Observable<T>;
 }
 
+export function observablePrimitive<T>(): ObservablePrimitive<T | undefined>;
+export function observablePrimitive<T>(value: T | Promise<T>): ObservablePrimitive<T>;
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
     return createObservable<T>(value, /*makePrimitive*/ true);
 }
