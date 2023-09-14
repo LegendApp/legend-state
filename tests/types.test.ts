@@ -1,11 +1,6 @@
 import { expectTypeOf } from 'expect-type';
 import { observable } from '../src/observable';
-import {
-    ObservableArray,
-    Observable,
-    ObservableObject,
-    ObservablePrimitive,
-} from '../src/observableInterfaces';
+import { ObservableArray, Observable, ObservableObject, ObservablePrimitive } from '../src/observableInterfaces';
 
 describe('Types', () => {
     describe('observable', () => {
@@ -94,10 +89,8 @@ describe('Types', () => {
 
                 // Not sure if this is the desired behavior, what does legend state return in this scenario?
                 it('should infer nested optional value as both optional and nullable if parent is nullable', () => {
-                    type State = Observable<{ foo: { bar?: string | null }>;
-                    expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<
-                        string | undefined | null
-                    >();
+                    type State = Observable<{ foo: { bar?: string } | null }>;
+                    expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined | null>();
                 });
             });
 
@@ -155,6 +148,5 @@ describe('Types', () => {
                 expectTypeOf<GetState>().returns.toEqualTypeOf<{ foo: string }[] | undefined>();
             });
         });
-
     });
 });
