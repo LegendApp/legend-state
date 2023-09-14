@@ -95,8 +95,8 @@ export interface ListenerParams<T = any> {
 }
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
-type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
-type StripPrimitiveProps<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
+type PrimitiveProps<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
+type NonPrimitiveProps<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
@@ -136,8 +136,8 @@ type MarkValuesNullable<T, NullableMarker> = {
     [K in keyof T]: T[K] | NullableMarker;
 };
 
-type ObservableFnsRecursive<T, NullableMarker> = ObservableFnsRecursiveSafe<StripPrimitiveProps<T>, NullableMarker> &
-    ObservableFnsRecursiveUnsafe<MarkValuesNullable<PrimitiveKeys<T>, NullableMarker>, NullableMarker>;
+type ObservableFnsRecursive<T, NullableMarker> = ObservableFnsRecursiveSafe<NonPrimitiveProps<T>, NullableMarker> &
+    ObservableFnsRecursiveUnsafe<MarkValuesNullable<PrimitiveProps<T>, NullableMarker>, NullableMarker>;
 
 type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
