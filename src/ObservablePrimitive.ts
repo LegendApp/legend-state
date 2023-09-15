@@ -1,5 +1,5 @@
-import { set } from './ObservableObject';
-import { get, peek, symbolGetNode } from './globals';
+import { set, get, peek } from './ObservableObject';
+import { symbolGetNode } from './globals';
 import { isBoolean } from './is';
 import type { NodeValue, ObservablePrimitive } from './observableInterfaces';
 import { onChange } from './onChange';
