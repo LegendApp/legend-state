@@ -331,13 +331,14 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
+        const value = peek(node);
+
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
+        // This needs to be below peek because it activates there.
         if (node.linkedToNode && p !== 'onChange') {
             return proxyHandler.get!(node.linkedToNode, p, receiver);
         }
-
-        const value = peek(node);
 
         if (value instanceof Map || value instanceof WeakMap || value instanceof Set || value instanceof WeakSet) {
             const ret = handlerMapSet(node, p, value);
