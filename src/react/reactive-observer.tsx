@@ -87,26 +87,32 @@ function createReactiveComponent<P = object>(
                         // }
                         const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and listen to the selector for changes
-                        propsOut[k] = useSelector(p);
+
+                        const bind = bindKeys?.[k as keyof P];
+                        const shouldBind = bind && isObservable(p);
+
+                        propsOut[k] = shouldBind && bind?.selector ? bind.selector(propsOut, p) : useSelector(p);
 
                         // If this key is one of the bind keys set up a two-way binding
-                        const bind = bindKeys?.[k as keyof P];
-                        if (bind && isObservable(p)) {
+                        if (shouldBind) {
                             // Use the bind's defaultValue if value is undefined
                             if (bind.defaultValue !== undefined && propsOut[k] === undefined) {
                                 propsOut[k] = bind.defaultValue;
                             }
-                            // Hook up the change lander
-                            const handlerFn = (e: ChangeEvent) => {
-                                p.set(bind.getValue(e));
-                                props[bind.handler]?.(e);
-                            };
 
-                            (propsOut[bind.handler as string] as any) =
-                                // If in development mode, don't memoize the handler. fix fast refresh bug
-                                process.env.NODE_ENV === 'development'
-                                    ? handlerFn
-                                    : useCallback(handlerFn, [props[bind.handler], bindKeys]);
+                            if (bind.handler && bind.getValue) {
+                                // Hook up the change lander
+                                const handlerFn = (e: ChangeEvent) => {
+                                    p.set(bind.getValue!(e));
+                                    props[bind.handler!]?.(e);
+                                };
+
+                                (propsOut[bind.handler as string] as any) =
+                                    // If in development mode, don't memoize the handler. fix fast refresh bug
+                                    process.env.NODE_ENV === 'development'
+                                        ? handlerFn
+                                        : useCallback(handlerFn, [props[bind.handler], bindKeys]);
+                            }
                         }
 
                         // Delete the reactive key

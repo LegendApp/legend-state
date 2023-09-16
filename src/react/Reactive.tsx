@@ -1,7 +1,7 @@
 import { isEmpty, isFunction } from '@legendapp/state';
+import { ComponentClass, FC, createElement, forwardRef } from 'react';
 import { BindKeys } from './reactInterfaces';
 import { reactive } from './reactive-observer';
-import { ComponentClass, FC, createElement, forwardRef } from 'react';
 
 const ReactiveFns = new Map<string, FC | ComponentClass>();
 const ReactiveFnBinders = new Map<string, BindKeys>();
