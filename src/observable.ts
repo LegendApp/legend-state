@@ -1,64 +1,51 @@
-import { getProxy } from './ObservableObject';
+import { extractPromise, getProxy } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
-import { __devExtractFunctionsAndComputedsNodes, extractFunctionsAndComputeds } from './globals';
 import { isActualPrimitive, isPromise } from './is';
-import type {
-    NodeValue,
-    Observable,
-    ObservableObjectOrArray,
-    ObservablePrimitive,
-    ObservableRoot,
-} from './observableInterfaces';
+import type { Observable, ObservablePrimitive, ObservableRoot, PromiseInfo } from './observableInterfaces';
+import { NodeValue } from './observableInterfaces';
 
-function createObservable<T>(): Observable<T | undefined>;
-function createObservable<T>(value: T | Promise<T>, makePrimitive?: true): Observable<T>;
-function createObservable<T>(value?: T | Promise<T>, makePrimitive?: true): ObservablePrimitive<T>;
-function createObservable<T>(
-    value?: T | Promise<T>,
-    makePrimitive?: boolean,
-): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
+type MaybePromise<T> = NonNullable<T> extends Promise<infer U> ? (U & PromiseInfo) | Extract<T, undefined> : T;
+
+function createObservable<T>(value: T, makePrimitive: true): ObservablePrimitive<MaybePromise<T>>;
+function createObservable<T>(value: T, makePrimitive: false): Observable<MaybePromise<T>>;
+function createObservable<T>(value: T, makePrimitive: boolean): Observable<T> | ObservablePrimitive<T> {
     const valueIsPromise = isPromise<T>(value);
     const root: ObservableRoot = {
-        _: valueIsPromise ? undefined : value,
+        _: value,
     };
 
     const node: NodeValue = {
         root,
+        lazy: true,
     };
 
     const prim = makePrimitive || isActualPrimitive(value);
 
     const obs = prim
-        ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
-        : (getProxy(node) as ObservableObjectOrArray<T>);
+        ? (new (ObservablePrimitiveClass as any)(node) as Observable<T>)
+        : (getProxy(node) as Observable<T>);
 
     if (valueIsPromise) {
-        value.catch((error) => {
-            obs.set({ error } as any);
-        });
-        value.then((value) => {
-            obs.set(value);
-        });
-    } else if (!prim) {
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-            __devExtractFunctionsAndComputedsNodes!.clear();
-        }
-        if (value) {
-            extractFunctionsAndComputeds(value, node);
-        }
+        extractPromise(node, value);
     }
 
     return obs;
 }
 
-export function observable<T>(): Observable<T | undefined>;
-export function observable<T>(value: T | Promise<T>): Observable<T>;
-export function observable<T>(value?: T | Promise<T>): Observable<T> {
-    return createObservable(value) as Observable<T>;
+export type MaybePromiseObservable<T> = Observable<MaybePromise<T>>;
+
+export function observable<T>(): MaybePromiseObservable<T | undefined>;
+export function observable<T>(value: Promise<T>): MaybePromiseObservable<Promise<T>>;
+export function observable<T>(value?: Promise<T>): MaybePromiseObservable<Promise<T> | undefined>;
+export function observable<T>(value: T): MaybePromiseObservable<T>;
+export function observable<T>(value?: T): MaybePromiseObservable<T | undefined> {
+    return createObservable(value, /*makePrimitive*/ false);
 }
 
-export function observablePrimitive<T>(): ObservablePrimitive<T | undefined>;
-export function observablePrimitive<T>(value: T | Promise<T>): ObservablePrimitive<T>;
-export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
-    return createObservable<T>(value, /*makePrimitive*/ true);
+export function observablePrimitive<T>(): ObservablePrimitive<MaybePromise<T | undefined>>;
+export function observablePrimitive<T>(value: Promise<T>): ObservablePrimitive<MaybePromise<Promise<T>>>;
+export function observablePrimitive<T>(value?: Promise<T>): ObservablePrimitive<MaybePromise<Promise<T>> | undefined>;
+export function observablePrimitive<T>(value: T): ObservablePrimitive<MaybePromise<T>>;
+export function observablePrimitive<T>(value?: T): ObservablePrimitive<MaybePromise<T | undefined>> {
+    return createObservable(value, /*makePrimitive*/ true);
 }

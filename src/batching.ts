@@ -2,7 +2,7 @@ import { getNodeValue, optimized } from './globals';
 import { isArray } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
-export interface BatchItem2 {
+interface BatchItem {
     value: any;
     prev: any;
     level: number;
@@ -19,7 +19,8 @@ let numInBatch = 0;
 let isRunningBatch = false;
 let didDelayEndBatch = false;
 let _afterBatch: (() => void)[] = [];
-let _batchMap = new Map<NodeValue, BatchItem2>();
+let _queuedBatches: [() => void, () => void][] = [];
+let _batchMap = new Map<NodeValue, BatchItem>();
 
 function onActionTimeout() {
     if (_batchMap.size > 0) {
@@ -217,11 +218,7 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                 const { track, noArgs, listener } = listenerFn;
                 if (!listenersNotified.has(listener)) {
                     const ok =
-                        track === true || track === 'shallow'
-                            ? level <= 0
-                            : track === optimized
-                            ? whenOptimizedOnlyIf && level <= 0
-                            : true;
+                        track === true ? level <= 0 : track === optimized ? whenOptimizedOnlyIf && level <= 0 : true;
 
                     // Notify if listener is not shallow or if this is the first level
                     if (ok) {
@@ -247,6 +244,8 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
 }
 
 export function runBatch() {
+    // Save batch locally and reset _batchMap first because a new batch could begin while looping over callbacks.
+    // This can happen with observableComputed for example.
     const map = _batchMap;
     _batchMap = new Map();
     const changesInBatch = new Map<NodeValue, ChangeInBatch>();
@@ -263,7 +262,14 @@ export function runBatch() {
 
 export function batch(fn: () => void, onComplete?: () => void) {
     if (onComplete) {
-        _afterBatch.push(onComplete);
+        // If there's an onComplete we need a batch that's fully isolated from others to ensure it wraps only the given changes.
+        // So if already batching, push this batch onto a queue and run it after the current batch is fully done.
+        if (isRunningBatch) {
+            _queuedBatches.push([fn, onComplete]);
+            return;
+        } else {
+            _afterBatch.push(onComplete);
+        }
     }
     beginBatch();
     try {
@@ -298,6 +304,7 @@ export function endBatch(force?: boolean) {
             if (after.length) {
                 _afterBatch = [];
             }
+
             isRunningBatch = true;
 
             runBatch();
@@ -316,13 +323,15 @@ export function endBatch(force?: boolean) {
                 didDelayEndBatch = false;
                 endBatch(true);
             }
+
+            const queued = _queuedBatches;
+            if (queued.length) {
+                _queuedBatches = [];
+                for (let i = 0; i < queued.length; i++) {
+                    const [fn, onComplete] = queued[i];
+                    batch(fn, onComplete);
+                }
+            }
         }
-    }
-}
-export function afterBatch(fn: () => void) {
-    if (numInBatch > 0) {
-        _afterBatch.push(fn);
-    } else {
-        fn();
     }
 }

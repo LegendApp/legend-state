@@ -30,7 +30,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         this.doSave = this.doSave.bind(this);
     }
 
-    public async initialize(config: ObservablePersistenceConfig['persistLocalOptions']) {
+    public async initialize(config: ObservablePersistenceConfig['localOptions']) {
         if (typeof indexedDB === 'undefined') return;
         if (process.env.NODE_ENV === 'development' && !config?.indexedDB) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
@@ -132,27 +132,11 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             return data;
         }
     }
-    public getTableTransformed<T = any>(table: string, config: PersistOptionsLocal<any>): T {
-        const configIDB = config.indexedDB;
-        const prefix = configIDB?.prefixID;
-        const tableName = (prefix ? table + '/' + prefix : table) + '_transformed';
-        const data = this.tableData[tableName];
-        const value = data && configIDB?.itemID ? data[configIDB.itemID] : data;
-
-        // Once we've loaded the transformed objects we can safely dispose them
-        if (data && configIDB?.itemID) {
-            delete this.tableData[tableName][configIDB.itemID];
-        } else {
-            delete this.tableData[tableName];
-        }
-
-        return value;
-    }
     public getMetadata(table: string, config: PersistOptionsLocal) {
         const { tableName } = this.getMetadataTableName(table, config);
         return this.tableMetadata[tableName];
     }
-    public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
+    public async setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
         this.tableMetadata[tableName] = Object.assign(metadata, {

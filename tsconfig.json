@@ -46,6 +46,12 @@
             "@tanstack/react-query": [
                 "node_modules/@tanstack/react-query"
             ],
+            "firebase/auth": [
+                "node_modules/firebase/auth"
+            ],
+            "firebase/database": [
+                "node_modules/firebase/database"
+            ],
             "@legendapp/state": [
                 "index"
             ],

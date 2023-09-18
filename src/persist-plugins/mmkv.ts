@@ -15,6 +15,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
             }),
         ],
     ]);
+    // Gets
     public getTable<T = any>(table: string, config: PersistOptionsLocal): T {
         const storage = this.getStorage(config);
         if (this.data[table] === undefined) {
@@ -30,7 +31,8 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
     public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
         return this.getTable(table + MetadataSuffix, config);
     }
-    public async set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<void> {
+    // Sets
+    public set(table: string, changes: Change[], config: PersistOptionsLocal) {
         if (!this.data[table]) {
             this.data[table] = {};
         }
@@ -40,15 +42,15 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         }
         this.save(table, config);
     }
-    public async updateMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
+    public setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
         return this.setValue(table + MetadataSuffix, metadata, config);
     }
-    public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
+    public deleteTable(table: string, config: PersistOptionsLocal): void {
         const storage = this.getStorage(config);
         delete this.data[table];
         storage.delete(table);
     }
-    public async deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void> {
+    public deleteMetadata(table: string, config: PersistOptionsLocal) {
         this.deleteTable(table + MetadataSuffix, config);
     }
     // Private

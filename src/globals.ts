@@ -1,18 +1,11 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableComputed, ObservableReadable, TrackingType } from './observableInterfaces';
-import { updateTracking } from './tracking';
+import { NodeValue, ObservableComputed, ObservableReadable } from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
-
-export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
-export const extraPrimitiveProps = new Map<string | symbol, any>();
-
-export const __devExtractFunctionsAndComputedsNodes =
-    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? new Set() : undefined;
 
 export const globalState = {
     isLoadingLocal: false,
@@ -23,26 +16,14 @@ export const globalState = {
 export function checkActivate(node: NodeValue) {
     const root = node.root;
     root.activate?.();
-    if (root.computedChildrenNeedingActivation) {
-        root.computedChildrenNeedingActivation.forEach(checkActivate);
-        delete root.computedChildrenNeedingActivation;
+    if (root.toActivate) {
+        root.toActivate.forEach(checkActivate);
+        delete root.toActivate;
     }
 }
 
 export function getNode(obs: ObservableReadable): NodeValue {
     return obs && (obs as any)[symbolGetNode];
-}
-
-export function get(node: NodeValue, track?: TrackingType) {
-    // Track by default
-    updateTracking(node, track);
-
-    return peek(node);
-}
-
-export function peek(node: NodeValue) {
-    checkActivate(node);
-    return getNodeValue(node);
 }
 
 export function setNodeValue(node: NodeValue, newValue: any) {
@@ -86,7 +67,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         parentNode.root.set(parentNode.root._);
     }
 
-    return { prevValue, newValue };
+    return { prevValue, newValue, parentValue };
 }
 
 const arrNodeKeys: string[] = [];
@@ -115,6 +96,7 @@ export function getChildNode(node: NodeValue, key: string): NodeValue {
             root: node.root,
             parent: node,
             key,
+            lazy: true,
         };
         if (!node.children) {
             node.children = new Map();
@@ -180,40 +162,10 @@ export function extractFunction(
     node.functions.set(key, fnOrComputed);
 
     if (computedChildNode) {
-        computedChildNode.computedChildOfNode = getChildNode(node, key);
-        if (!node.root.computedChildrenNeedingActivation) {
-            node.root.computedChildrenNeedingActivation = [];
+        computedChildNode.parentOther = getChildNode(node, key);
+        if (!node.root.toActivate) {
+            node.root.toActivate = [];
         }
-        node.root.computedChildrenNeedingActivation.push(computedChildNode);
-    }
-}
-
-export function extractFunctionsAndComputeds(obj: Record<string, any>, node: NodeValue) {
-    if (
-        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-        typeof __devExtractFunctionsAndComputedsNodes !== 'undefined'
-    ) {
-        if (__devExtractFunctionsAndComputedsNodes!.has(obj)) {
-            console.error(
-                '[legend-state] Circular reference detected in object. You may want to use opaqueObject to stop traversing child nodes.',
-                obj,
-            );
-            return false;
-        }
-        __devExtractFunctionsAndComputedsNodes!.add(obj);
-    }
-    for (const k in obj) {
-        const v = obj[k];
-        if (typeof v === 'function') {
-            extractFunction(node, k, v);
-        } else if (typeof v == 'object' && v !== null && v !== undefined) {
-            const childNode = getNode(v);
-            if (childNode?.isComputed) {
-                extractFunction(node, k, v, childNode);
-                delete obj[k];
-            } else if (!v[symbolOpaque]) {
-                extractFunctionsAndComputeds(obj[k], getChildNode(node, k));
-            }
-        }
+        node.root.toActivate.push(computedChildNode);
     }
 }

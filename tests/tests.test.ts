@@ -6,7 +6,7 @@ import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
-import { getNodeValue, symbolGetNode } from '../src/globals';
+import { getNodeValue, optimized, symbolGetNode } from '../src/globals';
 import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
@@ -198,6 +198,11 @@ describe('Set', () => {
             { path: [], pathTypes: [], valueAtPath: null, prevAtPath: undefined },
         ]);
     });
+    test('Set with function does not overwrite it', () => {
+        const obs = observable({ test: 1 });
+        obs.test.set((v) => v + 1);
+        obs.test.set((v) => v + 1);
+    });
 });
 describe('Assign', () => {
     test('Assign', () => {
@@ -324,23 +329,6 @@ describe('Listeners', () => {
 
         const handler = expectChangeHandler(obs.test, true);
         const handler2 = expectChangeHandler(obs, true);
-
-        obs.test.test2.test3.set('hello');
-        expect(handler).not.toHaveBeenCalled();
-        obs.test.set({ test2: { test3: 'hello' } });
-        expect(handler).toHaveBeenCalledTimes(0);
-        obs.test.set({ test5: 'hi' } as any);
-        expect(handler).toHaveBeenCalledTimes(1);
-        // Assign adding a new property does notify
-        obs.test.assign({ test4: 'hello' } as any);
-        expect(handler).toHaveBeenCalledTimes(2);
-        expect(handler2).toHaveBeenCalledTimes(0);
-    });
-    test('Shallow listener with string', () => {
-        const obs = observable({ test: { test2: { test3: 'hi' } } });
-
-        const handler = expectChangeHandler(obs.test, 'shallow');
-        const handler2 = expectChangeHandler(obs, 'shallow');
 
         obs.test.test2.test3.set('hello');
         expect(handler).not.toHaveBeenCalled();
@@ -1550,7 +1538,7 @@ describe('Array', () => {
         const handler = jest.fn();
         const handlerShallow = jest.fn();
         obs.test.onChange(handler);
-        obs.test.onChange(handlerShallow, { trackingType: 'optimize' });
+        obs.test.onChange(handlerShallow, { trackingType: optimized });
         const handlerItem = expectChangeHandler(obs.test[1]);
 
         const arr = obs.test.get().slice();
@@ -1998,6 +1986,16 @@ describe('when', () => {
         expect(when(obs.val, () => 'test')).resolves.toEqual('test');
         obs.val.set(true);
     });
+    test('when with promise', async () => {
+        let didResolve = false;
+        const promise = new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 10);
+        });
+        when(promise, () => (didResolve = true));
+        expect(didResolve).toEqual(false);
+        await promiseTimeout(20);
+        expect(didResolve).toEqual(true);
+    });
 });
 describe('Shallow', () => {
     test('Shallow set primitive', () => {
@@ -2124,14 +2122,44 @@ describe('Promise values', () => {
     test('Promise child', async () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
-        await promise;
         expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.status.get()).toEqual('pending');
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
+    });
+    test('Promise child works when set later', async () => {
+        const obs = observable({ promise: undefined as unknown as Promise<number> });
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        expect(obs.promise.status.get()).toEqual(undefined);
+        obs.promise.set(promise);
+        expect(obs.promise.status.get()).toEqual('pending');
+        // @ts-expect-error Fake error
+        resolver(10);
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
+    });
+    test('Promise child works when assigned later', async () => {
+        const obs = observable({ promise: undefined as unknown as Promise<number> });
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        expect(obs.promise.status.get()).toEqual(undefined);
+        obs.assign({ promise });
+        expect(obs.promise.status.get()).toEqual('pending');
+        // @ts-expect-error Fake error
+        resolver(10);
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
     });
     test('Promise object becomes value', async () => {
-        const promise = Promise.resolve({ value: 10 });
+        const promise = Promise.resolve({ child: 10 });
         const obs = observable(promise);
+
+        expect(obs.get().status).toEqual('pending');
+        expect(obs.status.get()).toEqual('pending');
         await promise;
-        expect(obs.value.get()).toEqual(10);
+        expect(obs.get()).toEqual({ child: 10 });
+        expect(obs.child.get()).toEqual(10);
     });
     test('Promise primitive becomes value', async () => {
         const promise = Promise.resolve(10);
@@ -2162,7 +2190,47 @@ describe('Promise values', () => {
         } catch {
             await promiseTimeout(0);
         }
-        expect(obs.promise.get()).toEqual({ error: 'test' });
+        expect(obs.promise.get()).toEqual({ error: 'test', status: 'rejected' });
+    });
+    test('when callback works with promises', async () => {
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        const obs = observable<number>(promise);
+        let didWhen = false;
+        when(obs, () => {
+            didWhen = true;
+        });
+        expect(didWhen).toBe(false);
+        resolver!(10);
+        await obs;
+        expect(didWhen).toBe(true);
+    });
+    test('when works with promises', async () => {
+        let resolver: (value: number) => void;
+        const promise = new Promise<number>((resolve) => (resolver = resolve));
+        const obs = observable<number>(promise);
+        let didWhen = false;
+        when(obs).then(() => {
+            didWhen = true;
+        });
+        expect(didWhen).toBe(false);
+        resolver!(10);
+        await obs;
+        expect(didWhen).toBe(true);
+    });
+    test('Promise child stays pending until activated', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable({ promise });
+        await promise;
+        // Still pending because it was not activated
+        expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.status.get()).toEqual('pending');
+
+        // This get activates it but it takes a frame for it to equal the value
+        expect(obs.promise.get()).not.toEqual(10);
+        await promiseTimeout();
+        // Now it equals the value
+        expect(obs.promise.get()).toEqual(10);
     });
 });
 describe('Batching', () => {
@@ -2355,6 +2423,72 @@ describe('Batching', () => {
         expect(callCount).toEqual(2);
         expect(val).toEqual('hi2hello2');
     });
+    test('After batch works correctly', () => {
+        const obs = observable({ a: 'hi', b: 'hello' });
+        let didAfterBatch: boolean | undefined;
+        let didStartBatch = false;
+        observe(() => {
+            obs.get();
+            expect(didAfterBatch).toEqual(didStartBatch ? false : undefined);
+        });
+        batch(
+            () => {
+                didStartBatch = true;
+                didAfterBatch = false;
+                obs.a.set('hi2');
+                obs.b.set('hello2');
+            },
+            () => {
+                didAfterBatch = true;
+            },
+        );
+        observe(() => {
+            obs.get();
+            expect(didAfterBatch).toEqual(true);
+        });
+    });
+    test('After batch works recursively', () => {
+        const obs = observable({ a: 'hi' });
+        const obs2 = observable({ a: 'hi' });
+        const obs3 = observable({ a: 'hi' });
+        let didStartBatch2 = false;
+        let didAfterBatch2: boolean | undefined;
+        observe(() => {
+            const a = obs3.a.get();
+            if (a === 'hi2') {
+                expect(didAfterBatch2).toEqual(true);
+            }
+        });
+        observe(() => {
+            const a = obs2.a.get();
+            if (a === 'hi2') {
+                expect(didAfterBatch2).toEqual(false);
+                obs3.a.set('hi2');
+            }
+        });
+        observe(() => {
+            if (obs.a.get() === 'hi2') {
+                batch(
+                    () => {
+                        didStartBatch2 = true;
+                        didAfterBatch2 = false;
+                        obs2.a.set('hi2');
+                        expect(didAfterBatch2).toEqual(didStartBatch2 ? false : undefined);
+                    },
+                    () => {
+                        didAfterBatch2 = true;
+                    },
+                );
+            }
+        });
+        observe(() => {
+            obs2.get();
+            expect(didAfterBatch2).toEqual(didStartBatch2 ? false : undefined);
+        });
+        batch(() => {
+            obs.a.set('hi2');
+        });
+    });
 });
 describe('Observable with promise', () => {
     test('Promise', async () => {
@@ -2363,11 +2497,12 @@ describe('Observable with promise', () => {
             resolver = resolve;
         });
         const obs = observable(promise);
-        expect(obs.get()).toEqual(undefined);
+        expect(obs.get().status).toEqual('pending');
         if (resolver) {
             resolver(10);
         }
         await promiseTimeout(0);
+        expect(obs.get().status).toEqual(undefined);
         expect(obs.get()).toEqual(10);
     });
     test('when with promise observable', async () => {
@@ -2377,7 +2512,7 @@ describe('Observable with promise', () => {
         });
         const obs = observable(promise);
 
-        expect(obs.get()).toEqual(undefined);
+        expect(obs.get().status).toEqual('pending');
 
         const fn = jest.fn();
         when(() => obs.get() === 10, fn);
@@ -2591,14 +2726,6 @@ describe('Observe', () => {
     });
 });
 describe('Error detection', () => {
-    test('Circular objects in constructor', () => {
-        const a: any = {};
-        a.c = { a };
-
-        observable(a);
-
-        expect(console.error).toHaveBeenCalledTimes(1);
-    });
     test('Circular objects in set', () => {
         jest.clearAllMocks();
 
@@ -2606,6 +2733,8 @@ describe('Error detection', () => {
         a.c = { a: {} };
 
         const obs = observable(a);
+        // Have to activate it first for it to error
+        obs.c.get();
 
         const aa: any = {};
         aa.c = { a: aa };

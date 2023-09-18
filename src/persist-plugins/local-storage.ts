@@ -24,10 +24,6 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     public getMetadata(table: string): PersistMetadata {
         return this.getTable(table + MetadataSuffix);
     }
-    public get(table: string, id: string) {
-        const tableData = this.getTable(table);
-        return tableData?.[id];
-    }
     public set(table: string, changes: Change[]): void {
         if (!this.data[table]) {
             this.data[table] = {};
@@ -38,7 +34,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
         }
         this.save(table);
     }
-    public updateMetadata(table: string, metadata: PersistMetadata) {
+    public setMetadata(table: string, metadata: PersistMetadata) {
         return this.setValue(table + MetadataSuffix, metadata);
     }
     public deleteTable(table: string) {

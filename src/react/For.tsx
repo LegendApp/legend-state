@@ -8,7 +8,6 @@ const autoMemoCache = new Map<FC<any>, FC<any>>();
 
 export function For<T, TProps>({
     each,
-    eachValues,
     optimized: isOptimized,
     item,
     itemProps,
@@ -16,29 +15,17 @@ export function For<T, TProps>({
     children,
 }: {
     each?: ObservableReadable<T[] | Record<any, T> | Map<any, T>>;
-    eachValues?: ObservableReadable<Record<any, T> | Map<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T>; id?: string } & TProps>;
     itemProps?: TProps;
     sortValues?: (A: T, B: T, AKey: string, BKey: string) => number;
     children?: (value: Observable<T>) => ReactElement;
 }): ReactElement | null {
-    if (!each && !eachValues) return null;
-
-    if (eachValues) {
-        each = eachValues;
-        if (process.env.NODE_ENV === 'development') {
-            console.log(
-                '[legend-state]: "eachValues" prop is deprecated and will be removed in the next major version. Please use "each" prop instead.',
-            );
-        }
-    }
-
-    const obs = each || eachValues;
+    if (!each) return null;
 
     // Get the raw value with a shallow listener so this list only re-renders
     // when the array length changes
-    const value = useSelector(() => obs!.get(isOptimized ? optimized : true));
+    const value = useSelector(() => each!.get(isOptimized ? optimized : true));
 
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
@@ -70,7 +57,7 @@ export function For<T, TProps>({
     if (isArr) {
         // Get the appropriate id field
         const v0 = value[0] as any;
-        const node = getNode(obs!);
+        const node = getNode(each!);
         const length = (value as any[]).length;
 
         const idField =

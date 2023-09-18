@@ -1,4 +1,4 @@
-import { checkActivate, getNodeValue, optimized } from './globals';
+import { checkActivate, getNodeValue } from './globals';
 import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -7,18 +7,7 @@ export function onChange(
     options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {},
 ): () => void {
     const { initial, immediate, noArgs } = options;
-    let { trackingType } = options;
-
-    // Temporary migration of string to symbol
-    // TODOV2 remove this
-    if (trackingType === 'optimize') {
-        if (process.env.NODE_ENV === 'development') {
-            console.log(
-                '[legend-state]: "optimize" prop is deprecated and will be removed in the next major version. Please import { optimize } from "@legendapp/state" and use that instead.',
-            );
-        }
-        trackingType = optimized;
-    }
+    const { trackingType } = options;
 
     let listeners = immediate ? node.listenersImmediate : node.listeners;
     if (!listeners) {
@@ -38,12 +27,6 @@ export function onChange(
     };
 
     listeners.add(listener);
-
-    let parent = node.parent;
-    while (parent && !parent.descendantHasListener) {
-        parent.descendantHasListener = true;
-        parent = parent.parent;
-    }
 
     if (initial) {
         const value = getNodeValue(node);

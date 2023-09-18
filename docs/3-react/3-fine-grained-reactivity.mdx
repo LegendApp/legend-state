@@ -6,10 +6,10 @@ Some teams may prefer to use Legend-State in a way that's more canonically React
 
 ## Render an observable/selector directly
 
-Use the `Memo` component to create a mini element that re-renders itself when it changes, without needing the parent component to re-render.
+Use the `Memo` component to create a mini element that re-renders itself when it changes, without needing the parent component to re-render. This is the most basic and recomended way for using Legend-State with React. The children inside of `Memo` re-render themselves when the value changes, but the parent component does not re-render.
 
 ```jsx
-import { Memo } from "@legendapp/state/react"
+import { Memo } from '@legendapp/state/react'
 
 const count$ = observable(0)
 
@@ -42,11 +42,11 @@ To use these components first enable the version for your platform:
 
 ```js
 // React
-import { enableReactComponents } from "@legendapp/state/config/enableReactComponents"
+import { enableReactComponents } from '@legendapp/state/config/enableReactComponents'
 enableReactComponents()
 
 // React Native
-import { enableReactNativeComponents } from "@legendapp/state/config/enableReactNativeComponents"
+import { enableReactNativeComponents } from '@legendapp/state/config/enableReactNativeComponents'
 enableReactNativeComponents()
 ```
 
@@ -101,9 +101,13 @@ The child needs to be a function to be able to extract it into a separate tracki
 function Component() {
     return (
         <Computed>
-            {() => state$.messages.map(message => (
-                <div key={message.id}>{message.text} {localVar}</div>
-            ))}
+            {() =>
+                state$.messages.map((message) => (
+                    <div key={message.id}>
+                        {message.text} {localVar}
+                    </div>
+                ))
+            }
         </Computed>
     )
 }
@@ -139,7 +143,9 @@ function ComputedExample() {
             </Computed>
         </div>
     )
+
 }
+
 ```
 </Example>
 
@@ -169,9 +175,9 @@ import { useRef, useState } from "react"
 import { Memo, useObservable } from "@legendapp/state/react"
 
 function MemoExample() {
-    const renderCount = ++useRef(0).current
-    const state = useObservable({ count: 0 })
-    const [value, setValue] = useState(1)
+const renderCount = ++useRef(0).current
+const state = useObservable({ count: 0 })
+const [value, setValue] = useState(1)
 
     const onClick = () => setValue(v => v + 1)
     useInterval(() => {
@@ -191,7 +197,9 @@ function MemoExample() {
             </Memo>
         </div>
     )
+
 }
+
 ```
 </Example>
 
@@ -218,6 +226,26 @@ Props:
 </Show>
 ```
 
+<br />
+
+```jsx
+import { Show, useObservable } from '@legendapp/state/react'
+import { AnimatePresence } from 'framer-motion'
+
+function ShowExampleWithSelector() {
+    const state = useObservable({ collection: [] })
+    return (
+        <Show
+            if={() => state.collection.get().length > 0}
+            else={() => <div>Nothing to see here</div>}
+            wrap={AnimatePresence}
+        >
+            {() => <Modal />}
+        </Show>
+    )
+}
+```
+
 <Example name="Show">
 ```jsx
 import { Show } from "@legendapp/state/react"
@@ -241,7 +269,9 @@ function ShowExample() {
             </Show>
         </div>
     )
-})
+
+}
+
 ```
 </Example>
 
@@ -254,7 +284,7 @@ Props:
 - `children`: An object with the possible cases of `value` as keys. If `value` doesn't match any of the cases it will use the `default` case if available.
 
 ```jsx
-<Switch value={state.index)}>
+<Switch value={state.index}>
     {{
         0: () => <div>Tab 1</div>,
         1: () => <div>Tab 2</div>,
@@ -288,7 +318,9 @@ function SwitchExample() {
             </Switch>
         </div>
     )
-})
+
+}
+
 ```
 </Example>
 
@@ -300,10 +332,10 @@ An `optimized` prop adds additional optimizations, but in an unusual way by re-u
 
 Props:
 - `each`: An observable (array, object, or Map)
-- `item`: A render function which receives the item id and item observable
+- `item`: A render function which receives the item id, and item observable or undefined
 - `itemProps`: Extra props to pass down to each item
 - `sortValues`: If the `each` parameter is an object or Map, this is a sort function for how to sort the elements. `(A: T, B: T, AKey: string, BKey: string) => number`
-- `children`: You can pass a render function as children instead of in the `item` prop if you prefer.
+- `children`: A render function or, you can pass a render function as children instead of in the `item` prop if you prefer.
 
 ```jsx
 import { observable } from "@legendapp/state"
@@ -347,10 +379,7 @@ To install it, add `@legendapp/state/babel` to the plugins in your `babel.config
 
 ```js
 module.exports = {
-    plugins: [
-        ...
-        "@legendapp/state/babel",
-    ],
+    plugins: ['@legendapp/state/babel'],
 }
 ```
 
@@ -359,7 +388,6 @@ If you're using typescript you can add a `.d.ts` file to your project with this 
 ```js
 /// <reference types="@legendapp/state/types/babel" />
 ```
-
 
 ## Create your own reactive components
 
@@ -370,21 +398,19 @@ You can wrap external components in `reactive` to create reactive versions of al
 In this example, `reactive` adds a `$message` prop which takes a [Selector](../getting-started#Selectors), while the target component receives a normal `message` prop and is only re-rendered when `message` changes.
 
 ```js
-import { observable } from "@legendapp/state"
-import { reactive } from "@legendapp/state/react"
+import { observable } from '@legendapp/state'
+import { reactive } from '@legendapp/state/react'
 
 const isSignedIn$ = observable(false)
 
 const Component = reactive(function Component({ message }) {
-    return (
-        <div>{message}</div>
-    )
+    return <div>{message}</div>
 })
 
 function App() {
     return (
         <Component
-            $message={() => isSignedIn$.get() ? 'Hello' : 'Goodbye'}
+            $message={() => (isSignedIn$.get() ? 'Hello' : 'Goodbye')}
         />
     )
 }
@@ -393,10 +419,10 @@ function App() {
 In addition to wrapping your own functions, you can wrap external library components to make them reactive. In this example we make a [Framer Motion](https://www.framer.com/motion/) component reactive so that we can update its animations based on observables without needing to re-render the parent component or its children.
 
 ```js
-import { reactive } from "@legendapp/state/react"
-import { motion } from "framer-motion"
+import { reactive } from '@legendapp/state/react'
+import { motion } from 'framer-motion'
 
-const ReactiveMotionDiv = reactive(motion.div);
+const ReactiveMotionDiv = reactive(motion.div)
 
 function Component() {
     // This component renders only once
@@ -405,7 +431,7 @@ function Component() {
     return (
         <ReactiveMotionDiv
             $animate={() => ({
-                x: width$.get()
+                x: width$.get(),
             })}
         >
             ...
@@ -419,8 +445,8 @@ function Component() {
 This is a single HOC with the functionality of both `observer` and `reactive`. They both run the same function under the hood, with slightly different options, so this is the optimal way to have one HOC that does both at once.
 
 ```js
-import { observable } from "@legendapp/state"
-import { reactiveObserver } from "@legendapp/state/react"
+import { observable } from '@legendapp/state'
+import { reactiveObserver } from '@legendapp/state/react'
 
 const name$ = observable('Annyong')
 const isSignedIn$ = observable(false)
@@ -429,14 +455,16 @@ const Component = reactiveObserver(function Component({ message }) {
     const name = name$.get()
 
     return (
-        <div>{message} {name}</div>
+        <div>
+            {message} {name}
+        </div>
     )
 })
 
 function App() {
     return (
         <Component
-            $message={() => isSignedIn$.get() ? 'Hello' : 'Goodbye'}
+            $message={() => (isSignedIn$.get() ? 'Hello' : 'Goodbye')}
         />
     )
 }
@@ -447,10 +475,10 @@ function App() {
 `reactiveComponents` makes multiple reactive components at once. You can use this to create your own internal library of reactive components, or to wrap UI libraries that have multiple components in a namespace like `Modal.Header` and `Modal.Footer`.
 
 ```js
-import { reactiveComponents } from "@legendapp/state/react"
-import { motion } from "framer-motion"
+import { reactiveComponents } from '@legendapp/state/react'
+import { motion } from 'framer-motion'
 
-const ReactiveMotion = reactiveComponents(motion);
+const ReactiveMotion = reactiveComponents(motion)
 
 function Component() {
     // This component renders only once
@@ -459,7 +487,7 @@ function Component() {
     return (
         <ReactiveMotion.div
             $animate={() => ({
-                x: width$.get()
+                x: width$.get(),
             })}
         >
             ...

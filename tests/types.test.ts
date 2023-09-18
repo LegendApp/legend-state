@@ -1,9 +1,51 @@
 import { expectTypeOf } from 'expect-type';
 import { observable } from '../src/observable';
-import { ObservableArray, Observable, ObservableObject, ObservablePrimitive } from '../src/observableInterfaces';
+import {
+    ObservableArray,
+    Observable,
+    ObservableObject,
+    ObservablePrimitive,
+    PromiseInfo,
+} from '../src/observableInterfaces';
 
 describe('Types', () => {
     describe('observable', () => {
+        it('optional return type when no argument is passed', () => {
+            function noArgs() {
+                return observable<string>();
+            }
+
+            type ObservableFn = ReturnType<typeof noArgs>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string | undefined>();
+        });
+
+        it('optional return type when optional argument is passed', () => {
+            function withOptionalArg(something?: string) {
+                return observable(something);
+            }
+
+            type ObservableFn = ReturnType<typeof withOptionalArg>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string | undefined>();
+        });
+
+        it('return type with promise info when promise is passed', () => {
+            function withPromise() {
+                return observable(Promise.resolve('foo'));
+            }
+
+            type ObservableFn = ReturnType<typeof withPromise>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string & PromiseInfo>();
+        });
+
+        it('optional return type with promise info when promise with optional value is passed', () => {
+            function withOptionalPromiseValue(something?: Promise<string>) {
+                return observable(something);
+            }
+
+            type ObservableFn = ReturnType<typeof withOptionalPromiseValue>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<(string & PromiseInfo) | undefined>();
+        });
+
         it('issue #151', () => {
             type ObservableFn = ReturnType<
                 typeof observable<{

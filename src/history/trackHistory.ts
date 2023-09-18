@@ -14,7 +14,7 @@ export function trackHistory<T>(
     obs: ObservableReadable<T>,
     targetObservable?: ObservableWriteable<Record<TimestampAsString, Partial<T>>>,
 ) {
-    const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
+    const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>({});
 
     obs.onChange(({ changes }) => {
         // Don't save history if this is a remote change.

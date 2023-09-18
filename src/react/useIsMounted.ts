@@ -5,10 +5,11 @@ import { useEffectOnce } from './useEffectOnce';
 export function useIsMounted(): Observable<boolean> {
     const obs = useObservable(false);
 
+    const { set } = obs;
     useEffectOnce(() => {
-        obs.set(true);
+        set(true);
 
-        return () => obs.set(false);
+        return () => set(false);
     });
 
     return obs;

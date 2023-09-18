@@ -11,25 +11,20 @@ const trackingQueue: (TrackingState | undefined)[] = [];
 
 export const tracking = {
     current: undefined as TrackingState | undefined,
-    inRender: false as boolean | undefined,
 };
 
-export function beginTracking(inRender?: boolean) {
+export function beginTracking() {
     // Keep a copy of the previous tracking context so it can be restored
     // when this context is complete
     trackingQueue.push(tracking.current);
     trackCount++;
-    tracking.inRender = inRender;
     tracking.current = {};
 }
-export function endTracking(fromRender?: boolean) {
+export function endTracking() {
     // Restore the previous tracking context
     trackCount--;
     if (trackCount < 0) {
         trackCount = 0;
-    }
-    if (fromRender) {
-        tracking.inRender = false;
     }
     tracking.current = trackingQueue.pop();
 }

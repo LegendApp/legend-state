@@ -481,6 +481,14 @@ describe('Computed inside observable', () => {
             },
         ]);
     });
+    test('Computed link activates when getting', () => {
+        const obs = observable(1);
+        const comp = computed(() => obs);
+
+        expect(obs.get()).toEqual(1);
+        expect(comp.get()).toEqual(1);
+        expect(comp.get()).toEqual(1);
+    });
     test('Computed in observable sets raw data', () => {
         const obs = observable({
             text: 'hi',
