@@ -2195,7 +2195,7 @@ describe('Promise values', () => {
     test('when callback works with promises', async () => {
         let resolver: (value: number) => void;
         const promise = new Promise<number>((resolve) => (resolver = resolve));
-        const obs = observable<number>(promise);
+        const obs = observable(promise);
         let didWhen = false;
         when(obs, () => {
             didWhen = true;
@@ -2208,7 +2208,7 @@ describe('Promise values', () => {
     test('when works with promises', async () => {
         let resolver: (value: number) => void;
         const promise = new Promise<number>((resolve) => (resolver = resolve));
-        const obs = observable<number>(promise);
+        const obs = observable(promise);
         let didWhen = false;
         when(obs).then(() => {
             didWhen = true;
@@ -2564,7 +2564,7 @@ describe('Locking', () => {
 });
 describe('Primitive <-> Object', () => {
     test('Starting as undefined', () => {
-        const obs = observable<{ test: string }>(undefined);
+        const obs = observable<{ test: string } | undefined>(undefined);
         expect(obs.get()).toEqual(undefined);
         obs.set({ test: 'hi' });
         expect(obs.get()).toEqual({ test: 'hi' });

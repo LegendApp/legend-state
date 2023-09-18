@@ -35,16 +35,12 @@ function createObservable<T>(value: T, makePrimitive: boolean): Observable<T> | 
 export type MaybePromiseObservable<T> = Observable<MaybePromise<T>>;
 
 export function observable<T>(): MaybePromiseObservable<T | undefined>;
-export function observable<T>(value: Promise<T>): MaybePromiseObservable<Promise<T>>;
-export function observable<T>(value?: Promise<T>): MaybePromiseObservable<Promise<T> | undefined>;
 export function observable<T>(value: T): MaybePromiseObservable<T>;
 export function observable<T>(value?: T): MaybePromiseObservable<T | undefined> {
     return createObservable(value, /*makePrimitive*/ false);
 }
 
 export function observablePrimitive<T>(): ObservablePrimitive<MaybePromise<T | undefined>>;
-export function observablePrimitive<T>(value: Promise<T>): ObservablePrimitive<MaybePromise<Promise<T>>>;
-export function observablePrimitive<T>(value?: Promise<T>): ObservablePrimitive<MaybePromise<Promise<T>> | undefined>;
 export function observablePrimitive<T>(value: T): ObservablePrimitive<MaybePromise<T>>;
 export function observablePrimitive<T>(value?: T): ObservablePrimitive<MaybePromise<T | undefined>> {
     return createObservable(value, /*makePrimitive*/ true);
