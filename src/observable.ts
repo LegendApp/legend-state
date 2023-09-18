@@ -22,7 +22,7 @@ function createObservable<T>(value: T, makePrimitive: boolean): Observable<T> | 
     const prim = makePrimitive || isActualPrimitive(value);
 
     const obs = prim
-        ? (new (ObservablePrimitiveClass as any)(node) as Observable<T>)
+        ? (new (ObservablePrimitiveClass as any)(node) as ObservablePrimitive<T>)
         : (getProxy(node) as Observable<T>);
 
     if (valueIsPromise) {
