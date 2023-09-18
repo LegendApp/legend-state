@@ -132,12 +132,12 @@ type ObservableFnsRecursiveSafe<T, NullableMarker> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
 };
 
-type MarkValuesNullable<T, NullableMarker> = {
-    [K in keyof T]: T[K] | NullableMarker;
+type MakeNullable<T, NullableMarker> = {
+    [K in keyof T]: T[K] | (NullableMarker extends never ? never : undefined);
 };
 
 type ObservableFnsRecursive<T, NullableMarker> = ObservableFnsRecursiveSafe<NonPrimitiveProps<T>, NullableMarker> &
-    ObservableFnsRecursiveUnsafe<MarkValuesNullable<PrimitiveProps<T>, NullableMarker>, NullableMarker>;
+    ObservableFnsRecursiveUnsafe<MakeNullable<PrimitiveProps<T>, NullableMarker>, NullableMarker>;
 
 type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
@@ -350,7 +350,7 @@ export type ObservableObject<T = any, NullableMarker = never> = ObservableFnsRec
     NonNullable<T>,
     Extract<T | NullableMarker, null | undefined>
 > &
-    ObservableObjectFns<T | NullableMarker>;
+    ObservableObjectFns<T | (NullableMarker extends never ? never : undefined)>;
 
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]

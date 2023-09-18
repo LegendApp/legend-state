@@ -16,7 +16,9 @@ describe('Types', () => {
                 optional?: { foo: string };
                 nullable: { foo: string } | null;
             }>();
-            expectTypeOf<ObservableFn['nullable']['foo']['get']>().returns.toEqualTypeOf<string | null>();
+
+            // Note that if a parent is nullable, the child is optional (undefined)
+            expectTypeOf<ObservableFn['nullable']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
             expectTypeOf<ObservableFn['optional']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
         });
     });
@@ -69,9 +71,9 @@ describe('Types', () => {
                     expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined>();
                 });
 
-                it('should infer nested value as nullable if parent is nullable', () => {
+                it('should infer nested value as optional if parent is nullable', () => {
                     type State = Observable<{ foo: { bar: string } | null }>;
-                    expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | null>();
+                    expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined>();
                 });
 
                 it('should infer nested value as optional if parent is optional', () => {
@@ -79,17 +81,18 @@ describe('Types', () => {
                     expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined>();
                 });
 
-                // Not sure if this is the desired behavior, what does legend state return in this scenario?
-                it('should infer nested value as both optional and nullable if their ancestors are', () => {
+                it('should infer nested value as optional if their ancestors are optional and nullable', () => {
                     type State = Observable<{ foo?: { bar: { value: number } | null } }>;
-                    expectTypeOf<State['foo']['bar']['value']['get']>().returns.toEqualTypeOf<
-                        number | undefined | null
-                    >();
+                    expectTypeOf<State['foo']['bar']['value']['get']>().returns.toEqualTypeOf<number | undefined>();
                 });
 
-                // Not sure if this is the desired behavior, what does legend state return in this scenario?
-                it('should infer nested optional value as both optional and nullable if parent is nullable', () => {
+                it('should infer nullable value as both nullable and optional if parent is nullable', () => {
                     type State = Observable<{ foo: { bar?: string } | null }>;
+                    expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined>();
+                });
+
+                it('should infer nullable value as both nullable and optional if parent is optional', () => {
+                    type State = Observable<{ foo?: { bar: string | null } }>;
                     expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined | null>();
                 });
             });
