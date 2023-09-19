@@ -10,7 +10,7 @@ import type {
     ReducerWithoutAction,
 } from 'react';
 import { useObservable } from './useObservable';
-import { MaybePromiseObservable } from 'src/observable';
+import type { MaybePromiseObservable } from '../observable';
 
 export function useObservableReducer<R extends ReducerWithoutAction<any>, I>(
     reducer: R,

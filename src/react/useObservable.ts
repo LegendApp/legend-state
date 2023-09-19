@@ -1,6 +1,6 @@
 import { isFunction, observable } from '@legendapp/state';
 import { useMemo } from 'react';
-import { MaybePromiseObservable } from 'src/observable';
+import type { MaybePromiseObservable } from '../observable';
 
 /**
  * A React hook that creates a new observable
