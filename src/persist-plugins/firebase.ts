@@ -120,7 +120,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected fns: FirebaseFns;
     private _pathsLoadStatus = observable<Record<string, LoadStatus>>({});
     private SaveTimeout;
-    private user: Observable<string>;
+    private user: Observable<string | undefined>;
     private listenErrors: Map<
         any,
         {

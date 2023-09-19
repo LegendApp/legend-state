@@ -10,6 +10,7 @@ import type {
     ReducerWithoutAction,
 } from 'react';
 import { useObservable } from './useObservable';
+import type { MaybePromiseObservable } from '../observable';
 
 export function useObservableReducer<R extends ReducerWithoutAction<any>, I>(
     reducer: R,
@@ -40,7 +41,7 @@ export function useObservableReducer<R extends Reducer<any, any>, I>(
     reducer: R,
     initializerArg: I & ReducerState<R>,
     initializer: ((arg: I & ReducerState<R>) => ReducerState<R>) | undefined,
-): [Observable<ReducerState<R>>, Dispatch<ReducerAction<R>>] {
+): [MaybePromiseObservable<ReducerState<R>>, Dispatch<ReducerAction<R>>] {
     const obs = useObservable(() =>
         initializerArg !== undefined && isFunction(initializerArg) ? initializer!(initializerArg) : initializerArg,
     );

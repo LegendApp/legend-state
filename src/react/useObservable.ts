@@ -1,5 +1,6 @@
-import { isFunction, observable, Observable } from '@legendapp/state';
+import { isFunction, observable } from '@legendapp/state';
 import { useMemo } from 'react';
+import type { MaybePromiseObservable } from '../observable';
 
 /**
  * A React hook that creates a new observable
@@ -8,7 +9,9 @@ import { useMemo } from 'react';
  *
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
-export function useObservable<T>(initialValue?: T | (() => T) | (() => Promise<T>)): Observable<T> {
+export function useObservable<T>(): MaybePromiseObservable<T | undefined>;
+export function useObservable<T>(initialValue: T | (() => T)): MaybePromiseObservable<T>;
+export function useObservable<T>(initialValue?: T | (() => T)): MaybePromiseObservable<T | undefined> {
     // Create the observable from the default value
-    return useMemo(() => observable<T>((isFunction(initialValue) ? initialValue() : initialValue) as T), []);
+    return useMemo(() => observable(isFunction(initialValue) ? initialValue() : initialValue), []);
 }

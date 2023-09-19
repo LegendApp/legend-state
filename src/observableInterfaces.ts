@@ -97,8 +97,8 @@ export interface ListenerParams<T = any> {
 }
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
-type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
-type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? never : K }[keyof T]>;
+type PrimitiveProps<T> = Pick<T, PrimitiveKeys<T>>;
+type NonPrimitiveProps<T> = Omit<T, PrimitiveKeys<T>>;
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
@@ -128,14 +128,20 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? TRecurse
     : T[K];
 
-type ObservableFnsRecursiveUnsafe<T> = {
-    [K in keyof T]-?: Recurse<T, K, ObservableObject<NonNullable<T[K]>>>;
+type ObservableFnsRecursiveUnsafe<T, NullableMarker> = {
+    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
 };
-type ObservableFnsRecursiveSafe<T> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<NonNullable<T[K]>>>;
+
+type ObservableFnsRecursiveSafe<T, NullableMarker> = {
+    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
 };
-type ObservableFnsRecursive<T> = ObservableFnsRecursiveSafe<NonPrimitiveKeys<T>> &
-    ObservableFnsRecursiveUnsafe<PrimitiveKeys<T>>;
+
+type MakeNullable<T, NullableMarker> = {
+    [K in keyof T]: T[K] | (NullableMarker extends never ? never : undefined);
+};
+
+type ObservableFnsRecursive<T, NullableMarker> = ObservableFnsRecursiveSafe<NonPrimitiveProps<T>, NullableMarker> &
+    ObservableFnsRecursiveUnsafe<MakeNullable<PrimitiveProps<T>, NullableMarker>, NullableMarker>;
 
 type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
@@ -316,48 +322,31 @@ export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
-// This converts the state object's shape to the field transformer's shape
-// TODO: FieldTransformer and this shape can likely be refactored to be simpler
-declare type ObjectKeys<T> = Pick<
-    T,
-    {
-        [K in keyof T]-?: K extends string
-            ? T[K] extends Record<string, any>
-                ? T[K] extends any[]
-                    ? never
-                    : K
-                : never
-            : never;
-    }[keyof T]
->;
-declare type DictKeys<T> = Pick<
-    T,
-    {
-        [K in keyof T]-?: K extends string ? (T[K] extends Record<string, Record<string, any>> ? K : never) : never;
-    }[keyof T]
->;
-declare type ArrayKeys<T> = Pick<
-    T,
-    {
-        [K in keyof T]-?: K extends string | number ? (T[K] extends any[] ? K : never) : never;
-    }[keyof T]
->;
-export declare type FieldTransforms<T> =
+type FilterKeysByValue<T, U> = {
+    [K in keyof T]: T[K] extends U ? K & (string | number) : never;
+}[keyof T];
+
+type ObjectKeys<T> = Exclude<FilterKeysByValue<T, Record<string, any>>, FilterKeysByValue<T, any[]>>;
+type DictKeys<T> = FilterKeysByValue<T, Record<string, Record<string, any>>>;
+type ArrayKeys<T> = FilterKeysByValue<T, any[]>;
+type PrimitiveKeys<T> = FilterKeysByValue<T, Primitive>;
+
+export type FieldTransforms<T> =
     | (T extends Record<string, Record<string, any>> ? { _dict: FieldTransformsInner<RecordValue<T>> } : never)
     | FieldTransformsInner<T>;
-export declare type FieldTransformsInner<T> = {
+export type FieldTransformsInner<T> = {
     [K in keyof T]: string;
 } & (
     | {
-          [K in keyof ObjectKeys<T> as `${K}_obj`]?: FieldTransforms<T[K]>;
+          [K in ObjectKeys<T> as `${K}_obj`]?: FieldTransforms<T[K]>;
       }
     | {
-          [K in keyof DictKeys<T> as `${K}_dict`]?: FieldTransforms<RecordValue<T[K]>>;
+          [K in DictKeys<T> as `${K}_dict`]?: FieldTransforms<RecordValue<T[K]>>;
       }
 ) & {
-        [K in keyof ArrayKeys<T> as `${K}_arr`]?: FieldTransforms<ArrayValue<T[K]>>;
+        [K in ArrayKeys<T> as `${K}_arr`]?: FieldTransforms<ArrayValue<T[K]>>;
     } & {
-        [K in keyof ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
+        [K in ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
     };
 
 export type Selector<T> = ObservableReadable<T> | ObservableEvent | (() => T) | T;
@@ -373,7 +362,7 @@ export interface ObservableRoot {
     activate?: () => void;
 }
 
-export type Primitive = boolean | string | number | Date;
+export type Primitive = boolean | string | number | Date | undefined | null | symbol | bigint;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
 export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
@@ -383,7 +372,12 @@ export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
 export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
 export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
-export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
+export type ObservableObject<T = any, NullableMarker = never> = ObservableFnsRecursive<
+    NonNullable<T>,
+    Extract<T | NullableMarker, null | undefined>
+> &
+    ObservableObjectFns<T | (NullableMarker extends never ? never : undefined)>;
+
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>

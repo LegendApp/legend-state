@@ -38,7 +38,8 @@
         "lint:check": "eslint ./src ./tests --ext .ts,.tsx",
         "format:write": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
         "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
-        "release": "release-it"
+        "release": "release-it",
+        "typecheck": "tsc --noEmit"
     },
     "exports": {
         "./package.json": "./package.json",
@@ -119,6 +120,7 @@
         "eslint": "^8.45.0",
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-react-hooks": "^4.6.0",
+        "expect-type": "^0.16.0",
         "fake-indexeddb": "^4.0.0",
         "firebase": "^10.3.0",
         "jest": "^29.6.1",
