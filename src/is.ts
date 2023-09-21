@@ -8,10 +8,10 @@ export function isArray(obj: unknown): obj is Array<any> {
 export function isString(obj: unknown): obj is string {
     return typeof obj === 'string';
 }
-export function isObject(obj: unknown): obj is Record<any, any> {
+export function isObject(obj: unknown): obj is Record<keyof any, any> {
     return !!obj && typeof obj === 'object' && !isArray(obj);
 }
-export function isFunction(obj: unknown): obj is Function {
+export function isFunction<T extends Function>(obj: T | unknown): obj is T {
     return typeof obj === 'function';
 }
 export function isPrimitive(arg: unknown): arg is string | number | bigint | boolean | symbol {

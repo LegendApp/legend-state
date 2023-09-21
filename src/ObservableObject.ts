@@ -24,8 +24,17 @@ import {
     isObject,
     isPrimitive,
     isPromise,
+    isSymbol,
 } from './is';
-import type { ChildNodeValue, NodeValue, PromiseInfo, TrackingType } from './observableInterfaces';
+import type {
+    ChildNodeValue,
+    NodeValue,
+    ObservableObjectFns,
+    ObservablePrimitiveBooleanFns,
+    ObservableValue,
+    PromiseInfo,
+    TrackingType,
+} from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -53,11 +62,23 @@ const ArrayLoopers = new Set<keyof Array<any>>([
     'some',
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
+
 export const observableProperties = new Map<
     string,
     { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
 >();
-export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) => any>([
+
+type ObservableFn = Omit<ObservableObjectFns<unknown>, '_' | '$' | 'use'> & ObservablePrimitiveBooleanFns<unknown>;
+
+/* insert node value as first argument */
+export type ObservableFnImpl<T extends Function> = T extends (...args: infer U) => infer R
+    ? (value: NodeValue, ...args: U) => R
+    : never;
+
+type ObservableFnValues = ObservableFnImpl<ObservableFn[keyof ObservableFn]>;
+type ObservableFnKey = keyof ObservableFn;
+
+export const observableFns = new Map<ObservableFnKey, ObservableFnValues>([
     ['get', get],
     ['set', set],
     ['peek', peek],
@@ -92,7 +113,7 @@ function collectionSetter(node: NodeValue, target: any, prop: string, ...args: a
     return ret;
 }
 
-function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean): string[] {
+function getKeys(obj: Record<any, any> | Array<unknown> | undefined, isArr: boolean, isMap: boolean): string[] {
     return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
 }
 
@@ -143,10 +164,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
-    let idField: string | ((value: any) => string) | undefined;
-    let isIdFieldFunction;
     let hasADiff = false;
     let retValue: boolean | undefined;
+    let idField: ReturnType<typeof findIDKey>;
+    let isIdFieldFunction = false;
 
     if (isArr && isArray(prevValue)) {
         // Construct a map of previous indices for computing move
@@ -154,7 +175,6 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
             const firstPrevValue = prevValue[0];
             if (firstPrevValue !== undefined) {
                 idField = findIDKey(firstPrevValue, parent);
-
                 if (idField) {
                     isIdFieldFunction = isFunction(idField);
                     prevChildrenById = new Map();
@@ -318,17 +338,20 @@ export function getProxy(node: NodeValue, p?: string) {
     return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
 }
 
-const proxyHandler: ProxyHandler<any> = {
-    get(node: NodeValue, p: any, receiver: any) {
-        if (p === symbolToPrimitive) {
-            throw new Error(
-                process.env.NODE_ENV === 'development'
-                    ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
-                    : '[legend-state] observable is not a primitive.',
-            );
-        }
-        if (p === symbolGetNode) {
-            return node;
+const proxyHandler: ProxyHandler<NodeValue> = {
+    get(node: NodeValue, p: string | symbol, receiver: unknown) {
+        if (isSymbol(p)) {
+            if (p === symbolToPrimitive) {
+                throw new Error(
+                    process.env.NODE_ENV === 'development'
+                        ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
+                        : '[legend-state] observable is not a primitive.',
+                );
+            }
+            if (p === symbolGetNode) {
+                return node;
+            }
+            throw new Error('[legend-state] Unknown symbol');
         }
 
         const value = peek(node);
@@ -347,7 +370,7 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        const fn = observableFns.get(p);
+        const fn = observableFns.get(p as ObservableFnKey);
         // If this is an observable function, call it
         if (fn) {
             return function (a: any, b: any, c: any) {
@@ -384,17 +407,17 @@ const proxyHandler: ProxyHandler<any> = {
 
         const vProp = value?.[p];
 
-        if (isObject(value) && value[symbolOpaque as any]) {
+        if (isObject(value) && value[symbolOpaque]) {
             return vProp;
         }
 
         // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {
-                if (ArrayModifiers.has(p)) {
+                if (ArrayModifiers.has(p as string)) {
                     // Call the wrapped modifier function
-                    return (...args: any[]) => collectionSetter(node, value, p, ...args);
-                } else if (ArrayLoopers.has(p)) {
+                    return (...args: any[]) => collectionSetter(node, value, p as string, ...args);
+                } else if (ArrayLoopers.has(p as keyof any[])) {
                     // Update that this node was accessed for observers
                     updateTracking(node);
 
@@ -603,7 +626,11 @@ function deleteFn(node: NodeValue, key?: string) {
     setKey(node, key ?? '_', symbolDelete, /*level*/ -1);
 }
 
-function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {
+function handlerMapSet(
+    node: NodeValue,
+    p: ObservableFnKey | keyof any,
+    value: Map<keyof any, any> | WeakMap<WeakKey, any> | Set<any> | WeakSet<any>,
+) {
     const vProp = (value as any)?.[p];
     if (p === 'size') {
         return getProxy(node, p);
@@ -653,7 +680,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<a
             }
 
             // TODO: This is duplicated from proxy handler, how to dedupe with best performance?
-            const fn = observableFns.get(p);
+            const fn = observableFns.get(p as ObservableFnKey);
             if (fn) {
                 // Array call and apply are slow so micro-optimize this hot path.
                 // The observable functions depends on the number of arguments so we have to

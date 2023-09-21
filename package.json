@@ -168,6 +168,7 @@
         ]
     },
     "dependencies": {
-        "use-sync-external-store": "^1.2.0"
+        "use-sync-external-store": "^1.2.0",
+        "utility-types": "^3.10.0"
     }
 }

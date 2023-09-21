@@ -1,6 +1,8 @@
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { symbolGetNode, symbolOpaque } from './globals';
-import { DatabaseReference, Query } from 'firebase/database';
+import { DatabaseReference, Query, get } from 'firebase/database';
+import { peek, set } from './ObservableObject';
+import { onChange } from './onChange';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -47,6 +49,11 @@ export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(): T;
     size: ObservableChild<number>;
 }
+
+export type StripFirstArg<T extends Function> = T extends (arg: NodeValue, ...args: infer U) => infer R
+    ? (...args: U) => R
+    : T;
+
 export interface ObservableBaseFns<T> {
     peek(): T;
     get(trackingType?: TrackingType): T;
@@ -55,8 +62,9 @@ export interface ObservableBaseFns<T> {
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
     ): ObservableListenerDispose;
 }
+
 export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
-    delete(): ObservablePrimitiveBaseFns<T>;
+    delete(): this;
     set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): ObservablePrimitiveChild<T>;
 }
 
@@ -75,7 +83,7 @@ export type ObservablePrimitive<T> = [T] extends [boolean]
     : ObservablePrimitiveBaseFns<T>;
 
 export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveBaseFns<T> {
-    delete(): ObservablePrimitiveChild<T>;
+    delete(): this;
 }
 
 type CallbackSetter<T> = {
@@ -132,9 +140,7 @@ type ObservableFnsRecursiveUnsafe<T, NullableMarker> = {
     [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
 };
 
-type ObservableFnsRecursiveSafe<T, NullableMarker> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
-};
+type ObservableFnsRecursiveSafe<T, NullableMarker> = Readonly<ObservableFnsRecursiveUnsafe<T, NullableMarker>>;
 
 type MakeNullable<T, NullableMarker> = {
     [K in keyof T]: T[K] | (NullableMarker extends never ? never : undefined);
@@ -334,6 +340,7 @@ type PrimitiveKeys<T> = FilterKeysByValue<T, Primitive>;
 export type FieldTransforms<T> =
     | (T extends Record<string, Record<string, any>> ? { _dict: FieldTransformsInner<RecordValue<T>> } : never)
     | FieldTransformsInner<T>;
+
 export type FieldTransformsInner<T> = {
     [K in keyof T]: string;
 } & (
@@ -363,8 +370,6 @@ export interface ObservableRoot {
 }
 
 export type Primitive = boolean | string | number | Date | undefined | null | symbol | bigint;
-export type NotPrimitive<T> = T extends Primitive ? never : T;
-
 export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'get' | 'size'> &
     MapGet<T>;
@@ -389,16 +394,23 @@ export type ObservableObjectOrArray<T> = T extends Map<any, any> | WeakMap<any, 
     ? ObservableSet<T>
     : T extends any[]
     ? ObservableArray<T>
-    : ObservableObject<T>;
+    : ObservableObject<T, Extract<T, undefined>>;
 
 export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
 export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveBaseFns<T2>;
 type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
-    : [T] extends [object]
+    : T extends object
     ? ObservableObjectOrArray<T>
     : ObservablePrimitive<T>;
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+
+type Test = UnionToIntersection<Observable<{ foo: string } | string>>;
+
+// type Get = ReturnType<Test['get']>;
+// type Get = ReturnType<Test['foo']['get']>;
 
 export type ObservableReadable<T = any> =
     | ObservableBaseFns<T>
