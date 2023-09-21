@@ -213,7 +213,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
     }
 
-    if (obj && !isPrimitive(obj) && !parent.lazy) {
+    if (obj && !parent.lazy && !isPrimitive(obj)) {
         hasADiff = hasADiff || length !== lengthPrev;
         const isArrDiff = hasADiff;
         let didMove = false;
@@ -555,6 +555,12 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
     // Get the child node for updating and notifying
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
+
+    if (childNode.lazy) {
+        // Make sure the node is activated when assigning because the node
+        // is never accessed through the proxy
+        peek(childNode);
+    }
 
     // Set the raw value on the parent object
     const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);

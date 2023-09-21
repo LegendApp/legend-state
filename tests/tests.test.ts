@@ -511,6 +511,20 @@ describe('Listeners', () => {
             { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
         ]);
     });
+    test('Start undefined assign something', () => {
+        interface Data {
+            test?: undefined | { test2: string };
+        }
+        const obs = observable<Data>({});
+        const handler = expectChangeHandler(obs);
+
+        obs.assign({ test: { test2: 'hi' } });
+
+        // TODO: The previous value here is not totally correct because it filled out the path to make set work
+        expect(handler).toHaveBeenCalledWith({ test: { test2: 'hi' } }, { test: undefined }, [
+            { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
+        ]);
+    });
     test('Set with object should only fire listeners once', () => {
         interface Data {
             test: undefined | Record<string, string>;
