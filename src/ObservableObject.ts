@@ -213,7 +213,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
     }
 
-    if (obj && !isPrimitive(obj) && !parent.lazy) {
+    if (obj && !isPrimitive(obj)) {
         hasADiff = hasADiff || length !== lengthPrev;
         const isArrDiff = hasADiff;
         let didMove = false;
