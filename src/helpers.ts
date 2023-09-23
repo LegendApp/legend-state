@@ -14,6 +14,7 @@ import type {
     Selector,
     TypeAtPath,
 } from './observableInterfaces';
+import {Observable} from "./observableInterfaces2";
 
 export function isObservable(obs: any): obs is ObservableObject {
     return obs && !!obs[symbolGetNode as any];
@@ -49,7 +50,7 @@ export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
     return value as OpaqueObject<T>;
 }
 
-export function lockObservable(obs: ObservableReadable, value: boolean) {
+export function lockObservable(obs: Observable<any>, value: boolean) {
     const root = getNode(obs)?.root;
     if (root) {
         root.locked = value;

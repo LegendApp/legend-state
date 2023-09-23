@@ -1,8 +1,24 @@
 import { beginBatch, endBatch } from './batching';
 import { isEvent } from './helpers';
 import { isFunction } from './is';
-import { ObserveEvent, ObserveEventCallback, Selector } from './observableInterfaces';
+import { Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';
+
+export interface ObserveEvent<T> {
+    num: number;
+    previous?: T | undefined;
+    cancel?: boolean;
+    onCleanup?: () => void;
+}
+
+export interface ObserveEventCallback<T> {
+    num: number;
+    previous?: T | undefined;
+    value?: T;
+    cancel?: boolean;
+    onCleanup?: () => void;
+    onCleanupReaction?: () => void;
+}
 
 export interface ObserveOptions {
     immediate?: boolean; // Ignore batching and run immediately

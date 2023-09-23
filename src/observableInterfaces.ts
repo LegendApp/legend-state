@@ -1,8 +1,8 @@
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { symbolGetNode, symbolOpaque } from './globals';
 import { DatabaseReference, Query, get } from 'firebase/database';
-import { peek, set } from './ObservableObject';
-import { onChange } from './onChange';
+import { ObservableEvent } from './event';
+import { Computed, ListenerFn, Observable, TrackingType } from './observableInterfaces2';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -39,124 +39,6 @@ interface MMKVConfiguration {
      * ```
      */
     encryptionKey?: string;
-}
-
-type Nullable<T> = T | null | undefined;
-export type TrackingType = undefined | true | symbol; // true === shallow
-
-export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
-    get(key: Parameters<T['get']>[0]): ObservableChild<Parameters<T['set']>[1]>;
-    get(): T;
-    size: ObservableChild<number>;
-}
-
-export type StripFirstArg<T extends Function> = T extends (arg: NodeValue, ...args: infer U) => infer R
-    ? (...args: U) => R
-    : T;
-
-export interface ObservableBaseFns<T> {
-    peek(): T;
-    get(trackingType?: TrackingType): T;
-    onChange(
-        cb: ListenerFn<T>,
-        options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
-    ): ObservableListenerDispose;
-}
-
-export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
-    delete(): this;
-    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): ObservablePrimitiveChild<T>;
-}
-
-export interface ObservablePrimitiveBooleanFns<T> {
-    toggle(): T;
-}
-
-export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
-    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): ObservableChild<T>;
-    assign(value: T | Partial<T>): ObservableChild<T>;
-    delete(): ObservableChild<T>;
-}
-
-export type ObservablePrimitive<T> = [T] extends [boolean]
-    ? ObservablePrimitiveBaseFns<T> & ObservablePrimitiveBooleanFns<T>
-    : ObservablePrimitiveBaseFns<T>;
-
-export interface ObservablePrimitiveChildFns<T> extends ObservablePrimitiveBaseFns<T> {
-    delete(): this;
-}
-
-type CallbackSetter<T> = {
-    bivarianceHack(prev: T): T;
-}['bivarianceHack'];
-
-export type OpaqueObject<T> = T & { [symbolOpaque]: true };
-
-type ArrayOverrideFnNames = 'find' | 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
-type RemoveIndex<T> = {
-    [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
-};
-export type ObservableArrayOverride<T> = Omit<RemoveIndex<Array<T>>, ArrayOverrideFnNames> &
-    Pick<Array<Observable<T>>, ArrayOverrideFnNames> & { [n: number]: Observable<T> };
-export interface ListenerParams<T = any> {
-    value: T;
-    getPrevious: () => T;
-    changes: Change[];
-}
-export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
-
-type PrimitiveProps<T> = Pick<T, PrimitiveKeys<T>>;
-type NonPrimitiveProps<T> = Omit<T, PrimitiveKeys<T>>;
-
-type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
-    ? T[K]
-    : T[K] extends Promise<infer t>
-    ? Observable<t & PromiseInfo>
-    : T[K] extends Function
-    ? T[K]
-    : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
-    ? ObservableProxyTwoWay<t, t2>
-    : T[K] extends ObservableProxy<infer t>
-    ? ObservableProxy<t>
-    : T[K] extends ObservableProxyLink<infer t>
-    ? ObservableProxyLink<t>
-    : T[K] extends Map<any, any> | WeakMap<any, any>
-    ? ObservableMap<T[K]>
-    : T[K] extends Set<any> | WeakSet<any>
-    ? ObservableSet<T[K]>
-    : T[K] extends Set<any> | WeakSet<any>
-    ? T[K] & ObservablePrimitiveBaseFns<T[K]>
-    : T[K] extends OpaqueObject<T[K]>
-    ? T[K] & ObservablePrimitiveChildFns<T[K]>
-    : T[K] extends Primitive
-    ? ObservablePrimitiveChild<T[K]>
-    : T[K] extends Array<any>
-    ? ObservableObjectFns<T[K]> & ObservableArrayOverride<T[K][number]>
-    : T extends object
-    ? TRecurse
-    : T[K];
-
-type ObservableFnsRecursiveUnsafe<T, NullableMarker> = {
-    [K in keyof T]-?: Recurse<T, K, ObservableObject<T[K], NullableMarker>>;
-};
-
-type ObservableFnsRecursiveSafe<T, NullableMarker> = Readonly<ObservableFnsRecursiveUnsafe<T, NullableMarker>>;
-
-type MakeNullable<T, NullableMarker> = {
-    [K in keyof T]: T[K] | (NullableMarker extends never ? never : undefined);
-};
-
-type ObservableFnsRecursive<T, NullableMarker> = ObservableFnsRecursiveSafe<NonPrimitiveProps<T>, NullableMarker> &
-    ObservableFnsRecursiveUnsafe<MakeNullable<PrimitiveProps<T>, NullableMarker>, NullableMarker>;
-
-type ObservableComputedFnsRecursive<T> = {
-    readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
-};
-
-export interface ObservableEvent {
-    fire(): void;
-    on(cb?: () => void): ObservableListenerDispose;
-    get(): void;
 }
 
 export type QueryByModified<T> =
@@ -196,8 +78,8 @@ export interface PersistOptionsLocal<T = any> {
 }
 export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
-    waitForGet?: Promise<any> | ObservableReadable<any>;
-    waitForSet?: Promise<any> | ObservableReadable<any>;
+    waitForGet?: Promise<any> | Observable<unknown>;
+    waitForSet?: Promise<any> | Observable<unknown>;
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSetIfError?: boolean;
@@ -279,7 +161,7 @@ export interface ObservablePersistRemoteSetParams<T> {
 }
 export interface ObservablePersistRemoteGetParams<T, TState = {}> {
     state: Observable<ObservablePersistState & TState>;
-    obs: ObservableReadable<T>;
+    obs: Observable<T>;
     options: PersistOptions<T, TState>;
     dateModified?: number;
     onGet: () => void;
@@ -356,10 +238,17 @@ export type FieldTransformsInner<T> = {
         [K in ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
     };
 
-export type Selector<T> = ObservableReadable<T> | ObservableEvent | (() => T) | T;
+export type Selector<T> = Observable<T> | ObservableEvent | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
-export type ObservableListenerDispose = () => void;
+
+export type Primitive = boolean | string | number | Date | undefined | null | symbol | bigint;
+
+export interface NodeValueListener {
+    track: TrackingType;
+    noArgs?: boolean;
+    listener: ListenerFn;
+}
 
 export interface ObservableRoot {
     _: any;
@@ -369,67 +258,6 @@ export interface ObservableRoot {
     activate?: () => void;
 }
 
-export type Primitive = boolean | string | number | Date | undefined | null | symbol | bigint;
-export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
-    Omit<ObservablePrimitiveBaseFns<T>, 'get' | 'size'> &
-    MapGet<T>;
-export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
-    Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
-export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
-export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
-export type ObservableObject<T = any, NullableMarker = never> = ObservableFnsRecursive<
-    NonNullable<T>,
-    Extract<T | NullableMarker, null | undefined>
-> &
-    ObservableObjectFns<T | (NullableMarker extends never ? never : undefined)>;
-
-export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
-export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
-    ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>
-    : ObservablePrimitiveChildFns<T>;
-
-export type ObservableObjectOrArray<T> = T extends Map<any, any> | WeakMap<any, any>
-    ? ObservableMap<T>
-    : T extends Set<any> | WeakSet<any>
-    ? ObservableSet<T>
-    : T extends any[]
-    ? ObservableArray<T>
-    : ObservableObject<T, Extract<T, undefined>>;
-
-export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
-export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveBaseFns<T2>;
-type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
-export type Observable<T = any> = Equals<T, any> extends true
-    ? ObservableObject<any>
-    : T extends object
-    ? ObservableObjectOrArray<T>
-    : ObservablePrimitive<T>;
-
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
-
-type Test = UnionToIntersection<Observable<{ foo: string } | string>>;
-
-// type Get = ReturnType<Test['get']>;
-// type Get = ReturnType<Test['foo']['get']>;
-
-export type ObservableReadable<T = any> =
-    | ObservableBaseFns<T>
-    | ObservablePrimitiveBaseFns<T>
-    | ObservablePrimitiveChildFns<T>
-    | ObservableObjectFns<T>
-    | ObservableMapIfMap<T>;
-
-export type ObservableWriteable<T = any> = ObservableReadable<T> & {
-    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): any;
-    delete?: () => any;
-};
-
-export interface NodeValueListener {
-    track: TrackingType;
-    noArgs?: boolean;
-    listener: ListenerFn;
-}
-
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
@@ -437,14 +265,14 @@ interface BaseNodeValue {
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
     isComputed?: boolean;
-    proxyFn?: (key: string) => ObservableReadable;
+    proxyFn?: (key: string) => Observable<unknown>;
     isEvent?: boolean;
     linkedToNode?: NodeValue;
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
     parentOther?: NodeValue;
-    functions?: Map<string, Function | ObservableComputed<any>>;
+    functions?: Map<string, Function | Observable<Computed<unknown>>>;
     lazy?: boolean;
 }
 
@@ -466,35 +294,6 @@ export interface TrackingNode {
     track: TrackingType;
     num: number;
 }
-export interface ObserveEvent<T> {
-    num: number;
-    previous?: T | undefined;
-    cancel?: boolean;
-    onCleanup?: () => void;
-}
-export interface ObserveEventCallback<T> {
-    num: number;
-    previous?: T | undefined;
-    value?: T;
-    cancel?: boolean;
-    onCleanup?: () => void;
-    onCleanupReaction?: () => void;
-}
-export type ObservableProxy<T extends Record<string, any>> = {
-    [K in keyof T]: ObservableComputed<T[K]>;
-} & ObservableBaseFns<T> & {
-        [symbolGetNode]: NodeValue;
-    };
-export type ObservableProxyLink<T extends Record<string, any>> = {
-    [K in keyof T]: Observable<T[K]>;
-} & ObservableBaseFns<T> & {
-        [symbolGetNode]: NodeValue;
-    };
-export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
-    [K in keyof T]: ObservableComputedTwoWay<T[K], T2>;
-} & ObservableBaseFns<T> & {
-        [symbolGetNode]: NodeValue;
-    };
 export type PromiseInfo = {
     error?: any;
     status?: 'pending' | 'rejected';

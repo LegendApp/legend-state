@@ -1,22 +1,20 @@
-import {
-    computeSelector,
-    isFunction,
-    ObservableReadable,
-    observe,
-    ObserveEvent,
-    ObserveEventCallback,
-    Selector,
-} from '@legendapp/state';
+import { computeSelector, isFunction, observe, Selector } from '@legendapp/state';
 import { useRef } from 'react';
-import type { ObserveOptions } from '../observe';
+import type { ObserveEvent, ObserveEventCallback, ObserveOptions } from '../observe';
 import { useUnmountOnce } from './useUnmount';
+import { Observable } from 'src/observableInterfaces2';
 
-export function useObserve<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
+export type ObservableListenerDispose = () => void;
+
+export function useObserve<T>(
+    run: (e: ObserveEvent<T>) => T | void,
+    options?: ObserveOptions,
+): ObservableListenerDispose;
 export function useObserve<T>(
     selector: Selector<T>,
     reaction?: (e: ObserveEventCallback<T>) => any,
     options?: ObserveOptions,
-): () => void;
+): ObservableListenerDispose;
 export function useObserve<T>(
     selector: Selector<T> | ((e: ObserveEvent<T>) => any),
     reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
@@ -30,7 +28,7 @@ export function useObserve<T>(
     }
 
     const ref = useRef<{
-        selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
+        selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | Observable<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
     }>({});

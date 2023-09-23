@@ -4,22 +4,43 @@ import { getNode, getNodeValue, setNodeValue } from './globals';
 import { isObservable, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
-import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
+import { Computed, Observable } from './observableInterfaces2';
 import { observe } from './observe';
 import { onChange } from './onChange';
 
-export function computed<T extends ObservableReadable>(compute: () => T | Promise<T>): T;
-export function computed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
+const state$ = observable({
+    items: ['hi', 'there', 'hello'],
+    selectedIndex: 0,
+});
+
+const selectedItem = computed(
+    () => {
+        const t = state$.items[state$.selectedIndex.get()];
+        return t;
+    },
+    (value) => {
+        if (value === undefined) return;
+        state$.selectedIndex.set(state$.items.get().indexOf(value));
+    },
+);
+
+selectedItem.get() === 'hi'; // true
+
+state$.selectedIndex.set(2);
+
+selectedItem.get() === 'hello'; // true
+
+selectedItem.set('there');
+
+export function computed<T>(compute: () => T | Observable<T>): Observable<Computed<T>>;
 export function computed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set: (value: T2) => void,
-): ObservableComputedTwoWay<T, T2>;
-export function computed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
-    set?: (value: T2) => void,
-): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
+    compute: () => T | Observable<T>,
+    set: (value: T) => void,
+): Observable<Computed<T, T2>>;
+export function computed<T, T2 = T>(compute: () => T, set?: (value: T2) => void): Observable<Computed<T, T2>> {
     // Create an observable for this computed variable
     const obs = observable<T>();
+    // @ts-expect-error type too complex
     lockObservable(obs, true);
 
     const node = getNode(obs);

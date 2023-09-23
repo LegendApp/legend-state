@@ -1,6 +1,13 @@
 import { getNode, symbolGetNode } from './globals';
 import { observable } from './observable';
-import type { ObservableEvent } from './observableInterfaces';
+import type { ObservableListenerDispose } from './observableInterfaces';
+import { Observable } from './observableInterfaces2';
+
+export type ObservableEvent = {
+    fire(): void;
+    on(cb?: () => void): ReturnType<Observable<any>['onChange']>;
+    get(): void;
+};
 
 export function event(): ObservableEvent {
     // event simply wraps around a number observable
