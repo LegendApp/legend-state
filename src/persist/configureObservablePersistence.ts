@@ -1,4 +1,4 @@
-import type { ObservablePersistenceConfig } from '@legendapp/state';
+import { ObservablePersistenceConfig } from './types';
 
 export const observablePersistConfiguration: ObservablePersistenceConfig = {};
 

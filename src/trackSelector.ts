@@ -1,6 +1,6 @@
 import { computeSelector, isObservable } from './helpers';
-import type { NodeValue, ObservableListenerDispose, Selector, TrackingNode } from './observableInterfaces';
-import type { ObserveOptions } from './observe';
+import type { NodeValue, Selector, TrackingNode } from './observableInterfaces';
+import type { ObserveEvent, ObserveOptions } from './observe';
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 

@@ -1,5 +1,6 @@
 import { checkActivate, getNodeValue } from './globals';
-import type { ListenerFn, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
+import type { NodeValue, NodeValueListener } from './observableInterfaces';
+import { ListenerFn, TrackingType } from './observableInterfaces2';
 
 export function onChange(
     node: NodeValue,

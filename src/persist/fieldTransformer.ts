@@ -1,13 +1,12 @@
 import {
     constructObjectWithPath,
     deconstructObjectWithPath,
-    FieldTransforms,
     isArray,
     isObject,
     isString,
     symbolDelete,
-    TypeAtPath,
 } from '@legendapp/state';
+import { FieldTransforms, TypeAtPath } from './types';
 
 let validateMap: (map: Record<string, any>) => void;
 

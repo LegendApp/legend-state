@@ -4,7 +4,7 @@ import { extractFunction, getChildNode, getNode, setNodeValue } from './globals'
 import { lockObservable } from './helpers';
 import { observable } from './observable';
 import { onChange } from './onChange';
-import { Computed, Observable, ReadonlyObservable, ReadonlyObservable, __brand } from './observableInterfaces2';
+import { Computed, Observable } from './observableInterfaces2';
 
 // TODO
 // export function proxy<T, T2 = T>(
@@ -25,7 +25,7 @@ const state = observable({
 const proxiedState = proxy((key: 'a' | 'b') => state.someObject[key]);
 const someValue = proxiedState['a'].get(); // number
 
-export function proxy<T, K extends string>(get: (key: K) => ReadonlyObservable<T>, set?: (key: K, value: T) => void) {
+export function proxy<T, K extends string>(get: (key: K) => Observable<T>, set?: (key: K, value: T) => void) {
     // Create an observable for this computed variable
     const obs = observable({});
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

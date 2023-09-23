@@ -1,6 +1,5 @@
 import { getNode, symbolGetNode } from './globals';
 import { observable } from './observable';
-import type { ObservableListenerDispose } from './observableInterfaces';
 import { Observable } from './observableInterfaces2';
 
 export type ObservableEvent = {

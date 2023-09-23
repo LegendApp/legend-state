@@ -38,8 +38,6 @@ export type MaybePromiseObservable<T> = Observable<MaybePromise<T>>;
 export function observable<T>(): MaybePromiseObservable<T | undefined>;
 export function observable<T>(value: T): MaybePromiseObservable<T>;
 export function observable<T>(value?: T): MaybePromiseObservable<T | undefined> {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore type too complex
     return createObservable(value, /*makePrimitive*/ false);
 }
 

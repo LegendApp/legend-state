@@ -1,6 +1,6 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableComputed, ObservableReadable } from './observableInterfaces';
-import {Observable} from "./observableInterfaces2";
+import { NodeValue } from './observableInterfaces';
+import { Computed, Observable } from './observableInterfaces2';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -148,13 +148,13 @@ export function extractFunction(node: NodeValue, key: string, fnOrComputed: Func
 export function extractFunction(
     node: NodeValue,
     key: string,
-    fnOrComputed: ObservableComputed,
+    fnOrComputed: Observable<Computed<any>>,
     computedChildNode: NodeValue,
 ): void;
 export function extractFunction(
     node: NodeValue,
     key: string,
-    fnOrComputed: Function | ObservableComputed,
+    fnOrComputed: Function | Observable<Computed<any>>,
     computedChildNode: NodeValue | undefined,
 ): void {
     if (!node.functions) {

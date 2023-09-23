@@ -1,22 +1,12 @@
 import { beginBatch, endBatch } from './batching';
+import { ObservableEvent } from './event';
 import { getNode, globalState, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
-import type {
-    NodeValue,
-    ObservableChild,
-    ObservableComputed,
-    ObservableEvent,
-    ObservableObject,
-    ObservableReadable,
-    ObservableWriteable,
-    ObserveEvent,
-    OpaqueObject,
-    Selector,
-    TypeAtPath,
-} from './observableInterfaces';
-import {Observable} from "./observableInterfaces2";
+import type { NodeValue, Selector } from './observableInterfaces';
+import { Computed, Observable, Opaque, ReadonlyObservable } from './observableInterfaces2';
+import { ObserveEvent } from './observe';
 
-export function isObservable(obs: any): obs is ObservableObject {
+export function isObservable(obs: any): obs is Observable<unknown> {
     return obs && !!obs[symbolGetNode as any];
 }
 
@@ -24,7 +14,7 @@ export function isEvent(obs: any): obs is ObservableEvent {
     return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
 }
 
-export function isComputed(obs: any): obs is ObservableComputed {
+export function isComputed(obs: any): obs is Observable<Computed<unknown>> {
     return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
 }
 
@@ -37,13 +27,13 @@ export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, r
     return isObservable(c) && !retainObservable ? c.get() : c;
 }
 
-export function getObservableIndex(obs: ObservableReadable): number {
+export function getObservableIndex(obs: ReadonlyObservable<any>): number {
     const node = getNode(obs);
     const n = +node.key! as number;
     return n - n < 1 ? +n : -1;
 }
 
-export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
+export function opaqueObject<T extends object>(value: T): Opaque<T> {
     if (value) {
         (value as OpaqueObject<T>)[symbolOpaque] = true;
     }
@@ -96,7 +86,7 @@ export function setAtPath<T extends object>(
 
     return obj;
 }
-export function setInObservableAtPath(obs: ObservableWriteable, path: string[], value: any, mode: 'assign' | 'set') {
+export function setInObservableAtPath(obs: Observable<any>, path: string[], value: any, mode: 'assign' | 'set') {
     let o: Record<string, any> = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
@@ -106,16 +96,16 @@ export function setInObservableAtPath(obs: ObservableWriteable, path: string[], 
     }
 
     if (v === symbolDelete) {
-        (o as ObservableChild).delete();
+        (o as Observable<unknown>).delete();
     }
     // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as ObservableObject).assign && isObject(o.peek())) {
-        (o as ObservableObject).assign(v);
+    else if (mode === 'assign' && (o as Observable<unknown>).assign && isObject(o.peek())) {
+        (o as Observable<object>).assign(v);
     } else {
         o.set(v);
     }
 }
-export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
+export function mergeIntoObservable<T extends Observable<object> | object>(target: T, ...sources: any[]): T {
     beginBatch();
     globalState.isMerging = true;
     for (let i = 0; i < sources.length; i++) {
@@ -125,7 +115,7 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     endBatch();
     return target;
 }
-function _mergeIntoObservable<T extends ObservableObject | object>(target: T, source: any): T {
+function _mergeIntoObservable<T extends Observable<object> | object>(target: T, source: any): T {
     const needsSet = isObservable(target);
     const targetValue = needsSet ? target.peek() : target;
 
@@ -194,7 +184,7 @@ export function isObservableValueReady(value: any) {
     return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
 }
 
-export function setSilently(obs: ObservableReadable, newValue: any) {
+export function setSilently(obs: Observable<any>, newValue: any) {
     const node = getNode(obs);
     return setNodeValue(node, newValue).newValue;
 }

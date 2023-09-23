@@ -26,15 +26,8 @@ import {
     isPromise,
     isSymbol,
 } from './is';
-import type {
-    ChildNodeValue,
-    NodeValue,
-    ObservableObjectFns,
-    ObservablePrimitiveBooleanFns,
-    ObservableValue,
-    PromiseInfo,
-    TrackingType,
-} from './observableInterfaces';
+import type { ChildNodeValue, NodeValue, PromiseInfo } from './observableInterfaces';
+import { Observable } from './observableInterfaces2';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -68,7 +61,8 @@ export const observableProperties = new Map<
     { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
 >();
 
-type ObservableFn = Omit<ObservableObjectFns<unknown>, '_' | '$' | 'use'> & ObservablePrimitiveBooleanFns<unknown>;
+type ObservableFnKey = 'get' | 'set' | 'peek' | 'onChange' | 'assign' | 'delete' | 'toggle';
+type ObservableFn = Pick<Observable<object>, ObservableFnKey>;
 
 /* insert node value as first argument */
 export type ObservableFnImpl<T extends Function> = T extends (...args: infer U) => infer R
@@ -76,7 +70,6 @@ export type ObservableFnImpl<T extends Function> = T extends (...args: infer U) 
     : never;
 
 type ObservableFnValues = ObservableFnImpl<ObservableFn[keyof ObservableFn]>;
-type ObservableFnKey = keyof ObservableFn;
 
 export const observableFns = new Map<ObservableFnKey, ObservableFnValues>([
     ['get', get],
@@ -330,12 +323,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-export function getProxy(node: NodeValue, p?: string) {
+export function getProxy(node: NodeValue, p?: string): Observable<unknown> {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
 
     // Create a proxy if not already cached and return it
-    return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
+    return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as Observable<unknown>;
 }
 
 const proxyHandler: ProxyHandler<NodeValue> = {

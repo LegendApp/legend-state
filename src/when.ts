@@ -1,7 +1,7 @@
 import { computeSelector, isObservableValueReady } from './helpers';
 import { isPromise } from './is';
-import type { ObserveEvent, Selector } from './observableInterfaces';
-import { observe } from './observe';
+import type { Selector } from './observableInterfaces';
+import { ObserveEvent, observe } from './observe';
 
 function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {
     // If predicate is a regular Promise skip all the observable stuff

@@ -1,5 +1,4 @@
 import { Diff } from 'utility-types';
-import { Change } from './observableInterfaces';
 
 /* type utilities */
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
@@ -9,7 +8,7 @@ type UnionToArray<T, A extends unknown[] = []> = IsUnion<T> extends true
     ? UnionToArray<Exclude<T, PopUnion<T>>, [PopUnion<T>, ...A]>
     : [T, ...A];
 
-type RemoveDistribution<T> = ([T] extends [ObservableSetter<infer U>] ? ObservableSetter<U> : never) & Omit<T, 'set'>;
+type RemoveDistribution<T> = ([T] extends [ObservableSetter<infer U>] ? ObservableSetter<U> : T) & Omit<T, 'set'>;
 
 /* merge utilities, makes it possible to traverse union types with nice DX */
 type MergeResult<T extends readonly [...any]> = Exclude<MergeObjects<T>, Merge<never, object>> & {};
@@ -36,6 +35,15 @@ export type Brand<K, T> = { [__brand]: T; __type: K };
 type Opaque<T> = Brand<T, 'Opaque'>;
 type None = Brand<never, 'None'>;
 type Computed<T, T2 = None> = Brand<T | T2, 'Computed'>;
+
+export type TypeAtPath = 'object' | 'array';
+
+export interface Change {
+    path: string[];
+    pathTypes: TypeAtPath[];
+    valueAtPath: any;
+    prevAtPath: any;
+}
 
 export interface ListenerParams<T = any> {
     value: T;
@@ -97,16 +105,18 @@ type NonTraversable =
     | WeakSet<any>
     | Primitive
     | Opaque<unknown>
-    | Computed<unknown>; // TODO double check if this is traversable or not
+    | Computed<unknown>
+    | None; // TODO double check if this is traversable or not
 
 type Traverse<
     T,
+    TObs,
     IsReadonly,
     IsParentNullable,
     IsSelfNullable = T extends undefined | null ? true : IsParentNullable,
 > = NonNullable<T> extends NonTraversable
-    ? {}
-    : {
+    ? RemoveDistribution<TObs>
+    : RemoveDistribution<TObs> & {
           [K in keyof T]-?: Observable<
               T[K] | (IsSelfNullable extends true ? undefined : never),
               IsReadonly,
@@ -114,23 +124,26 @@ type Traverse<
           >;
       } & Record<keyof T | string, Observable<T[keyof T] | undefined, IsReadonly, true>>;
 
-type Observable<T, IsReadonly = false, IsParentNullable = false> = MakeReadonly<
-    IsReadonly,
-    Exclude<T, never> extends Computed<infer U, infer U2>
-        ? ComputedObservable<U, U2>
-        : RemoveDistribution<
-              T extends object
-                  ? T extends Map<any, any> | WeakMap<any, any>
-                      ? ObservableMap<T>
-                      : T extends Set<any> | WeakSet<any>
-                      ? ObservableSet<T>
-                      : T extends any[]
-                      ? ObservableArray<T>
-                      : ObservableObject<T>
-                  : ObservablePrimitive<T>
-          >
-> &
-    Traverse<T, IsReadonly, IsParentNullable>;
+type Observable<T, IsReadonly = false, IsParentNullable = false> = //MakeReadonly<
+    // IsReadonly,
+    // Exclude<
+    Traverse<
+        T,
+        T extends Computed<infer U, infer U2>
+            ? ComputedObservable<U, U2>
+            : T extends object
+            ? T extends Map<any, any> | WeakMap<any, any>
+                ? ObservableMap<T>
+                : T extends Set<any> | WeakSet<any>
+                ? ObservableSet<T>
+                : T extends any[]
+                ? ObservableArray<T>
+                : ObservableObject<T>
+            : ObservablePrimitive<T>,
+        IsReadonly,
+        IsParentNullable
+    >;
+//  , None>;
 
 type MakeReadonly<IsReadonly, T> = IsReadonly extends true ? Omit<T, 'set' | 'delete'> : T;
 
@@ -138,12 +151,10 @@ type MakeReadonly<IsReadonly, T> = IsReadonly extends true ? Omit<T, 'set' | 'de
 //     ? Observable<UnionToIntersection<NonNullable<Exclude<T, Primitive>>> | Extract<T, Primitive>, true>
 //     : Observable<T, IsParentNullable>;
 
-type RootObservable<T, IsReadonly = false, IsParentNullable = false> = IsUnion<Extract<T, object>> extends true
-    ? Observable<
-          MergeResult<UnionToArray<NonNullable<Extract<T, object>>>> | Exclude<Exclude<T, object>, never>,
-          IsReadonly,
-          true
-      >
+type NonEmptyObject<T> = T extends object ? (T extends None ? never : T) : never;
+
+type RootObservable<T = any, IsReadonly = false, IsParentNullable = false> = IsUnion<NonEmptyObject<T>> extends true
+    ? Observable<MergeResult<UnionToArray<NonEmptyObject<T>>> | Extract<T, Primitive>, IsReadonly, true>
     : Observable<T, IsReadonly, IsParentNullable>;
 
 type ReadonlyObservable<T> = RootObservable<T, true>;
@@ -153,8 +164,9 @@ export type { RootObservable as Observable, Opaque, Computed, TrackingType, List
 /* tests */
 type Test = RootObservable<{ a: Date | string } | { b: string } | { b: number }>;
 const test: Test = {} as any;
+test.b.get();
 test.b.set(12);
 
-type TestComputed = RootObservable<{ a: Computed<number | undefined, number | undefined> }>;
+type TestComputed = RootObservable<{ a: Computed<number | undefined, number> }>;
 const computed: TestComputed = {} as any;
 computed.a.set(12);
