@@ -20,4 +20,5 @@ export type FCReactive<P, P2> = P &
 
 export interface UseSelectorOptions {
     suspend?: boolean;
+    skipCheck?: boolean;
 }

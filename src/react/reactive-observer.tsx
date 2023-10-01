@@ -73,7 +73,7 @@ function createReactiveComponent<P = object>(
 
                     // Convert children if it's a function
                     if (key === 'children' && (isFunction(p) || isObservable(p))) {
-                        props[key] = useSelector(p);
+                        props[key] = useSelector(p, { skipCheck: true });
                     }
                     // Convert reactive props
                     // TODOV2 Remove the deprecated endsWith option and also remove the types
@@ -126,7 +126,7 @@ function createReactiveComponent<P = object>(
 
             // If observing wrap the whole render in a useSelector to listen to it
             if (observe) {
-                return useSelector(() => Reflect.apply(target, thisArg, argArray));
+                return useSelector(() => Reflect.apply(target, thisArg, argArray), { skipCheck: true });
             } else {
                 return Reflect.apply(target, thisArg, argArray);
             }
