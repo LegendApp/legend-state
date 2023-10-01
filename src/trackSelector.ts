@@ -1,5 +1,6 @@
 import { computeSelector, isObservable } from './helpers';
 import type {
+    ListenerParams,
     NodeValue,
     ObservableListenerDispose,
     ObserveEvent,
@@ -12,7 +13,7 @@ import { beginTracking, endTracking, tracking } from './tracking';
 
 export function trackSelector<T>(
     selector: Selector<T>,
-    update: () => void,
+    update: (params: ListenerParams) => void,
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
     createResubscribe?: boolean,
@@ -23,12 +24,11 @@ export function trackSelector<T>(
     let tracker;
     let resubscribe: ObservableListenerDispose | undefined;
     let updateFn = update;
-    let noArgs = true;
 
     if (isObservable(selector)) {
         value = selector.peek();
-        dispose = selector.onChange(update, { noArgs: true });
-        resubscribe = createResubscribe ? selector.onChange(update, { noArgs: true }) : undefined;
+        dispose = selector.onChange(update);
+        resubscribe = createResubscribe ? selector.onChange(update) : undefined;
     } else {
         // Compute the selector inside a tracking context
         beginTracking();
@@ -40,7 +40,6 @@ export function trackSelector<T>(
         if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
             tracker.traceListeners?.(nodes);
             if (tracker.traceUpdates) {
-                noArgs = false;
                 updateFn = tracker.traceUpdates(update) as () => void;
             }
             // Clear tracing so it doesn't leak to other components
@@ -54,8 +53,8 @@ export function trackSelector<T>(
 
         // useSyncExternalStore doesn't subscribe until after the component mount.
         // We want to subscribe immediately so we don't miss any updates
-        dispose = setupTracking(nodes, updateFn, noArgs, observeOptions?.immediate);
-        resubscribe = createResubscribe ? () => setupTracking(nodes, updateFn, noArgs) : undefined;
+        dispose = setupTracking(nodes, updateFn, false, observeOptions?.immediate);
+        resubscribe = createResubscribe ? () => setupTracking(nodes, updateFn) : undefined;
     }
 
     return { value, dispose, resubscribe };

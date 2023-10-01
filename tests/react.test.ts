@@ -33,12 +33,12 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(2);
+        expect(num).toEqual(3);
         expect(result.current).toEqual('hello there');
         act(() => {
             obs.set('z');
         });
-        expect(num).toEqual(3);
+        expect(num).toEqual(5);
         expect(result.current).toEqual('z there');
     });
     test('useSelector with observable', () => {
@@ -79,12 +79,12 @@ describe('useSelector', () => {
             obs.set('hello');
             obs.set('hello2');
         });
-        expect(num).toEqual(2);
+        expect(num).toEqual(4); // Once for each set plus the render
         expect(result.current).toEqual('hello2 there');
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(3);
+        expect(num).toEqual(6); // Once for set plus render
         expect(result.current).toEqual('hello there');
     });
     test('useSelector two observables', () => {
@@ -106,17 +106,17 @@ describe('useSelector', () => {
             obs2.set('bb');
             obs2.set('b');
         });
-        expect(num).toEqual(2);
+        expect(num).toEqual(6);
         expect(result.current).toEqual('a b there');
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(3);
+        expect(num).toEqual(8);
         expect(result.current).toEqual('hello b there');
         act(() => {
             obs2.set('z');
         });
-        expect(num).toEqual(4);
+        expect(num).toEqual(10);
         expect(result.current).toEqual('hello z there');
     });
     test('useSelector cleaned up', () => {
@@ -176,7 +176,7 @@ describe('useSelector', () => {
         });
 
         expect(num).toEqual(3);
-        expect(numSelects).toEqual(3);
+        expect(numSelects).toEqual(6);
 
         act(() => {
             fr();
@@ -189,7 +189,7 @@ describe('useSelector', () => {
         });
 
         expect(num).toEqual(5);
-        expect(numSelects).toEqual(5);
+        expect(numSelects).toEqual(11);
     });
     test('useSelector runs twice in strict mode', () => {
         const obs = observable('hi');
@@ -211,7 +211,7 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(4);
+        expect(num).toEqual(6);
     });
     test('Renders once with one selector listening to multiple', () => {
         const obs = observable('hi');
@@ -232,7 +232,7 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(2);
+        expect(num).toEqual(3);
     });
     test('Renders once for each selector', () => {
         const obs = observable('hi');
@@ -262,7 +262,7 @@ describe('useSelector', () => {
             obs.set('hello');
         });
         // Goes up by two because it runs, decides to re-render, and runs again
-        expect(num).toEqual(6);
+        expect(num).toEqual(7);
     });
     test('useSelector renders once when set to the same thing', () => {
         const obs = observable('hi');
@@ -278,11 +278,45 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(2);
+        expect(num).toEqual(3);
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(2);
+        expect(num).toEqual(3); // Doesn't re-run the selector so it's not different
+    });
+    test('useSelector renders once when it returns the same thing', () => {
+        const obs = observable('hi');
+        let num = 0;
+        let num2 = 0;
+        let lastValue = false;
+
+        const Test = function Test() {
+            num2++;
+            lastValue = useSelector(() => {
+                num++;
+                return obs.get() === 'hi';
+            });
+
+            return createElement('div', undefined);
+        };
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(lastValue).toEqual(true);
+        expect(num).toEqual(1);
+        expect(num2).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(3);
+        expect(num2).toEqual(2);
+        act(() => {
+            obs.set('hello2');
+        });
+        expect(num).toEqual(4);
+        expect(num2).toEqual(2);
     });
 });
 

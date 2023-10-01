@@ -68,7 +68,7 @@ function createReactiveComponent<P = object>(
 
                     // Convert children if it's a function
                     if (key === 'children' && (isFunction(p) || isObservable(p))) {
-                        props[key] = useSelector(p);
+                        props[key] = useSelector(p, { skipCheck: true });
                     }
                     // Convert reactive props
                     else if (key.startsWith('$') || key.endsWith('$')) {
@@ -126,14 +126,17 @@ function createReactiveComponent<P = object>(
 
             // If observing wrap the whole render in a useSelector to listen to it
             if (observe) {
-                return useSelector(() => {
-                    reactGlobals.inObserver = true;
-                    try {
-                        return Reflect.apply(target, thisArg, argArray);
-                    } finally {
-                        reactGlobals.inObserver = false;
-                    }
-                });
+                return useSelector(
+                    () => {
+                        reactGlobals.inObserver = true;
+                        try {
+                            return Reflect.apply(target, thisArg, argArray);
+                        } finally {
+                            reactGlobals.inObserver = false;
+                        }
+                    },
+                    { skipCheck: true },
+                );
             } else {
                 return Reflect.apply(target, thisArg, argArray);
             }
