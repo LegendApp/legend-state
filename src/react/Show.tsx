@@ -22,17 +22,20 @@ type Props<T> = PropsBase<T> & (PropsIf<T> | PropsIfReady<T>);
 
 export function Show<T>(props: Props<T>): ReactElement;
 export function Show<T>({ if: if_, ifReady, else: else_, wrap, children }: Props<T>): ReactElement {
-    const child = useSelector(() => {
-        const value = computeSelector(if_ ?? ifReady);
-        return computeSelector(
-            (ifReady !== undefined ? isObservableValueReady(value) : value)
-                ? isFunction(children)
-                    ? () => children(value)
-                    : children
-                : else_
-                ? else_
-                : null,
-        );
-    });
+    const child = useSelector(
+        () => {
+            const value = computeSelector(if_ ?? ifReady);
+            return computeSelector(
+                (ifReady !== undefined ? isObservableValueReady(value) : value)
+                    ? isFunction(children)
+                        ? () => children(value)
+                        : children
+                    : else_
+                    ? else_
+                    : null,
+            );
+        },
+        { skipCheck: true },
+    );
     return wrap ? createElement(wrap, undefined, child) : child;
 }
