@@ -301,15 +301,37 @@ async function prepChange(queuedChange: QueuedChange) {
                                 if (!localState.pendingChanges) {
                                     localState.pendingChanges = {};
                                 }
-                                // The "p" saved in pending should be the previous state before changes,
-                                // so don't overwrite it if it already exists
-                                if (!localState.pendingChanges[pathStr]) {
-                                    localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
-                                }
 
-                                // Pending value is the untransformed value because it gets loaded without transformment
-                                // and forwarded through to onObsChange where it gets transformed before save
-                                localState.pendingChanges[pathStr].v = valueAtPath;
+                                // First look for existing pending changes at a higher level than this change
+                                // If they exist then merge this change into it
+                                const split = pathStr.split('/');
+                                let found = false;
+                                for (let i = 0; !found && i < split.length - 1; i++) {
+                                    const pathParent = split.slice(0, i + 1).join('/');
+                                    if (localState.pendingChanges[pathParent]) {
+                                        found = true;
+                                        const pathChild = split.slice(i + 1);
+                                        setAtPath(localState.pendingChanges[pathParent].v, pathChild, [], valueAtPath);
+                                    }
+                                }
+                                if (!found) {
+                                    // If an existing pending change is deeper than this change, just delete it
+                                    // in favor of this wider change
+                                    for (const key in localState.pendingChanges) {
+                                        if (key !== pathStr && key.startsWith(pathStr)) {
+                                            delete localState.pendingChanges[key];
+                                        }
+                                    }
+                                    // The "p" saved in pending should be the previous state before changes,
+                                    // so don't overwrite it if it already exists
+                                    if (!localState.pendingChanges[pathStr]) {
+                                        localState.pendingChanges[pathStr] = { p: prevAtPath ?? null, t: pathTypes };
+                                    }
+
+                                    // Pending value is the untransformed value because it gets loaded without transformment
+                                    // and forwarded through to onObsChange where it gets transformed before save
+                                    localState.pendingChanges[pathStr].v = valueAtPath;
+                                }
 
                                 // Prepare the remote change with the transformed path/value
                                 changesRemote.push({
