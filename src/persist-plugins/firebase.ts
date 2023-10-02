@@ -92,7 +92,7 @@ interface SaveState {
     pendingSaves: Map<string, PendingSaves>;
     savingSaves?: Map<string, PendingSaves>;
     eventSaved?: Observable<true | Error | undefined>;
-    numSavesPending: number;
+    numSavesPending: Observable<number>;
     pendingSaveResults: Map<
         string,
         {
@@ -182,7 +182,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const saveState: SaveState = {
             pendingSaveResults: new Map(),
             pendingSaves: new Map(),
-            numSavesPending: 0,
+            numSavesPending: observable(0),
         };
         this.saveStates.set(obs, saveState);
 
@@ -467,6 +467,9 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const saveState = this.saveStates.get(obs)!;
 
+        // Don't start a save until all outstanding saves are finished
+        await when(() => saveState.numSavesPending.get() === 0);
+
         const { pendingSaveResults, pendingSaves } = saveState;
 
         if (!pendingSaves.has(refPath)) {
@@ -518,7 +521,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 const { saved } = saveResults;
                 if (saved?.length) {
                     // Only want to return from saved one time
-                    if (saveState.numSavesPending === 0) {
+                    if (saveState.numSavesPending.get() === 0) {
                         pendingSaveResults.delete(refPath);
                     } else {
                         saveResults.saved = [];
@@ -613,7 +616,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         saveState.timeout = undefined;
         saveState.eventSaved = undefined;
-        saveState.numSavesPending++;
+        saveState.numSavesPending.set((v) => v + 1);
 
         if (pendingSaves.size > 0) {
             const batches = JSON.parse(JSON.stringify(this._constructBatchesForSave(pendingSaves))) as Record<
@@ -636,7 +639,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 const results = await Promise.all(promises);
                 const errors = results.filter((result) => result.error);
                 if (errors.length === 0) {
-                    saveState.numSavesPending--;
+                    saveState.numSavesPending.set((v) => v - 1);
                     eventSaved?.set(true);
                 } else {
                     eventSaved?.set(errors[0].error);
