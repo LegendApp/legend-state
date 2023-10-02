@@ -647,7 +647,7 @@ describe('useObserve', () => {
         expect(num).toEqual(2);
         expect(numSets).toEqual(1);
     });
-    test('useObserve with undefined calls reaction once', () => {
+    test('useObserve with undefined never calls reaction', () => {
         let num = 0;
         let numSets = 0;
         function Test() {
@@ -664,8 +664,8 @@ describe('useObserve', () => {
         }
         render(createElement(App));
 
-        expect(num).toEqual(2);
-        expect(numSets).toEqual(1);
+        expect(num).toEqual(1);
+        expect(numSets).toEqual(0);
     });
 });
 

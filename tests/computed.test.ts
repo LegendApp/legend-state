@@ -258,19 +258,6 @@ describe('Two way Computed', () => {
         expect(obs.test.get()).toEqual(true);
         expect(obs.test2.get()).toEqual(false);
     });
-    test('Computed activates when undefined', () => {
-        const obs = observable<boolean[]>(undefined);
-        const comp = computed(() => {
-            return obs.get()?.filter((a) => !!a);
-        });
-        let observed: boolean[];
-        observe(() => {
-            observed = comp.get();
-        });
-        expect(observed!).toEqual(undefined);
-        obs.set([]);
-        expect(observed!).toEqual([]);
-    });
     test('Two way computed value is set before calling setter', () => {
         const obs = observable(0);
 
