@@ -6,7 +6,6 @@ import { trackSelector } from './trackSelector';
 
 export interface ObserveOptions {
     immediate?: boolean; // Ignore batching and run immediately
-    retainObservable?: boolean;
 }
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
@@ -57,7 +56,11 @@ export function observe<T>(
         endBatch();
 
         // Call the reaction if there is one and the value changed
-        if (reaction && (e.num > 0 || !isEvent(selectorOrRun as any)) && e.previous !== e.value) {
+        if (
+            reaction &&
+            (e.num > 0 || !isEvent(selectorOrRun as any)) &&
+            (e.previous !== e.value || options?.fromComputed)
+        ) {
             reaction(e);
         }
 

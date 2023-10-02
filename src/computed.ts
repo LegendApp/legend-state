@@ -104,7 +104,7 @@ export function computed<T, T2 = T>(
                     setInner(value);
                 }
             },
-            { immediate: true, retainObservable: true },
+            { immediate: true, fromComputed: true },
         );
     };
 
