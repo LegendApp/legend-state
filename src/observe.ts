@@ -27,6 +27,7 @@ export function observe<T>(
         options = reactionOrOptions;
     }
     let dispose: (() => void) | undefined;
+    let isFirstRun = true;
     const e: ObserveEventCallback<T> = { num: 0 };
     // Wrap it in a function so it doesn't pass all the arguments to run()
     const update = function () {
@@ -55,7 +56,7 @@ export function observe<T>(
         }
 
         // Call the reaction if there is one and the value changed
-        if (reaction && (e.num > 0 || !isEvent(selectorOrRun as any)) && e.previous !== e.value) {
+        if (reaction && (e.num > 0 || !isEvent(selectorOrRun as any)) && (isFirstRun || e.previous !== e.value)) {
             reaction(e);
         }
 
@@ -66,6 +67,8 @@ export function observe<T>(
         e.num++;
 
         endBatch();
+
+        isFirstRun = false;
     };
 
     update();
