@@ -832,18 +832,33 @@ export function peek(node: NodeValue) {
 
 function activateNodeFunction(
     node: NodeValue &
-        ((value: { onSet: (fn: () => any) => any; onChange: (...props: any[]) => any }, childKey?: string) => any),
+        ((
+            value: {
+                onSet: (fn: () => any) => any;
+                subscribe: (fn: (params: { onChange: (...props: any[]) => any }) => void) => void;
+            },
+            childKey?: string,
+        ) => any),
     childNode?: NodeValue,
 ) {
+    let dispose: any;
+    let subscribed = false;
     const onSet = (setter: () => any) => {
-        onChange(node, setter as any);
+        dispose?.();
+        dispose = onChange(node, setter as any);
     };
     const onObsChange = (value: any) => {
         set(node, value);
     };
+    const subscribe = (fn: (params: { onChange: (...props: any[]) => any }) => void) => {
+        if (!subscribed) {
+            subscribed = true;
+            fn({ onChange: onObsChange });
+        }
+    };
     observe(
         () => {
-            return node({ onSet, onChange: onObsChange }, childNode?.key);
+            return node({ onSet, subscribe }, childNode?.key);
         },
         ({ value }) => {
             set(childNode || node, value);

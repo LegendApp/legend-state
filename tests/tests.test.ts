@@ -2986,23 +2986,90 @@ describe('new computed', () => {
         // @ts-expect-error asdf
         const obs = observable<{ child: { test: string } }>({
             // @ts-expect-error asdf
-            child: ({ onSet, onChange }) => {
+            child: ({ onSet, subscribe }) => {
                 // @ts-expect-error asdf
                 onSet(({ value }) => {
                     wasSetTo = value;
                 });
-                setTimeout(() => onChange({ test: 'hi' }), 0);
+                // @ts-expect-error asdf
+                subscribe(({ onChange }) => {
+                    setTimeout(() => {
+                        onChange({ test: 'hello' });
+                    }, 0);
+                });
                 return {
-                    test: 'hello',
+                    test: 'hi',
                 };
             },
         });
-        expect(obs.child.test.get()).toEqual('hello');
+        expect(obs.child.test.get()).toEqual('hi');
 
         await promiseTimeout(0);
 
+        expect(obs.child.test.get()).toEqual('hello');
+        expect(wasSetTo).toEqual({ test: 'hello' });
+    });
+    test('new computed with onChange and onSet other observable', async () => {
+        const other = observable('hi');
+        // @ts-expect-error asdf
+        const obs = observable<{ child: { test: string } }>({
+            // @ts-expect-error asdf
+            child: ({ onSet, subscribe }) => {
+                // @ts-expect-error asdf
+                onSet(({ value }) => {
+                    other.set(value.test);
+                });
+                // @ts-expect-error asdf
+                subscribe(({ onChange }) => {
+                    setTimeout(() => {
+                        onChange({ test: 'hello' });
+                    }, 0);
+                });
+                return {
+                    test: other.get(),
+                };
+            },
+        });
         expect(obs.child.test.get()).toEqual('hi');
-        expect(wasSetTo).toEqual({ test: 'hi' });
+
+        await promiseTimeout(0);
+
+        expect(obs.child.test.get()).toEqual('hello');
+        expect(other.get()).toEqual('hello');
+
+        other.set('hey');
+    });
+    test('new computed with onChange and onSet other other observable and async', async () => {
+        // In this test the initial promise takes longer than the onChange
+        // so it's discarded in favor of the onChange value
+        const other = observable('hi');
+        const obs = observable<{ child: { test: string } }>({
+            // @ts-expect-error asdf
+            child: async ({ onSet, subscribe }) => {
+                // @ts-expect-error asdf
+                onSet(({ value }) => {
+                    other.set(value.test);
+                });
+                // @ts-expect-error asdf
+                subscribe(({ onChange }) => {
+                    setTimeout(() => {
+                        onChange({ test: 'hello' });
+                    }, 0);
+                });
+
+                await promiseTimeout(10);
+                return {
+                    test: other.get(),
+                };
+            },
+        });
+
+        expect(obs.child.test.get()).toEqual(undefined);
+
+        await promiseTimeout(5);
+
+        expect(obs.child.test.get()).toEqual('hello');
+        expect(other.get()).toEqual('hello');
     });
     test('new computed proxy', async () => {
         const obs = observable<{ child: Record<string, string> }>({
