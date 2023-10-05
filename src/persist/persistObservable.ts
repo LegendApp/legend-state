@@ -304,14 +304,19 @@ async function prepChange(queuedChange: QueuedChange) {
 
                                 // First look for existing pending changes at a higher level than this change
                                 // If they exist then merge this change into it
-                                const split = pathStr.split('/');
                                 let found = false;
-                                for (let i = 0; !found && i < split.length - 1; i++) {
-                                    const pathParent = split.slice(0, i + 1).join('/');
-                                    if (localState.pendingChanges[pathParent]) {
+                                for (let i = 0; !found && i < path.length - 1; i++) {
+                                    const pathParent = path.slice(0, i + 1).join('/');
+                                    if (localState.pendingChanges[pathParent]?.v) {
                                         found = true;
-                                        const pathChild = split.slice(i + 1);
-                                        setAtPath(localState.pendingChanges[pathParent].v, pathChild, [], valueAtPath);
+                                        const pathChild = path.slice(i + 1);
+                                        const pathTypesChild = pathTypes.slice(i + 1);
+                                        setAtPath(
+                                            localState.pendingChanges[pathParent].v,
+                                            pathChild,
+                                            pathTypesChild,
+                                            valueAtPath,
+                                        );
                                     }
                                 }
                                 if (!found) {
