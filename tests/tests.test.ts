@@ -2955,3 +2955,64 @@ describe('setAtPath', () => {
         setAtPath(value, ['test', 'x'], ['object', 'object'], true);
     });
 });
+describe('new computed', () => {
+    test('new computed basic', () => {
+        // @ts-expect-error asdf
+        const obs = observable<{ child: { test: string } }>({
+            child: () => {
+                return {
+                    test: 'hello',
+                };
+            },
+        });
+        expect(obs.child.test.get()).toEqual('hello');
+    });
+    test('new computed async', async () => {
+        const obs = observable<{ child: { test: string } }>({
+            // @ts-expect-error asdf
+            child: async () => {
+                await promiseTimeout(0);
+                return {
+                    test: 'hello',
+                };
+            },
+        });
+        expect(obs.child.test.get()).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(obs.child.test.get()).toEqual('hello');
+    });
+    test('new computed with onChange and onSet', async () => {
+        let wasSetTo: any;
+        // @ts-expect-error asdf
+        const obs = observable<{ child: { test: string } }>({
+            // @ts-expect-error asdf
+            child: ({ onSet, onChange }) => {
+                // @ts-expect-error asdf
+                onSet(({ value }) => {
+                    wasSetTo = value;
+                });
+                setTimeout(() => onChange({ test: 'hi' }), 0);
+                return {
+                    test: 'hello',
+                };
+            },
+        });
+        expect(obs.child.test.get()).toEqual('hello');
+
+        await promiseTimeout(0);
+
+        expect(obs.child.test.get()).toEqual('hi');
+        expect(wasSetTo).toEqual({ test: 'hi' });
+    });
+    test('new computed proxy', async () => {
+        // @ts-expect-error asdf
+        const obs = observable<{ child: { test: string } }>({
+            child: (params: any, key: string) => {
+                return {
+                    test: key,
+                };
+            },
+        });
+        expect(obs.child.test.get()).toEqual(undefined);
+    });
+});

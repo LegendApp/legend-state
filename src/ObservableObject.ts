@@ -1,4 +1,5 @@
 import { createObservable } from './createObservable';
+import { isObservable } from './helpers';
 import { beginBatch, endBatch, notify } from './batching';
 import {
     checkActivate,
@@ -38,6 +39,7 @@ import type {
 } from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
+import { observe } from './observe';
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -320,9 +322,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-export function getProxy(node: NodeValue, p?: string): ObservableObject {
+export function getProxy(node: NodeValue, p?: string, asFunction?: Function): ObservableObject {
     // Get the child node if p prop
-    if (p !== undefined) node = getChildNode(node, p);
+    if (p !== undefined) node = getChildNode(node, p, asFunction);
 
     // Create a proxy if not already cached and return it
     return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as ObservableObject<any>;
@@ -414,6 +416,15 @@ const proxyHandler: ProxyHandler<any> = {
             return vProp;
         }
 
+        const fnOrComputed = node.functions?.get(p);
+        if (fnOrComputed) {
+            if (isObservable(fnOrComputed)) {
+                return fnOrComputed;
+            } else {
+                return getProxy(node, p, fnOrComputed as Function);
+            }
+        }
+
         // Handle function calls
         if (isFunction(vProp)) {
             if (isArray(value)) {
@@ -464,11 +475,6 @@ const proxyHandler: ProxyHandler<any> = {
                 //     updateTracking(getChildNode(node, p));
                 return vProp;
             }
-        }
-
-        const fnOrComputed = node.functions?.get(p);
-        if (fnOrComputed) {
-            return fnOrComputed;
         }
 
         // TODOV3: Remove "state"
@@ -541,6 +547,10 @@ const proxyHandler: ProxyHandler<any> = {
         const value = getNodeValue(node);
         return Reflect.has(value, prop);
     },
+    apply(target, thisArg, argArray) {
+        // If it's a function call it as a function
+        return Reflect.apply(target, thisArg, argArray);
+    },
 };
 
 export function set(node: NodeValue, newValue?: any) {
@@ -585,7 +595,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     const isRoot = !node.parent && key === '_';
 
     // Get the child node for updating and notifying
-    const childNode: NodeValue = isRoot ? node : getChildNode(node, key);
+    const childNode: NodeValue = isRoot ? node : getChildNode(node, key, isFunction(newValue) ? newValue : undefined);
 
     // Set the raw value on the parent object
     const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
@@ -799,9 +809,13 @@ export function peek(node: NodeValue) {
     // If node is not yet lazily computed go do that
     if (node.lazy) {
         delete node.lazy;
-        for (const key in value) {
-            if (hasOwnProperty.call(value, key)) {
-                extractFunctionOrComputed(node, value, key, value[key]);
+        if (isFunction(node)) {
+            activateNodeFunction(node as any);
+        } else {
+            for (const key in value) {
+                if (hasOwnProperty.call(value, key)) {
+                    extractFunctionOrComputed(node, value, key, value[key]);
+                }
             }
         }
     }
@@ -810,4 +824,23 @@ export function peek(node: NodeValue) {
     checkActivate(node);
 
     return value;
+}
+
+function activateNodeFunction(
+    node: NodeValue & ((value: { onSet: (fn: () => any) => any; onChange: (...props: any[]) => any }) => any),
+) {
+    const onSet = (setter: () => any) => {
+        onChange(node, setter as any);
+    };
+    const onObsChange = (value: any) => {
+        set(node, value);
+    };
+    observe(
+        () => {
+            return node({ onSet, onChange: onObsChange });
+        },
+        ({ value }) => {
+            set(node, value);
+        },
+    );
 }

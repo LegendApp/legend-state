@@ -90,7 +90,14 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export function getChildNode(node: NodeValue, key: string): NodeValue {
+const cloneFunction = (originalFunction: Function) => {
+    const length = originalFunction.length;
+    return length === 2
+        ? (arg1: any, arg2: any) => originalFunction(arg1, arg2)
+        : (...args: any[]) => originalFunction(...args);
+};
+
+export function getChildNode(node: NodeValue, key: string, asFunction?: Function): NodeValue {
     // Get the child by key
     let child = node.children?.get(key);
 
@@ -102,6 +109,9 @@ export function getChildNode(node: NodeValue, key: string): NodeValue {
             key,
             lazy: true,
         };
+        if (asFunction) {
+            child = Object.assign(cloneFunction(asFunction), child);
+        }
         if (!node.children) {
             node.children = new Map();
         }
@@ -163,6 +173,7 @@ export function extractFunction(
     if (!node.functions) {
         node.functions = new Map();
     }
+
     node.functions.set(key, fnOrComputed);
 
     if (computedChildNode) {
