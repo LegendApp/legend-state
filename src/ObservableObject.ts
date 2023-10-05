@@ -810,7 +810,11 @@ export function peek(node: NodeValue) {
     if (node.lazy) {
         delete node.lazy;
         if (isFunction(node)) {
-            activateNodeFunction(node as any);
+            if (node.length < 2) {
+                activateNodeFunction(node as any);
+            }
+        } else if (isFunction(node.parent) && node.parent.length === 2) {
+            activateNodeFunction(node.parent as any, node);
         } else {
             for (const key in value) {
                 if (hasOwnProperty.call(value, key)) {
@@ -827,7 +831,9 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(
-    node: NodeValue & ((value: { onSet: (fn: () => any) => any; onChange: (...props: any[]) => any }) => any),
+    node: NodeValue &
+        ((value: { onSet: (fn: () => any) => any; onChange: (...props: any[]) => any }, childKey?: string) => any),
+    childNode?: NodeValue,
 ) {
     const onSet = (setter: () => any) => {
         onChange(node, setter as any);
@@ -837,10 +843,10 @@ function activateNodeFunction(
     };
     observe(
         () => {
-            return node({ onSet, onChange: onObsChange });
+            return node({ onSet, onChange: onObsChange }, childNode?.key);
         },
         ({ value }) => {
-            set(node, value);
+            set(childNode || node, value);
         },
     );
 }
