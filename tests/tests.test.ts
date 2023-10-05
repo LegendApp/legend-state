@@ -2981,12 +2981,31 @@ describe('new computed', () => {
         await promiseTimeout(0);
         expect(obs.child.test.get()).toEqual('hello');
     });
+    test('new computed as a computed', () => {
+        const other = observable('hi');
+
+        // @ts-expect-error asdf
+        const obs = observable<{ child: { test: string } }>({
+            child: () => {
+                return {
+                    test: other.get(),
+                };
+            },
+        });
+        expect(obs.child.test.get()).toEqual('hi');
+
+        other.set('hello');
+
+        expect(obs.child.test.get()).toEqual('hello');
+    });
     test('new computed with onChange and onSet', async () => {
         let wasSetTo: any;
+        let numRuns = 0;
         // @ts-expect-error asdf
         const obs = observable<{ child: { test: string } }>({
             // @ts-expect-error asdf
             child: ({ onSet, subscribe }) => {
+                numRuns++;
                 // @ts-expect-error asdf
                 onSet(({ value }) => {
                     wasSetTo = value;
@@ -3008,6 +3027,7 @@ describe('new computed', () => {
 
         expect(obs.child.test.get()).toEqual('hello');
         expect(wasSetTo).toEqual({ test: 'hello' });
+        expect(numRuns).toEqual(1); // Only runs once because there's no observables
     });
     test('new computed with onChange and onSet other observable', async () => {
         const other = observable('hi');
