@@ -3005,14 +3005,12 @@ describe('new computed', () => {
         expect(wasSetTo).toEqual({ test: 'hi' });
     });
     test('new computed proxy', async () => {
-        // @ts-expect-error asdf
-        const obs = observable<{ child: { test: string } }>({
+        const obs = observable<{ child: Record<string, string> }>({
+            // @ts-expect-error asdf
             child: (params: any, key: string) => {
-                return {
-                    test: key,
-                };
+                return 'proxied_' + key;
             },
         });
-        expect(obs.child.test.get()).toEqual(undefined);
+        expect(obs.child.test.get()).toEqual('proxied_test');
     });
 });
