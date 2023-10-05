@@ -1,5 +1,6 @@
 import { extractPromise } from './ObservableObject';
-import { isActualPrimitive, isPromise } from './is';
+import { cloneFunction } from './globals';
+import { isActualPrimitive, isFunction, isPromise } from './is';
 import type {
     ClassConstructor,
     ObservableObjectOrArray,
@@ -15,14 +16,20 @@ export function createObservable<T>(
     createPrimitive?: Function,
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
     const valueIsPromise = isPromise<T>(value);
+    const valueIsFunction = isFunction(value);
+
     const root: ObservableRoot = {
         _: value,
     };
 
-    const node: NodeValue = {
+    let node: NodeValue = {
         root,
         lazy: true,
     };
+
+    if (valueIsFunction) {
+        node = Object.assign(cloneFunction(value), node);
+    }
 
     const prim = makePrimitive || isActualPrimitive(value);
 

@@ -90,7 +90,7 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-const cloneFunction = (originalFunction: Function) => {
+export const cloneFunction = (originalFunction: Function) => {
     const length = originalFunction.length;
     return length > 1
         ? (arg1: any, arg2: any) => originalFunction(arg1, arg2)
