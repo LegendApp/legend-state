@@ -1,4 +1,4 @@
-import type { ChildNodeValue, NodeValue } from './observableInterfaces';
+import type { ChildNodeValue, NodeValue } from './nodeValueTypes';
 
 export const hasOwnProperty = Object.prototype.hasOwnProperty;
 

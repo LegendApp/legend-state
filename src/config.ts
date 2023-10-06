@@ -1,6 +1,6 @@
 import { observableProperties as _observableProperties, observableFns } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
-import type { NodeValue } from './observableInterfaces';
+import type { NodeValue } from './nodeValueTypes';
 
 export function configureLegendState({
     observableFunctions,
@@ -12,8 +12,8 @@ export function configureLegendState({
     if (observableFunctions) {
         for (const key in observableFunctions) {
             const fn = observableFunctions[key];
-            observableFns.set(key, fn);
-            ObservablePrimitiveClass.prototype[key] = function (...args: any[]) {
+            observableFns[key] = fn;
+            (ObservablePrimitiveClass.prototype as any)[key] = function (...args: any[]) {
                 return fn.call(this, this._node, ...args);
             };
         }

@@ -18,7 +18,7 @@ import {
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
-import { Observable, ListenerParams } from 'src/observableInterfaces2';
+import { Observable, ListenerParams, TypeAtPath, Change } from 'src/observableTypes';
 import {
     ClassConstructor,
     ObservablePersistLocal,

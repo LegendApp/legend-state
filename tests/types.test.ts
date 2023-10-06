@@ -1,7 +1,7 @@
 import { expectTypeOf } from 'expect-type';
 import { observable } from '../src/observable';
-import { ObservableArray, ObservableObject, ObservablePrimitive, PromiseInfo } from '../src/observableInterfaces';
-import { Observable } from 'src/observableInterfaces2';
+import { PromiseInfo } from '../src/nodeValueTypes';
+import { Computed, Observable } from 'src/observableTypes';
 
 describe('Types', () => {
     describe('observable', () => {
@@ -11,7 +11,7 @@ describe('Types', () => {
             }
 
             type ObservableFn = ReturnType<typeof noArgsObjectType>;
-            expectTypeOf<ObservableFn>().toEqualTypeOf<ObservableObject<{ foo: number }, undefined>>();
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<{ foo: number } | undefined>();
         });
 
         it('optional return type when no argument is passed', () => {
@@ -100,9 +100,6 @@ describe('Types', () => {
         describe('with state object', () => {
             it('should infer object', () => {
                 type State = Observable<{ foo: string }>;
-                // expectTypeOf<State>().toMatchTypeOf<ObservableObject<{ foo: string }>>();
-                // expectTypeOf<State>().not.toMatchTypeOf<ObservableArray<any[]>>();
-                // expectTypeOf<State>().not.toMatchTypeOf<ObservablePrimitive<any>>();
                 expectTypeOf<State['get']>().returns.toBeObject();
             });
 
@@ -147,6 +144,8 @@ describe('Types', () => {
                     type State = Observable<{ foo?: { bar: string | null } }>;
                     expectTypeOf<State['foo']['bar']['get']>().returns.toEqualTypeOf<string | undefined | null>();
                 });
+
+                // TODO what happens if you have Observable<{ foo?: { bar: string, baz: number }} and obs$.foo.baz.set(12) ?
             });
 
             describe('with nested state primitive', () => {
@@ -165,6 +164,11 @@ describe('Types', () => {
                     expectTypeOf<GetState>().returns.toBeBoolean();
                 });
 
+                it('should infer date', () => {
+                    type GetState = Observable<{ foo: Date }>['foo']['get'];
+                    expectTypeOf<GetState>().returns.toEqualTypeOf<Date>();
+                });
+
                 it('should infer null', () => {
                     type GetState = Observable<{ foo: null }>['foo']['get'];
                     expectTypeOf<GetState>().returns.toBeNull();
@@ -177,9 +181,51 @@ describe('Types', () => {
             });
         });
 
-        it('should infer array', () => {
-            type GetState = Observable<{ foo: 'bar' }[]>;
-            expectTypeOf<GetState>().toMatchTypeOf<ObservableArray<{ foo: string }[]>>();
+        describe('with array', () => {
+            it('should infer array with object elements', () => {
+                type State = Observable<{ foo: string }[]>;
+                expectTypeOf<State['get']>().returns.toEqualTypeOf<{ foo: string }[]>();
+                expectTypeOf<State>().toMatchTypeOf<Array<Observable<{ foo: string }>>>();
+            });
+
+            it('should infer array with primitive elements', () => {
+                type State = Observable<string[]>;
+                expectTypeOf<State['get']>().returns.toEqualTypeOf<string[]>();
+                expectTypeOf<State[number]>().toEqualTypeOf<Observable<string>>();
+                expectTypeOf<State>().toMatchTypeOf<Array<Observable<string>>>();
+            });
+        });
+
+        describe('with computed', () => {
+            it('should infer computed', () => {
+                type State = Observable<Computed<string>>;
+                expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
+                expectTypeOf<State>().not.toHaveProperty('set');
+            });
+
+            it('should infer two way computed', () => {
+                type State = Observable<Computed<string, number>>;
+                expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
+                expectTypeOf<State>().toHaveProperty('set');
+                expectTypeOf<State['set']>().parameter(0).toEqualTypeOf<number | ((value: number) => number)>();
+            });
+        });
+
+        describe('with function', () => {
+            it('should infer function', () => {
+                type State = Observable<{ foo: () => void }>;
+                expectTypeOf<State['foo']>().toEqualTypeOf<() => void>();
+            });
+
+            it('should infer nested function', () => {
+                type State = Observable<{ foo: { bar: () => void } }>;
+                expectTypeOf<State['foo']['bar']>().toEqualTypeOf<() => void>();
+            });
+
+            it('should make nested function optional if parent is optional', () => {
+                type State = Observable<{ foo?: { bar: () => void } }>;
+                expectTypeOf<State['foo']['bar']>().toEqualTypeOf<(() => void) | undefined>();
+            });
         });
 
         it('should infer Map', () => {
@@ -199,8 +245,15 @@ describe('Types', () => {
             });
 
             it('with array', () => {
-                type GetState = Observable<{ foo: string }[] | undefined>['get'];
-                expectTypeOf<ReturnType<GetState>>().toEqualTypeOf<{ foo: string }[] | undefined>();
+                type State = Observable<{ foo: string }[] | undefined>;
+                expectTypeOf<State['get']>().returns.toEqualTypeOf<{ foo: string }[] | undefined>();
+                expectTypeOf<State[number]>().toEqualTypeOf<Observable<{ foo: string } | undefined>>();
+                expectTypeOf<State>().toMatchTypeOf<Array<Observable<{ foo: string } | undefined>>>();
+            });
+
+            it('with function', () => {
+                type State = Observable<{ foo: () => void }>;
+                expectTypeOf<State['foo']>().toEqualTypeOf<() => void>();
             });
         });
     });

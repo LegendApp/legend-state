@@ -6,7 +6,7 @@ import { act, render, renderHook } from '@testing-library/react';
 import { StrictMode, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
-import { Observable } from '../src/observableInterfaces2';
+import { Observable } from '../src/observableTypes';
 import { For } from '../src/react/For';
 import { Show } from '../src/react/Show';
 import { observer } from '../src/react/reactive-observer';

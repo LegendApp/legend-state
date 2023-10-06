@@ -1,6 +1,6 @@
 import { computeSelector, isObservableValueReady } from './helpers';
 import { isPromise } from './is';
-import type { Selector } from './observableInterfaces';
+import type { Selector } from './nodeValueTypes';
 import { ObserveEvent, observe } from './observe';
 
 function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {

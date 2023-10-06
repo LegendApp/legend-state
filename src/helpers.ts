@@ -1,12 +1,12 @@
 import { beginBatch, endBatch } from './batching';
 import { ObservableEvent } from './event';
-import { getNode, globalState, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
+import { getNode, globalState, setNodeValue, symbolDelete, symbolGetNode } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
-import type { NodeValue, Selector } from './observableInterfaces';
-import { Computed, Observable, Opaque, ReadonlyObservable } from './observableInterfaces2';
+import type { NodeValue, Selector } from './nodeValueTypes';
+import { Computed, Observable, ObservableObject, TypeAtPath } from './observableTypes';
 import { ObserveEvent } from './observe';
 
-export function isObservable(obs: any): obs is Observable<unknown> {
+export function isObservable<T = any>(obs: any | Observable<T>): obs is Observable<T> {
     return obs && !!obs[symbolGetNode as any];
 }
 
@@ -18,26 +18,39 @@ export function isComputed(obs: any): obs is Observable<Computed<unknown>> {
     return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
 }
 
-export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean) {
-    let c = selector as any;
-    if (isFunction(c)) {
-        c = e ? c(e) : c();
+export function computeSelector<T>(
+    selector: Selector<T> | ((e: ObserveEvent<T>) => void | T),
+    e?: ObserveEvent<T>,
+    retainObservable?: boolean,
+): Observable<T> | T;
+export function computeSelector<T>(
+    selector: Selector<T> | ((e: ObserveEvent<T>) => void | T),
+    e?: ObserveEvent<T>,
+    retainObservable?: false,
+): T;
+export function computeSelector<T>(
+    selector: Selector<T> | ((e: ObserveEvent<T>) => void | T),
+    e?: ObserveEvent<T>,
+    retainObservable?: undefined,
+): T;
+export function computeSelector<T>(
+    selector: Selector<T> | ((e: ObserveEvent<T>) => void | T),
+    e?: ObserveEvent<T>,
+    retainObservable?: boolean,
+): Observable<T> | T {
+    let c: T | void | typeof selector = selector;
+
+    if (isFunction(selector)) {
+        c = e ? selector(e) : (selector as () => T)();
     }
 
     return isObservable(c) && !retainObservable ? c.get() : c;
 }
 
-export function getObservableIndex(obs: ReadonlyObservable<any>): number {
+export function getObservableIndex(obs: Observable<unknown>): number {
     const node = getNode(obs);
     const n = +node.key! as number;
     return n - n < 1 ? +n : -1;
-}
-
-export function opaqueObject<T extends object>(value: T): Opaque<T> {
-    if (value) {
-        (value as OpaqueObject<T>)[symbolOpaque] = true;
-    }
-    return value as OpaqueObject<T>;
 }
 
 export function lockObservable(obs: Observable<any>, value: boolean) {
@@ -86,26 +99,28 @@ export function setAtPath<T extends object>(
 
     return obj;
 }
+
 export function setInObservableAtPath(obs: Observable<any>, path: string[], value: any, mode: 'assign' | 'set') {
-    let o: Record<string, any> = obs;
+    let o = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
-        o = o[p];
+        o = (o as any)[p] as Observable<any>;
         v = v[p];
     }
 
     if (v === symbolDelete) {
-        (o as Observable<unknown>).delete();
+        o.delete();
     }
     // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as Observable<unknown>).assign && isObject(o.peek())) {
-        (o as Observable<object>).assign(v);
+    else if (mode === 'assign' && 'assign' in o && isObject(o.peek())) {
+        (o as ObservableObject<any>).assign(v);
     } else {
         o.set(v);
     }
 }
-export function mergeIntoObservable<T extends Observable<object> | object>(target: T, ...sources: any[]): T {
+
+export function mergeIntoObservable<T extends ObservableObject<any> | object>(target: T, ...sources: any[]): T {
     beginBatch();
     globalState.isMerging = true;
     for (let i = 0; i < sources.length; i++) {
@@ -115,7 +130,8 @@ export function mergeIntoObservable<T extends Observable<object> | object>(targe
     endBatch();
     return target;
 }
-function _mergeIntoObservable<T extends Observable<object> | object>(target: T, source: any): T {
+
+function _mergeIntoObservable<T extends ObservableObject<any> | object>(target: T, source: any): T {
     const needsSet = isObservable(target);
     const targetValue = needsSet ? target.peek() : target;
 
@@ -126,11 +142,11 @@ function _mergeIntoObservable<T extends Observable<object> | object>(target: T, 
         (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
         (isTargetArr && isArray(source) && targetValue.length > 0)
     ) {
-        const keys: string[] = Object.keys(source);
+        const keys = Object.keys(source) as (keyof T)[];
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            const sourceValue = (source as Record<string, any>)[key];
+            const sourceValue = (source as Record<keyof T, any>)[key];
             if (sourceValue === symbolDelete) {
                 needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
             } else {
@@ -156,6 +172,7 @@ function _mergeIntoObservable<T extends Observable<object> | object>(target: T, 
 
     return target;
 }
+
 export function constructObjectWithPath(path: string[], value: any, pathTypes: TypeAtPath[]): object {
     let out;
     if (path.length > 0) {
@@ -171,6 +188,7 @@ export function constructObjectWithPath(path: string[], value: any, pathTypes: T
 
     return out;
 }
+
 export function deconstructObjectWithPath(path: string[], value: any): object {
     let o = value;
     for (let i = 0; i < path.length; i++) {
@@ -180,6 +198,7 @@ export function deconstructObjectWithPath(path: string[], value: any): object {
 
     return o;
 }
+
 export function isObservableValueReady(value: any) {
     return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
 }

@@ -5,6 +5,7 @@ import {
     type ObservablePersistRemoteSetParams,
 } from '@legendapp/state';
 import {
+    DefaultedQueryObserverOptions,
     InfiniteQueryObserver,
     MutationObserver,
     QueryClient,
@@ -71,7 +72,11 @@ export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData
 
     const ret: ObservablePersistRemoteFunctions<
         unknown,
-        { query: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> }
+        {
+            query:
+                | UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>
+                | DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>;
+        }
     > = {
         get({ onChange, state }) {
             let observer: QueryObserver<TQueryFnData, TError, TData, TQueryData, TQueryKey> | undefined = undefined;

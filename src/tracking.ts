@@ -1,4 +1,5 @@
-import type { NodeValue, TrackingNode, TrackingType } from './observableInterfaces';
+import type { NodeValue, TrackingNode } from './nodeValueTypes';
+import { TrackingType } from './observableTypes';
 
 interface TrackingState {
     nodes?: Map<NodeValue, TrackingNode>;

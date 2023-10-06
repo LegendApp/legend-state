@@ -1,6 +1,7 @@
 import { getNodeValue, optimized } from './globals';
 import { isArray } from './is';
-import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
+import type { NodeValue } from './nodeValueTypes';
+import { Change, ListenerFn, ListenerParams, TypeAtPath } from './observableTypes';
 
 interface BatchItem {
     value: any;

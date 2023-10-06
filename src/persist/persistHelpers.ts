@@ -1,4 +1,4 @@
-import { isObject } from '@legendapp/state';
+import { isObject } from '../is';
 
 export function removeNullUndefined<T extends Record<string, any>>(val: T) {
     if (val === undefined) return null;

@@ -2,7 +2,7 @@ import { isFunction, observe, Selector } from '@legendapp/state';
 import { useRef } from 'react';
 import type { ObserveEvent, ObserveEventCallback, ObserveOptions } from '../observe';
 import { useEffectOnce } from './useEffectOnce';
-import { Observable } from 'src/observableInterfaces2';
+import { Observable } from 'src/observableTypes';
 
 export function useObserveEffect<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): void;
 export function useObserveEffect<T>(

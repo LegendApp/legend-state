@@ -1,7 +1,7 @@
 import { beginBatch, endBatch } from './batching';
 import { isEvent } from './helpers';
 import { isFunction } from './is';
-import { Selector } from './observableInterfaces';
+import { Selector } from './nodeValueTypes';
 import { trackSelector } from './trackSelector';
 
 export interface ObserveEvent<T> {

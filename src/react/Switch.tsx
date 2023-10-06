@@ -31,7 +31,7 @@ export function Switch<T>({
     children: Partial<Record<any, () => ReactNode>>;
 }): ReactElement {
     // Select from an object of cases
-    return ((children as Record<any, () => ReactNode>)[useSelector(value)!]?.() ??
+    return ((children as Record<any, () => ReactNode>)[useSelector(value!)]?.() ??
         (children as Record<any, () => ReactNode>)['default']?.() ??
         null) as ReactElement;
 }

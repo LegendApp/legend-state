@@ -2,7 +2,7 @@ import { computeSelector, isPromise, Selector, trackSelector } from '@legendapp/
 import React, { useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import { reactGlobals } from './react-globals';
-import type { UseSelectorOptions } from './reactInterfaces';
+import type { UseSelectorOptions } from './reactTypes';
 
 interface SelectorFunctions<T> {
     subscribe: (onStoreChange: () => void) => () => void;
@@ -61,7 +61,7 @@ function createSelectorFunctions<T>(): SelectorFunctions<T> {
 export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
     // Short-circuit to skip creating the hook if the parent component is an observer
     if (reactGlobals.inObserver) {
-        return computeSelector(selector);
+        return computeSelector(selector, undefined, false);
     }
 
     const ref = useRef<SelectorFunctions<T>>();
@@ -70,7 +70,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     }
     const { subscribe, getVersion, run } = ref.current;
 
-    const value = run(selector) as any;
+    const value = run(selector);
 
     useSyncExternalStore(subscribe, getVersion, getVersion);
 

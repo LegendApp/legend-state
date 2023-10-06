@@ -1,11 +1,11 @@
 import { computeSelector, isObservable } from './helpers';
-import type { NodeValue, Selector, TrackingNode } from './observableInterfaces';
+import type { NodeValue, Selector, TrackingNode } from './nodeValueTypes';
 import type { ObserveEvent, ObserveOptions } from './observe';
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 
 export function trackSelector<T>(
-    selector: Selector<T>,
+    selector: Selector<T> | ((e: ObserveEvent<T>) => T),
     update: () => void,
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
@@ -15,7 +15,7 @@ export function trackSelector<T>(
     let value;
     let dispose;
     let tracker;
-    let resubscribe: ObservableListenerDispose | undefined;
+    let resubscribe: (() => void) | undefined;
     let updateFn = update;
     let noArgs = true;
 

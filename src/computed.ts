@@ -4,7 +4,7 @@ import { getNode, getNodeValue, setNodeValue } from './globals';
 import { isObservable, lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
-import { Computed, Observable } from './observableInterfaces2';
+import { Computed, Observable } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
 
@@ -35,12 +35,12 @@ selectedItem.set('there');
 export function computed<T>(compute: () => T | Observable<T>): Observable<Computed<T>>;
 export function computed<T, T2 = T>(
     compute: () => T | Observable<T>,
-    set: (value: T) => void,
+    set: (value: T2) => void,
 ): Observable<Computed<T, T2>>;
 export function computed<T, T2 = T>(compute: () => T, set?: (value: T2) => void): Observable<Computed<T, T2>> {
     // Create an observable for this computed variable
     const obs = observable<T>();
-    // @ts-expect-error type too complex
+
     lockObservable(obs, true);
 
     const node = getNode(obs);

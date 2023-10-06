@@ -2,7 +2,6 @@ import { computeSelector, isFunction, observe, Selector } from '@legendapp/state
 import { useRef } from 'react';
 import type { ObserveEvent, ObserveEventCallback, ObserveOptions } from '../observe';
 import { useUnmountOnce } from './useUnmount';
-import { Observable } from 'src/observableInterfaces2';
 
 export type ObservableListenerDispose = () => void;
 
@@ -28,7 +27,7 @@ export function useObserve<T>(
     }
 
     const ref = useRef<{
-        selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | Observable<T>;
+        selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void);
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
     }>({});
@@ -38,7 +37,7 @@ export function useObserve<T>(
 
     if (!ref.current.dispose) {
         ref.current.dispose = observe<T>(
-            ((e: ObserveEventCallback<T>) => computeSelector(ref.current.selector, e)) as any,
+            (e: ObserveEventCallback<T>) => computeSelector(ref.current.selector!, e),
             (e) => ref.current.reaction?.(e),
             options,
         );

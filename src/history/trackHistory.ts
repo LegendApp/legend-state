@@ -1,18 +1,11 @@
-import {
-    ObservableReadable,
-    ObservableWriteable,
-    constructObjectWithPath,
-    internal,
-    mergeIntoObservable,
-    observable,
-} from '@legendapp/state';
+import { Observable, constructObjectWithPath, internal, mergeIntoObservable, observable } from '@legendapp/state';
 
 // This type is purely for documentation.
 type TimestampAsString = string;
 
 export function trackHistory<T>(
-    obs: ObservableReadable<T>,
-    targetObservable?: ObservableWriteable<Record<TimestampAsString, Partial<T>>>,
+    obs: Observable<T>,
+    targetObservable?: Observable<Record<TimestampAsString, Partial<T>>>,
 ) {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>({});
 

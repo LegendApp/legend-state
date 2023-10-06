@@ -23,7 +23,8 @@ type Props<T> = PropsBase<T> & (PropsIf<T> | PropsIfReady<T>);
 export function Show<T>(props: Props<T>): ReactElement;
 export function Show<T>({ if: if_, ifReady, else: else_, wrap, children }: Props<T>): ReactElement {
     const child = useSelector(() => {
-        const value = computeSelector(if_ ?? ifReady);
+        const selector = if_ ?? ifReady;
+        const value = selector && computeSelector(selector);
         return computeSelector(
             (ifReady !== undefined ? isObservableValueReady(value) : value)
                 ? isFunction(children)
@@ -32,7 +33,7 @@ export function Show<T>({ if: if_, ifReady, else: else_, wrap, children }: Props
                 : else_
                 ? else_
                 : null,
-        );
+        ) as any;
     });
-    return wrap ? createElement(wrap, undefined, child) : child;
+    return (wrap ? createElement(wrap, undefined, child) : child) as ReactElement;
 }

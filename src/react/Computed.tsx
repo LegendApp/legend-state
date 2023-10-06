@@ -1,7 +1,7 @@
 import { ReactElement, ReactNode } from 'react';
-import type { ObservableReadable } from '../observableInterfaces';
+import type { Observable } from '../observableTypes';
 import { useSelector } from './useSelector';
 
-export function Computed({ children }: { children: ObservableReadable | (() => ReactNode) }): ReactElement {
+export function Computed({ children }: { children: Observable<any> | (() => ReactNode) }): ReactElement {
     return useSelector(children) as ReactElement;
 }

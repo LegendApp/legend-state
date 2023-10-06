@@ -1,5 +1,5 @@
 import { ObservableEvent } from './event';
-import { Computed, ListenerFn, Observable, TrackingType } from './observableInterfaces2';
+import { Computed, ListenerFn, Observable, TrackingType } from './observableTypes';
 
 export type Selector<T> = Observable<T> | ObservableEvent | (() => T) | T;
 

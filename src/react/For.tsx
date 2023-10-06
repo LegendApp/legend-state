@@ -1,4 +1,4 @@
-import type { Observable, ObservableObject, ObservableReadable } from '@legendapp/state';
+import type { Observable } from '@legendapp/state';
 import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
 import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
@@ -14,7 +14,7 @@ export function For<T, TProps>({
     sortValues,
     children,
 }: {
-    each?: ObservableReadable<T[] | Record<any, T> | Map<any, T>>;
+    each?: Observable<T[]> | Observable<Record<any, T>> | Observable<Map<any, T>>;
     optimized?: boolean;
     item?: FC<{ item: Observable<T>; id?: string } & TProps>;
     itemProps?: TProps;
@@ -56,9 +56,9 @@ export function For<T, TProps>({
 
     if (isArr) {
         // Get the appropriate id field
-        const v0 = value[0] as any;
+        const v0 = value[0];
         const node = getNode(each!);
-        const length = (value as any[]).length;
+        const length = value.length;
 
         const idField =
             length > 0
@@ -82,15 +82,17 @@ export function For<T, TProps>({
         const isMap = value instanceof Map;
         const keys = isMap ? Array.from(value.keys()) : Object.keys(value);
         if (sortValues) {
-            keys.sort((A, B) => sortValues(isMap ? value.get(A)! : value[A], isMap ? value.get(B)! : value[B], A, B));
+            keys.sort((A, B) =>
+                sortValues(isMap ? value.get(A)! : (value as any)[A], isMap ? value.get(B)! : (value as any)[B], A, B),
+            );
         }
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            if (isMap ? value.get(key) : value[key]) {
+            if (isMap ? value.get(key) : (value as any)[key]) {
                 const props = {
                     key,
                     id: key,
-                    item: isMap ? each!.get(key) : (each as ObservableObject<Record<string, any>>)[key],
+                    item: isMap ? each!.get(key) : (each as Observable<Record<string, any>>)[key],
                 };
                 out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
             }

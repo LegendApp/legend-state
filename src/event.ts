@@ -1,6 +1,6 @@
 import { getNode, symbolGetNode } from './globals';
 import { observable } from './observable';
-import { Observable } from './observableInterfaces2';
+import { Observable } from './observableTypes';
 
 export type ObservableEvent = {
     fire(): void;

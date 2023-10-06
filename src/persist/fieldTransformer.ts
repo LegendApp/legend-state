@@ -6,7 +6,8 @@ import {
     isString,
     symbolDelete,
 } from '@legendapp/state';
-import { FieldTransforms, TypeAtPath } from './types';
+import { FieldTransforms } from './types';
+import { TypeAtPath } from 'src/observableTypes';
 
 let validateMap: (map: Record<string, any>) => void;
 

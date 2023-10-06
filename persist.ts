@@ -7,7 +7,7 @@ export function isInRemoteChange() {
     return internalState.globalState.isLoadingRemote;
 }
 
-import type { ObservablePersistenceConfig } from './src/observableInterfaces';
+import type { ObservablePersistenceConfig } from './src/persist/types';
 import { observablePersistConfiguration } from './src/persist/configureObservablePersistence';
 export const internal: {
     observablePersistConfiguration: ObservablePersistenceConfig;

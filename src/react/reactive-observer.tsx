@@ -1,7 +1,7 @@
 import { isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { reactGlobals } from './react-globals';
-import type { BindKeys } from './reactInterfaces';
+import type { BindKeys } from './reactTypes';
 import { useSelector } from './useSelector';
 
 export type ShapeWith$<T, T2 extends keyof T = keyof T> = Partial<T> & {

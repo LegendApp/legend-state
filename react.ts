@@ -5,7 +5,7 @@ export { Reactive, configureReactive } from './src/react/Reactive';
 export type { IReactive } from './src/react/Reactive';
 export * from './src/react/Show';
 export * from './src/react/Switch';
-export * from './src/react/reactInterfaces';
+export * from './src/react/reactTypes';
 export * from './src/react/reactive-observer';
 export * from './src/react/useComputed';
 export * from './src/react/useEffectOnce';

@@ -3,10 +3,8 @@ import {
     ObservablePersistRemoteClass,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
-    ObservableReadable,
     PersistOptions,
     QueryByModified,
-    TypeAtPath,
     batch,
     constructObjectWithPath,
     deconstructObjectWithPath,
@@ -38,6 +36,7 @@ import {
     startAt,
     update,
 } from 'firebase/database';
+import { ObservableObject, ObservablePrimitive, TypeAtPath } from 'src/observableTypes';
 const { symbolDelete } = internal;
 const { observablePersistConfiguration } = internalPersist;
 
@@ -91,7 +90,7 @@ interface SaveState {
     timeout?: any;
     pendingSaves: Map<string, PendingSaves>;
     savingSaves?: Map<string, PendingSaves>;
-    eventSaved?: Observable<true | Error | undefined>;
+    eventSaved?: ObservablePrimitive<true> | ObservablePrimitive<Error> | ObservablePrimitive<undefined>;
     numSavesPending: number;
     pendingSaveResults: Map<
         string,
@@ -136,7 +135,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             status$: Observable<LoadStatus>;
         }
     > = new Map();
-    private saveStates = new Map<ObservableReadable<any>, SaveState>();
+    private saveStates = new Map<Observable<any>, SaveState>();
 
     constructor(fns: FirebaseFns) {
         this.fns = fns;
@@ -188,7 +187,8 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const pathFirebase = refPath(this.fns.getCurrentUser());
 
-        const status$ = this._pathsLoadStatus[pathFirebase].set({
+        const status$ = this._pathsLoadStatus[pathFirebase];
+        status$.set({
             startedLoading: false,
             numLoading: 0,
             numWaitingCanSave: 0,
@@ -213,7 +213,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
     }
     private iterateListen<T>(
-        obs: ObservableReadable<any>,
+        obs: Observable<any>,
         params: ObservablePersistRemoteGetParams<T>,
         saveState: SaveState,
         path: string[],
@@ -223,17 +223,18 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         status$: Observable<LoadStatus>,
     ) {
         const { options } = params;
-
         const { ignoreKeys } = options.remote!.firebase!;
         Object.keys(obs).forEach((key) => {
             if (!ignoreKeys || !ignoreKeys.includes(key)) {
-                const o = obs[key as keyof typeof obs] as ObservableReadable<any>;
+                const o = obs[key as keyof typeof obs];
                 const q =
                     queryByModified[key as keyof typeof queryByModified] || (queryByModified as { '*': boolean })['*'];
                 const pathChild = path.concat(key);
                 const pathTypesChild = pathTypes.concat(isArray(o.peek()) ? 'array' : 'object');
                 let dateModified: number | undefined = undefined;
 
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore excessive debt
                 if (isObject(q)) {
                     this.iterateListen(o, params, saveState, pathChild, pathTypesChild, q, onLoadParams, status$);
                 } else {
@@ -291,7 +292,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         });
     }
     private async _listen<T>(
-        obs: ObservableReadable<any>,
+        obs: Observable<any>,
         params: ObservablePersistRemoteGetParams<T>,
         saveState: SaveState,
         path: string[],
@@ -507,7 +508,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             this._onTimeoutSave(saveState);
         }
 
-        const savedOrError = await when(eventSaved);
+        const savedOrError = await when(eventSaved!);
 
         if (savedOrError === true) {
             this.retryListens();

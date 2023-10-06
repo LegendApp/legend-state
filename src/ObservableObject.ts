@@ -26,8 +26,8 @@ import {
     isPromise,
     isSymbol,
 } from './is';
-import type { ChildNodeValue, NodeValue, PromiseInfo } from './observableInterfaces';
-import { Observable } from './observableInterfaces2';
+import type { ChildNodeValue, NodeValue, PromiseInfo } from './nodeValueTypes';
+import { Observable, ObservableObject, TrackingType } from './observableTypes';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -61,25 +61,18 @@ export const observableProperties = new Map<
     { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
 >();
 
-type ObservableFnKey = 'get' | 'set' | 'peek' | 'onChange' | 'assign' | 'delete' | 'toggle';
-type ObservableFn = Pick<Observable<object>, ObservableFnKey>;
+type ObservableProxyFunctions<T = Omit<ObservableObject<any>, typeof symbolGetNode | '$' | '_' | 'use'>> = {
+    [K in keyof T]: T[K] extends (...args: infer U) => infer R ? (value: NodeValue, ...args: U) => R : never;
+} & Record<string, (value: NodeValue, ...args: any[]) => any>;
 
-/* insert node value as first argument */
-export type ObservableFnImpl<T extends Function> = T extends (...args: infer U) => infer R
-    ? (value: NodeValue, ...args: U) => R
-    : never;
-
-type ObservableFnValues = ObservableFnImpl<ObservableFn[keyof ObservableFn]>;
-
-export const observableFns = new Map<ObservableFnKey, ObservableFnValues>([
-    ['get', get],
-    ['set', set],
-    ['peek', peek],
-    ['onChange', onChange],
-    ['assign', assign],
-    ['delete', deleteFn],
-    ['toggle', toggle],
-]);
+export const observableFns: ObservableProxyFunctions = {
+    get,
+    set,
+    peek,
+    onChange,
+    assign,
+    delete: deleteFn,
+};
 
 if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     // eslint-disable-next-line no-var
@@ -363,7 +356,7 @@ const proxyHandler: ProxyHandler<NodeValue> = {
             }
         }
 
-        const fn = observableFns.get(p as ObservableFnKey);
+        const fn = observableFns[p as keyof ObservableProxyFunctions];
         // If this is an observable function, call it
         if (fn) {
             return function (a: any, b: any, c: any) {
@@ -535,15 +528,6 @@ export function set(node: NodeValue, newValue?: any) {
         return setKey(node, '_', newValue);
     }
 }
-function toggle(node: NodeValue) {
-    const value = getNodeValue(node);
-    if (value === undefined || isBoolean(value)) {
-        set(node, !value);
-        return !value;
-    } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-        throw new Error('[legend-state] Cannot toggle a non-boolean value');
-    }
-}
 
 function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     if (process.env.NODE_ENV === 'development') {
@@ -621,7 +605,7 @@ function deleteFn(node: NodeValue, key?: string) {
 
 function handlerMapSet(
     node: NodeValue,
-    p: ObservableFnKey | keyof any,
+    p: 'get' | 'size' | 'set' | 'delete' | 'clear' | keyof any,
     value: Map<keyof any, any> | WeakMap<WeakKey, any> | Set<any> | WeakSet<any>,
 ) {
     const vProp = (value as any)?.[p];
@@ -673,7 +657,7 @@ function handlerMapSet(
             }
 
             // TODO: This is duplicated from proxy handler, how to dedupe with best performance?
-            const fn = observableFns.get(p as ObservableFnKey);
+            const fn = observableFns[p as keyof ObservableProxyFunctions];
             if (fn) {
                 // Array call and apply are slow so micro-optimize this hot path.
                 // The observable functions depends on the number of arguments so we have to

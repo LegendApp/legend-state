@@ -1,6 +1,6 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
-import { ObservablePersistLocal } from '../src/observableInterfaces';
+import { ObservablePersistLocal } from '../src/nodeValueTypes';
 import { ObservablePersistSessionStorage } from '../src/persist-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';

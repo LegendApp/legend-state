@@ -18,10 +18,10 @@ export function enableDirectPeek() {
 // Types:
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { ObservableBaseFns } from '@legendapp/state';
+import type { ObservablePrimitive } from '@legendapp/state';
 
 declare module '@legendapp/state' {
-    interface ObservableBaseFns<T> {
+    interface ObservablePrimitive<T> {
         set _(value: T | null | undefined);
         get _(): T;
     }

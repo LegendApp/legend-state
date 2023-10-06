@@ -1,6 +1,6 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue } from './observableInterfaces';
-import { Computed, Observable } from './observableInterfaces2';
+import { NodeValue } from './nodeValueTypes';
+import { Computed, Observable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -23,8 +23,8 @@ export function checkActivate(node: NodeValue) {
     }
 }
 
-export function getNode(obs: Observable<any> | undefined): NodeValue {
-    return obs && (obs as any)[symbolGetNode];
+export function getNode(obs: any): NodeValue {
+    return obs[symbolGetNode];
 }
 
 export function setNodeValue(node: NodeValue, newValue: any) {
