@@ -89,11 +89,11 @@ routes$.onChange(({ value, getPrevious }) => {
     }
     // Only push if there are changes
     if (!isEmpty(change)) {
-        if (method === 'replace') {
-            router.replace(change, undefined, transitionOptions);
-        } else {
-            router.push(change, undefined, transitionOptions);
-        }
+        const fn = method === 'replace' ? 'replace' : 'push';
+        router[fn](change, undefined, transitionOptions).catch((e) => {
+            // workaround for https://github.com/vercel/next.js/issues/37362
+            if (!e.cancelled) throw e;
+        });
     }
 });
 
