@@ -11,7 +11,7 @@ jest.setTimeout(50);
 describe('Persist remote with functions', () => {
     test('Persist remote fns basic', async () => {
         const obs = observable({ test: { x: 'hi' } });
-        const [, state] = persistObservable(obs, {
+        const { state } = persistObservable(obs, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -33,7 +33,7 @@ describe('Persist remote with functions', () => {
     test('Persist remote fns with set', async () => {
         let setTo: { dateModified: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
-        const [, state] = persistObservable(obs$, {
+        const { state } = persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -72,7 +72,7 @@ describe('Persist remote with functions', () => {
         let setTo: { dateModified: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
         const didSave$ = observable(false);
-        const [, state] = persistObservable(obs$, {
+        const { state } = persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout

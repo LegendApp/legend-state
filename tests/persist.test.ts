@@ -8,7 +8,7 @@ function promiseTimeout(time?: number) {
 
 describe('Creating', () => {
     test('Create with object', () => {
-        const [obs$, state$] = persistObservable(
+        const obs$ = persistObservable(
             { test: 'hi' },
             {
                 pluginLocal: ObservablePersistLocalStorage,
@@ -18,7 +18,7 @@ describe('Creating', () => {
 
         expect(obs$.get()).toEqual({ test: 'hi' });
 
-        expect(state$.isLoadedLocal.get()).toEqual(true);
+        expect(obs$.state.isLoadedLocal.get()).toEqual(true);
     });
 });
 

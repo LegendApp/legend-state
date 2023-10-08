@@ -17,11 +17,13 @@ import type {
     PersistOptionsRemote,
     PersistTransform,
     TypeAtPath,
+    WithPersistState,
 } from '@legendapp/state';
 import {
     batch,
     constructObjectWithPath,
     deconstructObjectWithPath,
+    getNode,
     internal,
     isEmpty,
     isFunction,
@@ -611,20 +613,21 @@ async function loadLocal<T>(
 export function persistObservable<T, TState = {}>(
     observable: ObservableWriteable<T>,
     persistOptions: PersistOptions<T, TState>,
-): [Observable<T>, ObservableObject<ObservablePersistState & TState>];
+): Observable<WithPersistState & T>;
 export function persistObservable<T, TState = {}>(
     initial: T | (() => T) | (() => Promise<T>),
     persistOptions: PersistOptions<T, TState>,
-): [Observable<T>, ObservableObject<ObservablePersistState & TState>];
+): Observable<WithPersistState & T>;
 export function persistObservable<T, TState = {}>(
     initialOrObservable: ObservableWriteable<T> | T | (() => T) | (() => Promise<T>),
     persistOptions: PersistOptions<T, TState>,
-): [Observable<T>, ObservableObject<ObservablePersistState & TState>] {
+): Observable<WithPersistState & T> {
     const obs = (
         isObservable(initialOrObservable)
             ? initialOrObservable
             : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
     ) as Observable<T>;
+    const node = getNode(obs);
 
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {
@@ -635,7 +638,7 @@ export function persistObservable<T, TState = {}>(
     const remotePersistence = persistOptions.pluginRemote! || observablePersistConfiguration?.pluginRemote;
     const localState: LocalState = {};
 
-    const syncState = observable<ObservablePersistState>({
+    const syncState = (node.state = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoaded: false,
         isEnabledLocal: true,
@@ -643,7 +646,7 @@ export function persistObservable<T, TState = {}>(
         clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
-    });
+    }));
 
     if (local) {
         loadLocal(obs, persistOptions, syncState, localState);
@@ -793,5 +796,5 @@ export function persistObservable<T, TState = {}>(
         );
     });
 
-    return [obs, syncState as any];
+    return obs as any;
 }
