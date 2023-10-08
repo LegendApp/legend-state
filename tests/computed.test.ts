@@ -120,7 +120,7 @@ describe('Computed', () => {
     test('Computed is lazy', () => {
         const fn = jest.fn();
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => {
+        const comp = observable(() => {
             fn();
             return { v: obs.test.get() + obs.test2.get() };
         });
@@ -131,7 +131,7 @@ describe('Computed', () => {
     test('Computed is lazy, activates on child get', () => {
         const fn = jest.fn();
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => {
+        const comp = observable(() => {
             fn();
             return { v: obs.test.get() + obs.test2.get() };
         });
@@ -157,10 +157,14 @@ describe('Computed', () => {
 describe('Two way Computed', () => {
     test('Bound to two, get', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = computed(
-            () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
-        );
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value }) => {
+                obs.test.set(value) && obs.test2.set(value);
+            });
+            return obs.test.get() && obs.test2.get();
+        });
         expect(comp.get()).toEqual(false);
         obs.test.set(true);
         expect(comp.get()).toEqual(false);
@@ -169,10 +173,15 @@ describe('Two way Computed', () => {
     });
     test('Bound to two, set', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = computed(
-            () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
-        );
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value }) => {
+                obs.test.set(value) && obs.test2.set(value);
+            });
+            return obs.test.get() && obs.test2.get();
+        }) as Observable<boolean>;
+
         expect(comp.get()).toEqual(false);
         comp.set(true);
         expect(obs.test.get()).toEqual(true);
@@ -180,20 +189,28 @@ describe('Two way Computed', () => {
     });
     test('Bound to two, set child', () => {
         const obs = observable({ test: { a: 'hi' }, test2: false });
-        const comp = computed(
-            () => obs.test.get(),
-            (value) => obs.test.set(value),
-        );
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value }) => {
+                obs.test.set(value);
+            });
+            return obs.test.get();
+        }) as Observable<{ a: string }>;
         expect(comp.a.get()).toEqual('hi');
         comp.a.set('bye');
         expect(comp.a.get()).toEqual('bye');
     });
     test('Bound to array, set', () => {
         const obs = observable([false, false, false, false, false]);
-        const comp = computed(
-            () => obs.every((val) => val.get()),
-            (value) => obs.forEach((child) => child.set(value)),
-        );
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value }) => {
+                obs.forEach((child) => child.set(value));
+            });
+            return obs.every((val) => val.get());
+        }) as Observable<boolean>;
         expect(comp.get()).toEqual(false);
         comp.set(true);
         expect(obs[0].get()).toEqual(true);
@@ -202,10 +219,14 @@ describe('Two way Computed', () => {
     test('Bound to two, set, handler', () => {
         const obs = observable({ test: false, test2: false });
         const handler = expectChangeHandler(obs);
-        const comp = computed(
-            () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
-        );
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value }) => {
+                obs.test.set(value) && obs.test2.set(value);
+            });
+            return obs.test.get() && obs.test2.get();
+        }) as Observable<boolean>;
         expect(comp.get()).toEqual(false);
         comp.set(true);
         expect(handler).toHaveBeenCalledWith({ test: true, test2: true }, { test: false, test2: false }, [
@@ -228,11 +249,14 @@ describe('Two way Computed', () => {
     });
     test('Computed has set before activation', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = computed(
-            () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
-        );
-
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value }) => {
+                obs.test.set(value) && obs.test2.set(value);
+            });
+            return obs.test.get() && obs.test2.get();
+        }) as Observable<boolean>;
         comp.set(true);
 
         expect(obs.test.get()).toEqual(true);
