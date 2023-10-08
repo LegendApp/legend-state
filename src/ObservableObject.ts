@@ -784,6 +784,7 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         extractPromise(getChildNode(node, k), v);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
+        delete obj[k];
     } else if (typeof v == 'object' && v !== null && v !== undefined) {
         const childNode = getNode(v);
         if (childNode?.isComputed) {
@@ -845,7 +846,7 @@ function activateNodeFunction(
     let subscribed = false;
     const onSet = (setter: () => any) => {
         dispose?.();
-        dispose = onChange(node, setter as any);
+        dispose = onChange(node, setter as any, { immediate: true });
     };
     const onObsChange = (value: any) => {
         set(node, value);
@@ -863,5 +864,6 @@ function activateNodeFunction(
         ({ value }) => {
             set(childNode || node, value);
         },
+        { immediate: true },
     );
 }

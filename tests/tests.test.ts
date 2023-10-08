@@ -1818,7 +1818,7 @@ describe('Deep changes keep listeners', () => {
             ],
         );
         expect(handler2).toHaveBeenCalledWith(
-            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }], arr_keyExtractor },
+            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }] },
             { arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] },
             [
                 {
@@ -3059,7 +3059,7 @@ describe('new computed', () => {
 
         other.set('hey');
     });
-    test('new computed with onChange and onSet other other observable and async', async () => {
+    test('new computed with onChange and onSet other observable and async', async () => {
         // In this test the initial promise takes longer than the onChange
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
@@ -3099,5 +3099,17 @@ describe('new computed', () => {
             },
         });
         expect(obs.child.test.get()).toEqual('proxied_test');
+    });
+    test('new computed link', async () => {
+        const obs = observable(1);
+        const comp = observable(() => obs);
+
+        expect(obs.get()).toEqual(1);
+        expect(comp.get()).toEqual(1);
+
+        obs.set(2);
+
+        expect(obs.get()).toEqual(2);
+        expect(comp.get()).toEqual(2);
     });
 });
