@@ -6,6 +6,11 @@ import { useSelector } from './useSelector';
 
 const autoMemoCache = new Map<FC<any>, FC<any>>();
 
+type ForItemProps<T, TProps = {}> = {
+    item$: Observable<T>;
+    id?: string;
+} & TProps;
+
 export function For<T, TProps>({
     each,
     optimized: isOptimized,
@@ -16,10 +21,10 @@ export function For<T, TProps>({
 }: {
     each?: ObservableReadable<T[] | Record<any, T> | Map<any, T>>;
     optimized?: boolean;
-    item?: FC<{ item: Observable<T>; id?: string } & TProps>;
+    item?: FC<ForItemProps<T, TProps>>;
     itemProps?: TProps;
     sortValues?: (A: T, B: T, AKey: string, BKey: string) => number;
-    children?: (value: Observable<T>) => ReactElement;
+    children?: (value: Observable<T>, id: string | undefined) => ReactElement;
 }): ReactElement | null {
     if (!each) return null;
 
@@ -30,10 +35,10 @@ export function For<T, TProps>({
     // The child function gets wrapped in a memoized observer component
     if (!item && children) {
         // Update the ref so the generated component uses the latest function
-        const refChildren = useRef<(value: Observable<T>) => ReactElement>();
+        const refChildren = useRef<(value: Observable<T>, id: string | undefined) => ReactElement>();
         refChildren.current = children;
 
-        item = useMemo(() => observer(({ item }) => refChildren.current!(item)), []);
+        item = useMemo(() => observer(({ item$, id }) => refChildren.current!(item$, id)), []);
     } else {
         // @ts-expect-error $$typeof is private
         if (item.$$typeof !== Symbol.for('react.memo')) {
@@ -72,7 +77,14 @@ export function For<T, TProps>({
             if (value[i]) {
                 const val = value[i];
                 const key = (isIdFieldFunction ? idField(val) : (val as Record<string, any>)[idField as string]) ?? i;
-                const props = { key, id: key, item: (each as Observable<any[]>)[i] };
+                const item$ = (each as Observable<any[]>)[i];
+                // TODOV3 Remove item
+                const props: ForItemProps<any> & { key: string; item: Observable<any> } = {
+                    key,
+                    id: key,
+                    item$,
+                    item: item$,
+                };
 
                 out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
             }
@@ -87,10 +99,12 @@ export function For<T, TProps>({
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             if (isMap ? value.get(key) : value[key]) {
-                const props = {
+                const item$ = isMap ? each!.get(key) : (each as ObservableObject<Record<string, any>>)[key];
+                const props: ForItemProps<any> & { key: string; item: Observable<any> } = {
                     key,
                     id: key,
-                    item: isMap ? each!.get(key) : (each as ObservableObject<Record<string, any>>)[key],
+                    item$,
+                    item: item$,
                 };
                 out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
             }

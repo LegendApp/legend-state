@@ -326,8 +326,8 @@ describe('For', () => {
         const obs = observable({
             items: [{ id: 0, label: '0' }] as TestObject[],
         });
-        function Item({ item }: { item: Observable<TestObject> }) {
-            const data = useSelector(item);
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
             return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
@@ -357,8 +357,8 @@ describe('For', () => {
                 { id: 'A', label: 'A' },
             ] as TestObject[],
         });
-        function Item({ item }: { item: Observable<TestObject> }) {
-            const data = useSelector(item);
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
             return createElement('li', { id: data.id }, data.label);
         }
         function Test() {
@@ -401,9 +401,9 @@ describe('For', () => {
                 { id: 'A', label: 'A' },
             ] as TestObject[],
         });
-        function Item({ item }: { item: Observable<TestObject> }) {
-            const data = useSelector(item);
-            return createElement('li', { id: getObservableIndex(item) }, data.label);
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
+            return createElement('li', { id: getObservableIndex(item$) }, data.label);
         }
         function Test() {
             return createElement(
@@ -426,8 +426,8 @@ describe('For', () => {
                 ['m1', { label: 'A', id: 'A' }],
             ]),
         });
-        function Item({ item }: { item: Observable<TestObject> }) {
-            const data = useSelector(item);
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
             return createElement('li', { id: data.label }, data.label);
         }
         function Test() {
@@ -451,8 +451,8 @@ describe('For', () => {
                 ['m1', { label: 'A', id: 'A' }],
             ]),
         });
-        function Item({ item }: { item: Observable<TestObject> }) {
-            const data = useSelector(item);
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
             return createElement('li', { id: data.label }, data.label);
         }
         function Test() {
