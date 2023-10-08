@@ -621,17 +621,38 @@ describe('Computed inside observable', () => {
             ],
         );
     });
-    test('observe sub computed runs once', () => {
+    test('observe sub computed runs twice', () => {
         const sub$ = observable({
             num: 0,
         });
 
         const obs$ = observable({
-            sub: computed(() => sub$.get()),
+            sub: () => sub$.get(),
         });
 
         let num = 0;
         observe(() => {
+            // @ts-expect-error asdf
+            obs$.sub.get();
+            num++;
+        });
+
+        expect(num).toEqual(2);
+    });
+    test('observe sub computed runs once if already activated', () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: () => sub$.get(),
+        });
+
+        let num = 0;
+        // @ts-expect-error asdf
+        obs$.sub.get();
+        observe(() => {
+            // @ts-expect-error asdf
             obs$.sub.get();
             num++;
         });
@@ -644,6 +665,13 @@ describe('Computed inside observable', () => {
         });
 
         const obs$ = observable({
+            // sub: ({ onSet }) => {
+            //     // @ts-expect-error asdf
+            //     onSet(({ value }) => {
+            //         sub$.set(value);
+            //     });
+            //     return sub$.get();
+            // },
             sub: computed(
                 () => sub$.get(),
                 (x) => sub$.set(x),
@@ -693,17 +721,21 @@ describe('proxy', () => {
     test('proxy plain', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy((key): string => {
+            // @ts-expect-error asdf
+            itemText: (_, key): string => {
                 return obs.items[key].text.get();
-            }),
+            },
         });
+        // @ts-expect-error asdf
         expect(obs.itemText['test1'].get()).toEqual('hi');
 
         const handlerItem = expectChangeHandler(obs.items['test1']);
+        // @ts-expect-error asdf
         const handlerItemText = expectChangeHandler(obs.itemText['test1']);
 
         obs.items['test1'].text.set('hi!');
         expect(obs.items['test1'].text.get()).toEqual('hi!');
+        // @ts-expect-error asdf
         expect(obs.itemText['test1'].get()).toEqual('hi!');
 
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
