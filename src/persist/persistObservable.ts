@@ -409,9 +409,7 @@ async function doChange(
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
-        await when(
-            () => syncState.isLoadedRemote.get() || (configRemote?.allowSetIfError && syncState.remoteError.get()),
-        );
+        await when(() => syncState.isLoaded.get() || (configRemote?.allowSetIfError && syncState.error.get()));
 
         const value = obs.peek();
 
@@ -639,7 +637,7 @@ export function persistObservable<T, TState = {}>(
 
     const syncState = observable<ObservablePersistState>({
         isLoadedLocal: false,
-        isLoadedRemote: false,
+        isLoaded: false,
         isEnabledLocal: true,
         isEnabledRemote: true,
         clearLocal: undefined as unknown as () => Promise<void>,
@@ -684,7 +682,7 @@ export function persistObservable<T, TState = {}>(
                     options: persistOptions as PersistOptions<T, any>,
                     dateModified,
                     onGet: () => {
-                        syncState.isLoadedRemote.set(true);
+                        syncState.isLoaded.set(true);
                     },
                     onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
                         // Note: value is the constructed value, path is used for setInObservableAtPath
@@ -748,9 +746,7 @@ export function persistObservable<T, TState = {}>(
                 });
 
                 // Wait for remote to be ready before saving pending
-                await when(
-                    () => syncState.isLoadedRemote.get() || (remote.allowSetIfError && syncState.remoteError.get()),
-                );
+                await when(() => syncState.isLoaded.get() || (remote.allowSetIfError && syncState.error.get()));
 
                 const pending = localState.pendingChanges;
                 if (pending && !isEmpty(pending)) {

@@ -295,10 +295,10 @@ export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
 
 export interface ObservablePersistState {
     isLoadedLocal: boolean;
-    isLoadedRemote: boolean;
+    isLoaded: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
-    remoteError?: Error;
+    error?: Error;
     dateModified?: number;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;

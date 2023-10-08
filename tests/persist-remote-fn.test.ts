@@ -26,7 +26,7 @@ describe('Persist remote with functions', () => {
 
         expect(obs.peek()).toEqual({ test: { x: 'hi' } });
 
-        await when(state.isLoadedRemote);
+        await when(state.isLoaded);
 
         expect(obs.peek()).toEqual({ test: { x: 'hello' } });
     });
@@ -58,7 +58,7 @@ describe('Persist remote with functions', () => {
 
         expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 
-        await when(state.isLoadedRemote);
+        await when(state.isLoaded);
 
         expect(obs$.peek()).toEqual({ test: { x: 'hello' } });
 
@@ -102,7 +102,7 @@ describe('Persist remote with functions', () => {
 
         expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 
-        await when(state.isLoadedRemote);
+        await when(state.isLoaded);
 
         expect(obs$.peek()).toEqual({ test: { x: 'hello' } });
 
