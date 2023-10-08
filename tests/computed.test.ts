@@ -43,14 +43,28 @@ function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType
 describe('Computed', () => {
     test('Basic computed', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
+        const comp = observable(() => obs.test.get() + obs.test2.get());
         expect(comp.get()).toEqual(30);
     });
-    test('Observing computed runs once', () => {
+    test('Observing computed runs twice, once to activate', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
+        const comp = observable(() => obs.test.get() + obs.test2.get());
         let num = 0;
         let observedValue;
+        observe(() => {
+            observedValue = comp.get();
+            num++;
+        });
+
+        expect(num).toEqual(2);
+        expect(observedValue).toEqual(30);
+    });
+    test('Observing computed runs once if activated', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = observable(() => obs.test.get() + obs.test2.get());
+        let num = 0;
+        let observedValue;
+        comp.get();
         observe(() => {
             observedValue = comp.get();
             num++;
@@ -61,7 +75,7 @@ describe('Computed', () => {
     });
     test('Multiple computed changes', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
+        const comp = observable(() => obs.test.get() + obs.test2.get());
         expect(comp.get()).toEqual(30);
         const handler = expectChangeHandler(comp);
         obs.test.set(5);
@@ -93,7 +107,7 @@ describe('Computed', () => {
     });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => ({ value: obs.test.get() + obs.test2.get() }));
+        const comp = observable(() => ({ value: obs.test.get() + obs.test2.get() }));
 
         expect(comp.get()).toEqual({ value: 30 });
         expect(comp.value.get()).toEqual(30);
@@ -274,9 +288,15 @@ describe('Two way Computed', () => {
     test('Two way computed value is set before calling setter', () => {
         const obs = observable(0);
 
-        const comp = computed(
-            () => obs.get() + '',
-            (value: string) => obs.set(+value),
+        const comp = observable<string>(
+            // @ts-expect-error asdf
+            ({ onSet }) => {
+                // @ts-expect-error asdf
+                onSet(({ value }) => {
+                    obs.set(+value);
+                });
+                return obs.get() + '';
+            },
         );
 
         const increment = (cur: number) => {
@@ -299,7 +319,7 @@ describe('Two way Computed', () => {
     test('Computed values are set correctly while in batch', () => {
         const obs = observable(0);
 
-        const comp = computed(() => obs.get() + 'A');
+        const comp = observable(() => obs.get() + 'A');
 
         // First get activates it
         expect(comp.get()).toEqual('0A');
@@ -312,9 +332,9 @@ describe('Two way Computed', () => {
     test('Computed values are set correctly while in batch nested', () => {
         const obs = observable(0);
 
-        const comp = computed(() => obs.get() + 'A');
-        const comp2 = computed(() => comp.get() + 'B');
-        const comp3 = computed(() => comp2.get() + 'C');
+        const comp = observable(() => obs.get() + 'A');
+        const comp2 = observable(() => comp.get() + 'B');
+        const comp3 = observable(() => comp2.get() + 'C');
 
         const handler = expectChangeHandler(obs);
         const handler3 = expectChangeHandler(comp3);
@@ -356,7 +376,7 @@ describe('Two way Computed', () => {
     test('Computed array sort', () => {
         const obs = observable({ 1: { t: 1 }, 2: { t: 2 } });
         const sort = observable(1);
-        const comp = computed(() => {
+        const comp = observable(() => {
             return Object.keys(obs.get()).sort((a, b) => (+a - +b) * sort.get());
         });
         const handler = expectChangeHandler(comp);
@@ -374,16 +394,17 @@ describe('Computed inside observable', () => {
     test('Computed in observable', () => {
         const obs = observable({
             text: 'hi',
-            test: computed((): string => {
+            test: () => {
                 return obs.text.get() + '!';
-            }),
+            },
         });
+        // @ts-expect-error asdf
         expect(obs.test.get() === 'hi!');
     });
     test('Computed assigned later', () => {
         const obs = observable({ text: 'hi' } as { text: any; test: any });
         obs.assign({
-            test: computed(() => obs.text.get() + '!'),
+            test: () => obs.text.get() + '!',
         });
         expect(obs.test.get() === 'hi!');
     });
@@ -391,14 +412,17 @@ describe('Computed inside observable', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             selected: undefined as unknown as string,
-            selectedItem: computed((): { text: string } => obs.items[obs.selected.get()].get()),
+            selectedItem: () => obs.items[obs.selected.get()].get(),
         });
+        // @ts-expect-error asdf
         expect(obs.selectedItem.get()).toEqual(undefined);
         obs.selected.set('test1');
+        // @ts-expect-error asdf
         expect(obs.selectedItem.get()).toEqual({
             text: 'hi',
         });
         obs.selected.set('test2');
+        // @ts-expect-error asdf
         expect(obs.selectedItem.get()).toEqual({
             text: 'hello',
         });

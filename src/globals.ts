@@ -148,7 +148,10 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
         : undefined;
 
     if (!idKey && node.parent) {
-        const keyExtractor = getNodeValue(node.parent)[node.key + '_keyExtractor'] as (value: any) => string;
+        const k = node.key + '_keyExtractor';
+        const keyExtractor =
+            (node.functions?.get(k) as (value: any) => string) ??
+            (getNodeValue(node.parent)[node.key + '_keyExtractor'] as (value: any) => string);
         if (keyExtractor && isFunction(keyExtractor)) {
             idKey = keyExtractor;
         }
