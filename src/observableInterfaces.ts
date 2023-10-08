@@ -235,11 +235,11 @@ export interface ObservablePersistenceConfig {
     localOptions?: ObservablePersistenceConfigLocalGlobalOptions;
     remoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
 }
-export interface PersistOptions<T = any, TState = {}> {
+export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
     pluginLocal?: ClassConstructor<ObservablePersistLocal>;
-    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T, TState>;
+    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
 }
 
 export interface PersistMetadata {
@@ -265,10 +265,10 @@ export interface ObservablePersistRemoteSetParams<T> {
     changes: Change[];
     value: T;
 }
-export interface ObservablePersistRemoteGetParams<T, TState = {}> {
-    state: Observable<ObservablePersistState & TState>;
+export interface ObservablePersistRemoteGetParams<T> {
+    state: Observable<ObservablePersistState>;
     obs: ObservableReadable<T>;
-    options: PersistOptions<T, TState>;
+    options: PersistOptions<T>;
     dateModified?: number;
     onGet: () => void;
     onChange: (params: {
@@ -279,15 +279,15 @@ export interface ObservablePersistRemoteGetParams<T, TState = {}> {
         dateModified?: number | undefined;
     }) => void | Promise<void>;
 }
-export interface ObservablePersistRemoteClass<TState = {}> {
-    get<T>(params: ObservablePersistRemoteGetParams<T, TState>): void;
+export interface ObservablePersistRemoteClass {
+    get<T>(params: ObservablePersistRemoteGetParams<T>): void;
     set?<T>(
         params: ObservablePersistRemoteSetParams<T>,
     ): Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
 }
 
-export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
-    get(params: ObservablePersistRemoteGetParams<T, TState>): T | Promise<T>;
+export interface ObservablePersistRemoteFunctions<T = any> {
+    get(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSetParams<T>,
     ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
