@@ -103,7 +103,7 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
     : T[K] extends Promise<infer t>
-    ? Observable<t & PromiseInfo>
+    ? Observable<t & WithState>
     : T[K] extends Function
     ? T[K]
     : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
@@ -292,13 +292,17 @@ export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
         params: ObservablePersistRemoteSetParams<T>,
     ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
 }
-
-export interface ObservablePersistState {
-    isLoadedLocal: boolean;
+export interface ObservableState {
     isLoaded: boolean;
+    error?: Error;
+}
+export interface WithState {
+    state?: ObservableState;
+}
+export interface ObservablePersistState extends ObservableState {
+    isLoadedLocal: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
-    error?: Error;
     dateModified?: number;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
@@ -440,6 +444,7 @@ interface BaseNodeValue {
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
     lazy?: boolean;
+    state?: Observable<ObservableState>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -489,7 +494,3 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
 } & ObservableBaseFns<T> & {
         [symbolGetNode]: NodeValue;
     };
-export type PromiseInfo = {
-    error?: any;
-    status?: 'pending' | 'rejected';
-};
