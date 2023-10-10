@@ -1,5 +1,12 @@
-import { configureLegendState, internal, type NodeValue, tracking, type TrackingType } from '@legendapp/state';
-import { useSelector } from '@legendapp/state/react';
+import {
+    configureLegendState,
+    internal,
+    type NodeValue,
+    tracking,
+    type TrackingType,
+    isObject,
+} from '@legendapp/state';
+import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
 import { createContext, useContext } from 'react';
 // @ts-expect-error Internals
 import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals } from 'react';
@@ -30,13 +37,24 @@ export function enableReactAutoTracking() {
 
     configureLegendState({
         observableFunctions: {
-            get: (node: NodeValue, track: TrackingType) => {
+            get: (node: NodeValue, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
                 if (needsSelector()) {
-                    return useSelector(() => get(node, track));
+                    return useSelector(() => get(node, options), isObject(options) ? options : undefined);
                 } else {
-                    return get(node, track);
+                    return get(node, options);
                 }
             },
         },
     });
+}
+
+// Types:
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { GetOptions, ObservableBaseFns } from '@legendapp/state';
+
+declare module '@legendapp/state' {
+    interface ObservableBaseFns<T> {
+        get(options?: TrackingType | (GetOptions & { suspense?: boolean })): T;
+    }
 }
