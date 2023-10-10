@@ -1,15 +1,18 @@
-import { configureLegendState, internal, updateTracking } from '@legendapp/state';
+import { configureLegendState, internal, type NodeValue } from '@legendapp/state';
 
 export function enableDirectAccess() {
+    const { observableFns, set } = internal;
     configureLegendState({
         observableProperties: {
             $: {
                 get(node) {
-                    updateTracking(node);
-                    return internal.peek(node);
+                    // Get it from the observableFns Map because another config function
+                    // might have overriden get
+                    const get = observableFns.get('get') as (node: NodeValue) => any;
+                    return get(node);
                 },
                 set(node, value) {
-                    return internal.set(node, value);
+                    return set(node, value);
                 },
             },
         },
