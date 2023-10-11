@@ -1,3 +1,11 @@
+## 1.11.3
+
+- Fix: computed was not activating if its value started as undefined
+
+## 1.11.2
+
+- Fix: useSelector was always re-rendering even if the returned value didn't change
+
 ## 1.11.1
 
 - Removed the deprecation warning about reactive props since that might affect a lot of people and we can migrate that more slowly.
