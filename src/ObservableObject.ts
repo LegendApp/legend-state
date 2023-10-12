@@ -30,6 +30,7 @@ import {
 } from './is';
 import type {
     ChildNodeValue,
+    GetOptions,
     NodeValue,
     ObservableObject,
     ObservableState,
@@ -783,7 +784,8 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
     }
 }
 
-export function get(node: NodeValue, track?: TrackingType) {
+export function get(node: NodeValue, options?: TrackingType | GetOptions) {
+    const track = options ? (isObject(options) ? (options.shallow as TrackingType) : options) : undefined;
     // Track by default
     updateTracking(node, track);
 

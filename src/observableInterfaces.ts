@@ -47,9 +47,12 @@ export interface MapGet<T extends Map<any, any> | WeakMap<any, any>> {
     get(): T;
     size: ObservableChild<number>;
 }
+export interface GetOptions {
+    shallow: boolean;
+}
 export interface ObservableBaseFns<T> {
     peek(): T;
-    get(trackingType?: TrackingType): T;
+    get(options?: TrackingType | GetOptions): T;
     onChange(
         cb: ListenerFn<T>,
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
