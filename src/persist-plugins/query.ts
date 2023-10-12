@@ -42,10 +42,7 @@ export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData
     type = 'Query',
     queryClient,
     useContext,
-}: Params<TQueryFnData, TError, TData, TQueryData, TQueryKey>): ObservablePersistRemoteFunctions<
-    TObs,
-    { query: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> }
-> {
+}: Params<TQueryFnData, TError, TData, TQueryData, TQueryKey>): ObservablePersistRemoteFunctions<TObs> {
     if (useContext) {
         queryClient = queryClient || useQueryClient();
     }
@@ -69,11 +66,8 @@ export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData
 
     const Observer = type === 'Query' ? QueryObserver : (InfiniteQueryObserver as typeof QueryObserver);
 
-    const ret: ObservablePersistRemoteFunctions<
-        unknown,
-        { query: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> }
-    > = {
-        get({ onChange, state }) {
+    const ret: ObservablePersistRemoteFunctions<unknown> = {
+        get({ onChange }) {
             let observer: QueryObserver<TQueryFnData, TError, TData, TQueryData, TQueryKey> | undefined = undefined;
             let latestOptions = defaultedOptions;
             let queryKeyFromFn: TQueryKey;
@@ -91,24 +85,21 @@ export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData
                 });
             }
 
-            // Since legend-state mutates the query options, we need to clone it to make Query
-            // see it as changed
             const updateQueryOptions = (obj: any) => {
-                const ret = Object.assign({}, obj);
+                // Since legend-state mutates the query options, we need to clone it to make Query
+                // see it as changed
+                const options = Object.assign({}, obj);
 
                 // Use the latest value from the observed queryKey function
                 if (isKeyFunction) {
-                    ret.queryKey = queryKeyFromFn;
+                    options.queryKey = queryKeyFromFn;
                 }
 
-                latestOptions = ret;
-
-                // Set the query options onto the persist state so it can be observed or modified
-                state.query.set(latestOptions);
+                latestOptions = options;
 
                 // Update the Query options
                 if (observer) {
-                    observer.setOptions(latestOptions, { listeners: false });
+                    observer.setOptions(options, { listeners: false });
                 }
             };
             updateQueryOptions(defaultedOptions);
@@ -118,16 +109,6 @@ export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData
 
             // Get the initial optimistic results if it's already cached
             const result = observer!.getOptimisticResult(latestOptions);
-
-            // Put the query options in the state so we can observe them
-            state.query.onChange(({ value, changes }) => {
-                // If the queryKey changed, delete the queryHash so Query will re-fetch
-                if (changes.some((change) => change.path.includes('queryKey'))) {
-                    delete value.queryHash;
-                }
-                updateQueryOptions(value);
-            });
-
             // Subscribe to Query's observer and update the observable
             observer!.subscribe((result) => {
                 onChange({ value: result.data });

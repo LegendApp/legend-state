@@ -103,7 +103,7 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
     : T[K] extends Promise<infer t>
-    ? Observable<t & PromiseInfo>
+    ? Observable<t & WithState>
     : T[K] extends Function
     ? T[K]
     : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
@@ -235,11 +235,11 @@ export interface ObservablePersistenceConfig {
     localOptions?: ObservablePersistenceConfigLocalGlobalOptions;
     remoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
 }
-export interface PersistOptions<T = any, TState = {}> {
+export interface PersistOptions<T = any> {
     local?: string | PersistOptionsLocal<T>;
     remote?: PersistOptionsRemote<T>;
     pluginLocal?: ClassConstructor<ObservablePersistLocal>;
-    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T, TState>;
+    pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
 }
 
 export interface PersistMetadata {
@@ -265,10 +265,10 @@ export interface ObservablePersistRemoteSetParams<T> {
     changes: Change[];
     value: T;
 }
-export interface ObservablePersistRemoteGetParams<T, TState = {}> {
-    state: Observable<ObservablePersistState & TState>;
+export interface ObservablePersistRemoteGetParams<T> {
+    state: Observable<ObservablePersistState>;
     obs: ObservableReadable<T>;
-    options: PersistOptions<T, TState>;
+    options: PersistOptions<T>;
     dateModified?: number;
     onGet: () => void;
     onChange: (params: {
@@ -279,26 +279,30 @@ export interface ObservablePersistRemoteGetParams<T, TState = {}> {
         dateModified?: number | undefined;
     }) => void | Promise<void>;
 }
-export interface ObservablePersistRemoteClass<TState = {}> {
-    get<T>(params: ObservablePersistRemoteGetParams<T, TState>): void;
+export interface ObservablePersistRemoteClass {
+    get<T>(params: ObservablePersistRemoteGetParams<T>): void;
     set?<T>(
         params: ObservablePersistRemoteSetParams<T>,
     ): Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
 }
 
-export interface ObservablePersistRemoteFunctions<T = any, TState = {}> {
-    get(params: ObservablePersistRemoteGetParams<T, TState>): T | Promise<T>;
+export interface ObservablePersistRemoteFunctions<T = any> {
+    get(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSetParams<T>,
     ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
 }
-
-export interface ObservablePersistState {
+export interface ObservableState {
+    isLoaded: boolean;
+    error?: Error;
+}
+export interface WithState {
+    state?: ObservableState;
+}
+export interface ObservablePersistState extends ObservableState {
     isLoadedLocal: boolean;
-    isLoadedRemote: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
-    remoteError?: Error;
     dateModified?: number;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
@@ -311,6 +315,9 @@ export interface ObservablePersistState {
               }
           >
         | undefined;
+}
+export interface WithPersistState {
+    state?: ObservablePersistState;
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
@@ -427,6 +434,8 @@ export interface NodeValueListener {
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
+    // TODOV3 Remove this
+    isActivatedPrimitive?: boolean;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
@@ -440,6 +449,7 @@ interface BaseNodeValue {
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
     lazy?: boolean;
+    state?: Observable<ObservableState>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -489,7 +499,3 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
 } & ObservableBaseFns<T> & {
         [symbolGetNode]: NodeValue;
     };
-export type PromiseInfo = {
-    error?: any;
-    status?: 'pending' | 'rejected';
-};

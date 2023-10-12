@@ -353,7 +353,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         onLoadParams,
                         status$,
                     });
-                    params.state.remoteError.set(err);
+                    params.state.error.set(err);
                     onLoadError?.(err);
                     if (allowSetIfError) {
                         status$.numWaitingCanSave.set((v) => v - 1);
@@ -740,7 +740,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         // If this path previously errored, clear the error state
         const obs = params.obs;
-        params.state.remoteError.delete();
+        params.state.error.delete();
         this.listenErrors.delete(obs);
 
         status$.startedLoading.set(true);

@@ -1,6 +1,9 @@
+import { createObservable } from './createObservable';
 import { beginBatch, endBatch, notify } from './batching';
 import {
     checkActivate,
+    extraPrimitiveActivators,
+    extraPrimitiveProps,
     extractFunction,
     findIDKey,
     getChildNode,
@@ -25,7 +28,13 @@ import {
     isPrimitive,
     isPromise,
 } from './is';
-import type { ChildNodeValue, NodeValue, PromiseInfo, TrackingType } from './observableInterfaces';
+import type {
+    ChildNodeValue,
+    NodeValue,
+    ObservableObject,
+    ObservableState,
+    TrackingType,
+} from './observableInterfaces';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 
@@ -310,12 +319,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-export function getProxy(node: NodeValue, p?: string) {
+export function getProxy(node: NodeValue, p?: string): ObservableObject {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p);
 
     // Create a proxy if not already cached and return it
-    return node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler));
+    return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as ObservableObject<any>;
 }
 
 const proxyHandler: ProxyHandler<any> = {
@@ -382,6 +391,22 @@ const proxyHandler: ProxyHandler<any> = {
             return property.get(node);
         }
 
+        // TODOV3 Remove this
+        const isValuePrimitive = isPrimitive(value);
+
+        // If accessing a key that doesn't already exist, and this node has been activated with extra keys
+        // then return the values that were set. This is used by enableLegendStateReact for example.
+        if (value === undefined || value === null || isValuePrimitive) {
+            if (extraPrimitiveProps.size && (node.isActivatedPrimitive || extraPrimitiveActivators.has(p))) {
+                node.isActivatedPrimitive = true;
+                const vPrim = extraPrimitiveProps.get(p);
+                if (vPrim !== undefined) {
+                    return isFunction(vPrim) ? vPrim(getProxy(node)) : vPrim;
+                }
+            }
+        }
+        // /TODOV3 Remove this
+
         const vProp = value?.[p];
 
         if (isObject(value) && value[symbolOpaque as any]) {
@@ -443,6 +468,10 @@ const proxyHandler: ProxyHandler<any> = {
         const fnOrComputed = node.functions?.get(p);
         if (fnOrComputed) {
             return fnOrComputed;
+        }
+
+        if (p === 'state' && node.state) {
+            return node.state;
         }
 
         // Return an observable proxy to the property
@@ -719,13 +748,22 @@ function updateNodesAndNotify(
 }
 
 export function extractPromise(node: NodeValue, value: Promise<any>) {
-    (value as PromiseInfo).status = 'pending';
+    if (!node.state) {
+        node.state = createObservable<ObservableState>(
+            {
+                isLoaded: false,
+            },
+            false,
+            getProxy,
+        ) as ObservableObject<ObservableState>;
+    }
     value
         .then((value) => {
             set(node, value);
+            node.state!.isLoaded.set(true);
         })
         .catch((error) => {
-            set(node, { error, status: 'rejected' } as PromiseInfo);
+            node.state!.error.set(error);
         });
 }
 

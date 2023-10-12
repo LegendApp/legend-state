@@ -4,12 +4,12 @@ import type {
     ObservablePersistRemoteGetParams,
 } from '@legendapp/state';
 
-export function observablePersistRemoteFunctionsAdapter<T = {}, TState = {}>({
+export function observablePersistRemoteFunctionsAdapter<T = {}>({
     get,
     set,
-}: ObservablePersistRemoteFunctions<T, TState>): ObservablePersistRemoteClass {
+}: ObservablePersistRemoteFunctions<T>): ObservablePersistRemoteClass {
     const ret = {
-        async get(params: ObservablePersistRemoteGetParams<T, TState>) {
+        async get(params: ObservablePersistRemoteGetParams<T>) {
             const value = (await get(params)) as T;
             params.onChange({ value, dateModified: Date.now() });
             params.onGet();

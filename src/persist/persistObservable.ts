@@ -17,11 +17,13 @@ import type {
     PersistOptionsRemote,
     PersistTransform,
     TypeAtPath,
+    WithPersistState,
 } from '@legendapp/state';
 import {
     batch,
     constructObjectWithPath,
     deconstructObjectWithPath,
+    getNode,
     internal,
     isEmpty,
     isFunction,
@@ -51,9 +53,9 @@ export const persistState = observable({ inRemoteSync: false });
 const metadatas = new WeakMap<ObservableReadable<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
-interface LocalState<TState = {}> {
+interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
-    persistenceRemote?: ObservablePersistRemoteClass<TState>;
+    persistenceRemote?: ObservablePersistRemoteClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
@@ -125,9 +127,9 @@ export function transformLoadData(
     return value;
 }
 
-async function updateMetadataImmediate<T, TState = {}>(
+async function updateMetadataImmediate<T>(
     obs: ObservableReadable<any>,
-    localState: LocalState<TState>,
+    localState: LocalState,
     syncState: ObservableObject<ObservablePersistState>,
     persistOptions: PersistOptions<T>,
     newMetadata: PersistMetadata,
@@ -161,30 +163,29 @@ async function updateMetadataImmediate<T, TState = {}>(
     }
 }
 
-function updateMetadata<T, TState = {}>(
+function updateMetadata<T>(
     obs: ObservableReadable<any>,
-    localState: LocalState<TState>,
+    localState: LocalState,
     syncState: ObservableObject<ObservablePersistState>,
-    persistOptions: PersistOptions<T, TState>,
+    persistOptions: PersistOptions<T>,
     newMetadata: PersistMetadata,
 ) {
     if (localState.timeoutSaveMetadata) {
         clearTimeout(localState.timeoutSaveMetadata);
     }
     localState.timeoutSaveMetadata = setTimeout(
-        () =>
-            updateMetadataImmediate(obs, localState, syncState, persistOptions as PersistOptions<T, any>, newMetadata),
+        () => updateMetadataImmediate(obs, localState, syncState, persistOptions as PersistOptions<T>, newMetadata),
         30,
     );
 }
 
-interface QueuedChange<T = any, TState = any> {
+interface QueuedChange<T = any> {
     inRemoteChange: boolean;
     isApplyingPending: boolean;
     obs: Observable<T>;
     syncState: ObservableObject<ObservablePersistState>;
-    localState: LocalState<TState>;
-    persistOptions: PersistOptions<T, TState>;
+    localState: LocalState;
+    persistOptions: PersistOptions<T>;
     changes: ListenerParams['changes'];
 }
 
@@ -409,9 +410,7 @@ async function doChange(
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
-        await when(
-            () => syncState.isLoadedRemote.get() || (configRemote?.allowSetIfError && syncState.remoteError.get()),
-        );
+        await when(() => syncState.isLoaded.get() || (configRemote?.allowSetIfError && syncState.error.get()));
 
         const value = obs.peek();
 
@@ -474,11 +473,11 @@ async function doChange(
     }
 }
 
-function onObsChange<T, TState = {}>(
+function onObsChange<T>(
     obs: Observable<T>,
     syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
-    persistOptions: PersistOptions<T, TState>,
+    persistOptions: PersistOptions<T>,
     { changes }: ListenerParams,
 ) {
     if (!internal.globalState.isLoadingLocal) {
@@ -518,7 +517,7 @@ export function onChangeRemote(cb: () => void) {
 
 async function loadLocal<T>(
     obs: ObservableWriteable<T>,
-    persistOptions: PersistOptions<any, any>,
+    persistOptions: PersistOptions<any>,
     syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
 ) {
@@ -610,23 +609,24 @@ async function loadLocal<T>(
     syncState.isLoadedLocal.set(true);
 }
 
-export function persistObservable<T, TState = {}>(
+export function persistObservable<T>(
     observable: ObservableWriteable<T>,
-    persistOptions: PersistOptions<T, TState>,
-): [Observable<T>, ObservableObject<ObservablePersistState & TState>];
-export function persistObservable<T, TState = {}>(
+    persistOptions: PersistOptions<T>,
+): Observable<WithPersistState & T>;
+export function persistObservable<T>(
     initial: T | (() => T) | (() => Promise<T>),
-    persistOptions: PersistOptions<T, TState>,
-): [Observable<T>, ObservableObject<ObservablePersistState & TState>];
-export function persistObservable<T, TState = {}>(
+    persistOptions: PersistOptions<T>,
+): Observable<WithPersistState & T>;
+export function persistObservable<T>(
     initialOrObservable: ObservableWriteable<T> | T | (() => T) | (() => Promise<T>),
-    persistOptions: PersistOptions<T, TState>,
-): [Observable<T>, ObservableObject<ObservablePersistState & TState>] {
+    persistOptions: PersistOptions<T>,
+): Observable<WithPersistState & T> {
     const obs = (
         isObservable(initialOrObservable)
             ? initialOrObservable
             : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
     ) as Observable<T>;
+    const node = getNode(obs);
 
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {
@@ -637,15 +637,15 @@ export function persistObservable<T, TState = {}>(
     const remotePersistence = persistOptions.pluginRemote! || observablePersistConfiguration?.pluginRemote;
     const localState: LocalState = {};
 
-    const syncState = observable<ObservablePersistState>({
+    const syncState = (node.state = observable<ObservablePersistState>({
         isLoadedLocal: false,
-        isLoadedRemote: false,
+        isLoaded: false,
         isEnabledLocal: true,
         isEnabledRemote: true,
         clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
-    });
+    }));
 
     if (local) {
         loadLocal(obs, persistOptions, syncState, localState);
@@ -660,7 +660,7 @@ export function persistObservable<T, TState = {}>(
         }
         if (isObject(remotePersistence)) {
             localState.persistenceRemote = observablePersistRemoteFunctionsAdapter(
-                remotePersistence as ObservablePersistRemoteFunctions<T, TState>,
+                remotePersistence as ObservablePersistRemoteFunctions<T>,
             );
         } else {
             // Ensure there's only one instance of the persistence plugin
@@ -681,10 +681,10 @@ export function persistObservable<T, TState = {}>(
                 localState.persistenceRemote!.get({
                     state: syncState,
                     obs,
-                    options: persistOptions as PersistOptions<T, any>,
+                    options: persistOptions as PersistOptions<T>,
                     dateModified,
                     onGet: () => {
-                        syncState.isLoadedRemote.set(true);
+                        syncState.isLoaded.set(true);
                     },
                     onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
                         // Note: value is the constructed value, path is used for setInObservableAtPath
@@ -740,7 +740,7 @@ export function persistObservable<T, TState = {}>(
                             }
                         }
                         if (dateModified && local) {
-                            updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T, any>, {
+                            updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
                                 modified: dateModified,
                             });
                         }
@@ -748,9 +748,7 @@ export function persistObservable<T, TState = {}>(
                 });
 
                 // Wait for remote to be ready before saving pending
-                await when(
-                    () => syncState.isLoadedRemote.get() || (remote.allowSetIfError && syncState.remoteError.get()),
-                );
+                await when(() => syncState.isLoaded.get() || (remote.allowSetIfError && syncState.error.get()));
 
                 const pending = localState.pendingChanges;
                 if (pending && !isEmpty(pending)) {
@@ -792,10 +790,10 @@ export function persistObservable<T, TState = {}>(
                 obs as Observable<any>,
                 syncState,
                 localState,
-                persistOptions as PersistOptions<any, any>,
+                persistOptions as PersistOptions<any>,
             ),
         );
     });
 
-    return [obs, syncState as any];
+    return obs as any;
 }
