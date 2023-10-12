@@ -1,4 +1,14 @@
-import { computeSelector, isPrimitive, isPromise, ListenerParams, Selector, trackSelector } from '@legendapp/state';
+import {
+    computeSelector,
+    isObservable,
+    isPrimitive,
+    isPromise,
+    ListenerParams,
+    Observable,
+    Selector,
+    trackSelector,
+    WithState,
+} from '@legendapp/state';
 import React, { useRef } from 'react';
 import type { UseSelectorOptions } from './reactInterfaces';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
@@ -84,27 +94,50 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
         return computeSelector(selector);
     }
 
-    const ref = useRef<SelectorFunctions<T>>();
-    if (!ref.current) {
-        ref.current = createSelectorFunctions<T>(options);
-    }
-    const { subscribe, getVersion, run } = ref.current;
+    let value;
 
-    // Run the selector
-    // Note: The selector needs to run on every render because it may have different results
-    // than the previous run if it uses local state
-    const value = run(selector) as any;
+    try {
+        const ref = useRef<SelectorFunctions<T>>();
+        if (!ref.current) {
+            ref.current = createSelectorFunctions<T>(options);
+        }
+        const { subscribe, getVersion, run } = ref.current;
 
-    useSyncExternalStore(subscribe, getVersion, getVersion);
+        // Run the selector
+        // Note: The selector needs to run on every render because it may have different results
+        // than the previous run if it uses local state
+        value = run(selector) as any;
 
-    // Suspense support
-    if (options?.suspense) {
-        if (isPromise(value)) {
-            if (React.use) {
-                React.use(value);
-            } else {
-                throw value;
+        useSyncExternalStore(subscribe, getVersion, getVersion);
+
+        // Suspense support
+        if (options?.suspense) {
+            // Note: Although it's not possible for an observable to be a promise, the selector may be a
+            // function that returns a Promise, so we handle that case too.
+            if (
+                isPromise(value) ||
+                (!value &&
+                    isObservable(selector) &&
+                    !(selector as unknown as Observable<WithState>).state.isLoaded.get())
+            ) {
+                if (React.use) {
+                    React.use(value);
+                } else {
+                    throw value;
+                }
             }
+        }
+    } catch (err: unknown) {
+        if (
+            (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+            (err as Error)?.message?.includes('Rendered more')
+        ) {
+            console.warn(
+                `[legend-state]: You may want to wrap this component in \`observer\` to fix the error of ${
+                    (err as Error).message
+                }`,
+            );
+            throw err;
         }
     }
 
