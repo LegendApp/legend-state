@@ -32,17 +32,27 @@ function needsSelector() {
     return false;
 }
 
-export function enableReactAutoTracking() {
+interface ReactTrackingOptions {
+    auto?: boolean; // Make all get() calls act as useSelector() hooks
+    warnUnobserved?: boolean; // Warn if get() is used outside of an observer
+}
+
+export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptions) {
     const { get } = internal;
 
     configureLegendState({
         observableFunctions: {
             get: (node: NodeValue, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
                 if (needsSelector()) {
-                    return useSelector(() => get(node, options), isObject(options) ? options : undefined);
-                } else {
-                    return get(node, options);
+                    if (auto) {
+                        return useSelector(() => get(node, options), isObject(options) ? options : undefined);
+                    } else if (process.env.NODE_ENV === 'development' && warnUnobserved) {
+                        console.warn(
+                            '[legend-state] Detected a `get()` call in an unobserved component. You may want to wrap it in observer: https://legendapp.com/open-source/state/react-api/#observer-hoc',
+                        );
+                    }
                 }
+                return get(node, options);
             },
         },
     });
