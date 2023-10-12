@@ -434,6 +434,8 @@ export interface NodeValueListener {
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
+    // TODOV3 Remove this
+    isActivatedPrimitive?: boolean;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
