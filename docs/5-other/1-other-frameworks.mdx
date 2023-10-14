@@ -1,3 +1,0 @@
-Legend-State is designed to be cross platform as it's mostly a vanilla observable system, but our team has expertise in React and React Native so that's where we started.
-
-If you would like to use Legend-State for another framework, please [let us know](https://github.com/LegendApp/legend-state/issues) and we will work with you to try to build the integration in the most optimal way and include it as an officially supported plugin.
