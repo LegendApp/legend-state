@@ -96,10 +96,10 @@ export function transformOutData(
         };
 
         if (transform?.out) {
-            const constructed = constructObjectWithPath(path, value, pathTypes);
+            const constructed = constructObjectWithPath(path, pathTypes, value);
             const saved = transform.out(constructed);
             const deconstruct = (toDeconstruct: boolean) => {
-                value = deconstructObjectWithPath(path, toDeconstruct);
+                value = deconstructObjectWithPath(path, pathTypes, toDeconstruct);
                 return transformFn();
             };
             return doInOrder(saved, deconstruct);
@@ -704,7 +704,7 @@ export function persistObservable<T>(
                             if (mode === 'dateModified') {
                                 if (dateModified && !isEmpty(value as unknown as object)) {
                                     onChangeRemote(() => {
-                                        setInObservableAtPath(obs, path as string[], value, 'assign');
+                                        setInObservableAtPath(obs, path as string[], pathTypes, value, 'assign');
                                     });
                                 }
                             } else {
@@ -735,7 +735,7 @@ export function persistObservable<T>(
                                 }
 
                                 onChangeRemote(() => {
-                                    setInObservableAtPath(obs, path as string[], value, mode);
+                                    setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
                                 });
                             }
                         }

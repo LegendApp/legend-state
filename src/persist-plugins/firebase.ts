@@ -487,7 +487,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 valueAtPath = null;
             }
 
-            const value = constructObjectWithPath(path as string[], clone(valueAtPath), pathTypes) as unknown as T;
+            const value = constructObjectWithPath(path as string[], pathTypes, clone(valueAtPath)) as unknown as T;
             const pathCloned = path.slice() as string[];
 
             this._updatePendingSave(pathCloned, value as unknown as object, pending);
@@ -536,18 +536,14 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         if (dateModified) {
                             maxModified = Math.max(dateModified, maxModified);
                             if (dateModifiedKeyOption) {
-                                const deconstructed = deconstructObjectWithPath(path, value);
+                                const deconstructed = deconstructObjectWithPath(path, pathTypes, value);
                                 // Don't resurrect deleted items
                                 if (deconstructed !== (symbolDelete as any)) {
                                     Object.assign(
                                         changesOut,
-                                        constructObjectWithPath(
-                                            path,
-                                            {
-                                                [dateModifiedKey!]: dateModified,
-                                            },
-                                            pathTypes,
-                                        ),
+                                        constructObjectWithPath(path, pathTypes, {
+                                            [dateModifiedKey!]: dateModified,
+                                        }),
                                     );
                                 }
                             }
@@ -755,7 +751,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 value = outerValue;
             }
 
-            value = constructObjectWithPath(path, value, pathTypes);
+            value = constructObjectWithPath(path, pathTypes, value);
 
             const onChangePromise = onChange({
                 value,
@@ -816,7 +812,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
             const pathChild = path.concat(key);
             const pathTypesChild = pathTypes.concat('object');
-            const constructed = constructObjectWithPath(pathChild, value, pathTypes);
+            const constructed = constructObjectWithPath(pathChild, pathTypes, value);
 
             if (
                 !this.addValuesToPendingSaves(

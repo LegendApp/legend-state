@@ -95,11 +95,20 @@ export function setAtPath<T extends object>(
 
     return obj;
 }
-export function setInObservableAtPath(obs: ObservableWriteable, path: string[], value: any, mode: 'assign' | 'set') {
+export function setInObservableAtPath(
+    obs: ObservableWriteable,
+    path: string[],
+    pathTypes: string[],
+    value: any,
+    mode: 'assign' | 'set',
+) {
     let o: Record<string, any> = obs;
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
+        if (!o.peek()[p] && pathTypes[i] === 'array') {
+            o[p].set([]);
+        }
         o = o[p];
         v = v[p];
     }
@@ -165,7 +174,7 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, so
 
     return target;
 }
-export function constructObjectWithPath(path: string[], value: any, pathTypes: TypeAtPath[]): object {
+export function constructObjectWithPath(path: string[], pathTypes: TypeAtPath[], value: any): object {
     let out;
     if (path.length > 0) {
         let o: Record<string, any> = (out = {});
@@ -180,11 +189,11 @@ export function constructObjectWithPath(path: string[], value: any, pathTypes: T
 
     return out;
 }
-export function deconstructObjectWithPath(path: string[], value: any): object {
+export function deconstructObjectWithPath(path: string[], pathTypes: TypeAtPath[], value: any): object {
     let o = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
-        o = o[p];
+        o = o ? o[p] : pathTypes[i] === 'array' ? [] : {};
     }
 
     return o;

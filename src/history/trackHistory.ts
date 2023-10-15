@@ -26,7 +26,7 @@ export function trackHistory<T>(
             for (let i = 0; i < changes.length; i++) {
                 const { path, prevAtPath, pathTypes } = changes[i];
 
-                const obj = constructObjectWithPath(path, prevAtPath, pathTypes);
+                const obj = constructObjectWithPath(path, pathTypes, prevAtPath);
                 mergeIntoObservable((history as any)[time], obj);
             }
         }

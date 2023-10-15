@@ -97,10 +97,10 @@ export function transformObjectWithPath(
     pathTypes: TypeAtPath[],
     fieldTransforms: FieldTransforms<any>,
 ) {
-    const constructed = constructObjectWithPath(path, obj, pathTypes);
+    const constructed = constructObjectWithPath(path, pathTypes, obj);
     const transformed = transformObject(constructed, fieldTransforms);
     const transformedPath = transformPath(path as string[], pathTypes, fieldTransforms);
-    return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, transformed) };
+    return { path: transformedPath, obj: deconstructObjectWithPath(transformedPath, pathTypes, transformed) };
 }
 
 const invertedMaps = new WeakMap();
