@@ -141,7 +141,7 @@ describe('Computed', () => {
     });
     test('Computed with promise', async () => {
         const obs = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
-        const comp = computed(() => {
+        const comp = observable(() => {
             const value = obs.get();
             if (value) {
                 return new Promise((resolve) => {

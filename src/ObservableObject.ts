@@ -893,6 +893,11 @@ function activateNodeFunction(
                 // for the effect.
                 value = value.get();
             }
+
+            if (isPromise(value)) {
+                extractPromise(node, value);
+                value = undefined;
+            }
             return value;
         },
         ({ value }) => {
