@@ -477,34 +477,38 @@ describe('Computed inside observable', () => {
         const obs = observable({
             items: { test1: { text: 'h' }, test2: { text: 'hello' } } as Record<string, Item>,
             selected: 'test1' as string,
-            selectedItem: computed((): Observable<Item> => {
+            selectedItem: (): Observable<Item> => {
                 return obs.items[obs.selected.get()];
-            }),
+            },
         });
 
         // Check that sets works before get is called
+        // @ts-expect-error asdf
         obs.selectedItem.text.set('hi');
 
-        const handlerObs = expectChangeHandler(obs.items);
+        const handlerItems = expectChangeHandler(obs.items);
         const handlerSelected = expectChangeHandler(obs.selected);
+        // @ts-expect-error asdf
         const handlerItem = expectChangeHandler(obs.selectedItem);
 
+        // @ts-expect-error asdf
         obs.selectedItem.text.set('hi!');
+        // @ts-expect-error asdf
         expect(obs.selectedItem.get()).toEqual({
             text: 'hi!',
         });
         expect(obs.items.test1.get()).toEqual({
             text: 'hi!',
         });
-        expect(handlerObs).toHaveBeenCalledWith(
+        expect(handlerItems).toHaveBeenCalledWith(
             { test1: { text: 'hi!' }, test2: { text: 'hello' } },
             { test1: { text: 'hi' }, test2: { text: 'hello' } },
             [
                 {
-                    path: ['test1', 'text'],
-                    pathTypes: ['object', 'object'],
-                    prevAtPath: 'hi',
-                    valueAtPath: 'hi!',
+                    path: ['test1'],
+                    pathTypes: ['object'],
+                    prevAtPath: { text: 'hi' },
+                    valueAtPath: { text: 'hi!' },
                 },
             ],
         );
@@ -528,6 +532,7 @@ describe('Computed inside observable', () => {
                 valueAtPath: 'test2',
             },
         ]);
+        // @ts-expect-error asdf
         expect(obs.selectedItem.get()).toEqual({
             text: 'hello',
         });
@@ -541,7 +546,9 @@ describe('Computed inside observable', () => {
             },
         ]);
 
+        // @ts-expect-error asdf
         obs.selectedItem.text.set('hello!');
+        // @ts-expect-error asdf
         expect(obs.selectedItem.get()).toEqual({
             text: 'hello!',
         });
