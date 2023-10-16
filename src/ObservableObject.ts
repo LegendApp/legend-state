@@ -35,6 +35,7 @@ import type {
     ListenerFn,
     ListenerParams,
     NodeValue,
+    Observable,
     ObservableObject,
     ObservableState,
     TrackingType,
@@ -870,9 +871,20 @@ function activateNodeFunction(
             fn({ onChange: onObsChange });
         }
     };
+    let target$: Observable<any>;
     observe(
         () => {
-            return node({ onSet, subscribe }, childNode?.key);
+            let value = node({ onSet, subscribe }, childNode?.key);
+            // If target is an observable, get() it to make sure we listen to its changes
+            // and set up an onSet to write changes back to it
+            if (isObservable(value)) {
+                target$ = value;
+                onSet(({ value: newValue }) => {
+                    target$.set(newValue);
+                });
+                value = value.get();
+            }
+            return value;
         },
         ({ value }) => {
             if (!isSetting) {

@@ -565,11 +565,20 @@ describe('Computed inside observable', () => {
     });
     test('Computed link activates when getting', () => {
         const obs = observable(1);
-        const comp = computed(() => obs);
+        const comp = observable(() => obs);
 
         expect(obs.get()).toEqual(1);
         expect(comp.get()).toEqual(1);
-        expect(comp.get()).toEqual(1);
+
+        comp.set(2);
+
+        expect(obs.get()).toEqual(2);
+        expect(comp.get()).toEqual(2);
+
+        obs.set(3);
+
+        expect(obs.get()).toEqual(3);
+        expect(comp.get()).toEqual(3);
     });
     test('Computed in observable sets raw data', () => {
         const obs = observable({
@@ -729,10 +738,6 @@ describe('Computed inside observable', () => {
                 });
                 return sub$.get();
             },
-            // sub: computed(
-            //     () => sub$.get(),
-            //     (x) => sub$.set(x),
-            // ),
         });
 
         // This only works if sub is activated
@@ -764,11 +769,16 @@ describe('Computed inside observable', () => {
         });
 
         const obs$ = observable({
-            sub: computed(() => sub$),
+            sub: () => sub$,
         });
+
+        // This only works if activated first
+        // @ts-expect-error asdf
+        obs$.sub.get();
 
         expect(obs$.get()).toEqual({ sub: { num: 0 } });
 
+        // @ts-expect-error asdf
         obs$.sub.num.set(4);
 
         let observedValue;
