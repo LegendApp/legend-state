@@ -10,6 +10,7 @@ import type {
 } from './observableInterfaces';
 
 export function observable<T>(value: Promise<T>): Observable<T & WithState>;
+export function observable<T>(value: (params: ComputedParams) => Observable<T>): Observable<T>;
 export function observable<T>(value: (params: ComputedParams) => T): Observable<T>;
 export function observable<T>(value: () => T): ObservableComputed<T>;
 export function observable<T>(value?: T): Observable<T>;
@@ -18,6 +19,7 @@ export function observable<T>(value?: T | Promise<T>): Observable<T & WithState>
 }
 
 export function observablePrimitive<T>(value: Promise<T>): ObservablePrimitive<T & WithState>;
+export function observablePrimitive<T>(value: (params: ComputedParams) => Observable<T>): ObservableComputed<T>;
 export function observablePrimitive<T>(value: (params: ComputedParams) => T): ObservableComputed<T>;
 export function observablePrimitive<T>(value: () => T): ObservablePrimitive<T>;
 export function observablePrimitive<T>(value?: T): ObservablePrimitive<T>;
