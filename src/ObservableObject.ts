@@ -836,9 +836,11 @@ function activateNodeFunction(
     node: NodeValue & ((value: ComputedProxyParams, childKey?: string) => any),
     childNode?: NodeValue,
 ) {
-    let dispose: any;
+    let dispose: () => void;
     let subscribed = false;
     let isSetting = false;
+    // The onSet function handles the observable being set
+    // and forwards the set elsewhere
     const onSet: ComputedParams['onSet'] = (setter) => {
         const doSet = (params: ListenerParams) => {
             if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
@@ -853,6 +855,8 @@ function activateNodeFunction(
         dispose?.();
         dispose = onChange(node, doSet as any, { immediate: true });
     };
+    // The subscribe function runs a function that listens to
+    // a data source and sends updates into the observable
     const subscribe: ComputedParams['subscribe'] = (fn) => {
         if (!subscribed) {
             subscribed = true;
@@ -863,6 +867,9 @@ function activateNodeFunction(
             });
         }
     };
+    // The proxy function simply marks the node as a proxy with this function
+    // so that child nodes will be created with this function, and then simply
+    // activated as a function
     const proxy: ComputedProxyParams['proxy'] = (fn) => {
         node.proxyFn2 = fn;
     };
@@ -870,6 +877,7 @@ function activateNodeFunction(
     let curTarget$: ObservableObject<any>;
     observe(
         () => {
+            // Run the function at this node
             let value = node({ onSet, subscribe, proxy }, childNode?.key);
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it

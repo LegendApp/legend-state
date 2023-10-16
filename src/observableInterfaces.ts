@@ -523,8 +523,6 @@ export interface ComputedParams<T = any> {
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
 }
 
-export interface ComputedProxyParams<T = any> {
-    onSet: (fn: (params: ListenerParams<T>) => void) => void;
-    subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
+export interface ComputedProxyParams<T = any> extends ComputedParams {
     proxy: (fn: (key: string, params: ComputedParams<T>) => T) => void;
 }
