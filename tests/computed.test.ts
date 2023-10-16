@@ -261,6 +261,23 @@ describe('Two way Computed', () => {
 
         expect(obs.test.get()).toEqual(true);
     });
+    test('Computed has onChange before activation', () => {
+        const obs = observable({
+            test: false,
+            test2: () => obs.test.get(),
+        });
+
+        let lastValue = obs.test.peek();
+
+        // @ts-expect-error asdf
+        obs.test2.onChange(({ value }) => {
+            lastValue = value;
+        });
+
+        expect(lastValue).toEqual(false);
+        obs.test.set(true);
+        expect(lastValue).toEqual(true);
+    });
     test('Set child of computed', () => {
         const obs = observable({ test: false, test2: false });
         // @ts-expect-error asdf
@@ -281,17 +298,20 @@ describe('Two way Computed', () => {
     });
     test('Computed activates before set', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = computed(
-            () => {
+        const comp = observable(
+            // @ts-expect-error asdf
+            ({ onSet }) => {
+                // @ts-expect-error asdf
+                onSet(({ value: { computedValue } }) => {
+                    obs.test.set(computedValue);
+                });
                 return {
                     computedValue: obs.test.get(),
                     computedValue2: obs.test2.get(),
                 };
             },
-            ({ computedValue }) => {
-                obs.test.set(computedValue);
-            },
         );
+        // @ts-expect-error asdf
         comp.computedValue.set(true);
         expect(comp.get()).toEqual({ computedValue: true, computedValue2: false });
         expect(obs.test.get()).toEqual(true);
@@ -299,7 +319,7 @@ describe('Two way Computed', () => {
     });
     test('Computed activates when undefined', () => {
         const obs = observable<boolean[]>(undefined);
-        const comp = computed(() => {
+        const comp = observable(() => {
             return obs.get()?.filter((a) => !!a);
         });
         let observed: boolean[];
@@ -554,25 +574,26 @@ describe('Computed inside observable', () => {
     test('Computed in observable sets raw data', () => {
         const obs = observable({
             text: 'hi',
-            test: computed((): string => {
+            test: () => {
                 return obs.text.get() + '!';
-            }),
+            },
         });
 
+        // @ts-expect-error asdf
         expect(obs.test.get()).toEqual('hi!');
         expect(obs.get().test).toEqual('hi!');
         expect(isObservable(obs.get().test)).toBe(false);
     });
-    test('Computed in observable gets activated by accessing root', () => {
+    test('Computed in observable not activated by accessing root', () => {
         const obs = observable({
             text: 'hi',
-            test: computed((): string => {
+            test: (): string => {
                 return obs.text.get() + '!';
-            }),
+            },
         });
         const value = obs.get();
         expect(isObservable(value.test)).toBe(false);
-        expect(value.test === 'hi!');
+        expect(value.test === undefined);
     });
     test('Computed in observable notifies to root', () => {
         const obs = observable({
@@ -601,14 +622,16 @@ describe('Computed inside observable', () => {
         ]);
     });
     test('Accessing through proxy goes to computed and not parent object', () => {
-        const test = computed((): { child: string } => {
+        const test = (): { child: string } => {
             return { child: obs.text.get() + '!' };
-        });
+        };
         const obs = observable({
             text: 'hi',
             test,
         });
-        const handler = expectChangeHandler(test.child);
+        // @ts-expect-error asdf
+        const handler = expectChangeHandler(obs.test.child);
+        // @ts-expect-error asdf
         const handler2 = expectChangeHandler(obs.test);
         const handlerRoot = expectChangeHandler(obs);
         obs.text.set('hello');
@@ -632,6 +655,13 @@ describe('Computed inside observable', () => {
             { text: 'hello', test: { child: 'hello!' } },
             { text: 'hi', test: { child: 'hi!' } },
             [
+                {
+                    path: ['test', 'child'],
+                    pathTypes: ['object', 'object'],
+                    prevAtPath: 'hi!',
+                    valueAtPath: 'hello!',
+                },
+                // TODO: Is this wrong? Should there not be 3 changes here?
                 {
                     path: ['test'],
                     pathTypes: ['object'],
@@ -691,18 +721,23 @@ describe('Computed inside observable', () => {
         });
 
         const obs$ = observable({
-            // sub: ({ onSet }) => {
-            //     // @ts-expect-error asdf
-            //     onSet(({ value }) => {
-            //         sub$.set(value);
-            //     });
-            //     return sub$.get();
-            // },
-            sub: computed(
-                () => sub$.get(),
-                (x) => sub$.set(x),
-            ),
+            // @ts-expect-error asdf
+            sub: ({ onSet }) => {
+                // @ts-expect-error asdf
+                onSet(({ value }) => {
+                    sub$.set(value);
+                });
+                return sub$.get();
+            },
+            // sub: computed(
+            //     () => sub$.get(),
+            //     (x) => sub$.set(x),
+            // ),
         });
+
+        // This only works if sub is activated
+        // @ts-expect-error asdf
+        obs$.sub.get();
 
         let observedValue;
         observe(() => {
@@ -711,11 +746,13 @@ describe('Computed inside observable', () => {
 
         expect(observedValue).toEqual({ sub: { num: 0 } });
 
+        // @ts-expect-error asdf
         obs$.sub.set({ num: 4 });
 
         expect(observedValue).toEqual({ sub: { num: 4 } });
         expect(obs$.get()).toEqual({ sub: { num: 4 } });
 
+        // @ts-expect-error asdf
         obs$.sub.set({ num: 8 });
 
         expect(observedValue).toEqual({ sub: { num: 8 } });
