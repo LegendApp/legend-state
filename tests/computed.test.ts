@@ -2,6 +2,7 @@ import {
     beginBatch,
     Change,
     ComputedParams,
+    ComputedProxyParams,
     endBatch,
     isObservable,
     Observable,
@@ -740,22 +741,18 @@ describe('proxy', () => {
     test('proxy plain', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            // @ts-expect-error asdf
-            itemText: (_, key): string => {
-                return obs.items[key].text.get();
-            },
         });
-        // @ts-expect-error asdf
-        expect(obs.itemText['test1'].get()).toEqual('hi');
+        const itemText = observable(({ proxy }: ComputedProxyParams) => {
+            proxy((key) => obs.items[key].text.get());
+        });
+        expect(itemText['test1'].get()).toEqual('hi');
 
         const handlerItem = expectChangeHandler(obs.items['test1']);
-        // @ts-expect-error asdf
-        const handlerItemText = expectChangeHandler(obs.itemText['test1']);
+        const handlerItemText = expectChangeHandler(itemText['test1']);
 
         obs.items['test1'].text.set('hi!');
         expect(obs.items['test1'].text.get()).toEqual('hi!');
-        // @ts-expect-error asdf
-        expect(obs.itemText['test1'].get()).toEqual('hi!');
+        expect(itemText['test1'].get()).toEqual('hi!');
 
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
             {
@@ -777,21 +774,21 @@ describe('proxy', () => {
     test('proxy two-way', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy(
-                (key): string => {
-                    return obs.items[key].text.get();
-                },
-                (key, value) => {
-                    obs.items[key].text.set(value);
-                },
-            ),
         });
-        expect(obs.itemText['test1'].get()).toEqual('hi');
+        const itemText = observable(({ proxy }: ComputedProxyParams<string>) => {
+            proxy((key, { onSet }) => {
+                onSet(({ value }) => {
+                    obs.items[key].text.set(value);
+                });
+                return obs.items[key].text.get();
+            });
+        });
+        expect(itemText['test1'].get()).toEqual('hi');
 
         const handlerItem = expectChangeHandler(obs.items['test1']);
-        const handlerItemText = expectChangeHandler(obs.itemText['test1']);
+        const handlerItemText = expectChangeHandler(itemText['test1']);
 
-        obs.itemText['test1'].set('hi!');
+        itemText['test1'].set('hi!');
         expect(obs.items['test1'].text.get()).toEqual('hi!');
 
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
@@ -814,15 +811,20 @@ describe('proxy', () => {
     test('proxy link', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy((key): Observable<string> => {
-                return obs.items[key].text;
-            }),
+            itemText: ({ proxy }: ComputedProxyParams) => {
+                proxy((key) => {
+                    return obs.items[key].text;
+                });
+            },
         });
+        // @ts-expect-error asdf
         expect(obs.itemText['test1'].get()).toEqual('hi');
 
         const handlerItem = expectChangeHandler(obs.items['test1']);
+        // @ts-expect-error asdf
         const handlerItemText = expectChangeHandler(obs.itemText['test1']);
 
+        // @ts-expect-error asdf
         obs.itemText['test1'].set('hi!');
         expect(obs.items['test1'].text.get()).toEqual('hi!');
 

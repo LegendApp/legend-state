@@ -460,6 +460,7 @@ interface BaseNodeValue {
     functions?: Map<string, Function | ObservableComputed<any>>;
     lazy?: boolean;
     state?: Observable<ObservableState>;
+    proxyFn2?: (key: string, params: ComputedParams) => any;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -510,6 +511,12 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
         [symbolGetNode]: NodeValue;
     };
 export interface ComputedParams<T = any> {
-    onSet: (fn: (params: { value: any }) => void) => void;
+    onSet: (fn: (params: ListenerParams<T>) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
+}
+
+export interface ComputedProxyParams<T = any> {
+    onSet: (fn: (params: ListenerParams<T>) => void) => void;
+    subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
+    proxy: (fn: (key: string, params: ComputedParams<T>) => T) => void;
 }

@@ -32,6 +32,7 @@ import {
 import type {
     ChildNodeValue,
     ComputedParams,
+    ComputedProxyParams,
     GetOptions,
     ListenerFn,
     ListenerParams,
@@ -814,11 +815,7 @@ export function peek(node: NodeValue) {
     if (node.lazy) {
         delete node.lazy;
         if (isFunction(node)) {
-            if (node.length < 2) {
-                activateNodeFunction(node as any);
-            }
-        } else if (isFunction(node.parent) && node.parent.length === 2) {
-            activateNodeFunction(node.parent as any, node);
+            activateNodeFunction(node as any);
         } else {
             for (const key in value) {
                 if (hasOwnProperty.call(value, key)) {
@@ -835,13 +832,13 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(
-    node: NodeValue & ((value: ComputedParams, childKey?: string) => any),
+    node: NodeValue & ((value: ComputedProxyParams, childKey?: string) => any),
     childNode?: NodeValue,
 ) {
     let dispose: any;
     let subscribed = false;
     let isSetting = false;
-    const onSet = (setter: ListenerFn) => {
+    const onSet: ComputedParams['onSet'] = (setter) => {
         const doSet = (params: ListenerParams) => {
             if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
                 isSetting = true;
@@ -865,9 +862,12 @@ function activateNodeFunction(
             });
         }
     };
+    const proxy: ComputedProxyParams['proxy'] = (fn) => {
+        node.proxyFn2 = fn;
+    };
     observe(
         () => {
-            let value = node({ onSet, subscribe }, childNode?.key);
+            let value = node({ onSet, subscribe, proxy }, childNode?.key);
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
