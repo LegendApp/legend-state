@@ -111,6 +111,8 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
         };
         if (asFunction) {
             child = Object.assign(cloneFunction(asFunction), child);
+        } else if (node.proxyFn2) {
+            child = Object.assign(() => node.proxyFn2!(key), child);
         }
         if (!node.children) {
             node.children = new Map();
