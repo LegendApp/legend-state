@@ -107,8 +107,8 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
     : T[K] extends Promise<infer t>
     ? Observable<t & WithState>
-    : T[K] extends Function
-    ? T[K]
+    : T[K] extends () => infer t
+    ? T[K] & Observable<t>
     : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
     ? ObservableProxyTwoWay<t, t2>
     : T[K] extends ObservableProxy<infer t>
@@ -508,6 +508,6 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
         [symbolGetNode]: NodeValue;
     };
 export interface ComputedParams<T = any> {
-    onSet: (fn: () => any) => any;
+    onSet: (fn: (params: { value: any }) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
 }

@@ -58,8 +58,7 @@ export function observe<T>(
         // Call the reaction if there is one and the value changed
         if (
             reaction &&
-            (e.num > 0 || !isEvent(selectorOrRun as any) || options?.fromComputed) &&
-            (e.previous !== e.value || options?.fromComputed)
+            (options?.fromComputed || ((e.num > 0 || !isEvent(selectorOrRun as any)) && e.previous !== e.value))
         ) {
             reaction(e);
         }
