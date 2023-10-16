@@ -4,6 +4,7 @@ import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import type { Observable, ObservableComputed, ObservablePrimitive, WithState } from './observableInterfaces';
 
 export function observable<T>(value: Promise<T>): Observable<T & WithState>;
+export function observable<T>(value: () => T): ObservableComputed<T>;
 export function observable<T>(value?: T): Observable<T>;
 export function observable<T>(value?: T | Promise<T>): Observable<T & WithState> {
     return createObservable(value, false, getProxy, ObservablePrimitiveClass) as Observable<T & WithState>;
