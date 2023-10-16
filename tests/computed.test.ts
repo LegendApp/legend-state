@@ -525,7 +525,6 @@ describe('Computed inside observable', () => {
         expect(obs.get()).toEqual(1);
         expect(comp.get()).toEqual(1);
 
-        // @ts-expect-error asdf
         comp.set(2);
 
         expect(obs.get()).toEqual(2);
