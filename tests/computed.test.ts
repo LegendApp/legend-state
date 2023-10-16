@@ -1,6 +1,7 @@
 import {
     beginBatch,
     Change,
+    ComputedParams,
     endBatch,
     isObservable,
     Observable,
@@ -156,7 +157,7 @@ describe('Two way Computed', () => {
     });
     test('Bound to two, set', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
                 obs.test.set(value) && obs.test2.set(value);
             });
@@ -169,7 +170,7 @@ describe('Two way Computed', () => {
     });
     test('Bound to two, set child', () => {
         const obs = observable({ test: { a: 'hi' }, test2: false });
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
                 obs.test.set(value);
             });
@@ -181,7 +182,7 @@ describe('Two way Computed', () => {
     });
     test('Bound to array, set', () => {
         const obs = observable([false, false, false, false, false]);
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
                 obs.forEach((child) => child.set(value));
             });
@@ -195,7 +196,7 @@ describe('Two way Computed', () => {
     test('Bound to two, set, handler', () => {
         const obs = observable({ test: false, test2: false });
         const handler = expectChangeHandler(obs);
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
                 obs.test.set(value) && obs.test2.set(value);
             });
@@ -223,7 +224,7 @@ describe('Two way Computed', () => {
     });
     test('Computed has set before activation', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
                 obs.test.set(value) && obs.test2.set(value);
             });
@@ -251,7 +252,7 @@ describe('Two way Computed', () => {
     });
     test('Set child of computed', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value: { computedValue } }) => {
                 obs.test.set(computedValue);
                 obs.test2.set(computedValue);
@@ -266,7 +267,7 @@ describe('Two way Computed', () => {
     });
     test('Computed activates before set', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = observable(({ onSet }) => {
+        const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value: { computedValue } }) => {
                 obs.test.set(computedValue);
             });
@@ -296,7 +297,7 @@ describe('Two way Computed', () => {
     test('Two way computed value is set before calling setter', () => {
         const obs = observable(0);
 
-        const comp = observable<string>(({ onSet }) => {
+        const comp = observable<string>(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
                 obs.set(+value);
             });
@@ -952,7 +953,7 @@ describe('proxy', () => {
 });
 describe('subscribing to computeds', () => {
     test('basic subscription', async () => {
-        const obs = observable(({ subscribe }) => {
+        const obs = observable(({ subscribe }: ComputedParams) => {
             subscribe(({ update }) => {
                 setTimeout(() => update({ value: 'hi there again' }), 5);
             });
