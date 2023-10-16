@@ -109,8 +109,16 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? Observable<t & WithState>
     : T[K] extends () => infer t
     ? t extends Observable
-        ? T[K] & t
-        : T[K] & Observable<t>
+        ? t
+        : Observable<t>
+    : T[K] extends (params: ComputedParams) => infer t
+    ? t extends Observable
+        ? t
+        : Observable<t>
+    : T[K] extends (params: ComputedProxyParams<infer t>) => void
+    ? t extends Observable
+        ? Record<string, t>
+        : Observable<Record<string, t>>
     : T[K] extends ObservableProxyTwoWay<infer t, infer t2>
     ? ObservableProxyTwoWay<t, t2>
     : T[K] extends ObservableProxy<infer t>

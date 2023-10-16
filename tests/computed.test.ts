@@ -85,17 +85,16 @@ describe('Computed', () => {
         expect(handler).toHaveBeenCalledWith(21, 25, [{ path: [], pathTypes: [], valueAtPath: 21, prevAtPath: 25 }]);
         expect(comp.get()).toEqual(21);
     });
-    // TODO
-    // test('Cannot directly set a computed', () => {
-    //     const obs = observable({ test: 10, test2: 20 });
-    //     const comp = observable(() => obs.test.get() + obs.test2.get());
-    //     // @ts-expect-error Expect this to throw an error
-    //     comp.set(40);
-    //     // @ts-expect-error Expect this to throw an error
-    //     comp.assign({ text: 'hi' });
-    //     // @ts-expect-error Expect this to throw an error
-    //     comp.delete();
-    // });
+    test('Cannot directly set a computed', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = observable(() => obs.test.get() + obs.test2.get());
+        // @ts-expect-error Expect this to throw an error
+        comp.set(40);
+        // @ts-expect-error Expect this to throw an error
+        comp.assign({ text: 'hi' });
+        // @ts-expect-error Expect this to throw an error
+        comp.delete();
+    });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = observable(() => ({ value: obs.test.get() + obs.test2.get() }));
@@ -673,15 +672,28 @@ describe('Computed inside observable', () => {
 
         expect(num).toEqual(1);
     });
+    test('observe sub computed runs once if already activated as child', () => {
+        const obs$ = observable({
+            num: 0,
+            sub: () => obs$.num.get(),
+        });
+
+        let num = 0;
+        obs$.sub.get();
+        observe(() => {
+            obs$.sub.get();
+            num++;
+        });
+
+        expect(num).toEqual(1);
+    });
     test('Setting through two-way sets values on parent', () => {
         const sub$ = observable({
             num: 0,
         });
 
         const obs$ = observable({
-            // @ts-expect-error asdf
-            sub: ({ onSet }) => {
-                // @ts-expect-error asdf
+            sub: ({ onSet }: ComputedParams) => {
                 onSet(({ value }) => {
                     sub$.set(value);
                 });
@@ -699,13 +711,11 @@ describe('Computed inside observable', () => {
 
         expect(observedValue).toEqual({ sub: { num: 0 } });
 
-        // @ts-expect-error asdf
         obs$.sub.set({ num: 4 });
 
         expect(observedValue).toEqual({ sub: { num: 4 } });
         expect(obs$.get()).toEqual({ sub: { num: 4 } });
 
-        // @ts-expect-error asdf
         obs$.sub.set({ num: 8 });
 
         expect(observedValue).toEqual({ sub: { num: 8 } });
@@ -816,14 +826,12 @@ describe('proxy', () => {
                 });
             },
         });
-        // @ts-expect-error asdf
+
         expect(obs.itemText['test1'].get()).toEqual('hi');
 
         const handlerItem = expectChangeHandler(obs.items['test1']);
-        // @ts-expect-error asdf
         const handlerItemText = expectChangeHandler(obs.itemText['test1']);
 
-        // @ts-expect-error asdf
         obs.itemText['test1'].set('hi!');
         expect(obs.items['test1'].text.get()).toEqual('hi!');
 
@@ -857,16 +865,13 @@ describe('proxy', () => {
                 });
             },
         });
-        // @ts-expect-error asdf
         expect(obs.itemText['test1'].get()).toEqual('hi');
 
         const handlerItem = expectChangeHandler(obs.items['test1']);
-        // @ts-expect-error asdf
         const handlerItemText = expectChangeHandler(obs.itemText['test1']);
 
         obs.selector.set('othertext');
 
-        // @ts-expect-error asdf
         expect(obs.itemText['test1'].get()).toEqual('bye');
 
         expect(handlerItem).not.toHaveBeenCalled();
@@ -883,7 +888,7 @@ describe('proxy', () => {
     test('raw value of proxy has all values', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: ({ proxy }: ComputedProxyParams) => {
+            itemText: ({ proxy }: ComputedProxyParams<Observable<string>>) => {
                 proxy((key) => {
                     return obs.items[key].text;
                 });
@@ -893,9 +898,7 @@ describe('proxy', () => {
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
         });
 
-        // @ts-expect-error asdf
         obs.itemText['test1'].set('hi!');
-        // @ts-expect-error asdf
         obs.itemText['test1'].get();
 
         expect(obs.get()).toEqual({
@@ -905,7 +908,6 @@ describe('proxy', () => {
             },
         });
 
-        // @ts-expect-error asdf
         obs.itemText['test2'].set('hello!');
 
         expect(obs.get()).toEqual({
@@ -919,18 +921,16 @@ describe('proxy', () => {
     test('listener on proxy works', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: ({ proxy }: ComputedProxyParams) => {
+            itemText: ({ proxy }: ComputedProxyParams<Observable<string>>) => {
                 proxy((key) => {
                     return obs.items[key].text;
                 });
             },
         });
-        // @ts-expect-error asdf
         obs.itemText['test1'].get();
         const handler = expectChangeHandler(obs);
         const handler2 = expectChangeHandler(obs.itemText);
 
-        // @ts-expect-error asdf
         obs.itemText['test1'].set('hi!');
 
         expect(handler).toHaveBeenCalledWith(
