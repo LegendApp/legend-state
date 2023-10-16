@@ -37,6 +37,7 @@ import type {
     ListenerFn,
     ListenerParams,
     NodeValue,
+    Observable,
     ObservableObject,
     ObservableState,
     TrackingType,
@@ -865,22 +866,28 @@ function activateNodeFunction(
     const proxy: ComputedProxyParams['proxy'] = (fn) => {
         node.proxyFn2 = fn;
     };
+    let prevTarget$: ObservableObject<any>;
+    let curTarget$: ObservableObject<any>;
     observe(
         () => {
             let value = node({ onSet, subscribe, proxy }, childNode?.key);
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
-                const target$ = value;
+                prevTarget$ = curTarget$;
+                curTarget$ = value;
                 onSet(({ value: newValue, getPrevious }) => {
-                    // Set the node value back to what it was before before setting it.
-                    // This is a workaround for linked objects because it might not notify
-                    // if setting a property of an object
-                    // TODO: Is there a way to not do this? Or at least only do it in a
-                    // small subset of cases?
-                    setNodeValue(getNode(target$), getPrevious());
-                    // Set the value on the target
-                    target$.set(newValue);
+                    // Don't set the target observable if the target has changed since the last run
+                    if (!prevTarget$ || curTarget$ === prevTarget$) {
+                        // Set the node value back to what it was before before setting it.
+                        // This is a workaround for linked objects because it might not notify
+                        // if setting a property of an object
+                        // TODO: Is there a way to not do this? Or at least only do it in a
+                        // small subset of cases?
+                        setNodeValue(getNode(curTarget$), getPrevious());
+                        // Set the value on the curTarget
+                        curTarget$.set(newValue);
+                    }
                 });
 
                 // Get the value from the observable because we still want the raw value
