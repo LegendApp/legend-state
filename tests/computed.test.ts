@@ -157,7 +157,6 @@ describe('Computed', () => {
 describe('Two way Computed', () => {
     test('Bound to two, get', () => {
         const obs = observable({ test: false, test2: false });
-        // @ts-expect-error asdf
         const comp = observable(({ onSet }) => {
             // @ts-expect-error asdf
             onSet(({ value }) => {
@@ -189,7 +188,6 @@ describe('Two way Computed', () => {
     });
     test('Bound to two, set child', () => {
         const obs = observable({ test: { a: 'hi' }, test2: false });
-        // @ts-expect-error asdf
         const comp = observable(({ onSet }) => {
             // @ts-expect-error asdf
             onSet(({ value }) => {
@@ -280,7 +278,6 @@ describe('Two way Computed', () => {
     });
     test('Set child of computed', () => {
         const obs = observable({ test: false, test2: false });
-        // @ts-expect-error asdf
         const comp = observable(({ onSet }) => {
             // @ts-expect-error asdf
             onSet(({ value: { computedValue } }) => {
@@ -290,7 +287,6 @@ describe('Two way Computed', () => {
             return { computedValue: obs.test.get() && obs.test2.get() };
         });
         expect(comp.get()).toEqual({ computedValue: false });
-        // @ts-expect-error asdf
         comp.computedValue.set(true);
         expect(comp.get()).toEqual({ computedValue: true });
         expect(obs.test.get()).toEqual(true);
@@ -298,20 +294,16 @@ describe('Two way Computed', () => {
     });
     test('Computed activates before set', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = observable(
+        const comp = observable(({ onSet }) => {
             // @ts-expect-error asdf
-            ({ onSet }) => {
-                // @ts-expect-error asdf
-                onSet(({ value: { computedValue } }) => {
-                    obs.test.set(computedValue);
-                });
-                return {
-                    computedValue: obs.test.get(),
-                    computedValue2: obs.test2.get(),
-                };
-            },
-        );
-        // @ts-expect-error asdf
+            onSet(({ value: { computedValue } }) => {
+                obs.test.set(computedValue);
+            });
+            return {
+                computedValue: obs.test.get(),
+                computedValue2: obs.test2.get(),
+            };
+        });
         comp.computedValue.set(true);
         expect(comp.get()).toEqual({ computedValue: true, computedValue2: false });
         expect(obs.test.get()).toEqual(true);
@@ -333,19 +325,17 @@ describe('Two way Computed', () => {
     test('Two way computed value is set before calling setter', () => {
         const obs = observable(0);
 
-        const comp = observable<string>(
+        const comp = observable<string>(({ onSet }) => {
             // @ts-expect-error asdf
-            ({ onSet }) => {
-                // @ts-expect-error asdf
-                onSet(({ value }) => {
-                    obs.set(+value);
-                });
-                return obs.get() + '';
-            },
-        );
+            onSet(({ value }) => {
+                obs.set(+value);
+            });
+            return obs.get() + '';
+        });
 
         const increment = (cur: number) => {
             beginBatch();
+            // @ts-expect-error asdf
             comp.set(cur + '');
 
             expect(obs.get()).toEqual(cur);
@@ -1010,5 +1000,22 @@ describe('proxy', () => {
                 valueAtPath: 'hi!',
             },
         ]);
+    });
+});
+describe('subscribing to computeds', () => {
+    test('basic subscription', async () => {
+        const obs = observable(({ subscribe }) => {
+            subscribe(({ update }) => {
+                setTimeout(() => update({ value: 'hi there again' }), 5);
+            });
+            return new Promise((resolve) => {
+                setTimeout(() => resolve('hi there'), 0);
+            });
+        });
+        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual('hi there');
+        await promiseTimeout(5);
+        expect(obs.get()).toEqual('hi there again');
     });
 });

@@ -261,6 +261,13 @@ export interface ObservablePersistLocal {
     setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
+export interface ObservableOnChangeParams {
+    value: unknown;
+    path?: string[];
+    pathTypes?: TypeAtPath[];
+    mode?: 'assign' | 'set' | 'dateModified';
+    dateModified?: number | undefined;
+}
 export interface ObservablePersistRemoteSetParams<T> {
     syncState: Observable<ObservablePersistState>;
     obs: Observable<T>;
@@ -274,13 +281,7 @@ export interface ObservablePersistRemoteGetParams<T> {
     options: PersistOptions<T>;
     dateModified?: number;
     onGet: () => void;
-    onChange: (params: {
-        value: unknown;
-        path?: string[];
-        pathTypes?: TypeAtPath[];
-        mode?: 'assign' | 'set' | 'dateModified';
-        dateModified?: number | undefined;
-    }) => void | Promise<void>;
+    onChange: (params: ObservableOnChangeParams) => void | Promise<void>;
 }
 export type ObservablePersistRemoteGetFnParams<T> = Omit<ObservablePersistRemoteGetParams<T>, 'onGet'>;
 
@@ -506,3 +507,7 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
 } & ObservableBaseFns<T> & {
         [symbolGetNode]: NodeValue;
     };
+export interface ComputedParams<T = any> {
+    onSet: (fn: () => any) => any;
+    subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
+}
