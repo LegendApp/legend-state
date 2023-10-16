@@ -871,17 +871,26 @@ function activateNodeFunction(
             fn({ onChange: onObsChange });
         }
     };
-    let target$: Observable<any>;
     observe(
         () => {
             let value = node({ onSet, subscribe }, childNode?.key);
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
-                target$ = value;
-                onSet(({ value: newValue }) => {
+                const target$ = value;
+                onSet(({ value: newValue, getPrevious }) => {
+                    // Set the node value back to what it was before before setting it.
+                    // This is a workaround for linked objects because it might not notify
+                    // if setting a property of an object
+                    // TODO: Is there a way to not do this? Or at least only do it in a
+                    // small subset of cases?
+                    setNodeValue(getNode(target$), getPrevious());
+                    // Set the value on the target
                     target$.set(newValue);
                 });
+
+                // Get the value from the observable because we still want the raw value
+                // for the effect.
                 value = value.get();
             }
             return value;
