@@ -32,6 +32,8 @@ import {
 import type {
     ChildNodeValue,
     GetOptions,
+    ListenerFn,
+    ListenerParams,
     NodeValue,
     ObservableObject,
     ObservableState,
@@ -844,9 +846,20 @@ function activateNodeFunction(
 ) {
     let dispose: any;
     let subscribed = false;
-    const onSet = (setter: () => any) => {
+    let isSetting = false;
+    const onSet = (setter: ListenerFn) => {
+        const doSet = (params: ListenerParams) => {
+            if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
+                isSetting = true;
+                try {
+                    setter(params);
+                } finally {
+                    isSetting = false;
+                }
+            }
+        };
         dispose?.();
-        dispose = onChange(node, setter as any, { immediate: true });
+        dispose = onChange(node, doSet as any, { immediate: true });
     };
     const onObsChange = (value: any) => {
         set(node, value);
@@ -861,8 +874,10 @@ function activateNodeFunction(
         () => {
             return node({ onSet, subscribe }, childNode?.key);
         },
-        ({ value }) => {
-            set(childNode || node, value);
+        ({ value, num }) => {
+            if (!isSetting) {
+                set(childNode || node, value);
+            }
         },
         { immediate: true },
     );

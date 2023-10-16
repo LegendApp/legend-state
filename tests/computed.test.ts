@@ -263,16 +263,17 @@ describe('Two way Computed', () => {
     });
     test('Set child of computed', () => {
         const obs = observable({ test: false, test2: false });
-        const comp = computed(
-            () => ({
-                computedValue: obs.test.get() && obs.test2.get(),
-            }),
-            ({ computedValue }) => {
+        // @ts-expect-error asdf
+        const comp = observable(({ onSet }) => {
+            // @ts-expect-error asdf
+            onSet(({ value: { computedValue } }) => {
                 obs.test.set(computedValue);
                 obs.test2.set(computedValue);
-            },
-        );
+            });
+            return { computedValue: obs.test.get() && obs.test2.get() };
+        });
         expect(comp.get()).toEqual({ computedValue: false });
+        // @ts-expect-error asdf
         comp.computedValue.set(true);
         expect(comp.get()).toEqual({ computedValue: true });
         expect(obs.test.get()).toEqual(true);
@@ -576,10 +577,11 @@ describe('Computed inside observable', () => {
     test('Computed in observable notifies to root', () => {
         const obs = observable({
             text: 'hi',
-            test: computed((): string => {
+            test: (): string => {
                 return obs.text.get() + '!';
-            }),
+            },
         });
+        // @ts-expect-error asdf
         obs.test.get();
         const handler = expectChangeHandler(obs);
         obs.text.set('hello');
