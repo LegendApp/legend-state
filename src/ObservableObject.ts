@@ -1,6 +1,5 @@
-import { createObservable } from './createObservable';
-import { isObservable } from './helpers';
 import { beginBatch, endBatch, notify } from './batching';
+import { createObservable } from './createObservable';
 import {
     checkActivate,
     extraPrimitiveActivators,
@@ -18,6 +17,7 @@ import {
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
+import { isObservable } from './helpers';
 import {
     hasOwnProperty,
     isArray,
@@ -31,18 +31,18 @@ import {
 } from './is';
 import type {
     ChildNodeValue,
+    ComputedParams,
     GetOptions,
     ListenerFn,
     ListenerParams,
     NodeValue,
-    Observable,
     ObservableObject,
     ObservableState,
     TrackingType,
 } from './observableInterfaces';
+import { observe } from './observe';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
-import { observe } from './observe';
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -835,14 +835,7 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(
-    node: NodeValue &
-        ((
-            value: {
-                onSet: (fn: () => any) => any;
-                subscribe: (fn: (params: { onChange: (...props: any[]) => any }) => void) => void;
-            },
-            childKey?: string,
-        ) => any),
+    node: NodeValue & ((value: ComputedParams, childKey?: string) => any),
     childNode?: NodeValue,
 ) {
     let dispose: any;
@@ -862,13 +855,14 @@ function activateNodeFunction(
         dispose?.();
         dispose = onChange(node, doSet as any, { immediate: true });
     };
-    const onObsChange = (value: any) => {
-        set(node, value);
-    };
-    const subscribe = (fn: (params: { onChange: (...props: any[]) => any }) => void) => {
+    const subscribe: ComputedParams['subscribe'] = (fn) => {
         if (!subscribed) {
             subscribed = true;
-            fn({ onChange: onObsChange });
+            fn({
+                update: ({ value }) => {
+                    set(node, value);
+                },
+            });
         }
     };
     observe(
