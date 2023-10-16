@@ -16,7 +16,7 @@ import type {
 } from './observableInterfaces';
 
 export function isObservable(obs: any): obs is ObservableObject {
-    return obs && !!obs[symbolGetNode as any];
+    return !!obs && !!obs[symbolGetNode as any];
 }
 
 export function isEvent(obs: any): obs is ObservableEvent {

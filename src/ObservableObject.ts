@@ -874,11 +874,11 @@ function activateNodeFunction(
         () => {
             return node({ onSet, subscribe }, childNode?.key);
         },
-        ({ value, num }) => {
+        ({ value }) => {
             if (!isSetting) {
                 set(childNode || node, value);
             }
         },
-        { immediate: true },
+        { immediate: true, fromComputed: true },
     );
 }
