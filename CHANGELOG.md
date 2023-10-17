@@ -1,3 +1,35 @@
+## 2.0.0
+
+### Breaking
+- Change: Setting a promise into an observable now creates a child prop `state` which is not in the raw data and is only accessible through the observable containing `{ isLoaded, error }`
+- Change: Renamed some parameters in `persistObservable` and `configureObservablePersistence`
+- Change: `afterBatch` removed and functionality merged into `batch`
+- Removed: `/react-components` exports
+- Removed: `enableLegendStateReact`
+- Removed: `eachValues` prop from `For`
+- Deprecated: `enableReactDirectRender`
+- Deprecated: Reactive props ending in $ in favor of starting with $
+
+### Improvements
+- Docs: Brand new docs site at https://legendapp.com/open-source/state with better design, navigation sidebar, search
+- Feat: Remote persistence with plugins for `fetch`, TanStack-Query, and Firebase Realtime Database
+- Feat: `enableReactTracking({ auto: true })` to make components automatically track `get()` calls on observables
+- Feat: `useWhen` and `useWhenReady` hooks
+- Feat: `computed` can be set or assigned into an observable after creation
+- Perf: Observable nodes activate lazily so creating or setting large objects is much faster
+- Fix: Misc bugs with mergeIntoObservable
+- Fix: Reactive.FlatList $data prop was not working
+
+See https://legendapp.com/open-source/legend-state-v2/ for more details.
+
+## 1.11.3
+
+- Fix: computed was not activating if its value started as undefined
+
+## 1.11.2
+
+- Fix: useSelector was always re-rendering even if the returned value didn't change
+
 ## 1.11.1
 
 - Removed the deprecation warning about reactive props since that might affect a lot of people and we can migrate that more slowly.
