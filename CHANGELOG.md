@@ -1,3 +1,9 @@
+# 2.0.2
+- Fix: persistence was not adding clearLocal to the new state node
+- Fix: removed clearing ref from useObserve - it was causing fast refresh bugs and wasn't really necessary
+- Package: Added react as an optional peerDependency
+- Change: promise/persisted state key to support _state so it doesn't break user data with state keys, will slowly migrate to that
+
 ## 2.0.0
 
 ### Breaking
