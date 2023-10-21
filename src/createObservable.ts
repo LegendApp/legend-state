@@ -1,4 +1,3 @@
-import { extractPromise } from './ObservableObject';
 import { cloneFunction } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
 import type {
@@ -12,6 +11,7 @@ import { NodeValue } from './observableInterfaces';
 export function createObservable<T>(
     value: T | undefined,
     makePrimitive: boolean,
+    extractPromise: Function,
     createObject: Function,
     createPrimitive?: Function,
 ): ObservablePrimitive<T> | ObservableObjectOrArray<T> {

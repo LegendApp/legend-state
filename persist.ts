@@ -1,10 +1,10 @@
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 export { invertFieldMap, transformObject, transformPath } from './src/persist/fieldTransformer';
-export { mapPersistences, onChangeRemote, persistObservable, persistState } from './src/persist/persistObservable';
+export { mapPersistences, persistObservable } from './src/persist/persistObservable';
 import { internal as internalState } from '@legendapp/state';
 
 export function isInRemoteChange() {
-    return internalState.globalState.isLoadingRemote;
+    return internalState.globalState.isLoadingRemote$.get();
 }
 
 import type { ObservablePersistenceConfig } from './src/observableInterfaces';
