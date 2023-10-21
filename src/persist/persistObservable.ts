@@ -611,7 +611,7 @@ async function loadLocal<T>(
     }
     syncState.isLoadedLocal.set(true);
 }
-type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
+export type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
 
 export function persistObservable<T extends WithoutState>(
     observable: ObservableWriteable<T>,

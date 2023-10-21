@@ -1,6 +1,7 @@
 import { Observable, PersistOptions, WithPersistState } from '@legendapp/state';
 import { persistObservable } from '@legendapp/state/persist';
 import { useMemo } from 'react';
+import type { WithoutState } from '../persist/persistObservable';
 
 /**
  * A React hook that creates a new observable and can optionally listen or persist its state.
@@ -10,7 +11,7 @@ import { useMemo } from 'react';
  *
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
-export function usePersistedObservable<T>(
+export function usePersistedObservable<T extends WithoutState>(
     initialValue: T | (() => T) | (() => Promise<T>),
     options: PersistOptions<T>,
 ): Observable<WithPersistState & T> {
