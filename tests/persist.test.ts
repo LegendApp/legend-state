@@ -20,6 +20,27 @@ describe('Creating', () => {
 
         expect(obs$.state.isLoadedLocal.get()).toEqual(true);
     });
+    test('Create with no get', async () => {
+        let setValue;
+        const obs$ = persistObservable(
+            { test: 'hi' },
+            {
+                pluginRemote: {
+                    set({ value }) {
+                        setValue = value.test;
+                    },
+                },
+            },
+        );
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+
+        expect(obs$._state.isLoadedLocal.get()).toEqual(true);
+
+        obs$.test.set('hello');
+        await promiseTimeout(10);
+        expect(setValue).toEqual('hello');
+    });
 });
 
 describe('Adjusting data', () => {

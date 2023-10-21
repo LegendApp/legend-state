@@ -283,17 +283,17 @@ export interface ObservablePersistRemoteGetParams<T> {
     }) => void | Promise<void>;
 }
 export interface ObservablePersistRemoteClass {
-    get<T>(params: ObservablePersistRemoteGetParams<T>): void;
+    get?<T>(params: ObservablePersistRemoteGetParams<T>): void;
     set?<T>(
         params: ObservablePersistRemoteSetParams<T>,
-    ): Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
+    ): void | Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
 }
 
 export interface ObservablePersistRemoteFunctions<T = any> {
-    get(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
+    get?(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSetParams<T>,
-    ): Promise<void | { changes?: object | undefined; dateModified?: number }>;
+    ): void | Promise<void | { changes?: object | undefined; dateModified?: number }>;
 }
 export interface ObservableState {
     isLoaded: boolean;
