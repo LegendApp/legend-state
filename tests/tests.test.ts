@@ -3000,14 +3000,16 @@ describe('new computed', () => {
     });
     test('new computed with onChange and onSet', async () => {
         let wasSetTo: any;
+        let wasSetByRemote: boolean;
         let numRuns = 0;
         const obs = observable<{ child: { test: string } }>({
             // @ts-expect-error asdf
             child: ({ onSet, subscribe }) => {
                 numRuns++;
                 // @ts-expect-error asdf
-                onSet(({ value }) => {
+                onSet(({ value, isRemote }) => {
                     wasSetTo = value;
+                    wasSetByRemote = isRemote;
                 });
                 // @ts-expect-error asdf
                 subscribe(({ update }) => {
@@ -3025,7 +3027,8 @@ describe('new computed', () => {
         await promiseTimeout(0);
 
         expect(obs.child.test.get()).toEqual('hello');
-        expect(wasSetTo).toEqual({ test: 'hi' });
+        expect(wasSetTo).toEqual({ test: 'hello' });
+        expect(wasSetByRemote!).toEqual(true);
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
     });
     test('new computed with onChange and onSet other observable', async () => {
@@ -3040,7 +3043,7 @@ describe('new computed', () => {
                 // @ts-expect-error asdf
                 subscribe(({ update }) => {
                     setTimeout(() => {
-                        update({ test: 'hello' });
+                        update({ value: { test: 'hello' } });
                     }, 0);
                 });
                 return {
@@ -3071,7 +3074,7 @@ describe('new computed', () => {
                 // @ts-expect-error asdf
                 subscribe(({ update }) => {
                     setTimeout(() => {
-                        update({ test: 'hello' });
+                        update({ value: { test: 'hello' } });
                     }, 0);
                 });
 
@@ -3092,8 +3095,9 @@ describe('new computed', () => {
     test('new computed proxy', async () => {
         const obs = observable<{ child: Record<string, string> }>({
             // @ts-expect-error asdf
-            child: (params: any, key: string) => {
-                return 'proxied_' + key;
+            child: ({ proxy }: ComputedProxyParams) => {
+                // @ts-expect-error asdf
+                proxy((key) => 'proxied_' + key);
             },
         });
         expect(obs.child.test.get()).toEqual('proxied_test');
