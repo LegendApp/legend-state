@@ -41,6 +41,7 @@ import {
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
+const { onChangeRemote } = internal.globalState;
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
@@ -50,7 +51,6 @@ export const mapPersistences: WeakMap<
     }
 > = new WeakMap();
 
-export const persistState = observable({ inRemoteSync: false });
 const metadatas = new WeakMap<ObservableReadable<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
@@ -482,7 +482,7 @@ function onObsChange<T>(
     { changes }: ListenerParams,
 ) {
     if (!internal.globalState.isLoadingLocal) {
-        const inRemoteChange = internal.globalState.isLoadingRemote;
+        const inRemoteChange = internal.globalState.isLoadingRemote$.peek();
         const isApplyingPending = localState.isApplyingPending;
         // Queue changes in a microtask so that multiple changes within a frame get run together
         _queuedChanges.push({
@@ -498,22 +498,6 @@ function onObsChange<T>(
             queueMicrotask(processQueuedChanges);
         }
     }
-}
-
-export function onChangeRemote(cb: () => void) {
-    when(
-        () => !persistState.inRemoteSync.get(),
-        () => {
-            // Remote changes should only update local state
-            persistState.inRemoteSync.set(true);
-            internal.globalState.isLoadingRemote = true;
-
-            batch(cb, () => {
-                internal.globalState.isLoadingRemote = false;
-                persistState.inRemoteSync.set(false);
-            });
-        },
-    );
 }
 
 async function loadLocal<T>(

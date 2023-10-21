@@ -769,6 +769,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
                 isLoaded: false,
             },
             false,
+            extractPromise,
             getProxy,
         ) as ObservableObject<ObservableState>;
     }
@@ -845,7 +846,7 @@ function activateNodeFunction(
             if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
                 isSetting = true;
                 try {
-                    params.isRemote = globalState.isLoadingRemote;
+                    params.isRemote = globalState.isLoadingRemote$.peek();
                     setter(params);
                 } finally {
                     isSetting = false;
@@ -862,9 +863,9 @@ function activateNodeFunction(
             subscribed = true;
             fn({
                 update: ({ value }) => {
-                    globalState.isLoadingRemote = true;
-                    set(node, value);
-                    globalState.isLoadingRemote = false;
+                    globalState.onChangeRemote(() => {
+                        set(node, value);
+                    });
                 },
             });
         }
@@ -881,12 +882,14 @@ function activateNodeFunction(
                 isLoaded: false,
             },
             false,
+            extractPromise,
             getProxy,
         ) as ObservableObject<ObservableState>;
     }
     const { isLoaded } = node.state;
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
+    let wasPromise: boolean;
     observe(
         () => {
             // Run the function at this node
@@ -916,6 +919,7 @@ function activateNodeFunction(
             }
 
             if (isPromise(value)) {
+                wasPromise = true;
                 extractPromise(node, value);
                 value = undefined;
             }
@@ -923,10 +927,16 @@ function activateNodeFunction(
         },
         ({ value }) => {
             if (!isSetting) {
-                globalState.isLoadingRemote = true;
-                set(childNode || node, value);
-                isLoaded.set(true);
-                globalState.isLoadingRemote = false;
+                const doSet = () => {
+                    set(childNode || node, value);
+                    isLoaded.set(true);
+                };
+                if (wasPromise) {
+                    wasPromise = false;
+                    globalState.onChangeRemote(doSet);
+                } else {
+                    doSet();
+                }
             }
         },
         { immediate: true, fromComputed: true },

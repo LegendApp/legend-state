@@ -1,5 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableComputed, ObservableReadable } from './observableInterfaces';
+import { NodeValue, ObservableComputed, ObservablePrimitive, ObservableReadable } from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -13,8 +13,9 @@ export const extraPrimitiveProps = new Map<string | symbol, any>();
 
 export const globalState = {
     isLoadingLocal: false,
-    isLoadingRemote: false,
     isMerging: false,
+    isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
+    onChangeRemote: undefined as unknown as (cb: () => void) => void,
 };
 
 export function checkActivate(node: NodeValue) {
