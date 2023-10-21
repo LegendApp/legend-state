@@ -48,8 +48,6 @@ export function useObserve<T>(
 
     useUnmountOnce(() => {
         ref.current?.dispose?.();
-        // @ts-expect-error This is fine to clear the ref to make sure it doesn't run anymore
-        ref.current = undefined;
     });
 
     return ref.current.dispose;
