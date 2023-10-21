@@ -34,10 +34,8 @@ import type {
     ComputedParams,
     ComputedProxyParams,
     GetOptions,
-    ListenerFn,
-    ListenerParams,
+    ListenerParamsRemote,
     NodeValue,
-    Observable,
     ObservableObject,
     ObservableState,
     TrackingType,
@@ -774,6 +772,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
             getProxy,
         ) as ObservableObject<ObservableState>;
     }
+
     value
         .then((value) => {
             set(node, value);
@@ -842,10 +841,11 @@ function activateNodeFunction(
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
     const onSet: ComputedParams['onSet'] = (setter) => {
-        const doSet = (params: ListenerParams) => {
+        const doSet = (params: ListenerParamsRemote) => {
             if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
                 isSetting = true;
                 try {
+                    params.isRemote = globalState.isLoadingRemote;
                     setter(params);
                 } finally {
                     isSetting = false;
@@ -862,7 +862,9 @@ function activateNodeFunction(
             subscribed = true;
             fn({
                 update: ({ value }) => {
+                    globalState.isLoadingRemote = true;
                     set(node, value);
+                    globalState.isLoadingRemote = false;
                 },
             });
         }
@@ -873,6 +875,16 @@ function activateNodeFunction(
     const proxy: ComputedProxyParams['proxy'] = (fn) => {
         node.proxyFn2 = fn;
     };
+    if (!node.state) {
+        node.state = createObservable<ObservableState>(
+            {
+                isLoaded: false,
+            },
+            false,
+            getProxy,
+        ) as ObservableObject<ObservableState>;
+    }
+    const { isLoaded } = node.state;
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     observe(
@@ -911,7 +923,10 @@ function activateNodeFunction(
         },
         ({ value }) => {
             if (!isSetting) {
+                globalState.isLoadingRemote = true;
                 set(childNode || node, value);
+                isLoaded.set(true);
+                globalState.isLoadingRemote = false;
             }
         },
         { immediate: true, fromComputed: true },
