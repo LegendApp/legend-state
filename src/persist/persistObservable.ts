@@ -16,6 +16,7 @@ import type {
     PersistOptionsLocal,
     PersistOptionsRemote,
     PersistTransform,
+    Primitive,
     TypeAtPath,
     WithPersistState,
 } from '@legendapp/state';
@@ -610,16 +611,17 @@ async function loadLocal<T>(
     }
     syncState.isLoadedLocal.set(true);
 }
+type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
 
-export function persistObservable<T>(
+export function persistObservable<T extends WithoutState>(
     observable: ObservableWriteable<T>,
     persistOptions: PersistOptions<T>,
 ): Observable<WithPersistState & T>;
-export function persistObservable<T>(
+export function persistObservable<T extends WithoutState>(
     initial: T | (() => T) | (() => Promise<T>),
     persistOptions: PersistOptions<T>,
 ): Observable<WithPersistState & T>;
-export function persistObservable<T>(
+export function persistObservable<T extends WithoutState>(
     initialOrObservable: ObservableWriteable<T> | T | (() => T) | (() => Promise<T>),
     persistOptions: PersistOptions<T>,
 ): Observable<WithPersistState & T> {
@@ -629,6 +631,12 @@ export function persistObservable<T>(
             : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
     ) as Observable<T>;
     const node = getNode(obs);
+
+    if (process.env.NODE_ENV === 'development' && obs?.peek()?._state) {
+        console.warn(
+            '[legend-state] WARNING: persistObservable creates a property named "_state" but your observable already has "state" in it',
+        );
+    }
 
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {

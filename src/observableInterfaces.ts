@@ -300,7 +300,8 @@ export interface ObservableState {
     error?: Error;
 }
 export interface WithState {
-    state?: ObservableState;
+    state?: ObservableState; // TODOV3: remove this
+    _state?: ObservableState;
 }
 export interface ObservablePersistState extends ObservableState {
     isLoadedLocal: boolean;
@@ -320,7 +321,8 @@ export interface ObservablePersistState extends ObservableState {
         | undefined;
 }
 export interface WithPersistState {
-    state?: ObservablePersistState;
+    state?: ObservablePersistState; // TODOV3: remove this
+    _state?: ObservablePersistState;
 }
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;

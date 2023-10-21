@@ -471,7 +471,8 @@ const proxyHandler: ProxyHandler<any> = {
             return fnOrComputed;
         }
 
-        if (p === 'state' && node.state) {
+        // TODOV3: Remove "state"
+        if (vProp === undefined && (p === 'state' || p === '_state') && node.state) {
             return node.state;
         }
 

@@ -2142,6 +2142,15 @@ describe('Promise values', () => {
         expect(obs.promise.get()).toEqual(10);
         expect(obs.promise.state.isLoaded.get()).toEqual(true);
     });
+    test('Promise child with _state', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable({ promise });
+        expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise._state.isLoaded.get()).toEqual(false);
+        await promise;
+        expect(obs.promise.get()).toEqual(10);
+        expect(obs.promise._state.isLoaded.get()).toEqual(true);
+    });
     test('Promise child works when set later', async () => {
         const obs = observable({ promise: undefined as unknown as Promise<number> });
         let resolver: (value: number) => void;
