@@ -600,7 +600,9 @@ async function loadLocal<T>(
             );
         }
 
-        syncState.peek().clearLocal = () =>
+        const node = getNode(obs);
+
+        (node.state as Observable<ObservablePersistState>).peek().clearLocal = () =>
             Promise.all([
                 persistenceLocal.deleteTable(table, config),
                 persistenceLocal.deleteMetadata(table, config),
