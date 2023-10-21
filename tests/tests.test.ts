@@ -2957,8 +2957,8 @@ describe('setAtPath', () => {
 });
 describe('new computed', () => {
     test('new computed basic', () => {
-        // @ts-expect-error asdf
         const obs = observable<{ child: { test: string } }>({
+            // @ts-expect-error asdf
             child: () => {
                 return {
                     test: 'hello',
@@ -2984,8 +2984,8 @@ describe('new computed', () => {
     test('new computed as a computed', () => {
         const other = observable('hi');
 
-        // @ts-expect-error asdf
         const obs = observable<{ child: { test: string } }>({
+            // @ts-expect-error asdf
             child: () => {
                 return {
                     test: other.get(),
@@ -3001,7 +3001,6 @@ describe('new computed', () => {
     test('new computed with onChange and onSet', async () => {
         let wasSetTo: any;
         let numRuns = 0;
-        // @ts-expect-error asdf
         const obs = observable<{ child: { test: string } }>({
             // @ts-expect-error asdf
             child: ({ onSet, subscribe }) => {
@@ -3011,9 +3010,9 @@ describe('new computed', () => {
                     wasSetTo = value;
                 });
                 // @ts-expect-error asdf
-                subscribe(({ onChange }) => {
+                subscribe(({ update }) => {
                     setTimeout(() => {
-                        onChange({ test: 'hello' });
+                        update({ value: { test: 'hello' } });
                     }, 0);
                 });
                 return {
@@ -3026,12 +3025,11 @@ describe('new computed', () => {
         await promiseTimeout(0);
 
         expect(obs.child.test.get()).toEqual('hello');
-        expect(wasSetTo).toEqual({ test: 'hello' });
+        expect(wasSetTo).toEqual({ test: 'hi' });
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
     });
     test('new computed with onChange and onSet other observable', async () => {
         const other = observable('hi');
-        // @ts-expect-error asdf
         const obs = observable<{ child: { test: string } }>({
             // @ts-expect-error asdf
             child: ({ onSet, subscribe }) => {
@@ -3040,9 +3038,9 @@ describe('new computed', () => {
                     other.set(value.test);
                 });
                 // @ts-expect-error asdf
-                subscribe(({ onChange }) => {
+                subscribe(({ update }) => {
                     setTimeout(() => {
-                        onChange({ test: 'hello' });
+                        update({ test: 'hello' });
                     }, 0);
                 });
                 return {
@@ -3071,9 +3069,9 @@ describe('new computed', () => {
                     other.set(value.test);
                 });
                 // @ts-expect-error asdf
-                subscribe(({ onChange }) => {
+                subscribe(({ update }) => {
                     setTimeout(() => {
-                        onChange({ test: 'hello' });
+                        update({ test: 'hello' });
                     }, 0);
                 });
 
