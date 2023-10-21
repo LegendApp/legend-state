@@ -282,6 +282,8 @@ export interface ObservablePersistRemoteGetParams<T> {
         dateModified?: number | undefined;
     }) => void | Promise<void>;
 }
+export type ObservablePersistRemoteGetFnParams<T> = Omit<ObservablePersistRemoteGetParams<T>, 'onGet'>;
+
 export interface ObservablePersistRemoteClass {
     get?<T>(params: ObservablePersistRemoteGetParams<T>): void;
     set?<T>(
@@ -290,7 +292,7 @@ export interface ObservablePersistRemoteClass {
 }
 
 export interface ObservablePersistRemoteFunctions<T = any> {
-    get?(params: ObservablePersistRemoteGetParams<T>): T | Promise<T>;
+    get?(params: ObservablePersistRemoteGetFnParams<T>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number }>;
