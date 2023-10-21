@@ -7,12 +7,14 @@ import {
     Observable,
     Selector,
     trackSelector,
+    when,
     WithState,
 } from '@legendapp/state';
-import React, { useRef } from 'react';
-import type { UseSelectorOptions } from './reactInterfaces';
+import React, { useContext, useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { LegendStatePauseContext } from './useLegendStatePauseProvider';
 import { reactGlobals } from './react-globals';
+import type { UseSelectorOptions } from './reactInterfaces';
 
 interface SelectorFunctions<T> {
     subscribe: (onStoreChange: () => void) => () => void;
@@ -20,7 +22,10 @@ interface SelectorFunctions<T> {
     run: (selector: Selector<T>) => T;
 }
 
-function createSelectorFunctions<T>(options: UseSelectorOptions | undefined): SelectorFunctions<T> {
+function createSelectorFunctions<T>(
+    options: UseSelectorOptions | undefined,
+    isPaused$: Observable<boolean>,
+): SelectorFunctions<T> {
     let version = 0;
     let notify: () => void;
     let dispose: (() => void) | undefined;
@@ -28,22 +33,38 @@ function createSelectorFunctions<T>(options: UseSelectorOptions | undefined): Se
     let _selector: Selector<T>;
     let prev: T;
 
-    const _update = ({ value }: ListenerParams) => {
-        // If skipCheck then don't need to re-run selector
-        let changed = options?.skipCheck;
-        if (!changed) {
-            // Re-run the selector to get the new value
-            const newValue = computeSelector(_selector);
-            // If newValue is different than previous value then it's changed.
-            // Also if the selector returns an observable directly then its value will be the same as
-            // the value from the listener, and that should always re-render.
-            if (newValue !== prev || (!isPrimitive(newValue) && newValue === value)) {
-                changed = true;
+    let pendingUpdate: any | undefined = undefined;
+
+    const _update = ({ value }: { value: ListenerParams['value'] }) => {
+        if (isPaused$?.peek()) {
+            if (pendingUpdate === undefined) {
+                when(
+                    () => !isPaused$.get(),
+                    () => {
+                        const latest = pendingUpdate;
+                        pendingUpdate = undefined;
+                        _update({ value: latest });
+                    },
+                );
             }
-        }
-        if (changed) {
-            version++;
-            notify?.();
+            pendingUpdate = value;
+        } else {
+            // If skipCheck then don't need to re-run selector
+            let changed = options?.skipCheck;
+            if (!changed) {
+                // Re-run the selector to get the new value
+                const newValue = computeSelector(_selector);
+                // If newValue is different than previous value then it's changed.
+                // Also if the selector returns an observable directly then its value will be the same as
+                // the value from the listener, and that should always re-render.
+                if (newValue !== prev || (!isPrimitive(newValue) && newValue === value)) {
+                    changed = true;
+                }
+            }
+            if (changed) {
+                version++;
+                notify?.();
+            }
         }
     };
 
@@ -98,8 +119,9 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
 
     try {
         const ref = useRef<SelectorFunctions<T>>();
+        const isPaused$ = useContext(LegendStatePauseContext);
         if (!ref.current) {
-            ref.current = createSelectorFunctions<T>(options);
+            ref.current = createSelectorFunctions<T>(options, isPaused$);
         }
         const { subscribe, getVersion, run } = ref.current;
 
