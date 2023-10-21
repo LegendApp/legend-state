@@ -137,6 +137,14 @@
         "tslib": "^2.4.1",
         "typescript": "^5.1.6"
     },
+    "peerDependencies": {
+        "react": ">=16.8.0"
+    },
+    "peerDependenciesMeta": {
+        "react": {
+            "optional": true
+        }
+    },
     "overrides": {
         "react": "18.2.0"
     },
