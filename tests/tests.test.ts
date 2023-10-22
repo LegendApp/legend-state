@@ -9,7 +9,14 @@ import { event } from '../src/event';
 import { getNodeValue, optimized, symbolGetNode } from '../src/globals';
 import { isEvent, isObservable, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
-import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import {
+    Change,
+    ComputedParams,
+    ComputedProxyParams,
+    NodeValue,
+    ObservableReadable,
+    TrackingType,
+} from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
@@ -2958,7 +2965,6 @@ describe('setAtPath', () => {
 describe('new computed', () => {
     test('new computed basic', () => {
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: () => {
                 return {
                     test: 'hello',
@@ -2969,7 +2975,6 @@ describe('new computed', () => {
     });
     test('new computed async', async () => {
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: async () => {
                 await promiseTimeout(0);
                 return {
@@ -2985,7 +2990,6 @@ describe('new computed', () => {
         const other = observable('hi');
 
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: () => {
                 return {
                     test: other.get(),
@@ -3003,15 +3007,12 @@ describe('new computed', () => {
         let wasSetByRemote: boolean;
         let numRuns = 0;
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: ({ onSet, subscribe }) => {
                 numRuns++;
-                // @ts-expect-error asdf
                 onSet(({ value, isRemote }) => {
                     wasSetTo = value;
                     wasSetByRemote = isRemote;
                 });
-                // @ts-expect-error asdf
                 subscribe(({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
@@ -3034,13 +3035,10 @@ describe('new computed', () => {
     test('new computed with onChange and onSet other observable', async () => {
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: ({ onSet, subscribe }) => {
-                // @ts-expect-error asdf
                 onSet(({ value }) => {
                     other.set(value.test);
                 });
-                // @ts-expect-error asdf
                 subscribe(({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
@@ -3065,13 +3063,10 @@ describe('new computed', () => {
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: async ({ onSet, subscribe }) => {
-                // @ts-expect-error asdf
                 onSet(({ value }) => {
                     other.set(value.test);
                 });
-                // @ts-expect-error asdf
                 subscribe(({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
@@ -3094,9 +3089,7 @@ describe('new computed', () => {
     });
     test('new computed proxy', async () => {
         const obs = observable<{ child: Record<string, string> }>({
-            // @ts-expect-error asdf
-            child: ({ proxy }: ComputedProxyParams) => {
-                // @ts-expect-error asdf
+            child: ({ proxy }) => {
                 proxy((key) => 'proxied_' + key);
             },
         });
