@@ -134,6 +134,9 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     return target;
 }
 function _mergeIntoObservable<T extends ObservableObject | object>(target: T, source: any): T {
+    if (isObservable(source)) {
+        source = source.peek();
+    }
     const needsSet = isObservable(target);
     const targetValue = needsSet ? target.peek() : target;
 

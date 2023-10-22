@@ -60,7 +60,7 @@ export interface ObservableBaseFns<T> {
 }
 export interface ObservablePrimitiveBaseFns<T> extends ObservableBaseFns<T> {
     delete(): ObservablePrimitiveBaseFns<T>;
-    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): ObservablePrimitiveChild<T>;
+    set(value: Nullable<T> | CallbackSetter<T> | Promise<T> | Observable<T>): ObservablePrimitiveChild<T>;
 }
 
 export interface ObservablePrimitiveBooleanFns<T> {
@@ -68,7 +68,7 @@ export interface ObservablePrimitiveBooleanFns<T> {
 }
 
 export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
-    set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): ObservableChild<T>;
+    set(value: Nullable<T> | CallbackSetter<T> | Promise<T> | Observable<T>): ObservableChild<T>;
     assign(value: T | Partial<T>): ObservableChild<T>;
     delete(): ObservableChild<T>;
 }
@@ -471,7 +471,7 @@ interface BaseNodeValue {
     isAssigning?: number;
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
-    lazy?: boolean;
+    lazy?: boolean | Function;
     state?: Observable<ObservableState>;
     proxyFn2?: (key: string, params: ComputedParams) => any;
 }
