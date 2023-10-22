@@ -10,6 +10,7 @@ import {
     getNode,
     getNodeValue,
     globalState,
+    isObservable,
     optimized,
     setNodeValue,
     symbolDelete,
@@ -17,7 +18,6 @@ import {
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
-import { isObservable } from './helpers';
 import {
     hasOwnProperty,
     isArray,

@@ -7,7 +7,6 @@ export {
     constructObjectWithPath,
     deconstructObjectWithPath,
     getObservableIndex,
-    isObservable,
     isObservableValueReady,
     lockObservable,
     mergeIntoObservable,
@@ -16,6 +15,7 @@ export {
     setInObservableAtPath,
     setSilently,
 } from './src/helpers';
+export { isObservable } from './src/globals';
 export {
     hasOwnProperty,
     isArray,

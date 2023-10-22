@@ -1,6 +1,11 @@
-import { isComputed, isObservable } from './helpers';
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { NodeValue, ObservableComputed, ObservablePrimitive, ObservableReadable } from './observableInterfaces';
+import {
+    NodeValue,
+    ObservableComputed,
+    ObservableObject,
+    ObservablePrimitive,
+    ObservableReadable,
+} from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -18,6 +23,14 @@ export const globalState = {
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
     onChangeRemote: undefined as unknown as (cb: () => void) => void,
 };
+
+export function isObservable(obs: any): obs is ObservableObject {
+    return !!obs && !!obs[symbolGetNode as any];
+}
+
+export function isComputed(obs: any): obs is ObservableComputed {
+    return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
+}
 
 export function checkActivate(node: NodeValue) {
     const root = node.root;
