@@ -7,11 +7,22 @@ import type {
     Observable,
     ObservableComputed,
     ObservablePrimitive,
+    RecordValue,
     WithState,
 } from './observableInterfaces';
 import { globalState } from './globals';
 import { when } from './when';
 import { batch } from './batching';
+
+type TWithFunctions<T> =
+    | T
+    | {
+          [K in keyof T]:
+              | ((
+                    params: ComputedProxyParams<T[K] | RecordValue<T[K]>>,
+                ) => TWithFunctions<T[K]> | Promise<TWithFunctions<T[K]>> | void)
+              | TWithFunctions<T[K]>;
+      };
 
 export function observable<T>(value: Promise<T>): Observable<T & WithState>;
 export function observable<T>(value: () => Observable<T>): Observable<T>;
@@ -19,8 +30,8 @@ export function observable<T>(value: () => T): ObservableComputed<T>;
 export function observable<T>(value: (params: ComputedParams) => Observable<T>): Observable<T>;
 export function observable<T>(value: (params: ComputedParams) => T): Observable<T>;
 export function observable<T>(value: (params: ComputedProxyParams<T>) => void): Observable<Record<string, T>>;
-export function observable<T>(value?: T): Observable<T>;
-export function observable<T>(value?: T | Promise<T>): any {
+export function observable<T>(value?: TWithFunctions<T>): Observable<T>;
+export function observable<T>(value?: any): any {
     return createObservable(value, false, extractPromise, getProxy, ObservablePrimitiveClass) as Observable<any>;
 }
 
