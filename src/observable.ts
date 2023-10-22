@@ -31,7 +31,7 @@ export function observable<T>(value: (params: ComputedParams) => Observable<T>):
 export function observable<T>(value: (params: ComputedParams) => T): Observable<T>;
 export function observable<T>(value: (params: ComputedProxyParams<T>) => void): Observable<Record<string, T>>;
 export function observable<T>(value?: TWithFunctions<T>): Observable<T>;
-export function observable<T>(value?: any): any {
+export function observable<T>(value?: T): any {
     return createObservable(value, false, extractPromise, getProxy, ObservablePrimitiveClass) as Observable<any>;
 }
 

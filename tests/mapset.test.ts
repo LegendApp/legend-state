@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { isObservable } from '../src/helpers';
+import { isObservable } from '../src/globals';
 import { observable } from '../src/observable';
 import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 
