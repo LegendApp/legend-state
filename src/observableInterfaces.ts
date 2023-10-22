@@ -529,5 +529,5 @@ export interface ComputedParams<T = any> {
 }
 
 export interface ComputedProxyParams<T = any> extends ComputedParams {
-    proxy: (fn: (key: string, params: ComputedParams<T>) => T) => void;
+    proxy: (fn: (key: string, params: ComputedParams<T>) => T | Promise<T>) => void;
 }
