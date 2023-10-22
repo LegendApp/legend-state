@@ -843,6 +843,7 @@ function activateNodeFunction(
     // and forwards the set elsewhere
     const onSet: ComputedParams['onSet'] = (setter) => {
         const doSet = (params: ListenerParamsRemote) => {
+            // Don't call the set if this is the first value coming in
             if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
                 isSetting = true;
                 try {
