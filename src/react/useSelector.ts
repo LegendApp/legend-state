@@ -137,8 +137,8 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
                     (err as Error).message
                 }`,
             );
-            throw err;
         }
+        throw err;
     }
 
     return value;
