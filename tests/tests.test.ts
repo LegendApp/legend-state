@@ -3107,4 +3107,18 @@ describe('new computed', () => {
         expect(obs.get()).toEqual(2);
         expect(comp.get()).toEqual(2);
     });
+    test('set observable into observable', async () => {
+        const obs = observable(1);
+        const other = observable<{ test: number | undefined }>({ test: undefined });
+
+        other.test.set(obs);
+
+        expect(obs.get()).toEqual(1);
+        expect(other.test.get()).toEqual(1);
+
+        obs.set(2);
+
+        expect(obs.get()).toEqual(2);
+        expect(other.test.get()).toEqual(2);
+    });
 });

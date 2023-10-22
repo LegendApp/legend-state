@@ -474,8 +474,6 @@ const proxyHandler: ProxyHandler<any> = {
             // Update that this primitive node was accessed for observers
             if (isArray(value) && p === 'length') {
                 updateTracking(node, true);
-                // } else if (!isPrimitive(value)) {
-                //     updateTracking(getChildNode(node, p));
                 return vProp;
             }
         }
@@ -814,8 +812,7 @@ export function peek(node: NodeValue) {
 
     // If node is not yet lazily computed go do that
     if (node.lazy) {
-        delete node.lazy;
-        if (isFunction(node)) {
+        if (isFunction(node) || isFunction(node.lazy)) {
             activateNodeFunction(node as any);
         } else {
             for (const key in value) {
@@ -824,6 +821,7 @@ export function peek(node: NodeValue) {
                 }
             }
         }
+        delete node.lazy;
     }
 
     // Check if computed needs to activate
@@ -832,10 +830,7 @@ export function peek(node: NodeValue) {
     return value;
 }
 
-function activateNodeFunction(
-    node: NodeValue & ((value: ComputedProxyParams, childKey?: string) => any),
-    childNode?: NodeValue,
-) {
+function activateNodeFunction(node: NodeValue) {
     let dispose: () => void;
     let subscribed = false;
     let isSetting = false;
@@ -891,10 +886,11 @@ function activateNodeFunction(
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     let wasPromise: boolean;
+    const activator = (isFunction(node) ? node : node.lazy) as (value: ComputedProxyParams) => any;
     observe(
         () => {
             // Run the function at this node
-            let value = node({ onSet, subscribe, proxy }, childNode?.key);
+            let value = activator({ onSet, subscribe, proxy });
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
@@ -929,7 +925,7 @@ function activateNodeFunction(
         ({ value }) => {
             if (!isSetting) {
                 const doSet = () => {
-                    set(childNode || node, value);
+                    set(node, value);
                     isLoaded.set(true);
                 };
                 if (wasPromise) {

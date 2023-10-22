@@ -1,3 +1,4 @@
+import { isComputed, isObservable } from './helpers';
 import { isChildNodeValue, isFunction, isObject } from './is';
 import { NodeValue, ObservableComputed, ObservablePrimitive, ObservableReadable } from './observableInterfaces';
 
@@ -48,12 +49,14 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     const isFunc = isFunction(newValue);
 
     // Compute newValue if newValue is a function or an observable
-    newValue =
-        !parentNode.isAssigning && isFunc
-            ? newValue(prevValue)
-            : isObject(newValue) && newValue?.[symbolGetNode as any]
-            ? newValue.peek()
-            : newValue;
+    newValue = !parentNode.isAssigning && isFunc ? newValue(prevValue) : newValue;
+
+    // If setting an observable, set a link to the observable instead
+    if (isObservable(newValue) && !isComputed(newValue)) {
+        const val = newValue;
+        node.lazy = () => val;
+        newValue = undefined;
+    }
 
     try {
         parentNode.isSetting = (parentNode.isSetting || 0) + 1;
