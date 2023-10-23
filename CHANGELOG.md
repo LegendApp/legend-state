@@ -1,3 +1,10 @@
+## 2.1.0
+- Feat: useLegendStatePauseProvider to pause/resume all updates under a context
+
+## 2.0.3
+- Feat: support persistence with no get
+- Fix: errors in observer components getting swallowed
+
 # 2.0.2
 - Fix: persistence was not adding clearLocal to the new state node
 - Fix: removed clearing ref from useObserve - it was causing fast refresh bugs and wasn't really necessary
