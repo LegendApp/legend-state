@@ -1,5 +1,5 @@
-## 2.1.0
-- Feat: useLegendStatePauseProvider to pause/resume all updates under a context
+## 2.1.1
+- Feat: usePauseProvider to pause/resume all updates under a context
 
 ## 2.0.3
 - Feat: support persistence with no get

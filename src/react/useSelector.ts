@@ -12,7 +12,7 @@ import {
 } from '@legendapp/state';
 import React, { useContext, useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import { LegendStatePauseContext } from './useLegendStatePauseProvider';
+import { PauseContext } from './usePauseProvider';
 import { reactGlobals } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
 
@@ -119,7 +119,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
 
     try {
         const ref = useRef<SelectorFunctions<T>>();
-        const isPaused$ = useContext(LegendStatePauseContext);
+        const isPaused$ = useContext(PauseContext);
         if (!ref.current) {
             ref.current = createSelectorFunctions<T>(options, isPaused$);
         }

@@ -1,6 +1,6 @@
 export * from './src/react/Computed';
 export * from './src/react/For';
-export { useLegendStatePauseProvider } from './src/react/useLegendStatePauseProvider';
+export { usePauseProvider } from './src/react/usePauseProvider';
 export * from './src/react/Memo';
 export { Reactive, configureReactive } from './src/react/Reactive';
 export type { IReactive } from './src/react/Reactive';
