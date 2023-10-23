@@ -1,4 +1,4 @@
-import { beginBatch, endBatch, notify } from './batching';
+import { batch, beginBatch, endBatch, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
     checkActivate,
@@ -831,39 +831,19 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(node: NodeValue) {
-    let dispose: () => void;
-    let subscribed = false;
-    let isSetting = false;
+    let setter: (value: any) => void;
+    let update: (value: any) => void;
+    let subscriber: (params: { update: any }) => void;
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
-    const onSet: ComputedParams['onSet'] = (setter) => {
-        const doSet = (params: ListenerParamsRemote) => {
-            // Don't call the set if this is the first value coming in
-            if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
-                isSetting = true;
-                try {
-                    params.isRemote = globalState.isLoadingRemote$.peek();
-                    setter(params);
-                } finally {
-                    isSetting = false;
-                }
-            }
-        };
-        dispose?.();
-        dispose = onChange(node, doSet as any, { immediate: true });
+    const onSet: ComputedParams['onSet'] = (setterParam) => {
+        setter = setterParam;
     };
     // The subscribe function runs a function that listens to
     // a data source and sends updates into the observable
     const subscribe: ComputedParams['subscribe'] = (fn) => {
-        if (!subscribed) {
-            subscribed = true;
-            fn({
-                update: ({ value }) => {
-                    globalState.onChangeRemote(() => {
-                        set(node, value);
-                    });
-                },
-            });
+        if (!subscriber) {
+            subscriber = fn;
         }
     };
     // The proxy function simply marks the node as a proxy with this function
@@ -872,17 +852,7 @@ function activateNodeFunction(node: NodeValue) {
     const proxy: ComputedProxyParams['proxy'] = (fn) => {
         node.proxyFn2 = fn;
     };
-    if (!node.state) {
-        node.state = createObservable<ObservableState>(
-            {
-                isLoaded: false,
-            },
-            false,
-            extractPromise,
-            getProxy,
-        ) as ObservableObject<ObservableState>;
-    }
-    const { isLoaded } = node.state;
+
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     let wasPromise: boolean;
@@ -915,27 +885,84 @@ function activateNodeFunction(node: NodeValue) {
                 value = value.get();
             }
 
-            if (isPromise(value)) {
+            const isProm = isPromise(value);
+
+            if (!node.state) {
+                update = activateBase(node, value, setter, subscriber).update;
+            }
+            if (isProm) {
                 wasPromise = true;
-                extractPromise(node, value);
                 value = undefined;
             }
             return value;
         },
         ({ value }) => {
-            if (!isSetting) {
-                const doSet = () => {
-                    set(node, value);
-                    isLoaded.set(true);
-                };
+            if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
-                    wasPromise = false;
-                    globalState.onChangeRemote(doSet);
+                    update({ value });
                 } else {
-                    doSet();
+                    set(node, value);
                 }
+                node.state!.isLoaded.set(true);
             }
         },
         { immediate: true, fromComputed: true },
     );
+}
+
+export function activateBase(
+    node: NodeValue,
+    newValue: any,
+    setter: (value: any) => void,
+    subscriber: (params: { update: any }) => void,
+): { update: any } {
+    let isSetting = false;
+    if (!node.state) {
+        node.state = createObservable<ObservableState>(
+            {
+                isLoaded: false,
+            },
+            false,
+            extractPromise,
+            getProxy,
+        ) as ObservableObject<ObservableState>;
+    }
+    if (setter) {
+        const doSet = (params: ListenerParamsRemote) => {
+            // Don't call the set if this is the first value coming in
+            if (!isSetting) {
+                if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
+                    isSetting = true;
+                    params.isRemote = globalState.isLoadingRemote$.peek();
+                    batch(
+                        () => setter(params),
+                        () => {
+                            isSetting = false;
+                        },
+                    );
+                }
+            }
+        };
+
+        onChange(node, doSet as any, { immediate: true });
+    }
+
+    const update = ({ value }: { value: any }) => {
+        if (!isSetting) {
+            globalState.onChangeRemote(() => {
+                set(node, value);
+            });
+        }
+    };
+
+    const isProm = isPromise(newValue);
+    if (isProm) {
+        extractPromise(node, newValue);
+    }
+
+    if (subscriber) {
+        subscriber({ update });
+    }
+
+    return { update };
 }

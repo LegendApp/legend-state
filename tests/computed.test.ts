@@ -158,8 +158,11 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(({ onSet }: ComputedParams) => {
             onSet(({ value }) => {
-                obs.test.set(value) && obs.test2.set(value);
+                obs.test.set(value);
+                obs.test2.set(value);
             });
+            const a = obs.test.get();
+            const b = obs.test2.get();
             return obs.test.get() && obs.test2.get();
         });
         expect(comp.get()).toEqual(false);
