@@ -811,9 +811,11 @@ export function peek(node: NodeValue) {
     const value = getNodeValue(node);
 
     // If node is not yet lazily computed go do that
-    if (node.lazy) {
-        if (isFunction(node) || isFunction(node.lazy)) {
-            activateNodeFunction(node as any);
+    const lazy = node.lazy;
+    if (lazy) {
+        delete node.lazy;
+        if (isFunction(node) || isFunction(lazy)) {
+            activateNodeFunction(node as any, lazy as () => void);
         } else {
             for (const key in value) {
                 if (hasOwnProperty.call(value, key)) {
@@ -821,7 +823,6 @@ export function peek(node: NodeValue) {
                 }
             }
         }
-        delete node.lazy;
     }
 
     // Check if computed needs to activate
@@ -830,7 +831,7 @@ export function peek(node: NodeValue) {
     return value;
 }
 
-function activateNodeFunction(node: NodeValue) {
+function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let setter: (value: any) => void;
     let update: (value: any) => void;
     let subscriber: (params: { update: any }) => void;
@@ -855,7 +856,7 @@ function activateNodeFunction(node: NodeValue) {
 
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
-    const activator = (isFunction(node) ? node : node.lazy) as (value: ComputedProxyParams) => any;
+    const activator = (isFunction(node) ? node : lazyFn) as (value: ComputedProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
     let isInitial = true;
     observe(
@@ -886,12 +887,13 @@ function activateNodeFunction(node: NodeValue) {
                 value = value.get();
             }
 
+            wasPromise = isPromise(value) ? value : undefined;
             if (!node.activated) {
                 node.activated = true;
-                update = globalState.activateNode(node, value, setter, subscriber).update;
+                const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
+                update = activateNodeFn(node, value, setter, subscriber).update;
             }
 
-            wasPromise = isPromise(value) ? value : undefined;
             if (wasPromise) {
                 value = undefined;
             }
@@ -917,7 +919,7 @@ function activateNodeFunction(node: NodeValue) {
     );
 }
 
-globalState.activateNode = function activateBase(
+const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     node: NodeValue,
     newValue: any,
     setter: (value: any) => void,
@@ -972,4 +974,4 @@ globalState.activateNode = function activateBase(
     }
 
     return { update };
-};
+});
