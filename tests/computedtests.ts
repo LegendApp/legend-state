@@ -1005,4 +1005,19 @@ export const run = (isPersist: boolean) => {
             expect(obs.get()).toEqual('hi there again');
         });
     });
+    describe('loading', () => {
+        test('isLoaded', async () => {
+            const obs = observable(() => {
+                return new Promise((resolve) => {
+                    setTimeout(() => resolve('hi there'), 0);
+                });
+            });
+            // @ts-expect-error asdf
+            expect(obs._state.isLoaded.get()).toEqual(false);
+            await promiseTimeout(0);
+            // @ts-expect-error asdf
+            expect(obs._state.isLoaded.get()).toEqual(true);
+            expect(obs.get()).toEqual('hi there');
+        });
+    });
 };

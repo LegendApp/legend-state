@@ -904,14 +904,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 if (wasPromise) {
                     wasPromise.then((newValue) => {
                         update({ value: newValue });
+                        node.state!.isLoaded.set(true);
                     });
                     if (isInitial) {
                         set(node, value);
                     }
                 } else {
                     set(node, value);
-                }
                 node.state!.isLoaded.set(true);
+            }
             }
             isInitial = false;
         },
