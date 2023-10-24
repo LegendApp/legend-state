@@ -30,14 +30,18 @@ import {
     isPromise,
 } from './is';
 import type {
+    CacheOptions,
     ChildNodeValue,
+    ClassConstructor,
     ComputedParams,
     ComputedProxyParams,
     GetOptions,
     ListenerParamsRemote,
     NodeValue,
     ObservableObject,
+    ObservablePersistLocal,
     ObservableState,
+    PersistOptionsLocal,
     TrackingType,
 } from './observableInterfaces';
 import { observe } from './observe';
@@ -835,6 +839,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let setter: (value: any) => void;
     let update: (value: any) => void;
     let subscriber: (params: { update: any }) => void;
+    let cacheOptions: CacheOptions;
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
     const onSet: ComputedParams['onSet'] = (setterParam) => {
@@ -845,6 +850,11 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     const subscribe: ComputedParams['subscribe'] = (fn) => {
         if (!subscriber) {
             subscriber = fn;
+        }
+    };
+    const cache = (fn: CacheOptions | (() => CacheOptions)) => {
+        if (!cacheOptions) {
+            cacheOptions = isFunction(fn) ? fn() : fn;
         }
     };
     // The proxy function simply marks the node as a proxy with this function
@@ -862,7 +872,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     observe(
         () => {
             // Run the function at this node
-            let value = activator({ onSet, subscribe, proxy });
+            let value = activator({ onSet, subscribe, proxy, cache });
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
@@ -891,7 +901,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value, setter, subscriber).update;
+                update = activateNodeFn(node, value, setter, subscriber, cacheOptions).update;
             }
 
             if (wasPromise) {
@@ -906,13 +916,13 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                         update({ value: newValue });
                         node.state!.isLoaded.set(true);
                     });
-                    if (isInitial) {
+                    if (isInitial && isFunction(getNodeValue(node))) {
                         set(node, value);
                     }
                 } else {
                     set(node, value);
-                node.state!.isLoaded.set(true);
-            }
+                    node.state!.isLoaded.set(true);
+                }
             }
             isInitial = false;
         },
@@ -925,6 +935,10 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     newValue: any,
     setter: (value: any) => void,
     subscriber: (params: { update: any }) => void,
+    cacheOptions: {
+        local: string | PersistOptionsLocal<any>;
+        pluginLocal: ClassConstructor<ObservablePersistLocal, any[]>;
+    },
 ): { update: any } {
     let isSetting = false;
     if (!node.state) {
@@ -956,7 +970,10 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
 
         onChange(node, doSet as any, { immediate: true });
     }
-
+    if (process.env.NODE_ENV === 'development' && cacheOptions) {
+        // TODO Better message
+        console.log('[legend-state] Using cacheOption without setting up persistence first');
+    }
     const update = ({ value }: { value: any }) => {
         if (!isSetting) {
             globalState.onChangeRemote(() => {

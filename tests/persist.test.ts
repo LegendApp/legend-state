@@ -1,10 +1,17 @@
 import 'fake-indexeddb/auto';
 import { transformOutData, persistObservable } from '../src/persist/persistObservable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
+import { Change } from '../src/observableInterfaces';
+import { observe } from '../src/observe';
+import { observable } from '../src/observable';
+import { when } from '../src/when';
+import { mockLocalStorage } from './testglobals';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
+
+mockLocalStorage();
 
 describe('Creating', () => {
     test('Create with object', () => {
@@ -40,6 +47,36 @@ describe('Creating', () => {
         obs$.test.set('hello');
         await promiseTimeout(10);
         expect(setValue).toEqual('hello');
+    });
+    test('Loading state works correctly', async () => {
+        const nodes = observable<Record<string, { key: string }>>({});
+        let lastSet;
+        const { state } = persistObservable(nodes, {
+            pluginLocal: ObservablePersistLocalStorage,
+            local: 'nodes',
+            pluginRemote: {
+                get: async () => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key0' }]), 10),
+                    );
+                    return nodes.reduce(
+                        (acc, node) => {
+                            acc[node.key] = node;
+                            return acc;
+                        },
+                        {} as Record<string, { key: string }>,
+                    );
+                },
+                set: async ({ value }: { value: any; changes: Change[] }) => {
+                    lastSet = value;
+                },
+            },
+        });
+
+        await when(state.isLoadedLocal);
+        await when(state.isLoaded);
+        expect(lastSet).toEqual(undefined);
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
 });
 

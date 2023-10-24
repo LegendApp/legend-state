@@ -802,6 +802,10 @@ globalState.activateNode = function activateNodePersist(
     newValue: any,
     setter: (value: any) => void,
     subscriber: (params: { update: any }) => void,
+    cacheOptions: {
+        local: string | PersistOptionsLocal<any>;
+        pluginLocal: ClassConstructor<ObservablePersistLocal, any[]>;
+    },
 ): { update: any } {
     let onChange: any;
     const pluginRemote: any = {
@@ -822,6 +826,7 @@ globalState.activateNode = function activateNodePersist(
     }
     persistObservable(getProxy(node), {
         pluginRemote,
+        ...(cacheOptions || {}),
     });
 
     return { update: onChange };

@@ -524,9 +524,14 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
 } & ObservableBaseFns<T> & {
         [symbolGetNode]: NodeValue;
     };
+export interface CacheOptions<T = any> {
+    local: string | PersistOptionsLocal<T>;
+    pluginLocal: ClassConstructor<ObservablePersistLocal, T[]>;
+}
 export interface ComputedParams<T = any> {
     onSet: (fn: (params: ListenerParamsRemote<T>) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
+    cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
 }
 
 export interface ComputedProxyParams<T = any> extends ComputedParams {
