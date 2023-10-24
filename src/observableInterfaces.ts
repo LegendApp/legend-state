@@ -473,6 +473,7 @@ interface BaseNodeValue {
     functions?: Map<string, Function | ObservableComputed<any>>;
     lazy?: boolean | Function;
     state?: Observable<ObservableState>;
+    activated?: boolean;
     proxyFn2?: (key: string, params: ComputedParams) => any;
 }
 

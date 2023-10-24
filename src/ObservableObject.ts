@@ -855,8 +855,8 @@ function activateNodeFunction(node: NodeValue) {
 
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
-    let wasPromise: boolean;
     const activator = (isFunction(node) ? node : node.lazy) as (value: ComputedProxyParams) => any;
+    let wasPromise: Promise<any> | undefined;
     observe(
         () => {
             // Run the function at this node
@@ -885,13 +885,13 @@ function activateNodeFunction(node: NodeValue) {
                 value = value.get();
             }
 
-            const isProm = isPromise(value);
-
-            if (!node.state) {
-                update = activateBase(node, value, setter, subscriber).update;
+            if (!node.activated) {
+                node.activated = true;
+                update = globalState.activateNode(node, value, setter, subscriber).update;
             }
-            if (isProm) {
-                wasPromise = true;
+
+            wasPromise = isPromise(value) ? value : undefined;
+            if (wasPromise) {
                 value = undefined;
             }
             return value;
@@ -899,7 +899,9 @@ function activateNodeFunction(node: NodeValue) {
         ({ value }) => {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
-                    update({ value });
+                    wasPromise.then((newValue) => {
+                        update({ value: newValue });
+                    });
                 } else {
                     set(node, value);
                 }
@@ -910,7 +912,7 @@ function activateNodeFunction(node: NodeValue) {
     );
 }
 
-export function activateBase(
+globalState.activateNode = function activateBase(
     node: NodeValue,
     newValue: any,
     setter: (value: any) => void,
@@ -965,4 +967,4 @@ export function activateBase(
     }
 
     return { update };
-}
+};

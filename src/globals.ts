@@ -22,6 +22,14 @@ export const globalState = {
     isMerging: false,
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
     onChangeRemote: undefined as unknown as (cb: () => void) => void,
+    activateNode: undefined as unknown as (
+        node: NodeValue,
+        newValue: any,
+        setter: (value: any) => void,
+        subscriber: (params: { update: any }) => void,
+    ) => {
+        update: any;
+    },
 };
 
 export function isObservable(obs: any): obs is ObservableObject {

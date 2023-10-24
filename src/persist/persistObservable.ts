@@ -3,6 +3,7 @@ import type {
     ClassConstructor,
     FieldTransforms,
     ListenerParams,
+    NodeValue,
     Observable,
     ObservableObject,
     ObservablePersistLocal,
@@ -41,7 +42,8 @@ import {
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
-const { onChangeRemote } = internal.globalState;
+const { getProxy, globalState } = internal;
+const { onChangeRemote } = globalState;
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
@@ -223,7 +225,7 @@ async function prepChange(queuedChange: QueuedChange) {
     const configRemote = persistOptions.remote;
     const saveLocal = local && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
     const saveRemote =
-        !inRemoteChange && persistenceRemote && !configRemote?.readonly && syncState.isEnabledRemote.peek();
+        !inRemoteChange && persistenceRemote?.set && !configRemote?.readonly && syncState.isEnabledRemote.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isLoadedLocal.peek()) {
@@ -794,3 +796,61 @@ export function persistObservable<T extends WithoutState>(
 
     return obs as any;
 }
+
+globalState.activateNode = function activateWithPersist(
+    node: NodeValue,
+    newValue: any,
+    setter: (value: any) => void,
+    subscriber: (params: { update: any }) => void,
+): { update: any } {
+    let onChange: any;
+    const pluginRemote: any = {
+        get(params: any) {
+            onChange = params.onChange;
+            return newValue;
+        },
+    };
+    if (setter) {
+        pluginRemote.set = setter;
+    }
+    if (subscriber) {
+        subscriber({
+            update: ({ value }: any) => {
+                onChange({ value });
+            },
+        });
+    }
+    persistObservable(getProxy(node), {
+        pluginRemote,
+    });
+
+    return { update: onChange };
+};
+
+// export function activateBase(node: NodeValue, newValue: any, setter: (value: any) => void): { update: any } {
+//     let isSetting = false;
+//     const doSet = (params: ListenerParamsRemote) => {
+//         // Don't call the set if this is the first value coming in
+//         if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
+//             isSetting = true;
+//             try {
+//                 params.isRemote = globalState.isLoadingRemote$.peek();
+//                 setter(params);
+//             } finally {
+//                 isSetting = false;
+//             }
+//         }
+//     };
+
+//     const dispose = onChange(node, doSet as any, { immediate: true });
+
+//     const update = ({ value }) => {
+//         globalState.onChangeRemote(() => {
+//             set(node, value);
+//         });
+//     };
+
+//                 extractPromise(node, newValue);
+
+//     return { update };
+// }

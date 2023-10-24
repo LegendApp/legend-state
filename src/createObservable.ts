@@ -1,4 +1,4 @@
-import { cloneFunction } from './globals';
+import { cloneFunction, setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
 import type {
     ClassConstructor,
@@ -39,6 +39,7 @@ export function createObservable<T>(
 
     if (valueIsPromise) {
         extractPromise(node, value);
+        setNodeValue(node, undefined);
     }
 
     return obs;
