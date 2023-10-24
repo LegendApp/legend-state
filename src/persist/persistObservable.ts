@@ -797,7 +797,7 @@ export function persistObservable<T extends WithoutState>(
     return obs as any;
 }
 
-globalState.activateNode = function activateWithPersist(
+globalState.activateNode = function activateNodePersist(
     node: NodeValue,
     newValue: any,
     setter: (value: any) => void,
