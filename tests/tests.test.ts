@@ -2241,7 +2241,7 @@ describe('Promise values', () => {
         });
         expect(didWhen).toBe(false);
         resolver!(10);
-        await obs;
+        await promiseTimeout(0);
         expect(didWhen).toBe(true);
     });
     test('Promise child stays pending until activated', async () => {

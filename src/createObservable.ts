@@ -38,8 +38,8 @@ export function createObservable<T>(
         : (createObject(node) as ObservableObjectOrArray<T>);
 
     if (valueIsPromise) {
-        extractPromise(node, value);
         setNodeValue(node, undefined);
+        extractPromise(node, value);
     }
 
     return obs;

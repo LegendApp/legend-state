@@ -978,7 +978,9 @@ describe('subscribing to computeds', () => {
     test('basic subscription', async () => {
         const obs = observable(({ subscribe }: ComputedParams) => {
             subscribe(({ update }) => {
-                setTimeout(() => update({ value: 'hi there again' }), 5);
+                setTimeout(() => {
+                    update({ value: 'hi there again' });
+                }, 5);
             });
             return new Promise((resolve) => {
                 setTimeout(() => resolve('hi there'), 0);

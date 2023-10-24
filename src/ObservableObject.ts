@@ -857,6 +857,7 @@ function activateNodeFunction(node: NodeValue) {
     let curTarget$: ObservableObject<any>;
     const activator = (isFunction(node) ? node : node.lazy) as (value: ComputedProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
+    let isInitial = true;
     observe(
         () => {
             // Run the function at this node
@@ -902,11 +903,15 @@ function activateNodeFunction(node: NodeValue) {
                     wasPromise.then((newValue) => {
                         update({ value: newValue });
                     });
+                    if (isInitial) {
+                        set(node, value);
+                    }
                 } else {
                     set(node, value);
                 }
                 node.state!.isLoaded.set(true);
             }
+            isInitial = false;
         },
         { immediate: true, fromComputed: true },
     );
