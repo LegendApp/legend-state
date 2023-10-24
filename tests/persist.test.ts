@@ -1,10 +1,35 @@
 import 'fake-indexeddb/auto';
 import { transformOutData, persistObservable } from '../src/persist/persistObservable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
+import { Change } from '../src/observableInterfaces';
+import { observe } from '../src/observe';
+import { observable } from '../src/observable';
+import { when } from '../src/when';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
+
+class LocalStorageMock {
+    store: Record<any, any>;
+    constructor() {
+        this.store = {};
+    }
+    clear() {
+        this.store = {};
+    }
+    getItem(key: string) {
+        return this.store[key] || null;
+    }
+    setItem(key: string, value: any) {
+        this.store[key] = String(value);
+    }
+    removeItem(key: string) {
+        delete this.store[key];
+    }
+}
+// @ts-expect-error This is ok to do in jest
+global.localStorage = new LocalStorageMock();
 
 describe('Creating', () => {
     test('Create with object', () => {
@@ -40,6 +65,36 @@ describe('Creating', () => {
         obs$.test.set('hello');
         await promiseTimeout(10);
         expect(setValue).toEqual('hello');
+    });
+    test('Loading state works correctly', async () => {
+        const nodes = observable<Record<string, { key: string }>>({});
+        let lastSet;
+        const { state } = persistObservable(nodes, {
+            pluginLocal: ObservablePersistLocalStorage,
+            pluginRemote: {
+                get: async () => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key0' }]), 10),
+                    );
+                    return nodes.reduce(
+                        (acc, node) => {
+                            acc[node.key] = node;
+                            return acc;
+                        },
+                        {} as Record<string, { key: string }>,
+                    );
+                },
+                set: async ({ value }: { value: any; changes: Change[] }) => {
+                    lastSet = value;
+                },
+            },
+            local: 'nodes',
+        });
+
+        await when(state.isLoadedLocal);
+        await when(state.isLoaded);
+        expect(lastSet).toEqual(undefined);
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
 });
 
