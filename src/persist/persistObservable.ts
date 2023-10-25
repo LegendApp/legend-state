@@ -686,7 +686,7 @@ export function persistObservable<T extends WithoutState>(
             if (!isSynced) {
                 isSynced = true;
                 const dateModified = metadatas.get(obs)?.modified;
-                const get = localState.persistenceRemote!.get;
+                const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
                 if (get) {
                     get({
                         state: syncState,
