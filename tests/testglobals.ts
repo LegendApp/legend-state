@@ -20,3 +20,7 @@ export function mockLocalStorage() {
     // @ts-expect-error This is ok to do in jest
     global.localStorage = new LocalStorageMock();
 }
+
+export function promiseTimeout(time?: number) {
+    return new Promise((resolve) => setTimeout(resolve, time || 0));
+}

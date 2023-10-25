@@ -48,6 +48,20 @@ export const run = (isPersist: boolean) => {
         return ret;
     }
 
+    describe('Functions', () => {
+        test('Normal function runs once', () => {
+            let num = 0;
+            const obs = observable({ test: 10, test2: 20 });
+            const comp = observable({
+                fn: () => {
+                    num++;
+                    return obs.test.get() + obs.test2.get();
+                },
+            });
+            expect(comp.fn()).toEqual(30);
+            expect(num).toEqual(1);
+        });
+    });
     describe('Computed', () => {
         test('Basic computed', () => {
             const obs = observable({ test: 10, test2: 20 });

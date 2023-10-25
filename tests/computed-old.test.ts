@@ -11,10 +11,7 @@ import {
     proxy,
     TrackingType,
 } from '@legendapp/state';
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
+import { promiseTimeout } from './testglobals';
 
 let spiedConsole: jest.SpyInstance;
 
