@@ -472,7 +472,7 @@ interface BaseNodeValue {
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputed<any>>;
     lazy?: boolean | Function;
-    state?: Observable<ObservableState>;
+    state?: Observable<ObservablePersistState>;
     activated?: boolean;
     proxyFn2?: (key: string, params: ComputedParams) => any;
 }

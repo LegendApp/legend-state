@@ -1,5 +1,6 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
 import {
+    CacheOptions,
     ClassConstructor,
     NodeValue,
     ObservableComputed,
@@ -30,10 +31,7 @@ export const globalState = {
         newValue: any,
         setter: (value: any) => void,
         subscriber: (params: { update: any }) => void,
-        cacheOptions: {
-            local: string | PersistOptionsLocal<any>;
-            pluginLocal: ClassConstructor<ObservablePersistLocal, any[]>;
-        },
+        cacheOptions: CacheOptions,
     ) => {
         update: any;
     },

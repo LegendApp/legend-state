@@ -32,16 +32,14 @@ import {
 import type {
     CacheOptions,
     ChildNodeValue,
-    ClassConstructor,
     ComputedParams,
     ComputedProxyParams,
     GetOptions,
     ListenerParamsRemote,
     NodeValue,
     ObservableObject,
-    ObservablePersistLocal,
+    ObservablePersistState,
     ObservableState,
-    PersistOptionsLocal,
     TrackingType,
 } from './observableInterfaces';
 import { observe } from './observe';
@@ -773,7 +771,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
             false,
             extractPromise,
             getProxy,
-        ) as ObservableObject<ObservableState>;
+        ) as ObservableObject<ObservablePersistState>;
     }
 
     value
@@ -935,10 +933,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     newValue: any,
     setter: (value: any) => void,
     subscriber: (params: { update: any }) => void,
-    cacheOptions: {
-        local: string | PersistOptionsLocal<any>;
-        pluginLocal: ClassConstructor<ObservablePersistLocal, any[]>;
-    },
+    cacheOptions: CacheOptions,
 ): { update: any } {
     let isSetting = false;
     if (!node.state) {
@@ -949,7 +944,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             false,
             extractPromise,
             getProxy,
-        ) as ObservableObject<ObservableState>;
+        ) as ObservableObject<ObservablePersistState>;
     }
     if (setter) {
         const doSet = (params: ListenerParamsRemote) => {
