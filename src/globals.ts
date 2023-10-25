@@ -1,14 +1,11 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
 import {
     CacheOptions,
-    ClassConstructor,
     NodeValue,
     ObservableComputed,
     ObservableObject,
-    ObservablePersistLocal,
     ObservablePrimitive,
     ObservableReadable,
-    PersistOptionsLocal,
 } from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;

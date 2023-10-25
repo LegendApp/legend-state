@@ -1,4 +1,5 @@
 import type {
+    CacheOptions,
     Change,
     ClassConstructor,
     FieldTransforms,
@@ -632,6 +633,7 @@ export function persistObservable<T extends WithoutState>(
     const { local } = persistOptions;
     const remotePersistence = persistOptions.pluginRemote! || observablePersistConfiguration?.pluginRemote;
     const localState: LocalState = {};
+    let sync: () => Promise<void>;
 
     const syncState = (node.state = observable<ObservablePersistState>({
         isLoadedLocal: false,
@@ -668,7 +670,7 @@ export function persistObservable<T extends WithoutState>(
         }
 
         let isSynced = false;
-        const sync = async () => {
+        sync = async () => {
             if (!isSynced) {
                 isSynced = true;
                 const dateModified = metadatas.get(obs)?.modified;
@@ -775,14 +777,30 @@ export function persistObservable<T extends WithoutState>(
             }
         };
 
+        // If remote is manual, then sync() must be called manually
         if (remote.manual) {
             syncState.assign({ sync });
-        } else {
-            when(() => !local || syncState.isLoadedLocal.get(), sync);
         }
     }
 
-    when(!local || syncState.isLoadedLocal, function (this: any) {
+    // Wait for this node and all parent nodes up the hierarchy to be loaded
+    const onAllLoadedLocal = () => {
+        let parentNode: NodeValue | undefined = node;
+        while (parentNode) {
+            if (parentNode.state?.isLoadedLocal?.get() === false) {
+                return false;
+            }
+            parentNode = parentNode.parent;
+        }
+        return true;
+    };
+    // When all is loaded locally we can start syncing and listening for changes
+    when(onAllLoadedLocal, function (this: any) {
+        // If remote is not manual, then sync() is called automatically
+        if (remote && !remote.manual) {
+            sync();
+        }
+
         obs.onChange(
             onObsChange.bind(
                 this,
