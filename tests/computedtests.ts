@@ -201,7 +201,7 @@ export const run = (isPersist: boolean) => {
                     obs.forEach((child) => child.set(value));
                 });
                 return obs.every((val) => val.get());
-            }) as Observable<boolean>;
+            });
             expect(comp.get()).toEqual(false);
             comp.set(true);
             expect(obs[0].get()).toEqual(true);
@@ -215,7 +215,7 @@ export const run = (isPersist: boolean) => {
                     obs.test.set(value) && obs.test2.set(value);
                 });
                 return obs.test.get() && obs.test2.get();
-            }) as Observable<boolean>;
+            });
             expect(comp.get()).toEqual(false);
             comp.set(true);
             expect(handler).toHaveBeenCalledWith({ test: true, test2: true }, { test: false, test2: false }, [
@@ -1008,14 +1008,12 @@ export const run = (isPersist: boolean) => {
     describe('loading', () => {
         test('isLoaded', async () => {
             const obs = observable(() => {
-                return new Promise((resolve) => {
+                return new Promise<string>((resolve) => {
                     setTimeout(() => resolve('hi there'), 0);
                 });
             });
-            // @ts-expect-error asdf
             expect(obs._state.isLoaded.get()).toEqual(false);
             await promiseTimeout(0);
-            // @ts-expect-error asdf
             expect(obs._state.isLoaded.get()).toEqual(true);
             expect(obs.get()).toEqual('hi there');
         });

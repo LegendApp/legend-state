@@ -526,7 +526,7 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
     };
 export interface CacheOptions<T = any> {
     local: string | PersistOptionsLocal<T>;
-    pluginLocal: ClassConstructor<ObservablePersistLocal, T[]>;
+    pluginLocal?: ClassConstructor<ObservablePersistLocal, T[]>;
 }
 export interface ComputedParams<T = any> {
     onSet: (fn: (params: ListenerParamsRemote<T>) => void) => void;

@@ -831,31 +831,3 @@ globalState.activateNode = function activateNodePersist(
 
     return { update: onChange };
 };
-
-// export function activateBase(node: NodeValue, newValue: any, setter: (value: any) => void): { update: any } {
-//     let isSetting = false;
-//     const doSet = (params: ListenerParamsRemote) => {
-//         // Don't call the set if this is the first value coming in
-//         if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
-//             isSetting = true;
-//             try {
-//                 params.isRemote = globalState.isLoadingRemote$.peek();
-//                 setter(params);
-//             } finally {
-//                 isSetting = false;
-//             }
-//         }
-//     };
-
-//     const dispose = onChange(node, doSet as any, { immediate: true });
-
-//     const update = ({ value }) => {
-//         globalState.onChangeRemote(() => {
-//             set(node, value);
-//         });
-//     };
-
-//                 extractPromise(node, newValue);
-
-//     return { update };
-// }
