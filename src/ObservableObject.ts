@@ -887,12 +887,10 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
 }
 
 function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
-    let update: UpdateFn;
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
-    let isInitial = true;
     observe(
         () => {
             const params = createNodeActivationParams(node);
@@ -929,7 +927,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value).update!;
+                activateNodeFn(node, value).update!;
             }
 
             return value;
@@ -937,8 +935,12 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         ({ value }) => {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
+                    // Extract the promise to make it set the value/error when it comes in
                     extractPromise(node, value);
-                    if (isInitial && isFunction(getNodeValue(node))) {
+                    // Set this to undefined only if it's replacing the activation function,
+                    // so we don't overwrite it if it already has real data from either local
+                    // cache or a previous run
+                    if (isFunction(getNodeValue(node))) {
                         setNodeValue(node, undefined);
                     }
                 } else {
@@ -946,16 +948,12 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                     node.state!.isLoaded.set(true);
                 }
             }
-            isInitial = false;
         },
         { immediate: true, fromComputed: true },
     );
 }
 
-const activateNodeBase = (globalState.activateNode = function activateNodeBase(
-    node: NodeValue,
-    newValue: any,
-): { update: UpdateFn } {
+const activateNodeBase = (globalState.activateNode = function activateNodeBase(node: NodeValue): { update: UpdateFn } {
     const { onSetFn, subscriber } = node.activationState!;
     let isSetting = false;
     if (!node.state) {
@@ -995,6 +993,8 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         console.log('[legend-state] Using retryOptions without setting up persistence first');
     }
     const update: UpdateFn = ({ value }: { value: any }) => {
+        // TODO: This isSetting might not be necessary? Tests still work if removing it.
+        // Write tests that would break it if removed? I'd guess a combination of subscribe and
         if (!isSetting) {
             set(node, value);
         }
