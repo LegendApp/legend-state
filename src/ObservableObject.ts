@@ -924,26 +924,22 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 wasPromise = isPromise(value) ? value : undefined;
             }
 
+            // Activate this node if not activated already (may be called recursively)
+            // TODO: Is calling recursively bad? If so can it be fixed?
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
                 update = activateNodeFn(node, value).update!;
             }
 
-            if (wasPromise) {
-                value = undefined;
-            }
             return value;
         },
         ({ value }) => {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
-                    wasPromise.then((newValue) => {
-                        update({ value: newValue });
-                        node.state!.isLoaded.set(true);
-                    });
+                    extractPromise(node, value);
                     if (isInitial && isFunction(getNodeValue(node))) {
-                        set(node, value);
+                        setNodeValue(node, undefined);
                     }
                 } else {
                     set(node, value);
@@ -1003,11 +999,6 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             set(node, value);
         }
     };
-
-    const isProm = isPromise(newValue);
-    if (isProm) {
-        extractPromise(node, newValue);
-    }
 
     if (subscriber) {
         subscriber({ update });
