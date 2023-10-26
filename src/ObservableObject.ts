@@ -835,15 +835,15 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
-    let setter: (value: ListenerParams<any>) => void;
+    let onSetFn: (value: ListenerParams<any>) => void;
     let update: UpdateFn;
     let subscriber: (params: { update: UpdateFn }) => void;
     const lastSync: { value?: number } = {};
     let cacheOptions: CacheOptions;
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
-    const onSet: ComputedParams['onSet'] = (setterParam) => {
-        setter = setterParam;
+    const onSet: ComputedParams['onSet'] = (onSetFnParam) => {
+        onSetFn = onSetFnParam;
     };
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
@@ -906,7 +906,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value, setter, subscriber, cacheOptions, lastSync).update!;
+                update = activateNodeFn(node, value, onSetFn, subscriber, cacheOptions, lastSync).update!;
             }
 
             if (wasPromise) {
@@ -938,7 +938,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
 const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     node: NodeValue,
     newValue: any,
-    setter: (value: any) => void,
+    onSetFn: (params: ListenerParams<any>) => void,
     subscriber: (params: { update: UpdateFn }) => void,
     cacheOptions: CacheOptions,
 ): { update: UpdateFn } {
@@ -953,14 +953,14 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             getProxy,
         ) as ObservableObject<ObservablePersistState>;
     }
-    if (setter) {
+    if (onSetFn) {
         const doSet = (params: ListenerParams) => {
             // Don't call the set if this is the first value coming in
             if (!isSetting) {
                 if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
                     isSetting = true;
                     batch(
-                        () => setter(params),
+                        () => onSetFn(params),
                         () => {
                             isSetting = false;
                         },

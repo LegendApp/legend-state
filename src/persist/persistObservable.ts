@@ -836,7 +836,7 @@ export function persistObservable<T extends WithoutState>(
 globalState.activateNode = function activateNodePersist(
     node: NodeValue,
     newValue: any,
-    setter: (value: ObservablePersistRemoteSetParams<any>) => void,
+    onSetFn: (value: ObservablePersistRemoteSetParams<any>) => void,
     subscriber: (params: { update: UpdateFn }) => void,
     cacheOptions: CacheOptions,
     lastSync: { value?: number },
@@ -854,8 +854,8 @@ globalState.activateNode = function activateNodePersist(
             return newValue;
         },
     };
-    if (setter) {
-        pluginRemote.set = setter;
+    if (onSetFn) {
+        pluginRemote.set = onSetFn;
     }
     if (subscriber) {
         subscriber({
