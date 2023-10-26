@@ -44,7 +44,6 @@ import { observablePersistConfiguration } from './configureObservablePersistence
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
 const { getProxy, globalState } = internal;
-const { onChangeRemote } = globalState;
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
@@ -80,6 +79,20 @@ function parseLocalConfig(config: string | PersistOptionsLocal | undefined): {
 
 function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
     return isPromise(arg1) ? arg1.then(arg2) : arg2(arg1);
+}
+
+function onChangeRemote(cb: () => void) {
+    when(
+        () => !globalState.isLoadingRemote$.get(),
+        () => {
+            // Remote changes should only update local state
+            globalState.isLoadingRemote$.set(true);
+
+            batch(cb, () => {
+                globalState.isLoadingRemote$.set(false);
+            });
+        },
+    );
 }
 
 export function transformOutData(

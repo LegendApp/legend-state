@@ -98,9 +98,7 @@ export interface ListenerParams<T = any> {
     getPrevious: () => T;
     changes: Change[];
 }
-export interface ListenerParamsRemote<T = any> extends ListenerParams<T> {
-    isRemote: boolean;
-}
+
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
 
 type PrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? K : never }[keyof T]>;
@@ -529,7 +527,7 @@ export interface CacheOptions<T = any> {
     pluginLocal?: ClassConstructor<ObservablePersistLocal, T[]>;
 }
 export interface ComputedParams<T = any> {
-    onSet: (fn: (params: ListenerParamsRemote<T>) => void) => void;
+    onSet: (fn: (params: ListenerParams<T>) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
     cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
 }

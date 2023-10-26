@@ -48,16 +48,3 @@ export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimit
 }
 
 globalState.isLoadingRemote$ = observable(false);
-globalState.onChangeRemote = function onChangeRemote(cb: () => void) {
-    when(
-        () => !globalState.isLoadingRemote$.get(),
-        () => {
-            // Remote changes should only update local state
-            globalState.isLoadingRemote$.set(true);
-
-            batch(cb, () => {
-                globalState.isLoadingRemote$.set(false);
-            });
-        },
-    );
-};

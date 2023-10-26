@@ -22,7 +22,6 @@ export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
-    onChangeRemote: undefined as unknown as (cb: () => void) => void,
     activateNode: undefined as unknown as (
         node: NodeValue,
         newValue: any,

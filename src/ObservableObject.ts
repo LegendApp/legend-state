@@ -35,7 +35,7 @@ import type {
     ComputedParams,
     ComputedProxyParams,
     GetOptions,
-    ListenerParamsRemote,
+    ListenerParams,
     NodeValue,
     ObservableObject,
     ObservablePersistState,
@@ -947,12 +947,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         ) as ObservableObject<ObservablePersistState>;
     }
     if (setter) {
-        const doSet = (params: ListenerParamsRemote) => {
+        const doSet = (params: ListenerParams) => {
             // Don't call the set if this is the first value coming in
             if (!isSetting) {
                 if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
                     isSetting = true;
-                    params.isRemote = globalState.isLoadingRemote$.peek();
                     batch(
                         () => setter(params),
                         () => {
@@ -971,9 +970,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     }
     const update = ({ value }: { value: any }) => {
         if (!isSetting) {
-            globalState.onChangeRemote(() => {
-                set(node, value);
-            });
+            set(node, value);
         }
     };
 

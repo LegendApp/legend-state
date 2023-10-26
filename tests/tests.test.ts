@@ -3002,9 +3002,8 @@ describe('new computed', () => {
         const obs = observable<{ child: { test: string } }>({
             child: ({ onSet, subscribe }) => {
                 numRuns++;
-                onSet(({ value, isRemote }) => {
+                onSet(({ value }) => {
                     wasSetTo = value;
-                    wasSetByRemote = isRemote;
                 });
                 subscribe(({ update }) => {
                     setTimeout(() => {
@@ -3022,7 +3021,6 @@ describe('new computed', () => {
 
         expect(obs.child.test.get()).toEqual('hello');
         expect(wasSetTo).toEqual({ test: 'hello' });
-        expect(wasSetByRemote!).toEqual(true);
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
     });
     test('new computed with onChange and onSet other observable', async () => {
