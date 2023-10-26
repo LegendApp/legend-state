@@ -835,14 +835,20 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
-    let setter: (value: any) => void;
-    let update: (value: any) => void;
-    let subscriber: (params: { update: any }) => void;
+    let setter: (value: ListenerParams<any>) => void;
+    let update: UpdateFn;
+    let subscriber: (params: { update: UpdateFn }) => void;
+    const lastSync: { value?: number } = {};
     let cacheOptions: CacheOptions;
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
     const onSet: ComputedParams['onSet'] = (setterParam) => {
         setter = setterParam;
+    };
+    // The onSet function handles the observable being set
+    // and forwards the set elsewhere
+    const updateLastSync: ComputedParams['updateLastSync'] = (fn) => {
+        lastSync.value = fn;
     };
     // The subscribe function runs a function that listens to
     // a data source and sends updates into the observable
@@ -871,7 +877,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     observe(
         () => {
             // Run the function at this node
-            let value = activator({ onSet, subscribe, proxy, cache });
+            let value = activator({ onSet, subscribe, proxy, cache, updateLastSync });
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
@@ -900,7 +906,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value, setter, subscriber, cacheOptions).update!;
+                update = activateNodeFn(node, value, setter, subscriber, cacheOptions, lastSync).update!;
             }
 
             if (wasPromise) {

@@ -530,6 +530,7 @@ export interface ComputedParams<T = any> {
     onSet: (fn: (params: ListenerParams<T>) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
     cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
+    updateLastSync: (lastSync: number) => void;
 }
 
 export interface ComputedProxyParams<T = any> extends ComputedParams {

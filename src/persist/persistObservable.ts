@@ -12,6 +12,7 @@ import type {
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
+    ObservablePersistRemoteSetParams,
     ObservablePersistState,
     ObservableReadable,
     ObservableWriteable,
@@ -834,14 +835,21 @@ export function persistObservable<T extends WithoutState>(
 globalState.activateNode = function activateNodePersist(
     node: NodeValue,
     newValue: any,
-    setter: (value: any) => void,
+    setter: (value: ObservablePersistRemoteSetParams<any>) => void,
     subscriber: (params: { update: UpdateFn }) => void,
     cacheOptions: CacheOptions,
+    lastSync: { value?: number },
 ): { update?: UpdateFn } {
     let onChange: UpdateFn | undefined = undefined;
-    const pluginRemote: any = {
-        get(params: ObservablePersistRemoteGetParams<any>) {
+    const pluginRemote: ObservablePersistRemoteFunctions = {
+        get: async (params: ObservablePersistRemoteGetParams<any>) => {
             onChange = params.onChange;
+            if (isPromise(newValue)) {
+                newValue = await newValue;
+            }
+            if (lastSync.value) {
+                params.dateModified = lastSync.value;
+            }
             return newValue;
         },
     };
@@ -850,7 +858,14 @@ globalState.activateNode = function activateNodePersist(
     }
     if (subscriber) {
         subscriber({
-            update: (params: ObservableOnChangeParams) => onChange!(params),
+            update: (params: ObservableOnChangeParams) => {
+                if (!onChange) {
+                    // TODO: Make this message better
+                    console.log('[legend-state] Cannot update immediately before the first return');
+                } else {
+                    onChange(params);
+                }
+            },
         });
     }
     persistObservable(getProxy(node), {

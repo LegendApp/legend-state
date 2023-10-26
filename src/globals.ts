@@ -29,6 +29,7 @@ export const globalState = {
         setter: (value: any) => void,
         subscriber: (params: { update: any }) => void,
         cacheOptions: CacheOptions,
+        lastSync: { value?: number },
     ) => {
         update?: UpdateFn;
     },
