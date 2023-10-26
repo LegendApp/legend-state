@@ -112,11 +112,11 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? t extends Observable
         ? t
         : Observable<t> & T[K]
-    : T[K] extends (params: ComputedParams) => infer t
+    : T[K] extends (params: ActivateParams) => infer t
     ? t extends Observable
         ? t
         : Observable<t>
-    : T[K] extends (params: ComputedProxyParams<infer t>) => void
+    : T[K] extends (params: ActivateProxyParams<infer t>) => void
     ? t extends Observable
         ? Record<string, t>
         : Observable<Record<string, t>>
@@ -474,7 +474,7 @@ interface BaseNodeValue {
     lazy?: boolean | Function;
     state?: Observable<ObservablePersistState>;
     activated?: boolean;
-    proxyFn2?: (key: string, params: ComputedParams) => any;
+    proxyFn2?: (key: string, params: ActivateParams) => any;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -528,12 +528,11 @@ export interface CacheOptions<T = any> {
     local: string | PersistOptionsLocal<T>;
     pluginLocal?: ClassConstructor<ObservablePersistLocal, T[]>;
 }
-export interface ComputedParams<T = any> {
+export interface ActivateParams<T = any> {
     onSet: (fn: (params: ListenerParams<T>) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
 }
-
-export interface ComputedProxyParams<T = any> extends ComputedParams {
-    proxy: (fn: (key: string, params: ComputedParams<T>) => T | Promise<T>) => void;
+export interface ActivateProxyParams<T = any> extends ActivateParams {
+    proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
 }
 export type UpdateFn = (params: ObservableOnChangeParams) => void;

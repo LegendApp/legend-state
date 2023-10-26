@@ -3,8 +3,8 @@ import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
 import { globalState } from './globals';
 import type {
-    ComputedParams,
-    ComputedProxyParams,
+    ActivateParams,
+    ActivateProxyParams,
     Observable,
     ObservableComputed,
     ObservablePrimitive,
@@ -17,7 +17,7 @@ type TWithFunctions<T> =
     | {
           [K in keyof T]:
               | ((
-                    params: ComputedProxyParams<T[K] | RecordValue<T[K]>>,
+                    params: ActivateProxyParams<T[K] | RecordValue<T[K]>>,
                 ) => TWithFunctions<T[K]> | Promise<TWithFunctions<T[K]>> | void)
               | TWithFunctions<T[K]>;
       };
@@ -26,11 +26,11 @@ export function observable<T>(value: Promise<T>): Observable<T & WithState>;
 export function observable<T>(value: () => Observable<T>): Observable<T>;
 export function observable<T>(value: () => Promise<T>): Observable<T & WithState>;
 export function observable<T>(value: () => T): ObservableComputed<T>;
-export function observable<T>(value: (params: ComputedParams) => Observable<T>): Observable<T & WithState>;
-export function observable<T>(value: (params: ComputedParams) => Promise<T>): Observable<T & WithState>;
-export function observable<T>(value: (params: ComputedParams) => T): Observable<T>;
+export function observable<T>(value: (params: ActivateParams) => Observable<T>): Observable<T & WithState>;
+export function observable<T>(value: (params: ActivateParams) => Promise<T>): Observable<T & WithState>;
+export function observable<T>(value: (params: ActivateParams) => T): Observable<T>;
 export function observable<T>(
-    value: (params: ComputedProxyParams<T>) => void,
+    value: (params: ActivateProxyParams<T>) => void,
 ): Observable<Record<string, T> & WithState>;
 export function observable<T>(value?: TWithFunctions<T>): Observable<T>;
 export function observable<T>(value?: T): any {

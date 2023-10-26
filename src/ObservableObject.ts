@@ -32,8 +32,8 @@ import {
 import type {
     CacheOptions,
     ChildNodeValue,
-    ComputedParams,
-    ComputedProxyParams,
+    ActivateParams,
+    ActivateProxyParams,
     GetOptions,
     ListenerParams,
     NodeValue,
@@ -842,17 +842,17 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let cacheOptions: CacheOptions;
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
-    const onSet: ComputedParams['onSet'] = (onSetFnParam) => {
+    const onSet: ActivateParams['onSet'] = (onSetFnParam) => {
         onSetFn = onSetFnParam;
     };
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
-    const updateLastSync: ComputedParams['updateLastSync'] = (fn) => {
+    const updateLastSync: ActivateParams['updateLastSync'] = (fn) => {
         lastSync.value = fn;
     };
     // The subscribe function runs a function that listens to
     // a data source and sends updates into the observable
-    const subscribe: ComputedParams['subscribe'] = (fn) => {
+    const subscribe: ActivateParams['subscribe'] = (fn) => {
         if (!subscriber) {
             subscriber = fn;
         }
@@ -865,13 +865,13 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     // The proxy function simply marks the node as a proxy with this function
     // so that child nodes will be created with this function, and then simply
     // activated as a function
-    const proxy: ComputedProxyParams['proxy'] = (fn) => {
+    const proxy: ActivateProxyParams['proxy'] = (fn) => {
         node.proxyFn2 = fn;
     };
 
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
-    const activator = (isFunction(node) ? node : lazyFn) as (value: ComputedProxyParams) => any;
+    const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
     let isInitial = true;
     observe(

@@ -1,8 +1,8 @@
 import {
     beginBatch,
     Change,
-    ComputedParams,
-    ComputedProxyParams,
+    ActivateParams,
+    ActivateProxyParams,
     endBatch,
     isObservable,
     Observable,
@@ -184,7 +184,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Bound to two, set', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
@@ -198,7 +198,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Bound to two, set child', () => {
             const obs = observable({ test: { a: 'hi' }, test2: false });
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value }) => {
                     obs.test.set(value);
                 });
@@ -210,7 +210,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Bound to array, set', () => {
             const obs = observable([false, false, false, false, false]);
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value }) => {
                     obs.forEach((child) => child.set(value));
                 });
@@ -224,7 +224,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to two, set, handler', () => {
             const obs = observable({ test: false, test2: false });
             const handler = expectChangeHandler(obs);
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value }) => {
                     obs.test.set(value) && obs.test2.set(value);
                 });
@@ -252,7 +252,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Computed has set before activation', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value }) => {
                     obs.test.set(value) && obs.test2.set(value);
                 });
@@ -280,7 +280,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Set child of computed', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value: { computedValue } }) => {
                     obs.test.set(computedValue);
                     obs.test2.set(computedValue);
@@ -295,7 +295,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Computed activates before set', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ComputedParams) => {
+            const comp = observable(({ onSet }: ActivateParams) => {
                 onSet(({ value: { computedValue } }) => {
                     obs.test.set(computedValue);
                 });
@@ -325,7 +325,7 @@ export const run = (isPersist: boolean) => {
         test('Two way computed value is set before calling setter', () => {
             const obs = observable(0);
 
-            const comp = observable<string>(({ onSet }: ComputedParams) => {
+            const comp = observable<string>(({ onSet }: ActivateParams) => {
                 onSet(({ value }) => {
                     obs.set(+value);
                 });
@@ -722,7 +722,7 @@ export const run = (isPersist: boolean) => {
             });
 
             const obs$ = observable({
-                sub: ({ onSet }: ComputedParams) => {
+                sub: ({ onSet }: ActivateParams) => {
                     onSet(({ value }) => {
                         sub$.set(value);
                     });
@@ -780,7 +780,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
-            const itemText = observable(({ proxy }: ComputedProxyParams) => {
+            const itemText = observable(({ proxy }: ActivateProxyParams) => {
                 proxy((key) => obs.items[key].text.get());
             });
             expect(itemText['test1'].get()).toEqual('hi');
@@ -813,7 +813,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
-            const itemText = observable(({ proxy }: ComputedProxyParams<string>) => {
+            const itemText = observable(({ proxy }: ActivateProxyParams<string>) => {
                 proxy((key, { onSet }) => {
                     onSet(({ value }) => {
                         obs.items[key].text.set(value);
@@ -849,7 +849,7 @@ export const run = (isPersist: boolean) => {
         test('proxy link', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: ({ proxy }: ComputedProxyParams) => {
+                itemText: ({ proxy }: ActivateProxyParams) => {
                     proxy((key) => {
                         return obs.items[key].text;
                     });
@@ -888,7 +888,7 @@ export const run = (isPersist: boolean) => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemText: ({ proxy }: ComputedProxyParams) => {
+                itemText: ({ proxy }: ActivateProxyParams) => {
                     proxy((key) => {
                         return obs.items[key][obs.selector.get()];
                     });
@@ -917,7 +917,7 @@ export const run = (isPersist: boolean) => {
         test('raw value of proxy has all values', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: ({ proxy }: ComputedProxyParams<Observable<string>>) => {
+                itemText: ({ proxy }: ActivateProxyParams<Observable<string>>) => {
                     proxy((key) => {
                         return obs.items[key].text;
                     });
@@ -950,7 +950,7 @@ export const run = (isPersist: boolean) => {
         test('listener on proxy works', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: ({ proxy }: ComputedProxyParams<Observable<string>>) => {
+                itemText: ({ proxy }: ActivateProxyParams<Observable<string>>) => {
                     proxy((key) => {
                         return obs.items[key].text;
                     });
@@ -1002,7 +1002,7 @@ export const run = (isPersist: boolean) => {
     });
     describe('subscribing to computeds', () => {
         test('basic subscription', async () => {
-            const obs = observable(({ subscribe }: ComputedParams) => {
+            const obs = observable(({ subscribe }: ActivateParams) => {
                 subscribe(({ update }) => {
                     setTimeout(() => {
                         update({ value: 'hi there again' });

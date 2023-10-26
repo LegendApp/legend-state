@@ -4,7 +4,7 @@ import { run } from './computedtests';
 import { observable } from '../src/observable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 import { when } from '../src/when';
-import type { ComputedParams } from '../src/observableInterfaces';
+import type { ActivateParams } from '../src/observableInterfaces';
 
 persistObservable({} as any, {
     pluginRemote: {
@@ -21,7 +21,7 @@ mockLocalStorage();
 describe('caching with new computed', () => {
     test('cache basic', async () => {
         localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
-        const nodes = observable(async ({ cache }: ComputedParams) => {
+        const nodes = observable(async ({ cache }: ActivateParams) => {
             cache(() => ({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'nodes',
@@ -47,7 +47,7 @@ describe('caching with new computed', () => {
 
 describe('dateModified with new computed', () => {
     test('dateModified from updateLastSync', async () => {
-        const nodes = observable(async ({ cache, updateLastSync }: ComputedParams) => {
+        const nodes = observable(async ({ cache, updateLastSync }: ActivateParams) => {
             cache(() => ({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'nodes-dateModified',
@@ -75,7 +75,7 @@ describe('dateModified with new computed', () => {
         expect(localStorage.getItem('nodes-dateModified__m')).toEqual(JSON.stringify({ modified: 1000 }));
     });
     test('dateModified from subscribe', async () => {
-        const value = observable(async ({ cache, subscribe }: ComputedParams) => {
+        const value = observable(async ({ cache, subscribe }: ActivateParams) => {
             cache(() => ({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'dateModified2',

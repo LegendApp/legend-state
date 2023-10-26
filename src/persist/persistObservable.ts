@@ -878,7 +878,7 @@ globalState.activateNode = function activateNodePersist(
 };
 
 declare module '@legendapp/state' {
-    interface ComputedParams<T> {
+    interface ActivateParams<T> {
         cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
         updateLastSync: (lastSync: number) => void;
     }
