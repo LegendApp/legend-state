@@ -2136,7 +2136,7 @@ describe('Promise values', () => {
     test('Promise child', async () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
-        expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.get()).toEqual(undefined);
         expect(obs.promise.state.isLoaded.get()).toEqual(false);
         await promise;
         expect(obs.promise.get()).toEqual(10);
@@ -2145,7 +2145,7 @@ describe('Promise values', () => {
     test('Promise child with _state', async () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
-        expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.get()).toEqual(undefined);
         expect(obs.promise._state.isLoaded.get()).toEqual(false);
         await promise;
         expect(obs.promise.get()).toEqual(10);
@@ -2249,7 +2249,7 @@ describe('Promise values', () => {
         const obs = observable({ promise });
         await promise;
         // Still pending because it was not activated
-        expect(obs.promise).resolves.toEqual(10);
+        expect(obs.promise.get()).toEqual(undefined);
         expect(obs.promise.state.isLoaded.get()).toEqual(false);
 
         // This get activates it but it takes a frame for it to equal the value

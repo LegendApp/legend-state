@@ -788,7 +788,9 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
 
 export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, any>, k: string, v: any) {
     if (isPromise(v)) {
-        extractPromise(getChildNode(node, k), v);
+        const childNode = getChildNode(node, k);
+        extractPromise(childNode, v);
+        setNodeValue(childNode, undefined);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
         delete obj[k];
