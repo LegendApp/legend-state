@@ -835,38 +835,36 @@ export function peek(node: NodeValue) {
     return value;
 }
 
-function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
-    let onSetFn: (value: ListenerParams<any>) => void;
-    let update: UpdateFn;
-    let subscriber: (params: { update: UpdateFn }) => void;
-    let retryOptions: RetryOptions;
-    const lastSync: { value?: number } = {};
-    let cacheOptions: CacheOptions;
+function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
+    node.activationState = {
+        lastSync: {},
+    };
+    const state = node.activationState;
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
     const onSet: ActivateParams['onSet'] = (onSetFnParam) => {
-        onSetFn = onSetFnParam;
+        state.onSetFn = onSetFnParam;
     };
     // The onSet function handles the observable being set
     // and forwards the set elsewhere
     const updateLastSync: ActivateParams['updateLastSync'] = (fn) => {
-        lastSync.value = fn;
+        state.lastSync.value = fn;
     };
     // The subscribe function runs a function that listens to
     // a data source and sends updates into the observable
     const subscribe: ActivateParams['subscribe'] = (fn) => {
-        if (!subscriber) {
-            subscriber = fn;
+        if (!state.subscriber) {
+            state.subscriber = fn;
         }
     };
     const cache = (fn: CacheOptions | (() => CacheOptions)) => {
-        if (!cacheOptions) {
-            cacheOptions = isFunction(fn) ? fn() : fn;
+        if (!state.cacheOptions) {
+            state.cacheOptions = isFunction(fn) ? fn() : fn;
         }
     };
     const retry = (params: RetryOptions) => {
-        if (!retryOptions) {
-            retryOptions = params;
+        if (!state.retryOptions) {
+            state.retryOptions = params;
         }
     };
     // The proxy function simply marks the node as a proxy with this function
@@ -876,6 +874,18 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         node.proxyFn2 = fn;
     };
 
+    return {
+        onSet,
+        proxy,
+        cache,
+        retry,
+        subscribe,
+        updateLastSync,
+    };
+}
+
+function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
+    let update: UpdateFn;
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
@@ -883,14 +893,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let isInitial = true;
     observe(
         () => {
+            const params = createNodeActivationParams(node);
             // Run the function at this node
-            let value = activator({ onSet, subscribe, proxy, cache, retry, updateLastSync });
+            let value = activator(params);
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
                 prevTarget$ = curTarget$;
                 curTarget$ = value;
-                onSet(({ value: newValue, getPrevious }) => {
+                params.onSet(({ value: newValue, getPrevious }) => {
                     // Don't set the target observable if the target has changed since the last run
                     if (!prevTarget$ || curTarget$ === prevTarget$) {
                         // Set the node value back to what it was before before setting it.
@@ -913,7 +924,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value, onSetFn, subscriber, retryOptions, cacheOptions, lastSync).update!;
+                update = activateNodeFn(node, value).update!;
             }
 
             if (wasPromise) {
@@ -945,11 +956,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
 const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     node: NodeValue,
     newValue: any,
-    onSetFn: (params: ListenerParams<any>) => void,
-    subscriber: (params: { update: UpdateFn }) => void,
-    retryOptions: RetryOptions,
-    cacheOptions: CacheOptions,
 ): { update: UpdateFn } {
+    const { onSetFn, subscriber } = node.activationState!;
     let isSetting = false;
     if (!node.state) {
         node.state = createObservable<ObservableState>(
@@ -979,9 +987,13 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
 
         onChange(node, doSet as any, { immediate: true });
     }
-    if (process.env.NODE_ENV === 'development' && cacheOptions) {
+    if (process.env.NODE_ENV === 'development' && node.activationState!.cacheOptions) {
         // TODO Better message
-        console.log('[legend-state] Using cacheOption without setting up persistence first');
+        console.log('[legend-state] Using cacheOptions without setting up persistence first');
+    }
+    if (process.env.NODE_ENV === 'development' && node.activationState!.retryOptions) {
+        // TODO Better message
+        console.log('[legend-state] Using retryOptions without setting up persistence first');
     }
     const update: UpdateFn = ({ value }: { value: any }) => {
         if (!isSetting) {

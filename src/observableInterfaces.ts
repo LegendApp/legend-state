@@ -477,6 +477,14 @@ interface BaseNodeValue {
     state?: Observable<ObservablePersistState>;
     activated?: boolean;
     proxyFn2?: (key: string, params: ActivateParams) => any;
+    activationState?: {
+        onSetFn?: (value: ListenerParams<any>) => void;
+        update?: UpdateFn;
+        subscriber?: (params: { update: UpdateFn }) => void;
+        retryOptions?: RetryOptions;
+        lastSync: { value?: number };
+        cacheOptions?: CacheOptions;
+    };
 }
 
 export interface RootNodeValue extends BaseNodeValue {

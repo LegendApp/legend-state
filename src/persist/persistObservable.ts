@@ -866,15 +866,9 @@ export function persistObservable<T extends WithoutState>(
     return obs as any;
 }
 
-globalState.activateNode = function activateNodePersist(
-    node: NodeValue,
-    newValue: any,
-    onSetFn: (value: ObservablePersistRemoteSetParams<any>) => void,
-    subscriber: (params: { update: UpdateFn }) => void,
-    retryOptions: RetryOptions,
-    cacheOptions: CacheOptions,
-    lastSync: { value?: number },
-): { update?: UpdateFn } {
+globalState.activateNode = function activateNodePersist(node: NodeValue, newValue: any): { update?: UpdateFn } {
+    const { onSetFn, subscriber, lastSync, cacheOptions, retryOptions } = node.activationState!;
+
     let onChange: UpdateFn | undefined = undefined;
     const pluginRemote: ObservablePersistRemoteFunctions = {
         get: async (params: ObservablePersistRemoteGetParams<any>) => {
@@ -889,7 +883,8 @@ globalState.activateNode = function activateNodePersist(
         },
     };
     if (onSetFn) {
-        pluginRemote.set = onSetFn;
+        // TODO: Work out these types better
+        pluginRemote.set = onSetFn as unknown as (params: ObservablePersistRemoteSetParams<any>) => void;
     }
     if (subscriber) {
         subscriber({

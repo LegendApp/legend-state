@@ -27,11 +27,6 @@ export const globalState = {
     activateNode: undefined as unknown as (
         node: NodeValue,
         newValue: any,
-        setter: (value: any) => void,
-        subscriber: (params: { update: any }) => void,
-        retryOptions: RetryOptions,
-        cacheOptions: CacheOptions,
-        lastSync: { value?: number },
     ) => {
         update?: UpdateFn;
     },
