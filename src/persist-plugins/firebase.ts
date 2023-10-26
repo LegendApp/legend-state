@@ -301,14 +301,8 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         onLoadParams: { waiting: number; onLoad: () => void },
         status$: Observable<LoadStatus>,
     ) {
-        const { options } = params;
-        const {
-            fieldTransforms,
-            onGetError: onLoadError,
-            allowSetIfError,
-            firebase,
-            dateModifiedKey: dateModifiedKeyOption,
-        } = options.remote!;
+        const { options, onError } = params;
+        const { fieldTransforms, allowSetIfError, firebase, dateModifiedKey: dateModifiedKeyOption } = options.remote!;
         const { refPath, query, mode } = firebase!;
 
         let didError = false;
@@ -354,7 +348,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                         status$,
                     });
                     params.state.error.set(err);
-                    onLoadError?.(err);
+                    onError?.(err);
                     if (allowSetIfError) {
                         status$.numWaitingCanSave.set((v) => v - 1);
                     }

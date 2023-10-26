@@ -42,6 +42,7 @@ import type {
     ObservableState,
     TrackingType,
     UpdateFn,
+    RetryOptions,
 } from './observableInterfaces';
 import { observe } from './observe';
 import { onChange } from './onChange';
@@ -838,6 +839,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let onSetFn: (value: ListenerParams<any>) => void;
     let update: UpdateFn;
     let subscriber: (params: { update: UpdateFn }) => void;
+    let retryOptions: RetryOptions;
     const lastSync: { value?: number } = {};
     let cacheOptions: CacheOptions;
     // The onSet function handles the observable being set
@@ -862,6 +864,11 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             cacheOptions = isFunction(fn) ? fn() : fn;
         }
     };
+    const retry = (params: RetryOptions) => {
+        if (!retryOptions) {
+            retryOptions = params;
+        }
+    };
     // The proxy function simply marks the node as a proxy with this function
     // so that child nodes will be created with this function, and then simply
     // activated as a function
@@ -877,7 +884,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     observe(
         () => {
             // Run the function at this node
-            let value = activator({ onSet, subscribe, proxy, cache, updateLastSync });
+            let value = activator({ onSet, subscribe, proxy, cache, retry, updateLastSync });
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
             if (isObservable(value)) {
@@ -906,7 +913,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value, onSetFn, subscriber, cacheOptions, lastSync).update!;
+                update = activateNodeFn(node, value, onSetFn, subscriber, retryOptions, cacheOptions, lastSync).update!;
             }
 
             if (wasPromise) {
@@ -940,6 +947,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     newValue: any,
     onSetFn: (params: ListenerParams<any>) => void,
     subscriber: (params: { update: UpdateFn }) => void,
+    retryOptions: RetryOptions,
     cacheOptions: CacheOptions,
 ): { update: UpdateFn } {
     let isSetting = false;

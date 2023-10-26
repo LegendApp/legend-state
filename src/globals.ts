@@ -6,6 +6,7 @@ import {
     ObservableObject,
     ObservablePrimitive,
     ObservableReadable,
+    RetryOptions,
     UpdateFn,
 } from './observableInterfaces';
 
@@ -28,6 +29,7 @@ export const globalState = {
         newValue: any,
         setter: (value: any) => void,
         subscriber: (params: { update: any }) => void,
+        retryOptions: RetryOptions,
         cacheOptions: CacheOptions,
         lastSync: { value?: number },
     ) => {

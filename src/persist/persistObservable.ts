@@ -23,6 +23,7 @@ import type {
     PersistOptionsRemote,
     PersistTransform,
     Primitive,
+    RetryOptions,
     TypeAtPath,
     UpdateFn,
     WithPersistState,
@@ -694,74 +695,106 @@ export function persistObservable<T extends WithoutState>(
                 const dateModified = metadatas.get(obs)?.modified;
                 const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
                 if (get) {
-                    get({
-                        state: syncState,
-                        obs,
-                        options: persistOptions as PersistOptions<T>,
-                        dateModified,
-                        onGet: () => {
-                            syncState.isLoaded.set(true);
-                        },
-                        onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
-                            // Note: value is the constructed value, path is used for setInObservableAtPath
-                            // to start the set into the observable from the path
-                            if (value !== undefined) {
-                                value = transformLoadData(value, remote, true);
-                                if (isPromise(value)) {
-                                    value = await (value as Promise<T>);
-                                }
-
-                                const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
-
-                                if (path.length && invertedMap) {
-                                    path = transformPath(path as string[], pathTypes, invertedMap);
-                                }
-
-                                if (mode === 'dateModified') {
-                                    if (dateModified && !isEmpty(value as unknown as object)) {
-                                        onChangeRemote(() => {
-                                            setInObservableAtPath(obs, path as string[], pathTypes, value, 'assign');
-                                        });
+                    let attemptNum = 0;
+                    const runGet = () => {
+                        get({
+                            state: syncState,
+                            obs,
+                            options: persistOptions as PersistOptions<T>,
+                            dateModified,
+                            onError: (error: Error) => {
+                                if (remote.retry) {
+                                    const {
+                                        backoff,
+                                        delay = 1000,
+                                        infinite,
+                                        times = 3,
+                                        maxDelay = 30000,
+                                    } = remote.retry;
+                                    if (infinite || attemptNum++ < times) {
+                                        const delayTime = Math.min(
+                                            delay * (backoff === 'constant' ? 1 : 2 ** attemptNum),
+                                            maxDelay,
+                                        );
+                                        setTimeout(runGet, delayTime);
+                                        // Don't error when retrying
+                                        return;
                                     }
-                                } else {
-                                    const pending = localState.pendingChanges;
-                                    if (pending) {
-                                        Object.keys(pending).forEach((key) => {
-                                            const p = key.split('/').filter((p) => p !== '');
-                                            const { v, t } = pending[key];
+                                }
+                                remote.onGetError?.(error);
+                            },
+                            onGet: () => {
+                                syncState.isLoaded.set(true);
+                            },
+                            onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
+                                // Note: value is the constructed value, path is used for setInObservableAtPath
+                                // to start the set into the observable from the path
+                                if (value !== undefined) {
+                                    value = transformLoadData(value, remote, true);
+                                    if (isPromise(value)) {
+                                        value = await (value as Promise<T>);
+                                    }
 
-                                            if ((value as any)[p[0]] !== undefined) {
-                                                (value as any) = setAtPath(
-                                                    value as any,
-                                                    p,
-                                                    t,
-                                                    v,
-                                                    obs.peek(),
-                                                    (path: string[], value: any) => {
-                                                        delete pending[key];
-                                                        pending[path.join('/')] = {
-                                                            p: null,
-                                                            v: value,
-                                                            t: t.slice(0, path.length),
-                                                        };
-                                                    },
+                                    const invertedMap =
+                                        remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
+
+                                    if (path.length && invertedMap) {
+                                        path = transformPath(path as string[], pathTypes, invertedMap);
+                                    }
+
+                                    if (mode === 'dateModified') {
+                                        if (dateModified && !isEmpty(value as unknown as object)) {
+                                            onChangeRemote(() => {
+                                                setInObservableAtPath(
+                                                    obs,
+                                                    path as string[],
+                                                    pathTypes,
+                                                    value,
+                                                    'assign',
                                                 );
-                                            }
+                                            });
+                                        }
+                                    } else {
+                                        const pending = localState.pendingChanges;
+                                        if (pending) {
+                                            Object.keys(pending).forEach((key) => {
+                                                const p = key.split('/').filter((p) => p !== '');
+                                                const { v, t } = pending[key];
+
+                                                if ((value as any)[p[0]] !== undefined) {
+                                                    (value as any) = setAtPath(
+                                                        value as any,
+                                                        p,
+                                                        t,
+                                                        v,
+                                                        obs.peek(),
+                                                        (path: string[], value: any) => {
+                                                            delete pending[key];
+                                                            pending[path.join('/')] = {
+                                                                p: null,
+                                                                v: value,
+                                                                t: t.slice(0, path.length),
+                                                            };
+                                                        },
+                                                    );
+                                                }
+                                            });
+                                        }
+
+                                        onChangeRemote(() => {
+                                            setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
                                         });
                                     }
-
-                                    onChangeRemote(() => {
-                                        setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
+                                }
+                                if (dateModified && local) {
+                                    updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
+                                        modified: dateModified,
                                     });
                                 }
-                            }
-                            if (dateModified && local) {
-                                updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
-                                    modified: dateModified,
-                                });
-                            }
-                        },
-                    });
+                            },
+                        });
+                    };
+                    runGet();
                 } else {
                     syncState.isLoaded.set(true);
                 }
@@ -838,6 +871,7 @@ globalState.activateNode = function activateNodePersist(
     newValue: any,
     onSetFn: (value: ObservablePersistRemoteSetParams<any>) => void,
     subscriber: (params: { update: UpdateFn }) => void,
+    retryOptions: RetryOptions,
     cacheOptions: CacheOptions,
     lastSync: { value?: number },
 ): { update?: UpdateFn } {
@@ -872,6 +906,9 @@ globalState.activateNode = function activateNodePersist(
     persistObservable(getProxy(node), {
         pluginRemote,
         ...(cacheOptions || {}),
+        remote: {
+            retry: retryOptions,
+        },
     });
 
     return { update: onChange };
@@ -881,6 +918,7 @@ declare module '@legendapp/state' {
     interface ActivateParams<T> {
         cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
         updateLastSync: (lastSync: number) => void;
+        retry: (options: RetryOptions) => void;
     }
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface ObservableState extends ObservablePersistStateBase {}

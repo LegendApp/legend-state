@@ -217,6 +217,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     offlineBehavior?: false | 'retry';
     changeTimeout?: number;
     metadataTimeout?: number;
+    retry?: RetryOptions;
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
@@ -295,6 +296,7 @@ export interface ObservablePersistRemoteGetParams<T> {
     options: PersistOptions<T>;
     dateModified?: number;
     onGet: () => void;
+    onError: (error: Error) => void;
     onChange: (params: ObservableOnChangeParams) => void | Promise<void>;
 }
 export type ObservablePersistRemoteGetFnParams<T> = Omit<ObservablePersistRemoteGetParams<T>, 'onGet'>;
@@ -536,3 +538,10 @@ export interface ActivateProxyParams<T = any> extends ActivateParams {
     proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
 }
 export type UpdateFn = (params: ObservableOnChangeParams) => void;
+export interface RetryOptions {
+    infinite?: boolean;
+    times?: number;
+    delay?: number;
+    backoff?: 'constant' | 'exponential';
+    maxDelay?: number;
+}
