@@ -7,9 +7,11 @@ import type {
     NodeValue,
     Observable,
     ObservableObject,
+    ObservableOnChangeParams,
     ObservablePersistLocal,
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
+    ObservablePersistRemoteGetParams,
     ObservablePersistState,
     ObservableReadable,
     ObservableWriteable,
@@ -20,6 +22,7 @@ import type {
     PersistTransform,
     Primitive,
     TypeAtPath,
+    UpdateFn,
     WithPersistState,
 } from '@legendapp/state';
 import {
@@ -832,12 +835,12 @@ globalState.activateNode = function activateNodePersist(
     node: NodeValue,
     newValue: any,
     setter: (value: any) => void,
-    subscriber: (params: { update: any }) => void,
+    subscriber: (params: { update: UpdateFn }) => void,
     cacheOptions: CacheOptions,
-): { update: any } {
-    let onChange: any;
+): { update?: UpdateFn } {
+    let onChange: UpdateFn | undefined = undefined;
     const pluginRemote: any = {
-        get(params: any) {
+        get(params: ObservablePersistRemoteGetParams<any>) {
             onChange = params.onChange;
             return newValue;
         },
@@ -847,9 +850,7 @@ globalState.activateNode = function activateNodePersist(
     }
     if (subscriber) {
         subscriber({
-            update: ({ value }: any) => {
-                onChange({ value });
-            },
+            update: (params: ObservableOnChangeParams) => onChange!(params),
         });
     }
     persistObservable(getProxy(node), {

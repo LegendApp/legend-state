@@ -41,6 +41,7 @@ import type {
     ObservablePersistState,
     ObservableState,
     TrackingType,
+    UpdateFn,
 } from './observableInterfaces';
 import { observe } from './observe';
 import { onChange } from './onChange';
@@ -899,7 +900,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, value, setter, subscriber, cacheOptions).update;
+                update = activateNodeFn(node, value, setter, subscriber, cacheOptions).update!;
             }
 
             if (wasPromise) {
@@ -932,9 +933,9 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     node: NodeValue,
     newValue: any,
     setter: (value: any) => void,
-    subscriber: (params: { update: any }) => void,
+    subscriber: (params: { update: UpdateFn }) => void,
     cacheOptions: CacheOptions,
-): { update: any } {
+): { update: UpdateFn } {
     let isSetting = false;
     if (!node.state) {
         node.state = createObservable<ObservableState>(
@@ -968,7 +969,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         // TODO Better message
         console.log('[legend-state] Using cacheOption without setting up persistence first');
     }
-    const update = ({ value }: { value: any }) => {
+    const update: UpdateFn = ({ value }: { value: any }) => {
         if (!isSetting) {
             set(node, value);
         }

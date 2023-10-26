@@ -6,6 +6,7 @@ import {
     ObservableObject,
     ObservablePrimitive,
     ObservableReadable,
+    UpdateFn,
 } from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -29,7 +30,7 @@ export const globalState = {
         subscriber: (params: { update: any }) => void,
         cacheOptions: CacheOptions,
     ) => {
-        update: any;
+        update?: UpdateFn;
     },
 };
 
