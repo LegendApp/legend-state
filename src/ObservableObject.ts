@@ -918,9 +918,10 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 // Get the value from the observable because we still want the raw value
                 // for the effect.
                 value = value.get();
+            } else {
+                wasPromise = isPromise(value) ? value : undefined;
             }
 
-            wasPromise = isPromise(value) ? value : undefined;
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
