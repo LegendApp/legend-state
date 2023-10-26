@@ -2997,7 +2997,6 @@ describe('new computed', () => {
     });
     test('new computed with onChange and onSet', async () => {
         let wasSetTo: any;
-        let wasSetByRemote: boolean;
         let numRuns = 0;
         const obs = observable<{ child: { test: string } }>({
             child: ({ onSet, subscribe }) => {

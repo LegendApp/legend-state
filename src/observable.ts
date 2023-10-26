@@ -1,6 +1,7 @@
-import { createObservable } from './createObservable';
 import { extractPromise, getProxy } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
+import { createObservable } from './createObservable';
+import { globalState } from './globals';
 import type {
     ComputedParams,
     ComputedProxyParams,
@@ -10,9 +11,6 @@ import type {
     RecordValue,
     WithState,
 } from './observableInterfaces';
-import { globalState } from './globals';
-import { when } from './when';
-import { batch } from './batching';
 
 type TWithFunctions<T> =
     | T
