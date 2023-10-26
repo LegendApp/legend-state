@@ -53,7 +53,7 @@ describe('dateModified with new computed', () => {
                 local: 'nodes-dateModified',
             }));
             const nodes = await new Promise<{ key: string }[]>((resolve) =>
-                setTimeout(() => resolve([{ key: 'key0' }]), 10),
+                setTimeout(() => resolve([{ key: 'key0' }]), 0),
             );
             updateLastSync(1000);
             return nodes.reduce((acc: Record<string, { key: string }>, node) => {
@@ -70,7 +70,7 @@ describe('dateModified with new computed', () => {
         await when(nodes._state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
-        await promiseTimeout(30);
+        await promiseTimeout(1);
         expect(localStorage.getItem('nodes-dateModified')).toEqual(JSON.stringify({ key0: { key: 'key0' } }));
         expect(localStorage.getItem('nodes-dateModified__m')).toEqual(JSON.stringify({ modified: 1000 }));
     });
@@ -82,16 +82,18 @@ describe('dateModified with new computed', () => {
             }));
             subscribe(({ update }) => {
                 setTimeout(() => {
-                    update({ value: 'test', dateModified: 1000 });
-                }, 0);
+                    update({ value: 'test2', dateModified: 1000 });
+                }, 5);
             });
             return new Promise<string>((resolve) => setTimeout(() => resolve('test'), 1));
         });
 
         expect(value.get()).toEqual(undefined);
-
-        await promiseTimeout(50);
+        await promiseTimeout(0);
         expect(value.get()).toEqual('test');
+
+        await promiseTimeout(10);
+        expect(value.get()).toEqual('test2');
         expect(localStorage.getItem('dateModified2__m')).toEqual(JSON.stringify({ modified: 1000 }));
     });
 });

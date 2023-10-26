@@ -196,7 +196,7 @@ function updateMetadata<T>(
     }
     localState.timeoutSaveMetadata = setTimeout(
         () => updateMetadataImmediate(obs, localState, syncState, persistOptions as PersistOptions<T>, newMetadata),
-        30,
+        persistOptions?.remote?.metadataTimeout || 0,
     );
 }
 

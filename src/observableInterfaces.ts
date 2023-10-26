@@ -216,6 +216,7 @@ export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlo
     };
     offlineBehavior?: false | 'retry';
     changeTimeout?: number;
+    metadataTimeout?: number;
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
