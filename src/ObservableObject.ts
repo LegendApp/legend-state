@@ -768,7 +768,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
         node.state = createObservable<ObservableState>(
             {
                 isLoaded: false,
-            },
+            } as ObservableState,
             false,
             extractPromise,
             getProxy,
@@ -947,7 +947,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         node.state = createObservable<ObservableState>(
             {
                 isLoaded: false,
-            },
+            } as ObservableState,
             false,
             extractPromise,
             getProxy,

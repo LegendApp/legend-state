@@ -14,6 +14,7 @@ import type {
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
     ObservablePersistState,
+    ObservablePersistStateBase,
     ObservableReadable,
     ObservableWriteable,
     PersistMetadata,
@@ -875,3 +876,12 @@ globalState.activateNode = function activateNodePersist(
 
     return { update: onChange };
 };
+
+declare module '@legendapp/state' {
+    interface ComputedParams<T> {
+        cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
+        updateLastSync: (lastSync: number) => void;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface ObservableState extends ObservablePersistStateBase {}
+}

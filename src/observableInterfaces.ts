@@ -320,7 +320,7 @@ export interface WithState {
     state?: ObservableState; // TODOV3: remove this
     _state?: ObservableState;
 }
-export interface ObservablePersistState extends ObservableState {
+export interface ObservablePersistStateBase {
     isLoadedLocal: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
@@ -337,6 +337,7 @@ export interface ObservablePersistState extends ObservableState {
           >
         | undefined;
 }
+export type ObservablePersistState = ObservableState & ObservablePersistStateBase;
 export interface WithPersistState {
     state?: ObservablePersistState; // TODOV3: remove this
     _state?: ObservablePersistState;
@@ -530,8 +531,6 @@ export interface CacheOptions<T = any> {
 export interface ComputedParams<T = any> {
     onSet: (fn: (params: ListenerParams<T>) => void) => void;
     subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
-    cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
-    updateLastSync: (lastSync: number) => void;
 }
 
 export interface ComputedProxyParams<T = any> extends ComputedParams {
