@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ObservableReadable } from '../src/observableTypes';
 import { isObservable } from '../src/globals';
+import { mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Change, TrackingType } from '../src/observableInterfaces';
+import { ObservableReadable } from '../src/observableTypes';
 
 function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
     const ret = jest.fn();
@@ -194,5 +195,11 @@ describe('Map/Set pathTypes', () => {
                 },
             ],
         );
+    });
+    test('mergeIntoObservable with Map', () => {
+        const obs = observable({ test: undefined as unknown as Map<string, any> });
+
+        mergeIntoObservable(obs, { test: new Map([['key', 'value']]) });
+        expect(obs.test.peek()).toEqual(new Map([['key', 'value']]));
     });
 });
