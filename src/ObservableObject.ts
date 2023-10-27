@@ -719,6 +719,10 @@ function updateNodesAndNotify(
     // Make sure we don't call too many listeners for ever property set
     beginBatch();
 
+    if (isPrim === undefined) {
+        isPrim = isPrimitive(newValue);
+    }
+
     let hasADiff = isPrim;
     let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree

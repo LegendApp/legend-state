@@ -159,7 +159,7 @@ export type QueryByModified<T> =
           '*'?: boolean;
       };
 
-export type TypeAtPath = 'object' | 'array';
+export type TypeAtPath = 'object' | 'array' | 'map' | 'set';
 
 export interface Change {
     path: string[];

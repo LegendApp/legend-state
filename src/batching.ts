@@ -1,5 +1,5 @@
 import { getNodeValue, optimized } from './globals';
-import { isArray } from './is';
+import { clone, getPathType } from './helpers';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {
@@ -45,21 +45,26 @@ function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
 
 function createPreviousHandlerInner(value: any, changes: Change[]) {
     // Clones the current state and inject the previous data at the changed path
-    let clone = value ? JSON.parse(JSON.stringify(value)) : {};
+    let cloned = value ? clone(value) : {};
     for (let i = 0; i < changes.length; i++) {
         const { path, prevAtPath } = changes[i];
-        let o = clone;
+        let o = cloned;
         if (path.length > 0) {
             let i: number;
             for (i = 0; i < path.length - 1; i++) {
                 o = o[path[i]];
             }
-            o[path[i]] = prevAtPath;
+            const key = path[i];
+            if (o instanceof Map) {
+                o.set(key, prevAtPath);
+            } else {
+                o[key] = prevAtPath;
+            }
         } else {
-            clone = prevAtPath;
+            cloned = prevAtPath;
         }
     }
-    return clone;
+    return cloned;
 }
 
 function createPreviousHandler(value: any, changes: Change[]) {
@@ -108,7 +113,7 @@ function computeChangesAtNode(
     node: NodeValue,
     value: any,
     path: string[],
-    pathTypes: ('object' | 'array')[],
+    pathTypes: TypeAtPath[],
     valueAtPath: any,
     prevAtPath: any,
     immediate: boolean,
@@ -193,7 +198,7 @@ function computeChangesRecursive(
                 parent,
                 parentValue,
                 [node.key].concat(path),
-                [(isArray(value) ? 'array' : 'object') as TypeAtPath].concat(pathTypes),
+                [getPathType(value)].concat(pathTypes),
                 valueAtPath,
                 prevAtPath,
                 immediate,

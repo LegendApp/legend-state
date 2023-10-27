@@ -71,7 +71,7 @@ describe('Map is observable', () => {
         expect(handler).toHaveBeenCalledWith('value2', 'value', [
             { path: [], pathTypes: [], prevAtPath: 'value', valueAtPath: 'value2' },
         ]);
-        expect(handler2).toHaveBeenCalledWith(obs.test.peek(), { key: 'value' }, [
+        expect(handler2).toHaveBeenCalledWith(obs.test.peek(), new Map([['key', 'value']]), [
             { path: ['key'], pathTypes: ['object'], prevAtPath: 'value', valueAtPath: 'value2' },
         ]);
     });
@@ -159,5 +159,39 @@ describe('Set default behavior', () => {
     test('Set size is observable', () => {
         const obs = observable({ test: new Set(['key']) });
         expect(obs.test.size.get()).toEqual(1);
+    });
+});
+
+describe('Map/Set pathTypes', () => {
+    test('Map changes have correct previous and pathTypes', () => {
+        const obs = observable({ test: new Map([['key', 'value']]) });
+        const handler = expectChangeHandler(obs);
+
+        obs.test.set('key', 'value2');
+
+        expect(handler).toHaveBeenCalledWith(
+            { test: new Map([['key', 'value2']]) },
+            { test: new Map([['key', 'value']]) },
+            [{ path: ['test', 'key'], pathTypes: ['map', 'object'], prevAtPath: 'value', valueAtPath: 'value2' }],
+        );
+    });
+    test('Set changes have correct previous and pathTypes', () => {
+        const obs = observable({ test: new Set(['key1', 'key2']) });
+        const handler = expectChangeHandler(obs);
+
+        obs.test.add('key3');
+
+        expect(handler).toHaveBeenCalledWith(
+            { test: new Set(['key1', 'key2', 'key3']) },
+            { test: new Set(['key1', 'key2']) },
+            [
+                {
+                    path: ['test'],
+                    pathTypes: ['set'],
+                    prevAtPath: new Set(['key1', 'key2']),
+                    valueAtPath: new Set(['key1', 'key2', 'key3']),
+                },
+            ],
+        );
     });
 });

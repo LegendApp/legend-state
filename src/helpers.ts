@@ -206,3 +206,38 @@ export function setSilently(obs: ObservableReadable, newValue: any) {
     const node = getNode(obs);
     return setNodeValue(node, newValue).newValue;
 }
+
+export function getPathType(value: any): TypeAtPath {
+    return isArray(value) ? 'array' : value instanceof Map ? 'map' : value instanceof Set ? 'set' : 'object';
+}
+
+function replacer(key: string, value: any) {
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
+    } else if (value instanceof Set) {
+        return {
+            dataType: 'Set',
+            value: Array.from(value), // or with spread: value: [...value]
+        };
+    } else {
+        return value;
+    }
+}
+
+function reviver(key: string, value: any) {
+    if (typeof value === 'object' && value !== null) {
+        if (value.dataType === 'Map') {
+            return new Map(value.value);
+        } else if (value.dataType === 'Set') {
+            return new Set(value.value);
+        }
+    }
+    return value;
+}
+
+export function clone(value: any) {
+    return JSON.parse(JSON.stringify(value, replacer), reviver);
+}
