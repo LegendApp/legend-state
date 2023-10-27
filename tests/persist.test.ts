@@ -1,9 +1,8 @@
 import 'fake-indexeddb/auto';
-import { transformOutData, persistObservable } from '../src/persist/persistObservable';
-import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
-import { Change } from '../src/observableInterfaces';
-import { observe } from '../src/observe';
 import { observable } from '../src/observable';
+import { Change } from '../src/observableInterfaces';
+import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
+import { persistObservable, transformOutData } from '../src/persist/persistObservable';
 import { when } from '../src/when';
 
 function promiseTimeout(time?: number) {
