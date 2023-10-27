@@ -24,12 +24,7 @@ export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
-    activateNode: undefined as unknown as (
-        node: NodeValue,
-        newValue: any,
-    ) => {
-        update?: UpdateFn;
-    },
+    activateNode: undefined as unknown as (node: NodeValue, refresh: () => void, newValue: any) => void,
 };
 
 export function isObservable(obs: any): obs is ObservableObject {

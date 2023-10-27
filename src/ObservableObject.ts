@@ -43,6 +43,7 @@ import type {
     TrackingType,
     UpdateFn,
     RetryOptions,
+    ObservablePersistStateInternal,
 } from './observableInterfaces';
 import { observe } from './observe';
 import { onChange } from './onChange';
@@ -891,6 +892,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let curTarget$: ObservableObject<any>;
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
+    const refresh = () => (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.set((v) => v + 1);
     observe(
         () => {
             const params = createNodeActivationParams(node);
@@ -927,8 +929,10 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                activateNodeFn(node, value).update!;
+                activateNodeFn(node, refresh, value);
             }
+
+            (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.get();
 
             return value;
         },
@@ -953,7 +957,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     );
 }
 
-const activateNodeBase = (globalState.activateNode = function activateNodeBase(node: NodeValue): { update: UpdateFn } {
+const activateNodeBase = (globalState.activateNode = function activateNodeBase(node: NodeValue, refresh: () => void) {
     const { onSetFn, subscriber } = node.activationState!;
     let isSetting = false;
     if (!node.state) {
@@ -1001,8 +1005,6 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(n
     };
 
     if (subscriber) {
-        subscriber({ update });
+        subscriber({ update, refresh });
     }
-
-    return { update };
 });

@@ -1001,7 +1001,7 @@ export const run = (isPersist: boolean) => {
         });
     });
     describe('subscribing to computeds', () => {
-        test('basic subscription', async () => {
+        test('subscription with update', async () => {
             const obs = observable(({ subscribe }: ActivateParams) => {
                 subscribe(({ update }) => {
                     setTimeout(() => {
@@ -1015,8 +1015,26 @@ export const run = (isPersist: boolean) => {
             expect(obs.get()).toEqual(undefined);
             await promiseTimeout(0);
             expect(obs.get()).toEqual('hi there');
-            await promiseTimeout(5);
+            await promiseTimeout(10);
             expect(obs.get()).toEqual('hi there again');
+        });
+        test('subscription with refresh', async () => {
+            let num = 0;
+            const obs = observable(({ subscribe }: ActivateParams) => {
+                subscribe(({ refresh }) => {
+                    setTimeout(() => {
+                        refresh();
+                    }, 5);
+                });
+                return new Promise((resolve) => {
+                    setTimeout(() => resolve('hi there ' + num++), 0);
+                });
+            });
+            expect(obs.get()).toEqual(undefined);
+            await promiseTimeout(0);
+            expect(obs.get()).toEqual('hi there 0');
+            await promiseTimeout(10);
+            expect(obs.get()).toEqual('hi there 1');
         });
     });
     describe('loading', () => {

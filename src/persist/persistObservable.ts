@@ -15,6 +15,7 @@ import type {
     ObservablePersistRemoteSetParams,
     ObservablePersistState,
     ObservablePersistStateBase,
+    ObservablePersistStateInternal,
     ObservableReadable,
     ObservableWriteable,
     PersistMetadata,
@@ -654,11 +655,12 @@ export function persistObservable<T extends WithoutState>(
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 
-    const syncState = (node.state = observable<ObservablePersistState>({
+    const syncState = (node.state = observable<ObservablePersistStateInternal>({
         isLoadedLocal: false,
         isLoaded: false,
         isEnabledLocal: true,
         isEnabledRemote: true,
+        refreshNum: 0,
         clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
@@ -866,7 +868,7 @@ export function persistObservable<T extends WithoutState>(
     return obs as any;
 }
 
-globalState.activateNode = function activateNodePersist(node: NodeValue, newValue: any): { update?: UpdateFn } {
+globalState.activateNode = function activateNodePersist(node: NodeValue, refresh: () => void, newValue: any) {
     const { onSetFn, subscriber, lastSync, cacheOptions, retryOptions } = node.activationState!;
 
     let onChange: UpdateFn | undefined = undefined;
@@ -896,6 +898,7 @@ globalState.activateNode = function activateNodePersist(node: NodeValue, newValu
                     onChange(params);
                 }
             },
+            refresh,
         });
     }
     persistObservable(getProxy(node), {
@@ -905,8 +908,6 @@ globalState.activateNode = function activateNodePersist(node: NodeValue, newValu
             retry: retryOptions,
         },
     });
-
-    return { update: onChange };
 };
 
 declare module '@legendapp/state' {

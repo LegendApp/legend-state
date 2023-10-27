@@ -327,6 +327,7 @@ export interface ObservablePersistStateBase {
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
     dateModified?: number;
+    syncCount?: number;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;
     getPendingChanges: () =>
@@ -340,6 +341,9 @@ export interface ObservablePersistStateBase {
         | undefined;
 }
 export type ObservablePersistState = ObservableState & ObservablePersistStateBase;
+export type ObservablePersistStateInternal = ObservablePersistState & {
+    refreshNum: number;
+};
 export interface WithPersistState {
     state?: ObservablePersistState; // TODOV3: remove this
     _state?: ObservablePersistState;
@@ -480,7 +484,7 @@ interface BaseNodeValue {
     activationState?: {
         onSetFn?: (value: ListenerParams<any>) => void;
         update?: UpdateFn;
-        subscriber?: (params: { update: UpdateFn }) => void;
+        subscriber?: (params: { update: UpdateFn; refresh: () => void }) => void;
         retryOptions?: RetryOptions;
         lastSync: { value?: number };
         cacheOptions?: CacheOptions;
@@ -540,7 +544,7 @@ export interface CacheOptions<T = any> {
 }
 export interface ActivateParams<T = any> {
     onSet: (fn: (params: ListenerParams<T>) => void) => void;
-    subscribe: (fn: (params: { update: (props: ObservableOnChangeParams) => void }) => void) => void;
+    subscribe: (fn: (params: { update: UpdateFn; refresh: () => void }) => void) => void;
 }
 export interface ActivateProxyParams<T = any> extends ActivateParams {
     proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
