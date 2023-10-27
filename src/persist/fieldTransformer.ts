@@ -7,7 +7,10 @@ import {
     isString,
     symbolDelete,
     TypeAtPath,
+    internal,
 } from '@legendapp/state';
+
+const { initializePathType } = internal;
 
 let validateMap: (map: Record<string, any>) => void;
 
@@ -15,7 +18,7 @@ export function transformPath(path: string[], pathTypes: TypeAtPath[], map: Reco
     const data: Record<string, any> = {};
     let d: Record<string, any> | null = data;
     for (let i = 0; i < path.length; i++) {
-        d = d![path[i]] = i === path.length - 1 ? null : pathTypes[i] === 'array' ? [] : {};
+        d = d![path[i]] = i === path.length - 1 ? null : initializePathType(pathTypes[i]);
     }
     let value = transformObject(data, map);
     const pathOut = [];

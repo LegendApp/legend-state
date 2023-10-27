@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { isObservable } from '../src/helpers';
+import { isObservable, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
 
@@ -193,5 +193,11 @@ describe('Map/Set pathTypes', () => {
                 },
             ],
         );
+    });
+    test('mergeIntoObservable with Map', () => {
+        const obs = observable({ test: undefined as unknown as Map<string, any> });
+
+        mergeIntoObservable(obs, { test: new Map([['key', 'value']]) });
+        expect(obs.test.peek()).toEqual(new Map([['key', 'value']]));
     });
 });

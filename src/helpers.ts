@@ -82,7 +82,7 @@ export function setAtPath<T extends object>(
                 }
                 break;
             } else if (o[p] === undefined || o[p] === null) {
-                o[p] = pathTypes[i] === 'array' ? [] : {};
+                o[p] = initializePathType(pathTypes[i]);
             }
             o = o[p];
             if (oFull) {
@@ -98,7 +98,7 @@ export function setAtPath<T extends object>(
 export function setInObservableAtPath(
     obs: ObservableWriteable,
     path: string[],
-    pathTypes: string[],
+    pathTypes: TypeAtPath[],
     value: any,
     mode: 'assign' | 'set',
 ) {
@@ -106,8 +106,8 @@ export function setInObservableAtPath(
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
-        if (!o.peek()[p] && pathTypes[i] === 'array') {
-            o[p].set([]);
+        if (!o.peek()[p]) {
+            o[p].set(initializePathType(pathTypes[i]));
         }
         o = o[p];
         v = v[p];
@@ -180,7 +180,7 @@ export function constructObjectWithPath(path: string[], pathTypes: TypeAtPath[],
         let o: Record<string, any> = (out = {});
         for (let i = 0; i < path.length; i++) {
             const p = path[i];
-            o[p] = i === path.length - 1 ? value : pathTypes[i] === 'array' ? [] : {};
+            o[p] = i === path.length - 1 ? value : initializePathType(pathTypes[i]);
             o = o[p];
         }
     } else {
@@ -193,7 +193,7 @@ export function deconstructObjectWithPath(path: string[], pathTypes: TypeAtPath[
     let o = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
-        o = o ? o[p] : pathTypes[i] === 'array' ? [] : {};
+        o = o ? o[p] : initializePathType(pathTypes[i]);
     }
 
     return o;
@@ -211,7 +211,20 @@ export function getPathType(value: any): TypeAtPath {
     return isArray(value) ? 'array' : value instanceof Map ? 'map' : value instanceof Set ? 'set' : 'object';
 }
 
-function replacer(key: string, value: any) {
+export function initializePathType(pathType: TypeAtPath): any {
+    switch (pathType) {
+        case 'array':
+            return [];
+        case 'object':
+            return {};
+        case 'map':
+            return new Map();
+        case 'set':
+            return new Set();
+    }
+}
+
+function replacer(_: string, value: any) {
     if (value instanceof Map) {
         return {
             dataType: 'Map',
@@ -227,7 +240,7 @@ function replacer(key: string, value: any) {
     }
 }
 
-function reviver(key: string, value: any) {
+function reviver(_: string, value: any) {
     if (typeof value === 'object' && value !== null) {
         if (value.dataType === 'Map') {
             return new Map(value.value);
