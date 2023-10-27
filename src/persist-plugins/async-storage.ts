@@ -4,12 +4,14 @@ import type {
     ObservablePersistenceConfigLocalGlobalOptions,
     PersistMetadata,
 } from '@legendapp/state';
-import { isArray, setAtPath } from '@legendapp/state';
+import { isArray, setAtPath, internal } from '@legendapp/state';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
 const MetadataSuffix = '__m';
 
 let AsyncStorage: AsyncStorageStatic;
+
+const { safeParse, safeStringify } = internal;
 
 export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
     private data: Record<string, any> = {};
@@ -33,7 +35,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
                     const values = await AsyncStorage.multiGet(tables);
 
                     values.forEach(([table, value]) => {
-                        this.data[table] = value ? JSON.parse(value) : undefined;
+                        this.data[table] = value ? safeParse(value) : undefined;
                     });
                 }
             } catch (e) {
@@ -48,7 +50,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
             try {
                 return (async () => {
                     const value = await AsyncStorage.getItem(table);
-                    this.data[table] = value ? JSON.parse(value) : undefined;
+                    this.data[table] = value ? safeParse(value) : undefined;
                 })();
             } catch {
                 console.error('[legend-state] ObservablePersistLocalAsyncStorage failed to parse', table);
@@ -92,7 +94,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
         const v = this.data[table];
 
         if (v !== undefined && v !== null) {
-            return AsyncStorage.setItem(table, JSON.stringify(v));
+            return AsyncStorage.setItem(table, safeStringify(v));
         } else {
             return AsyncStorage.removeItem(table);
         }

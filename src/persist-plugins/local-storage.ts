@@ -1,7 +1,9 @@
 import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
-import { setAtPath } from '@legendapp/state';
+import { setAtPath, internal } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
+
+const { safeParse, safeStringify } = internal;
 
 class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     private data: Record<string, any> = {};
@@ -14,7 +16,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
         if (this.data[table] === undefined) {
             try {
                 const value = this.storage.getItem(table);
-                this.data[table] = value ? JSON.parse(value) : undefined;
+                this.data[table] = value ? safeParse(value) : undefined;
             } catch {
                 console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
             }
@@ -56,7 +58,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
         const v = this.data[table];
 
         if (v !== undefined && v !== null) {
-            this.storage.setItem(table, JSON.stringify(v));
+            this.storage.setItem(table, safeStringify(v));
         } else {
             this.storage.removeItem(table);
         }

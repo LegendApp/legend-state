@@ -227,12 +227,12 @@ export function initializePathType(pathType: TypeAtPath): any {
 function replacer(_: string, value: any) {
     if (value instanceof Map) {
         return {
-            dataType: 'Map',
+            __LSType: 'Map',
             value: Array.from(value.entries()), // or with spread: value: [...value]
         };
     } else if (value instanceof Set) {
         return {
-            dataType: 'Set',
+            __LSType: 'Set',
             value: Array.from(value), // or with spread: value: [...value]
         };
     } else {
@@ -241,16 +241,22 @@ function replacer(_: string, value: any) {
 }
 
 function reviver(_: string, value: any) {
-    if (typeof value === 'object' && value !== null) {
-        if (value.dataType === 'Map') {
+    if (typeof value === 'object' && value) {
+        if (value.__LSType === 'Map') {
             return new Map(value.value);
-        } else if (value.dataType === 'Set') {
+        } else if (value.__LSType === 'Set') {
             return new Set(value.value);
         }
     }
     return value;
 }
 
+export function safeStringify(value: any) {
+    return JSON.stringify(value, replacer);
+}
+export function safeParse(value: any) {
+    return JSON.parse(value, reviver);
+}
 export function clone(value: any) {
-    return JSON.parse(JSON.stringify(value, replacer), reviver);
+    return safeParse(safeStringify(value));
 }
