@@ -12,9 +12,12 @@ export function observablePersistRemoteFunctionsAdapter<T = {}>({
 
     if (get) {
         ret.get = (async (params: ObservablePersistRemoteGetParams<T>) => {
-            const value = (await get(params)) as T;
-            params.onChange({ value, dateModified: params.dateModified || Date.now() });
-            params.onGet();
+            try {
+                const value = (await get(params)) as T;
+                params.onChange({ value, dateModified: params.dateModified || Date.now() });
+                params.onGet();
+                // eslint-disable-next-line no-empty
+            } catch {}
         }) as ObservablePersistRemoteClass['get'];
     }
 

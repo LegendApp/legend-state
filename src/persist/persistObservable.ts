@@ -690,7 +690,6 @@ export function persistObservable<T extends WithoutState>(
                 const dateModified = metadatas.get(obs)?.modified;
                 const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
                 if (get) {
-                    let attemptNum = 0;
                     const runGet = () => {
                         get({
                             state: syncState,
@@ -698,24 +697,6 @@ export function persistObservable<T extends WithoutState>(
                             options: persistOptions as PersistOptions<T>,
                             dateModified,
                             onError: (error: Error) => {
-                                if (remote.retry) {
-                                    const {
-                                        backoff,
-                                        delay = 1000,
-                                        infinite,
-                                        times = 3,
-                                        maxDelay = 30000,
-                                    } = remote.retry;
-                                    if (infinite || attemptNum++ < times) {
-                                        const delayTime = Math.min(
-                                            delay * (backoff === 'constant' ? 1 : 2 ** attemptNum),
-                                            maxDelay,
-                                        );
-                                        setTimeout(runGet, delayTime);
-                                        // Don't error when retrying
-                                        return;
-                                    }
-                                }
                                 remote.onGetError?.(error);
                             },
                             onGet: () => {

@@ -28,7 +28,10 @@ export function persistActivateNode() {
             get: async (params: ObservablePersistRemoteGetParams<any>) => {
                 onChange = params.onChange;
                 if (isPromise(newValue)) {
-                    newValue = await newValue;
+                    try {
+                        newValue = await newValue;
+                        // eslint-disable-next-line no-empty
+                    } catch {}
                 }
                 if (lastSync.value) {
                     params.dateModified = lastSync.value;
@@ -79,7 +82,7 @@ declare module '@legendapp/state' {
     interface ActivateParams<T> {
         cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
         updateLastSync: (lastSync: number) => void;
-        retry: (options: RetryOptions) => void;
+        retry: (options?: RetryOptions) => void;
     }
     interface OnSetExtra {
         updateLastSync: (lastSync: number) => void;

@@ -1,5 +1,5 @@
 import { mockLocalStorage, promiseTimeout } from './testglobals';
-import { persistObservable } from '../src/persist/persistObservable';
+import { persistObservable } from '../persist';
 import { run } from './computedtests';
 import { observable } from '../src/observable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
@@ -95,5 +95,30 @@ describe('dateModified with new computed', () => {
         await promiseTimeout(10);
         expect(value.get()).toEqual('test2');
         expect(localStorage.getItem('dateModified2__m')).toEqual(JSON.stringify({ modified: 1000 }));
+    });
+});
+
+describe('retry', () => {
+    test('retry a get', async () => {
+        const attemptNum$ = observable(0);
+        const obs$ = observable(async ({ retry }: ActivateParams) => {
+            retry({
+                delay: 1,
+            });
+
+            return new Promise((resolve, reject) => {
+                attemptNum$.set((v) => v + 1);
+                attemptNum$.get() > 2 ? resolve('hi') : reject();
+            });
+        });
+
+        obs$.get();
+        expect(attemptNum$.get()).toEqual(1);
+        expect(obs$.get()).toEqual(undefined);
+        await when(() => attemptNum$.get() === 2);
+        expect(obs$.get()).toEqual(undefined);
+        await when(() => attemptNum$.get() === 3);
+        await promiseTimeout(0);
+        expect(obs$.get()).toEqual('hi');
     });
 });

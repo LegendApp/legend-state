@@ -771,7 +771,12 @@ function updateNodesAndNotify(
     endBatch();
 }
 
-export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (params: { value: any }) => void) {
+export function extractPromise(
+    node: NodeValue,
+    value: Promise<any>,
+    setter?: (params: { value: any }) => void,
+    handleError?: (error: Error) => void,
+) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -793,6 +798,9 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
         })
         .catch((error) => {
             node.state!.error.set(error);
+            if (handleError) {
+                handleError(error);
+            }
         });
 }
 
@@ -874,9 +882,9 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
             state.cacheOptions = isFunction(fn) ? fn() : fn;
         }
     };
-    const retry = (params: RetryOptions) => {
+    const retry = (params?: RetryOptions) => {
         if (!state.retryOptions) {
-            state.retryOptions = params;
+            state.retryOptions = params || {};
         }
     };
     // The proxy function simply marks the node as a proxy with this function
@@ -904,6 +912,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
     const refresh = () => (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.set((v) => v + 1);
+    let attemptNum = 0;
     observe(
         () => {
             const params = createNodeActivationParams(node);
@@ -950,8 +959,22 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         ({ value }) => {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
+                    const { retryOptions } = node.activationState!;
+                    let handleError: (() => void) | undefined;
+                    if (retryOptions) {
+                        const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
+                        if (infinite || attemptNum++ < times) {
+                            const delayTime = Math.min(
+                                delay * (backoff === 'constant' ? 1 : 2 ** attemptNum),
+                                maxDelay,
+                            );
+                            handleError = () => {
+                                setTimeout(refresh, delayTime);
+                            };
+                        }
+                    }
                     // Extract the promise to make it set the value/error when it comes in
-                    extractPromise(node, value, update);
+                    extractPromise(node, value, update, handleError!);
                     // Set this to undefined only if it's replacing the activation function,
                     // so we don't overwrite it if it already has real data from either local
                     // cache or a previous run
