@@ -1,3 +1,4 @@
+import { when } from './when';
 import { batch, beginBatch, endBatch, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -881,6 +882,19 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
         if (!state.cacheOptions) {
             state.cacheOptions = isFunction(fn) ? fn() : fn;
         }
+        return new Promise<{ dateModified: number }>((resolve) => {
+            const wait = () => {
+                if (node.state) {
+                    when(node.state!.isLoadedLocal, () => {
+                        const dateModified = node.state!.dateModified.get();
+                        resolve({ dateModified });
+                    });
+                } else {
+                    queueMicrotask(wait);
+                }
+            };
+            wait();
+        });
     };
     const retry = (params?: RetryOptions) => {
         if (!state.retryOptions) {

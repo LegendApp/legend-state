@@ -21,7 +21,7 @@ persistActivateNode();
 
 declare module '@legendapp/state' {
     interface ActivateParams<T> {
-        cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
+        cache: (cacheOptions: CacheOptions<T>) => Promise<{ dateModified: number }>;
         updateLastSync: (lastSync: number) => void;
         retry: (options?: RetryOptions) => void;
     }

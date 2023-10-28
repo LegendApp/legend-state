@@ -22,10 +22,10 @@ describe('caching with new computed', () => {
     test('cache basic', async () => {
         localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(async ({ cache }: ActivateParams) => {
-            cache(() => ({
+            cache({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'nodes',
-            }));
+            });
             const nodes = await new Promise<{ key: string }[]>((resolve) =>
                 setTimeout(() => resolve([{ key: 'key0' }]), 10),
             );
@@ -43,15 +43,62 @@ describe('caching with new computed', () => {
         await when(nodes._state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
+    test('cache basic', async () => {
+        localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
+        const nodes = observable(async ({ cache }: ActivateParams) => {
+            cache({
+                pluginLocal: ObservablePersistLocalStorage,
+                local: 'nodes',
+            });
+            const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                setTimeout(() => resolve([{ key: 'key0' }]), 10),
+            );
+            return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                acc[node.key] = node;
+                return acc;
+            }, {});
+        });
+
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+
+        // @ts-expect-error Fix types to solve this - Record clobbers specific types
+        await when(nodes._state.isLoadedLocal);
+        // @ts-expect-error Fix types to solve this - Record clobbers specific types
+        await when(nodes._state.isLoaded);
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+    });
+    test('cache async', async () => {
+        localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
+        localStorage.setItem('nodes__m', JSON.stringify({ modified: 1000 }));
+
+        const nodes = observable(async ({ cache }: ActivateParams) => {
+            const { dateModified } = await cache({
+                pluginLocal: ObservablePersistLocalStorage,
+                local: 'nodes',
+            });
+            expect(dateModified).toEqual(1000);
+            const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                setTimeout(() => resolve([{ key: 'key1' }]), 2),
+            );
+            return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                acc[node.key] = node;
+                return acc;
+            }, {});
+        });
+
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+        await promiseTimeout(5);
+        expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+    });
 });
 
 describe('dateModified with new computed', () => {
     test('dateModified from updateLastSync', async () => {
         const nodes = observable(async ({ cache, updateLastSync }: ActivateParams) => {
-            cache(() => ({
+            cache({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'nodes-dateModified',
-            }));
+            });
             const nodes = await new Promise<{ key: string }[]>((resolve) =>
                 setTimeout(() => resolve([{ key: 'key0' }]), 0),
             );
@@ -76,10 +123,10 @@ describe('dateModified with new computed', () => {
     });
     test('dateModified from subscribe', async () => {
         const value = observable(async ({ cache, subscribe }: ActivateParams) => {
-            cache(() => ({
+            cache({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'dateModified2',
-            }));
+            });
             subscribe(({ update }) => {
                 setTimeout(() => {
                     update({ value: 'test2', dateModified: 1000 });
