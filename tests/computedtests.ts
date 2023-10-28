@@ -1050,4 +1050,28 @@ export const run = (isPersist: boolean) => {
             expect(obs.get()).toEqual('hi there');
         });
     });
+    describe('async', () => {
+        test('set does not get called by load', async () => {
+            let didSet = false;
+            const obs = observable(({ onSet }: ActivateParams) => {
+                onSet(() => {
+                    didSet = true;
+                });
+                return new Promise<string>((resolve) => {
+                    setTimeout(() => resolve('hi there'), 0);
+                });
+            });
+            expect(obs.get()).toEqual(undefined);
+            await promiseTimeout(0);
+            expect(obs.get()).toEqual('hi there');
+
+            expect(didSet).toEqual(false);
+
+            obs.set('hello');
+
+            await promiseTimeout(0);
+
+            expect(didSet).toEqual(true);
+        });
+    });
 };

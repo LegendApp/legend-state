@@ -1,12 +1,10 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
 import {
-    CacheOptions,
     NodeValue,
     ObservableComputed,
     ObservableObject,
     ObservablePrimitive,
     ObservableReadable,
-    RetryOptions,
     UpdateFn,
 } from './observableInterfaces';
 
@@ -24,7 +22,12 @@ export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
-    activateNode: undefined as unknown as (node: NodeValue, refresh: () => void, newValue: any) => void,
+    activateNode: undefined as unknown as (
+        node: NodeValue,
+        refresh: () => void,
+        wasPromise: boolean,
+        newValue: any,
+    ) => { update: UpdateFn },
 };
 
 export function isObservable(obs: any): obs is ObservableObject {

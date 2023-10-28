@@ -3083,10 +3083,10 @@ describe('new computed', () => {
                 subscribe(({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
-                    }, 0);
+                    }, 5);
                 });
 
-                await promiseTimeout(10);
+                await promiseTimeout(0);
                 return {
                     test: other.get(),
                 };

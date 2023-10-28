@@ -97,22 +97,23 @@ function collectionSetter(node: NodeValue, target: any[], prop: keyof Array<any>
     } else {
         const prevValue = target.slice();
 
-    const ret = (target[prop] as Function).apply(target, args);
+        const ret = (target[prop] as Function).apply(target, args);
 
-    if (node) {
-        const hasParent = isChildNodeValue(node);
-        const key: string = hasParent ? node.key : '_';
-        const parentValue = hasParent ? getNodeValue(node.parent) : node.root;
+        if (node) {
+            const hasParent = isChildNodeValue(node);
+            const key: string = hasParent ? node.key : '_';
+            const parentValue = hasParent ? getNodeValue(node.parent) : node.root;
 
-        // Set the object to the previous value first
-        parentValue[key] = prevValue;
+            // Set the object to the previous value first
+            parentValue[key] = prevValue;
 
-        // Then set with the new value so it notifies with the correct prevValue
-        setKey(node.parent ?? node, key, target);
+            // Then set with the new value so it notifies with the correct prevValue
+            setKey(node.parent ?? node, key, target);
+        }
+
+        // Return the original value
+        return ret;
     }
-
-    // Return the original value
-    return ret;
 }
 
 function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean): string[] {
@@ -768,7 +769,7 @@ function updateNodesAndNotify(
     endBatch();
 }
 
-export function extractPromise(node: NodeValue, value: Promise<any>) {
+export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (params: { value: any }) => void) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -782,7 +783,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>) {
 
     value
         .then((value) => {
-            set(node, value);
+            setter ? setter({ value }) : set(node, value);
             node.state!.isLoaded.set(true);
         })
         .catch((error) => {
@@ -893,6 +894,7 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
 function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
+    let update: UpdateFn;
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
     const refresh = () => (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.set((v) => v + 1);
@@ -932,7 +934,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                activateNodeFn(node, refresh, value);
+                update = activateNodeFn(node, refresh, !!wasPromise, value).update!;
             }
 
             (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.get();
@@ -943,7 +945,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
                     // Extract the promise to make it set the value/error when it comes in
-                    extractPromise(node, value);
+                    extractPromise(node, value, update);
                     // Set this to undefined only if it's replacing the activation function,
                     // so we don't overwrite it if it already has real data from either local
                     // cache or a previous run
@@ -960,7 +962,11 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     );
 }
 
-const activateNodeBase = (globalState.activateNode = function activateNodeBase(node: NodeValue, refresh: () => void) {
+const activateNodeBase = (globalState.activateNode = function activateNodeBase(
+    node: NodeValue,
+    refresh: () => void,
+    wasPromise: boolean,
+) {
     const { onSetFn, subscriber } = node.activationState!;
     let isSetting = false;
     if (!node.state) {
@@ -977,7 +983,10 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(n
         const doSet = (params: ListenerParams) => {
             // Don't call the set if this is the first value coming in
             if (!isSetting) {
-                if (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath)) {
+                if (
+                    (!wasPromise || node.state!.isLoaded.get()) &&
+                    (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath))
+                ) {
                     isSetting = true;
                     batch(
                         () => onSetFn(params),
@@ -989,7 +998,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(n
             }
         };
 
-        onChange(node, doSet as any, { immediate: true });
+        onChange(node, doSet as any, wasPromise ? undefined : { immediate: true });
     }
     if (process.env.NODE_ENV === 'development' && node.activationState!.cacheOptions) {
         // TODO Better message
@@ -1010,4 +1019,6 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(n
     if (subscriber) {
         subscriber({ update, refresh });
     }
+
+    return { update };
 });

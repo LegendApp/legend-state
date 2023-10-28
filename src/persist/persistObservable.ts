@@ -868,7 +868,12 @@ export function persistObservable<T extends WithoutState>(
     return obs as any;
 }
 
-globalState.activateNode = function activateNodePersist(node: NodeValue, refresh: () => void, newValue: any) {
+globalState.activateNode = function activateNodePersist(
+    node: NodeValue,
+    refresh: () => void,
+    wasPromise: boolean,
+    newValue: any,
+) {
     const { onSetFn, subscriber, lastSync, cacheOptions, retryOptions } = node.activationState!;
 
     let onChange: UpdateFn | undefined = undefined;
@@ -886,7 +891,11 @@ globalState.activateNode = function activateNodePersist(node: NodeValue, refresh
     };
     if (onSetFn) {
         // TODO: Work out these types better
-        pluginRemote.set = onSetFn as unknown as (params: ObservablePersistRemoteSetParams<any>) => void;
+        pluginRemote.set = (params: ObservablePersistRemoteSetParams<any>) => {
+            if (node.state?.isLoaded.get()) {
+                onSetFn(params as unknown as ListenerParams);
+            }
+        };
     }
     if (subscriber) {
         subscriber({
@@ -908,6 +917,8 @@ globalState.activateNode = function activateNodePersist(node: NodeValue, refresh
             retry: retryOptions,
         },
     });
+
+    return { update: onChange! };
 };
 
 declare module '@legendapp/state' {
