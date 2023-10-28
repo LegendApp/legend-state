@@ -786,7 +786,10 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
     value
         .then((value) => {
             setter ? setter({ value }) : set(node, value);
-            node.state!.isLoaded.set(true);
+            node.state!.assign({
+                isLoaded: true,
+                error: undefined,
+            });
         })
         .catch((error) => {
             node.state!.error.set(error);
@@ -957,7 +960,10 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                     }
                 } else {
                     set(node, value);
-                    node.state!.isLoaded.set(true);
+                    node.state!.assign({
+                        isLoaded: true,
+                        error: undefined,
+                    });
                 }
             }
         },

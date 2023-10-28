@@ -719,7 +719,10 @@ export function persistObservable<T extends WithoutState>(
                                 remote.onGetError?.(error);
                             },
                             onGet: () => {
-                                syncState.isLoaded.set(true);
+                                node.state!.assign({
+                                    isLoaded: true,
+                                    error: undefined,
+                                });
                             },
                             onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
                                 // Note: value is the constructed value, path is used for setInObservableAtPath
@@ -791,7 +794,10 @@ export function persistObservable<T extends WithoutState>(
                     };
                     runGet();
                 } else {
-                    syncState.isLoaded.set(true);
+                    node.state!.assign({
+                        isLoaded: true,
+                        error: undefined,
+                    });
                 }
 
                 // Wait for remote to be ready before saving pending
