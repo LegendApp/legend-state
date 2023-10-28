@@ -1,5 +1,4 @@
 import type {
-    CacheOptions,
     Change,
     ClassConstructor,
     FieldTransforms,
@@ -7,14 +6,10 @@ import type {
     NodeValue,
     Observable,
     ObservableObject,
-    ObservableOnChangeParams,
     ObservablePersistLocal,
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
-    ObservablePersistRemoteGetParams,
-    ObservablePersistRemoteSetParams,
     ObservablePersistState,
-    ObservablePersistStateBase,
     ObservablePersistStateInternal,
     ObservableReadable,
     ObservableWriteable,
@@ -24,9 +19,7 @@ import type {
     PersistOptionsRemote,
     PersistTransform,
     Primitive,
-    RetryOptions,
     TypeAtPath,
-    UpdateFn,
     WithPersistState,
 } from '@legendapp/state';
 import {
@@ -50,7 +43,7 @@ import {
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
-const { getProxy, globalState } = internal;
+const { globalState } = internal;
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
@@ -88,7 +81,7 @@ function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
     return isPromise(arg1) ? arg1.then(arg2) : arg2(arg1);
 }
 
-function onChangeRemote(cb: () => void) {
+export function onChangeRemote(cb: () => void) {
     when(
         () => !globalState.isLoadingRemote$.get(),
         () => {
@@ -866,67 +859,4 @@ export function persistObservable<T extends WithoutState>(
     });
 
     return obs as any;
-}
-
-globalState.activateNode = function activateNodePersist(
-    node: NodeValue,
-    refresh: () => void,
-    wasPromise: boolean,
-    newValue: any,
-) {
-    const { onSetFn, subscriber, lastSync, cacheOptions, retryOptions } = node.activationState!;
-
-    let onChange: UpdateFn | undefined = undefined;
-    const pluginRemote: ObservablePersistRemoteFunctions = {
-        get: async (params: ObservablePersistRemoteGetParams<any>) => {
-            onChange = params.onChange;
-            if (isPromise(newValue)) {
-                newValue = await newValue;
-            }
-            if (lastSync.value) {
-                params.dateModified = lastSync.value;
-            }
-            return newValue;
-        },
-    };
-    if (onSetFn) {
-        // TODO: Work out these types better
-        pluginRemote.set = (params: ObservablePersistRemoteSetParams<any>) => {
-            if (node.state?.isLoaded.get()) {
-                onSetFn(params as unknown as ListenerParams);
-            }
-        };
-    }
-    if (subscriber) {
-        subscriber({
-            update: (params: ObservableOnChangeParams) => {
-                if (!onChange) {
-                    // TODO: Make this message better
-                    console.log('[legend-state] Cannot update immediately before the first return');
-                } else {
-                    onChange(params);
-                }
-            },
-            refresh,
-        });
-    }
-    persistObservable(getProxy(node), {
-        pluginRemote,
-        ...(cacheOptions || {}),
-        remote: {
-            retry: retryOptions,
-        },
-    });
-
-    return { update: onChange! };
-};
-
-declare module '@legendapp/state' {
-    interface ActivateParams<T> {
-        cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
-        updateLastSync: (lastSync: number) => void;
-        retry: (options: RetryOptions) => void;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface ObservableState extends ObservablePersistStateBase {}
 }

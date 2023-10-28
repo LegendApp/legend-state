@@ -14,3 +14,6 @@ export const internal: {
 } = {
     observablePersistConfiguration,
 };
+
+import { persistActivateNode } from './src/persist/persistActivateNode';
+persistActivateNode();

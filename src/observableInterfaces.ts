@@ -482,9 +482,9 @@ interface BaseNodeValue {
     activated?: boolean;
     proxyFn2?: (key: string, params: ActivateParams) => any;
     activationState?: {
-        onSetFn?: (value: ListenerParams<any>) => void;
+        onSetFn?: (value: ListenerParams<any>, extra: OnSetExtra) => void;
         update?: UpdateFn;
-        subscriber?: (params: { update: UpdateFn; refresh: () => void }) => void;
+        subscriber?: (params: SubscribeOptions) => void;
         retryOptions?: RetryOptions;
         lastSync: { value?: number };
         cacheOptions?: CacheOptions;
@@ -543,7 +543,8 @@ export interface CacheOptions<T = any> {
     pluginLocal?: ClassConstructor<ObservablePersistLocal, T[]>;
 }
 export interface ActivateParams<T = any> {
-    onSet: (fn: (params: ListenerParams<T>) => void) => void;
+    obs$: Observable<T>;
+    onSet: (fn: (params: ListenerParams<T>, extra: OnSetExtra) => void) => void;
     subscribe: (fn: (params: { update: UpdateFn; refresh: () => void }) => void) => void;
 }
 export interface ActivateProxyParams<T = any> extends ActivateParams {
@@ -556,4 +557,11 @@ export interface RetryOptions {
     delay?: number;
     backoff?: 'constant' | 'exponential';
     maxDelay?: number;
+}
+export interface OnSetExtra {
+    update: UpdateFn;
+}
+export interface SubscribeOptions {
+    update: UpdateFn;
+    refresh: () => void;
 }

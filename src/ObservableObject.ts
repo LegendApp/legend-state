@@ -44,6 +44,8 @@ import type {
     UpdateFn,
     RetryOptions,
     ObservablePersistStateInternal,
+    OnSetExtra,
+    SubscribeOptions,
 } from './observableInterfaces';
 import { observe } from './observe';
 import { onChange } from './onChange';
@@ -888,6 +890,7 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
         retry,
         subscribe,
         updateLastSync,
+        obs$: getProxy(node),
     };
 }
 
@@ -989,7 +992,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                 ) {
                     isSetting = true;
                     batch(
-                        () => onSetFn(params),
+                        () => onSetFn(params, { update } as OnSetExtra),
                         () => {
                             isSetting = false;
                         },
@@ -1017,7 +1020,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     };
 
     if (subscriber) {
-        subscriber({ update, refresh });
+        subscriber({ update, refresh } as SubscribeOptions);
     }
 
     return { update };
