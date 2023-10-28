@@ -1073,7 +1073,11 @@ describe('Array', () => {
         const handler = expectChangeHandler(obs);
 
         obs.push(1);
-        expect(handler).toHaveBeenCalledWith([1], [], [{ path: [], pathTypes: [], valueAtPath: [1], prevAtPath: [] }]);
+        expect(handler).toHaveBeenCalledWith(
+            [1],
+            [],
+            [{ path: ['0'], pathTypes: ['object'], valueAtPath: 1, prevAtPath: undefined }],
+        );
     });
     test('Array functions', () => {
         const obs = observable({ arr: [] });
@@ -1092,7 +1096,7 @@ describe('Array', () => {
         obs.test.push('hello');
         expect(obs.test.get()).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith({ test: ['hi', 'hello'] }, { test: ['hi'] }, [
-            { path: ['test'], pathTypes: ['array'], valueAtPath: ['hi', 'hello'], prevAtPath: ['hi'] },
+            { path: ['test', '1'], pathTypes: ['array', 'object'], valueAtPath: 'hello', prevAtPath: undefined },
         ]);
         expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -1653,6 +1657,25 @@ describe('Array', () => {
         expect(handler).toHaveBeenCalledWith(11, 1, [{ path: [], pathTypes: [], prevAtPath: 1, valueAtPath: 11 }]);
         expect(handler2).toHaveBeenCalledWith(22, 2, [{ path: [], pathTypes: [], prevAtPath: 2, valueAtPath: 22 }]);
     });
+    test('Array push change is the added key', () => {
+        const obs = observable({ arr: [0, 1] });
+        const handler = expectChangeHandler(obs.arr);
+
+        obs.arr.push(2);
+
+        expect(handler).toHaveBeenCalledWith(
+            [0, 1, 2],
+            [0, 1],
+            [
+                {
+                    path: ['2'],
+                    pathTypes: ['object'],
+                    valueAtPath: 2,
+                    prevAtPath: undefined,
+                },
+            ],
+        );
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
@@ -1842,10 +1865,10 @@ describe('Deep changes keep listeners', () => {
             [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
             [
                 {
-                    path: [],
-                    pathTypes: [],
-                    valueAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }, { _id: 3 }],
-                    prevAtPath: [{ _id: 0 }, { _id: 1 }, { _id: 2 }],
+                    path: ['3'],
+                    pathTypes: ['object'],
+                    valueAtPath: { _id: 3 },
+                    prevAtPath: undefined,
                 },
             ],
         );

@@ -91,8 +91,11 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     // eslint-disable-next-line no-var
     var __devUpdateNodes = new Set();
 }
-function collectionSetter(node: NodeValue, target: any, prop: string, ...args: any[]) {
-    const prevValue = (isArray(target) && target.slice()) || target;
+function collectionSetter(node: NodeValue, target: any[], prop: keyof Array<any>, ...args: any[]) {
+    if (prop === 'push') {
+        setKey(node, target.length + '', args[0]);
+    } else {
+        const prevValue = target.slice();
 
     const ret = (target[prop] as Function).apply(target, args);
 
