@@ -47,6 +47,7 @@ import type {
     ObservablePersistStateInternal,
     OnSetExtra,
     SubscribeOptions,
+    CacheReturnValue,
 } from './observableInterfaces';
 import { observe } from './observe';
 import { onChange } from './onChange';
@@ -882,12 +883,12 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
         if (!state.cacheOptions) {
             state.cacheOptions = isFunction(fn) ? fn() : fn;
         }
-        return new Promise<{ dateModified: number }>((resolve) => {
+        return new Promise<CacheReturnValue>((resolve) => {
             const wait = () => {
                 if (node.state) {
                     when(node.state!.isLoadedLocal, () => {
                         const dateModified = node.state!.dateModified.get();
-                        resolve({ dateModified });
+                        resolve({ dateModified, value: peek(node) });
                     });
                 } else {
                     queueMicrotask(wait);

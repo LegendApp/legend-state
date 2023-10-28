@@ -565,3 +565,7 @@ export interface SubscribeOptions {
     update: UpdateFn;
     refresh: () => void;
 }
+export interface CacheReturnValue {
+    dateModified: number;
+    value: any;
+}

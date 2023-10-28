@@ -72,11 +72,12 @@ describe('caching with new computed', () => {
         localStorage.setItem('nodes__m', JSON.stringify({ modified: 1000 }));
 
         const nodes = observable(async ({ cache }: ActivateParams) => {
-            const { dateModified } = await cache({
+            const { dateModified, value } = await cache({
                 pluginLocal: ObservablePersistLocalStorage,
                 local: 'nodes',
             });
             expect(dateModified).toEqual(1000);
+            expect(value).toEqual({ key0: { key: 'key0' } });
             const nodes = await new Promise<{ key: string }[]>((resolve) =>
                 setTimeout(() => resolve([{ key: 'key1' }]), 2),
             );
