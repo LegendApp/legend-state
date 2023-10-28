@@ -14,7 +14,7 @@ export function observablePersistRemoteFunctionsAdapter<T = {}>({
         ret.get = (async (params: ObservablePersistRemoteGetParams<T>) => {
             try {
                 const value = (await get(params)) as T;
-                params.onChange({ value, dateModified: params.dateModified || Date.now() });
+                params.onChange({ value, dateModified: params.dateModified });
                 params.onGet();
                 // eslint-disable-next-line no-empty
             } catch {}

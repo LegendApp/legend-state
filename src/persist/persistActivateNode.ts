@@ -1,17 +1,14 @@
 import type {
-    CacheOptions,
     ListenerParams,
     NodeValue,
     ObservableOnChangeParams,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
-    ObservablePersistStateBase,
-    RetryOptions,
     UpdateFn,
 } from '@legendapp/state';
 import { internal, isPromise } from '@legendapp/state';
-import { onChangeRemote, persistObservable } from './persistObservable';
+import { persistObservable } from './persistObservable';
 const { getProxy, globalState } = internal;
 
 export function persistActivateNode() {
@@ -45,10 +42,6 @@ export function persistActivateNode() {
                 if (node.state?.isLoaded.get()) {
                     onSetFn(params as unknown as ListenerParams, {
                         update: onChange as UpdateFn,
-                        updateLastSync: () => {
-                            console.log('TODO updateLastSync');
-                        },
-                        applyRemoteChange: onChangeRemote,
                     });
                 }
             };
@@ -64,7 +57,6 @@ export function persistActivateNode() {
                     }
                 },
                 refresh,
-                applyRemoteChange: onChangeRemote,
             });
         }
         persistObservable(getProxy(node), {
@@ -77,20 +69,4 @@ export function persistActivateNode() {
 
         return { update: onChange! };
     };
-}
-declare module '@legendapp/state' {
-    interface ActivateParams<T> {
-        cache: (cacheOptions: CacheOptions<T> | (() => CacheOptions<T>)) => void;
-        updateLastSync: (lastSync: number) => void;
-        retry: (options?: RetryOptions) => void;
-    }
-    interface OnSetExtra {
-        updateLastSync: (lastSync: number) => void;
-        applyRemoteChange: (fn: () => void) => void;
-    }
-    interface SubscribeOptions {
-        applyRemoteChange: (fn: () => void) => void;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface ObservableState extends ObservablePersistStateBase {}
 }
