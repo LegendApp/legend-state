@@ -438,6 +438,8 @@ export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & 
 type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
+    : [T] extends [Promise<infer K>]
+    ? Observable<K>
     : [T] extends [object]
     ? ObservableObjectOrArray<T>
     : ObservablePrimitive<T>;
@@ -564,6 +566,7 @@ export interface RetryOptions {
 }
 export interface OnSetExtra {
     update: UpdateFn;
+    refresh: () => void;
 }
 export interface SubscribeOptions {
     update: UpdateFn;

@@ -694,7 +694,7 @@ export function persistObservable<T extends WithoutState>(
                         get({
                             state: syncState,
                             obs,
-                            options: persistOptions as PersistOptions<T>,
+                            options: persistOptions as PersistOptions<any>,
                             dateModified,
                             onError: (error: Error) => {
                                 remote.onGetError?.(error);
