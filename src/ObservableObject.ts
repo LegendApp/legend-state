@@ -977,6 +977,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                     const { retryOptions } = node.activationState!;
                     let handleError: (() => void) | undefined;
                     if (retryOptions) {
+                        let timeoutWaiting: any = undefined;
+                        let didGiveUp = false;
                         const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
                         if (infinite || attemptNum++ < times) {
                             const delayTime = Math.min(
@@ -984,8 +986,24 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                                 maxDelay,
                             );
                             handleError = () => {
-                                setTimeout(refresh, delayTime);
+                                timeoutWaiting = setTimeout(refresh, delayTime);
                             };
+                        } else {
+                            handleError = () => {
+                                didGiveUp = true;
+                            };
+                        }
+                        if (typeof window !== 'undefined') {
+                            window.addEventListener('online', () => {
+                                if (didGiveUp || timeoutWaiting) {
+                                    if (timeoutWaiting) {
+                                        clearTimeout(timeoutWaiting);
+                                        timeoutWaiting = undefined;
+                                    }
+                                    didGiveUp = false;
+                                    refresh();
+                                }
+                            });
                         }
                     }
                     // Extract the promise to make it set the value/error when it comes in
