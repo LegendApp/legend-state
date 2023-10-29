@@ -1,10 +1,10 @@
-import { mockLocalStorage, promiseTimeout } from './testglobals';
 import { persistObservable } from '../persist';
-import { run } from './computedtests';
 import { observable } from '../src/observable';
+import type { ActivateParams } from '../src/observableInterfaces';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 import { when } from '../src/when';
-import type { ActivateParams } from '../src/observableInterfaces';
+import { run } from './computedtests';
+import { mockLocalStorage, promiseTimeout } from './testglobals';
 
 persistObservable({} as any, {
     pluginRemote: {
@@ -37,9 +37,7 @@ describe('caching with new computed', () => {
 
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
-        // @ts-expect-error Fix types to solve this - Record clobbers specific types
         await when(nodes._state.isLoadedLocal);
-        // @ts-expect-error Fix types to solve this - Record clobbers specific types
         await when(nodes._state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
@@ -61,9 +59,7 @@ describe('caching with new computed', () => {
 
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
-        // @ts-expect-error Fix types to solve this - Record clobbers specific types
         await when(nodes._state.isLoadedLocal);
-        // @ts-expect-error Fix types to solve this - Record clobbers specific types
         await when(nodes._state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
@@ -112,9 +108,7 @@ describe('dateModified with new computed', () => {
 
         expect(nodes.get()).toEqual(undefined);
 
-        // @ts-expect-error Fix types to solve this - Record clobbers specific types
         await when(nodes._state.isLoadedLocal);
-        // @ts-expect-error Fix types to solve this - Record clobbers specific types
         await when(nodes._state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 

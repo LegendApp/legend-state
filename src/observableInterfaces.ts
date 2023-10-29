@@ -106,6 +106,8 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
+    : [T[K]] extends [undefined | null]
+    ? ObservablePrimitive<T[K]>
     : T[K] extends Promise<infer t>
     ? Observable<t & WithState>
     : T[K] extends () => infer t
@@ -418,8 +420,13 @@ export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T,
 export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
 export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
-export type ObservableArray<T extends any[]> = ObservableObjectFns<T> & ObservableArrayOverride<T[number]>;
-export type ObservableObject<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
+export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
+    ObservableObjectFns<T> &
+    ObservableArrayOverride<T[number]>;
+export type ObservableObject<T = any> = [Required<T>] extends [Required<WithState>]
+    ? Required<WithState> & ObservableObjectBase<T>
+    : ObservableObjectBase<T>;
+export type ObservableObjectBase<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
 export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>
@@ -439,7 +446,7 @@ type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y 
 export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
     : [T] extends [Promise<infer K>]
-    ? Observable<K>
+    ? Observable<K & WithState>
     : [T] extends [object]
     ? ObservableObjectOrArray<T>
     : ObservablePrimitive<T>;
