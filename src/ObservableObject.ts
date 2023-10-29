@@ -52,6 +52,7 @@ import type {
 import { observe } from './observe';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
+import { setupRetry } from './retry';
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -924,10 +925,10 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     let update: UpdateFn;
-    const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     let wasPromise: Promise<any> | undefined;
+    let timeoutRetry: { current?: any };
+    const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     const refresh = () => (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.set((v) => v + 1);
-    let attemptNum = 0;
     observe(
         () => {
             const params = createNodeActivationParams(node);
@@ -975,39 +976,17 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
                     const { retryOptions } = node.activationState!;
-                    let handleError: (() => void) | undefined;
+                    let onError: (() => void) | undefined;
                     if (retryOptions) {
-                        let timeoutWaiting: any = undefined;
-                        let didGiveUp = false;
-                        const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
-                        if (infinite || attemptNum++ < times) {
-                            const delayTime = Math.min(
-                                delay * (backoff === 'constant' ? 1 : 2 ** attemptNum),
-                                maxDelay,
-                            );
-                            handleError = () => {
-                                timeoutWaiting = setTimeout(refresh, delayTime);
-                            };
-                        } else {
-                            handleError = () => {
-                                didGiveUp = true;
-                            };
+                        if (timeoutRetry) {
+                            clearTimeout(timeoutRetry.current);
                         }
-                        if (typeof window !== 'undefined') {
-                            window.addEventListener('online', () => {
-                                if (didGiveUp || timeoutWaiting) {
-                                    if (timeoutWaiting) {
-                                        clearTimeout(timeoutWaiting);
-                                        timeoutWaiting = undefined;
-                                    }
-                                    didGiveUp = false;
-                                    refresh();
-                                }
-                            });
-                        }
+                        const { handleError, timeout } = setupRetry(retryOptions, refresh);
+                        onError = handleError;
+                        timeoutRetry = timeout;
                     }
                     // Extract the promise to make it set the value/error when it comes in
-                    extractPromise(node, value, update, handleError!);
+                    extractPromise(node, value, update, onError!);
                     // Set this to undefined only if it's replacing the activation function,
                     // so we don't overwrite it if it already has real data from either local
                     // cache or a previous run
