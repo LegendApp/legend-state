@@ -134,10 +134,7 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, so
     const isTargetArr = isArray(targetValue);
     const isTargetObj = !isTargetArr && isObject(targetValue);
 
-    if (
-        (isTargetObj && isObject(source) && !isEmpty(targetValue)) ||
-        (isTargetArr && isArray(source) && targetValue.length > 0)
-    ) {
+    if ((isTargetObj && isObject(source) && !isEmpty(targetValue)) || (isTargetArr && targetValue.length > 0)) {
         const keys: string[] = Object.keys(source);
 
         for (let i = 0; i < keys.length; i++) {

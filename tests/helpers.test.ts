@@ -105,6 +105,13 @@ describe('mergeIntoObservable', () => {
             },
         });
     });
+    test('merge indexed object into array', () => {
+        const target = [{ key: '0' }];
+        const source = { 1: { key: '1' } };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged).toEqual([{ key: '0' }, { key: '1' }]);
+        expect(isObservable(merged)).toBe(false);
+    });
 });
 
 describe('isObservableValueReady', () => {
