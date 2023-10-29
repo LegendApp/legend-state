@@ -1034,7 +1034,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                 ) {
                     isSetting = true;
                     batch(
-                        () => onSetFn(params, { update } as OnSetExtra),
+                        () => onSetFn(params, { update, refresh } as OnSetExtra),
                         () => {
                             isSetting = false;
                         },

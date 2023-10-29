@@ -60,6 +60,7 @@ export function persistActivateNode() {
                                     didError = true;
                                     onError?.();
                                 },
+                                refresh,
                             });
                             if (!didError) {
                                 resolve({ changes, dateModified: maxModified || undefined });
