@@ -169,4 +169,40 @@ describe('retry', () => {
         await promiseTimeout(0);
         expect(obs$.get()).toEqual('hi');
     });
+    test('retry a set', async () => {
+        const attemptNum$ = observable(0);
+        let saved = false;
+        const obs$ = observable(async ({ retry, onSet }: ActivateParams) => {
+            retry({
+                delay: 1,
+            });
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            onSet(({ value }, { onError }) => {
+                return new Promise<void>((resolve) => {
+                    attemptNum$.set((v) => v + 1);
+                    if (attemptNum$.get() > 2) {
+                        saved = true;
+                        resolve();
+                    } else {
+                        onError();
+                    }
+                });
+            });
+
+            return 1;
+        });
+
+        obs$.get();
+
+        expect(attemptNum$.get()).toEqual(0);
+        obs$.set(1);
+        await when(() => attemptNum$.get() === 1);
+        expect(attemptNum$.get()).toEqual(1);
+        expect(saved).toEqual(false);
+        await when(() => attemptNum$.get() === 2);
+        expect(saved).toEqual(false);
+        await when(() => attemptNum$.get() === 3);
+        expect(saved).toEqual(true);
+    });
 });

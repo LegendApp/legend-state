@@ -25,7 +25,9 @@ declare module '@legendapp/state' {
         updateLastSync: (lastSync: number) => void;
         retry: (options?: RetryOptions) => void;
     }
-    // interface OnSetExtra {}
+    interface OnSetExtra {
+        onError: () => void;
+    }
     // interface SubscribeOptions {}
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface ObservableState extends ObservablePersistStateBase {}

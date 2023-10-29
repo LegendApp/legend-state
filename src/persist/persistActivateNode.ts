@@ -9,7 +9,7 @@ import type {
 } from '@legendapp/state';
 import { internal, isPromise, mergeIntoObservable } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState } = internal;
+const { getProxy, globalState, setupRetry } = internal;
 
 export function persistActivateNode() {
     globalState.activateNode = function activateNodePersist(
@@ -40,16 +40,33 @@ export function persistActivateNode() {
             // TODO: Work out these types better
             pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                 if (node.state?.isLoaded.get()) {
-                    let changes = {};
-                    let maxModified = 0;
-                    await onSetFn(params as unknown as ListenerParams, {
-                        update: (params) => {
-                            const { value, dateModified } = params;
-                            maxModified = Math.max(dateModified || 0, maxModified);
-                            changes = mergeIntoObservable(changes, value);
-                        },
+                    return new Promise((resolve) => {
+                        const attemptNum = { current: 0 };
+                        const run = async () => {
+                            let changes = {};
+                            let maxModified = 0;
+                            let didError = false;
+                            let onError: () => void;
+                            if (retryOptions) {
+                                onError = setupRetry(retryOptions, run, attemptNum).handleError;
+                            }
+                            await onSetFn(params as unknown as ListenerParams, {
+                                update: (params) => {
+                                    const { value, dateModified } = params;
+                                    maxModified = Math.max(dateModified || 0, maxModified);
+                                    changes = mergeIntoObservable(changes, value);
+                                },
+                                onError: () => {
+                                    didError = true;
+                                    onError?.();
+                                },
+                            });
+                            if (!didError) {
+                                resolve({ changes, dateModified: maxModified || undefined });
+                            }
+                        };
+                        run();
                     });
-                    return { changes, dateModified: maxModified || undefined };
                 }
             };
         }

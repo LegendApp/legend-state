@@ -927,6 +927,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let update: UpdateFn;
     let wasPromise: Promise<any> | undefined;
     let timeoutRetry: { current?: any };
+    const attemptNum = { current: 0 };
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
     const refresh = () => (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.set((v) => v + 1);
     observe(
@@ -981,7 +982,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                         if (timeoutRetry) {
                             clearTimeout(timeoutRetry.current);
                         }
-                        const { handleError, timeout } = setupRetry(retryOptions, refresh);
+                        const { handleError, timeout } = setupRetry(retryOptions, refresh, attemptNum);
                         onError = handleError;
                         timeoutRetry = timeout;
                     }

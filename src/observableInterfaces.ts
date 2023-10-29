@@ -550,7 +550,11 @@ export interface ActivateParams<T = any> {
 export interface ActivateProxyParams<T = any> extends ActivateParams {
     proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
 }
-export type UpdateFn = (params: ObservableOnChangeParams) => void;
+export type UpdateFn = (params: {
+    value: unknown;
+    mode?: 'assign' | 'set' | 'dateModified';
+    dateModified?: number | undefined;
+}) => void;
 export interface RetryOptions {
     infinite?: boolean;
     times?: number;
