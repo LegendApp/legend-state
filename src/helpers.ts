@@ -20,7 +20,7 @@ export function isEvent(obs: any): obs is ObservableEvent {
 
 export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean) {
     let c = selector as any;
-    if (isFunction(c)) {
+    if (!isObservable(c) && isFunction(c)) {
         c = e ? c(e) : c();
     }
 
