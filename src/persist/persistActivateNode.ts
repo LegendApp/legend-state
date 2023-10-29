@@ -7,7 +7,7 @@ import type {
     ObservablePersistRemoteSetParams,
     UpdateFn,
 } from '@legendapp/state';
-import { internal, isPromise } from '@legendapp/state';
+import { internal, isPromise, mergeIntoObservable } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
 const { getProxy, globalState } = internal;
 
@@ -38,11 +38,18 @@ export function persistActivateNode() {
         };
         if (onSetFn) {
             // TODO: Work out these types better
-            pluginRemote.set = (params: ObservablePersistRemoteSetParams<any>) => {
+            pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                 if (node.state?.isLoaded.get()) {
-                    onSetFn(params as unknown as ListenerParams, {
-                        update: onChange as UpdateFn,
+                    let changes = {};
+                    let maxModified = 0;
+                    await onSetFn(params as unknown as ListenerParams, {
+                        update: (params) => {
+                            const { value, dateModified } = params;
+                            maxModified = Math.max(dateModified || 0, maxModified);
+                            changes = mergeIntoObservable(changes, value);
+                        },
                     });
+                    return { changes, dateModified: maxModified || undefined };
                 }
             };
         }

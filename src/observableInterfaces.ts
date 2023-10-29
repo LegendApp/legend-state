@@ -482,7 +482,7 @@ interface BaseNodeValue {
     activated?: boolean;
     proxyFn2?: (key: string, params: ActivateParams) => any;
     activationState?: {
-        onSetFn?: (value: ListenerParams<any>, extra: OnSetExtra) => void;
+        onSetFn?: (value: ListenerParams<any>, extra: OnSetExtra) => void | Promise<any>;
         update?: UpdateFn;
         subscriber?: (params: SubscribeOptions) => void;
         retryOptions?: RetryOptions;
@@ -544,7 +544,7 @@ export interface CacheOptions<T = any> {
 }
 export interface ActivateParams<T = any> {
     obs$: Observable<T>;
-    onSet: (fn: (params: ListenerParams<T>, extra: OnSetExtra) => void) => void;
+    onSet: (fn: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>) => void;
     subscribe: (fn: (params: { update: UpdateFn; refresh: () => void }) => void) => void;
 }
 export interface ActivateProxyParams<T = any> extends ActivateParams {
