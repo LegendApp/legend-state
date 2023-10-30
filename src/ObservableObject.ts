@@ -880,9 +880,9 @@ function createNodeActivationParams(node: NodeValue): ActivateProxyParams {
             state.subscriber = fn;
         }
     };
-    const cache = (fn: CacheOptions | (() => CacheOptions)) => {
+    const cache = (cacheOptions: CacheOptions) => {
         if (!state.cacheOptions) {
-            state.cacheOptions = isFunction(fn) ? fn() : fn;
+            state.cacheOptions = cacheOptions;
         }
         return new Promise<CacheReturnValue>((resolve) => {
             const wait = () => {
@@ -979,7 +979,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                     const { retryOptions } = node.activationState!;
                     let onError: (() => void) | undefined;
                     if (retryOptions) {
-                        if (timeoutRetry) {
+                        if (timeoutRetry?.current) {
                             clearTimeout(timeoutRetry.current);
                         }
                         const { handleError, timeout } = setupRetry(retryOptions, refresh, attemptNum);

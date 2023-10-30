@@ -38,6 +38,7 @@ export function persistActivateNode() {
         };
         if (onSetFn) {
             // TODO: Work out these types better
+            let timeoutRetry: { current?: any };
             pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                 if (node.state?.isLoaded.get()) {
                     return new Promise((resolve) => {
@@ -48,7 +49,12 @@ export function persistActivateNode() {
                             let didError = false;
                             let onError: () => void;
                             if (retryOptions) {
-                                onError = setupRetry(retryOptions, run, attemptNum).handleError;
+                                if (timeoutRetry?.current) {
+                                    clearTimeout(timeoutRetry.current);
+                                }
+                                const { handleError, timeout } = setupRetry(retryOptions, run, attemptNum);
+                                onError = handleError;
+                                timeoutRetry = timeout;
                             }
                             await onSetFn(params as unknown as ListenerParams, {
                                 update: (params) => {
