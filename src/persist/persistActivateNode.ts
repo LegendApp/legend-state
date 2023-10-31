@@ -29,12 +29,13 @@ export function persistActivateNode() {
             if (get) {
                 pluginRemote.get = async (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
-                    const value = await get!({ value: getNodeValue(node), dateModified: 0 });
+                    const updateLastSync = (lastSync: number) => (params.dateModified = lastSync);
+                    const value = await get!({
+                        value: getNodeValue(node),
+                        dateModified: params.dateModified!,
+                        updateLastSync,
+                    });
 
-                    // TODO asdf
-                    // if (lastSync.value) {
-                    //     params.dateModified = lastSync.value;
-                    // }
                     return value;
                 };
             }

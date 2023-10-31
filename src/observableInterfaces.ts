@@ -569,6 +569,7 @@ export interface ActivateProxyParams<T = any> extends ActivateParams {
 export interface ActivateGetParams {
     value: any;
     dateModified: number;
+    updateLastSync: (lastSync: number) => void;
 }
 export interface ActivateParams2<T = any> {
     // TODO Merge params and extra

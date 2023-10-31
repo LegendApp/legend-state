@@ -153,20 +153,25 @@ describe('caching with new computed', () => {
 
 describe('dateModified with new computed', () => {
     test('dateModified from updateLastSync', async () => {
-        const nodes = observable(async ({ cache, updateLastSync }: ActivateParams) => {
-            cache({
-                pluginLocal: ObservablePersistLocalStorage,
-                local: 'nodes-dateModified',
-            });
-            const nodes = await new Promise<{ key: string }[]>((resolve) =>
-                setTimeout(() => resolve([{ key: 'key0' }]), 0),
-            );
-            updateLastSync(1000);
-            return nodes.reduce((acc: Record<string, { key: string }>, node) => {
-                acc[node.key] = node;
-                return acc;
-            }, {});
-        });
+        const nodes = observable(
+            activator({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodes-dateModified',
+                },
+                // @ts-expect-error asdf
+                get: async ({ updateLastSync }) => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key0' }]), 0),
+                    );
+                    updateLastSync(1000);
+                    return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                        acc[node.key] = node;
+                        return acc;
+                    }, {});
+                },
+            }),
+        );
 
         expect(nodes.get()).toEqual(undefined);
 
