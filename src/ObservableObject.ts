@@ -944,36 +944,36 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (isObservable(value)) {
                 prevTarget$ = curTarget$;
                 curTarget$ = value;
-                // TODO asdf Change this to new onSet
-                params.onSet(({ value: newValue, getPrevious }) => {
-                    // Don't set the target observable if the target has changed since the last run
-                    if (!prevTarget$ || curTarget$ === prevTarget$) {
-                        // Set the node value back to what it was before before setting it.
-                        // This is a workaround for linked objects because it might not notify
-                        // if setting a property of an object
-                        // TODO: Is there a way to not do this? Or at least only do it in a
-                        // small subset of cases?
-                        setNodeValue(getNode(curTarget$), getPrevious());
-                        // Set the value on the curTarget
-                        curTarget$.set(newValue);
-                    }
-                });
-
-                // Get the value from the observable because we still want the raw value
-                // for the effect.
-                value = value.get();
-            } else {
-                if (isFunction(value)) {
-                    value = value();
-                }
-                const activated = value?.[symbolActivator] as ActivateParams2;
-                if (activated) {
-                    node.activationState2 = activated;
-
-                    value = activated.initial;
-                }
-                wasPromise = isPromise(value);
+                value = {
+                    [symbolActivator]: {
+                        onSet: ({ value: newValue, getPrevious }) => {
+                            // Don't set the target observable if the target has changed since the last run
+                            if (!prevTarget$ || curTarget$ === prevTarget$) {
+                                // Set the node value back to what it was before before setting it.
+                                // This is a workaround for linked objects because it might not notify
+                                // if setting a property of an object
+                                // TODO: Is there a way to not do this? Or at least only do it in a
+                                // small subset of cases?
+                                setNodeValue(getNode(curTarget$), getPrevious());
+                                // Set the value on the curTarget
+                                curTarget$.set(newValue);
+                            }
+                        },
+                        initial: value.get(),
+                    } as ActivateParams2,
+                };
             }
+
+            if (isFunction(value)) {
+                value = value();
+            }
+            const activated = value?.[symbolActivator] as ActivateParams2;
+            if (activated) {
+                node.activationState2 = activated;
+
+                value = activated.initial;
+            }
+            wasPromise = isPromise(value);
 
             // Activate this node if not activated already (may be called recursively)
             // TODO: Is calling recursively bad? If so can it be fixed?
