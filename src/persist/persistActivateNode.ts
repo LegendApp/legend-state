@@ -10,9 +10,9 @@ import type {
     UpdateFn,
     WithState,
 } from '@legendapp/state';
-import { getNodeValue, internal, isPromise, mergeIntoObservable, when } from '@legendapp/state';
+import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, setupRetry } = internal;
+const { getProxy, globalState, setupRetry, symbolActivator } = internal;
 
 export function persistActivateNode() {
     globalState.activateNode = function activateNodePersist(
@@ -22,7 +22,8 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState2) {
-            const { get, initial, onSet, subscribe, cache, retry } = node.activationState2! as ActivateParams2WithProxy;
+            const { get, initial, onSet, subscribe, cache, retry } =
+                node.activationState2! as ActivateParams2WithProxy & { onError?: () => void };
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -30,10 +31,40 @@ export function persistActivateNode() {
                 pluginRemote.get = async (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
                     const updateLastSync = (lastSync: number) => (params.dateModified = lastSync);
-                    const value = await get!({
-                        value: getNodeValue(node),
-                        dateModified: params.dateModified!,
-                        updateLastSync,
+                    const value = await new Promise((resolve, reject) => {
+                        let timeoutRetry: { current?: any } = {};
+                        const attemptNum = { current: 0 };
+                        let onError: (() => void) | undefined;
+
+                        const run = async () => {
+                            try {
+                                const nodeValue = getNodeValue(node);
+                                // TODO asdf: Why is this nodeValue a function or activator sometimes?
+                                const value = await get!({
+                                    value:
+                                        isFunction(nodeValue) || nodeValue?.[symbolActivator] ? undefined : nodeValue,
+                                    dateModified: params.dateModified!,
+                                    updateLastSync,
+                                });
+                                resolve(value);
+                            } catch {
+                                if (onError) {
+                                    onError();
+                                } else {
+                                    reject();
+                                }
+                            }
+                        };
+                        if (retry) {
+                            node.activationState2!.persistedRetry = true;
+                            if (timeoutRetry?.current) {
+                                clearTimeout(timeoutRetry.current);
+                            }
+                            const { handleError, timeout } = setupRetry(retry, run, attemptNum);
+                            onError = handleError;
+                            timeoutRetry = timeout;
+                        }
+                        run();
                     });
 
                     return value;
@@ -60,6 +91,7 @@ export function persistActivateNode() {
                                     timeoutRetry = timeout;
                                 }
                                 await onSet(params as unknown as ListenerParams, {
+                                    node,
                                     update: (params) => {
                                         const { value, dateModified } = params;
                                         maxModified = Math.max(dateModified || 0, maxModified);
@@ -82,6 +114,7 @@ export function persistActivateNode() {
             }
             if (subscribe) {
                 subscribe({
+                    node,
                     update: (params: ObservableOnChangeParams) => {
                         if (!onChange) {
                             // TODO: Make this message better
@@ -93,7 +126,7 @@ export function persistActivateNode() {
                     refresh,
                 });
             }
-            const { _state } = persistObservable(getProxy(node), {
+            persistObservable(getProxy(node), {
                 pluginRemote,
                 ...(cache || {}),
                 remote: {
@@ -146,6 +179,7 @@ export function persistActivateNode() {
                                     timeoutRetry = timeout;
                                 }
                                 await onSetFn(params as unknown as ListenerParams, {
+                                    node,
                                     update: (params) => {
                                         const { value, dateModified } = params;
                                         maxModified = Math.max(dateModified || 0, maxModified);
@@ -168,6 +202,7 @@ export function persistActivateNode() {
             }
             if (subscriber) {
                 subscriber({
+                    node,
                     update: (params: ObservableOnChangeParams) => {
                         if (!onChange) {
                             // TODO: Make this message better

@@ -986,8 +986,10 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 update = newUpdate;
                 value = newValue;
             } else if (node.activationState2) {
-                const activated = node.activationState2!;
-                value = activated.get?.({} as any) ?? activated.initial;
+                if (!node.activationState2!.persistedRetry) {
+                    const activated = node.activationState2!;
+                    value = activated.get?.({} as any) ?? activated.initial;
+                }
             }
             wasPromise = wasPromise || isPromise(value);
 
@@ -1008,8 +1010,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             const { handleError, timeout } = setupRetry(retry, refresh, attemptNum);
                             onError = handleError;
                             timeoutRetry = timeout;
+                            node.activationState2.onError = onError;
                         }
-                        if (value) {
+                        if (value && isPromise(value)) {
                             // Extract the promise to make it set the value/error when it comes in
                             extractPromise(node, value, update, onError!);
                         }
@@ -1094,7 +1097,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             }
                             isSetting = true;
                             batch(
-                                () => onSet(params, { update, refresh, onError } as OnSetExtra),
+                                () => onSet(params, { node, update, refresh, onError } as OnSetExtra),
                                 () => {
                                     isSetting = false;
                                 },
@@ -1126,7 +1129,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         };
 
         if (subscribe) {
-            subscribe({ update, refresh } as SubscribeOptions);
+            subscribe({ node, update, refresh } as SubscribeOptions);
         }
 
         return { update, value };

@@ -108,7 +108,7 @@ type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
     : T[K] extends Activator<infer t>
     ? Observable<t>
-    : T[K] extends () => Activator<infer t>
+    : T[K] extends ActivatorFunction<infer t>
     ? Observable<t>
     : [T[K]] extends [undefined | null]
     ? ObservablePrimitive<T[K]>
@@ -449,9 +449,9 @@ export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & 
 type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
-    : [T] extends [Activator<infer t>]
-    ? t
-    : [T] extends [Promise<infer K>]
+    : // : [T] extends [Activator<infer t>]
+    // ? t
+    [T] extends [Promise<infer K>]
     ? Observable<K & WithState>
     : [T] extends [object]
     ? ObservableObjectOrArray<T>
@@ -504,7 +504,7 @@ interface BaseNodeValue {
         lastSync: { value?: number };
         cacheOptions?: CacheOptions;
     };
-    activationState2?: ActivateParams2;
+    activationState2?: ActivateParams2 & { onError?: () => void; persistedRetry?: boolean };
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -571,14 +571,15 @@ export interface ActivateGetParams {}
 export interface ActivateParams2<T = any> {
     // TODO Merge params and extra
     onSet?: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>;
-    subscribe?: (params: { update: UpdateFn; refresh: () => void }) => void;
+    subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
-    initial?: T;
+    initial?: T extends Promise<infer t> ? t : T;
     get?: (params: ActivateGetParams) => T;
     retry?: RetryOptions;
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface ActivateParams2WithProxy<T extends Record<string, K> = any, K = any> extends ActivateParams2<K> {
-    proxy: (key: string) => K | Promise<K> | (() => Activator<K>);
+    proxy: (key: string) => K | Promise<K> | ActivatorFunction<K>;
 }
 
 export type UpdateFn = (params: {
@@ -594,10 +595,12 @@ export interface RetryOptions {
     maxDelay?: number;
 }
 export interface OnSetExtra {
+    node: NodeValue;
     update: UpdateFn;
     refresh: () => void;
 }
 export interface SubscribeOptions {
+    node: NodeValue;
     update: UpdateFn;
     refresh: () => void;
 }
@@ -606,3 +609,4 @@ export interface CacheReturnValue {
     value: any;
 }
 export type Activator<T> = { [symbolActivator]: ActivateParams2<T> };
+export type ActivatorFunction<T> = () => Activator<T>;

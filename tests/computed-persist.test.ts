@@ -180,6 +180,34 @@ describe('retry', () => {
         await promiseTimeout(0);
         expect(obs$.get()).toEqual('hi');
     });
+    test('retry a get through persist', async () => {
+        const attemptNum$ = observable(0);
+        const obs$ = observable(
+            activator({
+                cache: {
+                    local: 'retrypersist',
+                    pluginLocal: ObservablePersistLocalStorage,
+                },
+                retry: {
+                    delay: 1,
+                },
+                get: () =>
+                    new Promise((resolve, reject) => {
+                        attemptNum$.set((v) => v + 1);
+                        attemptNum$.get() > 2 ? resolve('hi') : reject();
+                    }),
+            }),
+        );
+
+        obs$.get();
+        expect(attemptNum$.get()).toEqual(1);
+        expect(obs$.get()).toEqual(undefined);
+        await when(() => attemptNum$.get() === 2);
+        expect(obs$.get()).toEqual(undefined);
+        await when(() => attemptNum$.get() === 3);
+        await promiseTimeout(0);
+        expect(obs$.get()).toEqual('hi');
+    });
     test('retry a set', async () => {
         const attemptNum$ = observable(0);
         let saved = undefined;

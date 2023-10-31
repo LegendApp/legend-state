@@ -1077,6 +1077,22 @@ export const run = (isPersist: boolean) => {
             expect(obs._state.isLoaded.get()).toEqual(true);
             expect(obs.get()).toEqual('hi there');
         });
+        test('isLoaded with activator', async () => {
+            const obs = observable(
+                activator({
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => resolve('hi there'), 0);
+                        });
+                    },
+                    initial: 'initial',
+                }),
+            );
+            expect(obs._state.isLoaded.get()).toEqual(false);
+            await promiseTimeout(0);
+            expect(obs._state.isLoaded.get()).toEqual(true);
+            expect(obs.get()).toEqual('hi there');
+        });
     });
     describe('async', () => {
         test('set does not get called by load', async () => {
