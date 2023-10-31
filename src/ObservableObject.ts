@@ -927,7 +927,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let prevTarget$: ObservableObject<any>;
     let curTarget$: ObservableObject<any>;
     let update: UpdateFn;
-    let wasPromise: Promise<any> | undefined;
+    let wasPromise: boolean | undefined;
     let timeoutRetry: { current?: any };
     const attemptNum = { current: 0 };
     const activateFn = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
@@ -972,13 +972,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
 
                     value = activated.initial;
                 }
-                wasPromise = isPromise(value) ? value : undefined;
+                wasPromise = isPromise(value);
             }
 
             // Activate this node if not activated already (may be called recursively)
             // TODO: Is calling recursively bad? If so can it be fixed?
             if (!node.activated) {
                 node.activated = true;
+                const isCached = !!node.activationState2?.cache;
+                wasPromise = wasPromise || !!isCached;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
                 const { update: newUpdate, value: newValue } = activateNodeFn(node, refresh, !!wasPromise, value);
                 update = newUpdate;
@@ -987,7 +989,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 const activated = node.activationState2!;
                 value = activated.get?.() ?? activated.initial;
             }
-            wasPromise = isPromise(value) ? value : undefined;
+            wasPromise = wasPromise || isPromise(value);
 
             (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.get();
 
@@ -1007,8 +1009,10 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             onError = handleError;
                             timeoutRetry = timeout;
                         }
-                        // Extract the promise to make it set the value/error when it comes in
-                        extractPromise(node, value, update, onError!);
+                        if (value) {
+                            // Extract the promise to make it set the value/error when it comes in
+                            extractPromise(node, value, update, onError!);
+                        }
                         // Set this to undefined only if it's replacing the activation function,
                         // so we don't overwrite it if it already has real data from either local
                         // cache or a previous run

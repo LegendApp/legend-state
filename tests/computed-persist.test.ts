@@ -1,3 +1,4 @@
+import { activator } from '../src/activator';
 import { persistObservable } from '../persist';
 import { observable } from '../src/observable';
 import type { ActivateParams } from '../src/observableInterfaces';
@@ -20,48 +21,56 @@ mockLocalStorage();
 
 describe('caching with new computed', () => {
     test('cache basic', async () => {
-        localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
-        const nodes = observable(async ({ cache }: ActivateParams) => {
-            cache({
-                pluginLocal: ObservablePersistLocalStorage,
-                local: 'nodes',
-            });
-            const nodes = await new Promise<{ key: string }[]>((resolve) =>
-                setTimeout(() => resolve([{ key: 'key0' }]), 10),
-            );
-            return nodes.reduce((acc: Record<string, { key: string }>, node) => {
-                acc[node.key] = node;
-                return acc;
-            }, {});
-        });
+        localStorage.setItem('nodesbasic', JSON.stringify({ key0: { key: 'key0' } }));
+        const nodes = observable(
+            activator({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodesbasic',
+                },
+                // @ts-expect-error asdf
+                get: async ({ value }) => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key1' }]), 10),
+                    );
+                    return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                        acc[node.key] = node;
+                        return acc;
+                    }, {});
+                },
+            }),
+        );
 
+        // @ts-expect-error asdf
+        expect(nodes._state.isLoadedLocal.get()).toEqual(true);
+        // @ts-expect-error asdf
+        expect(nodes._state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
-        await when(nodes._state.isLoadedLocal);
         await when(nodes._state.isLoaded);
-        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+        expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
-    test('cache basic', async () => {
-        localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
-        const nodes = observable(async ({ cache }: ActivateParams) => {
-            cache({
-                pluginLocal: ObservablePersistLocalStorage,
-                local: 'nodes',
-            });
-            const nodes = await new Promise<{ key: string }[]>((resolve) =>
-                setTimeout(() => resolve([{ key: 'key0' }]), 10),
-            );
-            return nodes.reduce((acc: Record<string, { key: string }>, node) => {
-                acc[node.key] = node;
-                return acc;
-            }, {});
-        });
+    test('cache makes get receive params', async () => {
+        localStorage.setItem('cachedprops', JSON.stringify('cached'));
+        const nodes = observable(
+            activator({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'cachedprops',
+                },
+                // @ts-expect-error asdf
+                get: async ({ value }) => {
+                    return value + '1';
+                },
+            }),
+        );
 
-        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+        expect(nodes._state.isLoadedLocal.get()).toEqual(true);
+        expect(nodes._state.isLoaded.get()).toEqual(false);
+        expect(nodes.get()).toEqual('cached');
 
-        await when(nodes._state.isLoadedLocal);
         await when(nodes._state.isLoaded);
-        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+        expect(nodes.get()).toEqual('cached1');
     });
     test('cache async', async () => {
         localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));

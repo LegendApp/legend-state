@@ -566,13 +566,17 @@ export interface ActivateParams<T = any> {
 export interface ActivateProxyParams<T = any> extends ActivateParams {
     proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
 }
+export interface ActivateGetParams {
+    value: any;
+    dateModified: number;
+}
 export interface ActivateParams2<T = any> {
     // TODO Merge params and extra
     onSet?: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>;
     subscribe?: (params: { update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T;
-    get?: () => T;
+    get?: (params?: ActivateGetParams) => T;
     retry?: RetryOptions;
 }
 export interface ActivateParams2WithProxy<T extends Record<string, K> = any, K = any> extends ActivateParams2<K> {

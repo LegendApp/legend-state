@@ -25,22 +25,19 @@ export function persistActivateNode() {
             const { get, initial, onSet, subscribe, cache, retry } = node.activationState2! as ActivateParams2WithProxy;
 
             let onChange: UpdateFn | undefined = undefined;
-            const pluginRemote: ObservablePersistRemoteFunctions = {
-                get: async (params: ObservablePersistRemoteGetParams<any>) => {
+            const pluginRemote: ObservablePersistRemoteFunctions = {};
+            if (get) {
+                pluginRemote.get = async (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
-                    if (isPromise(newValue)) {
-                        try {
-                            newValue = await newValue;
-                            // eslint-disable-next-line no-empty
-                        } catch {}
-                    }
+                    const value = await get!({ value: getNodeValue(node), dateModified: 0 });
+
                     // TODO asdf
                     // if (lastSync.value) {
                     //     params.dateModified = lastSync.value;
                     // }
-                    return newValue;
-                },
-            };
+                    return value;
+                };
+            }
             if (onSet) {
                 // TODO: Work out these types better
                 let timeoutRetry: { current?: any };
@@ -103,13 +100,9 @@ export function persistActivateNode() {
                 },
             }) as unknown as Observable<WithState>;
 
-            newValue = get
-                ? new Promise((resolve) => {
-                      when(_state.isLoadedLocal, () => {
-                          resolve(get({ value: getNodeValue(node), dateModified: 0 }));
-                      });
-                  })
-                : initial ?? newValue;
+            if (newValue === undefined) {
+                newValue = initial;
+            }
 
             return { update: onChange!, value: newValue };
         } else {
