@@ -30,7 +30,7 @@ declare module '@legendapp/state' {
         dateModified: number;
     }
     interface ActivateParams2<T> {
-        cache?: CacheOptions<T>;
+        cache?: CacheOptions<any>;
     }
     interface OnSetExtra {
         onError: () => void;

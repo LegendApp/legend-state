@@ -970,7 +970,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 if (activated) {
                     node.activationState2 = activated;
 
-                    value = activated.get?.() ?? activated.initial;
+                    value = activated.initial;
                 }
                 wasPromise = isPromise(value) ? value : undefined;
             }
@@ -980,8 +980,14 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!node.activated) {
                 node.activated = true;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                update = activateNodeFn(node, refresh, !!wasPromise, value).update!;
+                const { update: newUpdate, value: newValue } = activateNodeFn(node, refresh, !!wasPromise, value);
+                update = newUpdate;
+                value = newValue;
+            } else if (node.activationState2) {
+                const activated = node.activationState2!;
+                value = activated.get?.() ?? activated.initial;
             }
+            wasPromise = isPromise(value) ? value : undefined;
 
             (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.get();
 
@@ -1046,9 +1052,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     node: NodeValue,
     refresh: () => void,
     wasPromise: boolean,
+    value: any,
 ) {
     if (node.activationState2) {
-        const { onSet, subscribe } = node.activationState2;
+        const { onSet, subscribe, get, initial } = node.activationState2;
+        const value = get?.() ?? initial;
         let isSetting = false;
         if (!node.state) {
             node.state = createObservable<ObservableState>(
@@ -1093,7 +1101,9 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             // TODO: This isSetting might not be necessary? Tests still work if removing it.
             // Write tests that would break it if removed? I'd guess a combination of subscribe and
             if (!isSetting) {
+                isSetting = true;
                 set(node, value);
+                isSetting = false;
             }
         };
 
@@ -1101,7 +1111,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             subscribe({ update, refresh } as SubscribeOptions);
         }
 
-        return { update };
+        return { update, value };
     } else {
         const { onSetFn, subscriber } = node.activationState!;
         let isSetting = false;
@@ -1156,6 +1166,6 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             subscriber({ update, refresh } as SubscribeOptions);
         }
 
-        return { update };
+        return { update, value };
     }
 });

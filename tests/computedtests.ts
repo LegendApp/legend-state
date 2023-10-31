@@ -220,7 +220,9 @@ export const run = (isPersist: boolean) => {
                     onSet: ({ value }) => {
                         obs.forEach((child) => child.set(value));
                     },
-                    get: () => obs.every((val) => val.get()),
+                    get: () => {
+                        return obs.every((val) => val.get());
+                    },
                 }),
             );
             expect(comp.get()).toEqual(false);

@@ -2,13 +2,15 @@ import type {
     ActivateParams2WithProxy,
     ListenerParams,
     NodeValue,
+    Observable,
     ObservableOnChangeParams,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
     UpdateFn,
+    WithState,
 } from '@legendapp/state';
-import { internal, isPromise, mergeIntoObservable } from '@legendapp/state';
+import { getNodeValue, internal, isPromise, mergeIntoObservable, when } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
 const { getProxy, globalState, setupRetry } = internal;
 
@@ -20,7 +22,7 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState2) {
-            const { onSet, subscribe, cache, retry } = node.activationState2! as ActivateParams2WithProxy;
+            const { get, initial, onSet, subscribe, cache, retry } = node.activationState2! as ActivateParams2WithProxy;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {
@@ -93,15 +95,23 @@ export function persistActivateNode() {
                     refresh,
                 });
             }
-            persistObservable(getProxy(node), {
+            const { _state } = persistObservable(getProxy(node), {
                 pluginRemote,
                 ...(cache || {}),
                 remote: {
                     retry: retry,
                 },
-            });
+            }) as unknown as Observable<WithState>;
 
-            return { update: onChange! };
+            newValue = get
+                ? new Promise((resolve) => {
+                      when(_state.isLoadedLocal, () => {
+                          resolve(get({ value: getNodeValue(node), dateModified: 0 }));
+                      });
+                  })
+                : initial ?? newValue;
+
+            return { update: onChange!, value: newValue };
         } else {
             const { onSetFn, subscriber, lastSync, cacheOptions, retryOptions } = node.activationState!;
 
@@ -183,7 +193,7 @@ export function persistActivateNode() {
                 },
             });
 
-            return { update: onChange! };
+            return { update: onChange!, value: newValue };
         }
     };
 }

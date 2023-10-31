@@ -29,7 +29,7 @@ export const globalState = {
         refresh: () => void,
         wasPromise: boolean,
         newValue: any,
-    ) => { update: UpdateFn },
+    ) => { update: UpdateFn; value: any },
 };
 
 export function isObservable(obs: any): obs is ObservableObject {
