@@ -28,6 +28,7 @@ declare module '@legendapp/state' {
     interface ActivateGetParams {
         value: any;
         dateModified: number;
+        updateLastSync: (lastSync: number) => void;
     }
     interface ActivateParams2<T> {
         cache?: CacheOptions<any>;

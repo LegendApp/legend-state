@@ -987,7 +987,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 value = newValue;
             } else if (node.activationState2) {
                 const activated = node.activationState2!;
-                value = activated.get?.() ?? activated.initial;
+                value = activated.get?.({} as any) ?? activated.initial;
             }
             wasPromise = wasPromise || isPromise(value);
 
@@ -1059,9 +1059,10 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     value: any,
 ) {
     if (node.activationState2) {
-        const { onSet, subscribe, get, initial } = node.activationState2;
-        const value = get?.() ?? initial;
+        const { onSet, subscribe, get, initial, retry } = node.activationState2;
+        const value = get?.({} as any) ?? initial;
         let isSetting = false;
+        let timeoutRetry: { current?: any };
         if (!node.state) {
             node.state = createObservable<ObservableState>(
                 {
@@ -1080,13 +1081,26 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                         (!wasPromise || node.state!.isLoaded.get()) &&
                         (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath))
                     ) {
-                        isSetting = true;
-                        batch(
-                            () => onSet(params, { update, refresh } as OnSetExtra),
-                            () => {
-                                isSetting = false;
-                            },
-                        );
+                        const attemptNum = { current: 0 };
+                        const run = () => {
+                            let onError: () => void;
+                            if (retry) {
+                                if (timeoutRetry?.current) {
+                                    clearTimeout(timeoutRetry.current);
+                                }
+                                const { handleError, timeout } = setupRetry(retry, run, attemptNum);
+                                onError = handleError;
+                                timeoutRetry = timeout;
+                            }
+                            isSetting = true;
+                            batch(
+                                () => onSet(params, { update, refresh, onError } as OnSetExtra),
+                                () => {
+                                    isSetting = false;
+                                },
+                            );
+                        };
+                        run();
                     }
                 }
             };
