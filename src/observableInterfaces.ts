@@ -428,7 +428,7 @@ export type ObservableArray<T extends any[]> = ObservableObject<Omit<T, ArrayOve
     ObservableObjectFns<T> &
     ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any> = [Required<T>] extends [Required<WithState>]
-    ? Required<WithState> & ObservableObjectBase<T>
+    ? ObservableFnsRecursive<Required<WithState>> & ObservableObjectBase<T>
     : ObservableObjectBase<T>;
 export type ObservableObjectBase<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
 export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
@@ -581,7 +581,6 @@ export interface ActivateParams2WithProxy<T extends Record<string, K> = any, K =
     proxy: (key: string) => K | Promise<K> | (() => Activator<K>);
 }
 
-// export type ActivateParams2<T> = T extends Record<string, infer K> ? ActivateParams3<K> : ActivateParams3<T>;
 export type UpdateFn = (params: {
     value: unknown;
     mode?: 'assign' | 'set' | 'dateModified';

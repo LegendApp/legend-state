@@ -39,9 +39,7 @@ describe('caching with new computed', () => {
             }),
         );
 
-        // @ts-expect-error asdf
         expect(nodes._state.isLoadedLocal.get()).toEqual(true);
-        // @ts-expect-error asdf
         expect(nodes._state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
