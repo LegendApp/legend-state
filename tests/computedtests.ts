@@ -1,16 +1,17 @@
 import {
-    beginBatch,
-    Change,
     ActivateParams,
     ActivateProxyParams,
-    endBatch,
-    isObservable,
+    Change,
     Observable,
-    observable,
     ObservableReadable,
-    observe,
     TrackingType,
+    activator,
+    beginBatch,
+    endBatch,
     internal,
+    isObservable,
+    observable,
+    observe,
 } from '../index';
 const { globalState } = internal;
 
@@ -184,13 +185,15 @@ export const run = (isPersist: boolean) => {
         });
         test('Bound to two, set', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value }) => {
-                    obs.test.set(value);
-                    obs.test2.set(value);
-                });
-                return obs.test.get() && obs.test2.get();
-            });
+            const comp = observable(
+                activator({
+                    onSet: ({ value }) => {
+                        obs.test.set(value);
+                        obs.test2.set(value);
+                    },
+                    get: () => obs.test.get() && obs.test2.get(),
+                }),
+            );
             expect(comp.get()).toEqual(false);
             comp.set(true);
             expect(obs.test.get()).toEqual(true);
@@ -198,24 +201,28 @@ export const run = (isPersist: boolean) => {
         });
         test('Bound to two, set child', () => {
             const obs = observable({ test: { a: 'hi' }, test2: false });
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value }) => {
-                    obs.test.set(value);
-                });
-                return obs.test.get();
-            });
+            const comp = observable(
+                activator({
+                    onSet: ({ value }) => {
+                        obs.test.set(value);
+                    },
+                    get: () => obs.test.get(),
+                }),
+            );
             expect(comp.a.get()).toEqual('hi');
             comp.a.set('bye');
             expect(comp.a.get()).toEqual('bye');
         });
         test('Bound to array, set', () => {
             const obs = observable([false, false, false, false, false]);
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value }) => {
-                    obs.forEach((child) => child.set(value));
-                });
-                return obs.every((val) => val.get());
-            });
+            const comp = observable(
+                activator({
+                    onSet: ({ value }) => {
+                        obs.forEach((child) => child.set(value));
+                    },
+                    get: () => obs.every((val) => val.get()),
+                }),
+            );
             expect(comp.get()).toEqual(false);
             comp.set(true);
             expect(obs[0].get()).toEqual(true);
@@ -224,12 +231,15 @@ export const run = (isPersist: boolean) => {
         test('Bound to two, set, handler', () => {
             const obs = observable({ test: false, test2: false });
             const handler = expectChangeHandler(obs);
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value }) => {
-                    obs.test.set(value) && obs.test2.set(value);
-                });
-                return obs.test.get() && obs.test2.get();
-            });
+            const comp = observable(
+                activator({
+                    onSet: ({ value }) => {
+                        obs.test.set(value);
+                        obs.test2.set(value);
+                    },
+                    get: () => obs.test.get() && obs.test2.get(),
+                }),
+            );
             expect(comp.get()).toEqual(false);
             comp.set(true);
             expect(handler).toHaveBeenCalledWith({ test: true, test2: true }, { test: false, test2: false }, [
@@ -252,12 +262,15 @@ export const run = (isPersist: boolean) => {
         });
         test('Computed has set before activation', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value }) => {
-                    obs.test.set(value) && obs.test2.set(value);
-                });
-                return obs.test.get() && obs.test2.get();
-            }) as Observable<boolean>;
+            const comp = observable(
+                activator({
+                    onSet: ({ value }) => {
+                        obs.test.set(value);
+                        obs.test2.set(value);
+                    },
+                    get: () => obs.test.get() && obs.test2.get(),
+                }),
+            );
             comp.set(true);
 
             expect(obs.test.get()).toEqual(true);
@@ -280,13 +293,15 @@ export const run = (isPersist: boolean) => {
         });
         test('Set child of computed', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value: { computedValue } }) => {
-                    obs.test.set(computedValue);
-                    obs.test2.set(computedValue);
-                });
-                return { computedValue: obs.test.get() && obs.test2.get() };
-            });
+            const comp = observable(
+                activator({
+                    onSet: ({ value: { computedValue } }) => {
+                        obs.test.set(computedValue);
+                        obs.test2.set(computedValue);
+                    },
+                    get: () => ({ computedValue: obs.test.get() && obs.test2.get() }),
+                }),
+            );
             expect(comp.get()).toEqual({ computedValue: false });
             comp.computedValue.set(true);
             expect(comp.get()).toEqual({ computedValue: true });
@@ -295,15 +310,17 @@ export const run = (isPersist: boolean) => {
         });
         test('Computed activates before set', () => {
             const obs = observable({ test: false, test2: false });
-            const comp = observable(({ onSet }: ActivateParams) => {
-                onSet(({ value: { computedValue } }) => {
-                    obs.test.set(computedValue);
-                });
-                return {
-                    computedValue: obs.test.get(),
-                    computedValue2: obs.test2.get(),
-                };
-            });
+            const comp = observable(
+                activator({
+                    onSet: ({ value: { computedValue } }) => {
+                        obs.test.set(computedValue);
+                    },
+                    get: () => ({
+                        computedValue: obs.test.get(),
+                        computedValue2: obs.test2.get(),
+                    }),
+                }),
+            );
             comp.computedValue.set(true);
             expect(comp.get()).toEqual({ computedValue: true, computedValue2: false });
             expect(obs.test.get()).toEqual(true);
@@ -722,12 +739,12 @@ export const run = (isPersist: boolean) => {
             });
 
             const obs$ = observable({
-                sub: ({ onSet }: ActivateParams) => {
-                    onSet(({ value }) => {
+                sub: activator({
+                    onSet: ({ value }) => {
                         sub$.set(value);
-                    });
-                    return sub$.get();
-                },
+                    },
+                    get: () => sub$.get(),
+                }),
             });
 
             // This only works if sub is activated
@@ -813,14 +830,17 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
-            const itemText = observable(({ proxy }: ActivateProxyParams<string>) => {
-                proxy((key, { onSet }) => {
-                    onSet(({ value }) => {
-                        obs.items[key].text.set(value);
-                    });
-                    return obs.items[key].text.get();
-                });
-            });
+            const itemText = observable(
+                activator({
+                    proxy: (key) =>
+                        activator({
+                            onSet: ({ value }) => {
+                                obs.items[key].text.set(value);
+                            },
+                            get: () => obs.items[key].text.get(),
+                        }),
+                }),
+            );
             expect(itemText['test1'].get()).toEqual('hi');
 
             const handlerItem = expectChangeHandler(obs.items['test1']);

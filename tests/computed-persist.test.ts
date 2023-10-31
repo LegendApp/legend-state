@@ -86,7 +86,60 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
         await promiseTimeout(5);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+        await promiseTimeout(50);
     });
+    // TODO asdf
+    // test('cache async after onSet', async () => {
+    //     localStorage.setItem('nodes2', JSON.stringify({ key0: { key: 'key0' } }));
+    //     localStorage.setItem('nodes2__m', JSON.stringify({ modified: 1000 }));
+
+    //     let lastSet;
+    //     const nodes = observable(async ({ cache, onSet }: ActivateParams) => {
+    //         const { dateModified, value } = await cache({
+    //             pluginLocal: ObservablePersistLocalStorage,
+    //             local: 'nodes2',
+    //         });
+    //         onSet(({ value }) => {
+    //             lastSet = value;
+    //         });
+    //         expect(dateModified).toEqual(1000);
+    //         expect(value).toEqual({ key0: { key: 'key0' } });
+    //         const nodes = await new Promise<{ key: string }[]>((resolve) =>
+    //             setTimeout(() => resolve([{ key: 'key1' }]), 2),
+    //         );
+    //         return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+    //             acc[node.key] = node;
+    //             return acc;
+    //         }, {});
+
+    //         // const { dateModified, value } = await cache({
+    //         //     pluginLocal: ObservablePersistLocalStorage,
+    //         //     local: 'nodes2',
+    //         // });
+    //         // onSet(({ value }) => {
+    //         //     lastSet = value;
+    //         // });
+    //         // expect(dateModified).toEqual(1000);
+    //         // expect(value).toEqual({ key0: { key: 'key0' } });
+    //         // const nodes = await new Promise<{ key: string }[]>((resolve) =>
+    //         //     setTimeout(() => resolve([{ key: 'key1' }]), 2),
+    //         // );
+    //         // return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+    //         //     acc[node.key] = node;
+    //         //     return acc;
+    //         // }, {});
+    //     });
+
+    //     expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+    //     await promiseTimeout(5);
+    //     expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+
+    //     await when(nodes._state.isLoaded);
+    //     nodes.set({ key2: { key: 'key2' } });
+    //     await promiseTimeout(5);
+
+    //     expect(lastSet).toEqual({ key2: { key: 'key2' } });
+    // });
 });
 
 describe('dateModified with new computed', () => {

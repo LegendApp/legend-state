@@ -5,6 +5,7 @@ import { globalState } from './globals';
 import type {
     ActivateParams,
     ActivateProxyParams,
+    Activator,
     Observable,
     ObservableComputed,
     ObservablePrimitive,
@@ -25,6 +26,7 @@ type TWithFunctions<T> =
 export function observable<T>(value: Promise<T>): Observable<T & WithState>;
 export function observable<T>(value: () => Observable<T>): Observable<T>;
 export function observable<T>(value: () => Promise<T>): Observable<T & WithState>;
+export function observable<T>(value: () => Activator<T>): Observable<T>;
 export function observable<T>(value: () => T): ObservableComputed<T>;
 export function observable<T>(value: (params: ActivateParams) => Observable<T>): Observable<T & WithState>;
 export function observable<T>(value: (params: ActivateParams) => Promise<T>): Observable<T & WithState>;

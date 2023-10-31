@@ -1,6 +1,6 @@
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
-import type { symbolGetNode, symbolOpaque } from './globals';
 import { DatabaseReference, Query } from 'firebase/database';
+import type { symbolActivator, symbolGetNode, symbolOpaque } from './globals';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -106,6 +106,10 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
+    : T[K] extends Activator<infer t>
+    ? Observable<t>
+    : T[K] extends () => Activator<infer t>
+    ? Observable<t>
     : [T[K]] extends [undefined | null]
     ? ObservablePrimitive<T[K]>
     : T[K] extends Promise<infer t>
@@ -420,7 +424,7 @@ export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T,
 export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
 export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
-export type ObservableArray<T extends any[]> = Omit<T, ArrayOverrideFnNames> &
+export type ObservableArray<T extends any[]> = ObservableObject<Omit<T, ArrayOverrideFnNames>> &
     ObservableObjectFns<T> &
     ObservableArrayOverride<T[number]>;
 export type ObservableObject<T = any> = [Required<T>] extends [Required<WithState>]
@@ -445,6 +449,8 @@ export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & 
 type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
+    : [T] extends [Activator<infer t>]
+    ? t
     : [T] extends [Promise<infer K>]
     ? Observable<K & WithState>
     : [T] extends [object]
@@ -498,6 +504,7 @@ interface BaseNodeValue {
         lastSync: { value?: number };
         cacheOptions?: CacheOptions;
     };
+    activationState2?: ActivateParams2<any>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -559,6 +566,21 @@ export interface ActivateParams<T = any> {
 export interface ActivateProxyParams<T = any> extends ActivateParams {
     proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
 }
+export interface ActivateParams2<T> {
+    // TODO Merge params and extra
+    onSet?: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>;
+    subscribe?: (params: { update: UpdateFn; refresh: () => void }) => void;
+    waitFor?: Selector<any>;
+    initial?: T;
+    get?: () => T;
+    // Move to persist
+    retry?: RetryOptions;
+}
+export interface ActivateParams2WithProxy<T extends Record<string, K>, K = any> extends ActivateParams2<K> {
+    proxy: (key: string) => () => Activator<K>;
+}
+
+// export type ActivateParams2<T> = T extends Record<string, infer K> ? ActivateParams3<K> : ActivateParams3<T>;
 export type UpdateFn = (params: {
     value: unknown;
     mode?: 'assign' | 'set' | 'dateModified';
@@ -583,3 +605,4 @@ export interface CacheReturnValue {
     dateModified: number;
     value: any;
 }
+export type Activator<T> = { [symbolActivator]: ActivateParams2<T> };

@@ -1,3 +1,4 @@
+export { activator } from './src/activator';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
