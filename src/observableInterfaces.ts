@@ -504,7 +504,7 @@ interface BaseNodeValue {
         lastSync: { value?: number };
         cacheOptions?: CacheOptions;
     };
-    activationState2?: ActivateParams2<any>;
+    activationState2?: ActivateParams2;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -566,18 +566,17 @@ export interface ActivateParams<T = any> {
 export interface ActivateProxyParams<T = any> extends ActivateParams {
     proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
 }
-export interface ActivateParams2<T> {
+export interface ActivateParams2<T = any> {
     // TODO Merge params and extra
     onSet?: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>;
     subscribe?: (params: { update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T;
     get?: () => T;
-    // Move to persist
     retry?: RetryOptions;
 }
-export interface ActivateParams2WithProxy<T extends Record<string, K>, K = any> extends ActivateParams2<K> {
-    proxy: (key: string) => () => Activator<K>;
+export interface ActivateParams2WithProxy<T extends Record<string, K> = any, K = any> extends ActivateParams2<K> {
+    proxy: (key: string) => K | Promise<K> | (() => Activator<K>);
 }
 
 // export type ActivateParams2<T> = T extends Record<string, infer K> ? ActivateParams3<K> : ActivateParams3<T>;

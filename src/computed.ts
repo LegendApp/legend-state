@@ -19,7 +19,7 @@ export function computed<T, T2 = T>(
     set?: (value: T2) => void,
 ): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
     // Create an observable for this computed variable
-    const obs = observable<T>();
+    const obs = observable();
     lockObservable(obs, true);
 
     const node = getNode(obs);

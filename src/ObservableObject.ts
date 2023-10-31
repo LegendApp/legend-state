@@ -963,6 +963,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 // for the effect.
                 value = value.get();
             } else {
+                if (isFunction(value)) {
+                    value = value();
+                }
                 const activated = value?.[symbolActivator] as ActivateParams2;
                 if (activated) {
                     node.activationState2 = activated;

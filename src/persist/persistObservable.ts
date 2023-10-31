@@ -629,7 +629,7 @@ export function persistObservable<T extends WithoutState>(
         isObservable(initialOrObservable)
             ? initialOrObservable
             : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
-    ) as Observable<T>;
+    ) as Observable<any>;
     const node = getNode(obs);
 
     if (process.env.NODE_ENV === 'development' && obs?.peek()?._state) {

@@ -837,10 +837,13 @@ export const run = (isPersist: boolean) => {
                             onSet: ({ value }) => {
                                 obs.items[key].text.set(value);
                             },
-                            get: () => obs.items[key].text.get(),
+                            get: () => {
+                                return obs.items[key].text.get();
+                            },
                         }),
                 }),
             );
+            itemText['test1'].get();
             expect(itemText['test1'].get()).toEqual('hi');
 
             const handlerItem = expectChangeHandler(obs.items['test1']);
@@ -869,11 +872,11 @@ export const run = (isPersist: boolean) => {
         test('proxy link', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: ({ proxy }: ActivateProxyParams) => {
-                    proxy((key) => {
+                itemText: activator({
+                    proxy: (key): Observable<string> => {
                         return obs.items[key].text;
-                    });
-                },
+                    },
+                }),
             });
 
             expect(obs.itemText['test1'].get()).toEqual('hi');
@@ -908,11 +911,9 @@ export const run = (isPersist: boolean) => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemText: ({ proxy }: ActivateProxyParams) => {
-                    proxy((key) => {
-                        return obs.items[key][obs.selector.get()];
-                    });
-                },
+                itemText: activator({
+                    proxy: (key): Observable<string> => obs.items[key][obs.selector.get()],
+                }),
             });
             expect(obs.itemText['test1'].get()).toEqual('hi');
 
@@ -937,11 +938,9 @@ export const run = (isPersist: boolean) => {
         test('raw value of proxy has all values', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: ({ proxy }: ActivateProxyParams<Observable<string>>) => {
-                    proxy((key) => {
-                        return obs.items[key].text;
-                    });
-                },
+                itemText: activator({
+                    proxy: (key): Observable<string> => obs.items[key].text,
+                }),
             });
             expect(obs.get()).toEqual({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
@@ -970,11 +969,11 @@ export const run = (isPersist: boolean) => {
         test('listener on proxy works', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: ({ proxy }: ActivateProxyParams<Observable<string>>) => {
-                    proxy((key) => {
+                itemText: activator({
+                    proxy: (key): Observable<string> => {
                         return obs.items[key].text;
-                    });
-                },
+                    },
+                }),
             });
             obs.itemText['test1'].get();
             const handler = expectChangeHandler(obs);
@@ -1022,16 +1021,20 @@ export const run = (isPersist: boolean) => {
     });
     describe('subscribing to computeds', () => {
         test('subscription with update', async () => {
-            const obs = observable(({ subscribe }: ActivateParams) => {
-                subscribe(({ update }) => {
-                    setTimeout(() => {
-                        update({ value: 'hi there again' });
-                    }, 5);
-                });
-                return new Promise((resolve) => {
-                    setTimeout(() => resolve('hi there'), 0);
-                });
-            });
+            const obs = observable(
+                activator({
+                    subscribe: ({ update }) => {
+                        setTimeout(() => {
+                            update({ value: 'hi there again' });
+                        }, 5);
+                    },
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => resolve('hi there'), 0);
+                        });
+                    },
+                }),
+            );
             expect(obs.get()).toEqual(undefined);
             await promiseTimeout(0);
             expect(obs.get()).toEqual('hi there');
@@ -1040,16 +1043,19 @@ export const run = (isPersist: boolean) => {
         });
         test('subscription with refresh', async () => {
             let num = 0;
-            const obs = observable(({ subscribe }: ActivateParams) => {
-                subscribe(({ refresh }) => {
-                    setTimeout(() => {
-                        refresh();
-                    }, 5);
-                });
-                return new Promise((resolve) => {
-                    setTimeout(() => resolve('hi there ' + num++), 0);
-                });
-            });
+            const obs = observable(
+                activator({
+                    subscribe: ({ refresh }) => {
+                        setTimeout(() => {
+                            refresh();
+                        }, 5);
+                    },
+                    get: () =>
+                        new Promise((resolve) => {
+                            setTimeout(() => resolve('hi there ' + num++), 0);
+                        }),
+                }),
+            );
             expect(obs.get()).toEqual(undefined);
             await promiseTimeout(0);
             expect(obs.get()).toEqual('hi there 0');
@@ -1073,14 +1079,18 @@ export const run = (isPersist: boolean) => {
     describe('async', () => {
         test('set does not get called by load', async () => {
             let didSet = false;
-            const obs = observable(({ onSet }: ActivateParams) => {
-                onSet(() => {
-                    didSet = true;
-                });
-                return new Promise<string>((resolve) => {
-                    setTimeout(() => resolve('hi there'), 0);
-                });
-            });
+            const obs = observable(
+                activator({
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => resolve('hi there'), 0);
+                        });
+                    },
+                    onSet: () => {
+                        didSet = true;
+                    },
+                }),
+            );
             expect(obs.get()).toEqual(undefined);
             await promiseTimeout(0);
             expect(obs.get()).toEqual('hi there');

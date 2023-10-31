@@ -25,6 +25,13 @@ declare module '@legendapp/state' {
         updateLastSync: (lastSync: number) => void;
         retry: (options?: RetryOptions) => void;
     }
+    interface ActivateGetParams {
+        value: any;
+        dateModified: number;
+    }
+    interface ActivateParams2<T> {
+        cache?: CacheOptions<T>;
+    }
     interface OnSetExtra {
         onError: () => void;
     }
