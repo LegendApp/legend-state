@@ -929,7 +929,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let timeoutRetry: { current?: any };
     const attemptNum = { current: 0 };
     const activator = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
-    const refresh = () => (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.set((v) => v + 1);
+    const refresh = () =>
+        (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     observe(
         () => {
             const params = createNodeActivationParams(node);
@@ -969,7 +970,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 update = activateNodeFn(node, refresh, !!wasPromise, value).update!;
             }
 
-            (node.state as ObservableObject<ObservablePersistStateInternal>).refreshNum.get();
+            (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.get();
 
             return value;
         },
