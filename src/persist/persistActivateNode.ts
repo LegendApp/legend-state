@@ -10,7 +10,7 @@ import type {
     UpdateFn,
     WithState,
 } from '@legendapp/state';
-import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable } from '@legendapp/state';
+import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
 const { getProxy, globalState, setupRetry, symbolActivator } = internal;
 
@@ -22,7 +22,7 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState2) {
-            const { get, initial, onSet, subscribe, cache, retry } =
+            const { get, initial, onSet, subscribe, cache, retry, waitFor } =
                 node.activationState2! as ActivateParams2WithProxy & { onError?: () => void };
 
             let onChange: UpdateFn | undefined = undefined;
@@ -35,9 +35,13 @@ export function persistActivateNode() {
                         let timeoutRetry: { current?: any } = {};
                         const attemptNum = { current: 0 };
                         let onError: (() => void) | undefined;
+                        const setMode = (mode: 'assign' | 'set') => (params.mode = mode);
 
                         const run = async () => {
                             try {
+                                if (waitFor) {
+                                    await whenReady(waitFor);
+                                }
                                 const nodeValue = getNodeValue(node);
                                 // TODO asdf: Why is this nodeValue a function or activator sometimes?
                                 const value = await get!({
@@ -45,6 +49,7 @@ export function persistActivateNode() {
                                         isFunction(nodeValue) || nodeValue?.[symbolActivator] ? undefined : nodeValue,
                                     dateModified: params.dateModified!,
                                     updateLastSync,
+                                    setMode,
                                 });
                                 resolve(value);
                             } catch {

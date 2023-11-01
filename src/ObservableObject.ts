@@ -1,4 +1,4 @@
-import { when } from './when';
+import { when, whenReady } from './when';
 import { batch, beginBatch, endBatch, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -55,6 +55,7 @@ import { observe } from './observe';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';
 import { setupRetry } from './retry';
+import { noop } from '@babel/types';
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -1062,8 +1063,22 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     value: any,
 ) {
     if (node.activationState2) {
-        const { onSet, subscribe, get, initial, retry } = node.activationState2;
-        const value = get?.({} as any) ?? initial;
+        let _mode: 'assign' | 'set' = 'set';
+        const { onSet, subscribe, get, initial, retry, waitFor } = node.activationState2;
+        // @ts-expect-error asdf
+        const run = () => get!({ updateLastSync: noop, setMode: (mode) => (_mode = mode) });
+        let value = get
+            ? waitFor
+                ? new Promise((resolve) => {
+                      whenReady(waitFor, () => {
+                          resolve(run());
+                      });
+                  })
+                : run()
+            : undefined;
+        if (value == undefined || value === null) {
+            value = initial;
+        }
         let isSetting = false;
         let timeoutRetry: { current?: any };
         if (!node.state) {
@@ -1123,7 +1138,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             // Write tests that would break it if removed? I'd guess a combination of subscribe and
             if (!isSetting) {
                 isSetting = true;
-                set(node, value);
+                if (_mode === 'assign') {
+                    assign(node, value);
+                } else {
+                    set(node, value);
+                }
                 isSetting = false;
             }
         };
