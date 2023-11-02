@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { activator } from '../src/activator';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
@@ -3022,45 +3023,52 @@ describe('new computed', () => {
         let wasSetTo: any;
         let numRuns = 0;
         const obs = observable<{ child: { test: string } }>({
-            child: ({ onSet, subscribe }) => {
-                numRuns++;
-                onSet(({ value }) => {
+            // @ts-expect-error asdf
+            child: activator({
+                get: () => {
+                    numRuns++;
+                    return {
+                        test: 'hi',
+                    };
+                },
+                onSet: ({ value }) => {
                     wasSetTo = value;
-                });
-                subscribe(({ update }) => {
+                },
+                subscribe: ({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
                     }, 0);
-                });
-                return {
-                    test: 'hi',
-                };
-            },
+                },
+            }),
         });
         expect(obs.child.test.get()).toEqual('hi');
 
-        await promiseTimeout(0);
+        await promiseTimeout(5);
 
         expect(obs.child.test.get()).toEqual('hello');
-        expect(wasSetTo).toEqual({ test: 'hello' });
+        expect(wasSetTo).toEqual(undefined);
+        expect(numRuns).toEqual(1); // Only runs once because there's no observables
+        obs.child.test.set('hello!');
+        expect(wasSetTo).toEqual({ test: 'hello!' });
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
     });
     test('new computed with onChange and onSet other observable', async () => {
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: ({ onSet, subscribe }) => {
-                onSet(({ value }) => {
+            // @ts-expect-error asdf
+            child: activator({
+                onSet: ({ value }) => {
                     other.set(value.test);
-                });
-                subscribe(({ update }) => {
+                },
+                subscribe: ({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
                     }, 0);
-                });
-                return {
+                },
+                get: () => ({
                     test: other.get(),
-                };
-            },
+                }),
+            }),
         });
         expect(obs.child.test.get()).toEqual('hi');
 
@@ -3102,9 +3110,9 @@ describe('new computed', () => {
     });
     test('new computed proxy', async () => {
         const obs = observable<{ child: Record<string, string> }>({
-            child: ({ proxy }) => {
-                proxy((key) => 'proxied_' + key);
-            },
+            child: activator({
+                lookup: (key) => 'proxied_' + key,
+            }),
         });
         expect(obs.child.test.get()).toEqual('proxied_test');
     });

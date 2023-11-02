@@ -931,14 +931,14 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let wasPromise: boolean | undefined;
     let timeoutRetry: { current?: any };
     const attemptNum = { current: 0 };
-    const activateFn = (isFunction(node) ? node : lazyFn) as (value: ActivateProxyParams) => any;
+    const activateFn = (isFunction(node) ? node : lazyFn) as () => any;
     const refresh = () =>
         (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     observe(
         () => {
             const params = createNodeActivationParams(node);
             // Run the function at this node
-            let value = activateFn(params);
+            let value = activateFn();
 
             // If target is an observable, get() it to make sure we listen to its changes
             // and set up an onSet to write changes back to it
@@ -1096,7 +1096,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                 // Don't call the set if this is the first value coming in
                 if (!isSetting) {
                     if (
-                        (!wasPromise || node.state!.isLoaded.get()) &&
+                        node.state!.isLoaded.get() &&
                         (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath))
                     ) {
                         const attemptNum = { current: 0 };
@@ -1133,12 +1133,12 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             // TODO Better message
             console.log('[legend-state] Using retryOptions without setting up persistence first');
         }
-        const update: UpdateFn = ({ value }: { value: any }) => {
+        const update: UpdateFn = ({ value, mode }: { value: any; mode?: 'assign' | 'set' | 'dateModified' }) => {
             // TODO: This isSetting might not be necessary? Tests still work if removing it.
             // Write tests that would break it if removed? I'd guess a combination of subscribe and
             if (!isSetting) {
                 isSetting = true;
-                if (_mode === 'assign') {
+                if (_mode === 'assign' || mode === 'assign') {
                     assign(node, value);
                 } else {
                     set(node, value);

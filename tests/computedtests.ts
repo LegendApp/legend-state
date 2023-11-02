@@ -1,6 +1,4 @@
 import {
-    ActivateParams,
-    ActivateProxyParams,
     Change,
     Observable,
     ObservableReadable,
@@ -344,12 +342,14 @@ export const run = (isPersist: boolean) => {
         test('Two way computed value is set before calling setter', () => {
             const obs = observable(0);
 
-            const comp = observable<string>(({ onSet }: ActivateParams) => {
-                onSet(({ value }) => {
-                    obs.set(+value);
-                });
-                return obs.get() + '';
-            });
+            const comp = observable<string>(
+                activator({
+                    onSet: ({ value }) => {
+                        obs.set(+value);
+                    },
+                    get: () => obs.get() + '',
+                }),
+            );
 
             const increment = (cur: number) => {
                 beginBatch();
@@ -799,9 +799,11 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
-            const itemText = observable(({ proxy }: ActivateProxyParams) => {
-                proxy((key) => obs.items[key].text.get());
-            });
+            const itemText = observable(
+                activator({
+                    lookup: (key) => obs.items[key].text.get(),
+                }),
+            );
             expect(itemText['test1'].get()).toEqual('hi');
 
             const handlerItem = expectChangeHandler(obs.items['test1']);
