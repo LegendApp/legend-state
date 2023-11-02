@@ -138,14 +138,6 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
         [symbolGetNode]: NodeValue;
     };
 
-export interface ActivateParams<T = any> {
-    obs$: Observable<T>;
-    onSet: (fn: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>) => void;
-    subscribe: (fn: (params: { update: UpdateFn; refresh: () => void }) => void) => void;
-}
-export interface ActivateProxyParams<T = any> extends ActivateParams {
-    proxy: (fn: (key: string, params: ActivateParams<T>) => T | Promise<T>) => void;
-}
 export interface ActivateGetParams {
     updateLastSync: (lastSync: number) => void;
     setMode: (mode: 'assign' | 'set') => void;

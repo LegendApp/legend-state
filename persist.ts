@@ -1,14 +1,8 @@
-import type {
-    CacheOptions,
-    CacheReturnValue,
-    ObservablePersistStateBase,
-    ObservablePersistenceConfig,
-    RetryOptions,
-} from '@legendapp/state';
+import type { CacheOptions, ObservablePersistStateBase, ObservablePersistenceConfig } from '@legendapp/state';
+import { internal as internalState } from '@legendapp/state';
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 export { invertFieldMap, transformObject, transformPath } from './src/persist/fieldTransformer';
 export { mapPersistences, persistObservable } from './src/persist/persistObservable';
-import { internal as internalState } from '@legendapp/state';
 
 export function isInRemoteChange() {
     return internalState.globalState.isLoadingRemote$.get();
@@ -25,11 +19,6 @@ import { persistActivateNode } from './src/persist/persistActivateNode';
 persistActivateNode();
 
 declare module '@legendapp/state' {
-    interface ActivateParams<T> {
-        cache: (cacheOptions: CacheOptions<T>) => Promise<CacheReturnValue>;
-        updateLastSync: (lastSync: number) => void;
-        retry: (options?: RetryOptions) => void;
-    }
     interface ActivateGetParams {
         value: any;
         dateModified: number;
