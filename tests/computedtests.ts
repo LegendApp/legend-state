@@ -834,7 +834,7 @@ export const run = (isPersist: boolean) => {
             });
             const itemText = observable(
                 activator({
-                    proxy: (key) =>
+                    lookup: (key) =>
                         activator({
                             onSet: ({ value }) => {
                                 obs.items[key].text.set(value);
@@ -875,7 +875,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
                 itemText: activator({
-                    proxy: (key): Observable<string> => {
+                    lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
                 }),
@@ -914,7 +914,7 @@ export const run = (isPersist: boolean) => {
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
                 itemText: activator({
-                    proxy: (key): Observable<string> => obs.items[key][obs.selector.get()],
+                    lookup: (key): Observable<string> => obs.items[key][obs.selector.get()],
                 }),
             });
             expect(obs.itemText['test1'].get()).toEqual('hi');
@@ -941,7 +941,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
                 itemText: activator({
-                    proxy: (key): Observable<string> => obs.items[key].text,
+                    lookup: (key): Observable<string> => obs.items[key].text,
                 }),
             });
             expect(obs.get()).toEqual({
@@ -972,7 +972,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
                 itemText: activator({
-                    proxy: (key): Observable<string> => {
+                    lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
                 }),

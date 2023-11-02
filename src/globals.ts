@@ -1,6 +1,6 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
 import {
-    ActivateParams2WithProxy,
+    ActivateParams2WithLookup,
     NodeValue,
     ObservableComputed,
     ObservableObject,
@@ -140,9 +140,9 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             child = Object.assign(node.proxyFn2!.bind(node, key), child);
         } else {
             if (node.activationState2) {
-                const { proxy } = node.activationState2 as ActivateParams2WithProxy;
-                if (proxy) {
-                    child = Object.assign(proxy.bind(node, key), child);
+                const { lookup } = node.activationState2 as ActivateParams2WithLookup;
+                if (lookup) {
+                    child = Object.assign(lookup.bind(node, key), child);
                 }
             }
         }

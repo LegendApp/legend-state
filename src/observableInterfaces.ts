@@ -582,8 +582,8 @@ export interface ActivateParams2<T = any> {
     mode?: 'assign' | 'set' | 'dateModified';
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface ActivateParams2WithProxy<T extends Record<string, K> = any, K = any> extends ActivateParams2<K> {
-    proxy: (key: string) => K | Promise<K> | ActivatorFunction<K>;
+export interface ActivateParams2WithLookup<T extends Record<string, K> = any, K = any> extends ActivateParams2<K> {
+    lookup: (key: string) => K | Promise<K> | ActivatorFunction<K>;
 }
 
 export type UpdateFn = (params: {
