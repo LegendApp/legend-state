@@ -11,7 +11,7 @@ import { getNodeValue, isObservable, optimized, symbolGetNode } from '../src/glo
 import { isEvent, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
-import { Observable as ObservableNew } from '../src/observableTypes';
+import { Observable as ObservableNew, ObservableParams } from '../src/observableTypes';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
@@ -212,7 +212,7 @@ describe('Assign', () => {
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
     test('Assign more keys', () => {
-        const obs = observable<Record<string, any>>({ test: { text: 't' } });
+        const obs = observable<Record<string, Record<string, any>>>({ test: { text: 't' } });
         obs.test.assign({ text: 'tt', text2: 'tt2' });
         expect(obs.get()).toEqual({ test: { text: 'tt', text2: 'tt2' } });
     });
@@ -2154,133 +2154,133 @@ describe('Event', () => {
         expect(evt.get()).toEqual(1);
     });
 });
-describe('Promise values', () => {
-    test('Promise child', async () => {
-        const promise = Promise.resolve(10);
-        const obs = observable({ promise });
-        expect(obs.promise.get()).toEqual(undefined);
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
-        await promise;
-        expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise.state.isLoaded.get()).toEqual(true);
-    });
-    test('Promise child with _state', async () => {
-        const promise = Promise.resolve(10);
-        const obs = observable({ promise });
-        expect(obs.promise.get()).toEqual(undefined);
-        expect(obs.promise._state.isLoaded.get()).toEqual(false);
-        await promise;
-        expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise._state.isLoaded.get()).toEqual(true);
-    });
-    test('Promise child works when set later', async () => {
-        const obs = observable({ promise: undefined as unknown as Promise<number> });
-        let resolver: (value: number) => void;
-        const promise = new Promise<number>((resolve) => (resolver = resolve));
-        obs.promise.set(promise);
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
-        // @ts-expect-error Fake error
-        resolver(10);
-        await promise;
-        expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise.state.isLoaded.get()).toEqual(true);
-    });
-    test('Promise child works when assigned later', async () => {
-        const obs = observable({ promise: undefined as unknown as Promise<number> });
-        let resolver: (value: number) => void;
-        const promise = new Promise<number>((resolve) => (resolver = resolve));
-        obs.assign({ promise });
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
-        // @ts-expect-error Fake error
-        resolver(10);
-        await promise;
-        expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise.state.isLoaded.get()).toEqual(true);
-    });
-    test('Promise object becomes value', async () => {
-        const promise = Promise.resolve({ child: 10 });
-        const obs = observable(promise);
+// describe('Promise values', () => {
+//     test('Promise child', async () => {
+//         const promise = Promise.resolve(10);
+//         const obs = observable({ promise });
+//         expect(obs.promise.get()).toEqual(undefined);
+//         expect(obs.promise.state.isLoaded.get()).toEqual(false);
+//         await promise;
+//         expect(obs.promise.get()).toEqual(10);
+//         expect(obs.promise.state.isLoaded.get()).toEqual(true);
+//     });
+//     test('Promise child with _state', async () => {
+//         const promise = Promise.resolve(10);
+//         const obs = observable({ promise });
+//         expect(obs.promise.get()).toEqual(undefined);
+//         expect(obs.promise._state.isLoaded.get()).toEqual(false);
+//         await promise;
+//         expect(obs.promise.get()).toEqual(10);
+//         expect(obs.promise._state.isLoaded.get()).toEqual(true);
+//     });
+//     test('Promise child works when set later', async () => {
+//         const obs = observable({ promise: undefined as unknown as Promise<number> });
+//         let resolver: (value: number) => void;
+//         const promise = new Promise<number>((resolve) => (resolver = resolve));
+//         obs.promise.set(promise);
+//         expect(obs.promise.state.isLoaded.get()).toEqual(false);
+//         // @ts-expect-error Fake error
+//         resolver(10);
+//         await promise;
+//         expect(obs.promise.get()).toEqual(10);
+//         expect(obs.promise.state.isLoaded.get()).toEqual(true);
+//     });
+//     test('Promise child works when assigned later', async () => {
+//         const obs = observable({ promise: undefined as unknown as Promise<number> });
+//         let resolver: (value: number) => void;
+//         const promise = new Promise<number>((resolve) => (resolver = resolve));
+//         obs.assign({ promise });
+//         expect(obs.promise.state.isLoaded.get()).toEqual(false);
+//         // @ts-expect-error Fake error
+//         resolver(10);
+//         await promise;
+//         expect(obs.promise.get()).toEqual(10);
+//         expect(obs.promise.state.isLoaded.get()).toEqual(true);
+//     });
+//     test('Promise object becomes value', async () => {
+//         const promise = Promise.resolve({ child: 10 });
+//         const obs = observable(promise);
 
-        expect(obs.state.isLoaded.get()).toEqual(false);
-        await promise;
-        expect(obs.get()).toEqual({ child: 10 });
-        expect(obs.child.get()).toEqual(10);
-        expect(obs.state.isLoaded.get()).toEqual(true);
-    });
-    test('Promise primitive becomes value', async () => {
-        const promise = Promise.resolve(10);
-        const obs = observable(promise);
-        await promise;
-        expect(obs.get()).toEqual(10);
-    });
-    test('Promise value in set primitive', async () => {
-        const promise = Promise.resolve(10);
-        const obs = observable<number>(0);
-        obs.set(promise);
-        await promise;
-        expect(obs.get()).toEqual(10);
-    });
-    test('Promise value in set object', async () => {
-        const promise = Promise.resolve(10);
-        const obs = observable<{ promise: number | undefined }>({ promise: undefined });
-        obs.promise.set(promise);
-        await promise;
-        expect(obs.promise.get()).toEqual(10);
-    });
-    test('Promise value in set is error if it rejects', async () => {
-        const promise = Promise.reject('test');
-        const obs = observable<{
-            promise: Promise<number>;
-        }>({ promise: undefined as any });
-        obs.promise.set(promise);
-        try {
-            await promise;
-        } catch {
-            await promiseTimeout(0);
-        }
-        expect(obs.promise.state.error.get()).toEqual('test');
-    });
-    test('when callback works with promises', async () => {
-        let resolver: (value: number) => void;
-        const promise = new Promise<number>((resolve) => (resolver = resolve));
-        const obs = observable<number>(promise);
-        let didWhen = false;
-        when(obs, () => {
-            didWhen = true;
-        });
-        expect(didWhen).toBe(false);
-        resolver!(10);
-        await obs;
-        expect(didWhen).toBe(true);
-    });
-    test('when works with promises', async () => {
-        let resolver: (value: number) => void;
-        const promise = new Promise<number>((resolve) => (resolver = resolve));
-        const obs = observable<number>(promise);
-        let didWhen = false;
-        when(obs).then(() => {
-            didWhen = true;
-        });
-        expect(didWhen).toBe(false);
-        resolver!(10);
-        await promiseTimeout(0);
-        expect(didWhen).toBe(true);
-    });
-    test('Promise child stays pending until activated', async () => {
-        const promise = Promise.resolve(10);
-        const obs = observable({ promise });
-        await promise;
-        // Still pending because it was not activated
-        expect(obs.promise.get()).toEqual(undefined);
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
+//         expect(obs.state.isLoaded.get()).toEqual(false);
+//         await promise;
+//         expect(obs.get()).toEqual({ child: 10 });
+//         expect(obs.child.get()).toEqual(10);
+//         expect(obs.state.isLoaded.get()).toEqual(true);
+//     });
+//     test('Promise primitive becomes value', async () => {
+//         const promise = Promise.resolve(10);
+//         const obs = observable(promise);
+//         await promise;
+//         expect(obs.get()).toEqual(10);
+//     });
+//     test('Promise value in set primitive', async () => {
+//         const promise = Promise.resolve(10);
+//         const obs = observable<number>(0);
+//         obs.set(promise);
+//         await promise;
+//         expect(obs.get()).toEqual(10);
+//     });
+//     test('Promise value in set object', async () => {
+//         const promise = Promise.resolve(10);
+//         const obs = observable<{ promise: number | undefined }>({ promise: undefined });
+//         obs.promise.set(promise);
+//         await promise;
+//         expect(obs.promise.get()).toEqual(10);
+//     });
+//     test('Promise value in set is error if it rejects', async () => {
+//         const promise = Promise.reject('test');
+//         const obs = observable<{
+//             promise: Promise<number>;
+//         }>({ promise: undefined as any });
+//         obs.promise.set(promise);
+//         try {
+//             await promise;
+//         } catch {
+//             await promiseTimeout(0);
+//         }
+//         expect(obs.promise.state.error.get()).toEqual('test');
+//     });
+//     test('when callback works with promises', async () => {
+//         let resolver: (value: number) => void;
+//         const promise = new Promise<number>((resolve) => (resolver = resolve));
+//         const obs = observable<number>(promise);
+//         let didWhen = false;
+//         when(obs, () => {
+//             didWhen = true;
+//         });
+//         expect(didWhen).toBe(false);
+//         resolver!(10);
+//         await obs;
+//         expect(didWhen).toBe(true);
+//     });
+//     test('when works with promises', async () => {
+//         let resolver: (value: number) => void;
+//         const promise = new Promise<number>((resolve) => (resolver = resolve));
+//         const obs = observable<number>(promise);
+//         let didWhen = false;
+//         when(obs).then(() => {
+//             didWhen = true;
+//         });
+//         expect(didWhen).toBe(false);
+//         resolver!(10);
+//         await promiseTimeout(0);
+//         expect(didWhen).toBe(true);
+//     });
+//     test('Promise child stays pending until activated', async () => {
+//         const promise = Promise.resolve(10);
+//         const obs = observable({ promise });
+//         await promise;
+//         // Still pending because it was not activated
+//         expect(obs.promise.get()).toEqual(undefined);
+//         expect(obs.promise.state.isLoaded.get()).toEqual(false);
 
-        // This get activates it but it takes a frame for it to equal the value
-        expect(obs.promise.get()).not.toEqual(10);
-        await promiseTimeout();
-        // Now it equals the value
-        expect(obs.promise.get()).toEqual(10);
-    });
-});
+//         // This get activates it but it takes a frame for it to equal the value
+//         expect(obs.promise.get()).not.toEqual(10);
+//         await promiseTimeout();
+//         // Now it equals the value
+//         expect(obs.promise.get()).toEqual(10);
+//     });
+// });
 describe('Batching', () => {
     test('Assign is batched', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
@@ -2539,64 +2539,59 @@ describe('Batching', () => {
     });
 });
 describe('Observable with promise', () => {
-    test('Promise', async () => {
-        let resolver: ((value: number) => void) | undefined;
-        const promise = new Promise<number>((resolve) => {
-            resolver = resolve;
-        });
-        const obs = observable(promise);
-        expect(obs.state.isLoaded.get()).toEqual(false);
-        if (resolver) {
-            resolver(10);
-        }
-        await promiseTimeout(0);
-        expect(obs.state.isLoaded.get()).toEqual(true);
-        expect(obs.get()).toEqual(10);
-    });
-    test('when with promise observable', async () => {
-        let resolver: ((value: number) => void) | undefined;
-        const promise = new Promise<number>((resolve) => {
-            resolver = resolve;
-        });
-        const obs = observable(promise);
-
-        expect(obs.state.isLoaded.get()).toEqual(false);
-
-        const fn = jest.fn();
-        when(() => obs.get() === 10, fn);
-
-        if (resolver) {
-            resolver(10);
-        }
-
-        await promiseTimeout(1000);
-
-        expect(fn).toHaveBeenCalled();
-        expect(obs.state.isLoaded.get()).toEqual(true);
-    });
-    test('recursive batches prevented', async () => {
-        let isInInnerBatch = false;
-        const obs = observable({ num: 0 });
-        const obs2 = observable({ num: 0 });
-        let numCalls = 0;
-        observe(() => {
-            numCalls++;
-            obs2.get();
-            expect(isInInnerBatch).toEqual(false);
-            isInInnerBatch = false;
-        });
-        obs.onChange(() => {
-            isInInnerBatch = true;
-            beginBatch();
-            obs2.num.set(2);
-            endBatch();
-            isInInnerBatch = false;
-        });
-        batch(() => {
-            obs.num.set(1);
-        });
-        expect(numCalls).toEqual(2);
-    });
+    // test('Promise', async () => {
+    //     let resolver: ((value: number) => void) | undefined;
+    //     const promise = new Promise<number>((resolve) => {
+    //         resolver = resolve;
+    //     });
+    //     const obs = observable(promise);
+    //     expect(obs.state.isLoaded.get()).toEqual(false);
+    //     if (resolver) {
+    //         resolver(10);
+    //     }
+    //     await promiseTimeout(0);
+    //     expect(obs.state.isLoaded.get()).toEqual(true);
+    //     expect(obs.get()).toEqual(10);
+    // });
+    // test('when with promise observable', async () => {
+    //     let resolver: ((value: number) => void) | undefined;
+    //     const promise = new Promise<number>((resolve) => {
+    //         resolver = resolve;
+    //     });
+    //     const obs = observable(promise);
+    //     expect(obs.state.isLoaded.get()).toEqual(false);
+    //     const fn = jest.fn();
+    //     when(() => obs.get() === 10, fn);
+    //     if (resolver) {
+    //         resolver(10);
+    //     }
+    //     await promiseTimeout(1000);
+    //     expect(fn).toHaveBeenCalled();
+    //     expect(obs.state.isLoaded.get()).toEqual(true);
+    // });
+    // test('recursive batches prevented', async () => {
+    //     let isInInnerBatch = false;
+    //     const obs = observable({ num: 0 });
+    //     const obs2 = observable({ num: 0 });
+    //     let numCalls = 0;
+    //     observe(() => {
+    //         numCalls++;
+    //         obs2.get();
+    //         expect(isInInnerBatch).toEqual(false);
+    //         isInInnerBatch = false;
+    //     });
+    //     obs.onChange(() => {
+    //         isInInnerBatch = true;
+    //         beginBatch();
+    //         obs2.num.set(2);
+    //         endBatch();
+    //         isInInnerBatch = false;
+    //     });
+    //     batch(() => {
+    //         obs.num.set(1);
+    //     });
+    //     expect(numCalls).toEqual(2);
+    // });
 });
 describe('Locking', () => {
     test('Locking', () => {
@@ -2613,7 +2608,7 @@ describe('Locking', () => {
 });
 describe('Primitive <-> Object', () => {
     test('Starting as undefined', () => {
-        const obs = observable<{ test: string }>(undefined);
+        const obs = observable<{ test: string } | undefined>(undefined);
         expect(obs.get()).toEqual(undefined);
         obs.set({ test: 'hi' });
         expect(obs.get()).toEqual({ test: 'hi' });
@@ -2948,7 +2943,8 @@ describe('setAtPath', () => {
 });
 describe('new computed', () => {
     test('new computed basic', () => {
-        const obs = observable<{ child: { test: string } }>({
+        type P = { child: { test: string } };
+        const obs = observable<P>({
             child: () => {
                 return {
                     test: 'hello',

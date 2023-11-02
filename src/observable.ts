@@ -24,8 +24,26 @@ type TWithFunctions<T> =
               | TWithFunctions<T[K]>;
       };
 
+type AllowFns<T> = (T extends () => infer t ? T | t : T | (() => T)) & {
+    [K in keyof T]: AllowFns<T[K]>;
+};
+
+type RecursiveStringOrFunction = {
+    [key: string]: string | (() => string) | RecursiveStringOrFunction;
+};
+
+type ValueOrFunction<T> = T extends Function ? T : T | (() => T | Promise<T>);
+type ValueOrFunctionKeys<T> = {
+    [K in keyof T]: RecursiveValueOrFunction<T[K]>;
+};
+type RecursiveValueOrFunction<T> = T extends Function
+    ? T
+    : T extends object
+    ? (() => T | Promise<T>) | ValueOrFunctionKeys<T> | (() => ValueOrFunctionKeys<T>)
+    : ValueOrFunction<T>;
+
 export function observable<T>(): ObservableNew<T | undefined>;
-export function observable<T>(value: T): ObservableNew<T>;
+export function observable<T>(value: RecursiveValueOrFunction<T>): ObservableNew<T>;
 // export function observable<T>(value: Promise<T>): Observable<T & WithState>;
 // export function observable<T>(value: Promise<T>): Observable<T & WithState>;
 // export function observable<T>(value: () => Observable<T>): Observable<T>;

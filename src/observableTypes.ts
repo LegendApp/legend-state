@@ -215,3 +215,33 @@ it('nested nullable array', () => {
     const arr = {} as NullableArray;
     arr.foo[0].get();
 });
+
+type StripFns<T> = T extends () => infer t
+    ? StripFns<t>
+    : {
+          [K in keyof T]: StripFns<T[K]>;
+      };
+
+// {
+//     [K in keyof T]: T[K] extends () => infer t ? t & StripFns<t> : T[K] & StripFns<T[K]>;
+// };
+
+type P = { child: { test: string } };
+
+// type ObservableReturnType<T> = {
+//     [K in keyof T]: T[K] extends object ? ObservableReturnType<T[K]> : T[K];
+// };
+
+type A = StripFns<{ child: { test: () => string } }>;
+
+function Fn<T>(val: T) {
+    return val;
+}
+
+const a = Fn(() => 'hi');
+
+type AllowFns<T> = (T extends () => infer t ? T | t : T | (() => T)) & {
+    [K in keyof T]: StripFns<T[K]>;
+};
+
+type B = AllowFns<{ child: { test: () => string } }>;
