@@ -496,15 +496,6 @@ interface BaseNodeValue {
     lazy?: boolean | Function;
     state?: Observable<ObservablePersistState>;
     activated?: boolean;
-    proxyFn2?: (key: string, params: ActivateParams) => any;
-    activationState?: {
-        onSetFn?: (value: ListenerParams<any>, extra: OnSetExtra) => void | Promise<any>;
-        update?: UpdateFn;
-        subscriber?: (params: SubscribeOptions) => void;
-        retryOptions?: RetryOptions;
-        lastSync: { value?: number };
-        cacheOptions?: CacheOptions;
-    };
     activationState2?: ActivateParams2 & { onError?: () => void; persistedRetry?: boolean };
 }
 
