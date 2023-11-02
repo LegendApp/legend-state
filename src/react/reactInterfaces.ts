@@ -1,5 +1,6 @@
 import type { FC, LegacyRef, ReactNode } from 'react';
-import type { Observable, Selector } from '../observableInterfaces';
+import type { Observable } from '../observableTypes';
+import type { Selector } from '../observableInterfaces';
 
 export type ShapeWithNew$<T> = Partial<Omit<T, 'children'>> & {
     [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;

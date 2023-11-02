@@ -61,10 +61,10 @@ export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptio
 // Types:
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { GetOptions, ObservableBaseFns } from '@legendapp/state';
+import type { GetOptions, ImmutableObservableBase } from '@legendapp/state';
 
 declare module '@legendapp/state' {
-    interface ObservableBaseFns<T> {
+    interface ImmutableObservableBase<T> {
         get(options?: TrackingType | (GetOptions & { suspense?: boolean })): T;
     }
 }

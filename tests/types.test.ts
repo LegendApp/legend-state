@@ -240,8 +240,6 @@ describe('Types', () => {
 
             it('should infer function as return type', () => {
                 type State = Observable<{ foo: () => string }>;
-                type B = State['foo'];
-                let b: B;
                 expectTypeOf<State['foo']>().toMatchTypeOf<ObservableComputed<string>>();
             });
 
