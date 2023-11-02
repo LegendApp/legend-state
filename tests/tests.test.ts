@@ -2810,7 +2810,7 @@ describe('Functions', () => {
     });
     test('Functions added later work normally', () => {
         let count = 0;
-        const obs = observable({} as any);
+        const obs = observable({} as { test: () => void });
         obs.assign({
             test: () => {
                 count++;
@@ -2851,11 +2851,11 @@ describe('Functions', () => {
         expect(obs.child.val.get()).toEqual(1);
     });
     test('Function assigned later', () => {
-        const obs = observable({ text: 'hi' } as { text: any; test: any });
+        const obs = observable({ text: 'hi' } as { text: any; test: () => void) });
         obs.assign({
             test: () => 'hi!',
         });
-        expect(obs.test === 'hi!');
+        expect(obs.test() === 'hi!');
     });
 });
 
