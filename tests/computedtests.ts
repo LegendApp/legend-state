@@ -327,7 +327,7 @@ export const run = (isPersist: boolean) => {
             expect(obs.test2.get()).toEqual(false);
         });
         test('Computed activates when undefined', () => {
-            const obs = observable<boolean[]>(undefined);
+            const obs = observable<boolean[]>(undefined as unknown as boolean[]);
             const comp = observable(() => {
                 return obs.get()?.filter((a) => !!a);
             });
@@ -1055,7 +1055,7 @@ export const run = (isPersist: boolean) => {
                         }, 5);
                     },
                     get: () =>
-                        new Promise((resolve) => {
+                        new Promise<string>((resolve) => {
                             setTimeout(() => resolve('hi there ' + num++), 0);
                         }),
                 }),

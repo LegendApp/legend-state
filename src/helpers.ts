@@ -1,13 +1,10 @@
+import type { Observable, ObservableObject, ObservableReadable, ObservableWriteable } from './observableTypes';
 import { beginBatch, endBatch } from './batching';
 import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
-    ObservableChild,
     ObservableEvent,
-    ObservableObject,
-    ObservableReadable,
-    ObservableWriteable,
     ObserveEvent,
     OpaqueObject,
     Selector,
@@ -105,10 +102,10 @@ export function setInObservableAtPath(
     }
 
     if (v === symbolDelete) {
-        (o as ObservableChild).delete();
+        (o as Observable).delete();
     }
     // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as ObservableObject).assign && isObject(o.peek())) {
+    else if (mode === 'assign' && (o as Observable).assign && isObject(o.peek())) {
         (o as ObservableObject).assign(v);
     } else {
         o.set(v);
@@ -124,7 +121,7 @@ export function mergeIntoObservable<T extends ObservableObject | object>(target:
     endBatch();
     return target;
 }
-function _mergeIntoObservable<T extends ObservableObject | object>(target: T, source: any): T {
+function _mergeIntoObservable<T extends ObservableWriteable<Record<string, any>> | object>(target: T, source: any): T {
     if (isObservable(source)) {
         source = source.peek();
     }
@@ -141,7 +138,9 @@ function _mergeIntoObservable<T extends ObservableObject | object>(target: T, so
             const key = keys[i];
             const sourceValue = (source as Record<string, any>)[key];
             if (sourceValue === symbolDelete) {
-                needsSet && target[key]?.delete ? target[key].delete() : delete (target as Record<string, any>)[key];
+                needsSet && (target as any)[key]?.delete
+                    ? (target as any)[key].delete()
+                    : delete (target as Record<string, any>)[key];
             } else {
                 const isObj = isObject(sourceValue);
                 const isArr = !isObj && isArray(sourceValue);

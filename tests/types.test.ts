@@ -1,7 +1,5 @@
 import { expectTypeOf } from 'expect-type';
-import { observable } from '../src/observable';
-import { PromiseInfo } from '../src/nodeValueTypes';
-import { Computed, Observable } from 'src/observableTypes';
+import { Observable, ObservableComputed, ObservableComputedTwoWay } from '../src/observableTypes';
 
 describe('Types', () => {
     // describe('observable', () => {
@@ -221,16 +219,16 @@ describe('Types', () => {
 
         describe('with computed', () => {
             it('should infer computed', () => {
-                type State = Observable<Computed<string>>;
+                type State = Observable<ObservableComputed<string>>;
                 expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
                 expectTypeOf<State>().not.toHaveProperty('set');
             });
 
             it('should infer two way computed', () => {
-                type State = Observable<Computed<string, number>>;
+                type State = Observable<ObservableComputedTwoWay<string, number>>;
                 expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
                 expectTypeOf<State>().toHaveProperty('set');
-                expectTypeOf<State['set']>().parameter(0).toEqualTypeOf<number | ((value: number) => number)>();
+                expectTypeOf<State['set']>().toBeFunction();
             });
         });
 

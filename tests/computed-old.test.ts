@@ -256,7 +256,7 @@ describe('Two way Computed', () => {
         expect(obs.test2.get()).toEqual(false);
     });
     test('Computed activates when undefined', () => {
-        const obs = observable<boolean[]>(undefined);
+        const obs = observable<boolean[]>(undefined as unknown as boolean[]);
         const comp = computed(() => {
             return obs.get()?.filter((a) => !!a);
         });

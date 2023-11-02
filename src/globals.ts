@@ -1,13 +1,6 @@
+import { ObservableReadable, ObservablePrimitive, Computed, Observable, ObservableComputed } from './observableTypes';
 import { isChildNodeValue, isFunction, isObject } from './is';
-import {
-    ActivateParams2WithLookup,
-    NodeValue,
-    ObservableComputed,
-    ObservableObject,
-    ObservablePrimitive,
-    ObservableReadable,
-    UpdateFn,
-} from './observableInterfaces';
+import { ActivateParams2WithLookup, NodeValue, UpdateFn } from './observableInterfaces';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -32,7 +25,7 @@ export const globalState = {
     ) => { update: UpdateFn; value: any },
 };
 
-export function isObservable(obs: any): obs is ObservableObject {
+export function isObservable(obs: any): obs is Observable {
     return !!obs && !!obs[symbolGetNode as any];
 }
 
@@ -138,7 +131,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             child = Object.assign(cloneFunction(asFunction), child);
         } else {
             if (node.activationState2) {
-                const { lookup } = node.activationState2 as ActivateParams2WithLookup;
+                const { lookup } = node.activationState2 as ActivateParams2WithLookup<any>;
                 if (lookup) {
                     child = Object.assign(lookup.bind(node, key), child);
                 }

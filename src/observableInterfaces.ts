@@ -1,6 +1,11 @@
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import { DatabaseReference, Query } from 'firebase/database';
 import type { symbolActivator, symbolGetNode, symbolOpaque } from './globals';
+import type {
+    Observable as ObservableNew,
+    ObservableReadable as ObservableReadableNew,
+    ObservableComputed as ObservableComputedNew,
+} from './observableTypes';
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
@@ -73,7 +78,7 @@ export interface ObservableObjectFns<T> extends ObservableBaseFns<T> {
     delete(): ObservableChild<T>;
 }
 
-export type ObservablePrimitive<T> = [T] extends [boolean]
+type ObservablePrimitive<T> = [T] extends [boolean]
     ? ObservablePrimitiveBaseFns<T> & ObservablePrimitiveBooleanFns<T>
     : ObservablePrimitiveBaseFns<T>;
 
@@ -399,7 +404,7 @@ export declare type FieldTransformsInner<T> = {
         [K in keyof ArrayKeys<T> as `${K}_val`]?: FieldTransforms<ArrayValue<T[K]>>;
     };
 
-export type Selector<T> = ObservableReadable<T> | ObservableEvent | (() => T) | T;
+export type Selector<T> = ObservableReadableNew<T> | ObservableEvent | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
@@ -415,25 +420,25 @@ export interface ObservableRoot {
 export type Primitive = boolean | string | number | Date;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
-export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
+type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'get' | 'size'> &
     MapGet<T>;
-export type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
+type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitiveBaseFns<T>, 'size'> & { size: ObservablePrimitiveChild<number> };
-export type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
-export type ObservableArray<T extends any[]> = ObservableObject<Omit<T, ArrayOverrideFnNames>> &
+type ObservableMapIfMap<T> = T extends Map<any, any> | WeakMap<any, any> ? ObservableMap<T> : never;
+type ObservableArray<T extends any[]> = ObservableObject<Omit<T, ArrayOverrideFnNames>> &
     ObservableObjectFns<T> &
     ObservableArrayOverride<T[number]>;
-export type ObservableObject<T = any> = [Required<T>] extends [Required<WithState>]
+type ObservableObject<T = any> = [Required<T>] extends [Required<WithState>]
     ? ObservableFnsRecursive<Required<WithState>> & ObservableObjectBase<T>
     : ObservableObjectBase<T>;
-export type ObservableObjectBase<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
-export type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
-export type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
+type ObservableObjectBase<T = any> = ObservableFnsRecursive<T> & ObservableObjectFns<T>;
+type ObservableChild<T = any> = [T] extends [Primitive] ? ObservablePrimitiveChild<T> : ObservableObject<T>;
+type ObservablePrimitiveChild<T = any> = [T] extends [boolean]
     ? ObservablePrimitiveChildFns<T> & ObservablePrimitiveBooleanFns<T>
     : ObservablePrimitiveChildFns<T>;
 
-export type ObservableObjectOrArray<T> = T extends Map<any, any> | WeakMap<any, any>
+type ObservableObjectOrArray<T> = T extends Map<any, any> | WeakMap<any, any>
     ? ObservableMap<T>
     : T extends Set<any> | WeakSet<any>
     ? ObservableSet<T>
@@ -441,10 +446,10 @@ export type ObservableObjectOrArray<T> = T extends Map<any, any> | WeakMap<any, 
     ? ObservableArray<T>
     : ObservableObject<T>;
 
-export type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
-export type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveBaseFns<T2>;
+type ObservableComputed<T = any> = ObservableBaseFns<T> & ObservableComputedFnsRecursive<T>;
+type ObservableComputedTwoWay<T = any, T2 = T> = ObservableComputed<T> & ObservablePrimitiveBaseFns<T2>;
 type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
-export type Observable<T = any> = Equals<T, any> extends true
+type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObject<any>
     : // : [T] extends [Activator<infer t>]
     // ? t
@@ -454,14 +459,14 @@ export type Observable<T = any> = Equals<T, any> extends true
     ? ObservableObjectOrArray<T>
     : ObservablePrimitive<T>;
 
-export type ObservableReadable<T = any> =
+type ObservableReadable<T = any> =
     | ObservableBaseFns<T>
     | ObservablePrimitiveBaseFns<T>
     | ObservablePrimitiveChildFns<T>
     | ObservableObjectFns<T>
     | ObservableMapIfMap<T>;
 
-export type ObservableWriteable<T = any> = ObservableReadable<T> & {
+type ObservableWriteable<T = any> = ObservableReadable<T> & {
     set(value: Nullable<T> | CallbackSetter<T> | Promise<T>): any;
     delete?: () => any;
 };
@@ -488,7 +493,7 @@ interface BaseNodeValue {
     isSetting?: number;
     isAssigning?: number;
     parentOther?: NodeValue;
-    functions?: Map<string, Function | ObservableComputed<any>>;
+    functions?: Map<string, Function | ObservableComputedNew<any>>;
     lazy?: boolean | Function;
     state?: Observable<ObservablePersistState>;
     activated?: boolean;

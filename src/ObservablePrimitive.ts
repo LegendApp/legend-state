@@ -1,7 +1,8 @@
 import { set, get, peek } from './ObservableObject';
 import { symbolGetNode } from './globals';
 import { isBoolean } from './is';
-import type { NodeValue, ObservablePrimitive } from './observableInterfaces';
+import type { NodeValue } from './observableInterfaces';
+import type { ObservablePrimitive, ObservableBoolean } from './observableTypes';
 import { onChange } from './onChange';
 
 interface ObservablePrimitiveState {
@@ -9,7 +10,7 @@ interface ObservablePrimitiveState {
     toggle: () => void;
 }
 
-const fns: (keyof ObservablePrimitive<any>)[] = ['get', 'set', 'peek', 'onChange', 'toggle'];
+const fns: (keyof ObservableBoolean)[] = ['get', 'set', 'peek', 'onChange', 'toggle'];
 
 export function ObservablePrimitiveClass<T>(this: ObservablePrimitive<T> & ObservablePrimitiveState, node: NodeValue) {
     this._node = node;

@@ -8,10 +8,10 @@ import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, isObservable, optimized, symbolGetNode } from '../src/globals';
-import { isEvent, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
+import { isEvent, lockObservable, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
-import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
-import { Observable as ObservableNew, ObservableParams } from '../src/observableTypes';
+import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
+import { Observable as ObservableNew } from '../src/observableTypes';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 

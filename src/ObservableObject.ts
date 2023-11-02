@@ -1,4 +1,4 @@
-import { when, whenReady } from './when';
+import { noop } from '@babel/types';
 import { batch, beginBatch, endBatch, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -32,30 +32,26 @@ import {
     isPromise,
 } from './is';
 import type {
-    CacheOptions,
+    ActivateParams2,
     ChildNodeValue,
-    ActivateParams,
-    ActivateProxyParams,
     GetOptions,
     ListenerParams,
     NodeValue,
     ObservableObject,
     ObservablePersistState,
-    ObservableState,
-    TrackingType,
-    UpdateFn,
-    RetryOptions,
     ObservablePersistStateInternal,
+    ObservableState,
     OnSetExtra,
     SubscribeOptions,
-    CacheReturnValue,
-    ActivateParams2,
+    TrackingType,
+    UpdateFn,
 } from './observableInterfaces';
+import { Observable } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
-import { updateTracking } from './tracking';
 import { setupRetry } from './retry';
-import { noop } from '@babel/types';
+import { updateTracking } from './tracking';
+import { whenReady } from './when';
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -862,8 +858,8 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
-    let prevTarget$: ObservableObject<any>;
-    let curTarget$: ObservableObject<any>;
+    let prevTarget$: Observable<any>;
+    let curTarget$: Observable<any>;
     let update: UpdateFn;
     let wasPromise: boolean | undefined;
     let timeoutRetry: { current?: any };
@@ -1063,11 +1059,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
 
             onChange(node, doSet as any, wasPromise ? undefined : { immediate: true });
         }
-        if (process.env.NODE_ENV === 'development' && node.activationState!.cacheOptions) {
+        if (process.env.NODE_ENV === 'development' && node.activationState2!.cache) {
             // TODO Better message
             console.log('[legend-state] Using cacheOptions without setting up persistence first');
         }
-        if (process.env.NODE_ENV === 'development' && node.activationState!.retryOptions) {
+        if (process.env.NODE_ENV === 'development' && node.activationState2!.retry) {
             // TODO Better message
             console.log('[legend-state] Using retryOptions without setting up persistence first');
         }

@@ -35,7 +35,7 @@ export { observe } from './src/observe';
 export { proxy } from './src/proxy';
 export { trackSelector } from './src/trackSelector';
 export { when, whenReady } from './src/when';
-export type { ImmutableObservableBase } from './src/observableTypes';
+export * from './src/observableTypes';
 
 /** @internal */
 export { beginTracking, endTracking, tracking, updateTracking } from './src/tracking';

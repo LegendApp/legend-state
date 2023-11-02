@@ -1,10 +1,10 @@
+import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableTypes';
 import { set as setBase } from './ObservableObject';
 import { batch, notify } from './batching';
 import { getNode, getNodeValue, isObservable, setNodeValue } from './globals';
 import { lockObservable } from './helpers';
 import { isPromise } from './is';
 import { observable } from './observable';
-import { ObservableComputed, ObservableComputedTwoWay, ObservableReadable } from './observableInterfaces';
 import { observe } from './observe';
 import { onChange } from './onChange';
 

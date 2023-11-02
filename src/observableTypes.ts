@@ -1,4 +1,4 @@
-import { expectTypeOf } from 'expect-type';
+import type { ListenerFn, ObservableBaseFns, TrackingType } from './observableInterfaces';
 
 /* branded types */
 export declare const __brand: unique symbol;
@@ -6,31 +6,18 @@ export declare const __type: unique symbol;
 
 export type Brand<K, T> = { [__brand]: T; __type: K };
 type None = Brand<never, 'None'>;
-type Computed<T, T2 = None> = Brand<T | T2, 'Computed'>;
-
-export type TypeAtPath = 'object' | 'array';
-
-export interface Change {
-    path: string[];
-    pathTypes: TypeAtPath[];
-    valueAtPath: any;
-    prevAtPath: any;
-}
-
-export interface ListenerParams<T = any> {
-    value: T;
-    getPrevious: () => T;
-    changes: Change[];
-}
-
-type ListenerFn<T = any> = (params: ListenerParams<T>) => void;
+export type Activator<T> = Brand<T, 'Activator'>;
 
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
 type ArrayOverrideFnNames = 'find' | 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface ComputedObservable<T> extends ImmutableObservableBase<T> {}
-interface TwoWayComputedObservable<T, T2> extends ImmutableObservableBase<T>, MutableObservableBase<T2, T2> {}
+type ObservableComputed<T = any> = Readonly<Observable<T>>;
+type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2, T2>;
+
+type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any, any>>;
+type Readonly<T> = MakeReadonlyInner<T> & {
+    [K in keyof MakeReadonlyInner<T>]: T extends Observable ? T[K] : Readonly<T[K]>;
+};
 
 type RemoveIndex<T> = {
     [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
@@ -44,7 +31,10 @@ interface ObservableArray<T, U>
 interface ObservableObjectFns<T, T2 = T> {
     assign(value: Partial<T & T2>): Observable<T>;
 }
-interface ObservableObject<T, T2 = T> extends ObservablePrimitive<T, T2>, ObservableObjectFns<T, T2> {}
+// TODO asdf Might not need T2
+interface ObservableObject<T = Record<string, any>, T2 = T>
+    extends ObservablePrimitive<T, T2>,
+        ObservableObjectFns<T, T2> {}
 
 type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
     Omit<ObservablePrimitive<T>, 'get' | 'size'> & {
@@ -60,19 +50,16 @@ interface ObservableBoolean extends ObservablePrimitive<boolean> {
     toggle(): boolean;
 }
 
-type TrackingType = undefined | true | symbol; // true === shallow
 interface ObservablePrimitive<T, T2 = T> extends ImmutableObservableBase<T>, MutableObservableBase<T, T2> {}
 type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any>;
 
-export interface ImmutableObservableBase<T> {
+interface ImmutableObservableBase<T> {
     peek(): T;
     get(trackingType?: TrackingType): T;
     onChange(
         cb: ListenerFn<T>,
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
     ): () => void;
-
-    // [symbolGetNode]: NodeValue;
 }
 
 interface MutableObservableBase<T, T2> {
@@ -84,7 +71,7 @@ type UndefinedIf<T, U> = U extends true ? T | undefined : T;
 
 type IsNullable<T> = undefined extends T ? true : null extends T ? true : false;
 
-type NonObservable = Function;
+type NonObservable = Function | Observable;
 type NonObservableKeys<T> = {
     [K in keyof T]-?: IsStrictAny<T[K]> extends true
         ? never
@@ -112,16 +99,18 @@ type ObservableChildren<T, Nullable = IsNullable<T>> = {
     [K in keyof T]-?: Observable<UndefinedIf<T[K], Nullable>>;
 };
 type ObservableFunctionChildren<T> = {
-    [K in keyof T]-?: T[K] extends () => Promise<infer t> | infer t
+    [K in keyof T]-?: T[K] extends Observable
+        ? T[K]
+        : T[K] extends () => Promise<infer t> | infer t
         ? t extends void
             ? T[K]
-            : Observable<t> & T[K]
+            : ObservableComputed<t> & T[K]
         : T[K];
 };
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
 
-export interface ObservableState {
+interface ObservableState {
     isLoaded: boolean;
     error?: Error;
 }
@@ -134,17 +123,23 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
-    : [T] extends [Promise<infer t>]
+    : [NT] extends [Promise<infer t>]
     ? Observable<t> & Observable<WithState>
+    : [T] extends [() => infer t]
+    ? t extends Observable
+        ? t
+        : ObservableComputed<t>
+    : [NT] extends [ImmutableObservableBase<any>]
+    ? NT
     : [NT] extends [Primitive]
     ? [NT] extends [boolean]
         ? ObservableBoolean
         : ObservablePrimitive<T>
-    : [NT] extends [Computed<infer U, infer U2>]
-    ? U2 extends None
-        ? ComputedObservable<U>
-        : TwoWayComputedObservable<U, U2>
-    : NT extends Map<any, any> | WeakMap<any, any>
+    : // : [NT] extends [Computed<infer U, infer U2>]
+    // ? U2 extends None
+    //     ? ObservableComputed<U>
+    //     : ObservableComputedTwoWay<U, U2>
+    NT extends Map<any, any> | WeakMap<any, any>
     ? ObservableMap<NT>
     : NT extends Set<infer U>
     ? ObservableSet<Set<UndefinedIf<U, IsNullable<T>>>>
@@ -152,77 +147,25 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableSet<NT> // TODO what to do here with nullable? WeakKey is type object | symbol
     : NT extends Array<infer U>
     ? ObservableArray<T, U> & ObservableChildren<T>
-    : ObservableObject<ObservableProps<T>, NonObservableProps<T>> &
+    : ObservableObject<ObservableProps<T> & NonObservableProps<T>> &
           ObservableChildren<ObservableProps<T>> &
           ObservableFunctionChildren<NonObservableProps<T>>;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type Observable<T = any> = ObservableNode<T>; // & {};
 
+type ObservableReadable<T = any> = ImmutableObservableBase<T>;
+type ObservableWriteable<T = any> = MutableObservableBase<T, T>;
+
 export type {
-    Computed,
-    ListenerFn,
+    ObservableComputed,
+    ObservableComputedTwoWay,
     Observable,
     ObservableBoolean,
     ObservableObject,
     ObservablePrimitive,
-    TrackingType,
+    ObservableReadable,
+    ObservableWriteable,
+    // TODO: how to make these internal somehow?
+    ImmutableObservableBase,
 };
-
-/* some temporary tests */
-it('boolean toggle', () => {
-    type BooleanState = Observable<boolean>;
-    expectTypeOf<BooleanState>().toEqualTypeOf<ObservableBoolean>();
-    expectTypeOf<BooleanState['toggle']>().toEqualTypeOf<() => boolean>();
-});
-
-it('union root with primitives', () => {
-    expectTypeOf<Observable<boolean | string>>().toEqualTypeOf<ObservablePrimitive<boolean | string>>();
-});
-
-it('computed', () => {
-    expectTypeOf<Observable<Computed<boolean | string>>>().toEqualTypeOf<ComputedObservable<boolean | string>>();
-    expectTypeOf<Observable<Computed<boolean> | Computed<string>>>().toEqualTypeOf<
-        ComputedObservable<boolean | string>
-    >();
-    expectTypeOf<Observable<Computed<string, number>>>().toEqualTypeOf<TwoWayComputedObservable<string, number>>();
-});
-
-it('undefined', () => {
-    expectTypeOf<Observable<boolean | string | undefined>>().toEqualTypeOf<
-        ObservablePrimitive<boolean | string | undefined>
-    >();
-});
-
-it('undefined', () => {
-    type T = Observable<boolean | string | undefined>;
-    expectTypeOf<T>().toEqualTypeOf<ObservablePrimitive<boolean | string | undefined>>();
-});
-
-it('array', () => {
-    type Array = Observable<{ foo: string }[]>;
-    expectTypeOf<Array[0]>().toEqualTypeOf<ObservableObject<{ foo: string }>>;
-    expectTypeOf<Array[0]['get']>().returns.toEqualTypeOf<{ foo: string }>();
-    const arr = {} as Array;
-    arr[0].foo.get();
-});
-
-it('nullable object', () => {
-    type NullableObject = Observable<{ a: number } | undefined>;
-    expectTypeOf<NullableObject['get']>().returns.toEqualTypeOf<{ a: number } | undefined>();
-    expectTypeOf<NullableObject['a']>().toEqualTypeOf<ObservablePrimitive<number | undefined>>();
-    const test = {} as NullableObject;
-    test.a.get();
-});
-
-it('nested nullable object', () => {
-    type NullableObject = Observable<{ foo: { a: number } | undefined }>;
-    expectTypeOf<NullableObject['foo']['a']>().toEqualTypeOf<ObservablePrimitive<number | undefined>>();
-});
-
-it('nested nullable array', () => {
-    type NullableArray = Observable<{ foo: { a: number }[] | undefined }>;
-    expectTypeOf<NullableArray['foo'][number]['a']>().toEqualTypeOf<ObservablePrimitive<number | undefined>>();
-    const arr = {} as NullableArray;
-    arr.foo[0].get();
-});

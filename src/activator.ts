@@ -1,3 +1,4 @@
+import { Activator, Brand } from './observableTypes';
 import { symbolActivator } from './globals';
 import { ActivateParams2, ActivateParams2WithLookup } from './observableInterfaces';
 
@@ -6,5 +7,5 @@ export function activator<T>(params: ActivateParams2<T>): T;
 export function activator<T>(params: ActivateParams2<T>): T {
     return (() => ({
         [symbolActivator]: params,
-    })) as unknown as T;
+    })) as any;
 }
