@@ -37,7 +37,6 @@ import type {
     GetOptions,
     ListenerParams,
     NodeValue,
-    ObservablePersistStateInternal,
     OnSetExtra,
     SubscribeOptions,
     TrackingType,
@@ -49,6 +48,7 @@ import { onChange } from './onChange';
 import { setupRetry } from './retry';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
+import { ObservablePersistStateInternal } from './persistTypes';
 
 const ArrayModifiers = new Set([
     'copyWithin',

@@ -22,7 +22,7 @@ type RemoveIndex<T> = {
 type BuiltIns = String | Boolean | Number | Date | Error | RegExp | Array<any> | Function | Promise<any>;
 
 type IsUserDefinedObject<T> =
-    // We're considering only objects that are not function or arrays or instances of BuiltIns.
+    // Only objects that are not function or arrays or instances of BuiltIns.
     T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
 
 type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>

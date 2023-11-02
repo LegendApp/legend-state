@@ -1,4 +1,10 @@
-import type { CacheOptions, ObservablePersistStateBase, RetryOptions } from '@legendapp/state';
+import type {
+    CacheOptions,
+    CacheReturnValue,
+    ObservablePersistStateBase,
+    ObservablePersistenceConfig,
+    RetryOptions,
+} from '@legendapp/state';
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 export { invertFieldMap, transformObject, transformPath } from './src/persist/fieldTransformer';
 export { mapPersistences, persistObservable } from './src/persist/persistObservable';
@@ -8,7 +14,6 @@ export function isInRemoteChange() {
     return internalState.globalState.isLoadingRemote$.get();
 }
 
-import type { CacheReturnValue, ObservablePersistenceConfig } from './src/observableInterfaces';
 import { observablePersistConfiguration } from './src/persist/configureObservablePersistence';
 export const internal: {
     observablePersistConfiguration: ObservablePersistenceConfig;

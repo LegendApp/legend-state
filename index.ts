@@ -31,6 +31,7 @@ export {
 } from './src/is';
 export { observable, observablePrimitive } from './src/observable';
 export * from './src/observableInterfaces';
+export * from './src/persistTypes';
 export { observe } from './src/observe';
 export { proxy } from './src/proxy';
 export { trackSelector } from './src/trackSelector';
