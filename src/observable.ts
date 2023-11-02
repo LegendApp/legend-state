@@ -12,6 +12,7 @@ import type {
     RecordValue,
     WithState,
 } from './observableInterfaces';
+import type { Observable as ObservableNew } from './observableTypes';
 
 type TWithFunctions<T> =
     | T
@@ -23,18 +24,21 @@ type TWithFunctions<T> =
               | TWithFunctions<T[K]>;
       };
 
-export function observable<T>(value: Promise<T>): Observable<T & WithState>;
-export function observable<T>(value: () => Observable<T>): Observable<T>;
-export function observable<T>(value: () => Promise<T>): Observable<T & WithState>;
-export function observable<T>(value: ActivatorFunction<T>): Observable<T>;
-export function observable<T>(value: () => T): ObservableComputed<T>;
-export function observable<T>(value: (params: ActivateParams) => Observable<T>): Observable<T & WithState>;
-export function observable<T>(value: (params: ActivateParams) => Promise<T>): Observable<T & WithState>;
-export function observable<T>(value: (params: ActivateParams) => T): Observable<T>;
-export function observable<T>(
-    value: (params: ActivateProxyParams<T>) => void,
-): Observable<Record<string, T> & WithState>;
-export function observable<T>(value?: TWithFunctions<T>): Observable<T>;
+export function observable<T>(): ObservableNew<T | undefined>;
+export function observable<T>(value: T): ObservableNew<T>;
+// export function observable<T>(value: Promise<T>): Observable<T & WithState>;
+// export function observable<T>(value: Promise<T>): Observable<T & WithState>;
+// export function observable<T>(value: () => Observable<T>): Observable<T>;
+// export function observable<T>(value: () => Promise<T>): Observable<T & WithState>;
+// export function observable<T>(value: ActivatorFunction<T>): Observable<T>;
+// export function observable<T>(value: () => T): ObservableComputed<T>;
+// export function observable<T>(value: (params: ActivateParams) => Observable<T>): Observable<T & WithState>;
+// export function observable<T>(value: (params: ActivateParams) => Promise<T>): Observable<T & WithState>;
+// export function observable<T>(value: (params: ActivateParams) => T): Observable<T>;
+// export function observable<T>(
+//     value: (params: ActivateProxyParams<T>) => void,
+// ): Observable<Record<string, T> & WithState>;
+// export function observable<T>(value?: TWithFunctions<T>): Observable<T>;
 export function observable<T>(value?: T): any {
     return createObservable(value, false, extractPromise, getProxy, ObservablePrimitiveClass) as Observable<any>;
 }
@@ -47,4 +51,4 @@ export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimit
     >;
 }
 
-globalState.isLoadingRemote$ = observable(false);
+// globalState.isLoadingRemote$ = observable(false);

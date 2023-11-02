@@ -1,4 +1,5 @@
 import { expectTypeOf } from 'expect-type';
+import { ActivatorFunction } from 'src/observableInterfaces';
 
 /* branded types */
 export declare const __brand: unique symbol;
@@ -62,9 +63,9 @@ interface ObservableBoolean extends ObservablePrimitive<boolean> {
 
 type TrackingType = undefined | true | symbol; // true === shallow
 interface ObservablePrimitive<T, T2 = T> extends ImmutableObservableBase<T>, MutableObservableBase<T, T2> {}
-interface ObservableAny<T> extends Partial<ObservableObjectFns<T>>, ObservablePrimitive<T> {}
+type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any>;
 
-interface ImmutableObservableBase<T> {
+export interface ImmutableObservableBase<T> {
     peek(): T;
     get(trackingType?: TrackingType): T;
     onChange(
@@ -84,7 +85,7 @@ type UndefinedIf<T, U> = U extends true ? T | undefined : T;
 
 type IsNullable<T> = undefined extends T ? true : null extends T ? true : false;
 
-type NonObservable = Function | Observable<any>;
+type NonObservable = Function;
 type NonObservableKeys<T> = {
     [K in keyof T]-?: IsStrictAny<T[K]> extends true
         ? never
@@ -95,8 +96,6 @@ type NonObservableKeys<T> = {
         : never;
 }[keyof T];
 type ObservableProps<T> = RestoreNullability<T, Simplify<Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>>;
-
-type A = ObservableProps<{ fn: () => void }>;
 
 type NonObservableProps<T> = RestoreNullability<
     T,
@@ -113,14 +112,26 @@ type RestoreNullability<Source, Target> = IsNullable<Source> extends true
 type ObservableChildren<T, Nullable = IsNullable<T>> = {
     [K in keyof T]-?: Observable<UndefinedIf<T[K], Nullable>>;
 };
+type ObservableFunctionChildren<T> = {
+    [K in keyof T]-?: T[K] extends ActivatorFunction<infer t>
+        ? Observable<t>
+        : T[K] extends () => Promise<infer t> | infer t
+        ? t extends void
+            ? T[K]
+            : Observable<t> & T[K]
+        : T[K];
+};
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
 
 type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that T is ONLY undefined or null
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
-    ? ObservableAny<any>
-    : [NT] extends [Primitive]
+    ? ObservableAny
+    : [T] extends [ActivatorFunction<infer t>]
+    ? Observable<t>
+    : // : T extends () => infer t ? Observable<t>
+    [NT] extends [Primitive]
     ? [NT] extends [boolean]
         ? ObservableBoolean
         : ObservablePrimitive<T>
@@ -138,10 +149,10 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableArray<T, U> & ObservableChildren<T>
     : ObservableObject<ObservableProps<T>, NonObservableProps<T>> &
           ObservableChildren<ObservableProps<T>> &
-          NonObservableProps<T>;
+          ObservableFunctionChildren<NonObservableProps<T>>;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
-type Observable<T = any> = ObservableNode<T> & {};
+type Observable<T = any> = ObservableNode<T>; // & {};
 
 export type {
     Observable,

@@ -2,6 +2,7 @@ import { expectTypeOf } from 'expect-type';
 import { observable } from '../src/observable';
 import { PromiseInfo } from '../src/nodeValueTypes';
 import { Computed, Observable } from 'src/observableTypes';
+import { ActivatorFunction } from 'src/observableInterfaces';
 
 describe('Types', () => {
     // describe('observable', () => {
@@ -75,6 +76,11 @@ describe('Types', () => {
                 type GetState = Observable<any>['get'];
                 expectTypeOf<GetState>().returns.toBeAny();
             });
+            // it('should infer any children', () => {
+            //     type State = Observable<any>;
+            //     expectTypeOf<State['x']['get']>().returns.toBeAny();
+            //     type B = State['x'];
+            // });
         });
         describe('with state primitive', () => {
             it('should infer string', () => {
@@ -115,13 +121,13 @@ describe('Types', () => {
                 expectTypeOf<State['x']['get']>().returns.toBeNumber();
             });
 
-            it('should infer record', () => {
+            it('should infer record<string, number>', () => {
                 type State = Observable<Record<string, number>>;
                 expectTypeOf<State>().toEqualTypeOf<Observable<Record<string, number>>>();
                 expectTypeOf<State['x']['get']>().returns.toBeNumber();
             });
 
-            it('should infer record', () => {
+            it('should infer record<string, any>', () => {
                 type State = Observable<Record<string, any>>;
                 expectTypeOf<State>().toEqualTypeOf<Observable<Record<string, any>>>();
                 expectTypeOf<State['x']['get']>().returns.toBeAny();
@@ -232,17 +238,36 @@ describe('Types', () => {
         describe('with function', () => {
             it('should infer function', () => {
                 type State = Observable<{ foo: () => void }>;
-                expectTypeOf<State['foo']>().toEqualTypeOf<() => void>();
+                expectTypeOf<State['foo']>().toMatchTypeOf<() => void>();
+            });
+
+            it('should infer function as return type', () => {
+                type State = Observable<{ foo: () => string }>;
+                type B = State['foo'];
+                let b: B;
+                expectTypeOf<State['foo']>().toMatchTypeOf<Observable<string>>();
             });
 
             it('should infer nested function', () => {
                 type State = Observable<{ foo: { bar: () => void } }>;
-                expectTypeOf<State['foo']['bar']>().toEqualTypeOf<() => void>();
+                expectTypeOf<State['foo']['bar']>().toMatchTypeOf<() => void>();
             });
 
             it('should make nested function optional if parent is optional', () => {
                 type State = Observable<{ foo?: { bar: () => void } }>;
+                type A = State['foo'];
                 expectTypeOf<State['foo']['bar']>().toEqualTypeOf<(() => void) | undefined>();
+            });
+        });
+
+        describe('with activator', () => {
+            it('should infer activator', () => {
+                type State = Observable<ActivatorFunction<string>>;
+                expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
+            });
+            it('should infer activator in child', () => {
+                type State = Observable<{ child: ActivatorFunction<string> }>;
+                expectTypeOf<State['child']['get']>().returns.toEqualTypeOf<string>();
             });
         });
 

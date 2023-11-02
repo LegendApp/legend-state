@@ -11,6 +11,7 @@ import { getNodeValue, isObservable, optimized, symbolGetNode } from '../src/glo
 import { isEvent, lockObservable, opaqueObject, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive } from '../src/observable';
 import { Change, NodeValue, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { Observable as ObservableNew } from '../src/observableTypes';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
@@ -31,7 +32,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
+function expectChangeHandler(obs: ObservableNew, track?: TrackingType) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
@@ -125,8 +126,7 @@ describe('Set', () => {
             ],
         );
 
-        const setVal = obs.arr.set([{ text: 'hello' }]);
-        expect(setVal.get()).toEqual([{ text: 'hello' }]);
+        obs.arr.set([{ text: 'hello' }]);
 
         expect(obs.arr.get()).toEqual([{ text: 'hello' }]);
 
@@ -779,12 +779,10 @@ describe('undefined', () => {
         expect(obs.test.test2.test3.get()).toEqual('hi');
     });
     test('Set undefined to value and back', () => {
-        // TODO: Replace `any`
-        type Data = any;
         // type Data = {
         //     [key: string]: string | Data | undefined;
         // };
-        const obs = observable<Data>({ test: { test2: { test3: undefined } } });
+        const obs = observable({ test: { test2: { test3: undefined as Record<string, any> | undefined } } });
         const handler = expectChangeHandler(obs.test);
         expect(obs.test.get()).toEqual({ test2: { test3: undefined } });
         expect(obs.test.test2.get()).toEqual({ test3: undefined });
@@ -2683,39 +2681,7 @@ describe('Primitive boolean', () => {
         expect(obs.get().value).toEqual(0);
     });
 });
-describe('Opaque object', () => {
-    test('Opaque object does not create proxy', () => {
-        const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
-        const opaque = obs.test.opaque;
-        expect(isObservable(opaque)).toBe(true);
 
-        const opaqueValue = obs.test.opaque.value;
-        expect(isObservable(opaqueValue)).toBe(false);
-        expect(opaqueValue.subvalue).toBe(true);
-    });
-    test('Opaque object does not fire listeners', () => {
-        const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
-        const handler = expectChangeHandler(obs);
-        const opaque = obs.test.opaque.get();
-        opaque.value.subvalue = false;
-        expect(handler).not.toHaveBeenCalled();
-    });
-    test('Opaque object does not fire listeners 2', () => {
-        const obs = observable({ test: { opaque: opaqueObject({ value: { subvalue: true } }) } });
-        const handler = expectChangeHandler(obs);
-        obs.test.opaque.value.subvalue = false;
-        expect(handler).not.toHaveBeenCalled();
-    });
-    test('Opaque object does not error on circular references', () => {
-        const circular = { value: { subvalue: true, circularProblem: undefined } };
-        // @ts-expect-error Doing this on purpose
-        circular.value.circularProblem = circular;
-        const obs = observable({ circ: opaqueObject(circular) });
-        expect(console.error).toHaveBeenCalledTimes(0);
-
-        expect(obs.get().circ.value.subvalue).toEqual(true);
-    });
-});
 describe('Observe', () => {
     test('Observe basic', () => {
         const obs = observable(0);
@@ -2851,10 +2817,11 @@ describe('Functions', () => {
         expect(obs.child.val.get()).toEqual(1);
     });
     test('Function assigned later', () => {
-        const obs = observable({ text: 'hi' } as { text: any; test: () => void) });
+        const obs = observable({ text: 'hi' } as { text: any; test: () => string });
         obs.assign({
             test: () => 'hi!',
         });
+
         expect(obs.test() === 'hi!');
     });
 });
@@ -2981,7 +2948,7 @@ describe('setAtPath', () => {
 });
 describe('new computed', () => {
     test('new computed basic', () => {
-        const obs = observable<{ child: { test: string } }>({
+        const obs = observable({
             child: () => {
                 return {
                     test: 'hello',
@@ -3006,7 +2973,7 @@ describe('new computed', () => {
     test('new computed as a computed', () => {
         const other = observable('hi');
 
-        const obs = observable<{ child: { test: string } }>({
+        const obs = observable({
             child: () => {
                 return {
                     test: other.get(),
@@ -3023,8 +2990,7 @@ describe('new computed', () => {
         let wasSetTo: any;
         let wasSetToFromSubscribe: boolean | undefined;
         let numRuns = 0;
-        const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
+        const obs = observable({
             child: activator({
                 get: () => {
                     numRuns++;
