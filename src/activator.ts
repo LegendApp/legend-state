@@ -1,4 +1,3 @@
-import { Activator, Brand } from './observableTypes';
 import { symbolActivator } from './globals';
 import { ActivateParams2, ActivateParams2WithLookup } from './observableInterfaces';
 

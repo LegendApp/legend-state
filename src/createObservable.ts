@@ -1,11 +1,7 @@
+import { Observable, ObservablePrimitive } from './observableTypes';
 import { cloneFunction, setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
-import type {
-    ClassConstructor,
-    ObservableObjectOrArray,
-    ObservablePrimitive,
-    ObservableRoot,
-} from './observableInterfaces';
+import type { ClassConstructor, ObservableRoot } from './observableInterfaces';
 import { NodeValue } from './observableInterfaces';
 
 export function createObservable<T>(
@@ -14,7 +10,7 @@ export function createObservable<T>(
     extractPromise: Function,
     createObject: Function,
     createPrimitive?: Function,
-): ObservablePrimitive<T> | ObservableObjectOrArray<T> {
+): Observable<T> {
     const valueIsPromise = isPromise<T>(value);
     const valueIsFunction = isFunction(value);
 
@@ -35,12 +31,12 @@ export function createObservable<T>(
 
     const obs = prim
         ? (new (createPrimitive as ClassConstructor<T>)(node) as ObservablePrimitive<T>)
-        : (createObject(node) as ObservableObjectOrArray<T>);
+        : (createObject(node) as Observable<T>);
 
     if (valueIsPromise) {
         setNodeValue(node, undefined);
         extractPromise(node, value);
     }
 
-    return obs;
+    return obs as any;
 }

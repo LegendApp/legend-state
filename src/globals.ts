@@ -1,6 +1,6 @@
-import { ObservableReadable, ObservablePrimitive, Computed, Observable, ObservableComputed } from './observableTypes';
 import { isChildNodeValue, isFunction, isObject } from './is';
 import { ActivateParams2WithLookup, NodeValue, UpdateFn } from './observableInterfaces';
+import { Observable, ObservableComputed, ObservablePrimitive, ObservableReadable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');

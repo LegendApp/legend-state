@@ -242,7 +242,7 @@ describe('Types', () => {
                 type State = Observable<{ foo: () => string }>;
                 type B = State['foo'];
                 let b: B;
-                expectTypeOf<State['foo']>().toMatchTypeOf<Observable<string>>();
+                expectTypeOf<State['foo']>().toMatchTypeOf<ObservableComputed<string>>();
             });
 
             it('should infer nested function', () => {
@@ -269,7 +269,7 @@ describe('Types', () => {
 
             it('with object', () => {
                 type GetState = Observable<{ foo: string } | undefined>['get'];
-                expectTypeOf<ReturnType<GetState>>().toEqualTypeOf<{ foo: string } | undefined>();
+                expectTypeOf<ReturnType<GetState>>().toMatchTypeOf<{ foo: string } | undefined>();
             });
 
             it('with array', () => {

@@ -1,14 +1,10 @@
+import { ObservableWriteable } from './observableTypes';
 import { notify } from './batching';
 import { computed } from './computed';
 import { extractFunction, getChildNode, getNode, setNodeValue } from './globals';
 import { lockObservable } from './helpers';
 import { observable } from './observable';
-import {
-    ObservableProxy,
-    ObservableProxyLink,
-    ObservableProxyTwoWay,
-    Observable as ObservableWriteable,
-} from './observableInterfaces';
+import { ObservableProxy, ObservableProxyLink, ObservableProxyTwoWay } from './observableInterfaces';
 import { onChange } from './onChange';
 
 export function proxy<T, T2 = T>(

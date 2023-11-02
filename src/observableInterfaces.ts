@@ -495,7 +495,7 @@ interface BaseNodeValue {
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputedNew<any>>;
     lazy?: boolean | Function;
-    state?: Observable<ObservablePersistState>;
+    state?: ObservableNew<ObservablePersistState>;
     activated?: boolean;
     activationState2?: ActivateParams2 & { onError?: () => void; persistedRetry?: boolean };
 }

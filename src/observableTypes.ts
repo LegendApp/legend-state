@@ -4,10 +4,6 @@ import type { ListenerFn, ObservableBaseFns, TrackingType } from './observableIn
 export declare const __brand: unique symbol;
 export declare const __type: unique symbol;
 
-export type Brand<K, T> = { [__brand]: T; __type: K };
-type None = Brand<never, 'None'>;
-export type Activator<T> = Brand<T, 'Activator'>;
-
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
 type ArrayOverrideFnNames = 'find' | 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
 
@@ -22,6 +18,20 @@ type Readonly<T> = MakeReadonlyInner<T> & {
 type RemoveIndex<T> = {
     [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
 };
+
+type BuiltIns = String | Boolean | Number | Date | Error | RegExp | Array<any> | Function | Promise<any>;
+
+type IsUserDefinedObject<T> =
+    // We're considering only objects that are not function or arrays or instances of BuiltIns.
+    T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
+
+type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
+    ? t
+    : IsUserDefinedObject<T> extends true
+    ? T & {
+          [K in keyof T]: RemoveObservables<T[K]>;
+      }
+    : T;
 
 interface ObservableArray<T, U>
     extends ObservablePrimitive<T>,
@@ -54,8 +64,8 @@ interface ObservablePrimitive<T, T2 = T> extends ImmutableObservableBase<T>, Mut
 type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any>;
 
 interface ImmutableObservableBase<T> {
-    peek(): T;
-    get(trackingType?: TrackingType): T;
+    peek(): RemoveObservables<T>;
+    get(trackingType?: TrackingType): RemoveObservables<T>;
     onChange(
         cb: ListenerFn<T>,
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },

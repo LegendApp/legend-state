@@ -37,7 +37,6 @@ import type {
     GetOptions,
     ListenerParams,
     NodeValue,
-    ObservableObject,
     ObservablePersistState,
     ObservablePersistStateInternal,
     ObservableState,
@@ -46,7 +45,7 @@ import type {
     TrackingType,
     UpdateFn,
 } from './observableInterfaces';
-import { Observable } from './observableTypes';
+import { Observable, ObservableObject } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
 import { setupRetry } from './retry';
@@ -787,7 +786,7 @@ export function extractPromise(
             false,
             extractPromise,
             getProxy,
-        ) as ObservableObject<ObservablePersistState>;
+        );
     }
 
     value
@@ -865,8 +864,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let timeoutRetry: { current?: any };
     const attemptNum = { current: 0 };
     const activateFn = (isFunction(node) ? node : lazyFn) as () => any;
-    const refresh = () =>
-        (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
+    const refresh = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     observe(
         () => {
             // const params = createNodeActivationParams(node);
@@ -927,7 +925,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             }
             wasPromise = wasPromise || isPromise(value);
 
-            (node.state as ObservableObject<ObservablePersistStateInternal>)?.refreshNum.get();
+            (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.get();
 
             return value;
         },
@@ -995,7 +993,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             false,
             extractPromise,
             getProxy,
-        ) as ObservableObject<ObservablePersistState>;
+        );
     }
     let isSetting = false;
     let isSettingFromSubscribe = false;
