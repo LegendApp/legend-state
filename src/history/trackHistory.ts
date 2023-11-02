@@ -32,5 +32,5 @@ export function trackHistory<T>(
         }
     });
 
-    return history;
+    return history as ObservableWriteable<Record<TimestampAsString, any>>;
 }

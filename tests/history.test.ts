@@ -82,7 +82,7 @@ describe('History', () => {
         expect(history.get()[historyKeys[0]]).toEqual({ test: 'hi', test2: 'a' });
     });
     test('Adding to empty object', () => {
-        const obs = observable({} as any);
+        const obs = observable({} as { test: string });
         const history = trackHistory(obs);
 
         obs.test.set('hello');

@@ -9,7 +9,7 @@ export function useObservableState<T>(initialValue?: T | (() => T) | (() => Prom
             // Wrap the return array in a Proxy to detect whether the value is accessed
             new Proxy(
                 [
-                    observable<T>((isFunction(initialValue) ? initialValue() : initialValue) as T),
+                    observable<T>((isFunction(initialValue) ? initialValue() : initialValue) as any),
                     // Second element of the array just needs to exist for the Proxy to access it
                     // but we can't ensure it's updated with the real value, and it doesn't really matter since it's proxied,
                     // so just make it undefined. Alternatively the Proxy handler could manually return 2 for the "length" prop

@@ -60,6 +60,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state.isLoadedLocal);
 
         obs['test'].set({ id: 'test', text: 'hi' });
@@ -73,8 +74,10 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state.isLoadedLocal);
 
+        // @ts-expect-error asdf
         obs.test.test2.set({ text: 'hi' });
 
         return expectIDB([{ test2: { text: 'hi' }, id: 'test' }]);
@@ -86,6 +89,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state.isLoadedLocal);
 
         obs['test'].set({ id: 'test', text: 'hi' });
@@ -99,6 +103,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state2.isLoadedLocal);
 
         expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
@@ -110,6 +115,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state.isLoadedLocal);
 
         obs.set({ test: { id: 'test', text: 'hi' } });
@@ -124,6 +130,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state2.isLoadedLocal);
 
         expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
@@ -137,6 +144,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state.isLoadedLocal);
 
         obs['test2'].set({ text: 'hi' });
@@ -150,6 +158,7 @@ describe('Persist IDB', () => {
             local: TableName,
         });
 
+        // @ts-expect-error asdf
         await when(state2.isLoadedLocal);
 
         expect(obs2.get()).toEqual({ test2: { id: 'test2', text: 'hi' } });

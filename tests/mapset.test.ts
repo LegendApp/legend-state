@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { ObservableReadable } from '../src/observableTypes';
 import { isObservable } from '../src/globals';
 import { observable } from '../src/observable';
-import { Change, ObservableReadable, TrackingType } from '../src/observableInterfaces';
+import { Change, TrackingType } from '../src/observableInterfaces';
 
 function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
     const ret = jest.fn();

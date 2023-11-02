@@ -145,11 +145,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? [NT] extends [boolean]
         ? ObservableBoolean
         : ObservablePrimitive<T>
-    : // : [NT] extends [Computed<infer U, infer U2>]
-    // ? U2 extends None
-    //     ? ObservableComputed<U>
-    //     : ObservableComputedTwoWay<U, U2>
-    NT extends Map<any, any> | WeakMap<any, any>
+    : NT extends Map<any, any> | WeakMap<any, any>
     ? ObservableMap<NT>
     : NT extends Set<infer U>
     ? ObservableSet<Set<UndefinedIf<U, IsNullable<T>>>>
