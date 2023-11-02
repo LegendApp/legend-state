@@ -1080,6 +1080,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             value = initial;
         }
         let isSetting = false;
+        let isSettingFromSubscribe = false;
         let timeoutRetry: { current?: any };
         if (!node.state) {
             node.state = createObservable<ObservableState>(
@@ -1094,7 +1095,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         if (onSet) {
             const doSet = (params: ListenerParams) => {
                 // Don't call the set if this is the first value coming in
-                if (!isSetting) {
+                if (!isSetting || isSettingFromSubscribe) {
                     if (
                         node.state!.isLoaded.get() &&
                         (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath))
@@ -1112,7 +1113,14 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             }
                             isSetting = true;
                             batch(
-                                () => onSet(params, { node, update, refresh, onError } as OnSetExtra),
+                                () =>
+                                    onSet(params, {
+                                        node,
+                                        update,
+                                        refresh,
+                                        onError,
+                                        fromSubscribe: isSettingFromSubscribe,
+                                    } as OnSetExtra),
                                 () => {
                                     isSetting = false;
                                 },
@@ -1133,7 +1141,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             // TODO Better message
             console.log('[legend-state] Using retryOptions without setting up persistence first');
         }
-        const update: UpdateFn = ({ value, mode }: { value: any; mode?: 'assign' | 'set' | 'dateModified' }) => {
+        const update: UpdateFn = ({ value, mode }) => {
             // TODO: This isSetting might not be necessary? Tests still work if removing it.
             // Write tests that would break it if removed? I'd guess a combination of subscribe and
             if (!isSetting) {
@@ -1148,7 +1156,12 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         };
 
         if (subscribe) {
-            subscribe({ node, update, refresh } as SubscribeOptions);
+            const updateFromSubscribe: UpdateFn = (params) => {
+                isSettingFromSubscribe = true;
+                update(params);
+                isSettingFromSubscribe = false;
+            };
+            subscribe({ node, update: updateFromSubscribe, refresh } as SubscribeOptions);
         }
 
         return { update, value };

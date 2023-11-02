@@ -3021,6 +3021,7 @@ describe('new computed', () => {
     });
     test('new computed with onChange and onSet', async () => {
         let wasSetTo: any;
+        let wasSetToFromSubscribe: boolean | undefined;
         let numRuns = 0;
         const obs = observable<{ child: { test: string } }>({
             // @ts-expect-error asdf
@@ -3031,8 +3032,9 @@ describe('new computed', () => {
                         test: 'hi',
                     };
                 },
-                onSet: ({ value }) => {
+                onSet: ({ value }, { fromSubscribe }) => {
                     wasSetTo = value;
+                    wasSetToFromSubscribe = fromSubscribe;
                 },
                 subscribe: ({ update }) => {
                     setTimeout(() => {
@@ -3046,7 +3048,8 @@ describe('new computed', () => {
         await promiseTimeout(5);
 
         expect(obs.child.test.get()).toEqual('hello');
-        expect(wasSetTo).toEqual(undefined);
+        expect(wasSetTo).toEqual({ test: 'hello' });
+        expect(wasSetToFromSubscribe).toEqual(true);
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
         obs.child.test.set('hello!');
         expect(wasSetTo).toEqual({ test: 'hello!' });
@@ -3084,21 +3087,22 @@ describe('new computed', () => {
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: async ({ onSet, subscribe }) => {
-                onSet(({ value }) => {
+            // @ts-expect-error asdf
+            child: activator({
+                onSet: ({ value }) => {
+                    // @ts-expect-error asdf
                     other.set(value.test);
-                });
-                subscribe(({ update }) => {
+                },
+                subscribe: ({ update }) => {
                     setTimeout(() => {
                         update({ value: { test: 'hello' } });
                     }, 5);
-                });
-
-                await promiseTimeout(0);
-                return {
-                    test: other.get(),
-                };
-            },
+                },
+                get: async () => {
+                    await promiseTimeout(0);
+                    return other.get();
+                },
+            }),
         });
 
         expect(obs.child.test.get()).toEqual(undefined);

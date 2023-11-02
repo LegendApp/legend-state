@@ -602,6 +602,7 @@ export interface OnSetExtra {
     node: NodeValue;
     update: UpdateFn;
     refresh: () => void;
+    fromSubscribe: boolean | undefined;
 }
 export interface SubscribeOptions {
     node: NodeValue;

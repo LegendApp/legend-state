@@ -107,6 +107,7 @@ export function persistActivateNode() {
                                         onError?.();
                                     },
                                     refresh,
+                                    fromSubscribe: false,
                                 });
                                 if (!didError) {
                                     resolve({ changes, dateModified: maxModified || undefined });
@@ -195,6 +196,7 @@ export function persistActivateNode() {
                                         onError?.();
                                     },
                                     refresh,
+                                    fromSubscribe: false,
                                 });
                                 if (!didError) {
                                     resolve({ changes, dateModified: maxModified || undefined });
