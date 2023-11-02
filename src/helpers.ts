@@ -106,7 +106,7 @@ export function setInObservableAtPath(
     }
     // Assign if possible, or set otherwise
     else if (mode === 'assign' && (o as Observable).assign && isObject(o.peek())) {
-        (o as ObservableObject).assign(v);
+        (o as Observable<{}>).assign(v);
     } else {
         o.set(v);
     }

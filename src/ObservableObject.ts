@@ -37,15 +37,13 @@ import type {
     GetOptions,
     ListenerParams,
     NodeValue,
-    ObservablePersistState,
     ObservablePersistStateInternal,
-    ObservableState,
     OnSetExtra,
     SubscribeOptions,
     TrackingType,
     UpdateFn,
 } from './observableInterfaces';
-import { Observable, ObservableObject } from './observableTypes';
+import { Observable, ObservableObject, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
 import { setupRetry } from './retry';
@@ -786,7 +784,7 @@ export function extractPromise(
             false,
             extractPromise,
             getProxy,
-        );
+        ) as any;
     }
 
     value
@@ -993,7 +991,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             false,
             extractPromise,
             getProxy,
-        );
+        ) as any;
     }
     let isSetting = false;
     let isSettingFromSubscribe = false;

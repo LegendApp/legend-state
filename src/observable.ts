@@ -1,9 +1,8 @@
-import { globalState } from './globals';
 import { extractPromise, getProxy } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
-import type { WithState } from './observableInterfaces';
-import type { Observable, ObservablePrimitive } from './observableTypes';
+import { globalState } from './globals';
+import type { Observable, ObservablePrimitive, WithState } from './observableTypes';
 
 // Allow input types to have functions in them
 type ValueOrFunction<T> = T extends Function ? T : T | (() => T | Promise<T>);

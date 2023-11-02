@@ -12,10 +12,10 @@ export function enableReactUse() {
 // Types:
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { ObservableBaseFns } from '@legendapp/state';
+import type { ImmutableObservableBase } from '@legendapp/state';
 
 declare module '@legendapp/state' {
-    interface ObservableBaseFns<T> {
+    interface ImmutableObservableBase<T> {
         use(options?: UseSelectorOptions): T;
     }
 }

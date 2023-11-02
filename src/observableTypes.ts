@@ -1,4 +1,4 @@
-import type { ListenerFn, ObservableBaseFns, TrackingType } from './observableInterfaces';
+import type { ListenerFn, TrackingType } from './observableInterfaces';
 
 /* branded types */
 export declare const __brand: unique symbol;
@@ -120,11 +120,11 @@ type ObservableFunctionChildren<T> = {
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
 
-interface ObservableState {
+export interface ObservableState {
     isLoaded: boolean;
     error?: Error;
 }
-interface WithState {
+export interface WithState {
     state: ObservableState; // TODOV3: remove this
     _state: ObservableState;
 }
@@ -165,14 +165,14 @@ type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type Observable<T = any> = ObservableNode<T>; // & {};
 
 type ObservableReadable<T = any> = ImmutableObservableBase<T>;
-type ObservableWriteable<T = any> = MutableObservableBase<T, T>;
+type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T, T>;
 
 export type {
     ObservableComputed,
     ObservableComputedTwoWay,
     Observable,
     ObservableBoolean,
-    ObservableObject,
+    Observable as ObservableObject,
     ObservablePrimitive,
     ObservableReadable,
     ObservableWriteable,

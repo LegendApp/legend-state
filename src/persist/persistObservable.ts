@@ -10,7 +10,6 @@ import type {
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
     ObservablePersistState,
-    ObservablePersistStateInternal,
     ObservableReadable,
     ObservableWriteable,
     PersistMetadata,
@@ -147,7 +146,7 @@ export function transformLoadData(
 async function updateMetadataImmediate<T>(
     obs: ObservableReadable<any>,
     localState: LocalState,
-    syncState: ObservableObject<ObservablePersistState>,
+    syncState: Observable<ObservablePersistState>,
     persistOptions: PersistOptions<T>,
     newMetadata: PersistMetadata,
 ) {
@@ -628,7 +627,7 @@ export function persistObservable<T extends WithoutState>(
     const obs = (
         isObservable(initialOrObservable)
             ? initialOrObservable
-            : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
+            : observable(isFunction(initialOrObservable) ? initialOrObservable() : (initialOrObservable as any))
     ) as Observable<any>;
     const node = getNode(obs);
 
@@ -648,7 +647,7 @@ export function persistObservable<T extends WithoutState>(
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 
-    const syncState = (node.state = observable<ObservablePersistStateInternal>({
+    const syncState = (node.state = observable({
         isLoadedLocal: false,
         isLoaded: false,
         isEnabledLocal: true,
@@ -657,7 +656,7 @@ export function persistObservable<T extends WithoutState>(
         clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
-    }));
+    }) as any);
 
     loadLocal(obs, persistOptions, syncState, localState);
 
@@ -834,15 +833,7 @@ export function persistObservable<T extends WithoutState>(
             sync();
         }
 
-        obs.onChange(
-            onObsChange.bind(
-                this,
-                obs as Observable<any>,
-                syncState,
-                localState,
-                persistOptions as PersistOptions<any>,
-            ),
-        );
+        obs.onChange(onObsChange.bind(this, obs as any, syncState, localState, persistOptions as PersistOptions<any>));
     });
 
     return obs as any;
