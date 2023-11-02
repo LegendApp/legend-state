@@ -76,7 +76,7 @@ export interface ImmutableObservableBase<T> {
 }
 
 interface MutableObservableBase<T, T2> {
-    set(value: (T & T2) | ((prev: T & T2) => T & T2)): Observable<T>;
+    set(value: (T & T2) | Promise<T & T2> | ((prev: T & T2) => T & T2) | Observable<T & T2>): Observable<T>;
     delete(): void;
 }
 
@@ -121,10 +121,21 @@ type ObservableFunctionChildren<T> = {
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
 
+export interface ObservableState {
+    isLoaded: boolean;
+    error?: Error;
+}
+interface WithState {
+    state: ObservableState; // TODOV3: remove this
+    _state: ObservableState;
+}
+
 type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that T is ONLY undefined or null
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
+    : [T] extends [Promise<infer t>]
+    ? Observable<t> & Observable<WithState>
     : [NT] extends [Primitive]
     ? [NT] extends [boolean]
         ? ObservableBoolean
@@ -215,33 +226,3 @@ it('nested nullable array', () => {
     const arr = {} as NullableArray;
     arr.foo[0].get();
 });
-
-type StripFns<T> = T extends () => infer t
-    ? StripFns<t>
-    : {
-          [K in keyof T]: StripFns<T[K]>;
-      };
-
-// {
-//     [K in keyof T]: T[K] extends () => infer t ? t & StripFns<t> : T[K] & StripFns<T[K]>;
-// };
-
-type P = { child: { test: string } };
-
-// type ObservableReturnType<T> = {
-//     [K in keyof T]: T[K] extends object ? ObservableReturnType<T[K]> : T[K];
-// };
-
-type A = StripFns<{ child: { test: () => string } }>;
-
-function Fn<T>(val: T) {
-    return val;
-}
-
-const a = Fn(() => 'hi');
-
-type AllowFns<T> = (T extends () => infer t ? T | t : T | (() => T)) & {
-    [K in keyof T]: StripFns<T[K]>;
-};
-
-type B = AllowFns<{ child: { test: () => string } }>;
