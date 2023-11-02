@@ -565,11 +565,11 @@ export interface ActivateGetParams {
 }
 export interface ActivateParams2<T = any> {
     // TODO Merge params and extra
-    onSet?: (params: ListenerParams<T>, extra: OnSetExtra) => void | Promise<any>;
+    onSet?: (params: ListenerParams<T extends Promise<infer t> ? t : T>, extra: OnSetExtra) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T extends Promise<infer t> ? t : T;
-    get?: (params: ActivateGetParams) => Promise<T> | T;
+    get?: (params: ActivateGetParams) => T;
     retry?: RetryOptions;
     mode?: 'assign' | 'set' | 'dateModified';
 }
