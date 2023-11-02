@@ -2,7 +2,6 @@ import { expectTypeOf } from 'expect-type';
 import { observable } from '../src/observable';
 import { PromiseInfo } from '../src/nodeValueTypes';
 import { Computed, Observable } from 'src/observableTypes';
-import { ActivatorFunction } from 'src/observableInterfaces';
 
 describe('Types', () => {
     // describe('observable', () => {
@@ -255,19 +254,7 @@ describe('Types', () => {
 
             it('should make nested function optional if parent is optional', () => {
                 type State = Observable<{ foo?: { bar: () => void } }>;
-                type A = State['foo'];
                 expectTypeOf<State['foo']['bar']>().toEqualTypeOf<(() => void) | undefined>();
-            });
-        });
-
-        describe('with activator', () => {
-            it('should infer activator', () => {
-                type State = Observable<ActivatorFunction<string>>;
-                expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
-            });
-            it('should infer activator in child', () => {
-                type State = Observable<{ child: ActivatorFunction<string> }>;
-                expectTypeOf<State['child']['get']>().returns.toEqualTypeOf<string>();
             });
         });
 

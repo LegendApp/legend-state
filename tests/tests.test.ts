@@ -2948,7 +2948,7 @@ describe('setAtPath', () => {
 });
 describe('new computed', () => {
     test('new computed basic', () => {
-        const obs = observable({
+        const obs = observable<{ child: { test: string } }>({
             child: () => {
                 return {
                     test: 'hello',
@@ -3024,7 +3024,6 @@ describe('new computed', () => {
     test('new computed with onChange and onSet other observable', async () => {
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: activator({
                 onSet: ({ value }) => {
                     other.set(value.test);
@@ -3053,10 +3052,8 @@ describe('new computed', () => {
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            // @ts-expect-error asdf
             child: activator({
                 onSet: ({ value }) => {
-                    // @ts-expect-error asdf
                     other.set(value.test);
                 },
                 subscribe: ({ update }) => {
@@ -3066,7 +3063,7 @@ describe('new computed', () => {
                 },
                 get: async () => {
                     await promiseTimeout(0);
-                    return other.get();
+                    return { test: other.get() };
                 },
             }),
         });

@@ -1,5 +1,4 @@
 import { expectTypeOf } from 'expect-type';
-import { ActivatorFunction } from 'src/observableInterfaces';
 
 /* branded types */
 export declare const __brand: unique symbol;
@@ -113,9 +112,7 @@ type ObservableChildren<T, Nullable = IsNullable<T>> = {
     [K in keyof T]-?: Observable<UndefinedIf<T[K], Nullable>>;
 };
 type ObservableFunctionChildren<T> = {
-    [K in keyof T]-?: T[K] extends ActivatorFunction<infer t>
-        ? Observable<t>
-        : T[K] extends () => Promise<infer t> | infer t
+    [K in keyof T]-?: T[K] extends () => Promise<infer t> | infer t
         ? t extends void
             ? T[K]
             : Observable<t> & T[K]
@@ -128,10 +125,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
-    : [T] extends [ActivatorFunction<infer t>]
-    ? Observable<t>
-    : // : T extends () => infer t ? Observable<t>
-    [NT] extends [Primitive]
+    : [NT] extends [Primitive]
     ? [NT] extends [boolean]
         ? ObservableBoolean
         : ObservablePrimitive<T>
@@ -155,13 +149,13 @@ type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type Observable<T = any> = ObservableNode<T>; // & {};
 
 export type {
-    Observable,
     Computed,
-    TrackingType,
     ListenerFn,
-    ObservablePrimitive,
+    Observable,
     ObservableBoolean,
     ObservableObject,
+    ObservablePrimitive,
+    TrackingType,
 };
 
 /* some temporary tests */

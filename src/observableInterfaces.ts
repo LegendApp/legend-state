@@ -106,10 +106,6 @@ type NonPrimitiveKeys<T> = Pick<T, { [K in keyof T]-?: T[K] extends Primitive ? 
 
 type Recurse<T, K extends keyof T, TRecurse> = T[K] extends ObservableReadable
     ? T[K]
-    : T[K] extends Activator<infer t>
-    ? Observable<t>
-    : T[K] extends ActivatorFunction<infer t>
-    ? Observable<t>
     : [T[K]] extends [undefined | null]
     ? ObservablePrimitive<T[K]>
     : T[K] extends Promise<infer t>
@@ -568,7 +564,7 @@ export interface ActivateParams2<T = any> {
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T extends Promise<infer t> ? t : T;
-    get?: (params: ActivateGetParams) => T;
+    get?: (params: ActivateGetParams) => Promise<T> | T;
     retry?: RetryOptions;
     mode?: 'assign' | 'set' | 'dateModified';
 }
@@ -604,5 +600,3 @@ export interface CacheReturnValue {
     dateModified: number;
     value: any;
 }
-export type Activator<T> = { [symbolActivator]: ActivateParams2<T> };
-export type ActivatorFunction<T> = () => Activator<T>;
