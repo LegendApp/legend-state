@@ -1,8 +1,4 @@
-import type { ListenerFn, TrackingType } from './observableInterfaces';
-
-/* branded types */
-export declare const __brand: unique symbol;
-export declare const __type: unique symbol;
+import type { GetOptions, ListenerFn, TrackingType } from './observableInterfaces';
 
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
 type ArrayOverrideFnNames = 'find' | 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
@@ -65,7 +61,7 @@ type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any
 
 interface ImmutableObservableBase<T> {
     peek(): RemoveObservables<T>;
-    get(trackingType?: TrackingType): RemoveObservables<T>;
+    get(trackingType?: TrackingType | GetOptions): RemoveObservables<T>;
     onChange(
         cb: ListenerFn<T>,
         options?: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean },
