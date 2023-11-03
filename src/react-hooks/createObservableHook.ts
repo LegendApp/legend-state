@@ -6,7 +6,7 @@ function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefin
     React.useState = function useState(initialState: TRet | (() => TRet)) {
         const obs =
             refObs.current ??
-            (refObs.current = observable(isFunction(initialState) ? initialState() : initialState) as Observable<TRet>);
+            (refObs.current = observable((isFunction(initialState) ? initialState() : initialState) as any) as any);
         return [obs.get() as TRet, obs.set] as [TRet, React.Dispatch<React.SetStateAction<TRet>>];
     };
     // @ts-expect-error Types don't match React's expected types
@@ -21,7 +21,7 @@ function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefin
                 initializerArg !== undefined && isFunction(initializerArg)
                     ? initializer(initializerArg)
                     : initializerArg,
-            ) as Observable<TRet>);
+            ) as any);
         const dispatch = (action: any) => {
             obs.set(reducer(obs.get(), action));
         };

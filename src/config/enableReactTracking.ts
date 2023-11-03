@@ -60,11 +60,24 @@ export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptio
 
 // Types:
 
+type BuiltIns = String | Boolean | Number | Date | Error | RegExp | Array<any> | Function | Promise<any>;
+type IsUserDefinedObject<T> =
+    // Only objects that are not function or arrays or instances of BuiltIns.
+    T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
+
+type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
+    ? t
+    : IsUserDefinedObject<T> extends true
+    ? T & {
+          [K in keyof T]: RemoveObservables<T[K]>;
+      }
+    : T;
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { GetOptions, ImmutableObservableBase } from '@legendapp/state';
 
 declare module '@legendapp/state' {
     interface ImmutableObservableBase<T> {
-        get(options?: TrackingType | (GetOptions & { suspense?: boolean })): T;
+        get(options?: TrackingType | GetOptions | { suspense?: boolean }): RemoveObservables<T>;
     }
 }

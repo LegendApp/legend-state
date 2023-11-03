@@ -175,7 +175,7 @@ export function useObservableQuery<
         // If there is a mutator watch for changes as long as they don't come from the the query observer
         if (mutationOptions) {
             observe(() => {
-                const data = obs.data.get();
+                const data = (obs as any).data.get();
                 // Don't want to call mutate if there's no data or this coming from the query changing
                 if (data && !isSetting) {
                     mutator.mutate(data);

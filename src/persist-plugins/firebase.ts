@@ -3,6 +3,7 @@ import {
     ObservablePersistRemoteClass,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
+    ObservablePrimitive,
     ObservableReadable,
     PersistOptions,
     QueryByModified,
@@ -91,7 +92,7 @@ interface SaveState {
     timeout?: any;
     pendingSaves: Map<string, PendingSaves>;
     savingSaves?: Map<string, PendingSaves>;
-    eventSaved?: Observable<true | Error | undefined>;
+    eventSaved?: ObservablePrimitive<true | Error | undefined>;
     numSavesPending: Observable<number>;
     pendingSaveResults: Map<
         string,
@@ -120,7 +121,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected fns: FirebaseFns;
     private _pathsLoadStatus = observable<Record<string, LoadStatus>>({});
     private SaveTimeout;
-    private user: Observable<string>;
+    private user: Observable<string | undefined | null>;
     private listenErrors: Map<
         any,
         {
@@ -140,7 +141,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
     constructor(fns: FirebaseFns) {
         this.fns = fns;
-        this.user = observablePrimitive<string>();
+        this.user = observablePrimitive();
         this.SaveTimeout = observablePersistConfiguration?.remoteOptions?.saveTimeout ?? 500;
 
         if (this.fns.isInitialized()) {
