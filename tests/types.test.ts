@@ -219,7 +219,7 @@ describe('Types', () => {
 
         describe('with computed', () => {
             it('should infer computed', () => {
-                type State = Observable<ObservableComputed<string>>;
+                type State = ObservableComputed<string>;
                 expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
                 expectTypeOf<State>().not.toHaveProperty('set');
             });

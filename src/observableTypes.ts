@@ -21,10 +21,10 @@ type IsUserDefinedObject<T> =
     // Only objects that are not function or arrays or instances of BuiltIns.
     T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
 
-type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
+export type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
     ? t
     : IsUserDefinedObject<T> extends true
-    ? T & {
+    ? {
           [K in keyof T]: RemoveObservables<T[K]>;
       }
     : T;
@@ -69,7 +69,13 @@ interface ImmutableObservableBase<T> {
 }
 
 interface MutableObservableBase<T, T2> {
-    set(value: (T & T2) | Promise<T & T2> | ((prev: T & T2) => T & T2) | Observable<T & T2>): Observable<T>;
+    set(
+        value:
+            | RemoveObservables<T & T2>
+            | Promise<RemoveObservables<T & T2>>
+            | ((prev: RemoveObservables<T & T2>) => RemoveObservables<T & T2>)
+            | Observable<RemoveObservables<T & T2>>,
+    ): Observable<T>;
     delete(): void;
 }
 
@@ -124,13 +130,21 @@ export interface WithState {
     state: ObservableState; // TODOV3: remove this
     _state: ObservableState;
 }
+export interface WithStateObs {
+    state: Observable<ObservableState>; // TODOV3: remove this
+    _state: Observable<ObservableState>;
+}
+
+type MakeObservableObject<T> = ObservableObject<ObservableProps<T> & NonObservableProps<T>> &
+    ObservableChildren<ObservableProps<T>> &
+    ObservableFunctionChildren<NonObservableProps<T>>;
 
 type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that T is ONLY undefined or null
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
     : [NT] extends [Promise<infer t>]
-    ? Observable<t> & Observable<WithState>
+    ? Observable<t> & WithStateObs
     : [T] extends [() => infer t]
     ? t extends Observable
         ? t
@@ -149,9 +163,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableSet<NT> // TODO what to do here with nullable? WeakKey is type object | symbol
     : NT extends Array<infer U>
     ? ObservableArray<T, U> & ObservableChildren<T>
-    : ObservableObject<ObservableProps<T> & NonObservableProps<T>> &
-          ObservableChildren<ObservableProps<T>> &
-          ObservableFunctionChildren<NonObservableProps<T>>;
+    : MakeObservableObject<T>;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type Observable<T = any> = ObservableNode<T>; // & {};

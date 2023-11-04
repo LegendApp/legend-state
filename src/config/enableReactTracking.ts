@@ -8,6 +8,7 @@ import {
 } from '@legendapp/state';
 import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
 import { createContext, useContext } from 'react';
+import type { RemoveObservables } from '../observableTypes';
 // @ts-expect-error Internals
 import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals } from 'react';
 
@@ -59,19 +60,6 @@ export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptio
 }
 
 // Types:
-
-type BuiltIns = String | Boolean | Number | Date | Error | RegExp | Array<any> | Function | Promise<any>;
-type IsUserDefinedObject<T> =
-    // Only objects that are not function or arrays or instances of BuiltIns.
-    T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
-
-type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
-    ? t
-    : IsUserDefinedObject<T> extends true
-    ? T & {
-          [K in keyof T]: RemoveObservables<T[K]>;
-      }
-    : T;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { GetOptions, ImmutableObservableBase } from '@legendapp/state';
