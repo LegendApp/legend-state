@@ -513,6 +513,22 @@ describe('Listeners', () => {
             { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
         ]);
     });
+    test('Start with undefined at deep property', () => {
+        const obs = observable<{ test?: { test2: string } }>({});
+        const handler = expectChangeHandler(obs);
+        obs.test.test2.set('hi');
+        expect(handler).toHaveBeenCalledWith({ test: { test2: 'hi' } }, {}, [
+            { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
+        ]);
+    });
+    test('Start with undefined at deep property 2', () => {
+        const obs = observable<{ test?: { test2: string } } | undefined>(undefined);
+        const handler = expectChangeHandler(obs);
+        obs.test.test2.set('hi');
+        expect(handler).toHaveBeenCalledWith({ test: { test2: 'hi' } }, {}, [
+            { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
+        ]);
+    });
     test('Start undefined assign something', () => {
         interface Data {
             test?: undefined | { test2: string };
@@ -523,8 +539,8 @@ describe('Listeners', () => {
         obs.test.assign({ test2: 'hi' });
 
         // TODO: The previous value here is not totally correct because it filled out the path to make set work
-        expect(handler).toHaveBeenCalledWith({ test: { test2: 'hi' } }, { test: { test2: undefined } }, [
-            { path: ['test', 'test2'], pathTypes: ['object', 'object'], valueAtPath: 'hi', prevAtPath: undefined },
+        expect(handler).toHaveBeenCalledWith({ test: { test2: 'hi' } }, { test: undefined }, [
+            { path: ['test'], pathTypes: ['object'], valueAtPath: { test2: 'hi' }, prevAtPath: undefined },
         ]);
     });
     test('Set with object should only fire listeners once', () => {

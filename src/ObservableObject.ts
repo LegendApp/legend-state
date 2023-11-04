@@ -564,7 +564,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-export function set(node: NodeValue, newValue?: any) {
+export function set(node: NodeValue, newValue?: any): Observable {
     if (node.parent) {
         return setKey(node.parent, node.key, newValue);
     } else {
@@ -581,19 +581,22 @@ function toggle(node: NodeValue) {
     }
 }
 
-function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
+function setKey(node: NodeValue, key: string, newValue?: any, level?: number): Observable {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
         }
     }
 
+    const isRoot = !node.parent && key === '_';
+
+    // TODOv3 root locking will be removed with old computeds
     if (node.root.locked && !node.root.set) {
         // This happens when modifying a locked observable such as a computed.
         // If merging this could be happening deep in a hierarchy so we don't want to throw errors so we'll just do nothing.
         // This could happen during persistence local load for example.
         if (globalState.isMerging) {
-            return;
+            return isRoot ? getProxy(node) : getProxy(node, key);
         } else {
             throw new Error(
                 process.env.NODE_ENV === 'development'
@@ -603,7 +606,9 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         }
     }
 
-    const isRoot = !node.parent && key === '_';
+    if (node.parent && !getNodeValue(node)) {
+        return set(node, { [key]: newValue });
+    }
 
     // Get the child node for updating and notifying
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key, isFunction(newValue) ? newValue : undefined);
