@@ -38,7 +38,7 @@ interface ObservableObjectFns<T, T2 = T> {
     assign(value: Partial<T & T2>): Observable<T>;
 }
 // TODO asdf Might not need T2
-interface ObservableObject<T = Record<string, any>, T2 = T>
+interface ObservableObjectFunctions<T = Record<string, any>, T2 = T>
     extends ObservablePrimitive<T, T2>,
         ObservableObjectFns<T, T2> {}
 
@@ -135,7 +135,7 @@ export interface WithStateObs {
     _state: Observable<ObservableState>;
 }
 
-type MakeObservableObject<T> = ObservableObject<ObservableProps<T> & NonObservableProps<T>> &
+type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObservableProps<T>> &
     ObservableChildren<ObservableProps<T>> &
     ObservableFunctionChildren<NonObservableProps<T>>;
 
@@ -163,7 +163,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableSet<NT> // TODO what to do here with nullable? WeakKey is type object | symbol
     : NT extends Array<infer U>
     ? ObservableArray<T, U> & ObservableChildren<T>
-    : MakeObservableObject<T>;
+    : ObservableObject<T>;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type Observable<T = any> = ObservableNode<T>; // & {};
@@ -176,7 +176,7 @@ export type {
     ObservableComputedTwoWay,
     Observable,
     ObservableBoolean,
-    Observable as ObservableObject,
+    ObservableObject,
     ObservablePrimitive,
     ObservableReadable,
     ObservableWriteable,

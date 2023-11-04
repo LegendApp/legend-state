@@ -42,13 +42,13 @@ import type {
     TrackingType,
     UpdateFn,
 } from './observableInterfaces';
-import { Observable, ObservableObject, ObservableState } from './observableTypes';
+import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
+import { ObservablePersistStateInternal } from './persistTypes';
 import { setupRetry } from './retry';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
-import { ObservablePersistStateInternal } from './persistTypes';
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -335,12 +335,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-export function getProxy(node: NodeValue, p?: string, asFunction?: Function): ObservableObject {
+export function getProxy(node: NodeValue, p?: string, asFunction?: Function): Observable {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p, asFunction);
 
     // Create a proxy if not already cached and return it
-    return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as ObservableObject<any>;
+    return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as Observable<any>;
 }
 
 const proxyHandler: ProxyHandler<any> = {

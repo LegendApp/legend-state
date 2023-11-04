@@ -1,4 +1,3 @@
-import type { Observable, ObservableObject, ObservableReadable, ObservableWriteable } from './observableTypes';
 import { beginBatch, endBatch } from './batching';
 import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
@@ -10,6 +9,7 @@ import type {
     Selector,
     TypeAtPath,
 } from './observableInterfaces';
+import type { Observable, ObservableReadable, ObservableWriteable } from './observableTypes';
 
 export function isEvent(obs: any): obs is ObservableEvent {
     return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
@@ -111,7 +111,10 @@ export function setInObservableAtPath(
         o.set(v);
     }
 }
-export function mergeIntoObservable<T extends ObservableObject | object>(target: T, ...sources: any[]): T {
+export function mergeIntoObservable<T extends ObservableWriteable<Record<string, any>> | object>(
+    target: T,
+    ...sources: any[]
+): T {
     beginBatch();
     globalState.isMerging = true;
     for (let i = 0; i < sources.length; i++) {

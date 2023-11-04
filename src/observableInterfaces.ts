@@ -154,7 +154,7 @@ export interface ActivateParams<T = any> {
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface ActivateParamsWithLookup<T extends Record<string, any> = Record<string, any>>
-    extends ActivateParams<RecordValue<T>> {
+    extends ActivateParams<T> {
     lookup: (key: string) => RecordValue<T> | Promise<RecordValue<T>>;
 }
 

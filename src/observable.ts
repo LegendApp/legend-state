@@ -14,10 +14,9 @@ type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
     ?
-          | (() => T | Promise<T>)
           | Promise<ValueOrFunctionKeys<T>>
           | ValueOrFunctionKeys<T>
-          | (() => ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>>)
+          | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)
     : ValueOrFunction<T>;
 
 export function observable<T>(): Observable<T | undefined>;
