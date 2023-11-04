@@ -32,7 +32,7 @@ import {
     isPromise,
 } from './is';
 import type {
-    ActivateParams2,
+    ActivateParams,
     ChildNodeValue,
     GetOptions,
     ListenerParams,
@@ -890,16 +890,16 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             }
                         },
                         initial: value.get(),
-                    } as ActivateParams2,
+                    } as ActivateParams,
                 };
             }
 
             if (isFunction(value)) {
                 value = value();
             }
-            const activated = value?.[symbolActivated] as ActivateParams2;
+            const activated = value?.[symbolActivated] as ActivateParams;
             if (activated) {
-                node.activationState2 = activated;
+                node.activationState = activated;
 
                 value = activated.initial;
             }
@@ -909,15 +909,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             // TODO: Is calling recursively bad? If so can it be fixed?
             if (!node.activated) {
                 node.activated = true;
-                const isCached = !!node.activationState2?.cache;
+                const isCached = !!node.activationState?.cache;
                 wasPromise = wasPromise || !!isCached;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
                 const { update: newUpdate, value: newValue } = activateNodeFn(node, refresh, !!wasPromise, value);
                 update = newUpdate;
                 value = newValue;
-            } else if (node.activationState2) {
-                if (!node.activationState2!.persistedRetry) {
-                    const activated = node.activationState2!;
+            } else if (node.activationState) {
+                if (!node.activationState!.persistedRetry) {
+                    const activated = node.activationState!;
                     value = activated.get?.({} as any) ?? activated.initial;
                 }
             }
@@ -930,8 +930,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         ({ value }) => {
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
-                    if (node.activationState2) {
-                        const { retry, initial } = node.activationState2!;
+                    if (node.activationState) {
+                        const { retry, initial } = node.activationState!;
                         let onError: (() => void) | undefined;
                         if (retry) {
                             if (timeoutRetry?.current) {
@@ -940,7 +940,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             const { handleError, timeout } = setupRetry(retry, refresh, attemptNum);
                             onError = handleError;
                             timeoutRetry = timeout;
-                            node.activationState2.onError = onError;
+                            node.activationState.onError = onError;
                         }
                         if (value && isPromise(value)) {
                             // Extract the promise to make it set the value/error when it comes in
@@ -996,8 +996,8 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     let isSetting = false;
     let isSettingFromSubscribe = false;
     let _mode: 'assign' | 'set' = 'set';
-    if (node.activationState2) {
-        const { onSet, subscribe, get, initial, retry, waitFor } = node.activationState2;
+    if (node.activationState) {
+        const { onSet, subscribe, get, initial, retry, waitFor } = node.activationState;
         // @ts-expect-error asdf
         const run = () => get!({ updateLastSync: noop, setMode: (mode) => (_mode = mode) });
         value = get
@@ -1055,11 +1055,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
 
             onChange(node, doSet as any, wasPromise ? undefined : { immediate: true });
         }
-        if (process.env.NODE_ENV === 'development' && node.activationState2!.cache) {
+        if (process.env.NODE_ENV === 'development' && node.activationState!.cache) {
             // TODO Better message
             console.log('[legend-state] Using cacheOptions without setting up persistence first');
         }
-        if (process.env.NODE_ENV === 'development' && node.activationState2!.retry) {
+        if (process.env.NODE_ENV === 'development' && node.activationState!.retry) {
             // TODO Better message
             console.log('[legend-state] Using retryOptions without setting up persistence first');
         }

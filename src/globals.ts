@@ -1,5 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { ActivateParams2WithLookup, NodeValue, UpdateFn } from './observableInterfaces';
+import { ActivateParamsWithLookup, NodeValue, UpdateFn } from './observableInterfaces';
 import { Observable, ObservableComputed, ObservablePrimitive, ObservableReadable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -130,8 +130,8 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
         if (asFunction) {
             child = Object.assign(cloneFunction(asFunction), child);
         } else {
-            if (node.activationState2) {
-                const { lookup } = node.activationState2 as ActivateParams2WithLookup<any>;
+            if (node.activationState) {
+                const { lookup } = node.activationState as ActivateParamsWithLookup<any>;
                 if (lookup) {
                     child = Object.assign(lookup.bind(node, key), child);
                 }

@@ -24,7 +24,7 @@ declare module '@legendapp/state' {
         dateModified: number;
         updateLastSync: (lastSync: number) => void;
     }
-    interface ActivateParams2<T> {
+    interface ActivateParams<T> {
         cache?: CacheOptions<any>;
     }
     interface OnSetExtra {

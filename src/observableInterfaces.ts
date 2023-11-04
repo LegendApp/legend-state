@@ -87,7 +87,7 @@ interface BaseNodeValue {
     lazy?: boolean | Function;
     state?: ObservableNew<ObservablePersistState>;
     activated?: boolean;
-    activationState2?: ActivateParams2 & { onError?: () => void; persistedRetry?: boolean };
+    activationState?: ActivateParams & { onError?: () => void; persistedRetry?: boolean };
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -142,7 +142,7 @@ export interface ActivateGetParams {
     updateLastSync: (lastSync: number) => void;
     setMode: (mode: 'assign' | 'set') => void;
 }
-export interface ActivateParams2<T = any> {
+export interface ActivateParams<T = any> {
     // TODO Merge params and extra
     onSet?: (params: ListenerParams<T extends Promise<infer t> ? t : T>, extra: OnSetExtra) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
@@ -153,10 +153,12 @@ export interface ActivateParams2<T = any> {
     mode?: 'assign' | 'set' | 'dateModified';
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface ActivateParams2WithLookup<T extends Record<string, any> = Record<string, any>>
-    extends ActivateParams2<RecordValue<T>> {
+export interface ActivateParamsWithLookup<T extends Record<string, any> = Record<string, any>>
+    extends ActivateParams<RecordValue<T>> {
     lookup: (key: string) => RecordValue<T> | Promise<RecordValue<T>>;
 }
+
+export type Activated<T> = T;
 
 export type UpdateFn = (params: {
     value: unknown;

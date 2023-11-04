@@ -1,9 +1,9 @@
 import { symbolActivated } from './globals';
-import { ActivateParams2, ActivateParams2WithLookup } from './observableInterfaces';
+import { ActivateParams, ActivateParamsWithLookup, Activated } from './observableInterfaces';
 
-export function activated<T>(params: ActivateParams2WithLookup<Record<string, T>>): Record<string, T>;
-export function activated<T>(params: ActivateParams2<T>): T;
-export function activated<T>(params: ActivateParams2<T>): T {
+export function activated<T>(params: ActivateParamsWithLookup<Record<string, T>>): Activated<Record<string, T>>;
+export function activated<T>(params: ActivateParams<T>): Activated<T>;
+export function activated<T>(params: ActivateParams<T>): Activated<T> {
     return (() => ({
         [symbolActivated]: params,
     })) as any;

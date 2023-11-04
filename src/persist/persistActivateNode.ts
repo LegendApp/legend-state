@@ -1,5 +1,5 @@
 import type {
-    ActivateParams2WithLookup,
+    ActivateParamsWithLookup,
     ListenerParams,
     NodeValue,
     Observable,
@@ -21,9 +21,9 @@ export function persistActivateNode() {
         wasPromise: boolean,
         newValue: any,
     ) {
-        if (node.activationState2) {
+        if (node.activationState) {
             const { get, initial, onSet, subscribe, cache, retry, waitFor } =
-                node.activationState2! as ActivateParams2WithLookup & { onError?: () => void };
+                node.activationState! as ActivateParamsWithLookup & { onError?: () => void };
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -61,7 +61,7 @@ export function persistActivateNode() {
                             }
                         };
                         if (retry) {
-                            node.activationState2!.persistedRetry = true;
+                            node.activationState!.persistedRetry = true;
                             if (timeoutRetry?.current) {
                                 clearTimeout(timeoutRetry.current);
                             }
