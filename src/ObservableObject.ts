@@ -14,7 +14,7 @@ import {
     isObservable,
     optimized,
     setNodeValue,
-    symbolActivator,
+    symbolActivated,
     symbolDelete,
     symbolGetNode,
     symbolOpaque,
@@ -875,7 +875,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 prevTarget$ = curTarget$;
                 curTarget$ = value;
                 value = {
-                    [symbolActivator]: {
+                    [symbolActivated]: {
                         onSet: ({ value: newValue, getPrevious }) => {
                             // Don't set the target observable if the target has changed since the last run
                             if (!prevTarget$ || curTarget$ === prevTarget$) {
@@ -897,7 +897,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (isFunction(value)) {
                 value = value();
             }
-            const activated = value?.[symbolActivator] as ActivateParams2;
+            const activated = value?.[symbolActivated] as ActivateParams2;
             if (activated) {
                 node.activationState2 = activated;
 

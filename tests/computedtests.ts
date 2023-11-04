@@ -3,7 +3,7 @@ import {
     Observable,
     ObservableReadable,
     TrackingType,
-    activator,
+    activated,
     beginBatch,
     endBatch,
     internal,
@@ -184,7 +184,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to two, set', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                         obs.test2.set(value);
@@ -200,7 +200,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to two, set child', () => {
             const obs = observable({ test: { a: 'hi' }, test2: false });
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                     },
@@ -214,7 +214,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to array, set', () => {
             const obs = observable([false, false, false, false, false]);
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value }) => {
                         obs.forEach((child) => child.set(value));
                     },
@@ -232,7 +232,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({ test: false, test2: false });
             const handler = expectChangeHandler(obs);
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                         obs.test2.set(value);
@@ -263,7 +263,7 @@ export const run = (isPersist: boolean) => {
         test('Computed has set before activation', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                         obs.test2.set(value);
@@ -294,7 +294,7 @@ export const run = (isPersist: boolean) => {
         test('Set child of computed', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value: { computedValue } }) => {
                         obs.test.set(computedValue);
                         obs.test2.set(computedValue);
@@ -311,7 +311,7 @@ export const run = (isPersist: boolean) => {
         test('Computed activates before set', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activator({
+                activated({
                     onSet: ({ value: { computedValue } }) => {
                         obs.test.set(computedValue);
                     },
@@ -343,7 +343,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable(0);
 
             const comp = observable<string>(
-                activator({
+                activated({
                     onSet: ({ value }) => {
                         obs.set(+value);
                     },
@@ -741,7 +741,7 @@ export const run = (isPersist: boolean) => {
             });
 
             const obs$ = observable({
-                sub: activator({
+                sub: activated({
                     onSet: ({ value }) => {
                         sub$.set(value);
                     },
@@ -800,7 +800,7 @@ export const run = (isPersist: boolean) => {
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
             const itemText = observable(
-                activator({
+                activated({
                     lookup: (key) => obs.items[key].text.get(),
                 }),
             );
@@ -835,9 +835,9 @@ export const run = (isPersist: boolean) => {
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
             const itemText = observable(
-                activator({
+                activated({
                     lookup: (key) =>
-                        activator({
+                        activated({
                             onSet: ({ value }) => {
                                 obs.items[key].text.set(value);
                             },
@@ -876,7 +876,7 @@ export const run = (isPersist: boolean) => {
         test('proxy link', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activator({
+                itemText: activated({
                     lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
@@ -915,7 +915,7 @@ export const run = (isPersist: boolean) => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemText: activator({
+                itemText: activated({
                     lookup: (key): Observable<string> => obs.items[key][obs.selector.get()],
                 }),
             });
@@ -942,7 +942,7 @@ export const run = (isPersist: boolean) => {
         test('raw value of proxy has all values', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activator({
+                itemText: activated({
                     lookup: (key): Observable<string> => obs.items[key].text,
                 }),
             });
@@ -973,7 +973,7 @@ export const run = (isPersist: boolean) => {
         test('listener on proxy works', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activator({
+                itemText: activated({
                     lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
@@ -1026,7 +1026,7 @@ export const run = (isPersist: boolean) => {
     describe('subscribing to computeds', () => {
         test('subscription with update', async () => {
             const obs = observable(
-                activator({
+                activated({
                     subscribe: ({ update }) => {
                         setTimeout(() => {
                             update({ value: 'hi there again' });
@@ -1048,7 +1048,7 @@ export const run = (isPersist: boolean) => {
         test('subscription with refresh', async () => {
             let num = 0;
             const obs = observable(
-                activator({
+                activated({
                     subscribe: ({ refresh }) => {
                         setTimeout(() => {
                             refresh();
@@ -1079,9 +1079,9 @@ export const run = (isPersist: boolean) => {
             expect(obs._state.isLoaded.get()).toEqual(true);
             expect(obs.get()).toEqual('hi there');
         });
-        test('isLoaded with activator', async () => {
+        test('isLoaded with activated', async () => {
             const obs = observable(
-                activator({
+                activated({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => resolve('hi there'), 0);
@@ -1100,7 +1100,7 @@ export const run = (isPersist: boolean) => {
         test('set does not get called by load', async () => {
             let didSet = false;
             const obs = observable(
-                activator({
+                activated({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => resolve('hi there'), 0);

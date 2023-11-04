@@ -1,4 +1,4 @@
-export { activator } from './src/activator';
+export { activated } from './src/activated';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
@@ -66,7 +66,7 @@ import {
     optimized,
     setNodeValue,
     symbolDelete,
-    symbolActivator,
+    symbolActivated,
 } from './src/globals';
 import { setAtPath } from './src/helpers';
 import { setupRetry } from './src/retry';
@@ -85,6 +85,6 @@ export const internal = {
     setAtPath,
     setNodeValue,
     setupRetry,
-    symbolActivator,
+    symbolActivated,
     symbolDelete,
 };

@@ -12,7 +12,7 @@ import type {
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, setupRetry, symbolActivator } = internal;
+const { getProxy, globalState, setupRetry, symbolActivated } = internal;
 
 export function persistActivateNode() {
     globalState.activateNode = function activateNodePersist(
@@ -43,10 +43,10 @@ export function persistActivateNode() {
                                     await whenReady(waitFor);
                                 }
                                 const nodeValue = getNodeValue(node);
-                                // TODO asdf: Why is this nodeValue a function or activator sometimes?
+                                // TODO asdf: Why is this nodeValue a function or activated sometimes?
                                 const value = await get!({
                                     value:
-                                        isFunction(nodeValue) || nodeValue?.[symbolActivator] ? undefined : nodeValue,
+                                        isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
                                     dateModified: params.dateModified!,
                                     updateLastSync,
                                     setMode,

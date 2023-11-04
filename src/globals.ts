@@ -7,7 +7,7 @@ export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
-export const symbolActivator = Symbol('activator');
+export const symbolActivated = Symbol('activated');
 
 // TODOV3 Remove these
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();

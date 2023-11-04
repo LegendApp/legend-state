@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { activator } from '../src/activator';
+import { activated } from '../src/activated';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
@@ -2989,7 +2989,7 @@ describe('new computed', () => {
         let wasSetToFromSubscribe: boolean | undefined;
         let numRuns = 0;
         const obs = observable({
-            child: activator({
+            child: activated({
                 get: () => {
                     numRuns++;
                     return {
@@ -3022,7 +3022,7 @@ describe('new computed', () => {
     test('new computed with onChange and onSet other observable', async () => {
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: activator({
+            child: activated({
                 onSet: ({ value }) => {
                     other.set(value.test);
                 },
@@ -3050,7 +3050,7 @@ describe('new computed', () => {
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: activator({
+            child: activated({
                 onSet: ({ value }) => {
                     other.set(value.test);
                 },
@@ -3075,7 +3075,7 @@ describe('new computed', () => {
     });
     test('new computed proxy', async () => {
         const obs = observable<{ child: Record<string, string> }>({
-            child: activator({
+            child: activated({
                 lookup: (key) => 'proxied_' + key,
             }),
         });

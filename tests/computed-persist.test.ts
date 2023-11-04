@@ -1,5 +1,5 @@
 import { persistObservable } from '../persist';
-import { activator } from '../src/activator';
+import { activated } from '../src/activated';
 import { observable } from '../src/observable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 import { when } from '../src/when';
@@ -22,7 +22,7 @@ describe('caching with new computed', () => {
     test('cache basic', async () => {
         localStorage.setItem('nodesbasic', JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
-            activator({
+            activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
                     local: 'nodesbasic',
@@ -49,7 +49,7 @@ describe('caching with new computed', () => {
     test('cache makes get receive params', async () => {
         localStorage.setItem('cachedprops', JSON.stringify('cached'));
         const nodes = observable(
-            activator({
+            activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
                     local: 'cachedprops',
@@ -72,7 +72,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('nodes__m', JSON.stringify({ modified: 1000 }));
 
         const nodes = observable(
-            activator({
+            activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
                     local: 'nodes',
@@ -101,7 +101,7 @@ describe('caching with new computed', () => {
 describe('dateModified with new computed', () => {
     test('dateModified from updateLastSync', async () => {
         const nodes = observable(
-            activator({
+            activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
                     local: 'nodes-dateModified',
@@ -131,7 +131,7 @@ describe('dateModified with new computed', () => {
     });
     test('dateModified from subscribe', async () => {
         const value = observable(
-            activator({
+            activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
                     local: 'dateModified2',
@@ -159,7 +159,7 @@ describe('retry', () => {
     test('retry a get', async () => {
         const attemptNum$ = observable(0);
         const obs$ = observable(
-            activator({
+            activated({
                 retry: {
                     delay: 1,
                 },
@@ -183,7 +183,7 @@ describe('retry', () => {
     test('retry a get through persist', async () => {
         const attemptNum$ = observable(0);
         const obs$ = observable(
-            activator({
+            activated({
                 cache: {
                     local: 'retrypersist',
                     pluginLocal: ObservablePersistLocalStorage,
@@ -212,7 +212,7 @@ describe('retry', () => {
         const attemptNum$ = observable(0);
         let saved = undefined;
         const obs$ = observable(
-            activator({
+            activated({
                 retry: {
                     delay: 1,
                 },
