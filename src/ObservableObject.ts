@@ -859,8 +859,8 @@ export function peek(node: NodeValue) {
 }
 
 function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
-    let prevTarget$: Observable<any>;
-    let curTarget$: Observable<any>;
+    // let prevTarget$: Observable<any>;
+    // let curTarget$: Observable<any>;
     let update: UpdateFn;
     let wasPromise: boolean | undefined;
     let timeoutRetry: { current?: any };
@@ -874,29 +874,32 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             // Run the function at this node
             let value = activateFn();
 
-            // If target is an observable, get() it to make sure we listen to its changes
-            // and set up an onSet to write changes back to it
+            // If target is an observable, make this node a link to it
             if (isObservable(value)) {
-                prevTarget$ = curTarget$;
-                curTarget$ = value;
-                value = {
-                    [symbolActivated]: {
-                        onSet: ({ value: newValue, getPrevious }) => {
-                            // Don't set the target observable if the target has changed since the last run
-                            if (!prevTarget$ || curTarget$ === prevTarget$) {
-                                // Set the node value back to what it was before before setting it.
-                                // This is a workaround for linked objects because it might not notify
-                                // if setting a property of an object
-                                // TODO: Is there a way to not do this? Or at least only do it in a
-                                // small subset of cases?
-                                setNodeValue(getNode(curTarget$), getPrevious());
-                                // Set the value on the curTarget
-                                curTarget$.set(newValue);
-                            }
-                        },
-                        initial: value.get(),
-                    } as ActivateParams,
-                };
+                // If the computed is a proxy to another observable
+                // link it to the target observable
+                const linkedNode = getNode(value);
+                const prevNode = node.linkedToNode;
+                node.linkedToNode = linkedNode;
+                if (!linkedNode.linkedFromNodes) {
+                    linkedNode.linkedFromNodes = new Set();
+                }
+                linkedNode.linkedFromNodes.add(node);
+                onChange(
+                    linkedNode,
+                    ({ value: newValue }) => {
+                        value = newValue;
+                        set(node, value);
+                    },
+                    { initial: true },
+                );
+
+                // If the target observable is different then notify for the change
+                if (prevNode) {
+                    const value = getNodeValue(linkedNode);
+                    const prevValue = getNodeValue(prevNode);
+                    notify(node, value, prevValue, 0);
+                }
             }
 
             if (isFunction(value)) {
