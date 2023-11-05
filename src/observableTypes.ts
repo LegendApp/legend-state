@@ -72,8 +72,8 @@ interface MutableObservableBase<T, T2> {
     set(
         value:
             | RemoveObservables<T & T2>
-            | Promise<RemoveObservables<T & T2>>
             | ((prev: RemoveObservables<T & T2>) => RemoveObservables<T & T2>)
+            | Promise<RemoveObservables<T & T2>>
             | Observable<RemoveObservables<T & T2>>,
     ): Observable<T>;
     delete(): void;
