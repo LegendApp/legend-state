@@ -67,6 +67,11 @@ export const run = (isPersist: boolean) => {
             const comp = observable(() => obs.test.get() + obs.test2.get());
             expect(comp.get()).toEqual(30);
         });
+        test('Child of computed', () => {
+            const obs = observable({ test: 10, test2: 20 });
+            const comp = observable({ totals: () => ({ sum: obs.test.get() + obs.test2.get() }) });
+            expect(comp.totals.sum.get()).toEqual(30);
+        });
         test('Observing computed runs twice, once to activate', () => {
             const obs = observable({ test: 10, test2: 20 });
             const comp = observable(() => obs.test.get() + obs.test2.get());
@@ -606,6 +611,11 @@ export const run = (isPersist: boolean) => {
             expect(isObservable(value.test)).toBe(false);
             expect(value.test === undefined);
         });
+        test('Child of computed with activated', () => {
+            const obs = observable({ test: 10, test2: 20 });
+            const comp = observable({ sum: activated({ get: () => obs.test.get() + obs.test2.get() }) });
+            expect(comp.sum.get()).toEqual(30);
+        });
         test('Computed in observable notifies to root', () => {
             const obs = observable({
                 text: 'hi',
@@ -631,7 +641,7 @@ export const run = (isPersist: boolean) => {
                 },
             ]);
         });
-        test('Accessing through proxy goes to computed and not parent object', () => {
+        test('Accessing through lookup goes to computed and not parent object', () => {
             const test = (): { child: string } => {
                 return { child: obs.text.get() + '!' };
             };
@@ -794,8 +804,8 @@ export const run = (isPersist: boolean) => {
             expect(obs$.get()).toEqual({ sub: { num: 4 } });
         });
     });
-    describe('proxy', () => {
-        test('proxy plain', () => {
+    describe('lookup', () => {
+        test('lookup plain', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
@@ -830,7 +840,7 @@ export const run = (isPersist: boolean) => {
                 },
             ]);
         });
-        test('proxy two-way', () => {
+        test('lookup two-way', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
@@ -873,7 +883,7 @@ export const run = (isPersist: boolean) => {
                 },
             ]);
         });
-        test('proxy link', () => {
+        test('lookup link', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
                 itemText: activated({
@@ -908,7 +918,7 @@ export const run = (isPersist: boolean) => {
                 },
             ]);
         });
-        test('proxy link with a get()', () => {
+        test('lookup link with a get()', () => {
             const obs = observable({
                 selector: 'text',
                 items: {
@@ -939,7 +949,53 @@ export const run = (isPersist: boolean) => {
                 },
             ]);
         });
-        test('raw value of proxy has all values', () => {
+        test('lookup into child', () => {
+            const obs = observable({
+                selector: 'text',
+                items: {
+                    test1: { text: 'hi', othertext: 'bye' },
+                    test2: { text: 'hello', othertext: 'goodbye' },
+                } as Record<string, Record<string, string>>,
+                itemLink: activated({
+                    lookup: (key): Observable<Record<string, string>> => obs.items[key],
+                }),
+            });
+            expect(obs.itemLink['test1'].text.get()).toEqual('hi');
+        });
+        test('lookup into child with undefined key', () => {
+            const obs = observable({
+                items: activated({
+                    get: () =>
+                        ({
+                            test1: { text: 'hi', othertext: 'bye' },
+                            test2: { text: 'hello', othertext: 'goodbye' },
+                        }) as Record<string, Record<string, string>>,
+                }),
+                itemLink: activated({
+                    lookup: (key): Observable<string> => {
+                        return obs.items[key].text;
+                    },
+                }),
+            });
+            expect(obs.itemLink[undefined as any].get()).toEqual(undefined);
+        });
+        test('lookup into lookup', () => {
+            const obs = observable({
+                team: activated({
+                    lookup: (teamID) => ({
+                        profile: activated({
+                            get: () => {
+                                return { username: teamID + ' name' };
+                            },
+                        }),
+                    }),
+                }),
+            });
+            expect(obs.team['asdf'].profile.username.get()).toEqual('asdf name');
+            expect(obs.team[undefined as any].profile.username.get()).toEqual('undefined name');
+            // expect(d).toEqual('asdf name');
+        });
+        test('raw value of lookup has all values', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
                 itemText: activated({
@@ -970,7 +1026,7 @@ export const run = (isPersist: boolean) => {
                 },
             });
         });
-        test('listener on proxy works', () => {
+        test('listener on lookup works', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
                 itemText: activated({

@@ -134,6 +134,9 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
                 const { lookup } = node.activationState as ActivateParamsWithLookup<any>;
                 if (lookup) {
                     child = Object.assign(lookup.bind(node, key), child);
+                    if (isFunction(child)) {
+                        extractFunction(node, key, child);
+                    }
                 }
             }
         }
@@ -202,6 +205,7 @@ export function extractFunction(
         node.functions = new Map();
     }
 
+    node.children?.delete(key);
     node.functions.set(key, fnOrComputed);
 
     if (computedChildNode) {

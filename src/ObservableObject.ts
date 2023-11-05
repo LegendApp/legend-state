@@ -612,7 +612,6 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
 
     // Get the child node for updating and notifying
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key, isFunction(newValue) ? newValue : undefined);
-
     // Set the raw value on the parent object
     const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
 
@@ -836,19 +835,19 @@ export function get(node: NodeValue, options?: TrackingType | GetOptions) {
 }
 
 export function peek(node: NodeValue) {
-    const value = getNodeValue(node);
+    let value = getNodeValue(node);
 
     // If node is not yet lazily computed go do that
     const lazy = node.lazy;
     if (lazy) {
         delete node.lazy;
         if (isFunction(node) || isFunction(lazy)) {
-            activateNodeFunction(node as any, lazy as () => void);
-        } else {
-            for (const key in value) {
-                if (hasOwnProperty.call(value, key)) {
-                    extractFunctionOrComputed(node, value, key, value[key]);
-                }
+            value = activateNodeFunction(node as any, lazy as () => void);
+        }
+
+        for (const key in value) {
+            if (hasOwnProperty.call(value, key)) {
+                extractFunctionOrComputed(node, value, key, value[key]);
             }
         }
     }
@@ -868,6 +867,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     const attemptNum = { current: 0 };
     const activateFn = (isFunction(node) ? node : lazyFn) as () => any;
     const refresh = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
+    let activatedValue;
     observe(
         () => {
             // const params = createNodeActivationParams(node);
@@ -970,6 +970,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                         }
                     }
                 } else {
+                    activatedValue = value;
                     set(node, value);
                     node.state!.assign({
                         isLoaded: true,
@@ -980,6 +981,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         },
         { immediate: true, fromComputed: true },
     );
+    return activatedValue;
 }
 
 const activateNodeBase = (globalState.activateNode = function activateNodeBase(
@@ -1062,11 +1064,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         }
         if (process.env.NODE_ENV === 'development' && node.activationState!.cache) {
             // TODO Better message
-            console.log('[legend-state] Using cacheOptions without setting up persistence first');
+            console.log('[legend-state] Using cache without setting up persistence first');
         }
         if (process.env.NODE_ENV === 'development' && node.activationState!.retry) {
             // TODO Better message
-            console.log('[legend-state] Using retryOptions without setting up persistence first');
+            console.log('[legend-state] Using retry without setting up persistence first');
         }
 
         if (subscribe) {
