@@ -1,7 +1,7 @@
-import { set, get, peek } from './ObservableObject';
+import { set, get, peek, flushPending } from './ObservableObject';
 import { symbolGetNode } from './globals';
 import { isBoolean } from './is';
-import type { NodeValue } from './observableInterfaces';
+import type { NodeValue, TrackingType } from './observableInterfaces';
 import type { ObservablePrimitive, ObservableBoolean } from './observableTypes';
 import { onChange } from './onChange';
 
@@ -28,8 +28,14 @@ function proto(key: string, fn: Function) {
         return fn.call(this, this._node, ...args);
     };
 }
-proto('peek', peek);
-proto('get', get);
+proto('peek', (node: NodeValue) => {
+    flushPending();
+    return peek(node);
+});
+proto('get', (node: NodeValue, options?: TrackingType) => {
+    flushPending();
+    return get(node, options);
+});
 proto('set', set);
 proto('onChange', onChange);
 

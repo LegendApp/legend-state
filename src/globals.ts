@@ -23,6 +23,7 @@ export const globalState = {
         wasPromise: boolean,
         newValue: any,
     ) => { update: UpdateFn; value: any },
+    pendingNodes: new Map<NodeValue, () => void>(),
 };
 
 export function isObservable(obs: any): obs is Observable {

@@ -33,6 +33,7 @@ import {
 } from './is';
 import type {
     ActivateParams,
+    Change,
     ChildNodeValue,
     GetOptions,
     ListenerParams,
@@ -343,6 +344,16 @@ export function getProxy(node: NodeValue, p?: string, asFunction?: Function): Ob
     return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as Observable<any>;
 }
 
+export function flushPending() {
+    // Need to short circuit the computed batching because the user called get() or peek()
+    // in which case the set needs to run immediately so that the values are up to date.
+    if (globalState.pendingNodes.size > 0) {
+        const nodes = Array.from(globalState.pendingNodes.values());
+        globalState.pendingNodes.clear();
+        nodes.forEach((fn) => fn());
+    }
+}
+
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeValue, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
@@ -375,6 +386,9 @@ const proxyHandler: ProxyHandler<any> = {
         const fn = observableFns.get(p);
         // If this is an observable function, call it
         if (fn) {
+            if (p === 'get' || p === 'peek') {
+                flushPending();
+            }
             return function (a: any, b: any, c: any) {
                 const l = arguments.length;
 
@@ -931,7 +945,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             }
             wasPromise = wasPromise || isPromise(value);
 
-            (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.get();
+            get(getNode((node.state as Observable<ObservablePersistStateInternal>)?.refreshNum));
 
             return value;
         },
@@ -1007,10 +1021,10 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     let isSettingFromSubscribe = false;
     let _mode: 'assign' | 'set' = 'set';
     if (node.activationState) {
-        const { onSet, subscribe, get, initial, retry, waitFor } = node.activationState;
+        const { onSet, subscribe, get: getFn, initial, retry, waitFor } = node.activationState;
         // @ts-expect-error asdf
-        const run = () => get!({ updateLastSync: noop, setMode: (mode) => (_mode = mode) });
-        value = get
+        const run = () => getFn!({ updateLastSync: noop, setMode: (mode) => (_mode = mode) });
+        value = getFn
             ? waitFor
                 ? new Promise((resolve) => {
                       whenReady(waitFor, () => {
@@ -1025,45 +1039,85 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
 
         let timeoutRetry: { current?: any };
         if (onSet) {
-            const doSet = (params: ListenerParams) => {
+            let allChanges: Change[] = [];
+            let latestValue: any = undefined;
+            const runChanges = (listenerParams?: ListenerParams) => {
                 // Don't call the set if this is the first value coming in
-                if (!isSetting || isSettingFromSubscribe) {
-                    if (
-                        node.state!.isLoaded.get() &&
-                        (params.changes.length > 1 || !isFunction(params.changes[0].prevAtPath))
-                    ) {
-                        const attemptNum = { current: 0 };
-                        const run = () => {
-                            let onError: () => void;
-                            if (retry) {
-                                if (timeoutRetry?.current) {
-                                    clearTimeout(timeoutRetry.current);
-                                }
-                                const { handleError, timeout } = setupRetry(retry, run, attemptNum);
-                                onError = handleError;
-                                timeoutRetry = timeout;
+                if (allChanges.length > 0) {
+                    let changes: Change[];
+                    let value: any;
+                    if (listenerParams) {
+                        changes = listenerParams.changes;
+                        value = listenerParams.value;
+                    } else {
+                        // If this is called by flushPending then get the change array
+                        // that we've been building up.
+                        changes = allChanges;
+                        value = latestValue;
+                    }
+                    allChanges = [];
+                    latestValue = undefined;
+                    globalState.pendingNodes.delete(node);
+
+                    const attemptNum = { current: 0 };
+                    const run = () => {
+                        let onError: () => void;
+                        if (retry) {
+                            if (timeoutRetry?.current) {
+                                clearTimeout(timeoutRetry.current);
                             }
-                            isSetting = true;
-                            batch(
-                                () =>
-                                    onSet(params, {
+                            const { handleError, timeout } = setupRetry(retry, run, attemptNum);
+                            onError = handleError;
+                            timeoutRetry = timeout;
+                        }
+                        isSetting = true;
+                        batch(
+                            () =>
+                                onSet(
+                                    {
+                                        value,
+                                        changes,
+                                        getPrevious: () => {
+                                            // TODO
+                                            debugger;
+                                        },
+                                    },
+                                    {
                                         node,
                                         update,
                                         refresh,
                                         onError,
                                         fromSubscribe: isSettingFromSubscribe,
-                                    } as OnSetExtra),
-                                () => {
-                                    isSetting = false;
-                                },
-                            );
-                        };
-                        run();
+                                    } as OnSetExtra,
+                                ),
+                            () => {
+                                isSetting = false;
+                            },
+                        );
+                    };
+                    run();
+                }
+            };
+
+            const onChangeImmediate = ({ value, changes }: ListenerParams) => {
+                if (!isSetting || isSettingFromSubscribe) {
+                    if (
+                        get(getNode(node.state!.isLoaded)) &&
+                        (changes.length > 1 || !isFunction(changes[0].prevAtPath))
+                    ) {
+                        latestValue = value;
+                        allChanges.push(...changes);
+                        globalState.pendingNodes.set(node, runChanges);
                     }
                 }
             };
 
-            onChange(node, doSet as any, wasPromise ? undefined : { immediate: true });
+            // Create an immediate listener to mark this node as pending. Then actually run
+            // the changes at the end of the batch so everything is properly batched.
+            // However, this can be short circuited if the user calls get() or peek()
+            // in which case the set needs to run immediately so that the values are up to date.
+            onChange(node, onChangeImmediate as any, { immediate: true });
+            onChange(node, runChanges);
         }
         if (process.env.NODE_ENV === 'development' && node.activationState!.cache) {
             // TODO Better message

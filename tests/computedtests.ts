@@ -4,6 +4,7 @@ import {
     ObservableReadable,
     TrackingType,
     activated,
+    batch,
     beginBatch,
     endBatch,
     internal,
@@ -280,6 +281,24 @@ export const run = (isPersist: boolean) => {
 
             expect(obs.test.get()).toEqual(true);
         });
+        test('Computed handler is batched', () => {
+            const obs = observable(
+                activated({
+                    onSet: ({ value }) => {
+                        expect(value.test).toEqual(true);
+                        expect(value.test2).toEqual(true);
+                    },
+                    get: () => ({
+                        test: false,
+                        test2: false,
+                    }),
+                }),
+            );
+            batch(() => {
+                obs.test.set(true);
+                obs.test2.set(true);
+            });
+        });
         test('Computed has onChange before activation', () => {
             const obs = observable({
                 test: false,
@@ -352,7 +371,9 @@ export const run = (isPersist: boolean) => {
                     onSet: ({ value }) => {
                         obs.set(+value);
                     },
-                    get: () => obs.get() + '',
+                    get: () => {
+                        return obs.get() + '';
+                    },
                 }),
             );
 
