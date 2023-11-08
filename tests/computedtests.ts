@@ -467,6 +467,25 @@ export const run = (isPersist: boolean) => {
 
             expect(comp.get()).toEqual(['2', '1']);
         });
+        test('Computed runs once when batched', () => {
+            const obs1 = observable(0);
+            const obs2 = observable(0);
+            let num = 0;
+
+            const comp = observable(() => {
+                num++;
+                return obs1.get() + obs2.get();
+            });
+
+            // First get activates it
+            expect(comp.get()).toEqual(0);
+
+            batch(() => {
+                obs1.set(1);
+                obs2.set(1);
+            });
+            expect(num).toEqual(2);
+        });
     });
     describe('Computed inside observable', () => {
         test('Computed in observable', () => {
