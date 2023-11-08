@@ -849,6 +849,11 @@ export function get(node: NodeValue, options?: TrackingType | GetOptions) {
 }
 
 export function peek(node: NodeValue) {
+    if (node.dirtyFn) {
+        node.dirtyFn();
+        globalState.dirtyNodes.delete(node);
+        node.dirtyFn = undefined;
+    }
     let value = getNodeValue(node);
 
     // If node is not yet lazily computed go do that
@@ -880,8 +885,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     let timeoutRetry: { current?: any };
     const attemptNum = { current: 0 };
     const activateFn = (isFunction(node) ? node : lazyFn) as () => any;
-    const refresh = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
+    const doRetry = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     let activatedValue;
+    let disposes: (() => void)[] = [];
+    let refreshFn: () => void;
+    function markDirty() {
+        node.dirtyFn = refreshFn;
+        globalState.dirtyNodes.add(node);
+    }
+
     observe(
         () => {
             // const params = createNodeActivationParams(node);
@@ -934,7 +946,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 const isCached = !!node.activationState?.cache;
                 wasPromise = wasPromise || !!isCached;
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
-                const { update: newUpdate, value: newValue } = activateNodeFn(node, refresh, !!wasPromise, value);
+                const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, !!wasPromise, value);
                 update = newUpdate;
                 value = newValue;
             } else if (node.activationState) {
@@ -949,7 +961,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
 
             return value;
         },
-        ({ value }) => {
+        (e) => {
+            const { value, nodes, refresh } = e;
+            refreshFn = refresh;
             if (!globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
                     if (node.activationState) {
@@ -959,7 +973,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             if (timeoutRetry?.current) {
                                 clearTimeout(timeoutRetry.current);
                             }
-                            const { handleError, timeout } = setupRetry(retry, refresh, attemptNum);
+                            const { handleError, timeout } = setupRetry(retry, doRetry, attemptNum);
                             onError = handleError;
                             timeoutRetry = timeout;
                             node.activationState.onError = onError;
@@ -995,8 +1009,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                     });
                 }
             }
+
+            disposes.forEach((fn) => fn());
+            disposes = [];
+            nodes?.forEach(({ node }) => {
+                disposes.push(onChange(node, markDirty, { immediate: true }));
+            });
+            e.cancel = true;
         },
-        { immediate: true, fromComputed: true },
+        { fromComputed: true },
     );
     return activatedValue;
 }
@@ -1079,7 +1100,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                                         changes,
                                         getPrevious: () => {
                                             // TODO
-                                            debugger;
+                                            // debugger;
                                         },
                                     },
                                     {

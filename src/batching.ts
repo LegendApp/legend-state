@@ -1,4 +1,4 @@
-import { getNodeValue, optimized } from './globals';
+import { getNodeValue, globalState, optimized } from './globals';
 import { isArray } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
@@ -244,6 +244,12 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
 }
 
 export function runBatch() {
+    const dirtyNodes = Array.from(globalState.dirtyNodes);
+    globalState.dirtyNodes.clear();
+    dirtyNodes.forEach((node) => {
+        node.dirtyFn?.();
+        node.dirtyFn = undefined;
+    });
     // Save batch locally and reset _batchMap first because a new batch could begin while looping over callbacks.
     // This can happen with observableComputed for example.
     const map = _batchMap;

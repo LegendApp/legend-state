@@ -58,5 +58,5 @@ export function trackSelector<T>(
         resubscribe = createResubscribe ? () => setupTracking(nodes, updateFn) : undefined;
     }
 
-    return { value, dispose, resubscribe };
+    return { value, nodes, dispose, resubscribe };
 }

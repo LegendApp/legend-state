@@ -657,27 +657,31 @@ export const run = (isPersist: boolean) => {
             expect(comp.sum.get()).toEqual(30);
         });
         test('Computed in observable notifies to root', () => {
+            let num = 0;
             const obs = observable({
                 text: 'hi',
                 test: (): string => {
+                    num++;
                     return obs.text.get() + '!';
                 },
             });
             obs.test.get();
+            expect(num).toEqual(1);
             const handler = expectChangeHandler(obs);
             obs.text.set('hello');
+            expect(num).toEqual(2);
             expect(handler).toHaveBeenCalledWith({ text: 'hello', test: 'hello!' }, { text: 'hi', test: 'hi!' }, [
-                {
-                    path: ['test'],
-                    pathTypes: ['object'],
-                    prevAtPath: 'hi!',
-                    valueAtPath: 'hello!',
-                },
                 {
                     path: ['text'],
                     pathTypes: ['object'],
                     prevAtPath: 'hi',
                     valueAtPath: 'hello',
+                },
+                {
+                    path: ['test'],
+                    pathTypes: ['object'],
+                    prevAtPath: 'hi!',
+                    valueAtPath: 'hello!',
                 },
             ]);
         });
@@ -714,6 +718,12 @@ export const run = (isPersist: boolean) => {
                 { text: 'hi', test: { child: 'hi!' } },
                 [
                     {
+                        path: ['text'],
+                        pathTypes: ['object'],
+                        prevAtPath: 'hi',
+                        valueAtPath: 'hello',
+                    },
+                    {
                         path: ['test', 'child'],
                         pathTypes: ['object', 'object'],
                         prevAtPath: 'hi!',
@@ -725,12 +735,6 @@ export const run = (isPersist: boolean) => {
                         pathTypes: ['object'],
                         prevAtPath: { child: 'hi!' },
                         valueAtPath: { child: 'hello!' },
-                    },
-                    {
-                        path: ['text'],
-                        pathTypes: ['object'],
-                        prevAtPath: 'hi',
-                        valueAtPath: 'hello',
                     },
                 ],
             );

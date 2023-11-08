@@ -88,6 +88,7 @@ interface BaseNodeValue {
     state?: ObservableNew<ObservablePersistState>;
     activated?: boolean;
     activationState?: ActivateParams & { onError?: () => void; persistedRetry?: boolean };
+    dirtyFn?: () => void;
 }
 
 export interface RootNodeValue extends BaseNodeValue {
@@ -118,7 +119,9 @@ export interface ObserveEventCallback<T> {
     num: number;
     previous?: T | undefined;
     value?: T;
-    cancel?: boolean;
+    cancel: boolean;
+    nodes: Map<NodeValue, TrackingNode> | undefined;
+    refresh: () => void;
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }

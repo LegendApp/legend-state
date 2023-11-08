@@ -166,7 +166,7 @@ describe('retry', () => {
                 get: () =>
                     new Promise((resolve, reject) => {
                         attemptNum$.set((v) => v + 1);
-                        attemptNum$.get() > 2 ? resolve('hi') : reject();
+                        attemptNum$.peek() > 2 ? resolve('hi') : reject();
                     }),
             }),
         );

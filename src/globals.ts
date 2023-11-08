@@ -24,6 +24,7 @@ export const globalState = {
         newValue: any,
     ) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),
+    dirtyNodes: new Set<NodeValue>(),
 };
 
 export function isObservable(obs: any): obs is Observable {

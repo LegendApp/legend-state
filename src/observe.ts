@@ -26,7 +26,7 @@ export function observe<T>(
         options = reactionOrOptions;
     }
     let dispose: (() => void) | undefined;
-    const e: ObserveEventCallback<T> = { num: 0 };
+    const e: ObserveEventCallback<T> = { num: 0 } as ObserveEventCallback<T>;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     const update = function () {
         if (e.onCleanup) {
@@ -43,10 +43,12 @@ export function observe<T>(
         // Dispose listeners from previous run
         dispose?.();
 
-        const { dispose: _dispose, value } = trackSelector(selectorOrRun, update, e, options);
+        const { dispose: _dispose, value, nodes } = trackSelector(selectorOrRun, update, e, options);
         dispose = _dispose;
 
         e.value = value;
+        e.nodes = nodes;
+        e.refresh = update;
 
         if (e.onCleanupReaction) {
             e.onCleanupReaction();
