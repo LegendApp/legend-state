@@ -2,7 +2,7 @@ import type { RetryOptions } from './observableInterfaces';
 
 export function setupRetry(retryOptions: RetryOptions, refresh: () => void, attemptNum: { current: number }) {
     const timeout: { current?: any } = {};
-    let didGiveUp = false;
+    // let didGiveUp = false;
     const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
     let handleError: () => void;
     attemptNum.current++;
@@ -13,23 +13,24 @@ export function setupRetry(retryOptions: RetryOptions, refresh: () => void, atte
         };
     } else {
         handleError = () => {
-            didGiveUp = true;
+            // didGiveUp = true;
         };
     }
-    if (typeof window !== 'undefined') {
-        window.addEventListener('online', () => {
-            if (didGiveUp || timeout) {
-                if (timeout) {
-                    clearTimeout(timeout.current);
-                    timeout.current = undefined;
-                }
-                // Restart the backoff when coming back online
-                attemptNum.current = 0;
-                didGiveUp = false;
-                refresh();
-            }
-        });
-    }
+    // TODO: Make an easy way to opt into this if
+    // if (typeof window !== 'undefined') {
+    //     window.addEventListener('online', () => {
+    //         if (didGiveUp || timeout) {
+    //             if (timeout) {
+    //                 clearTimeout(timeout.current);
+    //                 timeout.current = undefined;
+    //             }
+    //             // Restart the backoff when coming back online
+    //             attemptNum.current = 0;
+    //             didGiveUp = false;
+    //             refresh();
+    //         }
+    //     });
+    // }
 
     return { handleError, timeout };
 }
