@@ -1064,6 +1064,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         if (onSet) {
             let allChanges: Change[] = [];
             let latestValue: any = undefined;
+            let runNumber = 0;
             const runChanges = (listenerParams?: ListenerParams) => {
                 // Don't call the set if this is the first value coming in
                 if (allChanges.length > 0) {
@@ -1082,8 +1083,15 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                     latestValue = undefined;
                     globalState.pendingNodes.delete(node);
 
+                    runNumber++;
+                    const thisRunNumber = runNumber;
+
                     const attemptNum = { current: 0 };
                     const run = () => {
+                        if (thisRunNumber !== runNumber) {
+                            // set may get called multiple times before it loads so ignore any previous runs
+                            return;
+                        }
                         let onError: () => void;
                         if (retry) {
                             if (timeoutRetry?.current) {
@@ -1093,6 +1101,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             onError = handleError;
                             timeoutRetry = timeout;
                         }
+
                         isSetting = true;
                         batch(
                             () =>
@@ -1118,16 +1127,13 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             },
                         );
                     };
-                    run();
+                    whenReady(node.state!.isLoaded, run);
                 }
             };
 
             const onChangeImmediate = ({ value, changes }: ListenerParams) => {
                 if (!isSetting || isSettingFromSubscribe) {
-                    if (
-                        get(getNode(node.state!.isLoaded)) &&
-                        (changes.length > 1 || !isFunction(changes[0].prevAtPath))
-                    ) {
+                    if (changes.length > 1 || !isFunction(changes[0].prevAtPath)) {
                         latestValue = value;
                         allChanges.push(...changes);
                         globalState.pendingNodes.set(node, runChanges);

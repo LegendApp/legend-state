@@ -281,6 +281,28 @@ export const run = (isPersist: boolean) => {
 
             expect(obs.test.get()).toEqual(true);
         });
+        test('Computed set works before loaded', async () => {
+            let setValue: number | undefined = undefined;
+            let getValue: number | undefined = undefined;
+            const comp = observable(
+                activated({
+                    onSet: ({ value }) => {
+                        setValue = value;
+                    },
+                    get: () =>
+                        new Promise<number>((resolve) =>
+                            setTimeout(() => {
+                                getValue = 1;
+                                resolve(1);
+                            }, 0),
+                        ),
+                }),
+            );
+            comp.set(2);
+            await promiseTimeout(0);
+            expect(getValue).toEqual(1);
+            expect(setValue).toEqual(2);
+        });
         test('Computed handler is batched', () => {
             const obs = observable(
                 activated({
@@ -1232,6 +1254,29 @@ export const run = (isPersist: boolean) => {
             await promiseTimeout(0);
 
             expect(didSet).toEqual(true);
+        });
+        test('get returning twice', async () => {
+            const num$ = observable(0);
+            const obs = observable(
+                activated({
+                    get: (): Promise<string> | string =>
+                        num$.get() > 0
+                            ? new Promise<string>((resolve) => {
+                                  setTimeout(() => {
+                                      resolve('hi');
+                                  }, 0);
+                              })
+                            : '',
+                }),
+            );
+            const handler = expectChangeHandler(obs);
+            expect(obs.get()).toEqual('');
+            num$.set(1);
+            await promiseTimeout(0);
+            expect(obs.get()).toEqual('hi');
+            expect(handler).toHaveBeenCalledWith('hi', '', [
+                { path: [], pathTypes: [], prevAtPath: '', valueAtPath: 'hi' },
+            ]);
         });
     });
 };
