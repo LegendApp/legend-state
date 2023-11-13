@@ -952,7 +952,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             } else if (node.activationState) {
                 if (!node.activationState!.persistedRetry) {
                     const activated = node.activationState!;
-                    value = activated.get?.({} as any) ?? activated.initial;
+                    // TODO
+                    // @ts-expect-error asdf
+                    value = activated.get?.({ updateLastSync: noop, setMode: noop }) ?? activated.initial;
                 }
             }
             wasPromise = wasPromise || isPromise(value);
