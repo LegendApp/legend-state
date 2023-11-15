@@ -33,7 +33,7 @@ function onActionTimeout() {
     }
 }
 
-function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
+export function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
     for (let i = 0; i < mainArr.length; i++) {
         if (mainArr[i] !== subsetArr[i]) {
             return false;

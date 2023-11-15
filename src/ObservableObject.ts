@@ -1,5 +1,5 @@
 import { noop } from '@babel/types';
-import { batch, beginBatch, endBatch, notify } from './batching';
+import { batch, beginBatch, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
     checkActivate,
@@ -1135,6 +1135,9 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                 if (!isSetting || isSettingFromSubscribe) {
                     if (changes.length > 1 || !isFunction(changes[0].prevAtPath)) {
                         latestValue = value;
+                        if (allChanges.length > 0) {
+                            changes = changes.filter((change) => !isArraySubset(allChanges[0].path, change.path));
+                        }
                         allChanges.push(...changes);
                         globalState.pendingNodes.set(node, runChanges);
                     }
