@@ -6,7 +6,7 @@ import { useMemo } from 'react';
  *
  * @param initialValue The initial value of the observable or a function that returns the initial value
  *
- * @see https://www.legendapp.com/dev/state/react/#useObservable
+ * @see https://legendapp.com/open-source/state/react/react-api/#useobservable
  */
 export function useObservable<T>(initialValue?: T | (() => T) | (() => Promise<T>)): Observable<T> {
     // Create the observable from the default value
