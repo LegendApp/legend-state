@@ -12,7 +12,7 @@ type ArrayOverrideFnNames =
     | 'map'
     | 'sort';
 
-type ObservableComputed<T = any> = Readonly<Observable<T>>;
+type ObservableComputed<T = any> = Readonly<ObservableNode<T>>;
 type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2, T2>;
 
 type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any, any>>;
@@ -78,13 +78,10 @@ interface ImmutableObservableBase<T> {
 }
 
 interface MutableObservableBase<T, T2> {
-    set(
-        value:
-            | RemoveObservables<T & T2>
-            | ((prev: RemoveObservables<T & T2>) => RemoveObservables<T & T2>)
-            | Promise<RemoveObservables<T & T2>>
-            | Observable<RemoveObservables<T & T2>>,
-    ): Observable<T>;
+    set(value: RemoveObservables<T & T2>): Observable<T>;
+    set(value: (prev: RemoveObservables<T & T2>) => RemoveObservables<T & T2>): Observable<T>;
+    set(value: Promise<RemoveObservables<T & T2>>): Observable<T>;
+    set(value: Observable<RemoveObservables<T & T2>>): Observable<T>;
     delete(): void;
 }
 
@@ -165,6 +162,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     : ObservableObject<T>;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
+
 type Observable<T = any> = ObservableNode<T>; // & {};
 
 type ObservableReadable<T = any> = ImmutableObservableBase<T>;

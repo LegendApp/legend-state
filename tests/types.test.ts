@@ -1,71 +1,54 @@
 import { expectTypeOf } from 'expect-type';
 import { Observable, ObservableComputed, ObservableComputedTwoWay } from '../src/observableTypes';
+import { observable } from '../src/observable';
 
 describe('Types', () => {
-    // describe('observable', () => {
-    //     it('optional object return type when no argument is passed', () => {
-    //         function noArgsObjectType() {
-    //             return observable<{ foo: number }>();
-    //         }
+    describe('observable', () => {
+        it('optional object return type when no argument is passed', () => {
+            function noArgsObjectType() {
+                return observable<{ foo: number }>();
+            }
 
-    //         type ObservableFn = ReturnType<typeof noArgsObjectType>;
-    //         expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<{ foo: number } | undefined>();
-    //     });
+            type ObservableFn = ReturnType<typeof noArgsObjectType>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<{ foo: number } | undefined>();
+        });
 
-    //     it('optional return type when no argument is passed', () => {
-    //         function noArgs() {
-    //             return observable<string>();
-    //         }
+        it('optional return type when no argument is passed', () => {
+            function noArgs() {
+                return observable<string>();
+            }
 
-    //         type ObservableFn = ReturnType<typeof noArgs>;
-    //         expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string | undefined>();
-    //     });
+            type ObservableFn = ReturnType<typeof noArgs>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string | undefined>();
+        });
 
-    //     it('optional return type when optional argument is passed', () => {
-    //         function withOptionalArg(something?: string) {
-    //             return observable(something);
-    //         }
+        it('optional return type when optional argument is passed', () => {
+            function withOptionalArg(something?: string) {
+                return observable(something);
+            }
 
-    //         type ObservableFn = ReturnType<typeof withOptionalArg>;
-    //         expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string | undefined>();
-    //     });
+            type ObservableFn = ReturnType<typeof withOptionalArg>;
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string | undefined>();
+        });
 
-    //     it('return type with promise info when promise is passed', () => {
-    //         function withPromise() {
-    //             return observable(Promise.resolve('foo'));
-    //         }
+        it('issue #151', () => {
+            type ObservableFn = ReturnType<
+                typeof observable<{
+                    optional?: { foo: string };
+                    nullable: { foo: string } | null;
+                }>
+            >;
 
-    //         type ObservableFn = ReturnType<typeof withPromise>;
-    //         expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<string & PromiseInfo>();
-    //     });
+            expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<{
+                optional?: { foo: string };
+                nullable: { foo: string } | null;
+            }>();
 
-    //     it('optional return type with promise info when promise with optional value is passed', () => {
-    //         function withOptionalPromiseValue(something?: Promise<string>) {
-    //             return observable(something);
-    //         }
-
-    //         type ObservableFn = ReturnType<typeof withOptionalPromiseValue>;
-    //         expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<(string & PromiseInfo) | undefined>();
-    //     });
-
-    //     it('issue #151', () => {
-    //         type ObservableFn = ReturnType<
-    //             typeof observable<{
-    //                 optional?: { foo: string };
-    //                 nullable: { foo: string } | null;
-    //             }>
-    //         >;
-
-    //         expectTypeOf<ObservableFn['get']>().returns.toEqualTypeOf<{
-    //             optional?: { foo: string };
-    //             nullable: { foo: string } | null;
-    //         }>();
-
-    //         // Note that if a parent is nullable, the child is optional (undefined)
-    //         expectTypeOf<ObservableFn['nullable']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
-    //         expectTypeOf<ObservableFn['optional']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
-    //     });
-    // });
+            // Note that if a parent is nullable, the child is optional (undefined)
+            expectTypeOf<ObservableFn['nullable']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
+            expectTypeOf<ObservableFn['optional']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
+        });
+    });
 
     describe('Observable', () => {
         describe('with any', () => {
