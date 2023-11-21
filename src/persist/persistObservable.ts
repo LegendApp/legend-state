@@ -752,7 +752,9 @@ export function persistObservable<T extends WithoutState>(
                                                 const p = key.split('/').filter((p) => p !== '');
                                                 const { v, t } = pending[key];
 
-                                                if ((value as any)[p[0]] !== undefined) {
+                                                if (t.length === 0) {
+                                                    value = v;
+                                                } else if ((value as any)[p[0]] !== undefined) {
                                                     (value as any) = setAtPath(
                                                         value as any,
                                                         p,
@@ -801,13 +803,18 @@ export function persistObservable<T extends WithoutState>(
                     localState.isApplyingPending = true;
                     const keys = Object.keys(pending);
 
+                    const cur = obs.peek();
+
                     // Bundle up all the changes from pending
                     const changes: Change[] = [];
                     for (let i = 0; i < keys.length; i++) {
                         const key = keys[i];
                         const path = key.split('/').filter((p) => p !== '');
                         const { p, v, t } = pending[key];
-                        changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
+                        // if value in cur at path !== v
+                        if (!cur || deconstructObjectWithPath(path, t, cur) !== v) {
+                            changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
+                        }
                     }
 
                     // Send the changes into onObsChange so that they get persisted remotely

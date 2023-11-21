@@ -153,6 +153,71 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
         await promiseTimeout(50);
     });
+    test('onSet not called until loaded first', async () => {
+        localStorage.setItem('onSetNot', JSON.stringify('key0'));
+
+        let getCalled = false;
+        let onSetCalled = false;
+
+        const nodes = observable(
+            activated({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'onSetNot',
+                },
+                get: async () => {
+                    await promiseTimeout(2);
+                    expect(onSetCalled).toEqual(false);
+                    getCalled = true;
+                    return 'key1';
+                },
+                onSet() {
+                    expect(getCalled).toEqual(true);
+                    onSetCalled = true;
+                },
+            }),
+        );
+
+        expect(nodes.get()).toEqual('key0');
+
+        nodes.set('key2');
+
+        await promiseTimeout(2);
+        expect(nodes.get()).toEqual('key2');
+    });
+    test('onSet not called until loaded first (2)', async () => {
+        localStorage.setItem('onSetNot2', JSON.stringify('key0'));
+
+        let getCalled = false;
+        let onSetCalledTimes = 0;
+
+        const nodes = observable(
+            activated({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'onSetNot2',
+                },
+                get: async () => {
+                    await promiseTimeout(2);
+                    expect(onSetCalledTimes).toEqual(0);
+                    getCalled = true;
+                    return 'key1';
+                },
+                onSet({ value }) {
+                    expect(value).toEqual('key2');
+                    expect(getCalled).toEqual(true);
+                    onSetCalledTimes++;
+                },
+            }),
+        );
+
+        nodes.set('key2');
+
+        await promiseTimeout(2);
+        expect(nodes.get()).toEqual('key2');
+        expect(getCalled).toEqual(true);
+        expect(onSetCalledTimes).toEqual(1);
+    });
 });
 
 describe('lastSync with new computed', () => {
