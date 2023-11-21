@@ -31,7 +31,7 @@ describe('Persist remote with functions', () => {
         expect(obs.peek()).toEqual({ test: { x: 'hello' } });
     });
     test('Persist remote fns with set', async () => {
-        let setTo: { dateModified: number; value: any } | undefined = undefined;
+        let setTo: { lastSync: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
         const { state } = persistObservable(obs$, {
             pluginRemote: {
@@ -48,8 +48,8 @@ describe('Persist remote with functions', () => {
                     return new Promise((resolve) => {
                         setTimeout(() => {
                             const now = Date.now();
-                            setTo = { dateModified: now, value };
-                            resolve({ dateModified: now });
+                            setTo = { lastSync: now, value };
+                            resolve({ lastSync: now });
                         }, 0);
                     });
                 },
@@ -66,10 +66,10 @@ describe('Persist remote with functions', () => {
 
         await promiseTimeout(10);
 
-        expect(setTo).toEqual({ dateModified: expect.any(Number), value: { test: { x: 'hi2' } } });
+        expect(setTo).toEqual({ lastSync: expect.any(Number), value: { test: { x: 'hi2' } } });
     });
     test('Persist remote fns with set and onSaveRemote', async () => {
-        let setTo: { dateModified: number; value: any } | undefined = undefined;
+        let setTo: { lastSync: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
         const didSave$ = observable(false);
         const { state } = persistObservable(obs$, {
@@ -87,8 +87,8 @@ describe('Persist remote with functions', () => {
                     return new Promise((resolve) => {
                         setTimeout(() => {
                             const now = Date.now();
-                            setTo = { dateModified: now, value };
-                            resolve({ dateModified: now });
+                            setTo = { lastSync: now, value };
+                            resolve({ lastSync: now });
                         }, 10);
                     });
                 },
@@ -110,7 +110,7 @@ describe('Persist remote with functions', () => {
 
         await when(didSave$);
 
-        expect(setTo).toEqual({ dateModified: expect.any(Number), value: { test: { x: 'hi2' } } });
+        expect(setTo).toEqual({ lastSync: expect.any(Number), value: { test: { x: 'hi2' } } });
     });
-    // TODO test dateModified
+    // TODO test lastSync
 });

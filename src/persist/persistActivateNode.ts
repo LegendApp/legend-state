@@ -30,7 +30,7 @@ export function persistActivateNode() {
             if (get) {
                 pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
-                    const updateLastSync = (lastSync: number) => (params.dateModified = lastSync);
+                    const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
                     let timeoutRetry: { current?: any } = {};
                     const attemptNum = { current: 0 };
                     let onError: (() => void) | undefined;
@@ -41,7 +41,7 @@ export function persistActivateNode() {
                     const doGet = () => {
                         return (value = get!({
                             value: isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
-                            dateModified: params.dateModified!,
+                            lastSync: params.lastSync!,
                             updateLastSync,
                             setMode,
                         }));
@@ -122,8 +122,8 @@ export function persistActivateNode() {
                                 await onSet(params as unknown as ListenerParams, {
                                     node,
                                     update: (params) => {
-                                        const { value, dateModified } = params;
-                                        maxModified = Math.max(dateModified || 0, maxModified);
+                                        const { value, lastSync } = params;
+                                        maxModified = Math.max(lastSync || 0, maxModified);
                                         changes = mergeIntoObservable(changes, value);
                                     },
                                     onError: () => {
@@ -134,7 +134,7 @@ export function persistActivateNode() {
                                     fromSubscribe: false,
                                 });
                                 if (!didError) {
-                                    resolve({ changes, dateModified: maxModified || undefined });
+                                    resolve({ changes, lastSync: maxModified || undefined });
                                 }
                             };
                             run();

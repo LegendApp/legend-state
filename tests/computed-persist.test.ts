@@ -120,7 +120,7 @@ describe('caching with new computed', () => {
     });
     test('cache async', async () => {
         localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
-        localStorage.setItem('nodes__m', JSON.stringify({ modified: 1000 }));
+        localStorage.setItem('nodes__m', JSON.stringify({ lastSync: 1000 }));
 
         const nodes = observable(
             activated({
@@ -128,8 +128,8 @@ describe('caching with new computed', () => {
                     pluginLocal: ObservablePersistLocalStorage,
                     local: 'nodes',
                 },
-                get: async ({ dateModified, value }) => {
-                    expect(dateModified).toEqual(1000);
+                get: async ({ lastSync, value }) => {
+                    expect(lastSync).toEqual(1000);
                     expect(value).toEqual({ key0: { key: 'key0' } });
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
                         setTimeout(() => resolve([{ key: 'key1' }]), 2),
@@ -149,13 +149,13 @@ describe('caching with new computed', () => {
     });
 });
 
-describe('dateModified with new computed', () => {
-    test('dateModified from updateLastSync', async () => {
+describe('lastSync with new computed', () => {
+    test('lastSync from updateLastSync', async () => {
         const nodes = observable(
             activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodes-dateModified',
+                    local: 'nodes-lastSync',
                 },
                 get: async ({ updateLastSync }) => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -177,19 +177,19 @@ describe('dateModified with new computed', () => {
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
         await promiseTimeout(1);
-        expect(localStorage.getItem('nodes-dateModified')).toEqual(JSON.stringify({ key0: { key: 'key0' } }));
-        expect(localStorage.getItem('nodes-dateModified__m')).toEqual(JSON.stringify({ modified: 1000 }));
+        expect(localStorage.getItem('nodes-lastSync')).toEqual(JSON.stringify({ key0: { key: 'key0' } }));
+        expect(localStorage.getItem('nodes-lastSync__m')).toEqual(JSON.stringify({ lastSync: 1000 }));
     });
-    test('dateModified from subscribe', async () => {
+    test('lastSync from subscribe', async () => {
         const value = observable(
             activated({
                 cache: {
                     pluginLocal: ObservablePersistLocalStorage,
-                    local: 'dateModified2',
+                    local: 'lastSync2',
                 },
                 subscribe: ({ update }) => {
                     setTimeout(() => {
-                        update({ value: 'test2', dateModified: 1000 });
+                        update({ value: 'test2', lastSync: 1000 });
                     }, 5);
                 },
                 get: () => new Promise<string>((resolve) => setTimeout(() => resolve('test'), 1)),
@@ -202,7 +202,7 @@ describe('dateModified with new computed', () => {
 
         await promiseTimeout(10);
         expect(value.get()).toEqual('test2');
-        expect(localStorage.getItem('dateModified2__m')).toEqual(JSON.stringify({ modified: 1000 }));
+        expect(localStorage.getItem('lastSync2__m')).toEqual(JSON.stringify({ lastSync: 1000 }));
     });
 });
 

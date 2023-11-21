@@ -84,7 +84,8 @@ export interface PersistOptions<T = any> {
 
 export interface PersistMetadata {
     id?: '__legend_metadata';
-    modified?: number;
+    // modified ?: number;
+    lastSync?: number;
     pending?: any;
 }
 
@@ -105,6 +106,7 @@ export interface ObservableOnChangeParams {
     pathTypes?: TypeAtPath[];
     mode?: 'assign' | 'set' | 'dateModified';
     dateModified?: number | undefined;
+    lastSync?: number | undefined;
 }
 export interface ObservablePersistRemoteSetParams<T> {
     syncState: Observable<ObservablePersistState>;
@@ -118,6 +120,7 @@ export interface ObservablePersistRemoteGetParams<T> {
     obs: ObservableReadable<T>;
     options: PersistOptions<T>;
     dateModified?: number;
+    lastSync?: number;
     mode?: 'assign' | 'set' | 'dateModified';
     onGet: () => void;
     onError: (error: Error) => void;
@@ -129,14 +132,14 @@ export interface ObservablePersistRemoteClass {
     get?<T>(params: ObservablePersistRemoteGetParams<T>): void;
     set?<T>(
         params: ObservablePersistRemoteSetParams<T>,
-    ): void | Promise<void | { changes?: object; dateModified?: number; pathStrs?: string[] }>;
+    ): void | Promise<void | { changes?: object; dateModified?: number; lastSync?: number; pathStrs?: string[] }>;
 }
 
 export interface ObservablePersistRemoteFunctions<T = any> {
     get?(params: ObservablePersistRemoteGetFnParams<T>): T | Promise<T>;
     set?(
         params: ObservablePersistRemoteSetParams<T>,
-    ): void | Promise<void | { changes?: object | undefined; dateModified?: number }>;
+    ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;
 }
 
 export interface ObservablePersistStateBase {
@@ -144,6 +147,7 @@ export interface ObservablePersistStateBase {
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
     dateModified?: number;
+    lastSync?: number;
     syncCount?: number;
     clearLocal: () => Promise<void>;
     sync: () => Promise<void>;

@@ -167,6 +167,7 @@ export type UpdateFn = (params: {
     value: unknown;
     mode?: 'assign' | 'set' | 'dateModified';
     dateModified?: number | undefined;
+    lastSync?: number | undefined;
 }) => void;
 export interface RetryOptions {
     infinite?: boolean;
@@ -187,6 +188,6 @@ export interface SubscribeOptions {
     refresh: () => void;
 }
 export interface CacheReturnValue {
-    dateModified: number;
+    lastSync: number;
     value: any;
 }

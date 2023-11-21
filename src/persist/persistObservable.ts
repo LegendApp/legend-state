@@ -162,9 +162,9 @@ async function updateMetadataImmediate<T>(
     // Save metadata
     const oldMetadata: PersistMetadata | undefined = metadatas.get(obs);
 
-    const { modified, pending } = newMetadata;
+    const { lastSync, pending } = newMetadata;
 
-    const needsUpdate = pending || (modified && (!oldMetadata || modified !== oldMetadata.modified));
+    const needsUpdate = pending || (lastSync && (!oldMetadata || lastSync !== oldMetadata.lastSync));
 
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
@@ -173,8 +173,11 @@ async function updateMetadataImmediate<T>(
             await persistenceLocal!.setMetadata(table, metadata, config);
         }
 
-        if (modified) {
-            syncState.dateModified.set(modified);
+        if (lastSync) {
+            syncState.assign({
+                lastSync: lastSync,
+                dateModified: lastSync,
+            });
         }
     }
 }
@@ -224,7 +227,7 @@ async function processQueuedChanges() {
     // 4. Wait for remote load or error if allowed
     // 5. Save to remote
     // 6. On successful save, merge changes (if any) back into observable
-    // 7. Lastly, update metadata to clear pending and update dateModified. Doing this earlier could potentially cause
+    // 7. Lastly, update metadata to clear pending and update lastSync. Doing this earlier could potentially cause
     // sync inconsistences so it's very important that this is last.
     changes.forEach(doChange);
 }
@@ -445,7 +448,7 @@ async function doChange(
         // return saved data and others won't, so those can be ignored.
         if (saved) {
             const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
-            const { changes, dateModified } = saved;
+            const { changes, lastSync } = saved;
             if (pathStrs.length > 0) {
                 if (local) {
                     const metadata: PersistMetadata = {};
@@ -462,8 +465,8 @@ async function doChange(
                         }
                     }
 
-                    if (dateModified) {
-                        metadata.modified = dateModified;
+                    if (lastSync) {
+                        metadata.lastSync = lastSync;
                     }
 
                     // Remote can optionally have data that needs to be merged back into the observable,
@@ -571,9 +574,18 @@ async function loadLocal<T>(
         const metadata = persistenceLocal.getMetadata(table, config);
 
         if (metadata) {
+            // @ts-expect-error Migration from old version
+            if (!metadata.lastSync && metadata.modified) {
+                // @ts-expect-error Migration from old
+                metadata.lastSync = metadata.modified;
+            }
             metadatas.set(obs, metadata);
             localState.pendingChanges = metadata.pending;
-            syncState.dateModified.set(metadata.modified);
+            // TODOV3 Remove dateModified
+            syncState.assign({
+                dateModified: metadata.lastSync,
+                lastSync: metadata.lastSync,
+            });
         }
 
         // Merge the data from local persistence into the default state
@@ -686,7 +698,7 @@ export function persistObservable<T extends WithoutState>(
         sync = async () => {
             if (!isSynced) {
                 isSynced = true;
-                const dateModified = metadatas.get(obs)?.modified;
+                const lastSync = metadatas.get(obs)?.lastSync;
                 const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
                 if (get) {
                     const runGet = () => {
@@ -694,7 +706,8 @@ export function persistObservable<T extends WithoutState>(
                             state: syncState,
                             obs,
                             options: persistOptions as PersistOptions<any>,
-                            dateModified,
+                            lastSync,
+                            dateModified: lastSync,
                             onError: (error: Error) => {
                                 remote.onGetError?.(error);
                             },
@@ -704,7 +717,7 @@ export function persistObservable<T extends WithoutState>(
                                     error: undefined,
                                 });
                             },
-                            onChange: async ({ value, path = [], pathTypes = [], mode = 'set', dateModified }) => {
+                            onChange: async ({ value, path = [], pathTypes = [], mode = 'set', lastSync }) => {
                                 // Note: value is the constructed value, path is used for setInObservableAtPath
                                 // to start the set into the observable from the path
                                 if (value !== undefined) {
@@ -721,7 +734,7 @@ export function persistObservable<T extends WithoutState>(
                                     }
 
                                     if (mode === 'dateModified') {
-                                        if (dateModified && !isEmpty(value as unknown as object)) {
+                                        if (lastSync && !isEmpty(value as unknown as object)) {
                                             onChangeRemote(() => {
                                                 setInObservableAtPath(
                                                     obs,
@@ -764,9 +777,9 @@ export function persistObservable<T extends WithoutState>(
                                         });
                                     }
                                 }
-                                if (dateModified && local) {
+                                if (lastSync && local) {
                                     updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
-                                        modified: dateModified,
+                                        lastSync,
                                     });
                                 }
                             },

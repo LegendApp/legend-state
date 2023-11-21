@@ -19,7 +19,12 @@ export function observablePersistRemoteFunctionsAdapter<T = {}>({
                     value = await value;
                 }
 
-                params.onChange({ value, dateModified: params.dateModified, mode: params.mode });
+                params.onChange({
+                    value,
+                    dateModified: params.dateModified,
+                    lastSync: params.lastSync,
+                    mode: params.mode,
+                });
                 params.onGet();
                 // eslint-disable-next-line no-empty
             } catch {}
