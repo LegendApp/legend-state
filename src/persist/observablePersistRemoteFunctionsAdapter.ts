@@ -1,7 +1,8 @@
-import type {
-    ObservablePersistRemoteClass,
-    ObservablePersistRemoteFunctions,
-    ObservablePersistRemoteGetParams,
+import {
+    isPromise,
+    type ObservablePersistRemoteClass,
+    type ObservablePersistRemoteFunctions,
+    type ObservablePersistRemoteGetParams,
 } from '@legendapp/state';
 
 export function observablePersistRemoteFunctionsAdapter<T = {}>({
@@ -13,7 +14,11 @@ export function observablePersistRemoteFunctionsAdapter<T = {}>({
     if (get) {
         ret.get = (async (params: ObservablePersistRemoteGetParams<T>) => {
             try {
-                const value = (await get(params)) as T;
+                let value = get(params);
+                if (isPromise(value)) {
+                    value = await value;
+                }
+
                 params.onChange({ value, dateModified: params.dateModified, mode: params.mode });
                 params.onGet();
                 // eslint-disable-next-line no-empty

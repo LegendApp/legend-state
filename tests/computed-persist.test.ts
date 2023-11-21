@@ -46,6 +46,57 @@ describe('caching with new computed', () => {
         await when(nodes._state.isLoaded);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
+    test('cache with no delay', async () => {
+        localStorage.setItem('nodesdelay', JSON.stringify({ key0: { key: 'key0' } }));
+        const nodes = observable(
+            activated({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodesdelay',
+                },
+                get: () => {
+                    const nodes = [{ key: 'key1' }];
+                    return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                        acc[node.key] = node;
+                        return acc;
+                    }, {});
+                },
+                initial: { key00: { key: 'key00' } },
+            }),
+        );
+
+        nodes.get();
+
+        expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+    });
+    test('cache with initial', async () => {
+        localStorage.setItem('nodesinitial', JSON.stringify({ key0: { key: 'key0' } }));
+        const nodes = observable(
+            activated({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodesinitial',
+                },
+                get: async () => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key1' }]), 10),
+                    );
+                    return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                        acc[node.key] = node;
+                        return acc;
+                    }, {});
+                },
+                initial: { key00: { key: 'key00' } },
+            }),
+        );
+
+        expect(nodes._state.isLoadedLocal.get()).toEqual(true);
+        expect(nodes._state.isLoaded.get()).toEqual(false);
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+
+        await when(nodes._state.isLoaded);
+        expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+    });
     test('cache makes get receive params', async () => {
         localStorage.setItem('cachedprops', JSON.stringify('cached'));
         const nodes = observable(
@@ -194,7 +245,7 @@ describe('retry', () => {
                 get: () =>
                     new Promise((resolve, reject) => {
                         attemptNum$.set((v) => v + 1);
-                        attemptNum$.get() > 2 ? resolve('hi') : reject();
+                        attemptNum$.peek() > 2 ? resolve('hi') : reject();
                     }),
             }),
         );

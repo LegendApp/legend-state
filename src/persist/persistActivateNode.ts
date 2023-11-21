@@ -28,49 +28,70 @@ export function persistActivateNode() {
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
             if (get) {
-                pluginRemote.get = async (params: ObservablePersistRemoteGetParams<any>) => {
+                pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
                     const updateLastSync = (lastSync: number) => (params.dateModified = lastSync);
-                    const value = await new Promise((resolve, reject) => {
-                        let timeoutRetry: { current?: any } = {};
-                        const attemptNum = { current: 0 };
-                        let onError: (() => void) | undefined;
-                        const setMode = (mode: 'assign' | 'set') => (params.mode = mode);
+                    let timeoutRetry: { current?: any } = {};
+                    const attemptNum = { current: 0 };
+                    let onError: (() => void) | undefined;
+                    const setMode = (mode: 'assign' | 'set') => (params.mode = mode);
 
-                        const run = async () => {
-                            try {
-                                if (waitFor) {
-                                    await whenReady(waitFor);
+                    let value: any = undefined;
+                    const nodeValue = getNodeValue(node);
+                    const doGet = () => {
+                        return (value = get!({
+                            value: isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
+                            dateModified: params.dateModified!,
+                            updateLastSync,
+                            setMode,
+                        }));
+                    };
+
+                    if (waitFor) {
+                        value = whenReady(waitFor, doGet);
+                    } else {
+                        value = doGet();
+                    }
+
+                    if (isPromise(value)) {
+                        return new Promise((resolve) => {
+                            const run = async () => {
+                                if (retry) {
+                                    node.activationState!.persistedRetry = true;
+                                    if (timeoutRetry?.current) {
+                                        clearTimeout(timeoutRetry.current);
+                                    }
+                                    const { handleError, timeout } = setupRetry(
+                                        retry,
+                                        () => {
+                                            value = undefined;
+                                            run();
+                                        },
+                                        attemptNum,
+                                    );
+                                    onError = handleError;
+                                    timeoutRetry = timeout;
                                 }
-                                const nodeValue = getNodeValue(node);
-                                // TODO asdf: Why is this nodeValue a function or activated sometimes?
-                                const value = await get!({
-                                    value:
-                                        isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
-                                    dateModified: params.dateModified!,
-                                    updateLastSync,
-                                    setMode,
-                                });
-                                resolve(value);
-                            } catch {
-                                if (onError) {
-                                    onError();
-                                } else {
-                                    reject();
+
+                                try {
+                                    if (value === undefined) {
+                                        // This is a retry
+                                        value = await doGet();
+                                    } else {
+                                        value = await value;
+                                    }
+                                    resolve(value);
+                                } catch (err) {
+                                    if (onError) {
+                                        onError();
+                                    } else {
+                                        throw err;
+                                    }
                                 }
-                            }
-                        };
-                        if (retry) {
-                            node.activationState!.persistedRetry = true;
-                            if (timeoutRetry?.current) {
-                                clearTimeout(timeoutRetry.current);
-                            }
-                            const { handleError, timeout } = setupRetry(retry, run, attemptNum);
-                            onError = handleError;
-                            timeoutRetry = timeout;
-                        }
-                        run();
-                    });
+                            };
+                            return run();
+                        });
+                    }
 
                     return value;
                 };
@@ -87,6 +108,9 @@ export function persistActivateNode() {
                                 let maxModified = 0;
                                 let didError = false;
                                 let onError: () => void;
+                                if (!node.state!.isLoaded.peek()) {
+                                    await whenReady(node.state!.isLoaded);
+                                }
                                 if (retry) {
                                     if (timeoutRetry?.current) {
                                         clearTimeout(timeoutRetry.current);
