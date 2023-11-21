@@ -1170,9 +1170,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
 
         if (subscribe) {
             const updateFromSubscribe: UpdateFn = (params) => {
-                isSettingFromSubscribe = true;
-                update(params);
-                isSettingFromSubscribe = false;
+                whenReady(node.state!.isLoaded, () => {
+                    isSettingFromSubscribe = true;
+                    update(params);
+                    isSettingFromSubscribe = false;
+                });
             };
             subscribe({ node, update: updateFromSubscribe, refresh } as SubscribeOptions);
         }

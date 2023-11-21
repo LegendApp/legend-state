@@ -12,6 +12,7 @@ import {
     observable,
     observe,
     syncState,
+    whenReady,
 } from '../index';
 const { globalState } = internal;
 
@@ -1198,6 +1199,37 @@ export const run = (isPersist: boolean) => {
             expect(obs.get()).toEqual('hi there 0');
             await promiseTimeout(10);
             expect(obs.get()).toEqual('hi there 1');
+        });
+        test('subscribe update runs after get', async () => {
+            let didGet = false;
+            const obs = observable(
+                activated({
+                    subscribe: ({ update }) => {
+                        setTimeout(() => {
+                            update({ value: 'from subscribe' });
+                        }, 0);
+                    },
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => {
+                                didGet = true;
+                                resolve('hi there');
+                            }, 5);
+                        });
+                    },
+                }),
+            );
+            expect(obs.get()).toEqual(undefined);
+            expect(didGet).toEqual(false);
+            await promiseTimeout(0);
+            expect(didGet).toEqual(false);
+            expect(obs.get()).toEqual(undefined);
+            await promiseTimeout(0);
+            expect(didGet).toEqual(false);
+            expect(obs.get()).toEqual(undefined);
+            await whenReady(obs);
+            expect(didGet).toEqual(true);
+            expect(obs.get()).toEqual('from subscribe');
         });
     });
     describe('loading', () => {
