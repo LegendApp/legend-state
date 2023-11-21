@@ -50,7 +50,6 @@ describe('Creating', () => {
     test('Loading state works correctly', async () => {
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
-        // @ts-expect-error asdf
         const { state } = persistObservable(nodes, {
             pluginLocal: ObservablePersistLocalStorage,
             local: 'nodes',

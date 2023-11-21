@@ -170,16 +170,17 @@ describe('Set', () => {
 
         expect(seen).toEqual(1);
     });
-    // TODO asdf should this work now?
-    // test("Set with child that's an observable", () => {
-    //     const obsOther = observable({ a: { b: 'hi' } });
-    //     const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
-    //     obs.test.set({ t: obsOther });
-    //     expect(obs.get()).toEqual({ test: { t: { a: { b: 'hi' } } } });
-    //     obs.test.set({ t: { tt: obsOther.a } });
-    //     expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
-    //     expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
-    // });
+    test("Set with child that's an observable", () => {
+        const obsOther = observable({ a: { b: 'hi' } });
+        const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
+        obs.test.set({ t: obsOther });
+        expect(obs.test.t.a.get()).toEqual({ b: 'hi' });
+        obs.test.set({ t: { tt: obsOther.a } });
+        // TODO Should this work?
+        // expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
+        // expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
+        expect(obs.test.t.tt.b.get()).toEqual('hi');
+    });
     test('empty string as key', () => {
         const obs = observable({ '': 'test' });
         expect(obs[''].get()).toBe('test');
@@ -2775,7 +2776,6 @@ describe('Error detection', () => {
 
         const obs = observable(a);
         // Have to activate it first for it to error
-        // @ts-expect-error Any makes this not work
         obs.c.get();
 
         const aa: any = {};

@@ -64,7 +64,7 @@ interface ObservableBoolean extends ObservablePrimitive<boolean> {
 }
 
 interface ObservablePrimitive<T> extends ImmutableObservableBase<T>, MutableObservableBase<T> {}
-type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any>;
+type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any> & Record<string, any>;
 
 interface ImmutableObservableBase<T> {
     peek(): RemoveObservables<T>;
