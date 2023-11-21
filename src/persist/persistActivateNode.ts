@@ -164,7 +164,10 @@ export function persistActivateNode() {
                 },
             }) as unknown as Observable<WithState>;
 
-            if (newValue === undefined) {
+            const nodeVal = getNodeValue(node);
+            if (nodeVal !== undefined) {
+                newValue = nodeVal;
+            } else if (newValue === undefined) {
                 newValue = initial;
             }
 

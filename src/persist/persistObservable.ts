@@ -554,7 +554,7 @@ async function loadLocal<T>(
 
         localState.persistenceLocal = persistenceLocal;
 
-        if (!initialized.get()) {
+        if (!initialized.peek()) {
             await when(initialized);
         }
 
