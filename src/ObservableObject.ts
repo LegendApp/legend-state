@@ -46,7 +46,7 @@ import type {
 import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
-import { ObservablePersistStateInternal } from './persistTypes';
+import { ObservablePersistState, ObservablePersistStateInternal } from './persistTypes';
 import { setupRetry } from './retry';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';

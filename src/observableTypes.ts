@@ -135,14 +135,6 @@ export interface ObservableState {
     isLoaded: boolean;
     error?: Error;
 }
-export interface WithState {
-    state: ObservableState; // TODOV3: remove this
-    _state: ObservableState;
-}
-export interface WithStateObs {
-    state: Observable<ObservableState>; // TODOV3: remove this
-    _state: Observable<ObservableState>;
-}
 
 type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObservableProps<T>> &
     ObservableChildren<ObservableProps<T>> &
@@ -152,8 +144,6 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
-    : [NT] extends [Promise<infer t>]
-    ? Observable<t> & WithStateObs
     : [T] extends [() => infer t]
     ? t extends Observable
         ? t

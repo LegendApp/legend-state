@@ -4,11 +4,11 @@ import {
     isPrimitive,
     isPromise,
     ListenerParams,
+    syncState,
     Observable,
     Selector,
     trackSelector,
     when,
-    WithState,
 } from '@legendapp/state';
 import React, { useContext, useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
@@ -138,9 +138,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
             // function that returns a Promise, so we handle that case too.
             if (
                 isPromise(value) ||
-                (!value &&
-                    isObservable(selector) &&
-                    !(selector as unknown as Observable<WithState>).state.isLoaded.get())
+                (!value && isObservable(selector) && syncState(selector).isLoaded.get() === false)
             ) {
                 if (React.use) {
                     React.use(value);

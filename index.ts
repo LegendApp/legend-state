@@ -29,7 +29,7 @@ export {
     isString,
     isSymbol,
 } from './src/is';
-export { observable, observablePrimitive } from './src/observable';
+export { observable, observablePrimitive, syncState } from './src/observable';
 export * from './src/observableInterfaces';
 export * from './src/persistTypes';
 export { observe } from './src/observe';

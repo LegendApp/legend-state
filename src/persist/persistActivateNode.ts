@@ -8,7 +8,6 @@ import type {
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
     UpdateFn,
-    WithState,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
@@ -163,7 +162,7 @@ export function persistActivateNode() {
                     retry: retry,
                     offlineBehavior,
                 },
-            }) as unknown as Observable<WithState>;
+            });
 
             const nodeVal = getNodeValue(node);
             if (nodeVal !== undefined) {

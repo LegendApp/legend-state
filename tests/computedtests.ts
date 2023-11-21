@@ -11,6 +11,7 @@ import {
     isObservable,
     observable,
     observe,
+    syncState,
 } from '../index';
 const { globalState } = internal;
 
@@ -1206,9 +1207,10 @@ export const run = (isPersist: boolean) => {
                     setTimeout(() => resolve('hi there'), 0);
                 });
             });
-            expect(obs._state.isLoaded.get()).toEqual(false);
+            const state = syncState(obs);
+            expect(state.isLoaded.get()).toEqual(false);
             await promiseTimeout(0);
-            expect(obs._state.isLoaded.get()).toEqual(true);
+            expect(state.isLoaded.get()).toEqual(true);
             expect(obs.get()).toEqual('hi there');
         });
         test('isLoaded with activated', async () => {
@@ -1222,9 +1224,10 @@ export const run = (isPersist: boolean) => {
                     initial: 'initial',
                 }),
             );
-            expect(obs._state.isLoaded.get()).toEqual(false);
+            const state = syncState(obs);
+            expect(state.isLoaded.get()).toEqual(false);
             await promiseTimeout(0);
-            expect(obs._state.isLoaded.get()).toEqual(true);
+            expect(state.isLoaded.get()).toEqual(true);
             expect(obs.get()).toEqual('hi there');
         });
     });

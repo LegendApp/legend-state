@@ -9,7 +9,7 @@ import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { isEvent, lockObservable, setAtPath } from '../src/helpers';
-import { observable, observablePrimitive } from '../src/observable';
+import { observable, observablePrimitive, syncState } from '../src/observable';
 import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
 import { Observable as ObservableNew } from '../src/observableTypes';
 import { observe } from '../src/observe';
@@ -2176,53 +2176,58 @@ describe('Promise values', () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
         expect(obs.promise.get()).toEqual(undefined);
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs.promise);
+        expect(state.isLoaded.get()).toEqual(false);
         await promise;
         expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise.state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
     });
     test('Promise child with _state', async () => {
         const promise = Promise.resolve(10);
         const obs = observable({ promise });
         expect(obs.promise.get()).toEqual(undefined);
-        expect(obs.promise._state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs.promise);
+        expect(state.isLoaded.get()).toEqual(false);
         await promise;
         expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise._state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
     });
     test('Promise child works when set later', async () => {
         const obs = observable({ promise: undefined as unknown as Promise<number> });
         let resolver: (value: number) => void;
         const promise = new Promise<number>((resolve) => (resolver = resolve));
         obs.promise.set(promise);
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs.promise);
+        expect(state.isLoaded.get()).toEqual(false);
         // @ts-expect-error Fake error
         resolver(10);
         await promise;
         expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise.state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
     });
     test('Promise child works when assigned later', async () => {
         const obs = observable({ promise: undefined as unknown as Promise<number> });
         let resolver: (value: number) => void;
         const promise = new Promise<number>((resolve) => (resolver = resolve));
         obs.assign({ promise });
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs.promise);
+        expect(state.isLoaded.get()).toEqual(false);
         // @ts-expect-error Fake error
         resolver(10);
         await promise;
         expect(obs.promise.get()).toEqual(10);
-        expect(obs.promise.state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
     });
     test('Promise object becomes value', async () => {
         const promise = Promise.resolve({ child: 10 });
         const obs = observable(promise);
 
-        expect(obs.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs);
+        expect(state.isLoaded.get()).toEqual(false);
         await promise;
         expect(obs.get()).toEqual({ child: 10 });
         expect(obs.child.get()).toEqual(10);
-        expect(obs.state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
     });
     test('Promise primitive becomes value', async () => {
         const promise = Promise.resolve(10);
@@ -2255,7 +2260,9 @@ describe('Promise values', () => {
         } catch {
             await promiseTimeout(0);
         }
-        expect(obs.promise.state.error.get()).toEqual('test');
+        const state = syncState(obs.promise);
+
+        expect(state.error.get()).toEqual('test');
     });
     test('when callback works with promises', async () => {
         let resolver: (value: number) => void;
@@ -2289,7 +2296,8 @@ describe('Promise values', () => {
         await promise;
         // Still pending because it was not activated
         expect(obs.promise.get()).toEqual(undefined);
-        expect(obs.promise.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs.promise);
+        expect(state.isLoaded.get()).toEqual(false);
 
         // This get activates it but it takes a frame for it to equal the value
         expect(obs.promise.get()).not.toEqual(10);
@@ -2562,12 +2570,14 @@ describe('Observable with promise', () => {
             resolver = resolve;
         });
         const obs = observable(promise);
-        expect(obs.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs);
+
+        expect(state.isLoaded.get()).toEqual(false);
         if (resolver) {
             resolver(10);
         }
         await promiseTimeout(0);
-        expect(obs.state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
         expect(obs.get()).toEqual(10);
     });
     test('when with promise observable', async () => {
@@ -2576,7 +2586,9 @@ describe('Observable with promise', () => {
             resolver = resolve;
         });
         const obs = observable(promise);
-        expect(obs.state.isLoaded.get()).toEqual(false);
+        const state = syncState(obs);
+
+        expect(state.isLoaded.get()).toEqual(false);
         const fn = jest.fn();
         when(() => obs.get() === 10, fn);
         if (resolver) {
@@ -2584,7 +2596,7 @@ describe('Observable with promise', () => {
         }
         await promiseTimeout(1000);
         expect(fn).toHaveBeenCalled();
-        expect(obs.state.isLoaded.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
     });
     test('recursive batches prevented', async () => {
         let isInInnerBatch = false;

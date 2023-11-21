@@ -1,6 +1,6 @@
 import { persistObservable } from '../persist';
 import { activated } from '../src/activated';
-import { observable } from '../src/observable';
+import { observable, syncState } from '../src/observable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 import { when } from '../src/when';
 import { run } from './computedtests';
@@ -39,11 +39,13 @@ describe('caching with new computed', () => {
             }),
         );
 
-        expect(nodes._state.isLoadedLocal.get()).toEqual(true);
-        expect(nodes._state.isLoaded.get()).toEqual(false);
+        const state = syncState(nodes);
+
+        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
-        await when(nodes._state.isLoaded);
+        await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
     test('cache with no delay', async () => {
@@ -90,11 +92,13 @@ describe('caching with new computed', () => {
             }),
         );
 
-        expect(nodes._state.isLoadedLocal.get()).toEqual(true);
-        expect(nodes._state.isLoaded.get()).toEqual(false);
+        const state = syncState(nodes);
+
+        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
-        await when(nodes._state.isLoaded);
+        await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
     test('cache makes get receive params', async () => {
@@ -111,11 +115,13 @@ describe('caching with new computed', () => {
             }),
         );
 
-        expect(nodes._state.isLoadedLocal.get()).toEqual(true);
-        expect(nodes._state.isLoaded.get()).toEqual(false);
+        const state = syncState(nodes);
+
+        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual('cached');
 
-        await when(nodes._state.isLoaded);
+        await when(state.isLoaded);
         expect(nodes.get()).toEqual('cached1');
     });
     test('cache async', async () => {
@@ -172,8 +178,10 @@ describe('lastSync with new computed', () => {
 
         expect(nodes.get()).toEqual(undefined);
 
-        await when(nodes._state.isLoadedLocal);
-        await when(nodes._state.isLoaded);
+        const state = syncState(nodes);
+
+        await when(state.isLoadedLocal);
+        await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
         await promiseTimeout(1);
