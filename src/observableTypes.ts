@@ -13,9 +13,9 @@ type ArrayOverrideFnNames =
     | 'sort';
 
 type ObservableComputed<T = any> = Readonly<ObservableNode<T>>;
-type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2, T2>;
+type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2>;
 
-type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any, any>>;
+type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any>>;
 type Readonly<T> = MakeReadonlyInner<T> & {
     [K in keyof MakeReadonlyInner<T>]: T extends Observable ? T[K] : Readonly<T[K]>;
 };
@@ -43,13 +43,11 @@ interface ObservableArray<T, U>
         Pick<Array<Observable<U>>, ArrayOverrideFnNames>,
         Omit<RemoveIndex<Array<U>>, ArrayOverrideFnNames> {}
 
-interface ObservableObjectFns<T, T2 = T> {
-    assign(value: Partial<T & T2>): Observable<T>;
+interface ObservableObjectFns<T> {
+    assign(value: Partial<T>): Observable<T>;
 }
-// TODO asdf Might not need T2
-interface ObservableObjectFunctions<T = Record<string, any>, T2 = T>
-    extends ObservablePrimitive<T, T2>,
-        ObservableObjectFns<T, T2> {}
+
+interface ObservableObjectFunctions<T = Record<string, any>> extends ObservablePrimitive<T>, ObservableObjectFns<T> {}
 
 type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
     Omit<ObservablePrimitive<T>, 'get' | 'size'> & {
@@ -65,7 +63,7 @@ interface ObservableBoolean extends ObservablePrimitive<boolean> {
     toggle(): boolean;
 }
 
-interface ObservablePrimitive<T, T2 = T> extends ImmutableObservableBase<T>, MutableObservableBase<T, T2> {}
+interface ObservablePrimitive<T> extends ImmutableObservableBase<T>, MutableObservableBase<T> {}
 type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any>;
 
 interface ImmutableObservableBase<T> {
@@ -77,11 +75,11 @@ interface ImmutableObservableBase<T> {
     ): () => void;
 }
 
-interface MutableObservableBase<T, T2> {
-    set(value: RemoveObservables<T & T2>): Observable<T>;
-    set(value: (prev: RemoveObservables<T & T2>) => RemoveObservables<T & T2>): Observable<T>;
-    set(value: Promise<RemoveObservables<T & T2>>): Observable<T>;
-    set(value: Observable<RemoveObservables<T & T2>>): Observable<T>;
+interface MutableObservableBase<T> {
+    set(value: RemoveObservables<T>): Observable<T>;
+    set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): Observable<T>;
+    set(value: Promise<RemoveObservables<T>>): Observable<T>;
+    set(value: Observable<RemoveObservables<T>>): Observable<T>;
     delete(): void;
 }
 
@@ -166,7 +164,7 @@ type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type Observable<T = any> = ObservableNode<T>; // & {};
 
 type ObservableReadable<T = any> = ImmutableObservableBase<T>;
-type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T, T>;
+type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;
 
 export type {
     ObservableComputed,
