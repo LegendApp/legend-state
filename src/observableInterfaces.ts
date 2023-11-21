@@ -154,6 +154,7 @@ export interface ActivateParams<T = any> {
     get?: (params: ActivateGetParams) => T;
     retry?: RetryOptions;
     mode?: 'assign' | 'set' | 'dateModified';
+    offlineBehavior?: false | 'retry';
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface ActivateParamsWithLookup<T extends Record<string, any> = Record<string, any>>
