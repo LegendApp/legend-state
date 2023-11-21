@@ -1,4 +1,3 @@
-import { noop } from '@babel/types';
 import { batch, beginBatch, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -46,10 +45,12 @@ import type {
 import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
-import { ObservablePersistState, ObservablePersistStateInternal } from './persistTypes';
+import { ObservablePersistStateInternal } from './persistTypes';
 import { setupRetry } from './retry';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
+
+const noop = () => {};
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -951,9 +952,14 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             } else if (node.activationState) {
                 if (!node.activationState!.persistedRetry && !node.activationState.waitFor) {
                     const activated = node.activationState!;
-                    // TODO
-                    // @ts-expect-error asdf
-                    value = activated.get?.({ updateLastSync: noop, setMode: noop }) ?? activated.initial;
+                    // TODO Should this have lastSync and value somehow?
+                    value =
+                        activated.get?.({
+                            updateLastSync: noop,
+                            setMode: noop,
+                            lastSync: undefined,
+                            value: undefined,
+                        }) ?? activated.initial;
                 }
             }
             wasPromise = wasPromise || isPromise(value);
@@ -1044,8 +1050,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     let _mode: 'assign' | 'set' = 'set';
     if (node.activationState) {
         const { onSet, subscribe, get: getFn, initial, retry, waitFor } = node.activationState;
-        // @ts-expect-error asdf
-        const run = () => getFn!({ updateLastSync: noop, setMode: (mode) => (_mode = mode) });
+
+        // TODO Should this have lastSync and value somehow?
+        const run = () =>
+            getFn!({ updateLastSync: noop, setMode: (mode) => (_mode = mode), lastSync: undefined, value: undefined });
+
         value = getFn
             ? waitFor
                 ? new Promise((resolve) => {
