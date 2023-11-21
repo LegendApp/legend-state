@@ -21,7 +21,7 @@ persistActivateNode();
 declare module '@legendapp/state' {
     interface ActivateGetParams {
         value: any;
-        lastSync: number;
+        lastSync: number | undefined;
         updateLastSync: (lastSync: number) => void;
     }
     interface ActivateParams<T> {

@@ -153,7 +153,6 @@ export interface ActivateParams<T = any> {
     initial?: T extends Promise<infer t> ? t : T;
     get?: (params: ActivateGetParams) => T;
     retry?: RetryOptions;
-    mode?: 'assign' | 'set' | 'dateModified';
     offlineBehavior?: false | 'retry';
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -166,7 +165,7 @@ export type Activated<T> = T;
 
 export type UpdateFn = (params: {
     value: unknown;
-    mode?: 'assign' | 'set' | 'dateModified';
+    mode?: 'assign' | 'set' | 'lastSync' | 'dateModified';
     dateModified?: number | undefined;
     lastSync?: number | undefined;
 }) => void;

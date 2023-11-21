@@ -104,7 +104,7 @@ export interface ObservableOnChangeParams {
     value: unknown;
     path?: string[];
     pathTypes?: TypeAtPath[];
-    mode?: 'assign' | 'set' | 'dateModified';
+    mode?: 'assign' | 'set' | 'dateModified' | 'lastSync'; // TODOV3 Remove dateModified
     dateModified?: number | undefined;
     lastSync?: number | undefined;
 }
@@ -121,7 +121,7 @@ export interface ObservablePersistRemoteGetParams<T> {
     options: PersistOptions<T>;
     dateModified?: number;
     lastSync?: number;
-    mode?: 'assign' | 'set' | 'dateModified';
+    mode?: 'assign' | 'set' | 'dateModified'; // TODOV3 Remove dateModified
     onGet: () => void;
     onError: (error: Error) => void;
     onChange: (params: ObservableOnChangeParams) => void | Promise<void>;

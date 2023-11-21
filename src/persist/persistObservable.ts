@@ -733,7 +733,7 @@ export function persistObservable<T extends WithoutState>(
                                         path = transformPath(path as string[], pathTypes, invertedMap);
                                     }
 
-                                    if (mode === 'dateModified') {
+                                    if (mode === 'lastSync' || mode === 'dateModified') {
                                         if (lastSync && !isEmpty(value as unknown as object)) {
                                             onChangeRemote(() => {
                                                 setInObservableAtPath(
