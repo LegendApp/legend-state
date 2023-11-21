@@ -934,8 +934,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             const activated = value?.[symbolActivated] as ActivateParams;
             if (activated) {
                 node.activationState = activated;
-
-                value = activated.initial;
+                value = undefined;
             }
             wasPromise = isPromise(value);
 
@@ -948,9 +947,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                 const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
                 const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, !!wasPromise, value);
                 update = newUpdate;
-                value = newValue;
+                value = newValue ?? activated?.initial;
             } else if (node.activationState) {
-                if (!node.activationState!.persistedRetry) {
+                if (!node.activationState!.persistedRetry && !node.activationState.waitFor) {
                     const activated = node.activationState!;
                     // TODO
                     // @ts-expect-error asdf
