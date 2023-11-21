@@ -1,7 +1,16 @@
 import type { GetOptions, ListenerFn, TrackingType } from './observableInterfaces';
 
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
-type ArrayOverrideFnNames = 'find' | 'every' | 'some' | 'filter' | 'reduce' | 'reduceRight' | 'forEach' | 'map';
+type ArrayOverrideFnNames =
+    | 'find'
+    | 'every'
+    | 'some'
+    | 'filter'
+    | 'reduce'
+    | 'reduceRight'
+    | 'forEach'
+    | 'map'
+    | 'sort';
 
 type ObservableComputed<T = any> = Readonly<Observable<T>>;
 type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2, T2>;
