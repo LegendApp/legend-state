@@ -133,5 +133,5 @@ export function useObservableNextRouter<T extends object>(
     setSilently(routes$, obj);
 
     // Return the observable with the computed values
-    return routes$ as Observable<T>;
+    return routes$ as any;
 }

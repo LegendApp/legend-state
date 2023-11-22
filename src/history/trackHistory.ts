@@ -13,7 +13,7 @@ type TimestampAsString = string;
 export function trackHistory<T>(
     obs: ObservableReadable<T>,
     targetObservable?: ObservableWriteable<Record<TimestampAsString, Partial<T>>>,
-) {
+): ObservableWriteable<Record<TimestampAsString, any>> {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
     obs.onChange(({ changes }) => {
@@ -32,5 +32,5 @@ export function trackHistory<T>(
         }
     });
 
-    return history as ObservableWriteable<Record<TimestampAsString, any>>;
+    return history as any;
 }

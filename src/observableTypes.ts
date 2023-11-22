@@ -78,6 +78,7 @@ interface ImmutableObservableBase<T> {
 interface MutableObservableBase<T> {
     set(value: RemoveObservables<T>): Observable<T>;
     set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): Observable<T>;
+    set(value: RecursiveValueOrFunction<T>): Observable<T>;
     set(value: Promise<RemoveObservables<T>>): Observable<T>;
     set(value: Observable<RemoveObservables<T>>): Observable<T>;
     delete(): void;
@@ -161,10 +162,25 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
-type Observable<T = any> = ObservableNode<T>; // & {};
+type Observable<T = any> = ObservableNode<T> & {};
 
 type ObservableReadable<T = any> = ImmutableObservableBase<T>;
 type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;
+
+// Allow input types to have functions in them
+type ValueOrFunction<T> = T extends Function ? T : T | (() => T | Promise<T>);
+type ValueOrFunctionKeys<T> = {
+    [K in keyof T]: RecursiveValueOrFunction<T[K]>;
+};
+
+type RecursiveValueOrFunction<T> = T extends Function
+    ? T
+    : T extends object
+    ?
+          | Promise<ValueOrFunctionKeys<T>>
+          | ValueOrFunctionKeys<T>
+          | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)
+    : ValueOrFunction<T>;
 
 export type {
     ObservableComputed,
@@ -177,4 +193,5 @@ export type {
     ObservableWriteable,
     // TODO: how to make these internal somehow?
     ImmutableObservableBase,
+    RecursiveValueOrFunction,
 };
