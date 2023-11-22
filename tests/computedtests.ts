@@ -12,6 +12,7 @@ import {
     observable,
     observe,
     syncState,
+    when,
     whenReady,
 } from '../index';
 const { globalState } = internal;
@@ -1181,23 +1182,32 @@ export const run = (isPersist: boolean) => {
         });
         test('subscription with refresh', async () => {
             let num = 0;
+            const waiter = observable(0);
             const obs = observable(
                 activated({
                     subscribe: ({ refresh }) => {
-                        setTimeout(() => {
-                            refresh();
-                        }, 5);
+                        when(
+                            () => waiter.get() === 1,
+                            () => {
+                                setTimeout(() => {
+                                    refresh();
+                                }, 0);
+                            },
+                        );
                     },
                     get: () =>
                         new Promise<string>((resolve) => {
-                            setTimeout(() => resolve('hi there ' + num++), 0);
+                            setTimeout(() => {
+                                resolve('hi there ' + num++);
+                                waiter.set((v) => v + 1);
+                            }, 0);
                         }),
                 }),
             );
             expect(obs.get()).toEqual(undefined);
             await promiseTimeout(0);
             expect(obs.get()).toEqual('hi there 0');
-            await promiseTimeout(10);
+            await when(() => waiter.get() === 2);
             expect(obs.get()).toEqual('hi there 1');
         });
         test('subscribe update runs after get', async () => {
@@ -1312,6 +1322,26 @@ export const run = (isPersist: boolean) => {
             expect(handler).toHaveBeenCalledWith('hi', '', [
                 { path: [], pathTypes: [], prevAtPath: '', valueAtPath: 'hi' },
             ]);
+        });
+    });
+    describe('Set after', () => {
+        test('Basic computed set after', () => {
+            const obs = observable({ test: 10, test2: 20 });
+            const comp = observable();
+            comp.set(() => obs.test.get() + obs.test2.get());
+            expect(comp.get()).toEqual(30);
+        });
+        test('Basic computed set after with child', () => {
+            const obs = observable({ test: 10, test2: 20 });
+            const comp = observable<{ child: number }>();
+            comp.set({ child: () => obs.test.get() + obs.test2.get() });
+            expect(comp.child.get()).toEqual(30);
+        });
+        test('Basic computed set after with activated child', () => {
+            const obs = observable({ test: 10, test2: 20 });
+            const comp = observable<{ child: number }>();
+            comp.set({ child: activated({ get: () => obs.test.get() + obs.test2.get() }) });
+            expect(comp.child.get()).toEqual(30);
         });
     });
 };

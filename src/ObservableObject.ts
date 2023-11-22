@@ -291,7 +291,9 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 if (isDiff) {
                     // Array has a new / modified element
                     // If object iterate through its children
-                    if (isPrimitive(value)) {
+                    if (isFunction(value)) {
+                        extractFunctionOrComputed(parent, obj, key, value);
+                    } else if (isPrimitive(value)) {
                         hasADiff = true;
                     } else {
                         // Always need to updateNodes so we notify through all children
