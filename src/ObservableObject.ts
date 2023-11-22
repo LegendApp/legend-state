@@ -37,7 +37,6 @@ import type {
     GetOptions,
     ListenerParams,
     NodeValue,
-    OnSetExtra,
     SubscribeOptions,
     TrackingType,
     UpdateFn,
@@ -1113,23 +1112,19 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                         isSetting = true;
                         batch(
                             () =>
-                                onSet(
-                                    {
-                                        value,
-                                        changes,
-                                        getPrevious: () => {
-                                            // TODO
-                                            // debugger;
-                                        },
+                                onSet({
+                                    value,
+                                    changes,
+                                    getPrevious: () => {
+                                        // TODO
+                                        // debugger;
                                     },
-                                    {
-                                        node,
-                                        update,
-                                        refresh,
-                                        onError,
-                                        fromSubscribe: isSettingFromSubscribe,
-                                    } as OnSetExtra,
-                                ),
+                                    node,
+                                    update,
+                                    refresh,
+                                    onError,
+                                    fromSubscribe: isSettingFromSubscribe,
+                                }),
                             () => {
                                 isSetting = false;
                             },

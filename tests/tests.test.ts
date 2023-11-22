@@ -3024,7 +3024,7 @@ describe('new computed', () => {
                         test: 'hi',
                     };
                 },
-                onSet: ({ value }, { fromSubscribe }) => {
+                onSet: ({ value, fromSubscribe }) => {
                     wasSetTo = value;
                     wasSetToFromSubscribe = fromSubscribe;
                 },

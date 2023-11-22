@@ -340,7 +340,7 @@ describe('retry', () => {
                 retry: {
                     delay: 1,
                 },
-                onSet: ({ value }, { onError }) => {
+                onSet: ({ value, onError }) => {
                     return new Promise<void>((resolve) => {
                         attemptNum$.set((v) => v + 1);
                         if (attemptNum$.get() > 2) {

@@ -147,7 +147,7 @@ export interface ActivateGetParams {
 }
 export interface ActivateParams<T = any> {
     // TODO Merge params and extra
-    onSet?: (params: ListenerParams<T extends Promise<infer t> ? t : T>, extra: OnSetExtra) => void | Promise<any>;
+    onSet?: (params: ListenerParams<T extends Promise<infer t> ? t : T> & OnSetExtra) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T extends Promise<infer t> ? t : T;

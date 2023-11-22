@@ -2,7 +2,6 @@ import type {
     ActivateParamsWithLookup,
     ListenerParams,
     NodeValue,
-    Observable,
     ObservableOnChangeParams,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
@@ -118,7 +117,8 @@ export function persistActivateNode() {
                                     onError = handleError;
                                     timeoutRetry = timeout;
                                 }
-                                await onSet(params as unknown as ListenerParams, {
+                                await onSet({
+                                    ...(params as unknown as ListenerParams),
                                     node,
                                     update: (params) => {
                                         const { value, lastSync } = params;
