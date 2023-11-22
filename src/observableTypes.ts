@@ -76,10 +76,10 @@ interface ImmutableObservableBase<T> {
 }
 
 interface MutableObservableBase<T> {
-    set(value: RemoveObservables<T>): Observable<T>;
     set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): Observable<T>;
     set(value: RecursiveValueOrFunction<T>): Observable<T>;
     set(value: Promise<RemoveObservables<T>>): Observable<T>;
+    set(value: RemoveObservables<T>): Observable<T>;
     set(value: Observable<RemoveObservables<T>>): Observable<T>;
     delete(): void;
 }

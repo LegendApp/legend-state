@@ -141,13 +141,14 @@ export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
         [symbolGetNode]: NodeValue;
     };
 
+export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> & OnSetExtra;
 export interface ActivateGetParams {
     updateLastSync: (lastSync: number) => void;
     setMode: (mode: 'assign' | 'set') => void;
 }
 export interface ActivateParams<T = any> {
     // TODO Merge params and extra
-    onSet?: (params: ListenerParams<T extends Promise<infer t> ? t : T> & OnSetExtra) => void | Promise<any>;
+    onSet?: (params: OnSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T extends Promise<infer t> ? t : T;
