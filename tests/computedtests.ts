@@ -714,6 +714,69 @@ export const run = (isPersist: boolean) => {
 
             expect(comp.get()).toEqual('hi');
         });
+        test('Computed link to link to activated updates when changing', async () => {
+            const num$ = observable(0);
+            const obs = observable(
+                activated({
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => {
+                                resolve('hi');
+                            }, 0);
+                        });
+                    },
+                }),
+            );
+            const obs2 = observable(() => num$.get() > 1 && obs);
+            const comp = observable(() => (num$.get() > 0 ? obs2 : undefined));
+
+            expect(comp.get()).toEqual(undefined);
+
+            num$.set(1);
+
+            expect(comp.get()).toEqual(false);
+
+            num$.set(2);
+
+            await promiseTimeout(0);
+
+            expect(comp.get()).toEqual('hi');
+        });
+        test('Computed link to link to activated child updates when changing', async () => {
+            const num$ = observable(0);
+            const obs = observable({
+                test: activated({
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => {
+                                resolve('hi');
+                            }, 0);
+                        });
+                    },
+                }),
+            });
+            // TODO Is it calling these twice?
+            const obs2 = observable(() => {
+                return { test1: num$.get() > 1 && obs.test };
+            });
+            const comp = observable<{ test1: string | boolean }>(() => {
+                return num$.get() > 0 ? obs2 : (undefined as any);
+            });
+
+            expect(comp.test1.get()).toEqual(undefined);
+
+            num$.set(1);
+
+            expect(comp.test1.get()).toEqual(false);
+
+            num$.set(2);
+
+            await promiseTimeout(10);
+
+            console.log(comp.get());
+
+            expect(comp.test1.get()).toEqual('hi');
+        });
         test('Computed in observable sets raw data', () => {
             const obs = observable({
                 text: 'hi',
