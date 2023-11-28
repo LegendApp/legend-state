@@ -103,7 +103,6 @@ export interface ChildNodeValue extends BaseNodeValue {
 
 export type NodeValue = RootNodeValue | ChildNodeValue;
 
-/** @internal */
 export interface TrackingNode {
     node: NodeValue;
     track: TrackingType;

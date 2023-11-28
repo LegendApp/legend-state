@@ -653,6 +653,67 @@ export const run = (isPersist: boolean) => {
             expect(obs.get()).toEqual(3);
             expect(comp.get()).toEqual(3);
         });
+        test('Computed link updates when changing', () => {
+            const num$ = observable(0);
+            const obs = observable(1);
+            const comp = observable(() => (num$.get() > 0 ? obs : undefined));
+
+            expect(comp.get()).toEqual(undefined);
+
+            num$.set(1);
+
+            expect(comp.get()).toEqual(1);
+        });
+        test('Computed link to child updates when changing', () => {
+            const num$ = observable(0);
+            const obs = observable({ name: 'hi' });
+            const comp = observable(() => (num$.get() > 0 ? obs : undefined));
+
+            expect(comp.name.get()).toEqual(undefined);
+
+            num$.set(1);
+
+            expect(comp.name.get()).toEqual('hi');
+        });
+        test('Computed link to link updates when changing', () => {
+            const num$ = observable(0);
+            const obs = observable({ name: 'hi' });
+            const obs2 = observable(() => num$.get() > 1 && obs);
+            const comp = observable(() => (num$.get() > 0 ? obs2 : undefined));
+
+            expect(comp.name.get()).toEqual(undefined);
+
+            num$.set(1);
+
+            expect(comp.name.get()).toEqual(false);
+
+            num$.set(2);
+
+            expect(comp.name.get()).toEqual('hi');
+        });
+        test('Computed link to activated updates when changing', async () => {
+            const num$ = observable(0);
+            const obs = observable(
+                activated({
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => {
+                                resolve('hi');
+                            }, 0);
+                        });
+                    },
+                }),
+            );
+            const comp = observable(() => (num$.get() > 0 ? obs : undefined));
+
+            expect(comp.get()).toEqual(undefined);
+
+            num$.set(1);
+
+            await promiseTimeout(10);
+
+            expect(comp.get()).toEqual('hi');
+        });
         test('Computed in observable sets raw data', () => {
             const obs = observable({
                 text: 'hi',

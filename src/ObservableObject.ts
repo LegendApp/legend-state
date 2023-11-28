@@ -757,7 +757,7 @@ function updateNodesAndNotify(
     level?: number,
 ) {
     if (!childNode) childNode = node;
-    // Make sure we don't call too many listeners for ever property set
+    // Make sure we don't call too many listeners for every property set
     beginBatch();
 
     let hasADiff = isPrim;
@@ -913,6 +913,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                     linkedNode.linkedFromNodes = new Set();
                 }
                 linkedNode.linkedFromNodes.add(node);
+                peek(linkedNode);
                 onChange(
                     linkedNode,
                     ({ value: newValue }) => {
