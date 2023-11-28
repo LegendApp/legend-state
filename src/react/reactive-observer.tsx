@@ -174,7 +174,7 @@ export function reactiveComponents<P extends Record<string, FC>>(components: P):
         {},
         {
             get(target: Record<string, any>, p: string) {
-                if (!target[p]) {
+                if (!target[p] && components[p]) {
                     target[p] = createReactiveComponent(components[p], false, true) as FC<ShapeWith$<P>>;
                 }
 
