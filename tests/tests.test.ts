@@ -2050,6 +2050,14 @@ describe('when', () => {
         await promiseTimeout(20);
         expect(didResolve).toEqual(true);
     });
+    test('when type of return', async () => {
+        const obs = observable({ val: 10 });
+        const str = when(
+            () => obs.val.get() === 20,
+            () => 'asdf',
+        );
+        expect(str).toEqual('asdf');
+    });
 });
 describe('Shallow', () => {
     test('Shallow set primitive', () => {

@@ -3,10 +3,10 @@ import { isPromise } from './is';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
-function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any), checkReady?: boolean): Promise<T> {
+function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkReady?: boolean): any {
     // If predicate is a regular Promise skip all the observable stuff
     if (isPromise<T>(predicate)) {
-        return effect ? predicate.then(effect) : predicate;
+        return effect ? predicate.then(effect) : (predicate as any);
     }
 
     let value: T | undefined;
@@ -34,20 +34,20 @@ function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => an
     // If first run resulted in a truthy value just return it.
     // It will have set e.cancel so no need to dispose
     if (isPromise<T>(value)) {
-        return effect ? value.then(effect) : value;
+        return effect ? value.then(effect) : (value as any);
     } else if (value !== undefined) {
         return Promise.resolve(value);
     } else {
         // Wrap it in a promise
-        const promise = new Promise<T>((resolve) => {
+        const promise = new Promise<T2>((resolve) => {
             if (effect) {
                 const originalEffect = effect;
-                effect = (value) => {
+                effect = ((value: T) => {
                     const effectValue = originalEffect(value);
                     resolve(effectValue);
-                };
+                }) as any;
             } else {
-                effect = resolve;
+                effect = resolve as any;
             }
         });
 
@@ -55,9 +55,13 @@ function _when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => an
     }
 }
 
-export function when<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any)): Promise<T> {
-    return _when<T>(predicate, effect, false);
+export function when<T, T2>(predicate: Selector<T>, effect: (value: T) => T2): T2;
+export function when<T>(predicate: Selector<T>): Promise<T>;
+export function when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2): Promise<T | T2> {
+    return _when<T, T2>(predicate, effect, false);
 }
-export function whenReady<T>(predicate: Selector<T>, effect?: (value: T) => any | (() => any)): Promise<T> {
-    return _when<T>(predicate, effect, true);
+export function whenReady<T, T2>(predicate: Selector<T>, effect: (value: T) => T2): T2;
+export function whenReady<T>(predicate: Selector<T>): Promise<T>;
+export function whenReady<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2): Promise<T | T2> {
+    return _when<T, T2>(predicate, effect, true);
 }
