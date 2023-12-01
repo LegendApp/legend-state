@@ -44,7 +44,7 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
                 const originalEffect = effect;
                 effect = ((value: T) => {
                     const effectValue = originalEffect(value);
-                    resolve(effectValue);
+                    resolve(isPromise(effectValue) ? effectValue.then((value) => value as T2) : effectValue);
                 }) as any;
             } else {
                 effect = resolve as any;
@@ -55,12 +55,14 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
     }
 }
 
-export function when<T, T2>(predicate: Selector<T>, effect: (value: T) => T2): T2;
+export function when<T, T2>(predicate: Promise<T>, effect: (value: T) => T2): Promise<T2>;
+export function when<T, T2>(predicate: Selector<T>, effect: (value: T) => T2): Promise<T2>;
 export function when<T>(predicate: Selector<T>): Promise<T>;
 export function when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2): Promise<T | T2> {
     return _when<T, T2>(predicate, effect, false);
 }
-export function whenReady<T, T2>(predicate: Selector<T>, effect: (value: T) => T2): T2;
+export function whenReady<T, T2>(predicate: Promise<T>, effect: (value: T) => T2): Promise<T2>;
+export function whenReady<T, T2>(predicate: Selector<T>, effect: (value: T) => T2): Promise<T2>;
 export function whenReady<T>(predicate: Selector<T>): Promise<T>;
 export function whenReady<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2): Promise<T | T2> {
     return _when<T, T2>(predicate, effect, true);

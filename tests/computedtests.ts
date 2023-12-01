@@ -773,8 +773,6 @@ export const run = (isPersist: boolean) => {
 
             await promiseTimeout(10);
 
-            console.log(comp.get());
-
             expect(comp.test1.get()).toEqual('hi');
         });
         test('Computed in observable sets raw data', () => {

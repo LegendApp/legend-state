@@ -2052,11 +2052,33 @@ describe('when', () => {
     });
     test('when type of return', async () => {
         const obs = observable({ val: 10 });
-        const str = when(
+        let resolved: string | undefined;
+        const promise = when(
             () => obs.val.get() === 20,
             () => 'asdf',
         );
-        expect(str).toEqual('asdf');
+        when(promise, (value) => (resolved = value));
+        expect(resolved).toEqual(undefined);
+        obs.val.set(20);
+        await promiseTimeout(0);
+        expect(resolved).toEqual('asdf');
+    });
+    test('when promise resolves on effect resolve', async () => {
+        let resolver: (value: number) => void;
+        const obs = observable(new Promise<number>((resolve) => (resolver = resolve)));
+        const promise = when(
+            () => obs,
+            () =>
+                new Promise((resolve) => {
+                    setTimeout(() => resolve('asdf'), 0);
+                }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+        resolver!(1);
+        expect(obs.get()).toEqual(undefined);
+        const value = await promise;
+        expect(value).toEqual('asdf');
     });
 });
 describe('Shallow', () => {
