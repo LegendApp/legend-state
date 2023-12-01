@@ -8,30 +8,29 @@ export function Switch<T extends object>({
 }: {
     value?: Selector<T>;
     children: Partial<Record<keyof T | 'null' | 'undefined' | 'default', () => ReactNode>>;
-}): ReactElement;
+}): ReactElement | null;
 export function Switch<T extends string | number | symbol>({
     value,
     children,
 }: {
     value?: Selector<T>;
     children: Partial<Record<T | 'null' | 'undefined' | 'default', () => ReactNode>>;
-}): ReactElement;
+}): ReactElement | null;
 export function Switch<T extends boolean>({
     value,
     children,
 }: {
     value?: Selector<T>;
     children: Partial<Record<'false' | 'true' | 'null' | 'undefined' | 'default', () => ReactNode>>;
-}): ReactElement;
+}): ReactElement | null;
 export function Switch<T>({
     value,
     children,
 }: {
     value?: Selector<T>;
     children: Partial<Record<any, () => ReactNode>>;
-}): ReactElement {
+}): ReactNode {
     // Select from an object of cases
-    return ((children as Record<any, () => ReactNode>)[useSelector(value, { skipCheck: true })!]?.() ??
-        (children as Record<any, () => ReactNode>)['default']?.() ??
-        null) as ReactElement;
+    const child = children[useSelector(value, { skipCheck: true })!];
+    return (child ? child() : children['default']?.()) ?? null;
 }

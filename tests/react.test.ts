@@ -15,6 +15,7 @@ import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 import { useObservableState } from '../src/react/useObservableState';
+import { Switch } from '../src/react/Switch';
 
 type TestObject = { id: string; label: string };
 
@@ -527,6 +528,33 @@ describe('Show', () => {
     });
 });
 
+describe('Switch', () => {
+    test('Switch does not fall through', async () => {
+        const obs = observable<{ ok: string }>({
+            ok: undefined as unknown as string,
+        });
+        let didFallThrough = false;
+        function Test() {
+            return createElement(
+                Switch,
+                // @ts-expect-error asdf
+                { value: obs.ok },
+                {
+                    undefined: () => {
+                        return null;
+                    },
+                    default: () => {
+                        didFallThrough = true;
+                        return null;
+                    },
+                },
+            );
+        }
+        render(createElement(Test));
+
+        expect(didFallThrough).toEqual(false);
+    });
+});
 describe('useObservableReducer', () => {
     test('useObservableReducer test1', () => {
         let nextId = 3;
