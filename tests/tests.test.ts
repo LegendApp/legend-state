@@ -1858,7 +1858,8 @@ describe('Deep changes keep listeners', () => {
             ],
         );
         expect(handler2).toHaveBeenCalledWith(
-            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }] },
+            { arr: [{ _id: 1 }, { _id: 2 }, { _id: 3 }], arr_keyExtractor },
+            // Note: Cloning to create previous loses functions
             { arr: [{ _id: 0 }, { _id: 1 }, { _id: 2 }] },
             [
                 {
@@ -2878,6 +2879,16 @@ describe('Functions', () => {
         });
 
         expect(obs.test() === 'hi!');
+    });
+    test('Functions still exist on object', () => {
+        const obs = observable({ text: 'hi' } as { text: any; test: () => string });
+        obs.assign({
+            test: () => 'hi!',
+        });
+
+        const raw = obs.get();
+
+        expect(raw.test() === 'hi!');
     });
 });
 

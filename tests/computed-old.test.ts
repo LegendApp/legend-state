@@ -803,8 +803,9 @@ describe('proxy', () => {
                 return obs.items[key].text;
             }),
         });
-        expect(obs.get()).toEqual({
-            items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
+        expect(obs.get().items).toEqual({
+            test1: { text: 'hi' },
+            test2: { text: 'hello' },
         });
 
         obs.itemText['test1'].set('hi!');

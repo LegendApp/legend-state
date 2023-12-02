@@ -831,7 +831,6 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
     } else if (typeof v === 'function') {
         const childNode = node.children?.get(k);
         extractFunction(node, k, v);
-        delete obj[k];
         // If child was previously activated, then peek the new linked observable to make sure it's activated
         if (childNode && !childNode.lazy) {
             if (isObservable(v)) {
@@ -843,7 +842,6 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         const childNode = getNode(v);
         if (childNode?.isComputed) {
             extractFunction(node, k, v, childNode);
-            delete obj[k];
         } else {
             return true;
         }
@@ -871,6 +869,13 @@ export function peek(node: NodeValue) {
     if (lazy) {
         delete node.lazy;
         if (isFunction(node) || isFunction(lazy)) {
+            if (node.parent) {
+                const parentValue = getNodeValue(node.parent);
+                if (parentValue) {
+                    delete parentValue[node.key];
+                }
+            }
+
             value = activateNodeFunction(node as any, lazy as () => void);
         }
 
