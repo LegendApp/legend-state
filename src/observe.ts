@@ -59,7 +59,7 @@ export function observe<T>(
         if (
             reaction &&
             (e.num > 0 || !isEvent(selectorOrRun as any)) &&
-            (e.previous !== e.value || options?.fromComputed)
+            (e.previous !== e.value || options?.fromComputed || typeof e.value === 'object')
         ) {
             reaction(e);
         }
