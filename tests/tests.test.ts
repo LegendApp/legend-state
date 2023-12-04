@@ -2797,6 +2797,21 @@ describe('Observe', () => {
         obsOther.set(1);
         expect(count).toEqual(1);
     });
+    test('Observe with reaction and array', () => {
+        let lastLength = 0;
+        const state$ = observable({
+            arr: [1, 2, 3, 4],
+        });
+
+        observe(state$.arr, () => {
+            const num = state$.arr.peek();
+            lastLength = num.length;
+        });
+
+        expect(lastLength).toEqual(4);
+        state$.arr.push(10);
+        expect(lastLength).toEqual(5);
+    });
 });
 describe('Error detection', () => {
     test('Circular objects in set', () => {
