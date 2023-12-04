@@ -62,7 +62,7 @@ function createPreviousHandlerInner(value: any, changes: Change[]) {
     return clone;
 }
 
-function createPreviousHandler(value: any, changes: Change[]) {
+export function createPreviousHandler(value: any, changes: Change[]) {
     // Create a function that generates the previous state
     // We don't want to always do this because cloning is expensive
     // so it's better to run on demand.

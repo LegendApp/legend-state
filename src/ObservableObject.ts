@@ -1,4 +1,4 @@
-import { batch, beginBatch, endBatch, isArraySubset, notify } from './batching';
+import { batch, beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
     checkActivate,
@@ -1093,14 +1093,17 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                 if (allChanges.length > 0) {
                     let changes: Change[];
                     let value: any;
+                    let getPrevious: () => any;
                     if (listenerParams) {
                         changes = listenerParams.changes;
                         value = listenerParams.value;
+                        getPrevious = listenerParams.getPrevious;
                     } else {
                         // If this is called by flushPending then get the change array
                         // that we've been building up.
                         changes = allChanges;
                         value = latestValue;
+                        getPrevious = createPreviousHandler(value, changes);
                     }
                     allChanges = [];
                     latestValue = undefined;
@@ -1131,10 +1134,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                                 onSet({
                                     value,
                                     changes,
-                                    getPrevious: () => {
-                                        // TODO
-                                        // debugger;
-                                    },
+                                    getPrevious,
                                     node,
                                     update,
                                     refresh,
