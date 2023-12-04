@@ -1,3 +1,12 @@
+## 2.1.4
+- Fix: observe not running reaction if selector is an object or array
+
+## 2.1.3
+- Fix: An occasional error in sync get function
+
+## 2.1.2
+- Fix: Local cache was not saving Map/Set correctly
+
 ## 2.1.1
 - Feat: usePauseProvider to pause/resume all updates under a context
 
