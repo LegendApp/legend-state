@@ -144,9 +144,9 @@ type ObservableComputedFnsRecursive<T> = {
     readonly [K in keyof T]-?: Recurse<T, K, ObservableBaseFns<NonNullable<T[K]>>>;
 };
 
-export interface ObservableEvent {
-    fire(): void;
-    on(cb?: () => void): ObservableListenerDispose;
+export interface ObservableEvent<T = void> {
+    fire(data?: T): void;
+    on(cb?: (data?: T) => void): ObservableListenerDispose;
     get(): void;
 }
 
