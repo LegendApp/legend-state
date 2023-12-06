@@ -13,44 +13,10 @@ function promiseTimeout(time?: number) {
 mockLocalStorage();
 
 describe('Creating', () => {
-    test('Create with object', () => {
-        const obs$ = persistObservable(
-            { test: 'hi' },
-            {
-                pluginLocal: ObservablePersistLocalStorage,
-                local: 'jestlocal',
-            },
-        );
-
-        expect(obs$.get()).toEqual({ test: 'hi' });
-
-        expect(obs$.state.isLoadedLocal.get()).toEqual(true);
-    });
-    test('Create with no get', async () => {
-        let setValue;
-        const obs$ = persistObservable(
-            { test: 'hi' },
-            {
-                pluginRemote: {
-                    set({ value }) {
-                        setValue = value.test;
-                    },
-                },
-            },
-        );
-
-        expect(obs$.get()).toEqual({ test: 'hi' });
-
-        expect(obs$._state.isLoadedLocal.get()).toEqual(true);
-
-        obs$.test.set('hello');
-        await promiseTimeout(10);
-        expect(setValue).toEqual('hello');
-    });
     test('Loading state works correctly', async () => {
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
-        const { state } = persistObservable(nodes, {
+        const state = persistObservable(nodes, {
             pluginLocal: ObservablePersistLocalStorage,
             local: 'nodes',
             pluginRemote: {

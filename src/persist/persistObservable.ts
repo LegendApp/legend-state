@@ -19,7 +19,6 @@ import type {
     PersistTransform,
     Primitive,
     TypeAtPath,
-    WithPersistState,
 } from '@legendapp/state';
 import {
     batch,
@@ -28,9 +27,7 @@ import {
     getNode,
     internal,
     isEmpty,
-    isFunction,
     isObject,
-    isObservable,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -624,30 +621,11 @@ async function loadLocal<T>(
 }
 export type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
 
-export function persistObservable<T extends WithoutState>(
-    observable: ObservableWriteable<T>,
+export function persistObservable<T>(
+    obs: ObservableWriteable<T>,
     persistOptions: PersistOptions<T>,
-): Observable<WithPersistState & T>;
-export function persistObservable<T extends WithoutState>(
-    initial: T | (() => T) | (() => Promise<T>),
-    persistOptions: PersistOptions<T>,
-): Observable<WithPersistState & T>;
-export function persistObservable<T extends WithoutState>(
-    initialOrObservable: ObservableWriteable<T> | T | (() => T) | (() => Promise<T>),
-    persistOptions: PersistOptions<T>,
-): Observable<WithPersistState & T> {
-    const obs = (
-        isObservable(initialOrObservable)
-            ? initialOrObservable
-            : observable(isFunction(initialOrObservable) ? initialOrObservable() : (initialOrObservable as any))
-    ) as Observable<any>;
+): Observable<ObservablePersistState> {
     const node = getNode(obs);
-
-    if (process.env.NODE_ENV === 'development' && obs?.peek()?._state) {
-        console.warn(
-            '[legend-state] WARNING: persistObservable creates a property named "_state" but your observable already has "state" in it',
-        );
-    }
 
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {
@@ -737,6 +715,7 @@ export function persistObservable<T extends WithoutState>(
                                         if (lastSync && !isEmpty(value as unknown as object)) {
                                             onChangeRemote(() => {
                                                 setInObservableAtPath(
+                                                    // @ts-expect-error Fix this type
                                                     obs,
                                                     path as string[],
                                                     pathTypes,
@@ -775,6 +754,7 @@ export function persistObservable<T extends WithoutState>(
                                         }
 
                                         onChangeRemote(() => {
+                                            // @ts-expect-error Fix this type
                                             setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
                                         });
                                     }
@@ -818,6 +798,7 @@ export function persistObservable<T extends WithoutState>(
                     }
 
                     // Send the changes into onObsChange so that they get persisted remotely
+                    // @ts-expect-error Fix this type
                     onObsChange(obs as Observable, syncState, localState, persistOptions, {
                         value: obs.peek(),
                         // TODO getPrevious if any remote persistence layers need it
@@ -856,5 +837,5 @@ export function persistObservable<T extends WithoutState>(
         obs.onChange(onObsChange.bind(this, obs as any, syncState, localState, persistOptions as PersistOptions<any>));
     });
 
-    return obs as any;
+    return syncState;
 }

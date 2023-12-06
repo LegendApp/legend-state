@@ -1,5 +1,4 @@
-import { Observable, PersistOptions, WithPersistState } from '@legendapp/state';
-import { persistObservable } from '@legendapp/state/persist';
+import { Observable, WithPersistState } from '@legendapp/state';
 import { useMemo } from 'react';
 import type { WithoutState } from '../persist/persistObservable';
 
@@ -11,12 +10,12 @@ import type { WithoutState } from '../persist/persistObservable';
  *
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
-export function usePersistedObservable<T extends WithoutState>(
-    initialValue: T | (() => T) | (() => Promise<T>),
-    options: PersistOptions<T>,
-): Observable<WithPersistState & T> {
+export function usePersistedObservable<T extends WithoutState>() // options: PersistOptions<T>, // initialValue: T | (() => T) | (() => Promise<T>),
+: Observable<WithPersistState & T> {
     // Create the observable from the default value
     return useMemo(() => {
-        return persistObservable<T>(initialValue, options);
-    }, []);
+        // return persistObservable<T>(initialValue, options);
+    }, []) as any;
 }
+
+// TODO FIX THIS
