@@ -24,6 +24,7 @@ import {
     batch,
     constructObjectWithPath,
     deconstructObjectWithPath,
+    endBatch,
     getNode,
     internal,
     isEmpty,
@@ -81,6 +82,7 @@ export function onChangeRemote(cb: () => void) {
     when(
         () => !globalState.isLoadingRemote$.get(),
         () => {
+            endBatch(true);
             // Remote changes should only update local state
             globalState.isLoadingRemote$.set(true);
 

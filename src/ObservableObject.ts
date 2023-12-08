@@ -987,49 +987,49 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             const { value, nodes, refresh } = e;
             refreshFn = refresh;
             if (!globalState.isLoadingRemote$.peek()) {
-            if (wasPromise) {
-                if (node.activationState) {
-                    const { retry, initial } = node.activationState!;
-                    let onError: (() => void) | undefined;
-                    if (retry) {
-                        if (timeoutRetry?.current) {
-                            clearTimeout(timeoutRetry.current);
+                if (wasPromise) {
+                    if (node.activationState) {
+                        const { retry, initial } = node.activationState!;
+                        let onError: (() => void) | undefined;
+                        if (retry) {
+                            if (timeoutRetry?.current) {
+                                clearTimeout(timeoutRetry.current);
+                            }
+                            const { handleError, timeout } = setupRetry(retry, doRetry, attemptNum);
+                            onError = handleError;
+                            timeoutRetry = timeout;
+                            node.activationState.onError = onError;
                         }
-                        const { handleError, timeout } = setupRetry(retry, doRetry, attemptNum);
-                        onError = handleError;
-                        timeoutRetry = timeout;
-                        node.activationState.onError = onError;
-                    }
-                    if (value && isPromise(value)) {
+                        if (value && isPromise(value)) {
+                            // Extract the promise to make it set the value/error when it comes in
+                            extractPromise(node, value, update, onError!);
+                        }
+                        // Set this to undefined only if it's replacing the activation function,
+                        // so we don't overwrite it if it already has real data from either local
+                        // cache or a previous run
+                        if (isFunction(getNodeValue(node))) {
+                            setNodeValue(node, initial ?? undefined);
+                        }
+                    } else if (node.activated) {
+                        let onError: (() => void) | undefined;
+
                         // Extract the promise to make it set the value/error when it comes in
                         extractPromise(node, value, update, onError!);
+                        // Set this to undefined only if it's replacing the activation function,
+                        // so we don't overwrite it if it already has real data from either local
+                        // cache or a previous run
+                        if (isFunction(getNodeValue(node))) {
+                            setNodeValue(node, undefined);
+                        }
                     }
-                    // Set this to undefined only if it's replacing the activation function,
-                    // so we don't overwrite it if it already has real data from either local
-                    // cache or a previous run
-                    if (isFunction(getNodeValue(node))) {
-                        setNodeValue(node, initial ?? undefined);
-                    }
-                } else if (node.activated) {
-                    let onError: (() => void) | undefined;
-
-                    // Extract the promise to make it set the value/error when it comes in
-                    extractPromise(node, value, update, onError!);
-                    // Set this to undefined only if it's replacing the activation function,
-                    // so we don't overwrite it if it already has real data from either local
-                    // cache or a previous run
-                    if (isFunction(getNodeValue(node))) {
-                        setNodeValue(node, undefined);
-                    }
+                } else {
+                    activatedValue = value;
+                    set(node, value);
+                    node.state!.assign({
+                        isLoaded: true,
+                        error: undefined,
+                    });
                 }
-            } else {
-                activatedValue = value;
-                set(node, value);
-                node.state!.assign({
-                    isLoaded: true,
-                    error: undefined,
-                });
-            }
             }
 
             disposes.forEach((fn) => fn());
