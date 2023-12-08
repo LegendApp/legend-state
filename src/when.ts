@@ -36,7 +36,7 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
     if (isPromise<T>(value)) {
         return effect ? value.then(effect) : (value as any);
     } else if (value !== undefined) {
-        return Promise.resolve(value);
+        return effect ? effect(value) : Promise.resolve(value);
     } else {
         // Wrap it in a promise
         const promise = new Promise<T2>((resolve) => {

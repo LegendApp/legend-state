@@ -6,7 +6,8 @@ import { when } from '../src/when';
 import { run } from './computedtests';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
-persistObservable({} as any, {
+const testNode = observable({});
+persistObservable(testNode, {
     pluginRemote: {
         get() {
             return Promise.resolve({ test: 'hi' });
