@@ -986,7 +986,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         (e) => {
             const { value, nodes, refresh } = e;
             refreshFn = refresh;
-            if (!globalState.isLoadingRemote$.peek()) {
+            if (!wasPromise || !globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
                     if (node.activationState) {
                         const { retry, initial } = node.activationState!;
