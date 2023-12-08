@@ -10,6 +10,7 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
     }
 
     let value: T | undefined;
+    let effectValue: T2 | undefined;
 
     // Create a wrapping fn that calls the effect if predicate returns true
     function run(e: ObserveEvent<T>) {
@@ -26,7 +27,7 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
     }
     function doEffect() {
         // If value is truthy then run the effect
-        effect?.(value!);
+        effectValue = effect?.(value!);
     }
     // Run in an observe
     observe(run, doEffect);
@@ -36,7 +37,7 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
     if (isPromise<T>(value)) {
         return effect ? value.then(effect) : (value as any);
     } else if (value !== undefined) {
-        return effect ? effect(value) : Promise.resolve(value);
+        return effect ? effectValue : Promise.resolve(value);
     } else {
         // Wrap it in a promise
         const promise = new Promise<T2>((resolve) => {

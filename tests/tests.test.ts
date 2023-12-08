@@ -2064,6 +2064,15 @@ describe('when', () => {
         await promiseTimeout(0);
         expect(resolved).toEqual('asdf');
     });
+    test('when calls effect if it resolves immediately', async () => {
+        const obs = observable({ val: 10 });
+        const promise = when(
+            () => obs.val.get() === 10,
+            () => 'asdf',
+        );
+        const resolved = await promise;
+        expect(resolved).toEqual('asdf');
+    });
     test('when promise resolves on effect resolve', async () => {
         let resolver: (value: number) => void;
         const obs = observable(new Promise<number>((resolve) => (resolver = resolve)));
