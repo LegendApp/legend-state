@@ -1,5 +1,5 @@
 import { isFunction, observable, Observable } from '@legendapp/state';
-import { useMemo } from 'react';
+import { useRef } from 'react';
 
 /**
  * A React hook that creates a new observable
@@ -9,6 +9,10 @@ import { useMemo } from 'react';
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
 export function useObservable<T>(initialValue?: T | (() => T) | (() => Promise<T>)): Observable<T> {
-    // Create the observable from the default value
-    return useMemo(() => observable<T>((isFunction(initialValue) ? initialValue() : initialValue) as any), []);
+    const ref = useRef<Observable<T>>();
+    if (!ref.current) {
+        // Create the observable from the default value
+        ref.current = observable<T>((isFunction(initialValue) ? initialValue() : initialValue) as any);
+    }
+    return ref.current;
 }
