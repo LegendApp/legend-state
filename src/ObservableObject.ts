@@ -504,11 +504,6 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        // TODOV3: Remove "state"
-        if (vProp === undefined && (p === 'state' || p === '_state') && node.state) {
-            return node.state;
-        }
-
         // Return an observable proxy to the property
         return getProxy(node, p);
     },
