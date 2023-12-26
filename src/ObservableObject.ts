@@ -623,20 +623,29 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
 
     // Get the child node for updating and notifying
     const childNode: NodeValue = isRoot ? node : getChildNode(node, key, isFunction(newValue) ? newValue : undefined);
-    // Set the raw value on the parent object
-    const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
 
-    const isFunc = isFunction(savedValue);
+    if (isObservable(newValue)) {
+        setToObservable(childNode, newValue);
+    } else {
+        // Set the raw value on the parent object
+        const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
 
-    const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
+        const isFunc = isFunction(savedValue);
 
-    if (savedValue !== prevValue) {
-        updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
+        const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
+
+        if (savedValue !== prevValue) {
+            updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
+        }
+
+        extractFunctionOrComputed(node, parentValue, key, savedValue);
+
+        if (isFunc) {
+            return savedValue;
+        }
     }
 
-    extractFunctionOrComputed(node, parentValue, key, savedValue);
-
-    return isFunc ? savedValue : isRoot ? getProxy(node) : getProxy(node, key);
+    return isRoot ? getProxy(node) : getProxy(node, key);
 }
 
 function assign(node: NodeValue, value: any) {
@@ -912,31 +921,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
 
             // If target is an observable, make this node a link to it
             if (isObservable(value)) {
-                // If the computed is a proxy to another observable
-                // link it to the target observable
-                const linkedNode = getNode(value);
-                const prevNode = node.linkedToNode;
-                node.linkedToNode = linkedNode;
-                if (!linkedNode.linkedFromNodes) {
-                    linkedNode.linkedFromNodes = new Set();
-                }
-                linkedNode.linkedFromNodes.add(node);
-                peek(linkedNode);
-                onChange(
-                    linkedNode,
-                    ({ value: newValue }) => {
-                        value = newValue;
-                        set(node, value);
-                    },
-                    { initial: true },
-                );
-
-                // If the target observable is different then notify for the change
-                if (prevNode) {
-                    const value = getNodeValue(linkedNode);
-                    const prevValue = getNodeValue(prevNode);
-                    notify(node, value, prevValue, 0);
-                }
+                value = setToObservable(node, value);
             }
 
             if (isFunction(value)) {
@@ -1069,6 +1054,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             ? waitFor
                 ? new Promise((resolve) => {
                       whenReady(waitFor, () => {
+                          delete node.activationState!.waitFor;
                           resolve(run());
                       });
                   })
@@ -1200,3 +1186,34 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     };
     return { update, value };
 });
+
+function setToObservable(node: NodeValue, value: any) {
+    // If the computed is a proxy to another observable
+    // link it to the target observable
+    const linkedNode = getNode(value);
+    if (linkedNode !== node) {
+        const prevNode = node.linkedToNode;
+        node.linkedToNode = linkedNode;
+        if (!linkedNode.linkedFromNodes) {
+            linkedNode.linkedFromNodes = new Set();
+        }
+        linkedNode.linkedFromNodes.add(node);
+        peek(linkedNode);
+        onChange(
+            linkedNode,
+            ({ value: newValue }) => {
+                value = newValue;
+                set(node, value);
+            },
+            { initial: true },
+        );
+
+        // If the target observable is different then notify for the change
+        if (prevNode) {
+            const value = getNodeValue(linkedNode);
+            const prevValue = getNodeValue(prevNode);
+            notify(node, value, prevValue, 0);
+        }
+    }
+    return value;
+}

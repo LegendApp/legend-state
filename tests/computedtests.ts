@@ -775,6 +775,55 @@ export const run = (isPersist: boolean) => {
 
             expect(comp.test1.get()).toEqual('hi');
         });
+        test('Computed link works with promise', async () => {
+            const obs$ = observable({ a: 'hi', b: 'hello' });
+            const linker$ = observable(() => {
+                return new Promise<Observable<string>>((resolve) => {
+                    setTimeout(() => {
+                        resolve(obs$.b);
+                    }, 0);
+                });
+            });
+            expect(linker$.get()).toEqual(undefined);
+
+            await when(linker$);
+
+            expect(linker$.get()).toEqual('hello');
+
+            // TODO Observe it and it should work
+        });
+        test('Computed link works with activated promise', async () => {
+            const obs$ = observable({
+                a: 'hi',
+                b: activated({
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => {
+                                resolve('hello');
+                            }, 0);
+                        });
+                    },
+                }),
+            });
+            const linker$ = observable(
+                activated({
+                    get: () => {
+                        return new Promise<Observable<string>>((resolve) => {
+                            setTimeout(() => {
+                                resolve(obs$.b as any);
+                            }, 0);
+                        });
+                    },
+                }),
+            );
+            // expect(linker$.get()).toEqual(undefined);
+
+            await when(linker$);
+
+            expect(linker$.get()).toEqual('hello');
+
+            // TODO Observe it and it should work
+        });
         test('Computed in observable sets raw data', () => {
             const obs = observable({
                 text: 'hi',
@@ -1363,6 +1412,35 @@ export const run = (isPersist: boolean) => {
             await whenReady(obs);
             expect(didGet).toEqual(true);
             expect(obs.get()).toEqual('from subscribe');
+        });
+        test('activated with get running multiple times', async () => {
+            const gets$ = observable(0);
+            const refresh$ = observable(1);
+            const obs$ = observable(
+                activated({
+                    get: () => {
+                        refresh$.get();
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => {
+                                resolve('hi ' + refresh$.peek());
+                                gets$.set((v) => v + 1);
+                            }, 5);
+                        });
+                    },
+                }),
+            );
+            expect(obs$.get()).toEqual(undefined);
+            expect(gets$.get()).toEqual(0);
+            await whenReady(obs$);
+            expect(gets$.get()).toEqual(1);
+            expect(obs$.get()).toEqual('hi 1');
+
+            refresh$.set((v) => v + 1);
+
+            await when(() => gets$.get() === 2);
+            await promiseTimeout(0);
+
+            expect(obs$.get()).toEqual('hi 2');
         });
     });
     describe('loading', () => {

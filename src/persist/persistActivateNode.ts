@@ -37,6 +37,7 @@ export function persistActivateNode() {
                     let value: any = undefined;
                     const nodeValue = getNodeValue(node);
                     const doGet = () => {
+                        delete node.activationState!.waitFor;
                         return (value = get!({
                             value: isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
                             lastSync: params.lastSync!,
