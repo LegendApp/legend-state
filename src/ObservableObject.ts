@@ -163,9 +163,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     let moved: [string, ChildNodeValue][] | undefined;
 
     const isMap = obj instanceof Map;
+    const isPrevMap = prevValue instanceof Map;
 
     const keys = getKeys(obj, isArr, isMap);
-    const keysPrev = getKeys(prevValue, isArr, isMap);
+    const keysPrev = getKeys(prevValue, isArr, isPrevMap);
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
@@ -225,7 +226,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 hasADiff = true;
                 const child = getChildNode(parent, key);
 
-                const prev = isMap ? prevValue.get(key) : prevValue[key];
+                const prev = isPrevMap ? prevValue.get(key) : prevValue[key];
                 if (prev !== undefined) {
                     if (!isPrimitive(prev)) {
                         updateNodes(child, undefined, prev);
@@ -247,7 +248,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         for (let i = 0; i < length; i++) {
             const key = isArr ? i + '' : keys[i];
             const value = isMap ? obj.get(key) : (obj as any)[key];
-            const prev = isMap ? prevValue?.get(key) : prevValue?.[key];
+            const prev = isPrevMap ? prevValue?.get(key) : prevValue?.[key];
 
             let isDiff = value !== prev;
             if (isDiff) {
