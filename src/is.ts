@@ -9,7 +9,7 @@ export function isString(obj: unknown): obj is string {
     return typeof obj === 'string';
 }
 export function isObject(obj: unknown): obj is Record<any, any> {
-    return !!obj && typeof obj === 'object' && !isArray(obj);
+    return !!obj && typeof obj === 'object' && !(obj instanceof Date) && !isArray(obj);
 }
 export function isFunction(obj: unknown): obj is Function {
     return typeof obj === 'function';
