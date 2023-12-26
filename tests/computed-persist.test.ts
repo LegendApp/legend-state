@@ -219,6 +219,34 @@ describe('caching with new computed', () => {
         expect(getCalled).toEqual(true);
         expect(onSetCalledTimes).toEqual(1);
     });
+    test('get not called until all ancestors loaded', async () => {
+        localStorage.setItem('getnotcalled', JSON.stringify({ child: 'key0' }));
+
+        let getCalled = false;
+
+        const nodes = observable({
+            child: activated({
+                get: async () => {
+                    await promiseTimeout(2);
+                    getCalled = true;
+                    return 'key1';
+                },
+            }),
+        });
+
+        persistObservable(nodes, { pluginLocal: ObservablePersistLocalStorage, local: 'getnotcalled' });
+
+        expect(nodes.child.get()).toEqual('key0');
+        expect(nodes.get()).toEqual({ child: 'key0' });
+
+        await promiseTimeout(0);
+        expect(nodes.child.get()).toEqual('key0');
+        expect(nodes.get()).toEqual({ child: 'key0' });
+        await promiseTimeout(2);
+        expect(nodes.child.get()).toEqual('key1');
+        expect(nodes.get()).toEqual({ child: 'key1' });
+        expect(getCalled).toEqual(true);
+    });
 });
 
 describe('lastSync with new computed', () => {
