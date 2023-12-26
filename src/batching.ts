@@ -44,22 +44,26 @@ export function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
 }
 
 function createPreviousHandlerInner(value: any, changes: Change[]) {
-    // Clones the current state and inject the previous data at the changed path
-    let clone = value ? JSON.parse(JSON.stringify(value)) : {};
-    for (let i = 0; i < changes.length; i++) {
-        const { path, prevAtPath } = changes[i];
-        let o = clone;
-        if (path.length > 0) {
-            let i: number;
-            for (i = 0; i < path.length - 1; i++) {
-                o = o[path[i]];
+    try {
+        // Clones the current state and inject the previous data at the changed path
+        let clone = value ? JSON.parse(JSON.stringify(value)) : {};
+        for (let i = 0; i < changes.length; i++) {
+            const { path, prevAtPath } = changes[i];
+            let o = clone;
+            if (path.length > 0) {
+                let i: number;
+                for (i = 0; i < path.length - 1; i++) {
+                    o = o[path[i]];
+                }
+                o[path[i]] = prevAtPath;
+            } else {
+                clone = prevAtPath;
             }
-            o[path[i]] = prevAtPath;
-        } else {
-            clone = prevAtPath;
         }
+        return clone;
+    } catch {
+        return undefined;
     }
-    return clone;
 }
 
 export function createPreviousHandler(value: any, changes: Change[]) {
