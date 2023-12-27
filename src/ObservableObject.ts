@@ -1,3 +1,4 @@
+import { mergeIntoObservable } from './helpers';
 import { batch, beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -1043,7 +1044,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     }
     let isSetting = false;
     let isSettingFromSubscribe = false;
-    let _mode: 'assign' | 'set' = 'set';
+    let _mode: 'assign' | 'set' | 'merge' = 'set';
     if (node.activationState) {
         const { onSet, subscribe, get: getFn, initial, retry, waitFor } = node.activationState;
 
@@ -1179,6 +1180,8 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
             isSetting = true;
             if (_mode === 'assign' || mode === 'assign') {
                 assign(node, value);
+            } else if (_mode === 'merge' || mode === 'merge') {
+                mergeIntoObservable(getProxy(node), value);
             } else {
                 set(node, value);
             }

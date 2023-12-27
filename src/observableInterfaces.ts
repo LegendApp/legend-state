@@ -165,7 +165,7 @@ export type Activated<T> = T;
 
 export type UpdateFn = (params: {
     value: unknown;
-    mode?: 'assign' | 'set' | 'lastSync' | 'dateModified';
+    mode?: 'assign' | 'set' | 'lastSync' | 'dateModified' | 'merge';
     dateModified?: number | undefined;
     lastSync?: number | undefined;
 }) => void;
