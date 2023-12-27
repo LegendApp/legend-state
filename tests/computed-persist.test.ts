@@ -1,3 +1,4 @@
+import { event } from '../src/event';
 import { persistObservable } from '../persist';
 import { activated } from '../src/activated';
 import { observable, syncState } from '../src/observable';
@@ -223,11 +224,12 @@ describe('caching with new computed', () => {
         localStorage.setItem('getnotcalled', JSON.stringify({ child: 'key0' }));
 
         let getCalled = false;
+        const ev = event();
 
         const nodes = observable({
             child: activated({
                 get: async () => {
-                    await promiseTimeout(2);
+                    await when(ev);
                     getCalled = true;
                     return 'key1';
                 },
@@ -239,10 +241,10 @@ describe('caching with new computed', () => {
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
 
-        await promiseTimeout(0);
+        ev.fire();
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
-        await promiseTimeout(2);
+        await promiseTimeout(0);
         expect(nodes.child.get()).toEqual('key1');
         expect(nodes.get()).toEqual({ child: 'key1' });
         expect(getCalled).toEqual(true);
