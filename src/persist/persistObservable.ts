@@ -57,6 +57,8 @@ interface LocalState {
     persistenceLocal?: ObservablePersistLocal;
     persistenceRemote?: ObservablePersistRemoteClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
+    numSavesOutstanding?: number;
+    pendingSaveResults?: object[];
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -434,6 +436,8 @@ async function doChange(
 
         configRemote?.onBeforeSet?.();
 
+        localState.numSavesOutstanding = (localState.numSavesOutstanding || 0) + 1;
+
         const saved = await persistenceRemote!.set!({
             obs,
             syncState: syncState,
@@ -441,6 +445,8 @@ async function doChange(
             changes: changesRemote,
             value,
         })?.catch((err) => configRemote?.onSetError?.(err));
+
+        localState.numSavesOutstanding--;
 
         // If this remote save changed anything then update persistence and metadata
         // Because save happens after a timeout and they're batched together, some calls to save will
@@ -452,7 +458,7 @@ async function doChange(
                 if (local) {
                     const metadata: PersistMetadata = {};
                     const pending = persistenceLocal!.getMetadata(table, configLocal)?.pending;
-                    let transformedChanges: any[] = [];
+                    let transformedChanges: object | undefined = undefined;
 
                     for (let i = 0; i < pathStrs.length; i++) {
                         const pathStr = pathStrs[i];
@@ -471,18 +477,30 @@ async function doChange(
                     // Remote can optionally have data that needs to be merged back into the observable,
                     // for example Firebase may update dateModified with the server timestamp
                     if (changes && !isEmpty(changes)) {
-                        transformedChanges.push(transformLoadData(changes, persistOptions.remote!, false));
+                        transformedChanges = transformLoadData(changes, persistOptions.remote!, false);
                     }
 
-                    if (transformedChanges.length > 0) {
-                        if (transformedChanges.some((change) => isPromise(change))) {
-                            transformedChanges = await Promise.all(transformedChanges);
+                    if (localState.numSavesOutstanding > 0) {
+                        if (transformedChanges) {
+                            if (!localState.pendingSaveResults) {
+                                localState.pendingSaveResults = [];
+                            }
+                            localState.pendingSaveResults.push(transformedChanges);
                         }
-                        onChangeRemote(() => mergeIntoObservable(obs, ...transformedChanges));
-                    }
+                    } else {
+                        let allChanges = [...(localState.pendingSaveResults || []), transformedChanges];
+                        if (allChanges.length > 0) {
+                            if (allChanges.some((change) => isPromise(change))) {
+                                allChanges = await Promise.all(allChanges);
+                            }
+                            onChangeRemote(() => mergeIntoObservable(obs, ...allChanges));
+                        }
 
-                    if (shouldSaveMetadata && !isEmpty(metadata)) {
-                        updateMetadata(obs, localState, syncState, persistOptions, metadata);
+                        if (shouldSaveMetadata && !isEmpty(metadata)) {
+                            updateMetadata(obs, localState, syncState, persistOptions, metadata);
+                        }
+
+                        localState.pendingSaveResults = [];
                     }
                 }
                 configRemote?.onSet?.();
