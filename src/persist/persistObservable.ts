@@ -40,6 +40,7 @@ import {
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
+import { removeNullUndefined } from './persistHelpers';
 const { globalState } = internal;
 
 export const mapPersistences: WeakMap<
@@ -649,7 +650,11 @@ export function persistObservable<T>(
 
     // Merge remote persist options with clobal options
     if (persistOptions.remote) {
-        persistOptions.remote = Object.assign({}, observablePersistConfiguration.remoteOptions, persistOptions.remote);
+        persistOptions.remote = Object.assign(
+            {},
+            observablePersistConfiguration.remoteOptions,
+            removeNullUndefined(persistOptions.remote),
+        );
     }
     let { remote } = persistOptions as { remote: PersistOptionsRemote<T> };
     const { local } = persistOptions;
@@ -803,18 +808,13 @@ export function persistObservable<T>(
                     localState.isApplyingPending = true;
                     const keys = Object.keys(pending);
 
-                    const cur = obs.peek();
-
                     // Bundle up all the changes from pending
                     const changes: Change[] = [];
                     for (let i = 0; i < keys.length; i++) {
                         const key = keys[i];
                         const path = key.split('/').filter((p) => p !== '');
                         const { p, v, t } = pending[key];
-                        // if value in cur at path !== v
-                        if (!cur || deconstructObjectWithPath(path, t, cur) !== v) {
-                            changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
-                        }
+                        changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
                     }
 
                     // Send the changes into onObsChange so that they get persisted remotely
