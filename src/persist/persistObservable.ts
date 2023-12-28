@@ -41,6 +41,7 @@ import { observablePersistConfiguration } from './configureObservablePersistence
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
 import { removeNullUndefined } from './persistHelpers';
+
 const { globalState } = internal;
 
 export const mapPersistences: WeakMap<
@@ -702,7 +703,9 @@ export function persistObservable<T>(
             if (!isSynced) {
                 isSynced = true;
                 const lastSync = metadatas.get(obs)?.lastSync;
+                const pending = localState.pendingChanges;
                 const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
+
                 if (get) {
                     const runGet = () => {
                         get({
@@ -803,7 +806,6 @@ export function persistObservable<T>(
                 // Wait for remote to be ready before saving pending
                 await when(() => syncState.isLoaded.get() || (remote.allowSetIfError && syncState.error.get()));
 
-                const pending = localState.pendingChanges;
                 if (pending && !isEmpty(pending)) {
                     localState.isApplyingPending = true;
                     const keys = Object.keys(pending);
