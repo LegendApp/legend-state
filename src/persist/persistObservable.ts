@@ -608,7 +608,7 @@ async function loadLocal<T>(
         }
 
         // Merge the data from local persistence into the default state
-        if (value !== null && value !== undefined) {
+        if (value !== undefined) {
             const { transform, fieldTransforms } = config;
 
             value = transformLoadData(value, { transform, fieldTransforms }, true);
@@ -623,7 +623,11 @@ async function loadLocal<T>(
                     // are set on the same observable
                     internal.globalState.isLoadingLocal = true;
                     // We want to merge the local data on top of any initial state the object is created with
-                    mergeIntoObservable(obs, value);
+                    if (value === null && !obs.peek()) {
+                        obs.set(value);
+                    } else {
+                        mergeIntoObservable(obs, value);
+                    }
                 },
                 () => {
                     internal.globalState.isLoadingLocal = false;

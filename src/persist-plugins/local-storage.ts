@@ -55,7 +55,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
 
         const v = this.data[table];
 
-        if (v !== undefined && v !== null) {
+        if (v !== undefined) {
             this.storage.setItem(table, JSON.stringify(v));
         } else {
             this.storage.removeItem(table);
