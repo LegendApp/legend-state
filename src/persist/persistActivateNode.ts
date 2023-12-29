@@ -10,7 +10,7 @@ import type {
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, setupRetry, symbolActivated } = internal;
+const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 
 export function persistActivateNode() {
     globalState.activateNode = function activateNodePersist(
@@ -20,7 +20,7 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState) {
-            const { get, initial, onSet, subscribe, cache, retry, waitFor, offlineBehavior } =
+            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior } =
                 node.activationState! as ActivateParamsWithLookup & { onError?: () => void };
 
             let onChange: UpdateFn | undefined = undefined;
@@ -29,115 +29,52 @@ export function persistActivateNode() {
                 pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
                     const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
-                    let timeoutRetry: { current?: any } = {};
-                    const attemptNum = { current: 0 };
-                    let onError: (() => void) | undefined;
                     const setMode = (mode: 'assign' | 'set') => (params.mode = mode);
 
-                    let value: any = undefined;
                     const nodeValue = getNodeValue(node);
-                    const doGet = () => {
-                        delete node.activationState!.waitFor;
-                        return (value = get!({
+                    const value = runWithRetry(node, { attemptNum: 0 }, () => {
+                        return get!({
                             value: isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
                             lastSync: params.lastSync!,
                             updateLastSync,
                             setMode,
-                        }));
-                    };
-
-                    if (waitFor) {
-                        value = whenReady(waitFor, doGet);
-                    } else {
-                        value = doGet();
-                    }
-
-                    if (isPromise(value)) {
-                        return new Promise((resolve) => {
-                            const run = async () => {
-                                if (retry) {
-                                    node.activationState!.persistedRetry = true;
-                                    if (timeoutRetry?.current) {
-                                        clearTimeout(timeoutRetry.current);
-                                    }
-                                    const { handleError, timeout } = setupRetry(
-                                        retry,
-                                        () => {
-                                            value = undefined;
-                                            run();
-                                        },
-                                        attemptNum,
-                                    );
-                                    onError = handleError;
-                                    timeoutRetry = timeout;
-                                }
-
-                                try {
-                                    if (value === undefined) {
-                                        // This is a retry
-                                        value = await doGet();
-                                    } else {
-                                        value = await value;
-                                    }
-                                    resolve(value);
-                                } catch (err) {
-                                    if (onError) {
-                                        onError();
-                                    } else {
-                                        throw err;
-                                    }
-                                }
-                            };
-                            return run();
                         });
-                    }
+                    });
 
                     return value;
                 };
             }
             if (onSet) {
                 // TODO: Work out these types better
-                let timeoutRetry: { current?: any };
                 pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                     if (node.state?.isLoaded.get()) {
-                        return new Promise((resolve) => {
-                            const attemptNum = { current: 0 };
-                            const run = async () => {
-                                let changes = {};
-                                let maxModified = 0;
-                                let didError = false;
-                                let onError: () => void;
-                                if (!node.state!.isLoaded.peek()) {
-                                    await whenReady(node.state!.isLoaded);
-                                }
-                                if (retry) {
-                                    if (timeoutRetry?.current) {
-                                        clearTimeout(timeoutRetry.current);
-                                    }
-                                    const { handleError, timeout } = setupRetry(retry, run, attemptNum);
-                                    onError = handleError;
-                                    timeoutRetry = timeout;
-                                }
-                                await onSet({
-                                    ...(params as unknown as ListenerParams),
-                                    node,
-                                    update: (params) => {
-                                        const { value, lastSync } = params;
-                                        maxModified = Math.max(lastSync || 0, maxModified);
-                                        changes = mergeIntoObservable(changes, value);
-                                    },
-                                    onError: () => {
-                                        didError = true;
-                                        onError?.();
-                                    },
-                                    refresh,
-                                    fromSubscribe: false,
-                                });
-                                if (!didError) {
-                                    resolve({ changes, lastSync: maxModified || undefined });
-                                }
-                            };
-                            run();
+                        return runWithRetry(node, { attemptNum: 0 }, async () => {
+                            let changes = {};
+                            let maxModified = 0;
+                            let didError = false;
+                            if (!node.state!.isLoaded.peek()) {
+                                await whenReady(node.state!.isLoaded);
+                            }
+
+                            await onSet({
+                                ...(params as unknown as ListenerParams),
+                                node,
+                                update: (params) => {
+                                    const { value, lastSync } = params;
+                                    maxModified = Math.max(lastSync || 0, maxModified);
+                                    changes = mergeIntoObservable(changes, value);
+                                },
+                                onError: () => {
+                                    // TODO Is this necessary?
+                                    didError = true;
+                                    throw new Error();
+                                },
+                                refresh,
+                                fromSubscribe: false,
+                            });
+                            if (!didError) {
+                                return { changes, lastSync: maxModified || undefined };
+                            }
                         });
                     }
                 };

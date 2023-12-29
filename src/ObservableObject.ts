@@ -1,4 +1,3 @@
-import { mergeIntoObservable } from './helpers';
 import { batch, beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -20,6 +19,7 @@ import {
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
+import { mergeIntoObservable } from './helpers';
 import {
     hasOwnProperty,
     isArray,
@@ -46,7 +46,7 @@ import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
 import { ObservablePersistStateInternal } from './persistTypes';
-import { setupRetry } from './retry';
+import { runWithRetry } from './retry';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
 
@@ -796,12 +796,7 @@ function updateNodesAndNotify(
     endBatch();
 }
 
-export function extractPromise(
-    node: NodeValue,
-    value: Promise<any>,
-    setter?: (params: { value: any }) => void,
-    handleError?: (error: Error) => void,
-) {
+export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (params: { value: any }) => void) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -823,9 +818,6 @@ export function extractPromise(
         })
         .catch((error) => {
             node.state!.error.set(error);
-            if (handleError) {
-                handleError(error);
-            }
         });
 }
 
@@ -903,8 +895,6 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
     // let curTarget$: Observable<any>;
     let update: UpdateFn;
     let wasPromise: boolean | undefined;
-    let timeoutRetry: { current?: any };
-    const attemptNum = { current: 0 };
     const activateFn = (isFunction(node) ? node : lazyFn) as () => any;
     const doRetry = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     let activatedValue;
@@ -971,20 +961,11 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             if (!wasPromise || !globalState.isLoadingRemote$.peek()) {
                 if (wasPromise) {
                     if (node.activationState) {
-                        const { retry, initial } = node.activationState!;
-                        let onError: (() => void) | undefined;
-                        if (retry) {
-                            if (timeoutRetry?.current) {
-                                clearTimeout(timeoutRetry.current);
-                            }
-                            const { handleError, timeout } = setupRetry(retry, doRetry, attemptNum);
-                            onError = handleError;
-                            timeoutRetry = timeout;
-                            node.activationState.onError = onError;
-                        }
+                        const { initial } = node.activationState!;
+
                         if (value && isPromise(value)) {
                             // Extract the promise to make it set the value/error when it comes in
-                            extractPromise(node, value, update, onError!);
+                            extractPromise(node, value, update);
                         }
                         // Set this to undefined only if it's replacing the activation function,
                         // so we don't overwrite it if it already has real data from either local
@@ -993,10 +974,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             setNodeValue(node, initial ?? undefined);
                         }
                     } else if (node.activated) {
-                        let onError: (() => void) | undefined;
-
                         // Extract the promise to make it set the value/error when it comes in
-                        extractPromise(node, value, update, onError!);
+                        extractPromise(node, value, update);
                         // Set this to undefined only if it's replacing the activation function,
                         // so we don't overwrite it if it already has real data from either local
                         // cache or a previous run
@@ -1046,27 +1025,24 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
     let isSettingFromSubscribe = false;
     let _mode: 'assign' | 'set' | 'merge' = 'set';
     if (node.activationState) {
-        const { onSet, subscribe, get: getFn, initial, retry, waitFor } = node.activationState;
-
-        // TODO Should this have lastSync and value somehow?
-        const run = () =>
-            getFn!({ updateLastSync: noop, setMode: (mode) => (_mode = mode), lastSync: undefined, value: undefined });
+        const { onSet, subscribe, get: getFn, initial } = node.activationState;
 
         value = getFn
-            ? waitFor
-                ? new Promise((resolve) => {
-                      whenReady(waitFor, () => {
-                          delete node.activationState!.waitFor;
-                          resolve(run());
-                      });
-                  })
-                : run()
+            ? runWithRetry(node, { attemptNum: 0 }, () => {
+                  return getFn!({
+                      updateLastSync: noop,
+                      setMode: (mode) => (_mode = mode),
+                      lastSync: undefined,
+                      value: undefined,
+                  });
+              })
             : undefined;
+        // TODO Should this have lastSync and value somehow?
+
         if (value == undefined || value === null) {
             value = initial;
         }
 
-        let timeoutRetry: { current?: any };
         if (onSet) {
             let allChanges: Change[] = [];
             let latestValue: any = undefined;
@@ -1095,39 +1071,34 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                     runNumber++;
                     const thisRunNumber = runNumber;
 
-                    const attemptNum = { current: 0 };
                     const run = () => {
                         if (thisRunNumber !== runNumber) {
                             // set may get called multiple times before it loads so ignore any previous runs
                             return;
                         }
-                        let onError: () => void;
-                        if (retry) {
-                            if (timeoutRetry?.current) {
-                                clearTimeout(timeoutRetry.current);
-                            }
-                            const { handleError, timeout } = setupRetry(retry, run, attemptNum);
-                            onError = handleError;
-                            timeoutRetry = timeout;
-                        }
 
-                        isSetting = true;
-                        batch(
-                            () =>
-                                onSet({
-                                    value,
-                                    changes,
-                                    getPrevious,
-                                    node,
-                                    update,
-                                    refresh,
-                                    onError,
-                                    fromSubscribe: isSettingFromSubscribe,
-                                }),
-                            () => {
-                                isSetting = false;
-                            },
-                        );
+                        return runWithRetry(node, { attemptNum: 0 }, () => {
+                            return new Promise<void>((resolve, reject) => {
+                                isSetting = true;
+                                batch(
+                                    () =>
+                                        onSet({
+                                            value,
+                                            changes,
+                                            getPrevious,
+                                            node,
+                                            update,
+                                            refresh,
+                                            onError: reject,
+                                            fromSubscribe: isSettingFromSubscribe,
+                                        }),
+                                    () => {
+                                        isSetting = false;
+                                        resolve();
+                                    },
+                                );
+                            });
+                        });
                     };
                     whenReady(node.state!.isLoaded, run);
                 }

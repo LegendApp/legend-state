@@ -3,6 +3,7 @@ export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
 export { event } from './src/event';
+export { isObservable } from './src/globals';
 export {
     computeSelector,
     constructObjectWithPath,
@@ -16,7 +17,6 @@ export {
     setInObservableAtPath,
     setSilently,
 } from './src/helpers';
-export { isObservable } from './src/globals';
 export {
     hasOwnProperty,
     isArray,
@@ -31,12 +31,12 @@ export {
 } from './src/is';
 export { observable, observablePrimitive, syncState } from './src/observable';
 export * from './src/observableInterfaces';
-export * from './src/persistTypes';
+export * from './src/observableTypes';
 export { observe } from './src/observe';
+export * from './src/persistTypes';
 export { proxy } from './src/proxy';
 export { trackSelector } from './src/trackSelector';
 export { when, whenReady } from './src/when';
-export * from './src/observableTypes';
 
 /** @internal */
 export { beginTracking, endTracking, tracking, updateTracking } from './src/tracking';
@@ -65,11 +65,11 @@ import {
     globalState,
     optimized,
     setNodeValue,
-    symbolDelete,
     symbolActivated,
+    symbolDelete,
 } from './src/globals';
 import { setAtPath } from './src/helpers';
-import { setupRetry } from './src/retry';
+import { runWithRetry } from './src/retry';
 
 export const internal = {
     ensureNodeValue,
@@ -81,10 +81,10 @@ export const internal = {
     observableFns,
     optimized,
     peek,
+    runWithRetry,
     set,
     setAtPath,
     setNodeValue,
-    setupRetry,
     symbolActivated,
     symbolDelete,
 };
