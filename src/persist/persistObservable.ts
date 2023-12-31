@@ -65,6 +65,17 @@ interface LocalState {
     timeoutSaveMetadata?: any;
 }
 
+interface PreppedChangeLocal {
+    queuedChange: QueuedChange;
+    changesLocal: ChangeWithPathStr[];
+    saveRemote: boolean;
+}
+
+interface PreppedChangeRemote {
+    queuedChange: QueuedChange;
+    changesRemote: ChangeWithPathStr[];
+}
+
 type ChangeWithPathStr = Change & { pathStr: string };
 
 function parseLocalConfig(config: string | PersistOptionsLocal | undefined): {
@@ -212,17 +223,58 @@ interface QueuedChange<T = any> {
 }
 
 let _queuedChanges: QueuedChange[] = [];
+let _queuedRemoteChanges: QueuedChange[] = [];
+let timeoutSaveRemote: any = undefined;
+
+function mergeChanges(changes: Change[]) {
+    const changesByPath = new Map<string, Change>();
+    const changesOut: Change[] = [];
+    // TODO: This could be even more robust by going deeper into paths like the firebase plugin's _updatePendingSave
+    for (let i = 0; i < changes.length; i++) {
+        const change = changes[i];
+        const pathStr = change.path.join('/');
+        const existing = changesByPath.get(pathStr);
+        if (existing) {
+            existing.valueAtPath = change.valueAtPath;
+        } else {
+            changesByPath.set(pathStr, change);
+            changesOut.push(change);
+        }
+    }
+    return changesOut;
+}
+
+function mergeQueuedChanges<T extends { obs: Observable; changes: Change[] }>(allChanges: T[]) {
+    const changesByObs = new Map<Observable, Change[]>();
+
+    const out: T[] = [];
+    for (let i = 0; i < allChanges.length; i++) {
+        const value = allChanges[i];
+        const { obs, changes } = value;
+        const existing = changesByObs.get(obs);
+        const newChanges = existing ? [...existing, ...changes] : changes;
+        const merged = mergeChanges(newChanges);
+        changesByObs.set(obs, merged);
+        if (!existing) {
+            value.changes = merged;
+            out.push(value);
+        }
+    }
+    return out;
+}
 
 async function processQueuedChanges() {
     // Get a local copy of the queued changes and clear the global queue
-    const queuedChanges = _queuedChanges;
+    const queuedChanges = mergeQueuedChanges(_queuedChanges);
     _queuedChanges = [];
+
+    _queuedRemoteChanges.push(...queuedChanges.filter((c) => !c.inRemoteChange));
 
     // Note: Summary of the order of operations these functions:
     // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous transform.
     // We need to prepare all of the changes in the queue before saving so that the saves happen in the correct order,
     // since some may take longer to transformSaveData than others.
-    const changes = await Promise.all(queuedChanges.map(prepChange));
+    const preppedChangesLocal = await Promise.all(queuedChanges.map(prepChangeLocal));
     // 2. Save pending to the metadata table first. If this is the only operation that succeeds, it would try to save
     // the current value again on next load, which isn't too bad.
     // 3. Save local changes to storage. If they never make it to remote, then on the next load they will be pending
@@ -232,10 +284,30 @@ async function processQueuedChanges() {
     // 6. On successful save, merge changes (if any) back into observable
     // 7. Lastly, update metadata to clear pending and update lastSync. Doing this earlier could potentially cause
     // sync inconsistences so it's very important that this is last.
-    changes.forEach(doChange);
+    await Promise.all(preppedChangesLocal.map(doChangeLocal));
+
+    const timeout = observablePersistConfiguration?.remoteOptions?.saveTimeout;
+    if (timeout) {
+        if (timeoutSaveRemote) {
+            clearTimeout(timeoutSaveRemote);
+        }
+
+        timeoutSaveRemote = setTimeout(processQueuedRemoteChanges, timeout);
+    } else {
+        processQueuedRemoteChanges();
+    }
 }
 
-async function prepChange(queuedChange: QueuedChange) {
+async function processQueuedRemoteChanges() {
+    const queuedRemoteChanges = mergeQueuedChanges(_queuedRemoteChanges);
+    _queuedRemoteChanges = [];
+
+    const preppedChangesRemote = await Promise.all(queuedRemoteChanges.map(prepChangeRemote));
+
+    preppedChangesRemote.forEach(doChangeRemote);
+}
+
+async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {
     const { syncState, changes, localState, persistOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
     const local = persistOptions.local;
@@ -243,8 +315,12 @@ async function prepChange(queuedChange: QueuedChange) {
     const { config: configLocal } = parseLocalConfig(local!);
     const configRemote = persistOptions.remote;
     const saveLocal = local && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
-    const saveRemote =
-        !inRemoteChange && persistenceRemote?.set && !configRemote?.readonly && syncState.isEnabledRemote.peek();
+    const saveRemote = !!(
+        !inRemoteChange &&
+        persistenceRemote?.set &&
+        !configRemote?.readonly &&
+        syncState.isEnabledRemote.peek()
+    );
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isLoadedLocal.peek()) {
@@ -252,10 +328,9 @@ async function prepChange(queuedChange: QueuedChange) {
                 '[legend-state] WARNING: An observable was changed before being loaded from persistence',
                 local,
             );
-            return;
+            return undefined;
         }
         const changesLocal: ChangeWithPathStr[] = [];
-        const changesRemote: ChangeWithPathStr[] = [];
         const changesPaths = new Set<string>();
         let promisesTransform: (void | Promise<any>)[] = [];
 
@@ -307,6 +382,65 @@ async function prepChange(queuedChange: QueuedChange) {
                         }),
                     );
                 }
+            }
+        }
+
+        // If there's any transform promises, wait for them before saving
+        promisesTransform = promisesTransform.filter(Boolean);
+        if (promisesTransform.length > 0) {
+            await Promise.all(promisesTransform);
+        }
+
+        return { queuedChange, changesLocal, saveRemote };
+    }
+}
+async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChangeRemote | undefined> {
+    const { syncState, changes, localState, persistOptions, inRemoteChange, isApplyingPending } = queuedChange;
+
+    const local = persistOptions.local;
+    const { persistenceRemote } = localState;
+    const { config: configLocal } = parseLocalConfig(local!);
+    const configRemote = persistOptions.remote;
+    const saveLocal = local && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
+    const saveRemote =
+        !inRemoteChange && persistenceRemote?.set && !configRemote?.readonly && syncState.isEnabledRemote.peek();
+
+    if (saveLocal || saveRemote) {
+        if (saveLocal && !syncState.isLoadedLocal.peek()) {
+            console.error(
+                '[legend-state] WARNING: An observable was changed before being loaded from persistence',
+                local,
+            );
+            return undefined;
+        }
+        const changesRemote: ChangeWithPathStr[] = [];
+        const changesPaths = new Set<string>();
+        let promisesTransform: (void | Promise<any>)[] = [];
+
+        // Reverse order
+        for (let i = changes.length - 1; i >= 0; i--) {
+            const { path } = changes[i];
+
+            let found = false;
+
+            // Optimization to only save the latest update at each path. We might have multiple changes at the same path
+            // and we only need the latest value, so it starts from the end of the array, skipping any earlier changes
+            // already processed. If a later change modifies a parent of an earlier change (which happens on delete()
+            // it should be ignored as it's superseded by the parent modification.
+            if (changesPaths.size > 0) {
+                for (let u = 0; u < path.length; u++) {
+                    if (changesPaths.has((u === path.length - 1 ? path : path.slice(0, u + 1)).join('/'))) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found) {
+                const pathStr = path.join('/');
+                changesPaths.add(pathStr);
+
+                const { prevAtPath, valueAtPath, pathTypes } = changes[i];
 
                 if (saveRemote) {
                     const promiseTransformRemote = transformOutData(
@@ -382,31 +516,23 @@ async function prepChange(queuedChange: QueuedChange) {
             await Promise.all(promisesTransform);
         }
 
-        return { queuedChange, changesLocal, changesRemote };
+        return { queuedChange, changesRemote };
     }
 }
 
-async function doChange(
-    changeInfo:
-        | {
-              queuedChange: QueuedChange;
-              changesLocal: ChangeWithPathStr[];
-              changesRemote: ChangeWithPathStr[];
-          }
-        | undefined,
-) {
+async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
     if (!changeInfo) return;
 
-    const { queuedChange, changesLocal, changesRemote } = changeInfo;
+    const { queuedChange, changesLocal, saveRemote } = changeInfo;
     const { obs, syncState, localState, persistOptions } = queuedChange;
-    const { persistenceLocal, persistenceRemote } = localState;
+    const { persistenceLocal } = localState;
 
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
     const configRemote = persistOptions.remote;
     const shouldSaveMetadata = local && configRemote?.offlineBehavior === 'retry';
 
-    if (changesRemote.length > 0 && shouldSaveMetadata) {
+    if (saveRemote && shouldSaveMetadata) {
         // First save pending changes before saving local or remote
         await updateMetadataImmediate(obs, localState, syncState, persistOptions, {
             pending: localState.pendingChanges,
@@ -429,6 +555,18 @@ async function doChange(
             await promiseSet;
         }
     }
+}
+async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
+    if (!changeInfo) return;
+
+    const { queuedChange, changesRemote } = changeInfo;
+    const { obs, syncState, localState, persistOptions } = queuedChange;
+    const { persistenceLocal, persistenceRemote } = localState;
+
+    const local = persistOptions.local;
+    const { table, config: configLocal } = parseLocalConfig(local!);
+    const configRemote = persistOptions.remote;
+    const shouldSaveMetadata = local && configRemote?.offlineBehavior === 'retry';
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
