@@ -274,7 +274,6 @@ async function processQueuedChanges() {
     // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous transform.
     // We need to prepare all of the changes in the queue before saving so that the saves happen in the correct order,
     // since some may take longer to transformSaveData than others.
-    const preppedChangesLocal = await Promise.all(queuedChanges.map(prepChangeLocal));
     // 2. Save pending to the metadata table first. If this is the only operation that succeeds, it would try to save
     // the current value again on next load, which isn't too bad.
     // 3. Save local changes to storage. If they never make it to remote, then on the next load they will be pending
@@ -284,6 +283,12 @@ async function processQueuedChanges() {
     // 6. On successful save, merge changes (if any) back into observable
     // 7. Lastly, update metadata to clear pending and update lastSync. Doing this earlier could potentially cause
     // sync inconsistences so it's very important that this is last.
+
+    const preppedChangesLocal = await Promise.all(queuedChanges.map(prepChangeLocal));
+
+    // TODO Clean this up: We only need to prep this now in ordre to save pending changes, don't need any of the other stuff. Should split that up?
+    await Promise.all(queuedChanges.map(prepChangeRemote));
+
     await Promise.all(preppedChangesLocal.map(doChangeLocal));
 
     const timeout = observablePersistConfiguration?.remoteOptions?.saveTimeout;
