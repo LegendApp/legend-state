@@ -946,6 +946,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
                             setMode: noop,
                             lastSync: undefined,
                             value: undefined,
+                            refresh: doRetry,
                         }) ?? activated.initial;
                 }
             }
@@ -1034,6 +1035,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                       setMode: (mode) => (_mode = mode),
                       lastSync: undefined,
                       value: undefined,
+                      refresh,
                   });
               })
             : undefined;

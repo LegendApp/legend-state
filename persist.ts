@@ -23,6 +23,7 @@ declare module '@legendapp/state' {
         value: any;
         lastSync: number | undefined;
         updateLastSync: (lastSync: number) => void;
+        refresh: () => void;
     }
     interface ActivateParams<T> {
         cache?: CacheOptions<any>;

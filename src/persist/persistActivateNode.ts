@@ -38,6 +38,7 @@ export function persistActivateNode() {
                             lastSync: params.lastSync!,
                             updateLastSync,
                             setMode,
+                            refresh,
                         });
                     });
 

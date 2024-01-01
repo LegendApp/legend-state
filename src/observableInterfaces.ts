@@ -144,6 +144,7 @@ export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> 
 export interface ActivateGetParams {
     updateLastSync: (lastSync: number) => void;
     setMode: (mode: 'assign' | 'set') => void;
+    refresh: () => void;
 }
 export interface ActivateParams<T = any> {
     // TODO Merge params and extra
