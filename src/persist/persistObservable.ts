@@ -901,7 +901,7 @@ export function persistObservable<T>(
                                                 const p = key.split('/').filter((p) => p !== '');
                                                 const { v, t } = pending[key];
 
-                                                if (t.length === 0) {
+                                                if (t.length === 0 || !value) {
                                                     value = v;
                                                 } else if ((value as any)[p[0]] !== undefined) {
                                                     (value as any) = setAtPath(
