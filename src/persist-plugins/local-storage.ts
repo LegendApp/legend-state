@@ -7,7 +7,7 @@ const RFC3339 =
     /^(?:\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?(?:[T\s](?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?:\.\d+)?(?:[Zz]|[+-](?:[01]\d|2[0-3]):?[0-5]\d)?)?$/;
 function reviver(key: any, value: any) {
     // Convert any ISO8601/RFC3339 strings to dates
-    if (typeof value === 'string' && RFC3339.test(value)) {
+    if (value && typeof value === 'string' && RFC3339.test(value)) {
         return new Date(value);
     }
     return value;
