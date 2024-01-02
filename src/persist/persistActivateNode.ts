@@ -49,7 +49,8 @@ export function persistActivateNode() {
                 // TODO: Work out these types better
                 pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                     if (node.state?.isLoaded.get()) {
-                        return runWithRetry(node, { attemptNum: 0 }, async (retryEvent) => {
+                        const retryAttempts = { attemptNum: 0 };
+                        return runWithRetry(node, retryAttempts, async (retryEvent) => {
                             let changes = {};
                             let maxModified = 0;
                             if (!node.state!.isLoaded.peek()) {
@@ -68,6 +69,7 @@ export function persistActivateNode() {
                                     maxModified = Math.max(lastSync || 0, maxModified);
                                     changes = mergeIntoObservable(changes, value);
                                 },
+                                retryNum: retryAttempts.attemptNum,
                                 cancelRetry,
                                 refresh,
                                 fromSubscribe: false,

@@ -182,6 +182,7 @@ export interface OnSetExtra {
     update: UpdateFn;
     refresh: () => void;
     cancelRetry: () => void;
+    retryNum: number;
     fromSubscribe: boolean | undefined;
 }
 export interface SubscribeOptions {

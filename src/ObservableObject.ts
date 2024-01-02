@@ -1079,7 +1079,8 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             return;
                         }
 
-                        return runWithRetry(node, { attemptNum: 0 }, (eventRetry) => {
+                        const retryAttempts = { attemptNum: 0 };
+                        return runWithRetry(node, retryAttempts, (eventRetry) => {
                             const cancelRetry = () => {
                                 eventRetry.cancel = true;
                             };
@@ -1095,6 +1096,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                                                 node,
                                                 update,
                                                 refresh,
+                                                retryNum: retryAttempts.attemptNum,
                                                 cancelRetry,
                                                 fromSubscribe: isSettingFromSubscribe,
                                             });
