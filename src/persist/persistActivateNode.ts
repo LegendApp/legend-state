@@ -21,7 +21,7 @@ export function persistActivateNode() {
     ) {
         if (node.activationState) {
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior } =
-                node.activationState! as ActivateParamsWithLookup & { onError?: () => void };
+                node.activationState! as ActivateParamsWithLookup;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -49,13 +49,16 @@ export function persistActivateNode() {
                 // TODO: Work out these types better
                 pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                     if (node.state?.isLoaded.get()) {
-                        return runWithRetry(node, { attemptNum: 0 }, async () => {
+                        return runWithRetry(node, { attemptNum: 0 }, async (retryEvent) => {
                             let changes = {};
                             let maxModified = 0;
-                            let didError = false;
                             if (!node.state!.isLoaded.peek()) {
                                 await whenReady(node.state!.isLoaded);
                             }
+
+                            const cancelRetry = () => {
+                                retryEvent.cancel = true;
+                            };
 
                             await onSet({
                                 ...(params as unknown as ListenerParams),
@@ -65,17 +68,11 @@ export function persistActivateNode() {
                                     maxModified = Math.max(lastSync || 0, maxModified);
                                     changes = mergeIntoObservable(changes, value);
                                 },
-                                onError: () => {
-                                    // TODO Is this necessary?
-                                    didError = true;
-                                    throw new Error();
-                                },
+                                cancelRetry,
                                 refresh,
                                 fromSubscribe: false,
                             });
-                            if (!didError) {
-                                return { changes, lastSync: maxModified || undefined };
-                            }
+                            return { changes, lastSync: maxModified || undefined };
                         });
                     }
                 };

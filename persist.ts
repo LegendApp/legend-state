@@ -28,9 +28,6 @@ declare module '@legendapp/state' {
     interface ActivateParams<T> {
         cache?: CacheOptions<any>;
     }
-    interface OnSetExtra {
-        onError: () => void;
-    }
     // interface SubscribeOptions {}
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface ObservableState extends ObservablePersistStateBase {}

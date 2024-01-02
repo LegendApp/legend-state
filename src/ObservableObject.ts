@@ -1079,21 +1079,29 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             return;
                         }
 
-                        return runWithRetry(node, { attemptNum: 0 }, () => {
+                        return runWithRetry(node, { attemptNum: 0 }, (eventRetry) => {
+                            const cancelRetry = () => {
+                                eventRetry.cancel = true;
+                            };
                             return new Promise<void>((resolve, reject) => {
                                 isSetting = true;
                                 batch(
-                                    () =>
-                                        onSet({
-                                            value,
-                                            changes,
-                                            getPrevious,
-                                            node,
-                                            update,
-                                            refresh,
-                                            onError: reject,
-                                            fromSubscribe: isSettingFromSubscribe,
-                                        }),
+                                    () => {
+                                        try {
+                                            return onSet({
+                                                value,
+                                                changes,
+                                                getPrevious,
+                                                node,
+                                                update,
+                                                refresh,
+                                                cancelRetry,
+                                                fromSubscribe: isSettingFromSubscribe,
+                                            });
+                                        } catch (e) {
+                                            reject(e);
+                                        }
+                                    },
                                     () => {
                                         isSetting = false;
                                         resolve();

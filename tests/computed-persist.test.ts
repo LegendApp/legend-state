@@ -371,14 +371,14 @@ describe('retry', () => {
                 retry: {
                     delay: 1,
                 },
-                onSet: ({ value, onError }) => {
+                onSet: ({ value }) => {
                     return new Promise<void>((resolve) => {
                         attemptNum$.set((v) => v + 1);
                         if (attemptNum$.get() > 2) {
                             saved = value;
                             resolve();
                         } else {
-                            onError();
+                            throw new Error();
                         }
                     });
                 },

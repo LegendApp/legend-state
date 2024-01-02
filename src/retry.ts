@@ -21,18 +21,19 @@ function createRetryTimout(retryOptions: RetryOptions, attemptNum: number, fn: (
 export function runWithRetry<T>(
     node: NodeValue,
     state: { attemptNum: number },
-    fn: () => T | Promise<T>,
+    fn: (e: { cancel?: boolean }) => T | Promise<T>,
 ): T | Promise<T> {
     const { retry, waitFor } = node.activationState!;
 
+    const e = { cancel: false };
     let value: any = undefined;
     if (waitFor) {
         value = whenReady(waitFor, () => {
             node.activationState!.waitFor = undefined;
-            return fn();
+            return fn(e);
         });
     } else {
-        value = fn();
+        value = fn(e);
     }
 
     if (isPromise(value) && retry) {
@@ -50,10 +51,12 @@ export function runWithRetry<T>(
                         if (timeoutRetry) {
                             clearTimeout(timeoutRetry);
                         }
-                        timeoutRetry = createRetryTimout(retry, state.attemptNum, () => {
-                            value = fn();
-                            run();
-                        });
+                        if (!e.cancel) {
+                            timeoutRetry = createRetryTimout(retry, state.attemptNum, () => {
+                                value = fn(e);
+                                run();
+                            });
+                        }
                     });
             };
             run();

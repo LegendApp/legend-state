@@ -181,6 +181,7 @@ export interface OnSetExtra {
     node: NodeValue;
     update: UpdateFn;
     refresh: () => void;
+    cancelRetry: () => void;
     fromSubscribe: boolean | undefined;
 }
 export interface SubscribeOptions {
