@@ -95,7 +95,7 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     var __devUpdateNodes = new Set();
 }
 function collectionSetter(node: NodeValue, target: any[], prop: keyof Array<any>, ...args: any[]) {
-    if (prop === 'push') {
+    if (prop === 'push' && args.length === 1) {
         setKey(node, target.length + '', args[0]);
     } else {
         const prevValue = target.slice();
