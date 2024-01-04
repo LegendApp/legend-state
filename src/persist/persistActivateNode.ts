@@ -20,7 +20,7 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState) {
-            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior } =
+            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =
                 node.activationState! as ActivateParamsWithLookup;
 
             let onChange: UpdateFn | undefined = undefined;
@@ -99,6 +99,7 @@ export function persistActivateNode() {
                 remote: {
                     retry: retry,
                     offlineBehavior,
+                    waitForSet,
                 },
             });
 

@@ -28,6 +28,7 @@ import {
     getNode,
     internal,
     isEmpty,
+    isFunction,
     isObject,
     isPromise,
     isString,
@@ -570,16 +571,21 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
-    const configRemote = persistOptions.remote;
-    const shouldSaveMetadata = local && configRemote?.offlineBehavior === 'retry';
+    const { offlineBehavior, allowSetIfError, onBeforeSet, onSetError, waitForSet, onSet } =
+        persistOptions.remote || {};
+    const shouldSaveMetadata = local && offlineBehavior === 'retry';
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
-        await when(() => syncState.isLoaded.get() || (configRemote?.allowSetIfError && syncState.error.get()));
+        await when(() => syncState.isLoaded.get() || (allowSetIfError && syncState.error.get()));
+
+        if (waitForSet) {
+            await when(isFunction(waitForSet) ? waitForSet(changesRemote) : waitForSet);
+        }
 
         const value = obs.peek();
 
-        configRemote?.onBeforeSet?.();
+        onBeforeSet?.();
 
         localState.numSavesOutstanding = (localState.numSavesOutstanding || 0) + 1;
 
@@ -589,7 +595,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             options: persistOptions,
             changes: changesRemote,
             value,
-        })?.catch((err) => configRemote?.onSetError?.(err));
+        })?.catch((err) => onSetError?.(err));
 
         localState.numSavesOutstanding--;
 
@@ -648,7 +654,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         localState.pendingSaveResults = [];
                     }
                 }
-                configRemote?.onSet?.();
+                onSet?.();
             }
         }
     }

@@ -1,4 +1,9 @@
-import type { CacheOptions, ObservablePersistStateBase, ObservablePersistenceConfig } from '@legendapp/state';
+import type {
+    CacheOptions,
+    ObservablePersistStateBase,
+    ObservablePersistenceConfig,
+    ObservableReadable,
+} from '@legendapp/state';
 import { internal as internalState } from '@legendapp/state';
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 export { invertFieldMap, transformObject, transformPath } from './src/persist/fieldTransformer';
@@ -27,6 +32,7 @@ declare module '@legendapp/state' {
     }
     interface ActivateParams<T> {
         cache?: CacheOptions<any>;
+        waitForSet?: Promise<any> | ObservableReadable<any>;
     }
     // interface SubscribeOptions {}
     // eslint-disable-next-line @typescript-eslint/no-empty-interface

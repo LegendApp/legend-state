@@ -1,6 +1,14 @@
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { DatabaseReference, Query } from 'firebase/database';
-import { ArrayValue, Change, ClassConstructor, RecordValue, RetryOptions, TypeAtPath } from './observableInterfaces';
+import {
+    ArrayValue,
+    Change,
+    ClassConstructor,
+    RecordValue,
+    RetryOptions,
+    Selector,
+    TypeAtPath,
+} from './observableInterfaces';
 import { Observable, ObservableReadable, ObservableState } from './observableTypes';
 
 export interface PersistTransform<T = any> {
@@ -22,8 +30,8 @@ export interface PersistOptionsLocal<T = any> {
 }
 export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
-    waitForGet?: Promise<any> | ObservableReadable<any>;
-    waitForSet?: Promise<any> | ObservableReadable<any>;
+    waitForGet?: Selector<any>;
+    waitForSet?: Selector<any> | ((changes: Change[]) => any);
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSetIfError?: boolean;
