@@ -586,7 +586,7 @@ export function set(node: NodeValue, newValue?: any): Observable {
 }
 function toggle(node: NodeValue) {
     const value = getNodeValue(node);
-    if (value === undefined || isBoolean(value)) {
+    if (value === undefined || value === null || isBoolean(value)) {
         set(node, !value);
         return !value;
     } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {

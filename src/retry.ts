@@ -11,7 +11,7 @@ function calculateRetryDelay(retryOptions: RetryOptions, attemptNum: number): nu
     return null;
 }
 
-function createRetryTimout(retryOptions: RetryOptions, attemptNum: number, fn: () => void) {
+function createRetryTimeout(retryOptions: RetryOptions, attemptNum: number, fn: () => void) {
     const delayTime = calculateRetryDelay(retryOptions, attemptNum);
     if (delayTime) {
         return setTimeout(fn, delayTime);
@@ -52,7 +52,7 @@ export function runWithRetry<T>(
                             clearTimeout(timeoutRetry);
                         }
                         if (!e.cancel) {
-                            timeoutRetry = createRetryTimout(retry, state.attemptNum, () => {
+                            timeoutRetry = createRetryTimeout(retry, state.attemptNum, () => {
                                 value = fn(e);
                                 run();
                             });
