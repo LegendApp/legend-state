@@ -245,10 +245,10 @@ function mergeChanges(changes: Change[]) {
     return changesOut;
 }
 
-function mergeQueuedChanges<T extends { obs: Observable; changes: Change[] }>(allChanges: T[]) {
+function mergeQueuedChanges(allChanges: QueuedChange[]) {
     const changesByObs = new Map<Observable, Change[]>();
 
-    const out: T[] = [];
+    const out: Map<Observable, QueuedChange> = new Map();
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
         const { obs, changes } = value;
@@ -256,12 +256,10 @@ function mergeQueuedChanges<T extends { obs: Observable; changes: Change[] }>(al
         const newChanges = existing ? [...existing, ...changes] : changes;
         const merged = mergeChanges(newChanges);
         changesByObs.set(obs, merged);
-        if (!existing) {
-            value.changes = merged;
-            out.push(value);
-        }
+        value.changes = merged;
+        out.set(obs, value);
     }
-    return out;
+    return Array.from(out.values());
 }
 
 async function processQueuedChanges() {
