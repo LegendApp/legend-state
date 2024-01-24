@@ -640,6 +640,10 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
             updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
         }
 
+        if (!isPrim) {
+            childNode.needsExtract = true;
+        }
+
         extractFunctionOrComputed(node, parentValue, key, savedValue);
 
         if (isFunc) {
@@ -876,7 +880,9 @@ export function peek(node: NodeValue) {
 
             value = activateNodeFunction(node as any, lazy as () => void);
         }
+    }
 
+    if (lazy || node.needsExtract) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
                 extractFunctionOrComputed(node, value, key, value[key]);

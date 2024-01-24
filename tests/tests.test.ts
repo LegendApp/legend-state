@@ -2346,6 +2346,22 @@ describe('Promise values', () => {
         // Now it equals the value
         expect(obs.promise.get()).toEqual(10);
     });
+    test('Promise child stays pending until activated when set later', async () => {
+        const promise = Promise.resolve(10);
+        const obs = observable<{ promise: number }>(undefined as any);
+        obs.set({ promise } as any);
+        await promise;
+        // Still pending because it was not activated
+        expect(obs.promise.get()).toEqual(undefined);
+        const state = syncState(obs.promise);
+        expect(state.isLoaded.get()).toEqual(false);
+
+        // This get activates it but it takes a frame for it to equal the value
+        expect(obs.promise.get()).not.toEqual(10);
+        await promiseTimeout();
+        // Now it equals the value
+        expect(obs.promise.get()).toEqual(10);
+    });
 });
 describe('Batching', () => {
     test('Assign is batched', async () => {
