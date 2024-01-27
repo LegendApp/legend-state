@@ -851,109 +851,107 @@ export function persistObservable<T>(
 
         let isSynced = false;
         sync = async () => {
-            if (!isSynced) {
-                isSynced = true;
-                const lastSync = metadatas.get(obs)?.lastSync;
-                const pending = localState.pendingChanges;
-                const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
+            const lastSync = metadatas.get(obs)?.lastSync;
+            const pending = localState.pendingChanges;
+            const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
 
-                if (get) {
-                    const runGet = () => {
-                        get({
-                            state: syncState,
-                            obs,
-                            options: persistOptions as PersistOptions<any>,
-                            lastSync,
-                            dateModified: lastSync,
-                            onError: (error: Error) => {
-                                remote.onGetError?.(error);
-                            },
-                            onGet: () => {
-                                node.state!.assign({
-                                    isLoaded: true,
-                                    error: undefined,
-                                });
-                            },
-                            onChange: async ({ value, path = [], pathTypes = [], mode = 'set', lastSync }) => {
-                                // Note: value is the constructed value, path is used for setInObservableAtPath
-                                // to start the set into the observable from the path
-                                if (value !== undefined) {
-                                    value = transformLoadData(value, remote, true);
-                                    if (isPromise(value)) {
-                                        value = await (value as Promise<T>);
-                                    }
+            if (get) {
+                const runGet = () => {
+                    get({
+                        state: syncState,
+                        obs,
+                        options: persistOptions as PersistOptions<any>,
+                        lastSync,
+                        dateModified: lastSync,
+                        onError: (error: Error) => {
+                            remote.onGetError?.(error);
+                        },
+                        onGet: () => {
+                            node.state!.assign({
+                                isLoaded: true,
+                                error: undefined,
+                            });
+                        },
+                        onChange: async ({ value, path = [], pathTypes = [], mode = 'set', lastSync }) => {
+                            // Note: value is the constructed value, path is used for setInObservableAtPath
+                            // to start the set into the observable from the path
+                            if (value !== undefined) {
+                                value = transformLoadData(value, remote, true);
+                                if (isPromise(value)) {
+                                    value = await (value as Promise<T>);
+                                }
 
-                                    const invertedMap =
-                                        remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
+                                const invertedMap = remote.fieldTransforms && invertFieldMap(remote.fieldTransforms);
 
-                                    if (path.length && invertedMap) {
-                                        path = transformPath(path as string[], pathTypes, invertedMap);
-                                    }
+                                if (path.length && invertedMap) {
+                                    path = transformPath(path as string[], pathTypes, invertedMap);
+                                }
 
-                                    if (mode === 'lastSync' || mode === 'dateModified') {
-                                        if (lastSync && !isEmpty(value as unknown as object)) {
-                                            onChangeRemote(() => {
-                                                setInObservableAtPath(
-                                                    // @ts-expect-error Fix this type
-                                                    obs,
-                                                    path as string[],
-                                                    pathTypes,
-                                                    value,
-                                                    'assign',
-                                                );
-                                            });
-                                        }
-                                    } else {
-                                        const pending = localState.pendingChanges;
-                                        if (pending) {
-                                            Object.keys(pending).forEach((key) => {
-                                                const p = key.split('/').filter((p) => p !== '');
-                                                const { v, t } = pending[key];
-
-                                                if (t.length === 0 || !value) {
-                                                    value = v;
-                                                } else if ((value as any)[p[0]] !== undefined) {
-                                                    (value as any) = setAtPath(
-                                                        value as any,
-                                                        p,
-                                                        t,
-                                                        v,
-                                                        obs.peek(),
-                                                        (path: string[], value: any) => {
-                                                            delete pending[key];
-                                                            pending[path.join('/')] = {
-                                                                p: null,
-                                                                v: value,
-                                                                t: t.slice(0, path.length),
-                                                            };
-                                                        },
-                                                    );
-                                                }
-                                            });
-                                        }
-
+                                if (mode === 'lastSync' || mode === 'dateModified') {
+                                    if (lastSync && !isEmpty(value as unknown as object)) {
                                         onChangeRemote(() => {
-                                            // @ts-expect-error Fix this type
-                                            setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
+                                            setInObservableAtPath(
+                                                // @ts-expect-error Fix this type
+                                                obs,
+                                                path as string[],
+                                                pathTypes,
+                                                value,
+                                                'assign',
+                                            );
                                         });
                                     }
-                                }
-                                if (lastSync && local) {
-                                    updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
-                                        lastSync,
+                                } else {
+                                    const pending = localState.pendingChanges;
+                                    if (pending) {
+                                        Object.keys(pending).forEach((key) => {
+                                            const p = key.split('/').filter((p) => p !== '');
+                                            const { v, t } = pending[key];
+
+                                            if (t.length === 0 || !value) {
+                                                value = v;
+                                            } else if ((value as any)[p[0]] !== undefined) {
+                                                (value as any) = setAtPath(
+                                                    value as any,
+                                                    p,
+                                                    t,
+                                                    v,
+                                                    obs.peek(),
+                                                    (path: string[], value: any) => {
+                                                        delete pending[key];
+                                                        pending[path.join('/')] = {
+                                                            p: null,
+                                                            v: value,
+                                                            t: t.slice(0, path.length),
+                                                        };
+                                                    },
+                                                );
+                                            }
+                                        });
+                                    }
+
+                                    onChangeRemote(() => {
+                                        // @ts-expect-error Fix this type
+                                        setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
                                     });
                                 }
-                            },
-                        });
-                    };
-                    runGet();
-                } else {
-                    node.state!.assign({
-                        isLoaded: true,
-                        error: undefined,
+                            }
+                            if (lastSync && local) {
+                                updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
+                                    lastSync,
+                                });
+                            }
+                        },
                     });
-                }
-
+                };
+                runGet();
+            } else {
+                node.state!.assign({
+                    isLoaded: true,
+                    error: undefined,
+                });
+            }
+            if (!isSynced) {
+                isSynced = true;
                 // Wait for remote to be ready before saving pending
                 await when(() => syncState.isLoaded.get() || (remote.allowSetIfError && syncState.error.get()));
 
@@ -983,10 +981,7 @@ export function persistObservable<T>(
             }
         };
 
-        // If remote is manual, then sync() must be called manually
-        if (remote.manual) {
-            syncState.assign({ sync });
-        }
+        syncState.assign({ sync });
     }
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded

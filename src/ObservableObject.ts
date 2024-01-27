@@ -947,19 +947,24 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
             } else if (node.activationState) {
                 if (!node.activationState!.persistedRetry && !node.activationState.waitFor) {
                     const activated = node.activationState!;
-                    // TODO Should this have lastSync and value somehow?
-                    value =
-                        activated.get?.({
-                            updateLastSync: noop,
-                            setMode: noop,
-                            lastSync: undefined,
-                            value: undefined,
-                            refresh: doRetry,
-                        }) ?? activated.initial;
+                    if (node.state?.peek()?.sync) {
+                        node.state.sync();
+                        ignoreThisUpdate = true;
+                    } else {
+                        value =
+                            activated.get?.({
+                                updateLastSync: noop,
+                                setMode: noop,
+                                lastSync: undefined,
+                                value: undefined,
+                                refresh: doRetry,
+                            }) ?? activated.initial;
+                    }
                 } else {
                     ignoreThisUpdate = true;
                 }
             }
+            // value is undefined if it's in a persisted retry
             wasPromise = wasPromise || isPromise(value);
 
             get(getNode((node.state as Observable<ObservablePersistStateInternal>)?.refreshNum));

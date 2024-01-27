@@ -40,13 +40,12 @@ export function runWithRetry<T>(
         let timeoutRetry: any;
         return new Promise<any>((resolve) => {
             const run = () => {
-                value
+                (value as Promise<any>)
                     .then((val: any) => {
                         node.activationState!.persistedRetry = false;
                         resolve(val);
                     })
                     .catch(() => {
-                        node.activationState!.persistedRetry = true;
                         state.attemptNum++;
                         if (timeoutRetry) {
                             clearTimeout(timeoutRetry);
@@ -57,6 +56,9 @@ export function runWithRetry<T>(
                                 run();
                             });
                         }
+                    })
+                    .finally(() => {
+                        node.activationState!.persistedRetry = false;
                     });
             };
             run();
