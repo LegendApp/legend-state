@@ -529,6 +529,16 @@ export const run = (isPersist: boolean) => {
             });
             expect(obs.test.get() === 'hi!');
         });
+        test('Computed assigned later nodes are the same', () => {
+            const obs = observable({ text: 'hi' } as { text: any; test: any });
+            const test$ = obs.test;
+            obs.assign({
+                test: () => obs.text.get() + '!',
+            });
+            obs.test.get();
+            const test2$ = obs.test;
+            expect(test$ === test2$).toEqual(true);
+        });
         test('Computed selected gets correct value', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
