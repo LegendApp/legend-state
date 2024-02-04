@@ -1653,6 +1653,101 @@ describe('Array', () => {
         expect(handler).toHaveBeenCalledWith(11, 1, [{ path: [], pathTypes: [], prevAtPath: 1, valueAtPath: 11 }]);
         expect(handler2).toHaveBeenCalledWith(22, 2, [{ path: [], pathTypes: [], prevAtPath: 2, valueAtPath: 22 }]);
     });
+    test('Set array mapping previous with dates', () => {
+        const oldDate = new Date(+new Date() - 1000);
+        const obs = observable({
+            todos: [
+                {
+                    id: '1',
+                    date: oldDate,
+                },
+            ],
+        });
+        const handler = expectChangeHandler(obs.todos);
+
+        const newDate = new Date(+new Date() - 1500);
+        obs.todos.set((arr) => arr.map((v) => ({ ...v, date: newDate })));
+        expect(obs.todos.get()).toEqual([
+            {
+                id: '1',
+                date: newDate,
+            },
+        ]);
+        expect(handler).toHaveBeenCalledWith(
+            [
+                {
+                    id: '1',
+                    date: newDate,
+                },
+            ],
+            [
+                {
+                    id: '1',
+                    date: oldDate,
+                },
+            ],
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: [
+                        {
+                            id: '1',
+                            date: newDate,
+                        },
+                    ],
+                    prevAtPath: [
+                        {
+                            id: '1',
+                            date: oldDate,
+                        },
+                    ],
+                },
+            ],
+        );
+        const newDate2 = new Date();
+        obs.todos.set((arr) => arr.map((v) => ({ ...v, date: newDate2 })));
+        expect(obs.todos.get()).toEqual([
+            {
+                id: '1',
+                date: newDate2,
+            },
+        ]);
+        expect(handler).toHaveBeenCalledTimes(2);
+
+        expect(handler).toHaveBeenCalledWith(
+            [
+                {
+                    id: '1',
+                    date: newDate2,
+                },
+            ],
+            [
+                {
+                    id: '1',
+                    date: newDate,
+                },
+            ],
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: [
+                        {
+                            id: '1',
+                            date: newDate2,
+                        },
+                    ],
+                    prevAtPath: [
+                        {
+                            id: '1',
+                            date: newDate,
+                        },
+                    ],
+                },
+            ],
+        );
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
