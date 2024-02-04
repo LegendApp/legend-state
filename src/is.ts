@@ -16,7 +16,10 @@ export function isFunction(obj: unknown): obj is Function {
 }
 export function isPrimitive(arg: unknown): arg is string | number | bigint | boolean | symbol {
     const type = typeof arg;
-    return arg !== undefined && type !== 'object' && type !== 'function';
+    return arg !== undefined && (isDate(arg) || (type !== 'object' && type !== 'function'));
+}
+export function isDate(obj: unknown): obj is Date {
+    return obj instanceof Date;
 }
 export function isSymbol(obj: unknown): obj is symbol {
     return typeof obj === 'symbol';
