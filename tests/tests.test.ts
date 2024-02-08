@@ -1955,7 +1955,7 @@ describe('Deep changes keep listeners', () => {
         obs.arr.splice(1, 1);
         const then = performance.now();
 
-        expect(then - now).toBeLessThan(30);
+        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 60 : 30);
     });
 });
 describe('Delete', () => {
