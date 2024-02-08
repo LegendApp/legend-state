@@ -1,6 +1,7 @@
-import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 import type { symbolGetNode, symbolOpaque } from './globals';
-import { DatabaseReference, Query } from 'firebase/database';
+type AsyncStorageStatic = import('@react-native-async-storage/async-storage').AsyncStorageStatic;
+type DatabaseReference = import('firebase/database').DatabaseReference;
+type Query = import('firebase/database').Query;
 
 // Copied from import { MMKVConfiguration } from 'react-native-mmkv';
 // so we don't have to import it
