@@ -1,5 +1,8 @@
-import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
-import type { DatabaseReference, Query } from 'firebase/database';
+type MMKVConfiguration = import('react-native-mmkv').MMKVConfiguration;
+type AsyncStorageStatic = import('@react-native-async-storage/async-storage').AsyncStorageStatic;
+type DatabaseReference = import('firebase/database').DatabaseReference;
+type Query = import('firebase/database').Query;
+
 import {
     ArrayValue,
     Change,
@@ -235,40 +238,3 @@ export type QueryByModified<T> =
     | {
           '*'?: boolean;
       };
-
-// Copied from import { MMKVConfiguration } from 'react-native-mmkv';
-// so we don't have to import it
-interface MMKVConfiguration {
-    /**
-     * The MMKV instance's ID. If you want to use multiple instances, make sure to use different IDs!
-     *
-     * @example
-     * ```ts
-     * const userStorage = new MMKV({ id: `user-${userId}-storage` })
-     * const globalStorage = new MMKV({ id: 'global-app-storage' })
-     * ```
-     *
-     * @default 'mmkv.default'
-     */
-    id: string;
-    /**
-     * The MMKV instance's root path. By default, MMKV stores file inside `$(Documents)/mmkv/`. You can customize MMKV's root directory on MMKV initialization:
-     *
-     * @example
-     * ```ts
-     * const temporaryStorage = new MMKV({ path: '/tmp/' })
-     * ```
-     */
-    path?: string;
-    /**
-     * The MMKV instance's encryption/decryption key. By default, MMKV stores all key-values in plain text on file, relying on iOS's sandbox to make sure the file is encrypted. Should you worry about information leaking, you can choose to encrypt MMKV.
-     *
-     * Encryption keys can have a maximum length of 16 bytes.
-     *
-     * @example
-     * ```ts
-     * const secureStorage = new MMKV({ encryptionKey: 'my-encryption-key!' })
-     * ```
-     */
-    encryptionKey?: string;
-}
