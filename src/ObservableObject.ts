@@ -844,6 +844,8 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         const childNode = getNode(v);
         if (childNode?.isComputed) {
             extractFunction(node, k, v, childNode);
+        } else if (isObservable(v)) {
+            extractFunction(node, k, v as any);
         } else {
             return true;
         }

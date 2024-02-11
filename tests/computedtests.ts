@@ -522,23 +522,6 @@ export const run = (isPersist: boolean) => {
             });
             expect(obs.test.get() === 'hi!');
         });
-        test('Computed assigned later', () => {
-            const obs = observable({ text: 'hi' } as { text: any; test: any });
-            obs.assign({
-                test: () => obs.text.get() + '!',
-            });
-            expect(obs.test.get() === 'hi!');
-        });
-        test('Computed assigned later nodes are the same', () => {
-            const obs = observable({ text: 'hi' } as { text: any; test: any });
-            const test$ = obs.test;
-            obs.assign({
-                test: () => obs.text.get() + '!',
-            });
-            obs.test.get();
-            const test2$ = obs.test;
-            expect(test$ === test2$).toEqual(true);
-        });
         test('Computed selected gets correct value', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
@@ -1553,6 +1536,70 @@ export const run = (isPersist: boolean) => {
             const comp = observable<{ child: number }>();
             comp.set({ child: activated({ get: () => obs.test.get() + obs.test2.get() }) });
             expect(comp.child.get()).toEqual(30);
+        });
+        test('Computed assigned later', () => {
+            const obs = observable({ text: 'hi' } as { text: any; test: any });
+            obs.assign({
+                test: () => obs.text.get() + '!',
+            });
+            expect(obs.test.get() === 'hi!');
+        });
+        test('Computed assigned later nodes are the same', () => {
+            const obs = observable({ text: 'hi' } as { text: any; test: any });
+            const test$ = obs.test;
+            obs.assign({
+                test: () => obs.text.get() + '!',
+            });
+            obs.test.get();
+            const test2$ = obs.test;
+            expect(test$ === test2$).toEqual(true);
+        });
+    });
+    describe('Link directly', () => {
+        const obs = observable({
+            test: 10,
+            test2: () => ({
+                a: 20,
+                b: obs.test,
+            }),
+        });
+        obs.test2.get();
+        const handler = expectChangeHandler(obs.test2.b);
+
+        expect(obs.test2.b.get()).toEqual(10);
+        obs.test.set(30);
+        expect(obs.test2.b.get()).toEqual(30);
+        expect(handler).toHaveBeenCalledWith(30, 10, [{ path: [], pathTypes: [], valueAtPath: 30, prevAtPath: 10 }]);
+    });
+    describe('Complex computeds', () => {
+        test('Computed returning a link as child', () => {
+            const obs = observable({
+                test: 10,
+                test2: () => ({
+                    a: 20,
+                    b: () => obs.test,
+                }),
+            });
+            const handler = expectChangeHandler(obs.test2.b);
+
+            expect(obs.test2.b.get()).toEqual(10);
+            obs.test.set(30);
+            expect(obs.test2.b.get()).toEqual(30);
+            expect(handler).toHaveBeenCalledWith(30, 10, [
+                { path: [], pathTypes: [], valueAtPath: 30, prevAtPath: 10 },
+            ]);
+        });
+        test('Computed returning an array of links', () => {
+            const obs = observable<Record<string, { id: string; text: string }>>({
+                a: { id: 'a', text: 'hia' },
+                b: { id: 'b', text: 'hib' },
+            });
+
+            const comp = observable(() => Object.keys(obs.get()).map((key) => () => obs[key]));
+
+            expect(comp[0].get()).toEqual({ id: 'a', text: 'hia' });
+            obs.a.text.set('hia!');
+            expect(comp[0].get()).toEqual({ id: 'a', text: 'hia!' });
         });
     });
 };

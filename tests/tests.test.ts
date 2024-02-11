@@ -170,16 +170,14 @@ describe('Set', () => {
 
         expect(seen).toEqual(1);
     });
-    test("Set with child that's an observable", () => {
+    test("Set with child that's an observable multiple times", () => {
         const obsOther = observable({ a: { b: 'hi' } });
+        const obsOther2 = observable({ a: { b: 'hello' } });
         const obs = observable({ test: { t: { text2: 't' } } } as Record<string, any>);
         obs.test.set({ t: obsOther });
         expect(obs.test.t.a.get()).toEqual({ b: 'hi' });
-        obs.test.set({ t: { tt: obsOther.a } });
-        // TODO Should this work?
-        // expect(obs.get()).toEqual({ test: { t: { tt: { b: 'hi' } } } });
-        // expect(obs.test.t.tt.get()).toEqual({ b: 'hi' });
-        expect(obs.test.t.tt.b.get()).toEqual('hi');
+        obs.test.set({ t: obsOther2 });
+        expect(obs.test.t.a.get()).toEqual({ b: 'hello' });
     });
     test('empty string as key', () => {
         const obs = observable({ '': 'test' });
