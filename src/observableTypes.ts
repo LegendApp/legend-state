@@ -14,6 +14,7 @@ type ArrayOverrideFnNames =
 
 type ObservableComputed<T = any> = Readonly<ObservableNode<T>>;
 type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2>;
+type ObservableComputedOrFn<T = any> = ObservableComputed<T> & (() => T);
 
 type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any>>;
 type Readonly<T> = MakeReadonlyInner<T> & {
@@ -121,7 +122,9 @@ type ObservableFunctionChildren<T> = {
         : T[K] extends () => Promise<infer t> | infer t
         ? t extends void
             ? T[K]
-            : ObservableComputed<t> & T[K]
+            : t extends Observable<infer k>
+            ? ObservableComputed<k>
+            : ObservableComputedOrFn<t>
         : T[K];
 };
 
