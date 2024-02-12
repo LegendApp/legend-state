@@ -969,7 +969,6 @@ export function persistObservable<T>(
                     }
 
                     // Send the changes into onObsChange so that they get persisted remotely
-                    // @ts-expect-error Fix this type
                     onObsChange(obs as Observable, syncState, localState, persistOptions, {
                         value: obs.peek(),
                         // TODO getPrevious if any remote persistence layers need it

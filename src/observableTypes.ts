@@ -98,11 +98,11 @@ type NonObservableKeys<T> = {
         ? K
         : never;
 }[keyof T];
-type ObservableProps<T> = RestoreNullability<T, Simplify<Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>>;
+type ObservableProps<T> = RestoreNullability<T, Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>;
 
 type NonObservableProps<T> = RestoreNullability<
     T,
-    Simplify<NullablePropsIf<Pick<NonNullable<T>, NonObservableKeys<NonNullable<T>>>, IsNullable<T>>>
+    NullablePropsIf<Pick<NonNullable<T>, NonObservableKeys<NonNullable<T>>>, IsNullable<T>>
 >;
 type NullablePropsIf<T, U> = {
     [K in keyof T]: UndefinedIf<T[K], U>;
@@ -136,14 +136,18 @@ type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObs
     ObservableChildren<ObservableProps<T>> &
     ObservableFunctionChildren<NonObservableProps<T>>;
 
+type ObservableFunction<T> = T extends () => infer t ? t | (() => t) : T;
+
 type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that T is ONLY undefined or null
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
+    : [T] extends [Promise<infer t>]
+    ? ObservableNode<t>
     : [T] extends [() => infer t]
-    ? t extends Observable
+    ? [t] extends [ImmutableObservableBase<any>]
         ? t
-        : ObservableComputed<t>
+        : ObservableComputed<ObservableFunction<t>>
     : [NT] extends [ImmutableObservableBase<any>]
     ? NT
     : [NT] extends [Primitive]
@@ -160,9 +164,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableArray<T, U> & ObservableChildren<T>
     : ObservableObject<T>;
 
-type Simplify<T> = { [K in keyof T]: T[K] } & {};
-
-type Observable<T = any> = ObservableNode<T> & {};
+type Observable<T = any> = ObservableNode<T>;
 
 type ObservableReadable<T = any> = ImmutableObservableBase<T>;
 type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;

@@ -6,8 +6,11 @@ import { getNode, globalState } from './globals';
 import type { Observable, ObservablePrimitive, ObservableReadable, RecursiveValueOrFunction } from './observableTypes';
 
 export function observable<T>(): Observable<T | undefined>;
-export function observable<T>(value: Promise<RecursiveValueOrFunction<T>> | RecursiveValueOrFunction<T>): Observable<T>;
-export function observable<T>(value?: T): any {
+export function observable<T>(
+    value: Promise<RecursiveValueOrFunction<T>> | (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>,
+): Observable<T>;
+export function observable<T>(value: T): Observable<T>;
+export function observable<T>(value?: T): Observable<any> {
     return createObservable(value, false, extractPromise, getProxy, ObservablePrimitiveClass) as any;
 }
 

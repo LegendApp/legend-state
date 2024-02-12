@@ -671,7 +671,7 @@ export const run = (isPersist: boolean) => {
         test('Computed link to link updates when changing', () => {
             const num$ = observable(0);
             const obs = observable({ name: 'hi' });
-            const obs2 = observable(() => num$.get() > 1 && obs);
+            const obs2 = observable(() => (num$.get() > 1 ? obs : undefined));
             const comp = observable(() => (num$.get() > 0 ? obs2 : undefined));
 
             expect(comp.name.get()).toEqual(undefined);
@@ -750,7 +750,7 @@ export const run = (isPersist: boolean) => {
             });
             // TODO Is it calling these twice?
             const obs2 = observable(() => {
-                return { test1: num$.get() > 1 && obs.test };
+                return { test1: num$.get() > 1 ? obs.test : undefined };
             });
             const comp = observable<{ test1: string | boolean }>(() => {
                 return num$.get() > 0 ? obs2 : (undefined as any);
