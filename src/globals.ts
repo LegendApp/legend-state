@@ -130,9 +130,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             }
         }
         if (asFunction) {
-            child = Object.assign(() => {
-                return child?.lazyFn?.();
-            }, child);
+            child = Object.assign(() => {}, child);
             child.lazyFn = asFunction;
         }
         if (!node.children) {

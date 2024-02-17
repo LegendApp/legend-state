@@ -24,8 +24,7 @@ export function createObservable<T>(
     };
 
     if (valueIsFunction) {
-        node = Object.assign(() => {
-        }, node);
+        node = Object.assign(() => {}, node);
         node.lazyFn = value;
     }
 
