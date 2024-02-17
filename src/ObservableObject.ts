@@ -382,6 +382,7 @@ const proxyHandler: ProxyHandler<any> = {
         // The exception is onChange because it needs to listen to this node for changes.
         // This needs to be below peek because it activates there.
         if (node.linkedToNode && p !== 'onChange') {
+            updateTracking(node);
             return proxyHandler.get!(node.linkedToNode, p, receiver);
         }
 

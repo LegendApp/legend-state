@@ -179,6 +179,36 @@ export const run = (isPersist: boolean) => {
             await promiseTimeout(10);
             expect(comp.get()).toEqual('hi there');
         });
+        test('Changing the target', () => {
+            const stateTest$ = observable({
+                id: '1',
+                items: [{ id: '1' }, { id: '2' }, { id: '3' }],
+                selectedItem: () => {
+                    const id = stateTest$.id.get();
+                    const item = stateTest$.items.find((_item: any) => _item.id.peek() === id)!;
+                    return item;
+                },
+            });
+
+            let latestValue: { id: string };
+
+            observe(
+                () => {
+                    latestValue = stateTest$.selectedItem.get();
+                },
+                { immediate: true },
+            );
+
+            expect(latestValue!).toEqual({ id: '1' });
+
+            stateTest$.id.set('2');
+
+            expect(latestValue!).toEqual({ id: '2' });
+
+            stateTest$.id.set('3');
+
+            expect(latestValue!).toEqual({ id: '3' });
+        });
     });
     describe('Two way Computed', () => {
         test('Bound to two, get', () => {
