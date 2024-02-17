@@ -1205,10 +1205,11 @@ function setToObservable(node: NodeValue, value: any) {
         }
         linkedNode.linkedFromNodes.add(node);
         peek(linkedNode);
-        onChange(
+        node.linkedToNodeDispose?.();
+        node.linkedToNodeDispose = onChange(
             linkedNode,
-            ({ value: newValue }) => {
-                value = newValue;
+            () => {
+                value = peek(linkedNode);
                 set(node, value);
             },
             { initial: true },

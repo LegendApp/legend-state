@@ -79,6 +79,7 @@ interface BaseNodeValue {
     proxyFn?: (key: string) => ObservableReadable;
     isEvent?: boolean;
     linkedToNode?: NodeValue;
+    linkedToNodeDispose?: () => void;
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;

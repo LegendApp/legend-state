@@ -670,19 +670,42 @@ export const run = (isPersist: boolean) => {
         });
         test('Computed link to link updates when changing', () => {
             const num$ = observable(0);
-            const obs = observable({ name: 'hi' });
-            const obs2 = observable(() => (num$.get() > 1 ? obs : undefined));
-            const comp = observable(() => (num$.get() > 0 ? obs2 : undefined));
+            const obs = observable('hi');
+            const obs2 = observable(() => (num$.get() > 1 ? obs : 'b'));
+            const comp = observable(() => (num$.get() > 0 ? obs2 : 'a'));
 
-            expect(comp.name.get()).toEqual(undefined);
+            expect(comp.get()).toEqual('a');
 
             num$.set(1);
 
-            expect(comp.name.get()).toEqual(false);
+            expect(comp.get()).toEqual('b');
 
             num$.set(2);
 
-            expect(comp.name.get()).toEqual('hi');
+            expect(comp.get()).toEqual('hi');
+        });
+        test('Computed link to link updates when changing to other obs', () => {
+            const num$ = observable(0);
+            const obs = observable('hi');
+            const obs2 = observable('hello');
+            const obs3 = observable(() => (num$.get() > 1 ? obs : obs2));
+            const comp = observable(() => (num$.get() > 0 ? obs3 : 'a'));
+
+            expect(comp.get()).toEqual('a');
+
+            num$.set(1);
+
+            expect(comp.get()).toEqual('hello');
+
+            num$.set(2);
+
+            expect(comp.get()).toEqual('hi');
+
+            obs.set('hi2');
+            expect(comp.get()).toEqual('hi2');
+
+            obs2.set('hello2');
+            expect(comp.get()).toEqual('hi2');
         });
         test('Computed link to activated updates when changing', async () => {
             const num$ = observable(0);
@@ -750,7 +773,7 @@ export const run = (isPersist: boolean) => {
             });
             // TODO Is it calling these twice?
             const obs2 = observable(() => {
-                return { test1: num$.get() > 1 ? obs.test : undefined };
+                return { test1: num$.get() > 1 ? obs.test : 'b' };
             });
             const comp = observable<{ test1: string | boolean }>(() => {
                 return num$.get() > 0 ? obs2 : (undefined as any);
@@ -760,7 +783,7 @@ export const run = (isPersist: boolean) => {
 
             num$.set(1);
 
-            expect(comp.test1.get()).toEqual(false);
+            expect(comp.test1.get()).toEqual('b');
 
             num$.set(2);
 
