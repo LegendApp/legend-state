@@ -158,7 +158,9 @@ export function ensureNodeValue(node: NodeValue) {
 }
 
 export function findIDKey(obj: unknown | undefined, node: NodeValue): string | ((value: any) => string) | undefined {
-    let idKey: string | ((value: any) => string) | undefined = isObject(obj)
+    let idKey: string | ((value: any) => string) | undefined = isObservable(obj)
+        ? undefined
+        : isObject(obj)
         ? 'id' in obj
             ? 'id'
             : 'key' in obj

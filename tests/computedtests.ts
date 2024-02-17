@@ -1612,7 +1612,7 @@ export const run = (isPersist: boolean) => {
                 { path: [], pathTypes: [], valueAtPath: 30, prevAtPath: 10 },
             ]);
         });
-        test('Computed returning an array of links', () => {
+        test('Computed returning an array of links changing one', () => {
             const obs = observable<Record<string, { id: string; text: string }>>({
                 a: { id: 'a', text: 'hia' },
                 b: { id: 'b', text: 'hib' },
@@ -1624,7 +1624,7 @@ export const run = (isPersist: boolean) => {
             obs.a.text.set('hia!');
             expect(comp[0].get()).toEqual({ id: 'a', text: 'hia!' });
         });
-        test('Computed returning an array of links 3', () => {
+        test('Computed returning an object of links', () => {
             const obs = observable<Record<string, { id: string; text: string }>>({
                 a: { id: 'a', text: 'hia' },
                 b: { id: 'b', text: 'hib' },
@@ -1648,7 +1648,7 @@ export const run = (isPersist: boolean) => {
             obs.a.delete();
             expect(comp.b.get()).toEqual({ id: 'c', text: 'hic' });
         });
-        test('Computed returning an array of links 2', () => {
+        test('Computed returning an array of links with functions', () => {
             const obs = observable<Record<string, { id: string; text: string }>>({
                 a: { id: 'a', text: 'hia' },
                 b: { id: 'b', text: 'hib' },
@@ -1657,6 +1657,24 @@ export const run = (isPersist: boolean) => {
             const comp = observable(() => {
                 const val = obs.get();
                 return Object.keys(val).map((key) => () => {
+                    return obs[key];
+                });
+            });
+
+            expect(comp[0].get()).toEqual({ id: 'a', text: 'hia' });
+
+            obs.a.delete();
+            expect(comp[0].get()).toEqual({ id: 'b', text: 'hib' });
+        });
+        test('Computed returning an array of links direct', () => {
+            const obs = observable<Record<string, { id: string; text: string }>>({
+                a: { id: 'a', text: 'hia' },
+                b: { id: 'b', text: 'hib' },
+            });
+
+            const comp = observable(() => {
+                const val = obs.get();
+                return Object.keys(val).map((key) => {
                     return obs[key];
                 });
             });

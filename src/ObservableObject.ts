@@ -262,7 +262,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 let child = getChildNode(parent, key, isFunction(value) ? value : undefined);
 
-                if (child.linkedToNode && isFunction(value)) {
+                if (child.linkedToNode && (isFunction(value) || isObservable(value))) {
                     reactivateNode(child, value);
                     peek(child);
                 }
@@ -298,7 +298,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 if (isDiff) {
                     // Array has a new / modified element
                     // If object iterate through its children
-                    if (isFunction(value)) {
+                    if (isFunction(value) || isObservable(value)) {
                         extractFunctionOrComputed(parent, obj, key, value);
                     } else if (isPrimitive(value)) {
                         hasADiff = true;
