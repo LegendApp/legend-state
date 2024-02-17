@@ -80,12 +80,14 @@ interface BaseNodeValue {
     isEvent?: boolean;
     linkedToNode?: NodeValue;
     linkedToNodeDispose?: () => void;
+    activatedObserveDispose?: () => void;
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
     parentOther?: NodeValue;
     functions?: Map<string, Function | ObservableComputedNew<any>>;
-    lazy?: boolean | Function;
+    lazy?: boolean;
+    lazyFn?: Function;
     needsExtract?: boolean;
     state?: ObservableNew<ObservablePersistState>;
     activated?: boolean;

@@ -1624,5 +1624,47 @@ export const run = (isPersist: boolean) => {
             obs.a.text.set('hia!');
             expect(comp[0].get()).toEqual({ id: 'a', text: 'hia!' });
         });
+        test('Computed returning an array of links 3', () => {
+            const obs = observable<Record<string, { id: string; text: string }>>({
+                a: { id: 'a', text: 'hia' },
+                b: { id: 'b', text: 'hib' },
+                c: { id: 'c', text: 'hic' },
+            });
+
+            let num = 0;
+
+            const comp = observable(() => {
+                obs.get();
+                return {
+                    a: () => obs.a,
+                    b: () => (num > 0 ? obs.c : obs.b),
+                };
+            });
+
+            expect(comp.a.get()).toEqual({ id: 'a', text: 'hia' });
+            expect(comp.b.get()).toEqual({ id: 'b', text: 'hib' });
+
+            num++;
+            obs.a.delete();
+            expect(comp.b.get()).toEqual({ id: 'c', text: 'hic' });
+        });
+        test('Computed returning an array of links 2', () => {
+            const obs = observable<Record<string, { id: string; text: string }>>({
+                a: { id: 'a', text: 'hia' },
+                b: { id: 'b', text: 'hib' },
+            });
+
+            const comp = observable(() => {
+                const val = obs.get();
+                return Object.keys(val).map((key) => () => {
+                    return obs[key];
+                });
+            });
+
+            expect(comp[0].get()).toEqual({ id: 'a', text: 'hia' });
+
+            obs.a.delete();
+            expect(comp[0].get()).toEqual({ id: 'b', text: 'hib' });
+        });
     });
 };

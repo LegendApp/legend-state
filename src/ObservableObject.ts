@@ -262,6 +262,11 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 let child = getChildNode(parent, key);
 
+                if (child.linkedToNode && isFunction(value)) {
+                    reactivateNode(child, value);
+                    peek(child);
+                }
+
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
                 // the proxy stable, so that listeners to this node will be unaffected by the array shift.
                 if (isArr && id !== undefined) {
@@ -573,7 +578,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
     apply(target, thisArg, argArray) {
         // If it's a function call it as a function
-        return Reflect.apply(target, thisArg, argArray);
+        return Reflect.apply(target.lazyFn || target, thisArg, argArray);
     },
 };
 
@@ -871,6 +876,7 @@ export function peek(node: NodeValue) {
     // If node is not yet lazily computed go do that
     const lazy = node.lazy;
     if (lazy) {
+        const lazyFn = node.lazyFn!;
         delete node.lazy;
         if (isFunction(node) || isFunction(lazy)) {
             if (node.parent) {
@@ -880,7 +886,7 @@ export function peek(node: NodeValue) {
                 }
             }
 
-            value = activateNodeFunction(node as any, lazy as () => void);
+            value = activateNodeFunction(node as any, lazyFn);
         }
     }
 
@@ -898,13 +904,23 @@ export function peek(node: NodeValue) {
     return value;
 }
 
-function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
+function reactivateNode(node: NodeValue, lazyFn: Function) {
+    node.activatedObserveDispose?.();
+    node.activatedObserveDispose = undefined;
+    node.linkedToNodeDispose?.();
+    node.linkedToNodeDispose = undefined;
+    node.linkedToNode = undefined;
+    node.lazyFn = lazyFn;
+    node.lazy = true;
+}
+
+function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     // let prevTarget$: Observable<any>;
     // let curTarget$: Observable<any>;
     let update: UpdateFn;
     let wasPromise: boolean | undefined;
     let ignoreThisUpdate: boolean | undefined;
-    const activateFn = (isFunction(node) ? node : lazyFn) as () => any;
+    const activateFn = lazyFn;
     const doRetry = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     let activatedValue;
     let disposes: (() => void)[] = [];
@@ -914,7 +930,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: () => void) {
         globalState.dirtyNodes.add(node);
     }
 
-    observe(
+    node.activatedObserveDispose = observe(
         () => {
             // const params = createNodeActivationParams(node);
             // Run the function at this node

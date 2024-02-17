@@ -1,8 +1,8 @@
-import { Observable, ObservablePrimitive } from './observableTypes';
-import { cloneFunction, setNodeValue } from './globals';
+import { setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
 import type { ClassConstructor, ObservableRoot } from './observableInterfaces';
 import { NodeValue } from './observableInterfaces';
+import { Observable, ObservablePrimitive } from './observableTypes';
 
 export function createObservable<T>(
     value: T | undefined,
@@ -24,7 +24,9 @@ export function createObservable<T>(
     };
 
     if (valueIsFunction) {
-        node = Object.assign(cloneFunction(value), node);
+        node = Object.assign(() => {
+        }, node);
+        node.lazyFn = value;
     }
 
     const prim = makePrimitive || isActualPrimitive(value);

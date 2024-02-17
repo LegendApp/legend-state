@@ -70,7 +70,8 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     // If setting an observable, set a link to the observable instead
     if (isObservable(newValue) && !isComputed(newValue)) {
         const val = newValue;
-        node.lazy = () => val;
+        node.lazy = true;
+        node.lazyFn = () => val;
         newValue = undefined;
     }
 
@@ -110,13 +111,6 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export const cloneFunction = (originalFunction: Function) => {
-    const length = originalFunction.length;
-    return length > 1
-        ? (arg1: any, arg2: any) => originalFunction(arg1, arg2)
-        : (...args: any[]) => originalFunction(...args);
-};
-
 export function getChildNode(node: NodeValue, key: string, asFunction?: Function): NodeValue {
     // Get the child by key
     let child = node.children?.get(key);
@@ -129,18 +123,17 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             key,
             lazy: true,
         };
-        if (asFunction) {
-            child = Object.assign(cloneFunction(asFunction), child);
-        } else {
-            if (node.activationState) {
-                const { lookup } = node.activationState as ActivateParamsWithLookup<any>;
-                if (lookup) {
-                    child = Object.assign(lookup.bind(node, key), child);
-                    if (isFunction(child)) {
-                        extractFunction(node, key, child);
-                    }
-                }
+        if (node.activationState) {
+            const { lookup } = node.activationState as ActivateParamsWithLookup<any>;
+            if (lookup) {
+                asFunction = lookup.bind(node, key);
             }
+        }
+        if (asFunction) {
+            child = Object.assign(() => {
+                return child?.lazyFn?.();
+            }, child);
+            child.lazyFn = asFunction;
         }
         if (!node.children) {
             node.children = new Map();
