@@ -363,7 +363,7 @@ describe('retry', () => {
         await promiseTimeout(0);
         expect(obs$.get()).toEqual('hi');
     });
-    test('retry a set', async () => {
+    test('retry a set with a promise', async () => {
         const attemptNum$ = observable(0);
         let saved = undefined;
         const obs$ = observable(

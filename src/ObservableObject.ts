@@ -1122,10 +1122,11 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                             };
                             return new Promise<void>((resolve, reject) => {
                                 isSetting = true;
+                                let isProm = false;
                                 batch(
                                     () => {
                                         try {
-                                            return onSet({
+                                            const val = onSet({
                                                 value,
                                                 changes,
                                                 getPrevious,
@@ -1136,13 +1137,19 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
                                                 cancelRetry,
                                                 fromSubscribe: isSettingFromSubscribe,
                                             });
+                                            isProm = isPromise(val);
+                                            if (isProm) {
+                                                (val as Promise<any>).then(resolve).catch(reject);
+                                            }
                                         } catch (e) {
                                             reject(e);
                                         }
                                     },
                                     () => {
-                                        isSetting = false;
-                                        resolve();
+                                        if (!isProm) {
+                                            isSetting = false;
+                                            resolve();
+                                        }
                                     },
                                 );
                             });
