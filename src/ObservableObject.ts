@@ -260,7 +260,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             : value[idField as string]
                         : undefined;
 
-                let child = getChildNode(parent, key);
+                let child = getChildNode(parent, key, isFunction(value) ? value : undefined);
 
                 if (child.linkedToNode && isFunction(value)) {
                     reactivateNode(child, value);

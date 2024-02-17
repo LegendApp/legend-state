@@ -200,7 +200,6 @@ export function extractFunction(
         node.functions = new Map();
     }
 
-    node.children?.delete(key);
     node.functions.set(key, fnOrComputed);
 
     if (computedChildNode) {
