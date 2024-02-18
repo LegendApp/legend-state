@@ -1,9 +1,9 @@
-import { ObservablePersistState } from './persistTypes';
 import { extractPromise, getProxy, peek } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
 import { getNode, globalState } from './globals';
 import type { Observable, ObservablePrimitive, ObservableReadable, RecursiveValueOrFunction } from './observableTypes';
+import { ObservablePersistState } from './persistTypes';
 
 export function observable<T>(): Observable<T | undefined>;
 export function observable<T>(

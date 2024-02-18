@@ -165,9 +165,10 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableSet<NT> // TODO what to do here with nullable? WeakKey is type object | symbol
     : NT extends Array<infer U>
     ? ObservableArray<T, U> & ObservableChildren<T>
-    : ObservableObject<T>;
+    : ObservableObject<T> & {};
 
-type Observable<T = any> = ObservableNode<T>;
+// Note: The {} makes intellisense display observables as Observable instead of all the subtypes
+type Observable<T = any> = ObservableNode<T> & {};
 
 type ObservableReadable<T = any> = ImmutableObservableBase<T>;
 type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;

@@ -969,7 +969,8 @@ export function persistObservable<T>(
                     }
 
                     // Send the changes into onObsChange so that they get persisted remotely
-                    onObsChange(obs as Observable, syncState, localState, persistOptions, {
+                    // TODO: Not sure why this needs to as unknown as Observable
+                    onObsChange(obs as unknown as Observable, syncState, localState, persistOptions, {
                         value: obs.peek(),
                         // TODO getPrevious if any remote persistence layers need it
                         getPrevious: () => undefined,

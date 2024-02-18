@@ -151,7 +151,6 @@ export interface ActivateGetParams {
     refresh: () => void;
 }
 export interface ActivateParams<T = any> {
-    // TODO Merge params and extra
     onSet?: (params: OnSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
