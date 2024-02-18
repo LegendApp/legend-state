@@ -882,6 +882,29 @@ export const run = (isPersist: boolean) => {
             expect(obs.get().test).toEqual('hi!');
             expect(isObservable(obs.get().test)).toBe(false);
         });
+        test('Observable in observable as link sets raw data', () => {
+            const obs = observable({
+                text: 'hi',
+                test: () =>
+                    observable((): string => {
+                        return obs.text.get() + '!';
+                    }),
+            });
+
+            expect(obs.test.get()).toEqual('hi!');
+            expect(obs.get().test).toEqual('hi!');
+            expect(isObservable(obs.get().test)).toBe(false);
+        });
+        test('Observable in observable sets raw data', () => {
+            const obs = observable({
+                text: 'hi',
+                test: observable('hi!'),
+            });
+
+            expect(obs.test.get()).toEqual('hi!');
+            expect(obs.get().test).toEqual('hi!');
+            expect(isObservable(obs.get().test)).toBe(false);
+        });
         test('Computed in observable not activated by accessing root', () => {
             const obs = observable({
                 text: 'hi',

@@ -10,6 +10,7 @@ import {
     getNode,
     getNodeValue,
     globalState,
+    isComputed,
     isObservable,
     optimized,
     setNodeValue,
@@ -248,7 +249,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
         for (let i = 0; i < length; i++) {
             const key = isArr ? i + '' : keys[i];
-            const value = isMap ? obj.get(key) : (obj as any)[key];
+            let value = isMap ? obj.get(key) : (obj as any)[key];
             const prev = isPrevMap ? prevValue?.get(key) : prevValue?.[key];
 
             let isDiff = value !== prev;
@@ -260,9 +261,13 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             : value[idField as string]
                         : undefined;
 
+                if (isObservable(value)) {
+                    const obs = value;
+                    value = () => obs;
+                }
                 let child = getChildNode(parent, key, isFunction(value) ? value : undefined);
 
-                if (child.linkedToNode && (isFunction(value) || isObservable(value))) {
+                if (!child.lazy && (isFunction(value) || isObservable(value))) {
                     reactivateNode(child, value);
                     peek(child);
                 }
@@ -836,6 +841,10 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
         setNodeValue(childNode, undefined);
+    } else if (isObservable(v) && !isComputed(v)) {
+        const value = getNodeValue(node);
+        value[k] = () => v;
+        extractFunction(node, k, value[k] as any);
     } else if (typeof v === 'function') {
         const childNode = node.children?.get(k);
         extractFunction(node, k, v);
@@ -879,7 +888,7 @@ export function peek(node: NodeValue) {
     if (lazy) {
         const lazyFn = node.lazyFn!;
         delete node.lazy;
-        if (isFunction(node) || isFunction(lazy)) {
+        if (isFunction(node) || isFunction(lazyFn)) {
             if (node.parent) {
                 const parentValue = getNodeValue(node.parent);
                 if (parentValue) {
