@@ -76,7 +76,7 @@ export const run = (isPersist: boolean) => {
             const comp = observable({ totals: () => ({ sum: obs.test.get() + obs.test2.get() }) });
             expect(comp.totals.sum.get()).toEqual(30);
         });
-        test('Observing computed runs twice, once to activate', () => {
+        test('Observing computed runs once if not activated', () => {
             const obs = observable({ test: 10, test2: 20 });
             const comp = observable(() => obs.test.get() + obs.test2.get());
             let num = 0;
@@ -86,7 +86,7 @@ export const run = (isPersist: boolean) => {
                 num++;
             });
 
-            expect(num).toEqual(2);
+            expect(num).toEqual(1);
             expect(observedValue).toEqual(30);
         });
         test('Observing computed runs once if activated', () => {
@@ -996,7 +996,7 @@ export const run = (isPersist: boolean) => {
                 num++;
             });
 
-            expect(num).toEqual(2);
+            expect(num).toEqual(1);
         });
         test('observe sub computed runs once if already activated', () => {
             const sub$ = observable({

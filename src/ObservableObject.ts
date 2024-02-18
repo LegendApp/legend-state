@@ -1021,11 +1021,15 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                         }
                     } else {
                         activatedValue = value;
-                        set(node, value);
-                        node.state!.assign({
-                            isLoaded: true,
-                            error: undefined,
-                        });
+                        if (node.state!.isLoaded.peek()) {
+                            set(node, value);
+                        } else {
+                            setNodeValue(node, value);
+                            node.state!.assign({
+                                isLoaded: true,
+                                error: undefined,
+                            });
+                        }
                     }
                 }
 
