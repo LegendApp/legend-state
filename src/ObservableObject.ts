@@ -1235,7 +1235,7 @@ function setToObservable(node: NodeValue, value: any) {
     // If the computed is a proxy to another observable
     // link it to the target observable
     const linkedNode = getNode(value);
-    if (linkedNode !== node) {
+    if (linkedNode !== node && linkedNode?.linkedToNode !== node) {
         const prevNode = node.linkedToNode;
         node.linkedToNode = linkedNode;
         if (!linkedNode.linkedFromNodes) {

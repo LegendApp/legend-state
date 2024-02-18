@@ -44,5 +44,13 @@ export function onChange(
         });
     }
 
-    return () => listeners!.delete(listener);
+    let extraDispose: () => void;
+    if (node.linkedToNode) {
+        extraDispose = onChange(node.linkedToNode, callback, options);
+    }
+
+    return () => {
+        listeners!.delete(listener);
+        extraDispose?.();
+    };
 }

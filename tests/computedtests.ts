@@ -1641,11 +1641,62 @@ export const run = (isPersist: boolean) => {
         });
         obs.test2.get();
         const handler = expectChangeHandler(obs.test2.b);
+        const handler2 = expectChangeHandler(obs.test2);
 
         expect(obs.test2.b.get()).toEqual(10);
         obs.test.set(30);
         expect(obs.test2.b.get()).toEqual(30);
         expect(handler).toHaveBeenCalledWith(30, 10, [{ path: [], pathTypes: [], valueAtPath: 30, prevAtPath: 10 }]);
+        expect(handler2).toHaveBeenCalledWith({ a: 20, b: 30 }, { a: 20, b: 10 }, [
+            { path: ['b'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
+        ]);
+    });
+    describe('Observable link to observable', () => {
+        const obs = observable({
+            test: 10,
+            test2: observable((): Observable<number> => obs.test),
+        });
+        // obs.test2.get();
+        const handler = expectChangeHandler(obs.test);
+        const handler2 = expectChangeHandler(obs.test2);
+
+        obs.test.set(30);
+        expect(obs.test2.get()).toEqual(30);
+        expect(handler).toHaveBeenCalledWith(30, 10, [{ path: [], pathTypes: [], valueAtPath: 30, prevAtPath: 10 }]);
+        expect(handler2).toHaveBeenCalledWith(30, 10, [{ path: [], pathTypes: [], valueAtPath: 30, prevAtPath: 10 }]);
+
+        obs.test2.set(50);
+        expect(obs.test.get()).toEqual(50);
+        expect(obs.test2.get()).toEqual(50);
+        expect(handler).toHaveBeenCalledWith(50, 30, [{ path: [], pathTypes: [], valueAtPath: 50, prevAtPath: 30 }]);
+        expect(handler2).toHaveBeenCalledWith(50, 30, [{ path: [], pathTypes: [], valueAtPath: 50, prevAtPath: 30 }]);
+    });
+    describe('Observable link to observable object', () => {
+        const obs = observable({
+            test: { num: 10 },
+            test2: observable((): Observable<{ num: number }> => obs.test),
+        });
+        // obs.test2.get();
+        // const handler = expectChangeHandler(obs.test);
+        const handler2 = expectChangeHandler(obs.test2);
+
+        obs.test2.num.set(30);
+        expect(obs.test2.get()).toEqual({ num: 30 });
+        // expect(handler).toHaveBeenCalledWith({ num: 30 }, { num: 10 }, [
+        //     { path: ['num'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
+        // ]);
+        expect(handler2).toHaveBeenCalledWith({ num: 30 }, { num: 10 }, [
+            { path: ['num'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
+        ]);
+
+        obs.test2.num.set(50);
+        expect(obs.test2.get()).toEqual({ num: 50 });
+        // expect(handler).toHaveBeenCalledWith({ num: 50 }, { num: 30 }, [
+        //     { path: ['num'], pathTypes: ['object'], valueAtPath: 50, prevAtPath: 30 },
+        // ]);
+        expect(handler2).toHaveBeenCalledWith({ num: 50 }, { num: 30 }, [
+            { path: ['num'], pathTypes: ['object'], valueAtPath: 50, prevAtPath: 30 },
+        ]);
     });
     describe('Complex computeds', () => {
         test('Computed returning a link as child', () => {
