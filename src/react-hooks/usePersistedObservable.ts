@@ -10,8 +10,8 @@ import type { WithoutState } from '../persist/persistObservable';
  *
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
-export function usePersistedObservable<T extends WithoutState>() // options: PersistOptions<T>, // initialValue: T | (() => T) | (() => Promise<T>),
-: Observable<WithPersistState & T> {
+export function usePersistedObservable<T extends WithoutState>(): Observable<WithPersistState & T> {
+    // options: PersistOptions<T>, // initialValue: T | (() => T) | (() => Promise<T>),
     // Create the observable from the default value
     return useMemo(() => {
         // return persistObservable<T>(initialValue, options);
