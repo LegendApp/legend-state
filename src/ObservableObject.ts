@@ -908,6 +908,7 @@ export function peek(node: NodeValue) {
         }
     }
 
+    // TODOV3 Remove legacy computed
     // Check if computed needs to activate
     checkActivate(node);
 

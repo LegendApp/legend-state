@@ -20,6 +20,7 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState) {
+            // If it is an Activated
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =
                 node.activationState! as ActivateParamsWithLookup;
 
@@ -112,6 +113,8 @@ export function persistActivateNode() {
 
             return { update: onChange!, value: newValue };
         } else {
+            // If it is not an Activated
+
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {
                 get: async (params: ObservablePersistRemoteGetParams<any>) => {
@@ -119,8 +122,9 @@ export function persistActivateNode() {
                     if (isPromise(newValue)) {
                         try {
                             newValue = await newValue;
-                            // eslint-disable-next-line no-empty
-                        } catch {}
+                        } catch {
+                            // TODO Once we have global retry settings this should retry
+                        }
                     }
                     return newValue;
                 },

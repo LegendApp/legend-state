@@ -12,8 +12,10 @@ type ArrayOverrideFnNames =
     | 'map'
     | 'sort';
 
-type ObservableComputed<T = any> = Readonly<ObservableNode<T>>;
+// Legacy?
 type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2>;
+
+type ObservableComputed<T = any> = Readonly<ObservableNode<T>>;
 type ObservableComputedOrFn<T = any> = ObservableComputed<T> & (() => T);
 
 type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any>>;

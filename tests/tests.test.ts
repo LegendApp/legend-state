@@ -1006,6 +1006,11 @@ describe('Primitives', () => {
         expect(obs.get()).toEqual(10);
         obs.set(20);
         expect(obs.get()).toEqual(20);
+
+        expect(() => {
+            // @ts-expect-error Expect this to throw an error because it's not an object
+            obs.assign({ text: 'hi' });
+        }).toThrow();
     });
     test('set observable primitive notifies', () => {
         const obs = observable(10);
