@@ -674,7 +674,12 @@ function deleteFn(node: NodeValue, key?: string) {
         key = node.key;
         node = node.parent;
     }
-    setKey(node, key ?? '_', symbolDelete, /*level*/ -1);
+    const value = getNodeValue(node);
+    if (isArray(value)) {
+        collectionSetter(node, value, 'splice', key!, 1);
+    } else {
+        setKey(node, key ?? '_', symbolDelete, /*level*/ -1);
+    }
 }
 
 function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {

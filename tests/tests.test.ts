@@ -1796,6 +1796,11 @@ describe('Array', () => {
             ],
         );
     });
+    test('Array delete splices', () => {
+        const obs = observable<any>([0, 1, 2]);
+        obs[1].delete();
+        expect(obs.get()).toEqual([0, 2]);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
