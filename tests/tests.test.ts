@@ -8,7 +8,7 @@ import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, isObservable, optimized, symbolGetNode } from '../src/globals';
-import { isEvent, lockObservable, setAtPath } from '../src/helpers';
+import { isEvent, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive, syncState } from '../src/observable';
 import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
 import { Observable as ObservableNew } from '../src/observableTypes';
@@ -2775,19 +2775,6 @@ describe('Observable with promise', () => {
             obs.num.set(1);
         });
         expect(numCalls).toEqual(2);
-    });
-});
-describe('Locking', () => {
-    test('Locking', () => {
-        const obs = observable({ text: 'hi' });
-        lockObservable(obs, true);
-        expect(() => obs.text.set('hello')).toThrowError();
-        expect(() => obs.text.set('hello')).toThrowError();
-        expect(() => obs.set({ text: 'hello' })).toThrowError();
-        expect(obs.get()).toEqual({ text: 'hi' });
-        lockObservable(obs, false);
-        obs.text.set('hey');
-        expect(obs.get()).toEqual({ text: 'hey' });
     });
 });
 describe('Primitive <-> Object', () => {

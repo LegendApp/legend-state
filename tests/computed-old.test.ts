@@ -71,18 +71,12 @@ describe('Computed', () => {
     test('Cannot directly set a computed', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => obs.test.get() + obs.test2.get());
-        expect(() => {
-            // @ts-expect-error Expect this to throw an error
-            comp.set(40);
-        }).toThrowError();
-        expect(() => {
-            // @ts-expect-error Expect this to throw an error
-            comp.assign({ text: 'hi' });
-        }).toThrowError();
-        expect(() => {
-            // @ts-expect-error Expect this to throw an error
-            comp.delete();
-        }).toThrowError();
+        // @ts-expect-error Expect this to throw an error
+        comp.set(40);
+        // @ts-expect-error Expect this to throw an error
+        comp.assign({ text: 'hi' });
+        // @ts-expect-error Expect this to throw an error
+        comp.delete();
 
         // This failing test would put batch in a bad state until timeout,
         // so clear it out manually

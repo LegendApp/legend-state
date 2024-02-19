@@ -10,7 +10,6 @@ export {
     deconstructObjectWithPath,
     getObservableIndex,
     isObservableValueReady,
-    lockObservable,
     mergeIntoObservable,
     opaqueObject,
     setAtPath,
@@ -44,7 +43,6 @@ export { beginTracking, endTracking, tracking, updateTracking } from './src/trac
 export { setupTracking } from './src/setupTracking';
 /** @internal */
 export {
-    checkActivate,
     extraPrimitiveActivators,
     extraPrimitiveProps,
     findIDKey,

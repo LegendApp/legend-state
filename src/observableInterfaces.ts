@@ -5,7 +5,6 @@ import type {
     ObservableComputed as ObservableComputedNew,
     ObservableComputedTwoWay,
     Observable as ObservableNew,
-    ObservableReadable,
     ObservableReadable as ObservableReadableNew,
 } from './observableTypes';
 import type { ObservablePersistState } from './persistTypes';
@@ -52,10 +51,7 @@ export type ObservableListenerDispose = () => void;
 
 export interface ObservableRoot {
     _: any;
-    locked?: boolean;
-    toActivate?: NodeValue[];
     set?: (value: any) => void;
-    activate?: () => void;
 }
 
 export type Primitive = boolean | string | number | Date;
@@ -75,8 +71,6 @@ interface BaseNodeValue {
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
-    isComputed?: boolean;
-    proxyFn?: (key: string) => ObservableReadable;
     isEvent?: boolean;
     linkedToNode?: NodeValue;
     linkedToNodeDispose?: () => void;

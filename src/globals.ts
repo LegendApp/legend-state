@@ -31,19 +31,6 @@ export function isObservable(obs: any): obs is Observable {
     return !!obs && !!obs[symbolGetNode as any];
 }
 
-export function isComputed(obs: any): obs is ObservableComputed {
-    return obs && (obs[symbolGetNode as any] as NodeValue)?.isComputed;
-}
-
-export function checkActivate(node: NodeValue) {
-    const root = node.root;
-    root.activate?.();
-    if (root.toActivate) {
-        root.toActivate.forEach(checkActivate);
-        delete root.toActivate;
-    }
-}
-
 export function getNode(obs: ObservableReadable): NodeValue {
     return obs && (obs as any)[symbolGetNode];
 }
@@ -68,7 +55,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     newValue = !parentNode.isAssigning && isFunc ? newValue(prevValue) : newValue;
 
     // If setting an observable, set a link to the observable instead
-    if (isObservable(newValue) && !isComputed(newValue)) {
+    if (isObservable(newValue)) {
         const val = newValue;
         node.lazy = true;
         node.lazyFn = () => val;
@@ -93,10 +80,6 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         } finally {
             parentNode.isSetting!--;
         }
-    }
-
-    if (parentNode.root.locked && parentNode.root.set) {
-        parentNode.root.set(parentNode.root._);
     }
 
     return { prevValue, newValue, parentValue };
@@ -190,30 +173,12 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
     return idKey;
 }
 
-export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function, computedChildNode?: never): void;
-export function extractFunction(
-    node: NodeValue,
-    key: string,
-    fnOrComputed: ObservableComputed,
-    computedChildNode: NodeValue,
-): void;
-export function extractFunction(
-    node: NodeValue,
-    key: string,
-    fnOrComputed: Function | ObservableComputed,
-    computedChildNode: NodeValue | undefined,
-): void {
+export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function): void;
+export function extractFunction(node: NodeValue, key: string, fnOrComputed: ObservableComputed): void;
+export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function | ObservableComputed): void {
     if (!node.functions) {
         node.functions = new Map();
     }
 
     node.functions.set(key, fnOrComputed);
-
-    if (computedChildNode) {
-        computedChildNode.parentOther = getChildNode(node, key);
-        if (!node.root.toActivate) {
-            node.root.toActivate = [];
-        }
-        node.root.toActivate.push(computedChildNode);
-    }
 }

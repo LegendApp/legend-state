@@ -37,12 +37,6 @@ export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
     return value as OpaqueObject<T>;
 }
 
-export function lockObservable(obs: ObservableReadable, value: boolean) {
-    const root = getNode(obs)?.root;
-    if (root) {
-        root.locked = value;
-    }
-}
 export function setAtPath<T extends object>(
     obj: T,
     path: string[],

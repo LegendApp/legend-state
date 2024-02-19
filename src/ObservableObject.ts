@@ -1,7 +1,6 @@
 import { batch, beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
-    checkActivate,
     extraPrimitiveActivators,
     extraPrimitiveProps,
     extractFunction,
@@ -10,7 +9,6 @@ import {
     getNode,
     getNodeValue,
     globalState,
-    isComputed,
     isObservable,
     optimized,
     setNodeValue,
@@ -423,14 +421,6 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
-        if (node.isComputed) {
-            if (node.proxyFn && !fn) {
-                return node.proxyFn(p);
-            } else {
-                checkActivate(node);
-            }
-        }
-
         const property = observableProperties.get(p);
         if (property) {
             return property.get(node);
@@ -613,22 +603,6 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
     }
 
     const isRoot = !node.parent && key === '_';
-
-    // TODOv3 root locking will be removed with old computeds
-    if (node.root.locked && !node.root.set) {
-        // This happens when modifying a locked observable such as a computed.
-        // If merging this could be happening deep in a hierarchy so we don't want to throw errors so we'll just do nothing.
-        // This could happen during persistence local load for example.
-        if (globalState.isMerging) {
-            return isRoot ? getProxy(node) : getProxy(node, key);
-        } else {
-            throw new Error(
-                process.env.NODE_ENV === 'development'
-                    ? '[legend-state] Cannot modify an observable while it is locked. Please make sure that you unlock the observable before making changes.'
-                    : '[legend-state] Modified locked observable',
-            );
-        }
-    }
 
     if (node.parent && !getNodeValue(node)) {
         return set(node, { [key]: newValue });
@@ -841,7 +815,7 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
         setNodeValue(childNode, undefined);
-    } else if (isObservable(v) && !isComputed(v)) {
+    } else if (isObservable(v)) {
         const value = getNodeValue(node);
         value[k] = () => v;
         extractFunction(node, k, value[k] as any);
@@ -856,13 +830,8 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
             }
         }
     } else if (typeof v == 'object' && v !== null && v !== undefined) {
-        const childNode = getNode(v);
-        if (childNode?.isComputed) {
-            extractFunction(node, k, v, childNode);
-        } else if (isObservable(v)) {
+        if (isObservable(v)) {
             extractFunction(node, k, v as any);
-        } else {
-            return true;
         }
     }
 }
@@ -900,10 +869,6 @@ export function peek(node: NodeValue) {
             }
         }
     }
-
-    // TODOV3 Remove legacy computed
-    // Check if computed needs to activate
-    checkActivate(node);
 
     return value;
 }
