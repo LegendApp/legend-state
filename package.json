@@ -166,8 +166,5 @@
         "extends": [
             "@commitlint/config-conventional"
         ]
-    },
-    "dependencies": {
-        "utility-types": "^3.10.0"
     }
 }
