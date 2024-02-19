@@ -1,11 +1,7 @@
-import { ObservableWriteable } from './observableTypes';
-import { notify } from './batching';
-import { computed } from './computed';
-import { extractFunction, getChildNode, getNode, setNodeValue } from './globals';
-import { lockObservable } from './helpers';
+import { activated } from './activated';
 import { observable } from './observable';
 import { ObservableProxy, ObservableProxyLink, ObservableProxyTwoWay } from './observableInterfaces';
-import { onChange } from './onChange';
+import { ObservableWriteable } from './observableTypes';
 
 export function proxy<T, T2 = T>(
     get: (key: string) => T,
@@ -20,33 +16,15 @@ export function proxy<T extends Record<string, any>, T2 = T>(
     get: (key: any) => ObservableWriteable<any>,
     set?: (key: any, value: T2) => void,
 ): any {
-    // Create an observable for this computed variable
-    const obs = observable({});
-    lockObservable(obs, true);
-
-    const mapTargets = new Map<string, any>();
-    const node = getNode(obs);
-    node.isComputed = true;
-    node.proxyFn = (key: string) => {
-        let target = mapTargets.get(key);
-        if (!target) {
-            // Note: Coercing typescript to allow undefined for set in computed because we don't want the public interface to allow undefined
-            target = computed(() => get(key), (set ? (value) => set(key, value as T2) : undefined)!);
-            mapTargets.set(key, target);
-            extractFunction(node, key, target, getNode(target));
-            if (node.parentOther) {
-                onChange(getNode(target), ({ value, getPrevious }) => {
-                    const previous = getPrevious();
-                    // Set the raw value on the proxy's parent
-                    setNodeValue(node.parentOther!, node.root._);
-                    // Notify the proxy
-                    notify(getChildNode(node, key), value, previous, 0);
-                });
-            }
-        }
-
-        return target;
-    };
-
-    return obs;
+    return observable(
+        activated({
+            lookup: (key) =>
+                set
+                    ? activated({
+                          get: () => get(key),
+                          onSet: ({ value }) => set(key, value as any),
+                      })
+                    : get(key),
+        }),
+    );
 }
