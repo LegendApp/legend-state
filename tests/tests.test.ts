@@ -1079,6 +1079,11 @@ describe('Array', () => {
             { id: 'test2', data: 'test2' },
         ]);
     });
+    test('Push to undefined', () => {
+        const obs = observable<any>();
+        obs.push({ id: 'test2', data: 'test2' });
+        expect(obs.get()).toEqual([{ id: 'test2', data: 'test2' }]);
+    });
     test('Array at root', () => {
         type Data = number[];
         const obs = observable<Data>([]);

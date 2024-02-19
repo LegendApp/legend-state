@@ -95,6 +95,7 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
 }
 function collectionSetter(node: NodeValue, target: any[], prop: keyof Array<any>, ...args: any[]) {
     if (prop === 'push' && args.length === 1) {
+        // Fast path for push to just append to the end
         setKey(node, target.length + '', args[0]);
     } else {
         const prevValue = target.slice();
@@ -379,7 +380,7 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        const value = peek(node);
+        let value = peek(node);
 
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
@@ -442,7 +443,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
         // /TODOV3 Remove this
 
-        const vProp = value?.[p];
+        let vProp = value?.[p];
 
         if (isObject(value) && value[symbolOpaque as any]) {
             return vProp;
@@ -455,6 +456,12 @@ const proxyHandler: ProxyHandler<any> = {
             } else {
                 return getProxy(node, p, fnOrComputed as Function);
             }
+        }
+
+        if (value === undefined && vProp === undefined && (ArrayModifiers.has(p) || ArrayLoopers.has(p))) {
+            value = [];
+            setNodeValue(node, value);
+            vProp = value[p];
         }
 
         // Handle function calls
