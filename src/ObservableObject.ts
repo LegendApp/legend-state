@@ -889,13 +889,6 @@ export function peek(node: NodeValue) {
         const lazyFn = node.lazyFn!;
         delete node.lazy;
         if (isFunction(node) || isFunction(lazyFn)) {
-            if (node.parent) {
-                const parentValue = getNodeValue(node.parent);
-                if (parentValue) {
-                    delete parentValue[node.key];
-                }
-            }
-
             value = activateNodeFunction(node as any, lazyFn);
         }
     }
