@@ -218,18 +218,19 @@ describe('Persist computed', () => {
         });
 
         const obs$ = observable({
-            sub: computed(() => sub$.num.get()),
+            sub: () => sub$.num.get(),
         });
 
         persistObservable(obs$, {
-            local: 'jestlocal',
+            local: 'Persist computed',
         });
 
+        obs$.sub.get();
         sub$.num.set(1);
 
         await promiseTimeout(0);
 
-        const localValue = global.localStorage.getItem('jestlocal')!;
+        const localValue = global.localStorage.getItem('Persist computed')!;
 
         // Should have saved to local storage
         expect(JSON.parse(localValue)).toEqual({ sub: 1 });
@@ -239,12 +240,63 @@ describe('Persist computed', () => {
             num: 2,
         });
         const obs2$ = observable({
-            sub: computed(() => sub2$.num.get()),
+            sub: () => {
+                return sub2$.num.get();
+            },
+        });
+
+        expect(obs2$.sub.get()).toEqual(2);
+
+        persistObservable(obs2$, {
+            local: 'Persist computed',
+        });
+
+        expect(obs2$.sub.get()).toEqual(2);
+
+        expect(obs2$.get()).toEqual({ sub: 2 });
+
+        // Ensure computed is still hooked up
+        sub2$.num.set(3);
+        expect(obs2$.get()).toEqual({ sub: 3 });
+    });
+    test('Persist nested computed (2)', async () => {
+        const sub$ = observable({
+            num: 0,
+        });
+
+        const obs$ = observable({
+            sub: () => sub$.num.get(),
+        });
+
+        persistObservable(obs$, {
+            local: 'Persist computed',
+        });
+
+        obs$.sub.get();
+        sub$.num.set(1);
+
+        await promiseTimeout(0);
+
+        const localValue = global.localStorage.getItem('Persist computed')!;
+
+        // Should have saved to local storage
+        expect(JSON.parse(localValue)).toEqual({ sub: 1 });
+
+        // obs2 should not load sub and instead use the computed value
+        const sub2$ = observable({
+            num: 2,
+        });
+        const obs2$ = observable({
+            sub: () => {
+                return sub2$.num.get();
+            },
         });
 
         persistObservable(obs2$, {
-            local: 'jestlocal',
+            local: 'Persist computed',
         });
+
+        expect(obs2$.sub.get()).toEqual(2);
 
         expect(obs2$.get()).toEqual({ sub: 2 });
 

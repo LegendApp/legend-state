@@ -75,17 +75,24 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         newValue = undefined;
     }
 
-    try {
-        parentNode.isSetting = (parentNode.isSetting || 0) + 1;
+    if (
+        !globalState.isMerging ||
+        prevValue === undefined ||
+        isFunction(prevValue) ||
+        !node.parent?.functions?.get(key)
+    ) {
+        try {
+            parentNode.isSetting = (parentNode.isSetting || 0) + 1;
 
-        // Save the new value
-        if (isDelete) {
-            delete parentValue[key];
-        } else {
-            parentValue[key] = newValue;
+            // Save the new value
+            if (isDelete) {
+                delete parentValue[key];
+            } else {
+                parentValue[key] = newValue;
+            }
+        } finally {
+            parentNode.isSetting!--;
         }
-    } finally {
-        parentNode.isSetting!--;
     }
 
     if (parentNode.root.locked && parentNode.root.set) {
