@@ -42,6 +42,9 @@ export function isEmpty(obj: object): boolean {
     }
     return true;
 }
+export function isNullOrUndefined(value: any): value is undefined | null {
+    return value === undefined || value === null;
+}
 const setPrimitives = new Set(['boolean', 'string', 'number']);
 /** @internal */
 export function isActualPrimitive(arg: unknown): arg is boolean | string | number {

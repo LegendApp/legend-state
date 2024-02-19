@@ -1083,6 +1083,10 @@ describe('Array', () => {
         const obs = observable<any>();
         obs.push({ id: 'test2', data: 'test2' });
         expect(obs.get()).toEqual([{ id: 'test2', data: 'test2' }]);
+
+        const obs2 = observable<any>({ child: null });
+        obs2.child.push({ id: 'test2', data: 'test2' });
+        expect(obs2.child.get()).toEqual([{ id: 'test2', data: 'test2' }]);
     });
     test('Array at root', () => {
         type Data = number[];
