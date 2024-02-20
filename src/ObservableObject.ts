@@ -24,6 +24,7 @@ import {
     isArray,
     isBoolean,
     isChildNodeValue,
+    isDate,
     isEmpty,
     isFunction,
     isNullOrUndefined,
@@ -252,7 +253,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
             let value = isMap ? obj.get(key) : (obj as any)[key];
             const prev = isPrevMap ? prevValue?.get(key) : prevValue?.[key];
 
-            let isDiff = value !== prev;
+            let isDiff = isDate(value) ? +value !== +prev : value !== prev;
             if (isDiff) {
                 const id =
                     idField && value
