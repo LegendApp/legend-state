@@ -246,20 +246,23 @@ function mergeChanges(changes: Change[]) {
 }
 
 function mergeQueuedChanges(allChanges: QueuedChange[]) {
-    const changesByObs = new Map<Observable, Change[]>();
+    const changesByObsRemote = new Map<Observable, Change[]>();
+    const changesByObsLocal = new Map<Observable, Change[]>();
 
-    const out: Map<Observable, QueuedChange> = new Map();
+    const outRemote: Map<Observable, QueuedChange> = new Map();
+    const outLocal: Map<Observable, QueuedChange> = new Map();
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
-        const { obs, changes } = value;
-        const existing = changesByObs.get(obs);
+        const { obs, changes, inRemoteChange } = value;
+        const changesMap = inRemoteChange ? changesByObsRemote : changesByObsLocal;
+        const existing = changesMap.get(obs);
         const newChanges = existing ? [...existing, ...changes] : changes;
         const merged = mergeChanges(newChanges);
-        changesByObs.set(obs, merged);
+        changesMap.set(obs, merged);
         value.changes = merged;
-        out.set(obs, value);
+        (inRemoteChange ? outRemote : outLocal).set(obs, value);
     }
-    return Array.from(out.values());
+    return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
 }
 
 async function processQueuedChanges() {
