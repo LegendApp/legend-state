@@ -1,4 +1,4 @@
-import type { symbolGetNode, symbolOpaque } from './globals';
+import type { symbolOpaque } from './globals';
 import type {
     Observable,
     Observable as ObservableNew,
