@@ -255,7 +255,7 @@ export function runBatch() {
         node.dirtyFn = undefined;
     });
     // Save batch locally and reset _batchMap first because a new batch could begin while looping over callbacks.
-    // This can happen with observableComputed for example.
+    // This can happen with computeds for example.
     const map = _batchMap;
     _batchMap = new Map();
     const changesInBatch = new Map<NodeValue, ChangeInBatch>();
@@ -309,7 +309,7 @@ export function endBatch(force?: boolean) {
             }
             numInBatch = 0;
             // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
-            // This can happen with observableComputed for example.
+            // This can happen with computeds for example.
             const after = _afterBatch;
             if (after.length) {
                 _afterBatch = [];

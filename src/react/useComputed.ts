@@ -1,29 +1,22 @@
-import {
-    computed,
-    isArray,
-    isFunction,
-    ObservableComputed,
-    ObservableComputedTwoWay,
-    ObservableReadable,
-} from '@legendapp/state';
+import { computed, isArray, isFunction, Observable, ObservableReadable } from '@legendapp/state';
 import { useMemo, useRef } from 'react';
 
-export function useComputed<T>(compute: () => T | Promise<T>): ObservableComputed<T>;
-export function useComputed<T>(compute: () => T | Promise<T>, deps: any[]): ObservableComputed<T>;
+export function useComputed<T>(compute: () => T | Promise<T>): Observable<T>;
+export function useComputed<T>(compute: () => T | Promise<T>, deps: any[]): Observable<T>;
 export function useComputed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set: (value: T2) => void,
-): ObservableComputedTwoWay<T, T2>;
+): Observable<T>;
 export function useComputed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set: (value: T2) => void,
     deps: any[],
-): ObservableComputedTwoWay<T, T2>;
+): Observable<T>;
 export function useComputed<T, T2 = T>(
     compute: (() => T | Promise<T>) | ObservableReadable<T>,
     set?: ((value: T2) => void) | any[],
     deps?: any[],
-): ObservableComputed<T> | ObservableComputedTwoWay<T, T2> {
+): Observable<T> {
     if (!deps && isArray(set)) {
         deps = set;
         set = undefined;
