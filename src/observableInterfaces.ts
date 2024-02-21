@@ -1,9 +1,6 @@
 import type { symbolGetNode, symbolOpaque } from './globals';
 import type {
     Observable,
-    ObservableComputed,
-    ObservableComputed as ObservableComputedNew,
-    ObservableComputedTwoWay,
     Observable as ObservableNew,
     ObservableReadable as ObservableReadableNew,
 } from './observableTypes';
@@ -79,7 +76,7 @@ interface BaseNodeValue {
     isSetting?: number;
     isAssigning?: number;
     parentOther?: NodeValue;
-    functions?: Map<string, Function | ObservableComputedNew<any>>;
+    functions?: Map<string, Function | Observable<any>>;
     lazy?: boolean;
     lazyFn?: Function;
     needsExtract?: boolean;
@@ -122,21 +119,6 @@ export interface ObserveEventCallback<T> {
     onCleanup?: () => void;
     onCleanupReaction?: () => void;
 }
-export type ObservableProxy<T extends Record<string, any>> = {
-    [K in keyof T]: ObservableComputed<T[K]>;
-} & Observable<T> & {
-        [symbolGetNode]: NodeValue;
-    };
-export type ObservableProxyLink<T extends Record<string, any>> = {
-    [K in keyof T]: Observable<T[K]>;
-} & Observable<T> & {
-        [symbolGetNode]: NodeValue;
-    };
-export type ObservableProxyTwoWay<T extends Record<string, any>, T2> = {
-    [K in keyof T]: ObservableComputedTwoWay<T[K], T2>;
-} & Observable<T> & {
-        [symbolGetNode]: NodeValue;
-    };
 
 export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> & OnSetExtra;
 export interface ActivateGetParams {

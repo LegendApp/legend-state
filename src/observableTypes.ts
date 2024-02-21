@@ -12,17 +12,6 @@ type ArrayOverrideFnNames =
     | 'map'
     | 'sort';
 
-// Legacy?
-type ObservableComputedTwoWay<T, T2> = Observable<T> & MutableObservableBase<T2>;
-
-type ObservableComputed<T = any> = Readonly<ObservableNode<T>>;
-type ObservableComputedOrFn<T = any> = ObservableComputed<T> & (() => T);
-
-type MakeReadonlyInner<T> = Omit<T, keyof MutableObservableBase<any>>;
-type Readonly<T> = MakeReadonlyInner<T> & {
-    [K in keyof MakeReadonlyInner<T>]: T extends Observable ? T[K] : Readonly<T[K]>;
-};
-
 type RemoveIndex<T> = {
     [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
 };
@@ -124,9 +113,9 @@ type ObservableFunctionChildren<T> = {
         : T[K] extends () => Promise<infer t> | infer t
         ? t extends void
             ? T[K]
-            : t extends Observable<infer k>
-            ? ObservableComputed<k>
-            : ObservableComputedOrFn<t>
+            : t extends Observable
+            ? t
+            : Observable<t> & (() => t)
         : T[K];
 };
 
@@ -152,7 +141,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     : [T] extends [() => infer t]
     ? [t] extends [ImmutableObservableBase<any>]
         ? t
-        : ObservableComputed<ObservableFunction<t>>
+        : Observable<ObservableFunction<t>>
     : [NT] extends [ImmutableObservableBase<any>]
     ? NT
     : [NT] extends [Primitive]
@@ -191,8 +180,6 @@ type RecursiveValueOrFunction<T> = T extends Function
     : ValueOrFunction<T>;
 
 export type {
-    ObservableComputed,
-    ObservableComputedTwoWay,
     Observable,
     ObservableBoolean,
     ObservableObject,

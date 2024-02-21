@@ -1,6 +1,6 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
 import { ActivateParamsWithLookup, NodeValue, UpdateFn } from './observableInterfaces';
-import { Observable, ObservableComputed, ObservablePrimitive, ObservableReadable } from './observableTypes';
+import { Observable, ObservablePrimitive, ObservableReadable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -174,8 +174,8 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
 }
 
 export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function): void;
-export function extractFunction(node: NodeValue, key: string, fnOrComputed: ObservableComputed): void;
-export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function | ObservableComputed): void {
+export function extractFunction(node: NodeValue, key: string, fnOrComputed: Observable): void;
+export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function | Observable): void {
     if (!node.functions) {
         node.functions = new Map();
     }

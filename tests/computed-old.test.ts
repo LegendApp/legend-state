@@ -68,20 +68,6 @@ describe('Computed', () => {
         expect(handler).toHaveBeenCalledWith(21, 25, [{ path: [], pathTypes: [], valueAtPath: 21, prevAtPath: 25 }]);
         expect(comp.get()).toEqual(21);
     });
-    test('Cannot directly set a computed', () => {
-        const obs = observable({ test: 10, test2: 20 });
-        const comp = computed(() => obs.test.get() + obs.test2.get());
-        // @ts-expect-error Expect this to throw an error
-        comp.set(40);
-        // @ts-expect-error Expect this to throw an error
-        comp.assign({ text: 'hi' });
-        // @ts-expect-error Expect this to throw an error
-        comp.delete();
-
-        // This failing test would put batch in a bad state until timeout,
-        // so clear it out manually
-        endBatch();
-    });
     test('Computed object is observable', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = computed(() => ({ value: obs.test.get() + obs.test2.get() }));

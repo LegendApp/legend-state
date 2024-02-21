@@ -1,5 +1,5 @@
 import { expectTypeOf } from 'expect-type';
-import { Observable, ObservableComputed, ObservableComputedTwoWay } from '../src/observableTypes';
+import { Observable } from '../src/observableTypes';
 import { observable } from '../src/observable';
 
 describe('Types', () => {
@@ -200,21 +200,6 @@ describe('Types', () => {
             });
         });
 
-        describe('with computed', () => {
-            it('should infer computed', () => {
-                type State = ObservableComputed<string>;
-                expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
-                expectTypeOf<State>().not.toHaveProperty('set');
-            });
-
-            it('should infer two way computed', () => {
-                type State = Observable<ObservableComputedTwoWay<string, number>>;
-                expectTypeOf<State['get']>().returns.toEqualTypeOf<string>();
-                expectTypeOf<State>().toHaveProperty('set');
-                expectTypeOf<State['set']>().toBeFunction();
-            });
-        });
-
         describe('with function', () => {
             it('should infer function', () => {
                 type State = Observable<{ foo: () => void }>;
@@ -223,7 +208,7 @@ describe('Types', () => {
 
             it('should infer function as return type', () => {
                 type State = Observable<{ foo: () => string }>;
-                expectTypeOf<State['foo']>().toMatchTypeOf<ObservableComputed<string>>();
+                expectTypeOf<State['foo']>().toMatchTypeOf<Observable<string>>();
             });
 
             it('should infer nested function', () => {
