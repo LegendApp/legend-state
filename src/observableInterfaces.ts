@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-ignore
+import type { MMKVConfiguration } from 'react-native-mmkv';
+// @ts-ignore
+import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
+// @ts-ignore
+import type { DatabaseReference, Query } from 'firebase/database';
 import type { symbolGetNode, symbolOpaque } from './globals';
-type MMKVConfiguration = import('react-native-mmkv').MMKVConfiguration;
-type AsyncStorageStatic = import('@react-native-async-storage/async-storage').AsyncStorageStatic;
-type DatabaseReference = import('firebase/database').DatabaseReference;
-type Query = import('firebase/database').Query;
 
 type Nullable<T> = T | null | undefined;
 export type TrackingType = undefined | true | symbol; // true === shallow
