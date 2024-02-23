@@ -24,13 +24,13 @@ import { persistActivateNode } from './src/persist/persistActivateNode';
 persistActivateNode();
 
 declare module '@legendapp/state' {
-    interface ActivateGetParams {
+    interface SyncedGetParams {
         value: any;
         lastSync: number | undefined;
         updateLastSync: (lastSync: number) => void;
         refresh: () => void;
     }
-    interface ActivateParams<T> {
+    interface SyncedParams<T> {
         cache?: CacheOptions<any>;
         waitForSet?: Promise<any> | ObservableReadable<any>;
     }

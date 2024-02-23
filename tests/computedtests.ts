@@ -3,7 +3,7 @@ import {
     Observable,
     ObservableReadable,
     TrackingType,
-    activated,
+    synced,
     batch,
     beginBatch,
     endBatch,
@@ -213,7 +213,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to two, set', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                         obs.test2.set(value);
@@ -229,7 +229,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to two, set child', () => {
             const obs = observable({ test: { a: 'hi' }, test2: false });
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                     },
@@ -243,7 +243,7 @@ export const run = (isPersist: boolean) => {
         test('Bound to array, set', () => {
             const obs = observable([false, false, false, false, false]);
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         obs.forEach((child) => child.set(value));
                     },
@@ -261,7 +261,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable({ test: false, test2: false });
             const handler = expectChangeHandler(obs);
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                         obs.test2.set(value);
@@ -292,7 +292,7 @@ export const run = (isPersist: boolean) => {
         test('Computed has set before activation', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         obs.test.set(value);
                         obs.test2.set(value);
@@ -308,7 +308,7 @@ export const run = (isPersist: boolean) => {
             let setValue: number | undefined = undefined;
             let getValue: number | undefined = undefined;
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         setValue = value;
                     },
@@ -328,7 +328,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Computed handler is batched', () => {
             const obs = observable(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         expect(value.test).toEqual(true);
                         expect(value.test2).toEqual(true);
@@ -363,7 +363,7 @@ export const run = (isPersist: boolean) => {
         test('Set child of computed', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value: { computedValue } }) => {
                         obs.test.set(computedValue);
                         obs.test2.set(computedValue);
@@ -380,7 +380,7 @@ export const run = (isPersist: boolean) => {
         test('Computed activates before set', () => {
             const obs = observable({ test: false, test2: false });
             const comp = observable(
-                activated({
+                synced({
                     onSet: ({ value: { computedValue } }) => {
                         obs.test.set(computedValue);
                     },
@@ -412,7 +412,7 @@ export const run = (isPersist: boolean) => {
             const obs = observable(0);
 
             const comp = observable<string>(
-                activated({
+                synced({
                     onSet: ({ value }) => {
                         obs.set(+value);
                     },
@@ -730,7 +730,7 @@ export const run = (isPersist: boolean) => {
         test('Computed link to activated updates when changing', async () => {
             const num$ = observable(0);
             const obs = observable(
-                activated({
+                synced({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => {
@@ -753,7 +753,7 @@ export const run = (isPersist: boolean) => {
         test('Computed link to link to activated updates when changing', async () => {
             const num$ = observable(0);
             const obs = observable(
-                activated({
+                synced({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => {
@@ -781,7 +781,7 @@ export const run = (isPersist: boolean) => {
         test('Computed link to link to activated child updates when changing', async () => {
             const num$ = observable(0);
             const obs = observable({
-                test: activated({
+                test: synced({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => {
@@ -831,7 +831,7 @@ export const run = (isPersist: boolean) => {
         test('Computed link works with activated promise', async () => {
             const obs$ = observable({
                 a: 'hi',
-                b: activated({
+                b: synced({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => {
@@ -842,7 +842,7 @@ export const run = (isPersist: boolean) => {
                 }),
             });
             const linker$ = observable(
-                activated({
+                synced({
                     get: () => {
                         return new Promise<Observable<string>>((resolve) => {
                             setTimeout(() => {
@@ -908,7 +908,7 @@ export const run = (isPersist: boolean) => {
         });
         test('Child of computed with activated', () => {
             const obs = observable({ test: 10, test2: 20 });
-            const comp = observable({ sum: activated({ get: () => obs.test.get() + obs.test2.get() }) });
+            const comp = observable({ sum: synced({ get: () => obs.test.get() + obs.test2.get() }) });
             expect(comp.sum.get()).toEqual(30);
         });
         test('Computed in observable notifies to root', () => {
@@ -1050,7 +1050,7 @@ export const run = (isPersist: boolean) => {
             });
 
             const obs$ = observable({
-                sub: activated({
+                sub: synced({
                     onSet: ({ value }) => {
                         sub$.set(value);
                     },
@@ -1109,7 +1109,7 @@ export const run = (isPersist: boolean) => {
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
             const itemText = observable(
-                activated({
+                synced({
                     lookup: (key) => obs.items[key].text.get(),
                 }),
             );
@@ -1144,9 +1144,9 @@ export const run = (isPersist: boolean) => {
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
             const itemText = observable(
-                activated({
+                synced({
                     lookup: (key) =>
-                        activated({
+                        synced({
                             onSet: ({ value }) => {
                                 obs.items[key].text.set(value);
                             },
@@ -1185,7 +1185,7 @@ export const run = (isPersist: boolean) => {
         test('lookup link', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activated({
+                itemText: synced({
                     lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
@@ -1224,7 +1224,7 @@ export const run = (isPersist: boolean) => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemText: activated({
+                itemText: synced({
                     lookup: (key): Observable<string> => obs.items[key][obs.selector.get()],
                 }),
             });
@@ -1255,7 +1255,7 @@ export const run = (isPersist: boolean) => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemLink: activated({
+                itemLink: synced({
                     lookup: (key): Observable<Record<string, string>> => obs.items[key],
                 }),
             });
@@ -1263,14 +1263,14 @@ export const run = (isPersist: boolean) => {
         });
         test('lookup into child with undefined key', () => {
             const obs = observable({
-                items: activated({
+                items: synced({
                     get: () =>
                         ({
                             test1: { text: 'hi', othertext: 'bye' },
                             test2: { text: 'hello', othertext: 'goodbye' },
                         }) as Record<string, Record<string, string>>,
                 }),
-                itemLink: activated({
+                itemLink: synced({
                     lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
@@ -1280,9 +1280,9 @@ export const run = (isPersist: boolean) => {
         });
         test('lookup into lookup', () => {
             const obs = observable({
-                team: activated({
+                team: synced({
                     lookup: (teamID) => ({
-                        profile: activated({
+                        profile: synced({
                             get: () => {
                                 return { username: teamID + ' name' };
                             },
@@ -1297,9 +1297,9 @@ export const run = (isPersist: boolean) => {
         test('observable link into lookup', () => {
             const obs = observable({
                 link: () => obs.team['asdf'],
-                team: activated({
+                team: synced({
                     lookup: (teamID) => ({
-                        profile: activated({
+                        profile: synced({
                             get: () => {
                                 return { username: teamID + ' name' };
                             },
@@ -1312,7 +1312,7 @@ export const run = (isPersist: boolean) => {
         test('raw value of lookup has all values', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activated({
+                itemText: synced({
                     lookup: (key): Observable<string> => obs.items[key].text,
                 }),
             });
@@ -1344,7 +1344,7 @@ export const run = (isPersist: boolean) => {
         test('listener on lookup works', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activated({
+                itemText: synced({
                     lookup: (key): Observable<string> => {
                         return obs.items[key].text;
                     },
@@ -1392,7 +1392,7 @@ export const run = (isPersist: boolean) => {
     describe('subscribing to computeds', () => {
         test('subscription with update', async () => {
             const obs = observable(
-                activated({
+                synced({
                     subscribe: ({ update }) => {
                         setTimeout(() => {
                             update({ value: 'hi there again' });
@@ -1415,7 +1415,7 @@ export const run = (isPersist: boolean) => {
             let num = 0;
             const waiter = observable(0);
             const obs = observable(
-                activated({
+                synced({
                     subscribe: ({ refresh }) => {
                         when(
                             () => waiter.get() === 1,
@@ -1444,7 +1444,7 @@ export const run = (isPersist: boolean) => {
         test('subscribe update runs after get', async () => {
             let didGet = false;
             const obs = observable(
-                activated({
+                synced({
                     subscribe: ({ update }) => {
                         setTimeout(() => {
                             update({ value: 'from subscribe' });
@@ -1472,11 +1472,11 @@ export const run = (isPersist: boolean) => {
             expect(didGet).toEqual(true);
             expect(obs.get()).toEqual('from subscribe');
         });
-        test('activated with get running multiple times', async () => {
+        test('synced with get running multiple times', async () => {
             const gets$ = observable(0);
             const refresh$ = observable(1);
             const obs$ = observable(
-                activated({
+                synced({
                     get: () => {
                         refresh$.get();
                         return new Promise<string>((resolve) => {
@@ -1517,7 +1517,7 @@ export const run = (isPersist: boolean) => {
         });
         test('isLoaded with activated', async () => {
             const obs = observable(
-                activated({
+                synced({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => resolve('hi there'), 0);
@@ -1537,7 +1537,7 @@ export const run = (isPersist: boolean) => {
         test('set does not get called by load', async () => {
             let didSet = false;
             const obs = observable(
-                activated({
+                synced({
                     get: () => {
                         return new Promise<string>((resolve) => {
                             setTimeout(() => resolve('hi there'), 0);
@@ -1563,7 +1563,7 @@ export const run = (isPersist: boolean) => {
         test('get returning twice', async () => {
             const num$ = observable(0);
             const obs = observable(
-                activated({
+                synced({
                     get: (): Promise<string> | string =>
                         num$.get() > 0
                             ? new Promise<string>((resolve) => {
@@ -1600,7 +1600,7 @@ export const run = (isPersist: boolean) => {
         test('Basic computed set after with activated child', () => {
             const obs = observable({ test: 10, test2: 20 });
             const comp = observable<{ child: number }>();
-            comp.set({ child: activated({ get: () => obs.test.get() + obs.test2.get() }) });
+            comp.set({ child: synced({ get: () => obs.test.get() + obs.test2.get() }) });
             expect(comp.child.get()).toEqual(30);
         });
         test('Computed assigned later', () => {

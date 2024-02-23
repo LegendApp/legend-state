@@ -1,4 +1,4 @@
-import { activated } from './activated';
+import { synced } from './synced';
 import { observable } from './observable';
 import { Observable, ObservableWriteable } from './observableTypes';
 
@@ -16,10 +16,10 @@ export function proxy<T extends Record<string, any>, T2 = T>(
     set?: (key: any, value: T2) => void,
 ): any {
     return observable(
-        activated({
+        synced({
             lookup: (key) =>
                 set
-                    ? activated({
+                    ? synced({
                           get: () => get(key),
                           onSet: ({ value }) => set(key, value as any),
                       })

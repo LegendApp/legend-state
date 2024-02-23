@@ -1,5 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { ActivateParamsWithLookup, NodeValue, UpdateFn } from './observableInterfaces';
+import { SyncedParamsWithLookup, NodeValue, UpdateFn } from './observableInterfaces';
 import { Observable, ObservablePrimitive, ObservableReadable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -7,7 +7,7 @@ export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
-export const symbolActivated = Symbol('activated');
+export const symbolSynced = Symbol('synced');
 
 // TODOV3 Remove these
 export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
@@ -114,7 +114,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             lazy: true,
         };
         if (node.activationState) {
-            const { lookup } = node.activationState as ActivateParamsWithLookup<any>;
+            const { lookup } = node.activationState as SyncedParamsWithLookup<any>;
             if (lookup) {
                 asFunction = lookup.bind(node, key);
             }

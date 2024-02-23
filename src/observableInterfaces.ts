@@ -82,7 +82,7 @@ interface BaseNodeValue {
     needsExtract?: boolean;
     state?: ObservableNew<ObservablePersistState>;
     activated?: boolean;
-    activationState?: ActivateParams & { onError?: () => void; persistedRetry?: boolean };
+    activationState?: SyncedParams & { onError?: () => void; persistedRetry?: boolean };
     dirtyFn?: () => void;
 }
 
@@ -121,27 +121,25 @@ export interface ObserveEventCallback<T> {
 }
 
 export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> & OnSetExtra;
-export interface ActivateGetParams {
+export interface SyncedGetParams {
     updateLastSync: (lastSync: number) => void;
     setMode: (mode: 'assign' | 'set') => void;
     refresh: () => void;
 }
-export interface ActivateParams<T = any> {
+export interface SyncedParams<T = any> {
     onSet?: (params: OnSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     waitFor?: Selector<any>;
     initial?: T extends Promise<infer t> ? t : T;
-    get?: (params: ActivateGetParams) => T;
+    get?: (params: SyncedGetParams) => T;
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface ActivateParamsWithLookup<T extends Record<string, any> = Record<string, any>>
-    extends ActivateParams<T> {
+export interface SyncedParamsWithLookup<T extends Record<string, any> = Record<string, any>> extends SyncedParams<T> {
     lookup: (key: string) => Promise<RecordValue<T>> | Observable<RecordValue<T>> | RecordValue<T>;
 }
 
-export type Activated<T> = T;
+export type Synced<T> = T;
 
 export type UpdateFn = (params: {
     value: unknown;

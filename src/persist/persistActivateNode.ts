@@ -1,5 +1,5 @@
 import type {
-    ActivateParamsWithLookup,
+    SyncedParamsWithLookup,
     ListenerParams,
     NodeValue,
     ObservableOnChangeParams,
@@ -10,7 +10,7 @@ import type {
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
+const { getProxy, globalState, runWithRetry, symbolSynced } = internal;
 
 export function persistActivateNode() {
     globalState.activateNode = function activateNodePersist(
@@ -20,9 +20,9 @@ export function persistActivateNode() {
         newValue: any,
     ) {
         if (node.activationState) {
-            // If it is an Activated
+            // If it is a Synced
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =
-                node.activationState! as ActivateParamsWithLookup;
+                node.activationState! as SyncedParamsWithLookup;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -35,7 +35,7 @@ export function persistActivateNode() {
                     const nodeValue = getNodeValue(node);
                     const value = runWithRetry(node, { attemptNum: 0 }, () => {
                         return get!({
-                            value: isFunction(nodeValue) || nodeValue?.[symbolActivated] ? undefined : nodeValue,
+                            value: isFunction(nodeValue) || nodeValue?.[symbolSynced] ? undefined : nodeValue,
                             lastSync: params.lastSync!,
                             updateLastSync,
                             setMode,
@@ -113,7 +113,7 @@ export function persistActivateNode() {
 
             return { update: onChange!, value: newValue };
         } else {
-            // If it is not an Activated
+            // If it is not a Synced
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {
