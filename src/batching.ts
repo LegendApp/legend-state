@@ -1,4 +1,5 @@
 import { getNodeValue, globalState, optimized } from './globals';
+import { getNodeAtPath } from './helpers';
 import { isArray } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
@@ -173,16 +174,17 @@ function computeChangesRecursive(
     );
     if (node.linkedFromNodes) {
         for (const linkedFromNode of node.linkedFromNodes) {
-            computeChangesAtNode(
+            const childNode = getNodeAtPath(linkedFromNode, path);
+            computeChangesRecursive(
                 changesInBatch,
-                linkedFromNode,
-                value,
-                path,
-                pathTypes,
+                childNode,
+                valueAtPath,
+                [],
+                [],
                 valueAtPath,
                 prevAtPath,
                 immediate,
-                level,
+                0,
                 whenOptimizedOnlyIf,
             );
         }

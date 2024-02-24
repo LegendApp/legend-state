@@ -513,17 +513,17 @@ describe('Computed inside observable', () => {
         const handler = expectChangeHandler(obs);
         obs.text.set('hello');
         expect(handler).toHaveBeenCalledWith({ text: 'hello', test: 'hello!' }, { text: 'hi', test: 'hi!' }, [
-            // {
-            //     path: ['test'],
-            //     pathTypes: ['object'],
-            //     prevAtPath: 'hi!',
-            //     valueAtPath: 'hello!',
-            // },
             {
                 path: ['text'],
                 pathTypes: ['object'],
                 prevAtPath: 'hi',
                 valueAtPath: 'hello',
+            },
+            {
+                path: ['test'],
+                pathTypes: ['object'],
+                prevAtPath: 'hi!',
+                valueAtPath: 'hello!',
             },
         ]);
     });
@@ -559,17 +559,23 @@ describe('Computed inside observable', () => {
             { text: 'hello', test: { child: 'hello!' } },
             { text: 'hi', test: { child: 'hi!' } },
             [
-                // {
-                //     path: ['test'],
-                //     pathTypes: ['object'],
-                //     prevAtPath: { child: 'hi!' },
-                //     valueAtPath: { child: 'hello!' },
-                // },
                 {
                     path: ['text'],
                     pathTypes: ['object'],
                     prevAtPath: 'hi',
                     valueAtPath: 'hello',
+                },
+                {
+                    path: ['test', 'child'],
+                    pathTypes: ['object', 'object'],
+                    prevAtPath: 'hi!',
+                    valueAtPath: 'hello!',
+                },
+                {
+                    path: ['test'],
+                    pathTypes: ['object'],
+                    prevAtPath: { child: 'hi!' },
+                    valueAtPath: { child: 'hello!' },
                 },
             ],
         );
@@ -815,9 +821,11 @@ describe('proxy', () => {
                 return obs.items[key].text;
             }),
         });
+        // Get the value just to make this test easier so it doesn't have function as the previous value
+        obs.itemText['test1'].get();
+
         const handler = expectChangeHandler(obs);
         const handler2 = expectChangeHandler(obs.itemText);
-
         obs.itemText['test1'].set('hi!');
 
         expect(handler).toHaveBeenCalledWith(
@@ -830,12 +838,16 @@ describe('proxy', () => {
             {
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
                 itemText: {
-                    // TODO: This is not technically correct, it should be "hi"
-                    // But I'm not sure how to fix it and it's not hopefully not a big deal...
-                    test1: 'hi!',
+                    test1: 'hi',
                 },
             },
             [
+                {
+                    path: ['itemText', 'test1'],
+                    pathTypes: ['object', 'object'],
+                    prevAtPath: 'hi',
+                    valueAtPath: 'hi!',
+                },
                 {
                     path: ['items', 'test1', 'text'],
                     pathTypes: ['object', 'object', 'object'],

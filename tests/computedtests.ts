@@ -1366,11 +1366,16 @@ export const run = (isPersist: boolean) => {
                 {
                     items: { test1: { text: 'hi' }, test2: { text: 'hello' } },
                     itemText: {
-                        // TODO This should be "hi"? - not sure how to fix that though
-                        test1: 'hi!',
+                        test1: 'hi',
                     },
                 },
                 [
+                    {
+                        path: ['itemText', 'test1'],
+                        pathTypes: ['object', 'object'],
+                        prevAtPath: 'hi',
+                        valueAtPath: 'hi!',
+                    },
                     {
                         path: ['items', 'test1', 'text'],
                         pathTypes: ['object', 'object', 'object'],

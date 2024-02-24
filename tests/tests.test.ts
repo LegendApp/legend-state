@@ -2221,6 +2221,40 @@ describe('Shallow', () => {
         obs.val2.set(10);
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Shallow set primitive with get(true)', () => {
+        interface Data {
+            val: boolean;
+            val2?: number;
+        }
+        const obs = observable<Data>({ val: false });
+        let calls = 0;
+        observe(() => {
+            obs.get(true);
+            calls++;
+        });
+        expect(calls).toEqual(1);
+        obs.val.set(true);
+        expect(calls).toEqual(1);
+        obs.val2.set(10);
+        expect(calls).toEqual(2);
+    });
+    test('Shallow set primitive with { shallow: true }', () => {
+        interface Data {
+            val: boolean;
+            val2?: number;
+        }
+        const obs = observable<Data>({ val: false });
+        let calls = 0;
+        observe(() => {
+            obs.get({ shallow: true });
+            calls++;
+        });
+        expect(calls).toEqual(1);
+        obs.val.set(true);
+        expect(calls).toEqual(1);
+        obs.val2.set(10);
+        expect(calls).toEqual(2);
+    });
     test('Shallow deep object', () => {
         const obs = observable({ val: { val2: { val3: 'hi' } } });
         const handler = jest.fn();
