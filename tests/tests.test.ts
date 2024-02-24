@@ -1748,6 +1748,10 @@ describe('Array', () => {
             ],
         );
     });
+    test('Array includes', () => {
+        const obs = observable([0, 1, 2]);
+        expect(obs.includes(1)).toBe(true);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
