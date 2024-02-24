@@ -1,5 +1,4 @@
-import { getNodeValue, globalState, optimized } from './globals';
-import { getNodeAtPath } from './helpers';
+import { getChildNode, getNodeValue, globalState, optimized } from './globals';
 import { isArray } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
@@ -346,4 +345,14 @@ export function endBatch(force?: boolean) {
             }
         }
     }
+}
+
+function getNodeAtPath(obj: NodeValue, path: string[]): NodeValue {
+    let o: NodeValue = obj;
+    for (let i = 0; i < path.length; i++) {
+        const p = path[i];
+        o = getChildNode(o, p);
+    }
+
+    return o;
 }

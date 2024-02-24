@@ -1,14 +1,5 @@
 import { beginBatch, endBatch } from './batching';
-import {
-    getChildNode,
-    getNode,
-    globalState,
-    isObservable,
-    setNodeValue,
-    symbolDelete,
-    symbolGetNode,
-    symbolOpaque,
-} from './globals';
+import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
 import type {
     NodeValue,
@@ -46,11 +37,11 @@ export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
     return value as OpaqueObject<T>;
 }
 
-export function getNodeAtPath(obj: NodeValue, path: string[]): NodeValue {
-    let o: NodeValue = obj;
-    for (let i = 0; i < path.length; i++) {
+export function getValueAtPath(obj: Record<string, any>, path: string[]): any {
+    let o: Record<string, any> = obj;
+    for (let i = 0; o && i < path.length; i++) {
         const p = path[i];
-        o = getChildNode(o, p);
+        o = o[p];
     }
 
     return o;

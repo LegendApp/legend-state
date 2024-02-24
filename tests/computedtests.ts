@@ -175,8 +175,8 @@ export const run = (isPersist: boolean) => {
                 items: [{ id: '1' }, { id: '2' }, { id: '3' }],
                 selectedItem: () => {
                     const id = stateTest$.id.get();
-                    const item = stateTest$.items.find((_item: any) => _item.id.peek() === id)!;
-                    return item;
+                    const item$ = stateTest$.items.find((_item: any) => _item.id.peek() === id)!;
+                    return item$;
                 },
             });
 
@@ -1782,6 +1782,176 @@ export const run = (isPersist: boolean) => {
 
             obs.a.delete();
             expect(comp[0].get()).toEqual({ id: 'b', text: 'hib' });
+        });
+        test('Changing link target', () => {
+            const state = observable({
+                a: {
+                    prop1: 1,
+                    prop2: 2,
+                },
+                b: {
+                    prop1: 3,
+                    prop2: 4,
+                },
+            });
+
+            const editingId = observable<'a' | 'b'>('a');
+            const editingItem = observable(() => state[editingId.get()]);
+
+            let prop1Num = 0;
+            let prop1Value = 0;
+            let prop2Num = 0;
+            let prop2Value = 0;
+
+            observe(() => {
+                prop1Value = editingItem.prop1.get();
+                prop1Num++;
+            });
+
+            observe(() => {
+                prop2Value = editingItem.prop2.get();
+                prop2Num++;
+            });
+
+            expect(prop1Num).toEqual(1);
+            expect(prop1Value).toEqual(1);
+
+            expect(prop2Num).toEqual(1);
+            expect(prop2Value).toEqual(2);
+
+            editingItem.prop2.set(5);
+
+            expect(prop1Num).toEqual(1);
+            expect(prop1Value).toEqual(1);
+
+            expect(prop2Num).toEqual(2);
+            expect(prop2Value).toEqual(5);
+
+            editingId.set('b');
+
+            expect(prop1Num).toEqual(2);
+            expect(prop1Value).toEqual(3);
+
+            expect(prop2Num).toEqual(3);
+            expect(prop2Value).toEqual(4);
+        });
+        test('Changing link target with immediate', () => {
+            // Note: This test is here because I was seeing different behavior if
+            // there were immediate observers than without them
+            const state = observable({
+                a: {
+                    prop1: 1,
+                    prop2: 2,
+                },
+                b: {
+                    prop1: 3,
+                    prop2: 4,
+                },
+            });
+
+            const editingId = observable<'a' | 'b'>('a');
+            const editingItem = observable(() => state[editingId.get()]);
+
+            let prop1CNum = 0;
+            let prop1CValue = 0;
+            let prop2CNum = 0;
+            let prop2CValue = 0;
+            let prop1Num = 0;
+            let prop1Value = 0;
+            let prop1NumImm = 0;
+            let prop1ValueImm = 0;
+            let prop2Num = 0;
+            let prop2Value = 0;
+            let prop2NumImm = 0;
+            let prop2ValueImm = 0;
+
+            editingItem.prop1.onChange(
+                ({ value }) => {
+                    prop1CValue = value;
+                    prop1CNum++;
+                },
+                { initial: true },
+            );
+            editingItem.prop2.onChange(
+                ({ value }) => {
+                    prop2CValue = value;
+                    prop2CNum++;
+                },
+                { initial: true },
+            );
+
+            observe(
+                () => {
+                    prop1ValueImm = editingItem.prop1.get();
+                    prop1NumImm++;
+                },
+                { immediate: true },
+            );
+            observe(() => {
+                prop1Value = editingItem.prop1.get();
+                prop1Num++;
+            });
+
+            observe(
+                () => {
+                    prop2ValueImm = editingItem.prop2.get();
+                    prop2NumImm++;
+                },
+                { immediate: true },
+            );
+            observe(() => {
+                prop2Value = editingItem.prop2.get();
+                prop2Num++;
+            });
+
+            expect(prop1Num).toEqual(1);
+            expect(prop1NumImm).toEqual(1);
+            expect(prop1CNum).toEqual(1);
+            expect(prop1CValue).toEqual(1);
+            expect(prop1Value).toEqual(1);
+            expect(prop1ValueImm).toEqual(1);
+
+            expect(prop2Num).toEqual(1);
+            expect(prop2NumImm).toEqual(1);
+            expect(prop2CNum).toEqual(1);
+            expect(prop2CValue).toEqual(2);
+            expect(prop2Value).toEqual(2);
+            expect(prop2ValueImm).toEqual(2);
+
+            editingItem.prop2.set(5);
+
+            expect(prop1Num).toEqual(1);
+            expect(prop1NumImm).toEqual(1);
+            expect(prop1CNum).toEqual(1);
+            expect(prop1CValue).toEqual(1);
+            expect(prop1Value).toEqual(1);
+            expect(prop1ValueImm).toEqual(1);
+
+            expect(prop2CNum).toEqual(2);
+            expect(prop2Num).toEqual(2);
+            expect(prop2NumImm).toEqual(2);
+            expect(prop2CValue).toEqual(5);
+            expect(prop2Value).toEqual(5);
+            expect(prop2ValueImm).toEqual(5);
+
+            editingId.set('b');
+
+            expect(prop1Num).toEqual(2);
+            expect(prop1NumImm).toEqual(2);
+            expect(prop1CNum).toEqual(2);
+            expect(prop1CValue).toEqual(3);
+            expect(prop1Value).toEqual(3);
+            expect(prop1ValueImm).toEqual(3);
+
+            expect(prop2CNum).toEqual(3);
+            expect(prop2Num).toEqual(3);
+            // Note: This is 4 because immediate recomputes for the linked observable
+            // changing and then the value changing
+            expect(prop2NumImm).toEqual(4);
+
+            expect(prop2CValue).toEqual(4);
+            expect(prop2Value).toEqual(4);
+            expect(prop2ValueImm).toEqual(4);
         });
     });
 };

@@ -385,7 +385,6 @@ const proxyHandler: ProxyHandler<any> = {
         // The exception is onChange because it needs to listen to this node for changes.
         // This needs to be below peek because it activates there.
         if (node.linkedToNode && p !== 'onChange') {
-            updateTracking(node);
             return proxyHandler.get!(node.linkedToNode, p, receiver);
         }
 
@@ -1190,6 +1189,7 @@ function setToObservable(node: NodeValue, value: any) {
     const linkedNode = getNode(value);
     if (linkedNode !== node && linkedNode?.linkedToNode !== node) {
         const prevNode = node.linkedToNode;
+
         node.linkedToNode = linkedNode;
         if (!linkedNode.linkedFromNodes) {
             linkedNode.linkedFromNodes = new Set();
@@ -1204,6 +1204,7 @@ function setToObservable(node: NodeValue, value: any) {
                 set(node, value);
             },
             { initial: true },
+            new Set([node]),
         );
 
         // If the target observable is different then notify for the change

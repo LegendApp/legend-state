@@ -591,7 +591,7 @@ describe('Computed inside observable', () => {
 
         let num = 0;
         observe(() => {
-            obs$.sub.get();
+            expect(obs$.sub.get()).toEqual({ num: 0 });
             num++;
         });
 
