@@ -9,10 +9,6 @@ export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
 export const symbolSynced = Symbol('synced');
 
-// TODOV3 Remove these
-export const extraPrimitiveActivators = new Map<string | symbol, boolean>();
-export const extraPrimitiveProps = new Map<string | symbol, any>();
-
 export const globalState = {
     isLoadingLocal: false,
     isMerging: false,

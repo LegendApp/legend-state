@@ -44,15 +44,7 @@ export { beginTracking, endTracking, tracking, updateTracking } from './src/trac
 /** @internal */
 export { setupTracking } from './src/setupTracking';
 /** @internal */
-export {
-    extraPrimitiveActivators,
-    extraPrimitiveProps,
-    findIDKey,
-    getNode,
-    getNodeValue,
-    optimized,
-    symbolDelete,
-} from './src/globals';
+export { findIDKey, getNode, getNodeValue, optimized, symbolDelete } from './src/globals';
 /** @internal */
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
