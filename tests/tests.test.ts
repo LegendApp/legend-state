@@ -1805,6 +1805,10 @@ describe('Array', () => {
         obs[1].delete();
         expect(obs.get()).toEqual([0, 2]);
     });
+    test('Array includes', () => {
+        const obs = observable([0, 1, 2]);
+        expect(obs.includes(1)).toBe(true);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {

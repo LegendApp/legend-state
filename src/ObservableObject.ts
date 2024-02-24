@@ -69,7 +69,6 @@ const ArrayLoopers = new Set<keyof Array<any>>([
     'find',
     'findIndex',
     'forEach',
-    'includes',
     'join',
     'map',
     'some',
