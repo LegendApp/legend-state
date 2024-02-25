@@ -1,5 +1,5 @@
 import type {
-    SyncedParamsWithLookup,
+    SyncedLookupParams,
     ListenerParams,
     NodeValue,
     ObservableOnChangeParams,
@@ -13,7 +13,7 @@ import { persistObservable } from './persistObservable';
 const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 
 export function persistActivateNode() {
-    globalState.activateNode = function activateNodePersist(
+    globalState.activateNodePersist = function activateNodePersist(
         node: NodeValue,
         refresh: () => void,
         wasPromise: boolean,
@@ -22,7 +22,7 @@ export function persistActivateNode() {
         if (node.activationState) {
             // If it is a Synced
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =
-                node.activationState! as SyncedParamsWithLookup;
+                node.activationState! as SyncedLookupParams;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};

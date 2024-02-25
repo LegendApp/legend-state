@@ -149,7 +149,7 @@ export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 
     offlineBehavior?: false | 'retry';
     cache?: CacheOptions<any>;
 }
-export interface SyncedParamsWithLookup<T extends Record<string, any> = Record<string, any>> extends SyncedParams<T> {
+export interface SyncedLookupParams<T extends Record<string, any> = Record<string, any>> extends SyncedParams<T> {
     lookup: (key: string) => Promise<RecordValue<T>> | Observable<RecordValue<T>> | RecordValue<T>;
 }
 

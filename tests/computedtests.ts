@@ -2,26 +2,27 @@ import {
     Change,
     Observable,
     ObservableReadable,
+    SyncedLookupParams,
+    SyncedParams,
     TrackingType,
-    activated,
+    activated as activatedFn,
     batch,
     beginBatch,
     endBatch,
-    internal,
     isObservable,
     observable,
     observe,
     syncState,
     when,
 } from '../index';
-const { globalState } = internal;
+import { synced } from '../persist';
 
 export const run = (isPersist: boolean) => {
-    describe('Make sure activateNode overridden with persist', () => {
-        test('activateNode overriden', () => {
-            expect(globalState.activateNode.name).toEqual(isPersist ? 'activateNodePersist' : 'activateNodeBase');
-        });
-    });
+    const activated = (isPersist ? synced : activatedFn) as {
+        <T>(params: SyncedLookupParams<Record<string, T>>): Record<string, T>;
+        <T>(params: SyncedParams<T>): T;
+    };
+
     function promiseTimeout(time?: number) {
         return new Promise((resolve) => setTimeout(resolve, time || 0));
     }

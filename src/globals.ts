@@ -13,7 +13,7 @@ export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
-    activateNode: undefined as unknown as (
+    activateNodePersist: undefined as unknown as (
         node: NodeValue,
         refresh: () => void,
         wasPromise: boolean,

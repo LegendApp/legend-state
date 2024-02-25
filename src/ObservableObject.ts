@@ -905,7 +905,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isFunction(value)) {
                 value = value();
             }
-            const activated = value?.[symbolActivated] as ActivatedParams;
+            const activated = value?.[symbolActivated] as ActivatedParams & { synced: boolean };
             if (activated) {
                 node.activationState = activated;
                 value = undefined;
@@ -919,7 +919,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 node.activated = true;
                 const isCached = !!node.activationState?.cache;
                 wasPromise = wasPromise || !!isCached;
-                const activateNodeFn = wasPromise ? globalState.activateNode : activateNodeBase;
+                const activateNodeFn =
+                    wasPromise && globalState.activateNodePersist ? globalState.activateNodePersist : activateNodeBase;
                 const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, !!wasPromise, value);
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
@@ -1006,12 +1007,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     return activatedValue;
 }
 
-const activateNodeBase = (globalState.activateNode = function activateNodeBase(
-    node: NodeValue,
-    refresh: () => void,
-    wasPromise: boolean,
-    value: any,
-) {
+function activateNodeBase(node: NodeValue, refresh: () => void, wasPromise: boolean, value: any) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -1179,7 +1175,7 @@ const activateNodeBase = (globalState.activateNode = function activateNodeBase(
         }
     };
     return { update, value };
-});
+}
 
 function setToObservable(node: NodeValue, value: any) {
     // If the computed is a proxy to another observable
