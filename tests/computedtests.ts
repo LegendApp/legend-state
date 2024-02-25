@@ -1646,6 +1646,19 @@ export const run = (isPersist: boolean) => {
             { path: ['b'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
         ]);
     });
+    describe('Set a direct link', () => {
+        const obs = observable({
+            test1: 10,
+            test2: 5,
+        });
+        expect(obs.test2.get()).toEqual(5);
+        obs.test2.set(obs.test1);
+        const handler = expectChangeHandler(obs.test1);
+        const handler2 = expectChangeHandler(obs.test2);
+
+        expect(obs.test1.get()).toEqual(10);
+        expect(obs.test2.get()).toEqual(10);
+    });
     describe('Observable link to observable', () => {
         const obs = observable({
             test: 10,
@@ -1671,24 +1684,23 @@ export const run = (isPersist: boolean) => {
             test: { num: 10 },
             test2: observable((): Observable<{ num: number }> => obs.test),
         });
-        // obs.test2.get();
-        // const handler = expectChangeHandler(obs.test);
+        const handler = expectChangeHandler(obs.test);
         const handler2 = expectChangeHandler(obs.test2);
 
         obs.test2.num.set(30);
         expect(obs.test2.get()).toEqual({ num: 30 });
-        // expect(handler).toHaveBeenCalledWith({ num: 30 }, { num: 10 }, [
-        //     { path: ['num'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
-        // ]);
+        expect(handler).toHaveBeenCalledWith({ num: 30 }, { num: 10 }, [
+            { path: ['num'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
+        ]);
         expect(handler2).toHaveBeenCalledWith({ num: 30 }, { num: 10 }, [
             { path: ['num'], pathTypes: ['object'], valueAtPath: 30, prevAtPath: 10 },
         ]);
 
         obs.test2.num.set(50);
         expect(obs.test2.get()).toEqual({ num: 50 });
-        // expect(handler).toHaveBeenCalledWith({ num: 50 }, { num: 30 }, [
-        //     { path: ['num'], pathTypes: ['object'], valueAtPath: 50, prevAtPath: 30 },
-        // ]);
+        expect(handler).toHaveBeenCalledWith({ num: 50 }, { num: 30 }, [
+            { path: ['num'], pathTypes: ['object'], valueAtPath: 50, prevAtPath: 30 },
+        ]);
         expect(handler2).toHaveBeenCalledWith({ num: 50 }, { num: 30 }, [
             { path: ['num'], pathTypes: ['object'], valueAtPath: 50, prevAtPath: 30 },
         ]);

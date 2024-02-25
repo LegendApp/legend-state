@@ -869,10 +869,8 @@ export function peek(node: NodeValue) {
 
 function reactivateNode(node: NodeValue, lazyFn: Function) {
     node.activatedObserveDispose?.();
-    node.activatedObserveDispose = undefined;
     node.linkedToNodeDispose?.();
-    node.linkedToNodeDispose = undefined;
-    node.linkedToNode = undefined;
+    node.activatedObserveDispose = node.linkedToNodeDispose = node.linkedToNode = undefined;
     node.lazyFn = lazyFn;
     node.lazy = true;
 }

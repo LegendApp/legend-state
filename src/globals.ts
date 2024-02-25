@@ -50,14 +50,6 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     // Compute newValue if newValue is a function or an observable
     newValue = !parentNode.isAssigning && isFunc ? newValue(prevValue) : newValue;
 
-    // If setting an observable, set a link to the observable instead
-    if (isObservable(newValue)) {
-        const val = newValue;
-        node.lazy = true;
-        node.lazyFn = () => val;
-        newValue = undefined;
-    }
-
     if (
         !globalState.isMerging ||
         prevValue === undefined ||
