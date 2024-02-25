@@ -16,7 +16,6 @@ export function persistActivateNode() {
     globalState.activateNodePersist = function activateNodePersist(
         node: NodeValue,
         refresh: () => void,
-        wasPromise: boolean,
         newValue: any,
     ) {
         if (node.activationState) {

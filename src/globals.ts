@@ -16,7 +16,6 @@ export const globalState = {
     activateNodePersist: undefined as unknown as (
         node: NodeValue,
         refresh: () => void,
-        wasPromise: boolean,
         newValue: any,
     ) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),

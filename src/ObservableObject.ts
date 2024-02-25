@@ -921,7 +921,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 wasPromise = wasPromise || !!isCached;
                 const activateNodeFn =
                     wasPromise && globalState.activateNodePersist ? globalState.activateNodePersist : activateNodeBase;
-                const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, !!wasPromise, value);
+                const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, value);
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
@@ -1007,7 +1007,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     return activatedValue;
 }
 
-function activateNodeBase(node: NodeValue, refresh: () => void, wasPromise: boolean, value: any) {
+function activateNodeBase(node: NodeValue, refresh: () => void, value: any) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
