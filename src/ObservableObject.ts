@@ -42,11 +42,8 @@ import type {
 import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
-import { ObservablePersistStateInternal } from './persistTypes';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
-
-const noop = () => {};
 
 const ArrayModifiers = new Set([
     'copyWithin',
@@ -879,7 +876,6 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     let wasPromise: boolean | undefined;
     let ignoreThisUpdate: boolean | undefined;
     const activateFn = lazyFn;
-    const doRetry = () => (node.state as Observable<ObservablePersistStateInternal>)?.refreshNum.set((v) => v + 1);
     let activatedValue;
     let disposes: (() => void)[] = [];
     let refreshFn: () => void;
@@ -921,7 +917,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                     wasPromise = true;
                 }
 
-                const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, value);
+                const { update: newUpdate, value: newValue } = activateNodeFn(node, value);
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
@@ -931,7 +927,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                         node.state.sync();
                         ignoreThisUpdate = true;
                     } else {
-                        // @ts-expect-error asdf
+                        // @ts-expect-error Testing for this, can remove
                         if (node.activationState.synced) {
                             debugger;
                         }
@@ -943,8 +939,6 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             }
             // value is undefined if it's in a persisted retry
             wasPromise = wasPromise || isPromise(value);
-
-            get(getNode((node.state as Observable<ObservablePersistStateInternal>)?.refreshNum));
 
             return value;
         },
@@ -1004,7 +998,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     return activatedValue;
 }
 
-function activateNodeBase(node: NodeValue, refresh: () => void, value: any) {
+function activateNodeBase(node: NodeValue, value: any) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {

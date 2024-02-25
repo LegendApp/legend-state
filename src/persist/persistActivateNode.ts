@@ -13,11 +13,7 @@ import { persistObservable } from './persistObservable';
 const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 
 export function persistActivateNode() {
-    globalState.activateNodePersist = function activateNodePersist(
-        node: NodeValue,
-        refresh2: () => void,
-        newValue: any,
-    ) {
+    globalState.activateNodePersist = function activateNodePersist(node: NodeValue, newValue: any) {
         if (node.activationState) {
             // If it is a Synced
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =

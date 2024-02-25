@@ -176,9 +176,7 @@ export interface ObservablePersistStateBase {
         | undefined;
 }
 export type ObservablePersistState = ObservableState & ObservablePersistStateBase;
-export type ObservablePersistStateInternal = ObservablePersistState & {
-    refreshNum: number;
-};
+
 export interface WithPersistState {
     state?: ObservablePersistState; // TODOV3: remove this
     _state?: ObservablePersistState;

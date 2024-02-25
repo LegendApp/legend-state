@@ -13,11 +13,7 @@ export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
     isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
-    activateNodePersist: undefined as unknown as (
-        node: NodeValue,
-        refresh: () => void,
-        newValue: any,
-    ) => { update: UpdateFn; value: any },
+    activateNodePersist: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),
     dirtyNodes: new Set<NodeValue>(),
 };

@@ -818,16 +818,15 @@ export function persistObservable<T>(
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 
-    const syncState = (node.state = observable({
+    const syncState = (node.state = observable<ObservablePersistState>({
         isLoadedLocal: false,
         isLoaded: false,
         isEnabledLocal: true,
         isEnabledRemote: true,
-        refreshNum: 0,
         clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
-    }) as any);
+    }));
 
     loadLocal(obs, persistOptions, syncState, localState);
 
