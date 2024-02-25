@@ -1,3 +1,3 @@
 import { run } from './computedtests';
 
-run(false);
+run();

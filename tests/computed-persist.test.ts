@@ -15,8 +15,6 @@ persistObservable(testNode, {
     },
 });
 
-run(true);
-
 mockLocalStorage();
 
 describe('caching with new computed', () => {
@@ -451,11 +449,13 @@ describe('subscribing to computeds', () => {
     });
     test('subscribe update runs after get', async () => {
         let didGet = false;
+        const didSubscribe$ = observable(false);
         const obs = observable(
             synced({
                 subscribe: ({ update }) => {
                     setTimeout(() => {
                         update({ value: 'from subscribe' });
+                        didSubscribe$.set(true);
                     }, 0);
                 },
                 get: () => {
@@ -478,6 +478,8 @@ describe('subscribing to computeds', () => {
         expect(obs.get()).toEqual(undefined);
         await whenReady(obs);
         expect(didGet).toEqual(true);
+        expect(obs.get()).toEqual('hi there');
+        await when(didSubscribe$);
         expect(obs.get()).toEqual('from subscribe');
     });
     test('activated with get running multiple times', async () => {

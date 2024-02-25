@@ -8,7 +8,7 @@ import type {
     ObservablePersistRemoteSetParams,
     UpdateFn,
 } from '@legendapp/state';
-import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
+import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
 const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 
@@ -25,6 +25,7 @@ export function persistActivateNode() {
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
+            let promiseReturn: any = undefined;
             if (get) {
                 pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
@@ -44,6 +45,8 @@ export function persistActivateNode() {
                             refresh,
                         });
                     });
+
+                    promiseReturn = value;
 
                     return value;
                 };
@@ -82,20 +85,7 @@ export function persistActivateNode() {
                     }
                 };
             }
-            if (subscribe) {
-                subscribe({
-                    node,
-                    update: (params: ObservableOnChangeParams) => {
-                        if (!onChange) {
-                            // TODO: Make this message better
-                            console.log('[legend-state] Cannot update immediately before the first return');
-                        } else {
-                            onChange(params);
-                        }
-                    },
-                    refresh,
-                });
-            }
+
             persistObservable(getProxy(node), {
                 pluginRemote,
                 ...(cache || {}),
@@ -106,8 +96,27 @@ export function persistActivateNode() {
                 },
             });
 
+            if (subscribe) {
+                when(promiseReturn || true, () => {
+                    subscribe({
+                        node,
+                        update: (params: ObservableOnChangeParams) => {
+                            if (!onChange) {
+                                // TODO: Make this message better
+                                console.log('[legend-state] Cannot update immediately before the first return');
+                            } else {
+                                onChange(params);
+                            }
+                        },
+                        refresh,
+                    });
+                });
+            }
+
             const nodeVal = getNodeValue(node);
-            if (nodeVal !== undefined) {
+            if (isFunction(nodeVal)) {
+                newValue = promiseReturn;
+            } else if (nodeVal !== undefined) {
                 newValue = nodeVal;
             } else if (newValue === undefined) {
                 newValue = initial;

@@ -2,10 +2,8 @@ import {
     Change,
     Observable,
     ObservableReadable,
-    SyncedLookupParams,
-    SyncedParams,
     TrackingType,
-    activated as activatedFn,
+    activated,
     batch,
     beginBatch,
     endBatch,
@@ -15,14 +13,8 @@ import {
     syncState,
     when,
 } from '../index';
-import { synced } from '../persist';
 
-export const run = (isPersist: boolean) => {
-    const activated = (isPersist ? synced : activatedFn) as {
-        <T>(params: SyncedLookupParams<Record<string, T>>): Record<string, T>;
-        <T>(params: SyncedParams<T>): T;
-    };
-
+export const run = () => {
     function promiseTimeout(time?: number) {
         return new Promise((resolve) => setTimeout(resolve, time || 0));
     }

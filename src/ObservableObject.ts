@@ -917,10 +917,13 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             // TODO: Is calling recursively bad? If so can it be fixed?
             if (!node.activated) {
                 node.activated = true;
-                const isCached = !!node.activationState?.cache;
-                wasPromise = wasPromise || !!isCached;
-                const activateNodeFn =
-                    wasPromise && globalState.activateNodePersist ? globalState.activateNodePersist : activateNodeBase;
+                let activateNodeFn = activateNodeBase;
+                // If this is a Synced then run it through persistence instead of bsae
+                if (activated?.synced) {
+                    activateNodeFn = globalState.activateNodePersist;
+                    wasPromise = true;
+                }
+
                 const { update: newUpdate, value: newValue } = activateNodeFn(node, doRetry, value);
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
