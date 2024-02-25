@@ -10,7 +10,7 @@ import {
     isObservable,
     optimized,
     setNodeValue,
-    symbolSynced,
+    symbolActivated,
     symbolDelete,
     symbolGetNode,
     symbolOpaque,
@@ -31,7 +31,7 @@ import {
     isPromise,
 } from './is';
 import type {
-    SyncedParams,
+    ActivatedParams,
     Change,
     ChildNodeValue,
     GetOptions,
@@ -905,7 +905,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isFunction(value)) {
                 value = value();
             }
-            const activated = value?.[symbolSynced] as SyncedParams;
+            const activated = value?.[symbolActivated] as ActivatedParams;
             if (activated) {
                 node.activationState = activated;
                 value = undefined;

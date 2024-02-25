@@ -1,4 +1,4 @@
-export { synced, activated } from './src/synced';
+export { activated } from './src/activated';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
@@ -57,7 +57,7 @@ import {
     globalState,
     optimized,
     setNodeValue,
-    symbolSynced,
+    symbolActivated,
     symbolDelete,
 } from './src/globals';
 import { setAtPath } from './src/helpers';
@@ -77,6 +77,6 @@ export const internal = {
     set,
     setAtPath,
     setNodeValue,
-    symbolSynced,
+    symbolActivated,
     symbolDelete,
 };

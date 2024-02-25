@@ -1,5 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { SyncedParamsWithLookup, NodeValue, UpdateFn } from './observableInterfaces';
+import { ActivatedLookupParams, NodeValue, UpdateFn } from './observableInterfaces';
 import { Observable, ObservablePrimitive, ObservableReadable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -7,7 +7,7 @@ export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
-export const symbolSynced = Symbol('synced');
+export const symbolActivated = Symbol('activated');
 
 export const globalState = {
     isLoadingLocal: false,
@@ -102,7 +102,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             lazy: true,
         };
         if (node.activationState) {
-            const { lookup } = node.activationState as SyncedParamsWithLookup<any>;
+            const { lookup } = node.activationState as ActivatedLookupParams<any>;
             if (lookup) {
                 asFunction = lookup.bind(node, key);
             }

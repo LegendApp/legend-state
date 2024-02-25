@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { synced } from '../src/synced';
+import { activated } from '../src/activated';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
@@ -3232,24 +3232,17 @@ describe('new computed', () => {
     });
     test('new computed with onChange and onSet', async () => {
         let wasSetTo: any;
-        let wasSetToFromSubscribe: boolean | undefined;
         let numRuns = 0;
         const obs = observable({
-            child: synced({
+            child: activated({
                 get: () => {
                     numRuns++;
                     return {
                         test: 'hi',
                     };
                 },
-                onSet: ({ value, fromSubscribe }) => {
+                onSet: ({ value }) => {
                     wasSetTo = value;
-                    wasSetToFromSubscribe = fromSubscribe;
-                },
-                subscribe: ({ update }) => {
-                    setTimeout(() => {
-                        update({ value: { test: 'hello' } });
-                    }, 0);
                 },
             }),
         });
@@ -3257,53 +3250,19 @@ describe('new computed', () => {
 
         await promiseTimeout(5);
 
-        expect(obs.child.test.get()).toEqual('hello');
-        expect(wasSetTo).toEqual({ test: 'hello' });
-        expect(wasSetToFromSubscribe).toEqual(true);
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
         obs.child.test.set('hello!');
         expect(wasSetTo).toEqual({ test: 'hello!' });
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
-    });
-    test('new computed with onChange and onSet other observable', async () => {
-        const other = observable('hi');
-        const obs = observable<{ child: { test: string } }>({
-            child: synced({
-                onSet: ({ value }) => {
-                    other.set(value.test);
-                },
-                subscribe: ({ update }) => {
-                    setTimeout(() => {
-                        update({ value: { test: 'hello' } });
-                    }, 0);
-                },
-                get: () => ({
-                    test: other.get(),
-                }),
-            }),
-        });
-        expect(obs.child.test.get()).toEqual('hi');
-
-        await promiseTimeout(0);
-
-        expect(obs.child.test.get()).toEqual('hello');
-        expect(other.get()).toEqual('hello');
-
-        other.set('hey');
     });
     test('new computed with onChange and onSet other observable and async', async () => {
         // In this test the initial promise takes longer than the onChange
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: synced({
+            child: activated({
                 onSet: ({ value }) => {
                     other.set(value.test);
-                },
-                subscribe: ({ update }) => {
-                    setTimeout(() => {
-                        update({ value: { test: 'hello' } });
-                    }, 5);
                 },
                 get: async () => {
                     await promiseTimeout(0);
@@ -3316,12 +3275,12 @@ describe('new computed', () => {
 
         await promiseTimeout(5);
 
-        expect(obs.child.test.get()).toEqual('hello');
-        expect(other.get()).toEqual('hello');
+        expect(obs.child.test.get()).toEqual('hi');
+        expect(other.get()).toEqual('hi');
     });
     test('new computed proxy', async () => {
         const obs = observable<{ child: Record<string, string> }>({
-            child: synced({
+            child: activated({
                 lookup: (key) => 'proxied_' + key,
             }),
         });

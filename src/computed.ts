@@ -1,4 +1,4 @@
-import { synced } from './synced';
+import { activated } from './activated';
 import { observable } from './observable';
 import { Observable, ObservableReadable } from './observableTypes';
 
@@ -14,7 +14,7 @@ export function computed<T, T2 = T>(
 ): Observable<T> {
     return observable(
         set
-            ? synced({
+            ? activated({
                   get: compute as any,
                   onSet: ({ value }) => set(value as any),
               })

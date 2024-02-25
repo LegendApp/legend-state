@@ -2,9 +2,10 @@ import type { symbolOpaque } from './globals';
 import type {
     Observable,
     Observable as ObservableNew,
+    ObservableReadable,
     ObservableReadable as ObservableReadableNew,
 } from './observableTypes';
-import type { ObservablePersistState } from './persistTypes';
+import type { CacheOptions, ObservablePersistState } from './persistTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
 
@@ -120,25 +121,39 @@ export interface ObserveEventCallback<T> {
     onCleanupReaction?: () => void;
 }
 
-export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> & OnSetExtra;
+export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
+export type OnSetParamsSynced<T> = OnSetParams<T> & OnSetExtra;
+
+export interface ActivatedParams<T = any> {
+    get?: () => T;
+    onSet?: (params: OnSetParams<T>) => void | Promise<any>;
+    waitFor?: Selector<any>;
+    waitForSet?: Promise<any> | ObservableReadable<any>;
+    initial?: T extends Promise<infer t> ? t : T;
+}
+export interface ActivatedLookupParams<T extends Record<string, any> = Record<string, any>> extends ActivatedParams<T> {
+    lookup: (key: string) => Promise<RecordValue<T>> | Observable<RecordValue<T>> | RecordValue<T>;
+}
 export interface SyncedGetParams {
+    value: any;
+    lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
     setMode: (mode: 'assign' | 'set') => void;
     refresh: () => void;
 }
-export interface SyncedParams<T = any> {
-    onSet?: (params: OnSetParams<T>) => void | Promise<any>;
-    subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
-    waitFor?: Selector<any>;
-    initial?: T extends Promise<infer t> ? t : T;
+export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 'onSet'> {
     get?: (params: SyncedGetParams) => T;
+    onSet?: (params: OnSetParamsSynced<T>) => void | Promise<any>;
+    subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
+    cache?: CacheOptions<any>;
 }
 export interface SyncedParamsWithLookup<T extends Record<string, any> = Record<string, any>> extends SyncedParams<T> {
     lookup: (key: string) => Promise<RecordValue<T>> | Observable<RecordValue<T>> | RecordValue<T>;
 }
 
+export type Activated<T> = T;
 export type Synced<T> = T;
 
 export type UpdateFn = (params: {

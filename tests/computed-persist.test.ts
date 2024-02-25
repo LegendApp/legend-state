@@ -1,9 +1,8 @@
 import { event } from '../src/event';
-import { persistObservable } from '../persist';
-import { synced } from '../src/synced';
+import { persistObservable, synced } from '../persist';
 import { observable, syncState } from '../src/observable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
-import { when } from '../src/when';
+import { when, whenReady } from '../src/when';
 import { run } from './computedtests';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
@@ -396,5 +395,118 @@ describe('retry', () => {
         expect(saved).toEqual(undefined);
         await when(() => attemptNum$.get() === 3);
         expect(saved).toEqual(1);
+    });
+});
+describe('subscribing to computeds', () => {
+    test('subscription with update', async () => {
+        const obs = observable(
+            synced({
+                subscribe: ({ update }) => {
+                    setTimeout(() => {
+                        update({ value: 'hi there again' });
+                    }, 5);
+                },
+                get: () => {
+                    return new Promise<string>((resolve) => {
+                        setTimeout(() => resolve('hi there'), 0);
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual('hi there');
+        await promiseTimeout(10);
+        expect(obs.get()).toEqual('hi there again');
+    });
+    test('subscription with refresh', async () => {
+        let num = 0;
+        const waiter = observable(0);
+        const obs = observable(
+            synced({
+                subscribe: ({ refresh }) => {
+                    when(
+                        () => waiter.get() === 1,
+                        () => {
+                            setTimeout(() => {
+                                refresh();
+                            }, 0);
+                        },
+                    );
+                },
+                get: () =>
+                    new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            resolve('hi there ' + num++);
+                            waiter.set((v) => v + 1);
+                        }, 0);
+                    }),
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual('hi there 0');
+        await when(() => waiter.get() === 2);
+        expect(obs.get()).toEqual('hi there 1');
+    });
+    test('subscribe update runs after get', async () => {
+        let didGet = false;
+        const obs = observable(
+            synced({
+                subscribe: ({ update }) => {
+                    setTimeout(() => {
+                        update({ value: 'from subscribe' });
+                    }, 0);
+                },
+                get: () => {
+                    return new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            didGet = true;
+                            resolve('hi there');
+                        }, 5);
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+        expect(didGet).toEqual(false);
+        await promiseTimeout(0);
+        expect(didGet).toEqual(false);
+        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(didGet).toEqual(false);
+        expect(obs.get()).toEqual(undefined);
+        await whenReady(obs);
+        expect(didGet).toEqual(true);
+        expect(obs.get()).toEqual('from subscribe');
+    });
+    test('activated with get running multiple times', async () => {
+        const gets$ = observable(0);
+        const refresh$ = observable(1);
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    refresh$.get();
+                    return new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            resolve('hi ' + refresh$.peek());
+                            gets$.set((v) => v + 1);
+                        }, 5);
+                    });
+                },
+            }),
+        );
+        expect(obs$.get()).toEqual(undefined);
+        expect(gets$.get()).toEqual(0);
+        await whenReady(obs$);
+        expect(gets$.get()).toEqual(1);
+        expect(obs$.get()).toEqual('hi 1');
+
+        refresh$.set((v) => v + 1);
+
+        await when(() => gets$.get() === 2);
+        await promiseTimeout(0);
+
+        expect(obs$.get()).toEqual('hi 2');
     });
 });

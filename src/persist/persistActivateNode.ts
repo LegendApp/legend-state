@@ -10,7 +10,7 @@ import type {
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, runWithRetry, symbolSynced } = internal;
+const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 
 export function persistActivateNode() {
     globalState.activateNode = function activateNodePersist(
@@ -32,10 +32,13 @@ export function persistActivateNode() {
                     const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
                     const setMode = (mode: 'assign' | 'set') => (params.mode = mode);
 
-                    const nodeValue = getNodeValue(node);
+                    const existingValue = getNodeValue(node);
                     const value = runWithRetry(node, { attemptNum: 0 }, () => {
                         return get!({
-                            value: isFunction(nodeValue) || nodeValue?.[symbolSynced] ? undefined : nodeValue,
+                            value:
+                                isFunction(existingValue) || existingValue?.[symbolActivated]
+                                    ? undefined
+                                    : existingValue,
                             lastSync: params.lastSync!,
                             updateLastSync,
                             setMode,

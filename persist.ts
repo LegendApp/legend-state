@@ -1,13 +1,9 @@
-import type {
-    CacheOptions,
-    ObservablePersistStateBase,
-    ObservablePersistenceConfig,
-    ObservableReadable,
-} from '@legendapp/state';
+import type { ObservablePersistenceConfig } from '@legendapp/state';
 import { internal as internalState } from '@legendapp/state';
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 export { invertFieldMap, transformObject, transformPath } from './src/persist/fieldTransformer';
 export { mapPersistences, persistObservable } from './src/persist/persistObservable';
+export { synced } from './src/persist/synced';
 
 export function isInRemoteChange() {
     return internalState.globalState.isLoadingRemote$.get();
@@ -22,19 +18,3 @@ export const internal: {
 
 import { persistActivateNode } from './src/persist/persistActivateNode';
 persistActivateNode();
-
-declare module '@legendapp/state' {
-    interface SyncedGetParams {
-        value: any;
-        lastSync: number | undefined;
-        updateLastSync: (lastSync: number) => void;
-        refresh: () => void;
-    }
-    interface SyncedParams<T> {
-        cache?: CacheOptions<any>;
-        waitForSet?: Promise<any> | ObservableReadable<any>;
-    }
-    // interface SubscribeOptions {}
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface ObservableState extends ObservablePersistStateBase {}
-}
