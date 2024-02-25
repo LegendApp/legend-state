@@ -16,7 +16,6 @@ import {
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
-import { mergeIntoObservable } from './helpers';
 import {
     hasOwnProperty,
     isArray,
@@ -37,7 +36,6 @@ import type {
     GetOptions,
     ListenerParams,
     NodeValue,
-    SubscribeOptions,
     TrackingType,
     UpdateFn,
 } from './observableInterfaces';
@@ -45,7 +43,6 @@ import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
 import { ObservablePersistStateInternal } from './persistTypes';
-import { runWithRetry } from './retry';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
 
@@ -918,7 +915,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (!node.activated) {
                 node.activated = true;
                 let activateNodeFn = activateNodeBase;
-                // If this is a Synced then run it through persistence instead of bsae
+                // If this is a Synced then run it through persistence instead of base
                 if (activated?.synced) {
                     activateNodeFn = globalState.activateNodePersist;
                     wasPromise = true;
@@ -929,19 +926,16 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
                 if (!node.activationState!.persistedRetry && !node.activationState.waitFor) {
-                    const activated = node.activationState!;
+                    const activated = node.activationState! as ActivatedParams;
                     if (node.state?.peek()?.sync) {
                         node.state.sync();
                         ignoreThisUpdate = true;
                     } else {
-                        value =
-                            activated.get?.({
-                                updateLastSync: noop,
-                                setMode: noop,
-                                lastSync: undefined,
-                                value: undefined,
-                                refresh: doRetry,
-                            }) ?? activated.initial;
+                        // @ts-expect-error asdf
+                        if (node.activationState.synced) {
+                            debugger;
+                        }
+                        value = activated.get?.() ?? activated.initial;
                     }
                 } else {
                     ignoreThisUpdate = true;
@@ -1022,23 +1016,10 @@ function activateNodeBase(node: NodeValue, refresh: () => void, value: any) {
         ) as any;
     }
     let isSetting = false;
-    let isSettingFromSubscribe = false;
-    let _mode: 'assign' | 'set' | 'merge' = 'set';
     if (node.activationState) {
-        const { onSet, subscribe, get: getFn, initial } = node.activationState;
+        const { onSet, get: getFn, initial } = node.activationState as ActivatedParams;
 
-        value = getFn
-            ? runWithRetry(node, { attemptNum: 0 }, () => {
-                  return getFn!({
-                      updateLastSync: noop,
-                      setMode: (mode) => (_mode = mode),
-                      lastSync: undefined,
-                      value: undefined,
-                      refresh,
-                  });
-              })
-            : undefined;
-        // TODO Should this have lastSync and value somehow?
+        value = getFn?.();
 
         if (value == undefined || value === null) {
             value = initial;
@@ -1078,52 +1059,26 @@ function activateNodeBase(node: NodeValue, refresh: () => void, value: any) {
                             return;
                         }
 
-                        const retryAttempts = { attemptNum: 0 };
-                        return runWithRetry(node, retryAttempts, (eventRetry) => {
-                            const cancelRetry = () => {
-                                eventRetry.cancel = true;
-                            };
-                            return new Promise<void>((resolve, reject) => {
-                                isSetting = true;
-                                let isProm = false;
-                                batch(
-                                    () => {
-                                        try {
-                                            const val = onSet({
-                                                value,
-                                                changes,
-                                                getPrevious,
-                                                node,
-                                                update,
-                                                refresh,
-                                                retryNum: retryAttempts.attemptNum,
-                                                cancelRetry,
-                                                fromSubscribe: isSettingFromSubscribe,
-                                            });
-                                            isProm = isPromise(val);
-                                            if (isProm) {
-                                                (val as Promise<any>).then(resolve).catch(reject);
-                                            }
-                                        } catch (e) {
-                                            reject(e);
-                                        }
-                                    },
-                                    () => {
-                                        if (!isProm) {
-                                            isSetting = false;
-                                            resolve();
-                                        }
-                                    },
-                                );
-                            });
-                        });
+                        isSetting = true;
+                        batch(
+                            () => {
+                                onSet({
+                                    value,
+                                    changes,
+                                    getPrevious,
+                                });
+                            },
+                            () => {
+                                isSetting = false;
+                            },
+                        );
                     };
                     whenReady(node.state!.isLoaded, run);
                 }
             };
 
             const onChangeImmediate = ({ value, changes }: ListenerParams) => {
-                if (!isSetting || isSettingFromSubscribe) {
+                if (!isSetting) {
                     if (changes.length > 1 || !isFunction(changes[0].prevAtPath)) {
                         latestValue = value;
                         if (allChanges.length > 0) {
@@ -1142,38 +1097,13 @@ function activateNodeBase(node: NodeValue, refresh: () => void, value: any) {
             onChange(node, onChangeImmediate as any, { immediate: true });
             onChange(node, runChanges);
         }
-        if (process.env.NODE_ENV === 'development' && node.activationState!.cache) {
-            // TODO Better message
-            console.log('[legend-state] Using cache without setting up persistence first');
-        }
-        if (process.env.NODE_ENV === 'development' && node.activationState!.retry) {
-            // TODO Better message
-            console.log('[legend-state] Using retry without setting up persistence first');
-        }
-
-        if (subscribe) {
-            const updateFromSubscribe: UpdateFn = (params) => {
-                whenReady(node.state!.isLoaded, () => {
-                    isSettingFromSubscribe = true;
-                    update(params);
-                    isSettingFromSubscribe = false;
-                });
-            };
-            subscribe({ node, update: updateFromSubscribe, refresh } as SubscribeOptions);
-        }
     }
-    const update: UpdateFn = ({ value, mode }) => {
+    const update: UpdateFn = ({ value }) => {
         // TODO: This isSetting might not be necessary? Tests still work if removing it.
         // Write tests that would break it if removed? I'd guess a combination of subscribe and
         if (!isSetting) {
             isSetting = true;
-            if (_mode === 'assign' || mode === 'assign') {
-                assign(node, value);
-            } else if (_mode === 'merge' || mode === 'merge') {
-                mergeIntoObservable(getProxy(node), value);
-            } else {
-                set(node, value);
-            }
+            set(node, value);
             isSetting = false;
         }
     };

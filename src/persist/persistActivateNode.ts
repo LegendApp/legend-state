@@ -15,7 +15,7 @@ const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 export function persistActivateNode() {
     globalState.activateNodePersist = function activateNodePersist(
         node: NodeValue,
-        refresh: () => void,
+        refresh2: () => void,
         newValue: any,
     ) {
         if (node.activationState) {
@@ -26,6 +26,7 @@ export function persistActivateNode() {
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
             let promiseReturn: any = undefined;
+            let refresh: () => any;
             if (get) {
                 pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
@@ -86,7 +87,7 @@ export function persistActivateNode() {
                 };
             }
 
-            persistObservable(getProxy(node), {
+            const syncState = persistObservable(getProxy(node), {
                 pluginRemote,
                 ...(cache || {}),
                 remote: {
@@ -95,6 +96,8 @@ export function persistActivateNode() {
                     waitForSet,
                 },
             });
+
+            refresh = () => syncState.sync();
 
             if (subscribe) {
                 when(promiseReturn || true, () => {

@@ -419,12 +419,12 @@ describe('subscribing to computeds', () => {
     });
     test('subscription with refresh', async () => {
         let num = 0;
-        const waiter = observable(0);
+        const waiter$ = observable(0);
         const obs = observable(
             synced({
                 subscribe: ({ refresh }) => {
                     when(
-                        () => waiter.get() === 1,
+                        () => waiter$.get() === 1,
                         () => {
                             setTimeout(() => {
                                 refresh();
@@ -436,7 +436,7 @@ describe('subscribing to computeds', () => {
                     new Promise<string>((resolve) => {
                         setTimeout(() => {
                             resolve('hi there ' + num++);
-                            waiter.set((v) => v + 1);
+                            waiter$.set((v) => v + 1);
                         }, 0);
                     }),
             }),
@@ -444,7 +444,7 @@ describe('subscribing to computeds', () => {
         expect(obs.get()).toEqual(undefined);
         await promiseTimeout(0);
         expect(obs.get()).toEqual('hi there 0');
-        await when(() => waiter.get() === 2);
+        await when(() => waiter$.get() === 2);
         expect(obs.get()).toEqual('hi there 1');
     });
     test('subscribe update runs after get', async () => {
