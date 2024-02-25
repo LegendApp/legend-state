@@ -1945,10 +1945,7 @@ export const run = (isPersist: boolean) => {
 
             expect(prop2CNum).toEqual(3);
             expect(prop2Num).toEqual(3);
-            // Note: This is 4 because immediate recomputes for the linked observable
-            // changing and then the value changing
-            expect(prop2NumImm).toEqual(4);
-
+            expect(prop2NumImm).toEqual(3);
             expect(prop2CValue).toEqual(4);
             expect(prop2Value).toEqual(4);
             expect(prop2ValueImm).toEqual(4);

@@ -1,5 +1,5 @@
+import { isArray } from './is';
 import { getNodeValue } from './globals';
-import { getValueAtPath } from './helpers';
 import type { ListenerFn, ListenerParams, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -45,60 +45,40 @@ export function onChange(
         });
     }
 
-    // TODO: This is really verbose, refactor it to be less code. But for now at least it's correct.
     let extraDisposes: (() => void)[];
-    if (node.linkedToNode) {
-        if (!fromLinks || !fromLinks.has(node.linkedToNode)) {
+
+    function addLinkedNodeListeners(childNode: NodeValue, cb: ListenerFn = callback, from?: NodeValue) {
+        // Don't add listeners for the same node more than once
+        if (!fromLinks?.has(childNode)) {
             fromLinks ||= new Set();
-            fromLinks.add(node);
-            fromLinks.add(node.linkedToNode);
-            extraDisposes = [onChange(node.linkedToNode, callback, options, fromLinks)];
+            fromLinks.add(from || node);
+            cb ||= callback;
+            const childOptions: Parameters<typeof onChange>[2] = {
+                trackingType: true,
+                ...options,
+            };
+            // onChange for the linked node
+            extraDisposes = [...(extraDisposes || []), onChange(childNode, cb as ListenerFn, childOptions, fromLinks)];
         }
     }
-    // TODO: Need to go up through parents find linked nodes and onChange their nodes at the same path
-    if (node.linkedFromNodes) {
-        for (const linkedFromNode of node.linkedFromNodes) {
-            if (!fromLinks || !fromLinks.has(linkedFromNode)) {
-                fromLinks ||= new Set();
-                fromLinks.add(node);
-                fromLinks.add(linkedFromNode);
-                extraDisposes ||= [];
-                extraDisposes.push(onChange(linkedFromNode, callback, options, fromLinks));
-            }
-        }
+
+    // Add listeners for linked to nodes
+    if (node.linkedToNode) {
+        addLinkedNodeListeners(node.linkedToNode);
     }
+
+    // Add listeners for linked from nodes
+    node.linkedFromNodes?.forEach((linkedFromNode) => addLinkedNodeListeners(linkedFromNode));
+
+    // Go up through the parents and add listeners for linked from nodes
     let parent = node.parent;
     let pathParent: string[] = [node!.key!];
     while (parent) {
         if (parent.linkedFromNodes) {
             for (const linkedFromNode of parent.linkedFromNodes) {
-                if (!fromLinks || !fromLinks.has(linkedFromNode)) {
-                    fromLinks ||= new Set();
-                    fromLinks.add(parent);
-                    fromLinks.add(linkedFromNode);
-                    extraDisposes ||= [];
-                    const path = pathParent;
-                    const p = getValueAtPath(getNodeValue(linkedFromNode), path);
-                    const prev = p ? JSON.parse(JSON.stringify(p)) : {};
-
-                    const cb = ({ value: valueA }: ListenerParams<any>) => {
-                        const value = getValueAtPath(valueA, path);
-                        if (value !== prev) {
-                            callback({
-                                value,
-                                changes: [
-                                    {
-                                        path,
-                                        pathTypes: path.map(() => 'object'), // TODO CHANGE
-                                        prevAtPath: prev,
-                                        valueAtPath: value,
-                                    },
-                                ],
-                                getPrevious: () => prev,
-                            });
-                        }
-                    };
-                    extraDisposes.push(onChange(linkedFromNode, cb, { trackingType: true, ...options }, fromLinks));
+                if (!fromLinks?.has(linkedFromNode)) {
+                    const cb = createCb(linkedFromNode, pathParent, callback);
+                    addLinkedNodeListeners(linkedFromNode, cb, parent);
                 }
             }
         }
@@ -110,4 +90,43 @@ export function onChange(
         listeners!.delete(listener);
         extraDisposes?.forEach((fn) => fn());
     };
+}
+
+function createCb(linkedFromNode: NodeValue, path: string[], callback: ListenerFn) {
+    // Create a callback for a path that calls it with the current value at the path
+    let { valueAtPath: prevAtPath } = getValueAtPath(getNodeValue(linkedFromNode), path);
+
+    return function ({ value: valueA }: ListenerParams<any>) {
+        const { valueAtPath, pathTypes } = getValueAtPath(valueA, path);
+        if (valueAtPath !== prevAtPath) {
+            callback({
+                value: valueAtPath,
+                changes: [
+                    {
+                        path,
+                        pathTypes,
+                        prevAtPath,
+                        valueAtPath,
+                    },
+                ],
+                getPrevious: () => prevAtPath,
+            });
+        }
+        prevAtPath = valueAtPath;
+    };
+}
+
+function getValueAtPath(
+    obj: Record<string, any>,
+    path: string[],
+): { valueAtPath: any; pathTypes: ('object' | 'array')[] } {
+    let o: Record<string, any> = obj;
+    const pathTypes: ('object' | 'array')[] = [];
+    for (let i = 0; o && i < path.length; i++) {
+        pathTypes.push(isArray(o) ? 'array' : 'object');
+        const p = path[i];
+        o = (o as any)[p];
+    }
+
+    return { valueAtPath: o, pathTypes };
 }
