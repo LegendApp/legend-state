@@ -1188,14 +1188,9 @@ function setToObservable(node: NodeValue, value: any) {
     // link it to the target observable
     const linkedNode = getNode(value);
     if (linkedNode !== node && linkedNode?.linkedToNode !== node) {
-        const prevNode = node.linkedToNode;
-
         node.linkedToNode = linkedNode;
-        if (!linkedNode.linkedFromNodes) {
-            linkedNode.linkedFromNodes = new Set();
-        }
+        linkedNode.linkedFromNodes ||= new Set();
         linkedNode.linkedFromNodes.add(node);
-        peek(linkedNode);
         node.linkedToNodeDispose?.();
         node.linkedToNodeDispose = onChange(
             linkedNode,
@@ -1206,13 +1201,6 @@ function setToObservable(node: NodeValue, value: any) {
             { initial: true },
             new Set([node]),
         );
-
-        // If the target observable is different then notify for the change
-        if (prevNode) {
-            const value = getNodeValue(linkedNode);
-            const prevValue = getNodeValue(prevNode);
-            notify(node, value, prevValue, 0);
-        }
     }
     return value;
 }
