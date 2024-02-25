@@ -110,8 +110,10 @@ type ObservableChildren<T, Nullable = IsNullable<T>> = {
 type ObservableFunctionChildren<T> = {
     [K in keyof T]-?: T[K] extends Observable
         ? T[K]
-        : T[K] extends () => Promise<infer t> | infer t
-        ? t extends void
+        : T[K] extends (key: infer Key extends string) => Promise<infer t> | infer t
+        ? HasOneParam<T[K]> extends true
+            ? Observable<Record<Key, t>>
+            : t extends void
             ? T[K]
             : t extends Observable
             ? t
@@ -132,15 +134,22 @@ type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObs
 
 type ObservableFunction<T> = T extends () => infer t ? t | (() => t) : T;
 
+// Check if the function type T has one lookup parameter
+type HasOneParam<T> = T extends (...args: infer P) => any ? (P extends { length: 1 } ? true : false) : false;
+
+// : [T] extends [(key: infer K extends string) => infer t]
+// ? // ?  HasParams<T> extends true ? Observable<Record<K, t>>
 type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that T is ONLY undefined or null
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
     ? ObservableAny
     : [T] extends [Promise<infer t>]
     ? ObservableNode<t>
-    : [T] extends [() => infer t]
+    : [T] extends [(key: infer K extends string) => infer t]
     ? [t] extends [ImmutableObservableBase<any>]
         ? t
+        : HasOneParam<T> extends true
+        ? Observable<Record<K, t>>
         : Observable<ObservableFunction<t>>
     : [NT] extends [ImmutableObservableBase<any>]
     ? NT
@@ -174,6 +183,7 @@ type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
     ?
+          | ((key: string) => string)
           | Promise<ValueOrFunctionKeys<T>>
           | ValueOrFunctionKeys<T>
           | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)

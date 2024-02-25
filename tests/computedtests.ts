@@ -932,7 +932,7 @@ export const run = () => {
                 },
             ]);
         });
-        test('Accessing through lookup goes to computed and not parent object', () => {
+        test('Accessing through link goes to computed and not parent object', () => {
             const test = (): { child: string } => {
                 return { child: obs.text.get() + '!' };
             };
@@ -1096,15 +1096,21 @@ export const run = () => {
         });
     });
     describe('lookup', () => {
+        test('lookup basic', async () => {
+            const obs = observable((key: string) => 'proxied_' + key);
+            expect(obs.test.get()).toEqual('proxied_test');
+        });
+        test('lookup basic as child', async () => {
+            const obs = observable<{ child: Record<string, string> }>({
+                child: (key: string) => 'proxied_' + key,
+            });
+            expect(obs.child.test.get()).toEqual('proxied_test');
+        });
         test('lookup plain', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
-            const itemText = observable(
-                activated({
-                    lookup: (key) => obs.items[key].text.get(),
-                }),
-            );
+            const itemText = observable((key: string) => obs.items[key].text.get());
             expect(itemText['test1'].get()).toEqual('hi');
 
             const handlerItem = expectChangeHandler(obs.items['test1']);
@@ -1135,17 +1141,14 @@ export const run = () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
             });
-            const itemText = observable(
+            const itemText = observable((key: string) =>
                 activated({
-                    lookup: (key) =>
-                        activated({
-                            onSet: ({ value }) => {
-                                obs.items[key].text.set(value);
-                            },
-                            get: () => {
-                                return obs.items[key].text.get();
-                            },
-                        }),
+                    onSet: ({ value }) => {
+                        obs.items[key].text.set(value);
+                    },
+                    get: () => {
+                        return obs.items[key].text.get();
+                    },
                 }),
             );
             itemText['test1'].get();
@@ -1177,11 +1180,9 @@ export const run = () => {
         test('lookup link', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activated({
-                    lookup: (key): Observable<string> => {
-                        return obs.items[key].text;
-                    },
-                }),
+                itemText: (key: string): Observable<string> => {
+                    return obs.items[key].text;
+                },
             });
 
             expect(obs.itemText['test1'].get()).toEqual('hi');
@@ -1216,9 +1217,7 @@ export const run = () => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemText: activated({
-                    lookup: (key): Observable<string> => obs.items[key][obs.selector.get()],
-                }),
+                itemText: (key: string): Observable<string> => obs.items[key][obs.selector.get()],
             });
             expect(obs.itemText['test1'].get()).toEqual('hi');
 
@@ -1247,9 +1246,7 @@ export const run = () => {
                     test1: { text: 'hi', othertext: 'bye' },
                     test2: { text: 'hello', othertext: 'goodbye' },
                 } as Record<string, Record<string, string>>,
-                itemLink: activated({
-                    lookup: (key): Observable<Record<string, string>> => obs.items[key],
-                }),
+                itemLink: (key: string): Observable<Record<string, string>> => obs.items[key],
             });
             expect(obs.itemLink['test1'].text.get()).toEqual('hi');
         });
@@ -1262,23 +1259,19 @@ export const run = () => {
                             test2: { text: 'hello', othertext: 'goodbye' },
                         }) as Record<string, Record<string, string>>,
                 }),
-                itemLink: activated({
-                    lookup: (key): Observable<string> => {
-                        return obs.items[key].text;
-                    },
-                }),
+                itemLink: (key: string): Observable<string> => {
+                    return obs.items[key].text;
+                },
             });
             expect(obs.itemLink[undefined as any].get()).toEqual(undefined);
         });
         test('lookup into lookup', () => {
             const obs = observable({
-                team: activated({
-                    lookup: (teamID) => ({
-                        profile: activated({
-                            get: () => {
-                                return { username: teamID + ' name' };
-                            },
-                        }),
+                team: (teamID: string) => ({
+                    profile: activated({
+                        get: () => {
+                            return { username: teamID + ' name' };
+                        },
                     }),
                 }),
             });
@@ -1289,13 +1282,11 @@ export const run = () => {
         test('observable link into lookup', () => {
             const obs = observable({
                 link: () => obs.team['asdf'],
-                team: activated({
-                    lookup: (teamID) => ({
-                        profile: activated({
-                            get: () => {
-                                return { username: teamID + ' name' };
-                            },
-                        }),
+                team: (teamID: string) => ({
+                    profile: activated({
+                        get: () => {
+                            return { username: teamID + ' name' };
+                        },
                     }),
                 }),
             });
@@ -1304,9 +1295,7 @@ export const run = () => {
         test('raw value of lookup has all values', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activated({
-                    lookup: (key): Observable<string> => obs.items[key].text,
-                }),
+                itemText: (key: string): Observable<string> => obs.items[key].text,
             });
             expect(obs.get().items).toEqual({
                 test1: { text: 'hi' },
@@ -1336,11 +1325,9 @@ export const run = () => {
         test('listener on lookup works', () => {
             const obs = observable({
                 items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-                itemText: activated({
-                    lookup: (key): Observable<string> => {
-                        return obs.items[key].text;
-                    },
-                }),
+                itemText: (key: string): Observable<string> => {
+                    return obs.items[key].text;
+                },
             });
             obs.itemText['test1'].get();
             const handler = expectChangeHandler(obs);

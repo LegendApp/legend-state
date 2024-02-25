@@ -1,9 +1,8 @@
-import { event } from '../src/event';
 import { persistObservable, synced } from '../persist';
+import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
 import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
 import { when, whenReady } from '../src/when';
-import { run } from './computedtests';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
 const testNode = observable({});

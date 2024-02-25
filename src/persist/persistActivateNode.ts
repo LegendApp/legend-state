@@ -1,11 +1,11 @@
 import type {
-    SyncedLookupParams,
     ListenerParams,
     NodeValue,
     ObservableOnChangeParams,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
+    SyncedParams,
     UpdateFn,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
@@ -17,11 +17,13 @@ export function persistActivateNode() {
         if (node.activationState) {
             // If it is a Synced
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =
-                node.activationState! as SyncedLookupParams;
+                node.activationState! as SyncedParams;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
             let promiseReturn: any = undefined;
+            // Not sure why this is needed, but it's needed to make the linter happy
+            // eslint-disable-next-line prefer-const
             let refresh: () => any;
             if (get) {
                 pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {

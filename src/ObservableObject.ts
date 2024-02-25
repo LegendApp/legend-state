@@ -845,8 +845,13 @@ export function peek(node: NodeValue) {
     if (lazy) {
         const lazyFn = node.lazyFn!;
         delete node.lazy;
-        if (isFunction(node) || isFunction(lazyFn)) {
-            value = activateNodeFunction(node as any, lazyFn);
+        if (isFunction(lazyFn)) {
+            if (lazyFn.length === 1) {
+                // This is a lookup function, so return a record object
+                value = {};
+            } else {
+                value = activateNodeFunction(node as any, lazyFn);
+            }
         }
     }
 

@@ -15,15 +15,12 @@ export function proxy<T extends Record<string, any>, T2 = T>(
     get: (key: any) => ObservableWriteable<any>,
     set?: (key: any, value: T2) => void,
 ): any {
-    return observable(
-        activated({
-            lookup: (key) =>
-                set
-                    ? activated({
-                          get: () => get(key),
-                          onSet: ({ value }) => set(key, value as any),
-                      })
-                    : get(key),
-        }),
+    return observable((key: string) =>
+        set
+            ? activated({
+                  get: () => get(key),
+                  onSet: ({ value }) => set(key, value as any),
+              })
+            : get(key),
     );
 }

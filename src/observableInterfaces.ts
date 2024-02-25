@@ -131,9 +131,7 @@ export interface ActivatedParams<T = any> {
     waitForSet?: Promise<any> | ObservableReadable<any>;
     initial?: T extends Promise<infer t> ? t : T;
 }
-export interface ActivatedLookupParams<T extends Record<string, any> = Record<string, any>> extends ActivatedParams<T> {
-    lookup: (key: string) => Promise<RecordValue<T>> | Observable<RecordValue<T>> | RecordValue<T>;
-}
+
 export interface SyncedGetParams {
     value: any;
     lastSync: number | undefined;
@@ -148,9 +146,6 @@ export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
     cache?: CacheOptions<any>;
-}
-export interface SyncedLookupParams<T extends Record<string, any> = Record<string, any>> extends SyncedParams<T> {
-    lookup: (key: string) => Promise<RecordValue<T>> | Observable<RecordValue<T>> | RecordValue<T>;
 }
 
 export type Activated<T> = T;

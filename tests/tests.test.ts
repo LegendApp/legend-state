@@ -3278,14 +3278,6 @@ describe('new computed', () => {
         expect(obs.child.test.get()).toEqual('hi');
         expect(other.get()).toEqual('hi');
     });
-    test('new computed proxy', async () => {
-        const obs = observable<{ child: Record<string, string> }>({
-            child: activated({
-                lookup: (key) => 'proxied_' + key,
-            }),
-        });
-        expect(obs.child.test.get()).toEqual('proxied_test');
-    });
     test('new computed link', async () => {
         const obs = observable(1);
         const comp = observable(() => obs);

@@ -1,5 +1,5 @@
 import { isChildNodeValue, isFunction, isObject } from './is';
-import { ActivatedLookupParams, NodeValue, UpdateFn } from './observableInterfaces';
+import { NodeValue, UpdateFn } from './observableInterfaces';
 import { Observable, ObservablePrimitive, ObservableReadable } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -96,11 +96,9 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             key,
             lazy: true,
         };
-        if (node.activationState) {
-            const { lookup } = node.activationState as ActivatedLookupParams<any>;
-            if (lookup) {
-                asFunction = lookup.bind(node, key);
-            }
+        // Lookup functions are bound with the child key
+        if (node.lazyFn?.length === 1) {
+            asFunction = node.lazyFn.bind(node, key);
         }
         if (asFunction) {
             child = Object.assign(() => {}, child);
@@ -117,7 +115,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
 
 export function ensureNodeValue(node: NodeValue) {
     let value = getNodeValue(node);
-    if (!value) {
+    if (!value || isFunction(value)) {
         if (isChildNodeValue(node)) {
             const parent = ensureNodeValue(node.parent);
             value = parent[node.key] = {};
