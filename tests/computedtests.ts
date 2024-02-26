@@ -1105,6 +1105,12 @@ export const run = () => {
                 child: (key: string) => 'proxied_' + key,
             });
             expect(obs.child.test.get()).toEqual('proxied_test');
+
+            const obs2 = observable<{ child: Record<string, { child2: string }> }>({
+                child: (key: string) => ({ child2: 'proxied_' + key }),
+            });
+            expect(obs.child.test.get()).toEqual('proxied_test');
+            expect(obs2.child.test.child2.get()).toEqual('proxied_test');
         });
         test('lookup plain', () => {
             const obs = observable({

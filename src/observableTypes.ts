@@ -1,4 +1,4 @@
-import type { GetOptions, ListenerFn, TrackingType } from './observableInterfaces';
+import type { GetOptions, ListenerFn, RecordValue, TrackingType } from './observableInterfaces';
 
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
 type ArrayOverrideFnNames =
@@ -183,7 +183,7 @@ type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
     ?
-          | ((key: string) => string)
+          | ((key: string) => RecordValue<T>)
           | Promise<ValueOrFunctionKeys<T>>
           | ValueOrFunctionKeys<T>
           | ImmutableObservableBase<T>
