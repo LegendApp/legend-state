@@ -174,7 +174,7 @@ type ObservableReadable<T = any> = ImmutableObservableBase<T>;
 type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;
 
 // Allow input types to have functions in them
-type ValueOrFunction<T> = T extends Function ? T : T | (() => T | Promise<T>);
+type ValueOrFunction<T> = T extends Function ? T : T | Promise<T> | (() => T | Promise<T>);
 type ValueOrFunctionKeys<T> = {
     [K in keyof T]: RecursiveValueOrFunction<T[K]>;
 };
@@ -183,7 +183,7 @@ type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
     ?
-          | ((key: string) => RecordValue<T>)
+          | ((key: string) => RecordValue<RecursiveValueOrFunction<T>>)
           | Promise<ValueOrFunctionKeys<T>>
           | ValueOrFunctionKeys<T>
           | ImmutableObservableBase<T>
