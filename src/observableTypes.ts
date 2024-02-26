@@ -186,6 +186,7 @@ type RecursiveValueOrFunction<T> = T extends Function
           | ((key: string) => string)
           | Promise<ValueOrFunctionKeys<T>>
           | ValueOrFunctionKeys<T>
+          | ImmutableObservableBase<T>
           | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)
     : ValueOrFunction<T>;
 

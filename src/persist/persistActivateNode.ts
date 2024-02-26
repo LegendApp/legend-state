@@ -5,7 +5,6 @@ import type {
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
-    SyncedParams,
     UpdateFn,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
@@ -16,8 +15,7 @@ export function persistActivateNode() {
     globalState.activateNodePersist = function activateNodePersist(node: NodeValue, newValue: any) {
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } =
-                node.activationState! as SyncedParams;
+            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } = node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -89,7 +87,7 @@ export function persistActivateNode() {
                 pluginRemote,
                 ...(cache || {}),
                 remote: {
-                    retry: retry,
+                    retry,
                     offlineBehavior,
                     waitForSet,
                 },

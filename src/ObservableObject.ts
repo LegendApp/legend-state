@@ -932,10 +932,6 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                         node.state.sync();
                         ignoreThisUpdate = true;
                     } else {
-                        // @ts-expect-error Testing for this, can remove
-                        if (node.activationState.synced) {
-                            debugger;
-                        }
                         value = activated.get?.() ?? activated.initial;
                     }
                 } else {

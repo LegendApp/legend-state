@@ -122,7 +122,14 @@ export interface ObserveEventCallback<T> {
 }
 
 export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
-export type OnSetParamsSynced<T> = OnSetParams<T> & OnSetExtra;
+export type SyncedOnSetParams<T> = OnSetParams<T> & {
+    node: NodeValue;
+    update: UpdateFn;
+    refresh: () => void;
+    cancelRetry: () => void;
+    retryNum: number;
+    fromSubscribe: boolean | undefined;
+};
 
 export interface ActivatedParams<T = any> {
     get?: () => T;
@@ -141,7 +148,7 @@ export interface SyncedGetParams {
 }
 export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 'onSet'> {
     get?: (params: SyncedGetParams) => T;
-    onSet?: (params: OnSetParamsSynced<T>) => void | Promise<any>;
+    onSet?: (params: SyncedOnSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
@@ -164,14 +171,7 @@ export interface RetryOptions {
     backoff?: 'constant' | 'exponential';
     maxDelay?: number;
 }
-export interface OnSetExtra {
-    node: NodeValue;
-    update: UpdateFn;
-    refresh: () => void;
-    cancelRetry: () => void;
-    retryNum: number;
-    fromSubscribe: boolean | undefined;
-}
+
 export interface SubscribeOptions {
     node: NodeValue;
     update: UpdateFn;
