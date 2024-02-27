@@ -250,5 +250,21 @@ describe('Types', () => {
                 expectTypeOf<State['foo']>().toEqualTypeOf<() => void>();
             });
         });
+
+        describe('equality', () => {
+            it('accepts subset', () => {
+                interface Thing {
+                    title: string;
+                    id: string;
+                    createdAt: Date;
+                }
+
+                function func(obs: Observable<{ id: string; title: string }>) {
+                    return obs;
+                }
+                const obs = observable<Thing>({ id: '', title: '', createdAt: new Date() });
+                func(obs);
+            });
+        });
     });
 });

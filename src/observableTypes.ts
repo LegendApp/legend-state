@@ -1,4 +1,4 @@
-import type { GetOptions, ListenerFn, RecordValue, TrackingType } from './observableInterfaces';
+import type { GetOptions, ListenerFn, TrackingType } from './observableInterfaces';
 
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
 type ArrayOverrideFnNames =
@@ -183,7 +183,7 @@ type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
     ?
-          | ((key: string) => RecordValue<RecursiveValueOrFunction<T>>)
+          | ((key: string) => any)
           | Promise<ValueOrFunctionKeys<T>>
           | ValueOrFunctionKeys<T>
           | ImmutableObservableBase<T>
@@ -191,13 +191,13 @@ type RecursiveValueOrFunction<T> = T extends Function
     : ValueOrFunction<T>;
 
 export type {
+    // TODO: how to make these internal somehow?
+    ImmutableObservableBase,
     Observable,
     ObservableBoolean,
     ObservableObject,
     ObservablePrimitive,
     ObservableReadable,
     ObservableWriteable,
-    // TODO: how to make these internal somehow?
-    ImmutableObservableBase,
     RecursiveValueOrFunction,
 };
