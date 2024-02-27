@@ -516,6 +516,51 @@ describe('Two way Computed', () => {
         });
         expect(num).toEqual(2);
     });
+    test('Two way does not trigger itself', () => {
+        const obs1 = observable(0);
+        const obs2 = observable(0);
+        let numGets = 0;
+        let numSets = 0;
+
+        const comp = observable(
+            activated({
+                get: () => {
+                    numGets++;
+                    return obs1.get() + obs2.get();
+                },
+                onSet({ value }) {
+                    numSets++;
+                    obs1.set(value);
+                    obs2.set(value);
+                },
+            }),
+        );
+        expect(numGets).toEqual(0);
+
+        // First get activates it
+        expect(comp.get()).toEqual(0);
+        expect(numGets).toEqual(1);
+
+        obs1.set(1);
+
+        expect(numGets).toEqual(2);
+        expect(numSets).toEqual(0);
+
+        obs2.set(1);
+
+        expect(numGets).toEqual(3);
+        expect(numSets).toEqual(0);
+
+        comp.set(3);
+
+        expect(numGets).toEqual(4);
+        expect(numSets).toEqual(1);
+
+        obs1.set(4);
+
+        expect(numGets).toEqual(5);
+        expect(numSets).toEqual(1);
+    });
 });
 describe('Computed inside observable', () => {
     test('Computed in observable', () => {

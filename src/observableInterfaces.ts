@@ -76,6 +76,7 @@ interface BaseNodeValue {
     linkedFromNodes?: Set<NodeValue>;
     isSetting?: number;
     isAssigning?: number;
+    isComputing?: boolean;
     parentOther?: NodeValue;
     functions?: Map<string, Function | Observable<any>>;
     lazy?: boolean;

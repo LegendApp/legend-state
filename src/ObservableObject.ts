@@ -975,7 +975,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                     } else {
                         activatedValue = value;
                         if (node.state!.isLoaded.peek()) {
+                            node.isComputing = true;
                             set(node, value);
+                            node.isComputing = false;
                         } else {
                             setNodeValue(node, value);
                             node.state!.assign({
@@ -1010,7 +1012,6 @@ function activateNodeBase(node: NodeValue, value: any) {
             getProxy,
         ) as any;
     }
-    let isSetting = false;
     if (node.activationState) {
         const { onSet, get: getFn, initial } = node.activationState as ActivatedParams;
 
@@ -1054,7 +1055,7 @@ function activateNodeBase(node: NodeValue, value: any) {
                             return;
                         }
 
-                        isSetting = true;
+                        node.isComputing = true;
                         batch(
                             () => {
                                 onSet({
@@ -1064,7 +1065,7 @@ function activateNodeBase(node: NodeValue, value: any) {
                                 });
                             },
                             () => {
-                                isSetting = false;
+                                node.isComputing = false;
                             },
                         );
                     };
@@ -1073,7 +1074,7 @@ function activateNodeBase(node: NodeValue, value: any) {
             };
 
             const onChangeImmediate = ({ value, changes }: ListenerParams) => {
-                if (!isSetting) {
+                if (!node.isComputing) {
                     if (changes.length > 1 || !isFunction(changes[0].prevAtPath)) {
                         latestValue = value;
                         if (allChanges.length > 0) {
@@ -1094,12 +1095,10 @@ function activateNodeBase(node: NodeValue, value: any) {
         }
     }
     const update: UpdateFn = ({ value }) => {
-        // TODO: This isSetting might not be necessary? Tests still work if removing it.
-        // Write tests that would break it if removed? I'd guess a combination of subscribe and
-        if (!isSetting) {
-            isSetting = true;
+        if (!node.isComputing) {
+            node.isComputing = true;
             set(node, value);
-            isSetting = false;
+            node.isComputing = false;
         }
     };
     return { update, value };
