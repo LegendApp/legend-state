@@ -1,10 +1,12 @@
 import type {
     ListenerParams,
     NodeValue,
+    Observable,
     ObservableOnChangeParams,
     ObservablePersistRemoteFunctions,
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
+    ObservablePersistState,
     UpdateFn,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
@@ -20,9 +22,12 @@ export function persistActivateNode() {
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
             let promiseReturn: any = undefined;
-            // Not sure why this is needed, but it's needed to make the linter happy
+
+            // Not sure why this disable is needed, but it's needed to make the linter happy
             // eslint-disable-next-line prefer-const
-            let refresh: () => any;
+            let syncState: Observable<ObservablePersistState>;
+            const refresh = () => syncState?.sync();
+
             if (get) {
                 pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
                     onChange = params.onChange;
@@ -83,7 +88,7 @@ export function persistActivateNode() {
                 };
             }
 
-            const syncState = persistObservable(getProxy(node), {
+            syncState = persistObservable(getProxy(node), {
                 pluginRemote,
                 ...(cache || {}),
                 remote: {
@@ -92,8 +97,6 @@ export function persistActivateNode() {
                     waitForSet,
                 },
             });
-
-            refresh = () => syncState.sync();
 
             if (subscribe) {
                 when(promiseReturn || true, () => {
