@@ -508,13 +508,10 @@ const proxyHandler: ProxyHandler<any> = {
         return value !== null && typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
     ownKeys(node: NodeValue) {
-        const value = getNodeValue(node);
+        const value = get(node, true);
         if (isPrimitive(value)) return [];
 
         const keys = value ? Reflect.ownKeys(value) : [];
-
-        // Update that this node was accessed for observers
-        updateTracking(node, true);
 
         // This is required to fix this error:
         // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for

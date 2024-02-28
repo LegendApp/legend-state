@@ -1737,6 +1737,28 @@ describe('Complex computeds', () => {
 
         expect(total).toEqual(3);
     });
+    test('Computed returning an array of links with Object.keys', () => {
+        const obs = observable<Record<string, { id: string }>>(() => ({
+            a: { id: 'a' },
+            b: { id: 'b' },
+        }));
+
+        const keys$ = observable(() => {
+            return Object.keys(obs);
+        });
+
+        const keys = keys$.get();
+
+        expect(keys).toEqual(['a', 'b']);
+
+        const values$ = observable(() => {
+            return Object.values(obs);
+        });
+
+        const values = values$.map((child$) => child$.get());
+
+        expect(values).toEqual([{ id: 'a' }, { id: 'b' }]);
+    });
     // TODOCOMPUTED Known to not work, not sure if it should work
     // test('Computed returning an array of links direct and get array', () => {
     //     const obs = observable<Record<string, { id: string; text: string }>>({
