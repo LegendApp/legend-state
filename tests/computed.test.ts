@@ -1702,6 +1702,60 @@ describe('Complex computeds', () => {
         obs.a.delete();
         expect(comp[0].get()).toEqual({ id: 'b', text: 'hib' });
     });
+    test('Computed returning an array of links direct with looper', () => {
+        const obs = observable<Record<string, { id: string; text: string }>>({
+            a: { id: 'a', text: 'hia' },
+            b: { id: 'b', text: 'hib' },
+        });
+
+        const comp = observable(() => {
+            const val = obs.get();
+            return Object.keys(val).map((key) => {
+                return obs[key];
+            });
+        });
+
+        const arr = comp.map((a) => a.get());
+
+        expect(arr.length).toEqual(2);
+        expect(arr[0]).toEqual({ id: 'a', text: 'hia' });
+    });
+    test('Computed returning an array of links direct with reduce', () => {
+        const obs = observable<Record<string, { id: string; num: number }>>({
+            a: { id: 'a', num: 1 },
+            b: { id: 'b', num: 2 },
+        });
+
+        const comp = observable(() => {
+            const val = obs.get();
+            return Object.keys(val).map((key) => {
+                return obs[key];
+            });
+        });
+
+        const total = comp.reduce((acc, a: Observable<any>) => acc + a.num.get(), 0);
+
+        expect(total).toEqual(3);
+    });
+    // TODOCOMPUTED Known to not work, not sure if it should work
+    // test('Computed returning an array of links direct and get array', () => {
+    //     const obs = observable<Record<string, { id: string; text: string }>>({
+    //         a: { id: 'a', text: 'hia' },
+    //         b: { id: 'b', text: 'hib' },
+    //     });
+
+    //     const comp = observable(() => {
+    //         const val = obs.get();
+    //         return Object.keys(val).map((key) => {
+    //             return obs[key];
+    //         });
+    //     });
+
+    //     const arr = comp.get();
+
+    //     expect(arr.length).toEqual(2);
+    //     expect(arr[0]).toEqual({ id: 'a', text: 'hia' });
+    // });
     test('Changing link target', () => {
         const state = observable({
             a: {

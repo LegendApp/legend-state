@@ -65,6 +65,7 @@ const ArrayLoopers = new Set<keyof Array<any>>([
     'forEach',
     'join',
     'map',
+    'reduce',
     'some',
 ]);
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
@@ -451,29 +452,45 @@ const proxyHandler: ProxyHandler<any> = {
                     updateTracking(node);
 
                     return function (cbOrig: any, thisArg: any) {
-                        // If callback needs to run on the observable proxies, use a wrapped callback
-                        function cbWrapped(_: any, index: number, array: any[]) {
-                            return cbOrig(getProxy(node, index + ''), index, array);
-                        }
+                        const isReduce = p === 'reduce';
+                        const cbWrapped = isReduce
+                            ? (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => {
+                                  return cbOrig(
+                                      previousValue,
+                                      getProxy(
+                                          node,
+                                          currentIndex + '',
+                                          isFunction(currentValue) ? currentValue : undefined,
+                                      ),
+                                      currentIndex,
+                                      array,
+                                  );
+                              }
+                            : (val: any, index: number, array: any[]) => {
+                                  return cbOrig(
+                                      getProxy(node, index + '', isFunction(val) ? val : undefined),
+                                      index,
+                                      array,
+                                  );
+                              };
 
-                        // If return value needs to be observable proxies, use our own looping logic and return the proxy when found
-                        if (ArrayLoopersReturn.has(p)) {
-                            const isFind = p === 'find';
-                            const out = [];
-                            for (let i = 0; i < value.length; i++) {
-                                if (cbWrapped(value[i], i, value)) {
-                                    const proxy = getProxy(node, i + '');
-                                    if (isFind) {
-                                        return proxy;
-                                    } else {
-                                        out.push(proxy);
-                                    }
-                                }
-                            }
-                            return isFind ? undefined : out;
-                        } else {
+                        if (isReduce || !ArrayLoopersReturn.has(p)) {
                             return value[p](cbWrapped, thisArg);
                         }
+
+                        const isFind = p === 'find';
+                        const out = [];
+                        for (let i = 0; i < value.length; i++) {
+                            type LooperType = Parameters<typeof Array.prototype.map>[0];
+                            if ((cbWrapped as LooperType)(value[i], i, value)) {
+                                const proxy = getProxy(node, i + '');
+                                if (isFind) {
+                                    return proxy;
+                                }
+                                out.push(proxy);
+                            }
+                        }
+                        return isFind ? undefined : out;
                     };
                 }
             }
