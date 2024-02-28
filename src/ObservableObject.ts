@@ -258,7 +258,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     const obs = value;
                     value = () => obs;
                 }
-                let child = getChildNode(parent, key, isFunction(value) ? value : undefined);
+                let child = getChildNode(parent, key, value);
 
                 if (!child.lazy && (isFunction(value) || isObservable(value))) {
                     reactivateNode(child, value);
@@ -457,21 +457,13 @@ const proxyHandler: ProxyHandler<any> = {
                             ? (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => {
                                   return cbOrig(
                                       previousValue,
-                                      getProxy(
-                                          node,
-                                          currentIndex + '',
-                                          isFunction(currentValue) ? currentValue : undefined,
-                                      ),
+                                      getProxy(node, currentIndex + '', currentValue),
                                       currentIndex,
                                       array,
                                   );
                               }
                             : (val: any, index: number, array: any[]) => {
-                                  return cbOrig(
-                                      getProxy(node, index + '', isFunction(val) ? val : undefined),
-                                      index,
-                                      array,
-                                  );
+                                  return cbOrig(getProxy(node, index + '', val), index, array);
                               };
 
                         if (isReduce || !ArrayLoopersReturn.has(p)) {
@@ -609,7 +601,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
     }
 
     // Get the child node for updating and notifying
-    const childNode: NodeValue = isRoot ? node : getChildNode(node, key, isFunction(newValue) ? newValue : undefined);
+    const childNode: NodeValue = isRoot ? node : getChildNode(node, key, newValue);
 
     if (isObservable(newValue)) {
         setToObservable(childNode, newValue);

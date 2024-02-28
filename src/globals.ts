@@ -100,7 +100,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
         if (node.lazyFn?.length === 1) {
             asFunction = node.lazyFn.bind(node, key);
         }
-        if (asFunction) {
+        if (isFunction(asFunction)) {
             child = Object.assign(() => {}, child);
             child.lazyFn = asFunction;
         }
