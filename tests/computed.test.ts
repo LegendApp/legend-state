@@ -561,6 +561,31 @@ describe('Two way Computed', () => {
         expect(numGets).toEqual(5);
         expect(numSets).toEqual(1);
     });
+    test('Computed link to activated child sets to undefined after activating', async () => {
+        const obs = observable({
+            child: activated({
+                get: () => {
+                    return new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            resolve('hi');
+                        }, 0);
+                    });
+                },
+            }),
+            other: () => ({
+                c: obs.child.get(),
+            }),
+        });
+
+        expect(obs.child.get()).toEqual(undefined);
+        expect(obs.other.c.get()).toEqual(undefined);
+        expect(obs.get()).toEqual({ child: undefined, other: { c: undefined } });
+
+        await promiseTimeout(0);
+
+        expect(obs.child.get()).toEqual('hi');
+        expect(obs.get()).toEqual({ child: 'hi', other: { c: 'hi' } });
+    });
 });
 describe('Computed inside observable', () => {
     test('Computed in observable', () => {

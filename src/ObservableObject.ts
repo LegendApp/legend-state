@@ -856,6 +856,13 @@ export function peek(node: NodeValue) {
                 // This is a lookup function, so return a record object
                 value = {};
             } else {
+                if (node.parent) {
+                    const parentValue = getNodeValue(node.parent);
+                    if (parentValue) {
+                        delete parentValue[node.key];
+                    }
+                }
+
                 value = activateNodeFunction(node as any, lazyFn);
             }
         }
