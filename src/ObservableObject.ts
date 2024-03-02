@@ -598,7 +598,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
 
     const isRoot = !node.parent && key === '_';
 
-    if (node.parent && !getNodeValue(node)) {
+    if (node.parent && !getNodeValue(node) && !isFunction(newValue)) {
         return set(node, { [key]: newValue });
     }
 

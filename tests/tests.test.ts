@@ -85,6 +85,11 @@ describe('Set', () => {
         obs.set({ test: { text: 't2' } });
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
+    test('Set child of empty object with function', () => {
+        const obs = observable<Record<string, any>>();
+        obs.a.b.set((v: any) => !v || v === 'partial');
+        expect(obs.get()).toEqual({ a: { b: true } });
+    });
     test('Set empty object at root', () => {
         const obs = observable({ test: { text: 't' } } as Record<string, any>);
         obs.set({});
