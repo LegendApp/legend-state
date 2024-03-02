@@ -254,7 +254,12 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             : value[idField as string]
                         : undefined;
 
+                const existingChild = parent.children?.get(key);
+
                 if (isObservable(value)) {
+                    if (existingChild?.linkedToNode === getNode(value)) {
+                        continue;
+                    }
                     const obs = value;
                     value = () => obs;
                 }

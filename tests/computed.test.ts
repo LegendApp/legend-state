@@ -184,6 +184,40 @@ describe('Computed', () => {
 
         expect(latestValue!).toEqual({ id: '3' });
     });
+    test('Operating on obseravble array ', () => {
+        const stateTest$ = observable({
+            items: { 1: { id: '1' }, 2: { id: '2' }, 3: { id: '3' }, 4: { id: '4' }, 20: { id: '20' } },
+            evenItems: () => {
+                return Object.values(stateTest$.items).filter((item$) => +item$.id.get() % 2 === 0);
+            },
+            smallEvenItems: () => {
+                return Object.values(stateTest$.evenItems).filter((item$) => +item$.id.get() < 10);
+            },
+        });
+
+        const evenItems = stateTest$.evenItems.map((obs$) => obs$.get());
+        expect(evenItems).toEqual([{ id: '2' }, { id: '4' }, { id: '20' }]);
+
+        const smallEvenItems = stateTest$.smallEvenItems.map((obs$) => obs$.get());
+        expect(smallEvenItems).toEqual([{ id: '2' }, { id: '4' }]);
+
+        stateTest$.items[2].id.set('21');
+
+        const evenItems2 = stateTest$.evenItems.map((obs$) => obs$.get());
+        expect(evenItems2).toEqual([{ id: '4' }, { id: '20' }]);
+
+        const smallEvenItems2 = stateTest$.smallEvenItems.map((obs$) => obs$.get());
+        expect(smallEvenItems2).toEqual([{ id: '4' }]);
+
+        // The bug this test is checking was that this was causing a maximum callstack error
+        stateTest$.items[2].id.set('2');
+
+        const evenItems3 = stateTest$.evenItems.map((obs$) => obs$.get());
+        expect(evenItems3).toEqual([{ id: '2' }, { id: '4' }, { id: '20' }]);
+
+        const smallEvenItems3 = stateTest$.smallEvenItems.map((obs$) => obs$.get());
+        expect(smallEvenItems3).toEqual([{ id: '2' }, { id: '4' }]);
+    });
 });
 describe('Two way Computed', () => {
     test('Bound to two, get', () => {
