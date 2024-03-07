@@ -99,6 +99,27 @@ describe('caching with new computed', () => {
         await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
+    test('cache with ownKeys', async () => {
+        localStorage.setItem('nodesinitialownkeys', JSON.stringify({ key0: { key: 'key0' } }));
+        const nodes = observable(
+            synced({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodesinitialownkeys',
+                },
+                get: async () => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key1' }]), 10),
+                    );
+                    return nodes.reduce((acc: Record<string, { key: string }>, node) => {
+                        acc[node.key] = node;
+                        return acc;
+                    }, {});
+                },
+            }),
+        );
+        expect(Object.keys(nodes)).toEqual(['key0']);
+    });
     test('cache makes get receive params', async () => {
         localStorage.setItem('cachedprops', JSON.stringify('cached'));
         const nodes = observable(

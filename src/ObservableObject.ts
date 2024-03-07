@@ -513,6 +513,10 @@ const proxyHandler: ProxyHandler<any> = {
         return value !== null && typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
     ownKeys(node: NodeValue) {
+        // TODO: Temporary workaround to fix a bug - the first peek may not return the correct value
+        // if the value is a cached. This fixes the test "cache with initial ownKeys"
+        peek(node);
+
         const value = get(node, true);
         if (isPrimitive(value)) return [];
 
