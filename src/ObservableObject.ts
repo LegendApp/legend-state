@@ -941,7 +941,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 // If this is a Synced then run it through persistence instead of base
                 if (activated?.synced) {
                     activateNodeFn = globalState.activateNodePersist;
-                    wasPromise = true;
+                    ignoreThisUpdate = true;
                 }
 
                 const { update: newUpdate, value: newValue } = activateNodeFn(node, value);

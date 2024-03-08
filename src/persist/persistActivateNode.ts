@@ -15,6 +15,7 @@ const { getProxy, globalState, runWithRetry, symbolActivated } = internal;
 
 export function persistActivateNode() {
     globalState.activateNodePersist = function activateNodePersist(node: NodeValue, newValue: any) {
+        const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
             const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } = node.activationState!;
@@ -88,7 +89,7 @@ export function persistActivateNode() {
                 };
             }
 
-            syncState = persistObservable(getProxy(node), {
+            syncState = persistObservable(obs$, {
                 pluginRemote,
                 ...(cache || {}),
                 remote: {
@@ -118,10 +119,14 @@ export function persistActivateNode() {
             const nodeVal = getNodeValue(node);
             if (isFunction(nodeVal)) {
                 newValue = promiseReturn;
-            } else if (nodeVal !== undefined) {
-                newValue = nodeVal;
-            } else if (newValue === undefined) {
-                newValue = initial;
+                obs$.set(undefined);
+            } else {
+                if (nodeVal !== undefined) {
+                    newValue = nodeVal;
+                } else if (newValue === undefined) {
+                    newValue = initial;
+                }
+                obs$.set(newValue);
             }
 
             return { update: onChange!, value: newValue };
@@ -143,7 +148,7 @@ export function persistActivateNode() {
                 },
             };
 
-            persistObservable(getProxy(node), {
+            persistObservable(obs$, {
                 pluginRemote,
             });
 
