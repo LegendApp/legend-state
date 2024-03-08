@@ -913,7 +913,6 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
 
     node.activatedObserveDispose = observe(
         () => {
-            // const params = createNodeActivationParams(node);
             // Run the function at this node
             let value = activateFn();
 
@@ -948,16 +947,12 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
-                if (!node.activationState!.persistedRetry && !node.activationState.waitFor) {
-                    const activated = node.activationState! as ActivatedParams;
-                    if (node.state?.peek()?.sync) {
-                        node.state.sync();
-                        ignoreThisUpdate = true;
-                    } else {
-                        value = activated.get?.() ?? activated.initial;
-                    }
-                } else {
+                const activated = node.activationState! as ActivatedParams;
+                if (node.state?.peek()?.sync) {
+                    node.state.sync();
                     ignoreThisUpdate = true;
+                } else {
+                    value = activated.get?.() ?? activated.initial;
                 }
             }
             // value is undefined if it's in a persisted retry
