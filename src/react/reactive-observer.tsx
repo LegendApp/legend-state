@@ -157,7 +157,7 @@ function createReactiveComponent<P = object>(
     return observe || useMemo ? memo(ret) : ret;
 }
 
-export function observer<P = object>(component: FC<P>): FC<P> {
+export function observer<P extends FC<any>>(component: P): P {
     return createReactiveComponent(component, true);
 }
 
