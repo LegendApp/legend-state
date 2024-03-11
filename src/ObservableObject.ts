@@ -384,8 +384,9 @@ const proxyHandler: ProxyHandler<any> = {
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
         // This needs to be below peek because it activates there.
-        if (node.linkedToNode && p !== 'onChange') {
-            return proxyHandler.get!(node.linkedToNode, p, receiver);
+        const targetNode = node.linkedToNode || value?.[symbolGetNode];
+        if (targetNode && p !== 'onChange') {
+            return proxyHandler.get!(targetNode, p, receiver);
         }
 
         if (value instanceof Map || value instanceof WeakMap || value instanceof Set || value instanceof WeakSet) {
@@ -820,8 +821,8 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         setNodeValue(childNode, undefined);
     } else if (isObservable(v)) {
         const value = getNodeValue(node);
-        value[k] = () => v;
-        extractFunction(node, k, value[k] as any);
+        const obs = value[k];
+        extractFunction(node, k, () => obs);
     } else if (typeof v === 'function') {
         const childNode = node.children?.get(k);
         extractFunction(node, k, v);

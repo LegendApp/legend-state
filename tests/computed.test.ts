@@ -1802,7 +1802,9 @@ describe('Complex computeds', () => {
             });
         });
 
-        const total = comp.reduce((acc, a: Observable<any>) => acc + a.num.get(), 0);
+        const total = comp.reduce((acc, a: Observable<any>) => {
+            return acc + a.num.get();
+        }, 0);
 
         expect(total).toEqual(3);
     });
