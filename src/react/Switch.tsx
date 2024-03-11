@@ -31,6 +31,6 @@ export function Switch<T>({
     children: Partial<Record<any, () => ReactNode>>;
 }): ReactNode {
     // Select from an object of cases
-    const child = children[useSelector(value, { skipCheck: true })!];
+    const child = children[useSelector(value)!];
     return (child ? child() : children['default']?.()) ?? null;
 }
