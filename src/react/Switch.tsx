@@ -28,6 +28,13 @@ export function Switch<T>({
     children,
 }: {
     value?: Selector<T>;
+    children: Partial<Record<'undefined' | 'default', () => ReactNode>>;
+}): ReactElement | null;
+export function Switch<T>({
+    value,
+    children,
+}: {
+    value?: Selector<T>;
     children: Partial<Record<any, () => ReactNode>>;
 }): ReactNode {
     // Select from an object of cases

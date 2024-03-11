@@ -558,7 +558,7 @@ describe('Show', () => {
         expect(numRenders).toEqual(1);
 
         act(() => {
-            obs.value.set(undefined);
+            obs.value.delete();
         });
 
         expect(numRenders).toEqual(1);
@@ -586,7 +586,7 @@ describe('Switch', () => {
         function Test() {
             return createElement(
                 Switch,
-                // @ts-expect-error asdf
+                // @ts-expect-error Not sure why it wants children in props
                 { value: obs.ok },
                 {
                     undefined: () => {
