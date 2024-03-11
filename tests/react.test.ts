@@ -525,6 +525,55 @@ describe('Show', () => {
         expect(items.length).toEqual(1);
         expect(items[0].textContent).toEqual('test');
     });
+    test('Show if changing does not re-render', async () => {
+        let numRenders = 0;
+        const obs = observable({
+            value: '',
+        });
+        function Child() {
+            numRenders++;
+            return createElement('span', undefined, 'hi');
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                // @ts-expect-error Not sure why it wants children in props
+                createElement(Show, { if: () => !!obs.value.get() }, () => createElement(Child)),
+            );
+        }
+        render(createElement(Test));
+
+        act(() => {
+            obs.value.set('test');
+        });
+
+        expect(numRenders).toEqual(1);
+
+        act(() => {
+            obs.value.set('test2');
+        });
+
+        expect(numRenders).toEqual(1);
+
+        act(() => {
+            obs.value.set(undefined);
+        });
+
+        expect(numRenders).toEqual(1);
+
+        act(() => {
+            obs.value.set('test');
+        });
+
+        expect(numRenders).toEqual(2);
+
+        act(() => {
+            obs.value.set('test2');
+        });
+
+        expect(numRenders).toEqual(2);
+    });
 });
 
 describe('useObservableReducer', () => {

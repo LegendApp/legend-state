@@ -1,5 +1,5 @@
 import type { Selector } from '@legendapp/state';
-import { computeSelector, isFunction, isObservableValueReady } from '@legendapp/state';
+import { isFunction, isObservableValueReady } from '@legendapp/state';
 import { FC, ReactElement, ReactNode, createElement } from 'react';
 import { useSelector } from './useSelector';
 
@@ -22,20 +22,12 @@ type Props<T> = PropsBase<T> & (PropsIf<T> | PropsIfReady<T>);
 
 export function Show<T>(props: Props<T>): ReactElement;
 export function Show<T>({ if: if_, ifReady, else: else_, wrap, children }: Props<T>): ReactElement {
+    const value = useSelector(if_ ?? ifReady);
+    const show = ifReady !== undefined ? isObservableValueReady(value) : value;
     const child = useSelector(
-        () => {
-            const value = computeSelector(if_ ?? ifReady);
-            return computeSelector(
-                (ifReady !== undefined ? isObservableValueReady(value) : value)
-                    ? isFunction(children)
-                        ? () => children(value)
-                        : children
-                    : else_
-                    ? else_
-                    : null,
-            );
-        },
+        show ? (isFunction(children) ? () => children(value) : (children as any)) : else_ ?? null,
         { skipCheck: true },
     );
+
     return wrap ? createElement(wrap, undefined, child) : child;
 }
