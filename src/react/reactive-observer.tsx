@@ -4,13 +4,16 @@ import { reactGlobals } from './react-globals';
 import type { BindKeys } from './reactInterfaces';
 import { useSelector } from './useSelector';
 
-export type ShapeWith$<T, T2 extends keyof T = keyof T> = Partial<T> & {
+export type ShapeWithPick$<T, T2 extends keyof T = keyof T> = Partial<T> & {
     [K in T2 as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
 };
-
+export type ShapeWith$<T> = Partial<T> & {
+    [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
+};
 export type ObjectShapeWith$<T> = {
     [K in keyof T]: T[K] extends FC<infer P> ? FC<ShapeWith$<P>> : T[K];
 };
+export type ExtractFCPropsType<T> = T extends FC<infer P> ? P : never;
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
@@ -161,12 +164,34 @@ export function observer<P extends FC<any>>(component: P): P {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<P = object, P2 extends keyof P = keyof P>(component: FC<P>, bindKeys?: BindKeys<P>) {
-    return createReactiveComponent(component, false, true, bindKeys) as FC<ShapeWith$<P, P2>>;
+export function reactive<T extends FC<any>>(
+    component: T,
+    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
+): T | FC<ShapeWith$<ExtractFCPropsType<T>>>;
+export function reactive<T extends FC<any>, T2 extends keyof ExtractFCPropsType<T>>(
+    component: T,
+    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
+): T | FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
+export function reactive<T extends FC<any>>(
+    component: T,
+    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
+): T | FC<ShapeWith$<ExtractFCPropsType<T>>> {
+    return createReactiveComponent(component, false, true, bindKeys);
 }
 
-export function reactiveObserver<P = object>(component: FC<P>, bindKeys?: BindKeys<P>) {
-    return createReactiveComponent(component, true, true, bindKeys) as FC<ShapeWith$<P>>;
+export function reactiveObserver<T extends FC<any>>(
+    component: T,
+    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
+): T | FC<ShapeWith$<ExtractFCPropsType<T>>>;
+export function reactiveObserver<T extends FC<any>, T2 extends keyof ExtractFCPropsType<T>>(
+    component: T,
+    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
+): T | FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
+export function reactiveObserver<T extends FC<any>>(
+    component: T,
+    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
+): T | FC<ShapeWith$<ExtractFCPropsType<T>>> {
+    return createReactiveComponent(component, true, true, bindKeys);
 }
 
 export function reactiveComponents<P extends Record<string, FC>>(components: P): ObjectShapeWith$<P> {
