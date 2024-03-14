@@ -205,27 +205,27 @@ describe('Computed', () => {
             },
         });
 
-        const evenItems = stateTest$.evenItems.map((obs$) => obs$.get());
+        const evenItems = stateTest$.evenItems.get();
         expect(evenItems).toEqual([{ id: '2' }, { id: '4' }, { id: '20' }]);
 
-        const smallEvenItems = stateTest$.smallEvenItems.map((obs$) => obs$.get());
+        const smallEvenItems = stateTest$.smallEvenItems.get();
         expect(smallEvenItems).toEqual([{ id: '2' }, { id: '4' }]);
 
         stateTest$.items[2].id.set('21');
 
-        const evenItems2 = stateTest$.evenItems.map((obs$) => obs$.get());
+        const evenItems2 = stateTest$.evenItems.get();
         expect(evenItems2).toEqual([{ id: '4' }, { id: '20' }]);
 
-        const smallEvenItems2 = stateTest$.smallEvenItems.map((obs$) => obs$.get());
+        const smallEvenItems2 = stateTest$.smallEvenItems.get();
         expect(smallEvenItems2).toEqual([{ id: '4' }]);
 
         // The bug this test is checking was that this was causing a maximum callstack error
         stateTest$.items[2].id.set('2');
 
-        const evenItems3 = stateTest$.evenItems.map((obs$) => obs$.get());
+        const evenItems3 = stateTest$.evenItems.get();
         expect(evenItems3).toEqual([{ id: '2' }, { id: '4' }, { id: '20' }]);
 
-        const smallEvenItems3 = stateTest$.smallEvenItems.map((obs$) => obs$.get());
+        const smallEvenItems3 = stateTest$.smallEvenItems.get();
         expect(smallEvenItems3).toEqual([{ id: '2' }, { id: '4' }]);
     });
 });
@@ -2015,5 +2015,46 @@ describe('Complex computeds', () => {
         expect(prop2CValue).toEqual(4);
         expect(prop2Value).toEqual(4);
         expect(prop2ValueImm).toEqual(4);
+    });
+});
+describe('Activation', () => {
+    test('Computed in observable gets activated by accessing root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: observable((): { text: string } => {
+                return { text: obs.text.get() + '!' };
+            }),
+        });
+        const value = obs.get();
+        expect(isObservable(value.test)).toBe(false);
+        expect(value.test.text === 'hi!').toBe(true);
+    });
+    test('Computed descendant in observable gets activated by accessing root', () => {
+        const obs = observable({
+            text: 'hi',
+            child: {
+                test: {
+                    test2: observable((): { text: string } => {
+                        return { text: obs.text.get() + '!' };
+                    }),
+                },
+            },
+        });
+        const value = obs.get();
+        expect(isObservable(value.child.test)).toBe(false);
+        expect(isObservable(value.child.test.test2)).toBe(false);
+        expect(value.child.test.test2.text === 'hi!').toBe(true);
+    });
+    test('Function in observable does not activate by accessing root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: () => {
+                return { text: obs.text.get() + '!' };
+            },
+        });
+        const value = obs.get();
+        expect(isObservable(value.test)).toBe(false);
+        // @ts-expect-error Need to fix the types to be both return value and function
+        expect(value.test.text === 'hi!').toBe(false);
     });
 });

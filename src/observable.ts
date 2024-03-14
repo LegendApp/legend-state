@@ -1,4 +1,4 @@
-import { extractPromise, getProxy, peek } from './ObservableObject';
+import { extractPromise, getProxy, peekInternal } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
 import { getNode, globalState } from './globals';
@@ -23,7 +23,7 @@ export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimit
 export function syncState(obs: ObservableReadable) {
     const node = getNode(obs);
     if (!node.state) {
-        peek(node);
+        peekInternal(node);
     }
     if (!node.state) {
         node.state = observable({} as ObservablePersistState);

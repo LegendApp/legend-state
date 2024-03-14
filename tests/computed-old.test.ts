@@ -491,21 +491,6 @@ describe('Computed inside observable', () => {
         expect(obs.get().test).toEqual('hi!');
         expect(isObservable(obs.get().test)).toBe(false);
     });
-    // TODO: Should accessing activate?
-    test('Computed in observable is not activated by accessing root', () => {
-        // test('Computed in observable gets activated by accessing root', () => {
-        const obs = observable({
-            text: 'hi',
-            test: computed((): { text: string } => {
-                return { text: obs.text.get() + '!' };
-            }),
-        });
-        const value = obs.get();
-        expect(isObservable(value.test)).toBe(true);
-        expect(value.test.text === 'hi!').toBe(false);
-        // @ts-expect-error The raw value is an observable
-        expect(value.test.get()).toEqual({ text: 'hi!' });
-    });
     test('Computed in observable notifies to root', () => {
         const obs = observable({
             text: 'hi',

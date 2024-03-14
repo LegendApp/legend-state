@@ -267,7 +267,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 if (!child.lazy && (isFunction(value) || isObservable(value))) {
                     reactivateNode(child, value);
-                    peek(child);
+                    peekInternal(child);
                 }
 
                 // Detect moves within an array. Need to move the original proxy to the new position to keep
@@ -379,7 +379,7 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        let value = peek(node);
+        let value = peekInternal(node);
 
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
@@ -516,7 +516,7 @@ const proxyHandler: ProxyHandler<any> = {
     ownKeys(node: NodeValue) {
         // TODO: Temporary workaround to fix a bug - the first peek may not return the correct value
         // if the value is a cached. This fixes the test "cache with initial ownKeys"
-        peek(node);
+        peekInternal(node);
 
         const value = get(node, true);
         if (isPrimitive(value)) return [];
@@ -814,15 +814,28 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
         });
 }
 
-export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, any>, k: string, v: any) {
+export function extractFunctionOrComputed(
+    node: NodeValue,
+    obj: Record<string, any>,
+    k: string,
+    v: any,
+    activateRecursive?: boolean,
+) {
     if (isPromise(v)) {
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
         setNodeValue(childNode, undefined);
     } else if (isObservable(v)) {
-        extractFunction(node, k, () => v);
+        const fn = () => v;
+        extractFunction(node, k, fn);
+        const childNode = getChildNode(node, k, fn);
+        const initialValue = peekInternal(getNode(v));
+        setNodeValue(childNode, initialValue);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
+    } else if (activateRecursive && typeof v == 'object' && v !== null && v !== undefined) {
+        const childNode = getChildNode(node, k);
+        checkLazy(childNode, v, activateRecursive);
     }
 }
 
@@ -835,13 +848,24 @@ export function get(node: NodeValue, options?: TrackingType | GetOptions) {
 }
 
 export function peek(node: NodeValue) {
+    const value = peekInternal(node, true);
+
+    return value;
+}
+
+export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
     if (node.dirtyFn) {
         node.dirtyFn();
         globalState.dirtyNodes.delete(node);
         node.dirtyFn = undefined;
     }
     let value = getNodeValue(node);
+    value = checkLazy(node, value, !!activateRecursive);
 
+    return value;
+}
+
+function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
     // If node is not yet lazily computed go do that
     const lazy = node.lazy;
     if (lazy) {
@@ -856,6 +880,8 @@ export function peek(node: NodeValue) {
                     const parentValue = getNodeValue(node.parent);
                     if (parentValue) {
                         delete parentValue[node.key];
+                    } else {
+                        node.root._ = undefined;
                     }
                 }
 
@@ -864,10 +890,10 @@ export function peek(node: NodeValue) {
         }
     }
 
-    if (lazy || node.needsExtract) {
+    if (lazy || node.needsExtract || activateRecursive) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
-                extractFunctionOrComputed(node, value, key, value[key]);
+                extractFunctionOrComputed(node, value, key, value[key], activateRecursive);
             }
         }
     }
@@ -911,7 +937,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isFunction(value)) {
                 value = value();
             }
-            const activated = value?.[symbolActivated] as ActivatedParams & { synced: boolean };
+            const activated = !isObservable(value)
+                ? (value?.[symbolActivated] as ActivatedParams & { synced: boolean })
+                : undefined;
             if (activated) {
                 node.activationState = activated;
                 value = undefined;
