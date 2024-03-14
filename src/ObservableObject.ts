@@ -820,23 +820,9 @@ export function extractFunctionOrComputed(node: NodeValue, obj: Record<string, a
         extractPromise(childNode, v);
         setNodeValue(childNode, undefined);
     } else if (isObservable(v)) {
-        const value = getNodeValue(node);
-        const obs = value[k];
-        extractFunction(node, k, () => obs);
+        extractFunction(node, k, () => v);
     } else if (typeof v === 'function') {
-        const childNode = node.children?.get(k);
         extractFunction(node, k, v);
-        // If child was previously activated, then peek the new linked observable to make sure it's activated
-        if (childNode && !childNode.lazy) {
-            if (isObservable(v)) {
-                const vNode = getNode(v);
-                peek(vNode);
-            }
-        }
-    } else if (typeof v == 'object' && v !== null && v !== undefined) {
-        if (isObservable(v)) {
-            extractFunction(node, k, v as any);
-        }
     }
 }
 
