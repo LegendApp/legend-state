@@ -14,6 +14,7 @@ import {
     hasOwnProperty,
     internal,
     isArray,
+    isFunction,
     isObject,
     mergeIntoObservable,
     observable,
@@ -457,7 +458,10 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
 
         if (waitForSet) {
-            await whenReady(waitForSet);
+            const waitFor = isFunction(waitForSet) ? waitForSet({ changes, value: obs.peek() }) : waitForSet;
+            if (waitFor) {
+                await when(waitFor);
+            }
         }
 
         const saveState = this.saveStates.get(obs)!;

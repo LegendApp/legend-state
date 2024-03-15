@@ -1,10 +1,5 @@
 import type { symbolOpaque } from './globals';
-import type {
-    Observable,
-    Observable as ObservableNew,
-    ObservableReadable,
-    ObservableReadable as ObservableReadableNew,
-} from './observableTypes';
+import type { Observable, Observable as ObservableNew, ObservableReadable } from './observableTypes';
 import type { CacheOptions, ObservablePersistState } from './persistTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
@@ -42,7 +37,7 @@ export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
-export type Selector<T> = ObservableReadableNew<T> | ObservableEvent | (() => T) | T;
+export type Selector<T> = ObservableReadable<T> | ObservableEvent | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
@@ -136,7 +131,11 @@ export interface ActivatedParams<T = any> {
     get?: () => T;
     onSet?: (params: OnSetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
-    waitForSet?: Promise<any> | ObservableReadable<any>;
+    waitForSet?:
+        | ((params: { value: T; changes: Change[] }) => any)
+        | Promise<any>
+        | ObservableReadable<any>
+        | ObservableEvent;
     initial?: T extends Promise<infer t> ? t : T;
 }
 

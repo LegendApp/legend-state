@@ -7,6 +7,7 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 import type { DatabaseReference, Query } from 'firebase/database';
 
 import {
+    ActivatedParams,
     ArrayValue,
     Change,
     ClassConstructor,
@@ -37,7 +38,7 @@ export interface PersistOptionsLocal<T = any> {
 export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
     waitForGet?: Selector<any>;
-    waitForSet?: Selector<any> | ((changes: Change[]) => any);
+    waitForSet?: ActivatedParams['waitForSet'];
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSetIfError?: boolean;

@@ -573,7 +573,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
     const { offlineBehavior, allowSetIfError, onBeforeSet, onSetError, waitForSet, onSet } =
-        persistOptions.remote || {};
+        persistOptions.remote || ({} as PersistOptionsRemote);
     const shouldSaveMetadata = local && offlineBehavior === 'retry';
 
     if (changesRemote.length > 0) {
@@ -581,7 +581,12 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         await when(() => syncState.isLoaded.get() || (allowSetIfError && syncState.error.get()));
 
         if (waitForSet) {
-            await when(isFunction(waitForSet) ? waitForSet(changesRemote) : waitForSet);
+            const waitFor = isFunction(waitForSet)
+                ? waitForSet({ changes: changesRemote, value: obs.peek() })
+                : waitForSet;
+            if (waitFor) {
+                await when(waitFor);
+            }
         }
 
         const value = obs.peek();
