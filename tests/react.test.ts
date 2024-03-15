@@ -285,6 +285,10 @@ describe('useSelector', () => {
             obs.set('hello');
         });
         expect(num).toEqual(3); // Doesn't re-run the selector so it's not different
+        act(() => {
+            obs.set('hi');
+        });
+        expect(num).toEqual(5);
     });
     test('useSelector renders once when it returns the same thing', () => {
         const obs = observable('hi');
@@ -319,6 +323,32 @@ describe('useSelector', () => {
         });
         expect(num).toEqual(4);
         expect(num2).toEqual(2);
+    });
+    test('useSelector with changing nodes', () => {
+        const obs1$ = observable(false);
+        const obs2$ = observable(false);
+        let lastValue = false;
+        const Test = function Test() {
+            lastValue = useSelector(() => {
+                return !obs1$.get() || !obs2$.get();
+            });
+
+            return createElement('div', undefined);
+        };
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(lastValue).toEqual(true);
+        act(() => {
+            obs1$.set(true);
+        });
+        expect(lastValue).toEqual(true);
+        act(() => {
+            obs2$.set(true);
+        });
+        expect(lastValue).toEqual(false);
     });
 });
 

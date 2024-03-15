@@ -35,6 +35,22 @@ function createSelectorFunctions<T>(
 
     let pendingUpdate: any | undefined = undefined;
 
+    const run = () => {
+        // Dispose if already listening
+        dispose?.();
+
+        const {
+            value,
+            dispose: _dispose,
+            resubscribe: _resubscribe,
+        } = trackSelector(_selector, _update, undefined, undefined, /*createResubscribe*/ true);
+
+        dispose = _dispose;
+        resubscribe = _resubscribe;
+
+        return value;
+    };
+
     const _update = ({ value }: { value: ListenerParams['value'] }) => {
         if (isPaused$?.peek()) {
             if (pendingUpdate === undefined) {
@@ -52,8 +68,8 @@ function createSelectorFunctions<T>(
             // If skipCheck then don't need to re-run selector
             let changed = options?.skipCheck;
             if (!changed) {
-                // Re-run the selector to get the new value
-                const newValue = computeSelector(_selector);
+                const newValue = run();
+
                 // If newValue is different than previous value then it's changed.
                 // Also if the selector returns an observable directly then its value will be the same as
                 // the value from the listener, and that should always re-render.
@@ -90,21 +106,8 @@ function createSelectorFunctions<T>(
         run: (selector: Selector<T>) => {
             // Update the cached selector
             _selector = selector;
-            // Dispose if already listening
-            dispose?.();
 
-            const {
-                value,
-                dispose: _dispose,
-                resubscribe: _resubscribe,
-            } = trackSelector(selector, _update, undefined, undefined, /*createResubscribe*/ true);
-
-            dispose = _dispose;
-            resubscribe = _resubscribe;
-
-            prev = value;
-
-            return value;
+            return (prev = run());
         },
     };
 }

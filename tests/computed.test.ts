@@ -228,6 +228,19 @@ describe('Computed', () => {
         const smallEvenItems3 = stateTest$.smallEvenItems.get();
         expect(smallEvenItems3).toEqual([{ id: '2' }, { id: '4' }]);
     });
+    test('Computed with changing nodes', async () => {
+        const obs1$ = observable(false);
+        const obs2$ = observable(false);
+        const comp$ = observable(() => {
+            return !obs1$.get() || !obs2$.get();
+        });
+
+        expect(comp$.get()).toEqual(true);
+        obs1$.set(true);
+        expect(comp$.get()).toEqual(true);
+        obs2$.set(true);
+        expect(comp$.get()).toEqual(false);
+    });
 });
 describe('Two way Computed', () => {
     test('Bound to two, get', () => {
