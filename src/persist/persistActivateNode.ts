@@ -18,7 +18,8 @@ export function persistActivateNode() {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet } = node.activationState!;
+            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet, saveTimeout } =
+                node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -96,6 +97,7 @@ export function persistActivateNode() {
                     retry,
                     offlineBehavior,
                     waitForSet,
+                    saveTimeout,
                 },
             });
 

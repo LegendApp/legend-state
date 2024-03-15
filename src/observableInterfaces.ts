@@ -153,6 +153,7 @@ export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
     cache?: CacheOptions<any>;
+    saveTimeout?: number;
 }
 
 export type Activated<T> = T;
