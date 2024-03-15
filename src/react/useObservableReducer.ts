@@ -48,5 +48,5 @@ export function useObservableReducer<R extends Reducer<any, any>, I>(
         obs.set(reducer(obs.get(), action));
     };
 
-    return [obs, dispatch];
+    return [obs as Observable<ReducerState<R>>, dispatch];
 }

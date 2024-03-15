@@ -16,6 +16,7 @@ import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 import { useObservableState } from '../src/react/useObservableState';
 import { Switch } from '../src/react/Switch';
+import { useObservable } from '../src/react/useObservable';
 
 type TestObject = { id: string; label: string };
 
@@ -833,6 +834,89 @@ describe('observer', () => {
         });
 
         expect(num).toEqual(2);
+    });
+});
+describe('useObservable', () => {
+    test('useObservable with an object', () => {
+        let num = 0;
+        let obs$: Observable<{ test: number }>;
+        let value = 0;
+        const Test = observer(function Test() {
+            obs$ = useObservable({ test: 0 });
+            num++;
+
+            value = obs$.test.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(value).toEqual(0);
+
+        act(() => {
+            obs$.test.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(value).toEqual(1);
+    });
+    test('useObservable with a function', () => {
+        let num = 0;
+        let obs$: Observable<{ test: number }>;
+        let value = 0;
+        const Test = observer(function Test() {
+            obs$ = useObservable(() => ({ test: 0 }));
+            num++;
+
+            value = obs$.test.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(value).toEqual(0);
+
+        act(() => {
+            obs$.test.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(value).toEqual(1);
+    });
+    test('useObservable with a computed function', () => {
+        let num = 0;
+        const obs$: Observable = observable(0);
+        let value = 0;
+        const Test = observer(function Test() {
+            const obsLocal$ = useObservable(() => obs$.get());
+            num++;
+
+            value = obsLocal$.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(value).toEqual(0);
+
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(value).toEqual(1);
     });
 });
 describe('useObservableState', () => {
