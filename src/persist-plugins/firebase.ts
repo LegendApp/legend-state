@@ -190,7 +190,8 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
 
         const pathFirebase = refPath(this.fns.getCurrentUser());
 
-        const status$ = this._pathsLoadStatus[pathFirebase].set({
+        const status$ = this._pathsLoadStatus[pathFirebase];
+        status$.set({
             startedLoading: false,
             numLoading: 0,
             numWaitingCanSave: 0,
