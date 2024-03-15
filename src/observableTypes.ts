@@ -52,7 +52,7 @@ type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitive<T>, 'size'> & { size: ImmutableObservableBase<number> };
 
 interface ObservableBoolean extends ObservablePrimitive<boolean> {
-    toggle(): boolean;
+    toggle(): void;
 }
 
 interface ObservablePrimitive<T> extends ImmutableObservableBase<T>, MutableObservableBase<T> {}
@@ -68,11 +68,11 @@ interface ImmutableObservableBase<T> {
 }
 
 interface MutableObservableBase<T> {
-    set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): Observable<T>;
-    set(value: RecursiveValueOrFunction<T>): Observable<T>;
-    set(value: Promise<RemoveObservables<T>>): Observable<T>;
-    set(value: RemoveObservables<T>): Observable<T>;
-    set(value: Observable<RemoveObservables<T>>): Observable<T>;
+    set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): void;
+    set(value: RecursiveValueOrFunction<T>): void;
+    set(value: Promise<RemoveObservables<T>>): void;
+    set(value: RemoveObservables<T>): void;
+    set(value: Observable<RemoveObservables<T>>): void;
     delete(): void;
 }
 

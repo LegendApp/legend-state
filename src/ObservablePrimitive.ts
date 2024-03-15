@@ -47,15 +47,13 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolGetNode, {
     },
 });
 
-ObservablePrimitiveClass.prototype.toggle = function (): boolean {
+ObservablePrimitiveClass.prototype.toggle = function (): void {
     const value = this.peek();
     if (value === undefined || value === null || isBoolean(value)) {
         this.set(!value);
     } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
         throw new Error('[legend-state] Cannot toggle a non-boolean value');
     }
-
-    return !value;
 };
 ObservablePrimitiveClass.prototype.delete = function () {
     this.set(undefined);

@@ -653,18 +653,6 @@ describe('Listeners', () => {
         obs.test.set(newVal);
         expect(obs.test.get()).toBe(newVal);
     });
-    test('set returns correct value', () => {
-        const obs = observable({ test: '' });
-        const ret = obs.set({ test: 'hello' });
-        expect(ret.get()).toEqual({ test: 'hello' });
-        const ret2 = obs.test.set('hello');
-        expect(ret2.get()).toEqual('hello');
-        expect(obs.test.get()).toEqual('hello');
-        const ret3 = obs.assign({ test: 'hello2' });
-        expect(obs.test.get()).toEqual('hello2');
-        expect(ret3.get()).toEqual({ test: 'hello2' });
-        expect(obs.get()).toEqual({ test: 'hello2' });
-    });
     test('Set number key', () => {
         const obs = observable({ test: {} as Record<number, string> });
         const handler = expectChangeHandler(obs.test);
@@ -3308,5 +3296,28 @@ describe('new computed', () => {
 
         expect(obs.get()).toEqual(2);
         expect(other.test.get()).toEqual(2);
+    });
+});
+describe('Return values of set functions are void', () => {
+    test('Return value of toggle', () => {
+        const obs$ = observable(false);
+        expect(obs$.toggle()).toEqual(undefined);
+        expect(obs$.get()).toEqual(true);
+        expect(obs$.toggle()).toEqual(undefined);
+        expect(obs$.get()).toEqual(false);
+    });
+    test('Return value of set primitive', () => {
+        const obs$ = observable(10);
+        expect(obs$.set(20)).toEqual(undefined);
+        expect(obs$.get()).toEqual(20);
+        expect(obs$.set(30)).toEqual(undefined);
+        expect(obs$.get()).toEqual(30);
+    });
+    test('Return value of set object', () => {
+        const obs$ = observable({ value: 10 });
+        expect(obs$.set({ value: 20 })).toEqual(undefined);
+        expect(obs$.get()).toEqual({ value: 20 });
+        expect(obs$.set({ value: 30 })).toEqual(undefined);
+        expect(obs$.get()).toEqual({ value: 30 });
     });
 });

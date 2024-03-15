@@ -122,7 +122,10 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
+            (value) => {
+                obs.test.set(value);
+                obs.test2.set(value);
+            },
         );
         expect(comp.get()).toEqual(false);
         obs.test.set(true);
@@ -134,7 +137,10 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
+            (value) => {
+                obs.test.set(value);
+                obs.test2.set(value);
+            },
         );
         expect(comp.get()).toEqual(false);
         comp.set(true);
@@ -167,7 +173,10 @@ describe('Two way Computed', () => {
         const handler = expectChangeHandler(obs);
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
+            (value) => {
+                obs.test.set(value);
+                obs.test2.set(value);
+            },
         );
         expect(comp.get()).toEqual(false);
         comp.set(true);
@@ -193,7 +202,10 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = computed(
             () => obs.test.get() && obs.test2.get(),
-            (value) => obs.test.set(value) && obs.test2.set(value),
+            (value) => {
+                obs.test.set(value);
+                obs.test2.set(value);
+            },
         );
 
         comp.set(true);

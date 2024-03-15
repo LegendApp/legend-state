@@ -577,24 +577,23 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-export function set(node: NodeValue, newValue?: any): Observable {
+export function set(node: NodeValue, newValue?: any) {
     if (node.parent) {
-        return setKey(node.parent, node.key, newValue);
+        setKey(node.parent, node.key, newValue);
     } else {
-        return setKey(node, '_', newValue);
+        setKey(node, '_', newValue);
     }
 }
 function toggle(node: NodeValue) {
     const value = getNodeValue(node);
     if (value === undefined || value === null || isBoolean(value)) {
         set(node, !value);
-        return !value;
     } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
         throw new Error('[legend-state] Cannot toggle a non-boolean value');
     }
 }
 
-function setKey(node: NodeValue, key: string, newValue?: any, level?: number): Observable {
+function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
@@ -604,7 +603,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
     const isRoot = !node.parent && key === '_';
 
     if (node.parent && !getNodeValue(node) && !isFunction(newValue)) {
-        return set(node, { [key]: newValue });
+        set(node, { [key]: newValue });
     }
 
     // Get the child node for updating and notifying
@@ -631,11 +630,9 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number): O
         extractFunctionOrComputed(node, parentValue, key, savedValue);
 
         if (isFunc) {
-            return savedValue;
+            savedValue;
         }
     }
-
-    return isRoot ? getProxy(node) : getProxy(node, key);
 }
 
 function assign(node: NodeValue, value: any) {
