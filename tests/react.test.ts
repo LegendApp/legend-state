@@ -8,15 +8,16 @@ import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableTypes';
 import { For } from '../src/react/For';
+import { Reactive } from '../src/react/Reactive';
 import { Show } from '../src/react/Show';
+import { Switch } from '../src/react/Switch';
 import { observer } from '../src/react/reactive-observer';
+import { useObservable } from '../src/react/useObservable';
 import { useObservableReducer } from '../src/react/useObservableReducer';
+import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
-import { useObservableState } from '../src/react/useObservableState';
-import { Switch } from '../src/react/Switch';
-import { useObservable } from '../src/react/useObservable';
 
 type TestObject = { id: string; label: string };
 
@@ -1001,5 +1002,42 @@ describe('useObservableState', () => {
 
         expect(num).toEqual(2);
         expect(value).toEqual(1);
+    });
+});
+describe('Reactive', () => {
+    test('Reactive div $className', () => {
+        const obs$ = observable('hi');
+        let num = 0;
+        const Test = function Test() {
+            return createElement(Reactive.div, {
+                $className: () => {
+                    num++;
+                    return obs$.get();
+                },
+            });
+        };
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('div');
+        expect(items.length).toEqual(1);
+        expect(items[0].className).toEqual('hi');
+
+        act(() => {
+            obs$.set('hello');
+        });
+
+        items = container.querySelectorAll('div');
+
+        expect(items[0].className).toEqual('hello');
+
+        // items = container.querySelectorAll('li');
+        // expect(items.length).toEqual(2);
+        // expect(items[0].id).toEqual('1');
     });
 });
