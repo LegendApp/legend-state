@@ -53,7 +53,9 @@ function createSelectorFunctions<T>(
 
     const _update = ({ value }: { value: ListenerParams['value'] }) => {
         if (isPaused$?.peek()) {
-            if (pendingUpdate === undefined) {
+            const next = pendingUpdate;
+            pendingUpdate = value;
+            if (next === undefined) {
                 when(
                     () => !isPaused$.get(),
                     () => {
@@ -63,7 +65,6 @@ function createSelectorFunctions<T>(
                     },
                 );
             }
-            pendingUpdate = value;
         } else {
             // If skipCheck then don't need to re-run selector
             let changed = options?.skipCheck;
