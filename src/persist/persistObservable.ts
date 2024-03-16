@@ -809,7 +809,7 @@ export function persistObservable<T>(
 ): Observable<ObservablePersistState> {
     const node = getNode(obs);
 
-    // Merge remote persist options with clobal options
+    // Merge remote persist options with global options
     if (persistOptions.remote) {
         persistOptions.remote = Object.assign(
             {},

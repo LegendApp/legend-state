@@ -78,6 +78,7 @@ export interface ObservablePersistenceConfigRemoteGlobalOptions {
     saveTimeout?: number;
     dateModifiedKey?: string;
     offlineBehavior?: false | 'retry';
+    retry?: RetryOptions;
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     log?: (logLevel: 'verbose' | 'warning' | 'error', message: any, ...optionalParams: any[]) => void;
