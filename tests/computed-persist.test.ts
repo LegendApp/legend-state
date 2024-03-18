@@ -13,8 +13,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodesbasic',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodesbasic',
                 },
                 get: async () => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -42,8 +42,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodesdelay',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodesdelay',
                 },
                 get: () => {
                     const nodes = [{ key: 'key1' }];
@@ -74,8 +74,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodesinitial',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodesinitial',
                 },
                 get: async () => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -103,8 +103,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodesinitialnoget',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodesinitialnoget',
                 },
                 initial: { key00: { key: 'key00', value: 'hi' } },
             }),
@@ -119,8 +119,8 @@ describe('caching with new computed', () => {
         const nodes2 = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodesinitialnoget',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodesinitialnoget',
                 },
             }),
         );
@@ -132,8 +132,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodesinitialownkeys',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodesinitialownkeys',
                 },
                 get: async () => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -153,8 +153,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'cachedprops',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'cachedprops',
                 },
                 get: async ({ value }) => {
                     return value + '1';
@@ -178,8 +178,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodes',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodes',
                 },
                 get: async ({ lastSync, value }) => {
                     expect(lastSync).toEqual(1000);
@@ -209,8 +209,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'onSetNot',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'onSetNot',
                 },
                 get: async () => {
                     await promiseTimeout(2);
@@ -241,8 +241,8 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'onSetNot2',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'onSetNot2',
                 },
                 get: async () => {
                     await promiseTimeout(2);
@@ -282,7 +282,6 @@ describe('caching with new computed', () => {
         });
 
         persistObservable(nodes, { pluginLocal: ObservablePersistLocalStorage, local: 'getnotcalled' });
-
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
 
@@ -301,8 +300,8 @@ describe('lastSync with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'nodes-lastSync',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodes-lastSync',
                 },
                 get: async ({ updateLastSync }) => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -333,8 +332,8 @@ describe('lastSync with new computed', () => {
         const value = observable(
             synced({
                 cache: {
-                    pluginLocal: ObservablePersistLocalStorage,
-                    local: 'lastSync2',
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'lastSync2',
                 },
                 subscribe: ({ update }) => {
                     setTimeout(() => {
@@ -385,8 +384,8 @@ describe('retry', () => {
         const obs$ = observable(
             synced({
                 cache: {
-                    local: 'retrypersist',
-                    pluginLocal: ObservablePersistLocalStorage,
+                    name: 'retrypersist',
+                    plugin: ObservablePersistLocalStorage,
                 },
                 retry: {
                     delay: 1,

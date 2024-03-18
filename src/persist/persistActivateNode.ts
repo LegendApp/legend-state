@@ -7,6 +7,7 @@ import type {
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
     ObservablePersistState,
+    PersistOptionsLocal,
     UpdateFn,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
@@ -92,7 +93,15 @@ export function persistActivateNode() {
 
             syncState = persistObservable(obs$, {
                 pluginRemote,
-                ...(cache || {}),
+                ...(cache
+                    ? {
+                          local: {
+                              ...cache.options,
+                              ...(cache.name && { name: cache.name }),
+                          } as PersistOptionsLocal,
+                          pluginLocal: cache.plugin,
+                      }
+                    : {}),
                 remote: {
                     retry,
                     offlineBehavior,
