@@ -120,8 +120,13 @@ export function persistActivateNode() {
 
             const nodeVal = getNodeValue(node);
             if (isFunction(nodeVal)) {
-                newValue = promiseReturn;
-                obs$.set(undefined);
+                if (promiseReturn !== undefined) {
+                    newValue = promiseReturn;
+                    obs$.set(undefined);
+                } else if (newValue === undefined) {
+                    newValue = initial;
+                    obs$.set(newValue);
+                }
             } else {
                 if (nodeVal !== undefined) {
                     newValue = nodeVal;

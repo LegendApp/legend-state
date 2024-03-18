@@ -5,15 +5,6 @@ import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-stor
 import { when, whenReady } from '../src/when';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
-const testNode = observable({});
-persistObservable(testNode, {
-    pluginRemote: {
-        get() {
-            return Promise.resolve({ test: 'hi' });
-        },
-    },
-});
-
 mockLocalStorage();
 
 describe('caching with new computed', () => {
@@ -69,7 +60,16 @@ describe('caching with new computed', () => {
 
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
-    test('cache with initial', async () => {
+    test('synced with only initial', () => {
+        const nodes = observable(
+            synced({
+                initial: { key00: { key: 'key00' } },
+            }),
+        );
+
+        expect(nodes.get()).toEqual({ key00: { key: 'key00' } });
+    });
+    test('cache with get and initial', async () => {
         localStorage.setItem('nodesinitial', JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
@@ -98,6 +98,34 @@ describe('caching with new computed', () => {
 
         await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+    });
+    test('cache with initial and no get', async () => {
+        const nodes = observable(
+            synced({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodesinitialnoget',
+                },
+                initial: { key00: { key: 'key00', value: 'hi' } },
+            }),
+        );
+
+        expect(nodes.get()).toEqual({ key00: { key: 'key00', value: 'hi' } });
+
+        nodes.key00.value.set('hello');
+
+        await promiseTimeout(0);
+
+        const nodes2 = observable(
+            synced({
+                cache: {
+                    pluginLocal: ObservablePersistLocalStorage,
+                    local: 'nodesinitialnoget',
+                },
+            }),
+        );
+
+        expect(nodes2.get()).toEqual({ key00: { key: 'key00', value: 'hello' } });
     });
     test('cache with ownKeys', async () => {
         localStorage.setItem('nodesinitialownkeys', JSON.stringify({ key0: { key: 'key0' } }));
