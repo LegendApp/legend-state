@@ -90,7 +90,9 @@ type NonObservableKeys<T> = {
         ? K
         : never;
 }[keyof T];
-type ObservableProps<T> = RestoreNullability<T, Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>;
+type ObservableProps<T> = NonObservableKeys<NonNullable<T>> extends never
+    ? T
+    : RestoreNullability<T, Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>;
 
 type NonObservableProps<T> = RestoreNullability<
     T,

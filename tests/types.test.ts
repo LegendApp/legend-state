@@ -266,5 +266,18 @@ describe('Types', () => {
                 func(obs);
             });
         });
+
+        describe('discriminated union', () => {
+            it('discrimiated union 1', () => {
+                type Data = {};
+                type State =
+                    | { state: 'init' }
+                    | { state: 'loading'; userId: number }
+                    | { state: 'loaded'; userId: number; userData: Data };
+
+                const state$ = observable<State>({ state: 'init' });
+                state$.set({ state: 'loading', userId: 4 });
+            });
+        });
     });
 });
