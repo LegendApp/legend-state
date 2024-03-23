@@ -98,7 +98,7 @@ describe('Persist remote with functions', () => {
                 },
             },
             remote: {
-                onSet() {
+                onAfterSet() {
                     didSave$.set(true);
                 },
             },
@@ -120,7 +120,7 @@ describe('Persist remote with functions', () => {
         let setTo: { lastSync: number; value: any } | undefined = undefined;
         const didSet$ = observable(false);
 
-        configureObservablePersistence({ remoteOptions: { saveTimeout: 10 } });
+        configureObservablePersistence({ remoteOptions: { debounceSet: 10 } });
 
         const obs$ = observable({ test: { x: 'hi' } });
         const state = persistObservable(obs$, {
@@ -164,7 +164,7 @@ describe('Persist remote with functions', () => {
         const didSet$ = observable(false);
         let numSets = 0;
 
-        configureObservablePersistence({ remoteOptions: { saveTimeout: 10 } });
+        configureObservablePersistence({ remoteOptions: { debounceSet: 10 } });
 
         const obs$ = observable({ test: { x: 'hi' } });
         const state = persistObservable(obs$, {

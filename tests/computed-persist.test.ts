@@ -200,27 +200,27 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
         await promiseTimeout(50);
     });
-    test('onSet not called until loaded first', async () => {
-        localStorage.setItem('onSetNot', JSON.stringify('key0'));
+    test('set not called until loaded first', async () => {
+        localStorage.setItem('setNot', JSON.stringify('key0'));
 
         let getCalled = false;
-        let onSetCalled = false;
+        let setCalled = false;
 
         const nodes = observable(
             synced({
                 cache: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'onSetNot',
+                    name: 'setNot',
                 },
                 get: async () => {
                     await promiseTimeout(2);
-                    expect(onSetCalled).toEqual(false);
+                    expect(setCalled).toEqual(false);
                     getCalled = true;
                     return 'key1';
                 },
-                onSet() {
+                set() {
                     expect(getCalled).toEqual(true);
-                    onSetCalled = true;
+                    setCalled = true;
                 },
             }),
         );
@@ -232,28 +232,28 @@ describe('caching with new computed', () => {
         await promiseTimeout(2);
         expect(nodes.get()).toEqual('key2');
     });
-    test('onSet not called until loaded first (2)', async () => {
-        localStorage.setItem('onSetNot2', JSON.stringify('key0'));
+    test('set not called until loaded first (2)', async () => {
+        localStorage.setItem('setNot2', JSON.stringify('key0'));
 
         let getCalled = false;
-        let onSetCalledTimes = 0;
+        let setCalledTimes = 0;
 
         const nodes = observable(
             synced({
                 cache: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'onSetNot2',
+                    name: 'setNot2',
                 },
                 get: async () => {
                     await promiseTimeout(2);
-                    expect(onSetCalledTimes).toEqual(0);
+                    expect(setCalledTimes).toEqual(0);
                     getCalled = true;
                     return 'key1';
                 },
-                onSet({ value }) {
+                set({ value }) {
                     expect(value).toEqual('key2');
                     expect(getCalled).toEqual(true);
-                    onSetCalledTimes++;
+                    setCalledTimes++;
                 },
             }),
         );
@@ -263,7 +263,7 @@ describe('caching with new computed', () => {
         await promiseTimeout(2);
         expect(nodes.get()).toEqual('key2');
         expect(getCalled).toEqual(true);
-        expect(onSetCalledTimes).toEqual(1);
+        expect(setCalledTimes).toEqual(1);
     });
     test('get not called until all ancestors loaded', async () => {
         localStorage.setItem('getnotcalled', JSON.stringify({ child: 'key0' }));
@@ -415,7 +415,7 @@ describe('retry', () => {
                 retry: {
                     delay: 1,
                 },
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     return new Promise<void>((resolve) => {
                         attemptNum$.set((v) => v + 1);
                         if (attemptNum$.get() > 2) {

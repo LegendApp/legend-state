@@ -75,7 +75,7 @@ export interface ObservablePersistenceConfigLocalGlobalOptions {
     };
 }
 export interface ObservablePersistenceConfigRemoteGlobalOptions {
-    saveTimeout?: number;
+    debounceSet?: number;
     dateModifiedKey?: string;
     offlineBehavior?: false | 'retry';
     retry?: RetryOptions;
@@ -83,7 +83,7 @@ export interface ObservablePersistenceConfigRemoteGlobalOptions {
     onSetError?: (error: Error) => void;
     log?: (logLevel: 'verbose' | 'warning' | 'error', message: any, ...optionalParams: any[]) => void;
     onBeforeSet?: () => void;
-    onSet?: () => void;
+    onAfterSet?: () => void;
 }
 export interface ObservablePersistenceConfig {
     pluginLocal?: ClassConstructor<ObservablePersistLocal>;

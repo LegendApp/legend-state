@@ -293,7 +293,7 @@ async function processQueuedChanges() {
 
     await Promise.all(preppedChangesLocal.map(doChangeLocal));
 
-    const timeout = observablePersistConfiguration?.remoteOptions?.saveTimeout;
+    const timeout = observablePersistConfiguration?.remoteOptions?.debounceSet;
     if (timeout) {
         if (timeoutSaveRemote) {
             clearTimeout(timeoutSaveRemote);
@@ -572,7 +572,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
-    const { offlineBehavior, allowSetIfError, onBeforeSet, onSetError, waitForSet, onSet } =
+    const { offlineBehavior, allowSetIfError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
         persistOptions.remote || ({} as PersistOptionsRemote);
     const shouldSaveMetadata = local && offlineBehavior === 'retry';
 
@@ -660,7 +660,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         localState.pendingSaveResults = [];
                     }
                 }
-                onSet?.();
+                onAfterSet?.();
             }
         }
     }

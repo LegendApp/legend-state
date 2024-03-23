@@ -121,7 +121,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     protected _batch: Record<string, any> = {};
     protected fns: FirebaseFns;
     private _pathsLoadStatus = observable<Record<string, LoadStatus>>({});
-    private SaveTimeout;
+    private debounceSet;
     private user: Observable<string | undefined | null>;
     private listenErrors: Map<
         any,
@@ -143,7 +143,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
     constructor(fns: FirebaseFns) {
         this.fns = fns;
         this.user = observablePrimitive();
-        this.SaveTimeout = observablePersistConfiguration?.remoteOptions?.saveTimeout ?? 500;
+        this.debounceSet = observablePersistConfiguration?.remoteOptions?.debounceSet ?? 500;
 
         if (this.fns.isInitialized()) {
             this.fns.onAuthStateChanged((user) => {
@@ -442,7 +442,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         if (!remote || !remote.firebase) {
             return;
         }
-        const { waitForSet, saveTimeout, log, firebase } = remote;
+        const { waitForSet, debounceSet: debounceSet, log, firebase } = remote;
 
         const { requireAuth, refPath: refPathFn } = firebase;
 
@@ -499,7 +499,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         // Keep the current eventSaved. This will get reassigned once the timeout activates.
         const eventSaved = saveState.eventSaved;
 
-        const timeout = saveTimeout ?? this.SaveTimeout;
+        const timeout = debounceSet ?? this.debounceSet;
 
         if (timeout) {
             if (saveState.timeout) {

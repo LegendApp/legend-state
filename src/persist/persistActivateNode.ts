@@ -19,7 +19,7 @@ export function persistActivateNode() {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, onSet, subscribe, cache, retry, offlineBehavior, waitForSet, saveTimeout } =
+            const { get, initial, set, subscribe, cache, retry, offlineBehavior, waitForSet, debounceSet } =
                 node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
@@ -54,7 +54,7 @@ export function persistActivateNode() {
                     return value;
                 };
             }
-            if (onSet) {
+            if (set) {
                 // TODO: Work out these types better
                 pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
                     if (node.state?.isLoaded.get()) {
@@ -70,7 +70,7 @@ export function persistActivateNode() {
                                 retryEvent.cancel = true;
                             };
 
-                            await onSet({
+                            await set({
                                 ...(params as unknown as ListenerParams),
                                 node,
                                 update: (params) => {
@@ -104,7 +104,7 @@ export function persistActivateNode() {
                     retry,
                     offlineBehavior,
                     waitForSet,
-                    saveTimeout,
+                    debounceSet,
                 },
             });
 

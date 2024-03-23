@@ -3223,7 +3223,7 @@ describe('new computed', () => {
 
         expect(obs.child.test.get()).toEqual('hello');
     });
-    test('new computed with onChange and onSet', async () => {
+    test('new computed with onChange and set', async () => {
         let wasSetTo: any;
         let numRuns = 0;
         const obs = observable({
@@ -3234,7 +3234,7 @@ describe('new computed', () => {
                         test: 'hi',
                     };
                 },
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     wasSetTo = value;
                 },
             }),
@@ -3248,13 +3248,13 @@ describe('new computed', () => {
         expect(wasSetTo).toEqual({ test: 'hello!' });
         expect(numRuns).toEqual(1); // Only runs once because there's no observables
     });
-    test('new computed with onChange and onSet other observable and async', async () => {
+    test('new computed with onChange and set other observable and async', async () => {
         // In this test the initial promise takes longer than the onChange
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
             child: bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     other.set(value.test);
                 },
                 get: async () => {

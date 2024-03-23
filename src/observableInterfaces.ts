@@ -116,8 +116,8 @@ export interface ObserveEventCallback<T> {
     onCleanupReaction?: () => void;
 }
 
-export type OnSetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
-export type SyncedOnSetParams<T> = OnSetParams<T> & {
+export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
+export type SyncedSetParams<T> = SetParams<T> & {
     node: NodeValue;
     update: UpdateFn;
     refresh: () => void;
@@ -128,7 +128,7 @@ export type SyncedOnSetParams<T> = OnSetParams<T> & {
 
 export interface BoundParams<T = any> {
     get?: () => T;
-    onSet?: (params: OnSetParams<T>) => void | Promise<any>;
+    set?: (params: SetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
     waitForSet?:
         | ((params: { value: T; changes: Change[] }) => any)
@@ -145,14 +145,14 @@ export interface SyncedGetParams {
     setMode: (mode: 'assign' | 'set') => void;
     refresh: () => void;
 }
-export interface SyncedParams<T = any> extends Omit<BoundParams<T>, 'get' | 'onSet'> {
+export interface SyncedParams<T = any> extends Omit<BoundParams<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => T;
-    onSet?: (params: SyncedOnSetParams<T>) => void | Promise<any>;
+    set?: (params: SyncedSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
     cache?: CacheOptions<any>;
-    saveTimeout?: number;
+    debounceSet?: number;
 }
 
 export type Bound<T> = T;

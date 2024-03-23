@@ -16,7 +16,7 @@ export function computed<T, T2 = T>(
         set
             ? bound({
                   get: compute as any,
-                  onSet: ({ value }) => set(value as any),
+                  set: ({ value }) => set(value as any),
               })
             : compute,
     ) as any;

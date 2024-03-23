@@ -19,7 +19,7 @@ export function proxy<T extends Record<string, any>, T2 = T>(
         set
             ? bound({
                   get: () => get(key),
-                  onSet: ({ value }) => set(key, value as any),
+                  set: ({ value }) => set(key, value as any),
               })
             : get(key),
     );

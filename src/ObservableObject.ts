@@ -1042,7 +1042,7 @@ function activateNodeBase(node: NodeValue, value: any) {
         ) as any;
     }
     if (node.activationState) {
-        const { onSet, get: getFn, initial } = node.activationState as BoundParams;
+        const { set: setFn, get: getFn, initial } = node.activationState as BoundParams;
 
         value = getFn?.();
 
@@ -1050,7 +1050,7 @@ function activateNodeBase(node: NodeValue, value: any) {
             value = initial;
         }
 
-        if (onSet) {
+        if (setFn) {
             let allChanges: Change[] = [];
             let latestValue: any = undefined;
             let runNumber = 0;
@@ -1087,7 +1087,7 @@ function activateNodeBase(node: NodeValue, value: any) {
                         node.isComputing = true;
                         batch(
                             () => {
-                                onSet({
+                                setFn({
                                     value,
                                     changes,
                                     getPrevious,

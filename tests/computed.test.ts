@@ -256,7 +256,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
                 },
@@ -272,7 +272,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: { a: 'hi' }, test2: false });
         const comp = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.test.set(value);
                 },
                 get: () => obs.test.get(),
@@ -286,7 +286,7 @@ describe('Two way Computed', () => {
         const obs = observable([false, false, false, false, false]);
         const comp = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.forEach((child) => child.set(value));
                 },
                 get: () => {
@@ -304,7 +304,7 @@ describe('Two way Computed', () => {
         const handler = expectChangeHandler(obs);
         const comp = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
                 },
@@ -335,7 +335,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
                 },
@@ -351,7 +351,7 @@ describe('Two way Computed', () => {
         let getValue: number | undefined = undefined;
         const comp = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     setValue = value;
                 },
                 get: () =>
@@ -371,7 +371,7 @@ describe('Two way Computed', () => {
     test('Computed handler is batched', () => {
         const obs = observable(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     expect(value.test).toEqual(true);
                     expect(value.test2).toEqual(true);
                 },
@@ -406,7 +406,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
             bound({
-                onSet: ({ value: { computedValue } }) => {
+                set: ({ value: { computedValue } }) => {
                     obs.test.set(computedValue);
                     obs.test2.set(computedValue);
                 },
@@ -423,7 +423,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
             bound({
-                onSet: ({ value: { computedValue } }) => {
+                set: ({ value: { computedValue } }) => {
                     obs.test.set(computedValue);
                 },
                 get: () => ({
@@ -455,7 +455,7 @@ describe('Two way Computed', () => {
 
         const comp = observable<string>(
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.set(+value);
                 },
                 get: () => {
@@ -585,7 +585,7 @@ describe('Two way Computed', () => {
                     numGets++;
                     return obs1.get() + obs2.get();
                 },
-                onSet({ value }) {
+                set({ value }) {
                     numSets++;
                     obs1.set(value);
                     obs2.set(value);
@@ -1163,7 +1163,7 @@ describe('Computed inside observable', () => {
 
         const obs$ = observable({
             sub: bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     sub$.set(value);
                 },
                 get: () => sub$.get(),
@@ -1269,7 +1269,7 @@ describe('lookup', () => {
         });
         const itemText = observable((key: string) =>
             bound({
-                onSet: ({ value }) => {
+                set: ({ value }) => {
                     obs.items[key].text.set(value);
                 },
                 get: () => {
@@ -1541,7 +1541,7 @@ describe('async', () => {
                         setTimeout(() => resolve('hi there'), 0);
                     });
                 },
-                onSet: () => {
+                set: () => {
                     didSet = true;
                 },
             }),
