@@ -1,4 +1,4 @@
-import { activated } from './activated';
+import { bound } from './bound';
 import { observable } from './observable';
 import { Observable, ObservableWriteable } from './observableTypes';
 
@@ -17,7 +17,7 @@ export function proxy<T extends Record<string, any>, T2 = T>(
 ): any {
     return observable((key: string) =>
         set
-            ? activated({
+            ? bound({
                   get: () => get(key),
                   onSet: ({ value }) => set(key, value as any),
               })

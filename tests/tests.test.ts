@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { activated } from '../src/activated';
+import { bound } from '../src/bound';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { computed } from '../src/computed';
 import { configureLegendState } from '../src/config';
@@ -3227,7 +3227,7 @@ describe('new computed', () => {
         let wasSetTo: any;
         let numRuns = 0;
         const obs = observable({
-            child: activated({
+            child: bound({
                 get: () => {
                     numRuns++;
                     return {
@@ -3253,7 +3253,7 @@ describe('new computed', () => {
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: activated({
+            child: bound({
                 onSet: ({ value }) => {
                     other.set(value.test);
                 },

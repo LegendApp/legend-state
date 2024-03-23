@@ -43,7 +43,7 @@ import { invertFieldMap, transformObject, transformObjectWithPath, transformPath
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
 import { removeNullUndefined } from './persistHelpers';
 
-const { globalState, symbolActivated } = internal;
+const { globalState, symbolBound: symbolBound } = internal;
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
@@ -779,7 +779,7 @@ async function loadLocal<T>(
                     internal.globalState.isLoadingLocal = true;
                     // We want to merge the local data on top of any initial state the object is created with
                     const prevValue = obs.peek();
-                    if (value === null && (!prevValue || (prevValue as any)[symbolActivated])) {
+                    if (value === null && (!prevValue || (prevValue as any)[symbolBound])) {
                         obs.set(value);
                     } else {
                         mergeIntoObservable(obs, value);

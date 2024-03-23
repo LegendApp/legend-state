@@ -1,4 +1,4 @@
-export { activated } from './src/activated';
+export { bound } from './src/bound';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
 export { configureLegendState } from './src/config';
@@ -57,7 +57,7 @@ import {
     globalState,
     optimized,
     setNodeValue,
-    symbolActivated,
+    symbolBound,
     symbolDelete,
 } from './src/globals';
 import { setAtPath } from './src/helpers';
@@ -77,6 +77,6 @@ export const internal = {
     set,
     setAtPath,
     setNodeValue,
-    symbolActivated,
+    symbolBound,
     symbolDelete,
 };

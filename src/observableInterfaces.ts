@@ -60,7 +60,6 @@ interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
     // TODOV3 Remove this
-    isActivatedPrimitive?: boolean;
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;
@@ -127,7 +126,7 @@ export type SyncedOnSetParams<T> = OnSetParams<T> & {
     fromSubscribe: boolean | undefined;
 };
 
-export interface ActivatedParams<T = any> {
+export interface BoundParams<T = any> {
     get?: () => T;
     onSet?: (params: OnSetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
@@ -146,7 +145,7 @@ export interface SyncedGetParams {
     setMode: (mode: 'assign' | 'set') => void;
     refresh: () => void;
 }
-export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 'onSet'> {
+export interface SyncedParams<T = any> extends Omit<BoundParams<T>, 'get' | 'onSet'> {
     get?: (params: SyncedGetParams) => T;
     onSet?: (params: SyncedOnSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
@@ -156,7 +155,7 @@ export interface SyncedParams<T = any> extends Omit<ActivatedParams<T>, 'get' | 
     saveTimeout?: number;
 }
 
-export type Activated<T> = T;
+export type Bound<T> = T;
 export type Synced<T> = T;
 
 export type UpdateFn = (params: {

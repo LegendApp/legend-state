@@ -3,9 +3,9 @@ import {
     Observable,
     ObservableReadable,
     TrackingType,
-    activated,
     batch,
     beginBatch,
+    bound,
     endBatch,
     isObservable,
     observable,
@@ -255,7 +255,7 @@ describe('Two way Computed', () => {
     test('Bound to two, set', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
@@ -271,7 +271,7 @@ describe('Two way Computed', () => {
     test('Bound to two, set child', () => {
         const obs = observable({ test: { a: 'hi' }, test2: false });
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.test.set(value);
                 },
@@ -285,7 +285,7 @@ describe('Two way Computed', () => {
     test('Bound to array, set', () => {
         const obs = observable([false, false, false, false, false]);
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.forEach((child) => child.set(value));
                 },
@@ -303,7 +303,7 @@ describe('Two way Computed', () => {
         const obs = observable({ test: false, test2: false });
         const handler = expectChangeHandler(obs);
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
@@ -334,7 +334,7 @@ describe('Two way Computed', () => {
     test('Computed has set before activation', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
@@ -350,7 +350,7 @@ describe('Two way Computed', () => {
         let setValue: number | undefined = undefined;
         let getValue: number | undefined = undefined;
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     setValue = value;
                 },
@@ -370,7 +370,7 @@ describe('Two way Computed', () => {
     });
     test('Computed handler is batched', () => {
         const obs = observable(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     expect(value.test).toEqual(true);
                     expect(value.test2).toEqual(true);
@@ -405,7 +405,7 @@ describe('Two way Computed', () => {
     test('Set child of computed', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value: { computedValue } }) => {
                     obs.test.set(computedValue);
                     obs.test2.set(computedValue);
@@ -422,7 +422,7 @@ describe('Two way Computed', () => {
     test('Computed activates before set', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
-            activated({
+            bound({
                 onSet: ({ value: { computedValue } }) => {
                     obs.test.set(computedValue);
                 },
@@ -454,7 +454,7 @@ describe('Two way Computed', () => {
         const obs = observable(0);
 
         const comp = observable<string>(
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.set(+value);
                 },
@@ -580,7 +580,7 @@ describe('Two way Computed', () => {
         let numSets = 0;
 
         const comp = observable(
-            activated({
+            bound({
                 get: () => {
                     numGets++;
                     return obs1.get() + obs2.get();
@@ -620,7 +620,7 @@ describe('Two way Computed', () => {
     });
     test('Computed link to activated child sets to undefined after activating', async () => {
         const obs = observable({
-            child: activated({
+            child: bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => {
@@ -842,7 +842,7 @@ describe('Computed inside observable', () => {
     test('Computed link to activated updates when changing', async () => {
         const num$ = observable(0);
         const obs = observable(
-            activated({
+            bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => {
@@ -865,7 +865,7 @@ describe('Computed inside observable', () => {
     test('Computed link to link to activated updates when changing', async () => {
         const num$ = observable(0);
         const obs = observable(
-            activated({
+            bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => {
@@ -893,7 +893,7 @@ describe('Computed inside observable', () => {
     test('Computed link to link to activated child updates when changing', async () => {
         const num$ = observable(0);
         const obs = observable({
-            test: activated({
+            test: bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => {
@@ -943,7 +943,7 @@ describe('Computed inside observable', () => {
     test('Computed link works with activated promise', async () => {
         const obs$ = observable({
             a: 'hi',
-            b: activated({
+            b: bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => {
@@ -954,7 +954,7 @@ describe('Computed inside observable', () => {
             }),
         });
         const linker$ = observable(
-            activated({
+            bound({
                 get: () => {
                     return new Promise<Observable<string>>((resolve) => {
                         setTimeout(() => {
@@ -1020,7 +1020,7 @@ describe('Computed inside observable', () => {
     });
     test('Child of computed with activated', () => {
         const obs = observable({ test: 10, test2: 20 });
-        const comp = observable({ sum: activated({ get: () => obs.test.get() + obs.test2.get() }) });
+        const comp = observable({ sum: bound({ get: () => obs.test.get() + obs.test2.get() }) });
         expect(comp.sum.get()).toEqual(30);
     });
     test('Computed in observable notifies to root', () => {
@@ -1162,7 +1162,7 @@ describe('Computed inside observable', () => {
         });
 
         const obs$ = observable({
-            sub: activated({
+            sub: bound({
                 onSet: ({ value }) => {
                     sub$.set(value);
                 },
@@ -1268,7 +1268,7 @@ describe('lookup', () => {
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
         });
         const itemText = observable((key: string) =>
-            activated({
+            bound({
                 onSet: ({ value }) => {
                     obs.items[key].text.set(value);
                 },
@@ -1378,7 +1378,7 @@ describe('lookup', () => {
     });
     test('lookup into child with undefined key', () => {
         const obs = observable({
-            items: activated({
+            items: bound({
                 get: () =>
                     ({
                         test1: { text: 'hi', othertext: 'bye' },
@@ -1394,7 +1394,7 @@ describe('lookup', () => {
     test('lookup into lookup', () => {
         const obs = observable({
             team: (teamID: string) => ({
-                profile: activated({
+                profile: bound({
                     get: () => {
                         return { username: teamID + ' name' };
                     },
@@ -1409,7 +1409,7 @@ describe('lookup', () => {
         const obs = observable({
             link: () => obs.team['asdf'],
             team: (teamID: string) => ({
-                profile: activated({
+                profile: bound({
                     get: () => {
                         return { username: teamID + ' name' };
                     },
@@ -1515,7 +1515,7 @@ describe('loading', () => {
     });
     test('isLoaded with activated', async () => {
         const obs = observable(
-            activated({
+            bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => resolve('hi there'), 0);
@@ -1535,7 +1535,7 @@ describe('async', () => {
     test('set does not get called by load', async () => {
         let didSet = false;
         const obs = observable(
-            activated({
+            bound({
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => resolve('hi there'), 0);
@@ -1561,7 +1561,7 @@ describe('async', () => {
     test('get returning twice', async () => {
         const num$ = observable(0);
         const obs = observable(
-            activated({
+            bound({
                 get: (): Promise<string> | string =>
                     num$.get() > 0
                         ? new Promise<string>((resolve) => {
@@ -1598,7 +1598,7 @@ describe('Set after', () => {
     test('Basic computed set after with activated child', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = observable<{ child: number }>();
-        comp.set({ child: activated({ get: () => obs.test.get() + obs.test2.get() }) });
+        comp.set({ child: bound({ get: () => obs.test.get() + obs.test2.get() }) });
         expect(comp.child.get()).toEqual(30);
     });
     test('Computed assigned later', () => {

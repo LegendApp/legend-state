@@ -10,7 +10,7 @@ import {
     isObservable,
     optimized,
     setNodeValue,
-    symbolActivated,
+    symbolBound,
     symbolDelete,
     symbolGetNode,
     symbolOpaque,
@@ -30,7 +30,7 @@ import {
     isPromise,
 } from './is';
 import type {
-    ActivatedParams,
+    BoundParams,
     Change,
     ChildNodeValue,
     GetOptions,
@@ -935,7 +935,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 value = value();
             }
             const activated = !isObservable(value)
-                ? (value?.[symbolActivated] as ActivatedParams & { synced: boolean })
+                ? (value?.[symbolBound] as BoundParams & { synced: boolean })
                 : undefined;
             if (activated) {
                 node.activationState = activated;
@@ -959,7 +959,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
-                const activated = node.activationState! as ActivatedParams;
+                const activated = node.activationState! as BoundParams;
                 if (node.state?.peek()?.sync) {
                     node.state.sync();
                     ignoreThisUpdate = true;
@@ -1042,7 +1042,7 @@ function activateNodeBase(node: NodeValue, value: any) {
         ) as any;
     }
     if (node.activationState) {
-        const { onSet, get: getFn, initial } = node.activationState as ActivatedParams;
+        const { onSet, get: getFn, initial } = node.activationState as BoundParams;
 
         value = getFn?.();
 
