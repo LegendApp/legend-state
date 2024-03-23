@@ -2,6 +2,8 @@ import { bound } from './bound';
 import { observable } from './observable';
 import { Observable, ObservableWriteable } from './observableTypes';
 
+// Deprecated. Remove in v4
+
 export function proxy<T, T2 = T>(
     get: (key: string) => T,
     set: (key: string, value: T2) => void,

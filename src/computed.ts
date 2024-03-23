@@ -1,11 +1,10 @@
 import { bound } from './bound';
 import { observable } from './observable';
-import { Observable, ObservableReadable } from './observableTypes';
+import { Observable, ObservableReadable, RecursiveValueOrFunction } from './observableTypes';
 
-export function computed<T extends ObservableReadable>(compute: () => T | Promise<T>): T;
-export function computed<T>(compute: () => T | Promise<T>): Observable<T>;
+export function computed<T>(compute: (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>): Observable<T>;
 export function computed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
+    value: (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>,
     set: (value: T2) => void,
 ): Observable<T>;
 export function computed<T, T2 = T>(
