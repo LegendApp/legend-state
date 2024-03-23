@@ -1,10 +1,9 @@
-import { useEffect } from 'react';
-import { useEffectOnce } from './useEffectOnce';
+import { useMount, useMountOnce } from './useMount';
 
 export function useUnmount(fn: () => void) {
-    return useEffect(() => fn, []);
+    return useMount(() => fn);
 }
 
 export function useUnmountOnce(fn: () => void) {
-    return useEffectOnce(() => fn);
+    return useMountOnce(() => fn);
 }

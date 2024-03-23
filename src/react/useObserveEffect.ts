@@ -8,7 +8,7 @@ import {
 } from '@legendapp/state';
 import { useRef } from 'react';
 import type { ObserveOptions } from '../observe';
-import { useEffectOnce } from './useEffectOnce';
+import { useMountOnce } from './useMount';
 
 export function useObserveEffect<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): void;
 export function useObserveEffect<T>(
@@ -34,7 +34,7 @@ export function useObserveEffect<T>(
     }>({ selector });
     ref.current = { selector, reaction };
 
-    useEffectOnce(() =>
+    useMountOnce(() =>
         observe<T>(
             ((e: ObserveEventCallback<T>) => {
                 const { selector } = ref.current as { selector: (e: ObserveEvent<T>) => T | void };

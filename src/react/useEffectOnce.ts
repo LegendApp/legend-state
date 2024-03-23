@@ -1,7 +1,7 @@
 import { isFunction } from '@legendapp/state';
 import { useEffect, useRef } from 'react';
 
-export const useEffectOnce = (effect: () => void | (() => void)) => {
+export const useEffectOnce = (effect: () => void | (() => void), deps: any[]) => {
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
         const refDispose = useRef<{ dispose?: void | (() => void); num: number }>({ num: 0 });
 
@@ -34,8 +34,8 @@ export const useEffectOnce = (effect: () => void | (() => void)) => {
             } else {
                 return dispose;
             }
-        }, []);
+        }, deps);
     } else {
-        useEffect(effect, []);
+        useEffect(effect, deps);
     }
 };
