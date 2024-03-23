@@ -155,9 +155,6 @@ export interface SyncedParams<T = any> extends Omit<BoundParams<T>, 'get' | 'set
     debounceSet?: number;
 }
 
-export type Bound<T> = T;
-export type Synced<T> = T;
-
 export type UpdateFn = (params: {
     value: unknown;
     mode?: 'assign' | 'set' | 'lastSync' | 'dateModified' | 'merge';

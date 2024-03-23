@@ -1,8 +1,10 @@
+import type { Observable } from './observableTypes';
 import { symbolBound } from './globals';
-import { Bound, BoundParams } from './observableInterfaces';
+import { observable } from './observable';
+import { BoundParams } from './observableInterfaces';
 
-export function bound<T>(params: BoundParams<T>): Bound<T> {
-    return (() => ({
+export function bound<T>(params: BoundParams<T>): Observable<T> {
+    return observable(() => ({
         [symbolBound]: params,
     })) as any;
 }

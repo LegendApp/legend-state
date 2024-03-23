@@ -1,4 +1,4 @@
-import { setNodeValue } from './globals';
+import { isObservable, setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
 import type { ClassConstructor, ObservableRoot } from './observableInterfaces';
 import { NodeValue } from './observableInterfaces';
@@ -11,6 +11,9 @@ export function createObservable<T>(
     createObject: Function,
     createPrimitive?: Function,
 ): Observable<T> {
+    if (isObservable(value)) {
+        return value as Observable<T>;
+    }
     const valueIsPromise = isPromise<T>(value);
     const valueIsFunction = isFunction(value);
 
