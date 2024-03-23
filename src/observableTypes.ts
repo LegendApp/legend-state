@@ -139,7 +139,7 @@ type ObservableFunction<T> = T extends () => infer t ? t | (() => t) : T;
 // Check if the function type T has one lookup parameter
 type HasOneStringParam<T> = T extends (...args: infer P) => any
     ? P extends { length: 1 }
-        ? P[0] extends string
+        ? P[0] extends string | ObservablePrimitive<string>
             ? true
             : false
         : false
@@ -155,7 +155,9 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
     ? ObservableNode<t>
     : [T] extends [(key: infer K extends string) => infer t]
     ? [t] extends [ImmutableObservableBase<any>]
-        ? t
+        ? HasOneStringParam<T> extends true
+            ? Observable<Record<K, t>>
+            : t
         : HasOneStringParam<T> extends true
         ? Observable<Record<K, t>> & T
         : Observable<ObservableFunction<t>>
@@ -182,7 +184,7 @@ type ObservableReadable<T = any> = ImmutableObservableBase<T>;
 type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;
 
 // Allow input types to have functions in them
-type ValueOrFunction<T> = T extends Function ? T : T | Promise<T> | (() => T | Promise<T>);
+type ValueOrFunction<T> = T extends Function ? T : T | ImmutableObservableBase<T> | Promise<T> | (() => T | Promise<T>);
 type ValueOrFunctionKeys<T> = {
     [K in keyof T]: RecursiveValueOrFunction<T[K]>;
 };

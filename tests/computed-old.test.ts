@@ -653,7 +653,7 @@ describe('proxy', () => {
     test('proxy plain', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy((key): string => {
+            itemText: proxy((key: string): string => {
                 return obs.items[key].text.get();
             }),
         });
@@ -723,7 +723,7 @@ describe('proxy', () => {
     test('proxy link', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy((key): Observable<string> => {
+            itemText: proxy((key: string): Observable<string> => {
                 return obs.items[key].text;
             }),
         });
@@ -786,7 +786,7 @@ describe('proxy', () => {
     test('raw value of proxy has all values', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy((key): Observable<string> => {
+            itemText: proxy((key: string): Observable<string> => {
                 return obs.items[key].text;
             }),
         });
@@ -818,7 +818,7 @@ describe('proxy', () => {
     test('listener on proxy works', () => {
         const obs = observable({
             items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
-            itemText: proxy((key): Observable<string> => {
+            itemText: proxy((key: string): Observable<string> => {
                 return obs.items[key].text;
             }),
         });
