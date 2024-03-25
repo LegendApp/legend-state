@@ -1,22 +1,19 @@
-import { bound } from './bound';
+import { BoundParams } from 'src/observableInterfaces';
+import { symbolBound } from './globals';
+import { isObject } from './is';
 import { observable } from './observable';
 import { Observable, ObservableReadable, RecursiveValueOrFunction } from './observableTypes';
 
-export function computed<T>(compute: (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>): Observable<T>;
+export function computed<T>(get: BoundParams<T>): Observable<T>;
+export function computed<T>(get: (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>): Observable<T>;
 export function computed<T, T2 = T>(
-    value: (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>,
+    get: (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>,
     set: (value: T2) => void,
 ): Observable<T>;
 export function computed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
+    get: (() => T | Promise<T>) | ObservableReadable<T> | BoundParams<T>,
     set?: (value: T2) => void,
 ): Observable<T> {
-    return observable(
-        set
-            ? bound({
-                  get: compute as any,
-                  set: ({ value }) => set(value as any),
-              })
-            : compute,
-    ) as any;
+    const bound = isObject(get) ? get : set ? { get, set: ({ value }: any) => set(value) } : false;
+    return observable(bound ? () => ({ [symbolBound]: bound }) : get) as any;
 }
