@@ -21,9 +21,11 @@ observe(() => {
     console.log(state$.settings.theme.get())
 })
 
+// Automatically re-render components when observables change
+enableReactTracking({ auto: true })
+
 const Component = function Component() {
-    // use() makes this component re-render whenever it changes
-    const theme = state$.settings.theme.use()
+    const theme = state$.settings.theme.get()
 
     return <div>Theme: {theme}</div>
 }
