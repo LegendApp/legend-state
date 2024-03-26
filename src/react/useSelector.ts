@@ -10,7 +10,7 @@ import {
     trackSelector,
     when,
 } from '@legendapp/state';
-import React, { useContext, useRef } from 'react';
+import React, { useContext, useMemo, useRef } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import { PauseContext } from './usePauseProvider';
 import { reactGlobals } from './react-globals';
@@ -29,7 +29,6 @@ function createSelectorFunctions<T>(
     let version = 0;
     let notify: () => void;
     let dispose: (() => void) | undefined;
-    let resubscribe: (() => void) | undefined;
     let _selector: Selector<T>;
     let prev: T;
 
@@ -39,14 +38,9 @@ function createSelectorFunctions<T>(
         // Dispose if already listening
         dispose?.();
 
-        const {
-            value,
-            dispose: _dispose,
-            resubscribe: _resubscribe,
-        } = trackSelector(_selector, _update, undefined, undefined, /*createResubscribe*/ true);
+        const { value, dispose: _dispose } = trackSelector(_selector, _update, undefined, undefined);
 
         dispose = _dispose;
-        resubscribe = _resubscribe;
 
         return value;
     };
@@ -89,15 +83,6 @@ function createSelectorFunctions<T>(
         subscribe: (onStoreChange: () => void) => {
             notify = onStoreChange;
 
-            // Workaround for React 18 running twice in dev (part 2)
-            if (
-                (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                !dispose &&
-                resubscribe
-            ) {
-                resubscribe();
-            }
-
             return () => {
                 dispose?.();
                 dispose = undefined;
@@ -122,12 +107,9 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     let value;
 
     try {
-        const ref = useRef<SelectorFunctions<T>>();
         const isPaused$ = useContext(PauseContext);
-        if (!ref.current) {
-            ref.current = createSelectorFunctions<T>(options, isPaused$);
-        }
-        const { subscribe, getVersion, run } = ref.current;
+        const selectorFn = useMemo(() => createSelectorFunctions<T>(options, isPaused$), []);
+        const { subscribe, getVersion, run } = selectorFn;
 
         // Run the selector
         // Note: The selector needs to run on every render because it may have different results

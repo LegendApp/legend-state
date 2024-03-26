@@ -18,6 +18,7 @@ import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
+import { getNode } from '../src/globals';
 
 type TestObject = { id: string; label: string };
 
@@ -194,7 +195,7 @@ describe('useSelector', () => {
         expect(num).toEqual(5);
         expect(numSelects).toEqual(11);
     });
-    test('useSelector runs twice in strict mode', () => {
+    test('useSelector runs once in strict mode', () => {
         const obs = observable('hi');
 
         let num = 0;
@@ -214,7 +215,7 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(6);
+        expect(num).toEqual(3);
     });
     test('Renders once with one selector listening to multiple', () => {
         const obs = observable('hi');
@@ -350,6 +351,64 @@ describe('useSelector', () => {
             obs2$.set(true);
         });
         expect(lastValue).toEqual(false);
+    });
+    test('useSelector listener count strict', () => {
+        const obs = observable('hi');
+        const numListeners = () => getNode(obs).listeners?.size;
+
+        function Test() {
+            const value = useSelector(() => {
+                return obs.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        function App() {
+            return createElement(StrictMode, undefined, createElement(Test));
+        }
+        render(createElement(App));
+
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('z');
+        });
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('q');
+        });
+        expect(numListeners()).toEqual(1);
+    });
+    test('useSelector listener count', () => {
+        const obs = observable('hi');
+        const numListeners = () => getNode(obs).listeners?.size;
+
+        function Test() {
+            const value = useSelector(() => {
+                return obs.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('z');
+        });
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('q');
+        });
+        expect(numListeners()).toEqual(1);
     });
 });
 
