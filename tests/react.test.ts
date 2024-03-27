@@ -402,6 +402,33 @@ describe('useSelector', () => {
         });
         expect(numListeners()).toEqual(1);
     });
+    test('useSelector for pure proxy use', () => {
+        const obs = observable('hi');
+        const numListeners = () => getNode(obs).listeners?.size;
+
+        function Test() {
+            const value = useSelector(obs);
+            return createElement('div', undefined, value);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('z');
+        });
+        expect(numListeners()).toEqual(1);
+        act(() => {
+            obs.set('q');
+        });
+        expect(numListeners()).toEqual(1);
+    });
 });
 
 describe('For', () => {
