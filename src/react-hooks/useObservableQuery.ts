@@ -12,10 +12,9 @@ import {
     QueryKey,
     QueryObserver,
     QueryObserverResult,
-    UseErrorBoundary,
-    notifyManager,
 } from '@tanstack/query-core';
 import {
+    ThrowOnError,
     UseBaseQueryOptions,
     UseMutationOptions,
     useIsRestoring,
@@ -23,14 +22,15 @@ import {
     useQueryErrorResetBoundary,
     type UseBaseQueryResult,
 } from '@tanstack/react-query';
-import type { QueryErrorResetBoundaryValue } from '@tanstack/react-query/build/lib/QueryErrorResetBoundary';
+import { QueryErrorResetBoundaryValue } from '@tanstack/react-query/build/legacy/QueryErrorResetBoundary';
+
 import * as React from 'react';
 
 const ensurePreventErrorBoundaryRetry = <TQueryFnData, TError, TData, TQueryData, TQueryKey extends QueryKey>(
     options: DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
     errorResetBoundary: QueryErrorResetBoundaryValue,
 ) => {
-    if (options.suspense || options.useErrorBoundary) {
+    if (options.suspense || options.throwOnError) {
         // Prevent retrying failed query if the error boundary has not been reset yet
         if (!errorResetBoundary.isReset()) {
             options.retryOnMount = false;
@@ -45,33 +45,33 @@ const useClearResetErrorBoundary = (errorResetBoundary: QueryErrorResetBoundaryV
 };
 
 function shouldThrowError<T extends (...args: any[]) => boolean>(
-    _useErrorBoundary: boolean | T | undefined,
+    _throwOnError: boolean | T | undefined,
     params: Parameters<T>,
 ): boolean {
-    // Allow useErrorBoundary function to override throwing behavior on a per-error basis
-    if (typeof _useErrorBoundary === 'function') {
-        return _useErrorBoundary(...params);
+    // Allow throwOnError function to override throwing behavior on a per-error basis
+    if (typeof _throwOnError === 'function') {
+        return _throwOnError(...params);
     }
 
-    return !!_useErrorBoundary;
+    return !!_throwOnError;
 }
 
 const getHasError = <TData, TError, TQueryFnData, TQueryData, TQueryKey extends QueryKey>({
     result,
     errorResetBoundary,
-    useErrorBoundary,
+    throwOnError,
     query,
 }: {
     result: QueryObserverResult<TData, TError>;
     errorResetBoundary: QueryErrorResetBoundaryValue;
-    useErrorBoundary: UseErrorBoundary<TQueryFnData, TError, TQueryData, TQueryKey>;
+    throwOnError: ThrowOnError<TQueryFnData, TError, TQueryData, TQueryKey>;
     query: Query<TQueryFnData, TError, TQueryData, TQueryKey>;
 }) => {
     return (
         result.isError &&
         !errorResetBoundary.isReset() &&
         !result.isFetching &&
-        shouldThrowError(useErrorBoundary, [result.error, query])
+        shouldThrowError(throwOnError, [result.error, query])
     );
 };
 
@@ -87,7 +87,7 @@ export function useObservableQuery<
     mutationOptions?: UseMutationOptions<TData, TError, void, TContext>,
 ): ObservableObject<UseBaseQueryResult<TData, TError>> {
     const Observer = QueryObserver;
-    const queryClient = options?.queryClient || useQueryClient({ context: options.context });
+    const queryClient = options?.queryClient || useQueryClient(new QueryClient());
     const isRestoring = useIsRestoring();
     const errorResetBoundary = useQueryErrorResetBoundary();
     const defaultedOptions = queryClient.defaultQueryOptions(options);
@@ -96,17 +96,17 @@ export function useObservableQuery<
     defaultedOptions._optimisticResults = isRestoring ? 'isRestoring' : 'optimistic';
 
     // Include callbacks in batch renders
-    if (defaultedOptions.onError) {
-        defaultedOptions.onError = notifyManager.batchCalls(defaultedOptions.onError);
-    }
+    // if (defaultedOptions.onError) {
+    //     defaultedOptions.onError = notifyManager.batchCalls(defaultedOptions.onError);
+    // }
 
-    if (defaultedOptions.onSuccess) {
-        defaultedOptions.onSuccess = notifyManager.batchCalls(defaultedOptions.onSuccess);
-    }
+    // if (defaultedOptions.onSuccess) {
+    //     defaultedOptions.onSuccess = notifyManager.batchCalls(defaultedOptions.onSuccess);
+    // }
 
-    if (defaultedOptions.onSettled) {
-        defaultedOptions.onSettled = notifyManager.batchCalls(defaultedOptions.onSettled);
-    }
+    // if (defaultedOptions.onSettled) {
+    //     defaultedOptions.onSettled = notifyManager.batchCalls(defaultedOptions.onSettled);
+    // }
 
     if (defaultedOptions.suspense) {
         // Always set stale time when using suspense to prevent
@@ -138,14 +138,14 @@ export function useObservableQuery<
     if (defaultedOptions.suspense && result.isLoading && result.isFetching && !isRestoring) {
         throw observer
             .fetchOptimistic(defaultedOptions)
-            .then(({ data }) => {
-                defaultedOptions.onSuccess?.(data as TData);
-                defaultedOptions.onSettled?.(data, null);
+            .then(() => {
+                // defaultedOptions.onSuccess?.(data as TData);
+                // defaultedOptions.onSettled?.(data, null);
             })
-            .catch((error) => {
+            .catch(() => {
                 errorResetBoundary.clearReset();
-                defaultedOptions.onError?.(error);
-                defaultedOptions.onSettled?.(undefined, error);
+                // defaultedOptions.onError?.(error);
+                // defaultedOptions.onSettled?.(undefined, error);
             });
     }
 
@@ -154,7 +154,7 @@ export function useObservableQuery<
         getHasError({
             result,
             errorResetBoundary,
-            useErrorBoundary: defaultedOptions.useErrorBoundary,
+            throwOnError: defaultedOptions.throwOnError,
             query: observer.getCurrentQuery(),
         })
     ) {

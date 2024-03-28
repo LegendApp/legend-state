@@ -12,7 +12,6 @@ import {
     QueryObserver,
     UseBaseQueryOptions,
     UseMutationOptions,
-    notifyManager,
     useQueryClient,
 } from '@tanstack/react-query';
 
@@ -52,17 +51,17 @@ export function persistPluginQuery<TObs, TQueryFnData, TError, TData, TQueryData
     );
 
     // Include callbacks in batch renders
-    if (defaultedOptions.onError) {
-        defaultedOptions.onError = notifyManager.batchCalls(defaultedOptions.onError);
-    }
+    // if (defaultedOptions.onError) {
+    //     defaultedOptions.onError = notifyManager.batchCalls(defaultedOptions.onError);
+    // }
 
-    if (defaultedOptions.onSuccess) {
-        defaultedOptions.onSuccess = notifyManager.batchCalls(defaultedOptions.onSuccess);
-    }
+    // if (defaultedOptions.onSuccess) {
+    //     defaultedOptions.onSuccess = notifyManager.batchCalls(defaultedOptions.onSuccess);
+    // }
 
-    if (defaultedOptions.onSettled) {
-        defaultedOptions.onSettled = notifyManager.batchCalls(defaultedOptions.onSettled);
-    }
+    // if (defaultedOptions.onSettled) {
+    //     defaultedOptions.onSettled = notifyManager.batchCalls(defaultedOptions.onSettled);
+    // }
 
     const Observer = type === 'Query' ? QueryObserver : (InfiniteQueryObserver as typeof QueryObserver);
 
