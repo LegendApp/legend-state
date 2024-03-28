@@ -1,9 +1,11 @@
 import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '@legendapp/state';
-import { setAtPath } from '@legendapp/state';
+import { internal, setAtPath } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
 
 const symbolDefault = Symbol();
 const MetadataSuffix = '__m';
+
+const { safeParse, safeStringify } = internal;
 
 export class ObservablePersistMMKV implements ObservablePersistLocal {
     private data: Record<string, any> = {};
@@ -21,7 +23,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         if (this.data[table] === undefined) {
             try {
                 const value = storage.getString(table);
-                this.data[table] = value ? JSON.parse(value) : undefined;
+                this.data[table] = value ? safeParse(value) : undefined;
             } catch {
                 console.error('[legend-state] MMKV failed to parse', table);
             }
@@ -77,7 +79,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         const v = this.data[table];
         if (v !== undefined) {
             try {
-                storage.set(table, JSON.stringify(v));
+                storage.set(table, safeStringify(v));
             } catch (err) {
                 console.error(err);
             }

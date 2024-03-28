@@ -40,12 +40,9 @@ import {
     startAt,
     update,
 } from 'firebase/database';
-const { symbolDelete, getPathType } = internal;
+const { symbolDelete, getPathType, clone } = internal;
 const { observablePersistConfiguration } = internalPersist;
 
-function clone(obj: any) {
-    return obj === undefined || obj === null ? obj : JSON.parse(JSON.stringify(obj));
-}
 function getDateModifiedKey(dateModifiedKey: string | undefined) {
     return dateModifiedKey || observablePersistConfiguration.remoteOptions?.dateModifiedKey || '@';
 }
@@ -615,10 +612,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         saveState.numSavesPending.set((v) => v + 1);
 
         if (pendingSaves.size > 0) {
-            const batches = JSON.parse(JSON.stringify(this._constructBatchesForSave(pendingSaves))) as Record<
-                string,
-                any
-            >[];
+            const batches = clone(this._constructBatchesForSave(pendingSaves)) as Record<string, any>[];
 
             saveState.savingSaves = pendingSaves;
 

@@ -1,17 +1,9 @@
 import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
-import { setAtPath } from '@legendapp/state';
+import { setAtPath, internal } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
 
-const RFC3339 =
-    /^(?:\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?(?:[T\s](?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?:\.\d+)?(?:[Zz]|[+-](?:[01]\d|2[0-3]):?[0-5]\d)?)?$/;
-function reviver(key: any, value: any) {
-    // Convert any ISO8601/RFC3339 strings to dates
-    if (value && typeof value === 'string' && RFC3339.test(value)) {
-        return new Date(value);
-    }
-    return value;
-}
+const { safeParse, safeStringify } = internal;
 
 class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     private data: Record<string, any> = {};
@@ -24,7 +16,7 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
         if (this.data[table] === undefined) {
             try {
                 const value = this.storage.getItem(table);
-                this.data[table] = value ? JSON.parse(value, reviver) : undefined;
+                this.data[table] = value ? safeParse(value) : undefined;
             } catch {
                 console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
             }
@@ -65,8 +57,8 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
 
         const v = this.data[table];
 
-        if (v !== undefined) {
-            this.storage.setItem(table, JSON.stringify(v));
+        if (v !== undefined && v !== null) {
+            this.storage.setItem(table, safeStringify(v));
         } else {
             this.storage.removeItem(table);
         }

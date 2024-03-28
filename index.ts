@@ -59,10 +59,11 @@ import {
     symbolBound,
     symbolDelete,
 } from './src/globals';
-import { getPathType, setAtPath, initializePathType } from './src/helpers';
+import { getPathType, setAtPath, initializePathType, safeParse, safeStringify, clone } from './src/helpers';
 import { runWithRetry } from './src/retry';
 
 export const internal = {
+    clone,
     ensureNodeValue,
     findIDKey,
     get,
@@ -75,6 +76,8 @@ export const internal = {
     optimized,
     peek,
     runWithRetry,
+    safeParse,
+    safeStringify,
     set,
     setAtPath,
     setNodeValue,
