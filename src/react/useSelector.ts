@@ -1,20 +1,20 @@
 import {
+    ListenerParams,
+    Observable,
+    Selector,
     computeSelector,
     isObservable,
     isPrimitive,
     isPromise,
-    ListenerParams,
     syncState,
-    Observable,
-    Selector,
     trackSelector,
     when,
 } from '@legendapp/state';
-import React, { useContext, useMemo, useRef } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import { PauseContext } from './usePauseProvider';
 import { reactGlobals } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
+import { PauseContext } from './usePauseProvider';
 
 interface SelectorFunctions<T> {
     subscribe: (onStoreChange: () => void) => () => void;
