@@ -1,3 +1,18 @@
+## 2.1.9
+- Fix: useSelector was creating too many listeners
+
+## 2.1.8
+- Fix: array includes was not working correctly
+
+## 2.1.7
+- Fix: typescript errors when external imports are not available
+
+## 2.1.6
+- Fix: changed type imports from external packages to fail gracefully if they don't exist in node
+
+## 2.1.5
+- Fix: Dates were being considered as objects and were sometimes not being considered changed
+
 ## 2.1.4
 - Fix: observe not running reaction if selector is an object or array
 
