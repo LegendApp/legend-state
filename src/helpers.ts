@@ -237,8 +237,12 @@ function replacer(_: string, value: any) {
     }
 }
 
+const ISO8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
 function reviver(_: string, value: any) {
     if (value) {
+        if (typeof value === 'string' && ISO8601.test(value)) {
+            return new Date(value);
+        }
         if (typeof value === 'object') {
             if (value.__LSType === 'Map') {
                 return new Map(value.value);

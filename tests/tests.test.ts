@@ -7,7 +7,7 @@ import { enableDirectAccess } from '../src/config/enableDirectAccess';
 import { enableDirectPeek } from '../src/config/enableDirectPeek';
 import { event } from '../src/event';
 import { getNodeValue, isObservable, optimized, symbolGetNode } from '../src/globals';
-import { isEvent, setAtPath } from '../src/helpers';
+import { clone, isEvent, setAtPath } from '../src/helpers';
 import { observable, observablePrimitive, syncState } from '../src/observable';
 import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
 import { Observable as ObservableNew } from '../src/observableTypes';
@@ -3318,5 +3318,11 @@ describe('Return values of set functions are void', () => {
         expect(obs$.get()).toEqual({ value: 20 });
         expect(obs$.set({ value: 30 })).toEqual(undefined);
         expect(obs$.get()).toEqual({ value: 30 });
+    });
+});
+describe('Clone', () => {
+    test('Clone works with dates', () => {
+        const test = { date: new Date() };
+        expect(clone(test)).toEqual(test);
     });
 });
