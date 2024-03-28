@@ -59,7 +59,7 @@ import {
     symbolBound,
     symbolDelete,
 } from './src/globals';
-import { setAtPath } from './src/helpers';
+import { getPathType, setAtPath } from './src/helpers';
 import { runWithRetry } from './src/retry';
 
 export const internal = {
@@ -67,6 +67,7 @@ export const internal = {
     findIDKey,
     get,
     getNode,
+    getPathType,
     getProxy,
     globalState,
     observableFns,

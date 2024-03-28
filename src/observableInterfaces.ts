@@ -24,7 +24,7 @@ export interface ObservableEvent {
     get(): void;
 }
 
-export type TypeAtPath = 'object' | 'array';
+export type TypeAtPath = 'object' | 'array' | 'map' | 'set';
 
 export interface Change {
     path: string[];

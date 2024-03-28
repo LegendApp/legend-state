@@ -40,7 +40,7 @@ import {
     startAt,
     update,
 } from 'firebase/database';
-const { symbolDelete } = internal;
+const { symbolDelete, getPathType } = internal;
 const { observablePersistConfiguration } = internalPersist;
 
 function clone(obj: any) {
@@ -234,7 +234,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
                 const q =
                     queryByModified[key as keyof typeof queryByModified] || (queryByModified as { '*': boolean })['*'];
                 const pathChild = path.concat(key);
-                const pathTypesChild = pathTypes.concat(isArray(o.peek()) ? 'array' : 'object');
+                const pathTypesChild = pathTypes.concat(getPathType(o.peek()));
                 let dateModified: number | undefined = undefined;
 
                 if (isObject(q)) {
