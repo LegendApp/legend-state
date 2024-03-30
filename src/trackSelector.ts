@@ -48,5 +48,5 @@ export function trackSelector<T>(
         }
     }
 
-    return { value, dispose, resubscribe };
+    return { nodes, value, dispose, resubscribe };
 }
