@@ -76,7 +76,7 @@ const state$ = observable({ store: { bigObject: { ... } } })
 
 // Persist this observable
 persistObservable(state$, {
-    persistLocal: ObservablePersistLocalStorage,
+    pluginLocal: ObservablePersistLocalStorage,
     local: 'store' // Unique name
 })
 ```
