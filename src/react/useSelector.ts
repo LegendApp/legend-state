@@ -29,6 +29,7 @@ function createSelectorFunctions<T>(
     let version = 0;
     let notify: () => void;
     let dispose: (() => void) | undefined;
+    let resubscribe: (() => void) | undefined;
     let _selector: Selector<T>;
     let prev: T;
 
@@ -38,9 +39,14 @@ function createSelectorFunctions<T>(
         // Dispose if already listening
         dispose?.();
 
-        const { value, dispose: _dispose } = trackSelector(_selector, _update, undefined, undefined);
+        const {
+            value,
+            dispose: _dispose,
+            resubscribe: _resubscribe,
+        } = trackSelector(_selector, _update, undefined, undefined, /*createResubscribe*/ true);
 
         dispose = _dispose;
+        resubscribe = _resubscribe;
 
         return value;
     };
@@ -82,6 +88,15 @@ function createSelectorFunctions<T>(
     return {
         subscribe: (onStoreChange: () => void) => {
             notify = onStoreChange;
+
+            // Workaround for React 18 running twice in dev (part 2)
+            if (
+                (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                !dispose &&
+                resubscribe
+            ) {
+                resubscribe();
+            }
 
             return () => {
                 dispose?.();

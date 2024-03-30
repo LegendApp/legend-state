@@ -195,7 +195,26 @@ describe('useSelector', () => {
         expect(num).toEqual(5);
         expect(numSelects).toEqual(11);
     });
-    test('useSelector runs once in strict mode', () => {
+    test('useSelector runs once in non-strict mode', () => {
+        const obs = observable('hi');
+
+        let num = 0;
+        function Test() {
+            const value = useSelector(() => {
+                num++;
+                return obs.get() + ' there';
+            });
+            return createElement('div', undefined, value);
+        }
+        render(createElement(Test));
+
+        expect(num).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(3);
+    });
+    test('useSelector runs twice in strict mode', () => {
         const obs = observable('hi');
 
         let num = 0;
@@ -215,7 +234,7 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(3);
+        expect(num).toEqual(6);
     });
     test('Renders once with one selector listening to multiple', () => {
         const obs = observable('hi');
@@ -354,12 +373,14 @@ describe('useSelector', () => {
     });
     test('useSelector listener count strict', () => {
         const obs = observable('hi');
+        let num = 0;
         const numListeners = () => getNode(obs).listeners?.size;
 
         function Test() {
             const value = useSelector(() => {
                 return obs.get() + ' there';
             });
+            num++;
             return createElement('div', undefined, value);
         }
         function App() {
@@ -367,28 +388,34 @@ describe('useSelector', () => {
         }
         render(createElement(App));
 
-        expect(numListeners()).toEqual(1);
+        expect(numListeners()).toEqual(2);
+        expect(num).toEqual(2);
         act(() => {
             obs.set('hello');
         });
-        expect(numListeners()).toEqual(1);
+        expect(numListeners()).toEqual(3);
+        expect(num).toEqual(4);
         act(() => {
             obs.set('z');
         });
-        expect(numListeners()).toEqual(1);
+        expect(numListeners()).toEqual(3);
+        expect(num).toEqual(6);
         act(() => {
             obs.set('q');
         });
-        expect(numListeners()).toEqual(1);
+        expect(numListeners()).toEqual(3);
+        expect(num).toEqual(8);
     });
     test('useSelector listener count', () => {
         const obs = observable('hi');
+        let num = 0;
         const numListeners = () => getNode(obs).listeners?.size;
 
         function Test() {
             const value = useSelector(() => {
                 return obs.get() + ' there';
             });
+            num++;
             return createElement('div', undefined, value);
         }
         function App() {
@@ -397,18 +424,55 @@ describe('useSelector', () => {
         render(createElement(App));
 
         expect(numListeners()).toEqual(1);
+        expect(num).toEqual(1);
         act(() => {
             obs.set('hello');
         });
         expect(numListeners()).toEqual(1);
+        expect(num).toEqual(2);
         act(() => {
             obs.set('z');
         });
         expect(numListeners()).toEqual(1);
+        expect(num).toEqual(3);
         act(() => {
             obs.set('q');
         });
         expect(numListeners()).toEqual(1);
+        expect(num).toEqual(4);
+    });
+    test('useSelector for pure proxy use', () => {
+        const obs = observable('hi');
+        let num = 0;
+        const numListeners = () => getNode(obs).listeners?.size;
+
+        function Test() {
+            const value = useSelector(obs);
+            num++;
+            return createElement('div', undefined, value);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(numListeners()).toEqual(1);
+        expect(num).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(numListeners()).toEqual(1);
+        expect(num).toEqual(2);
+        act(() => {
+            obs.set('z');
+        });
+        expect(numListeners()).toEqual(1);
+        expect(num).toEqual(3);
+        act(() => {
+            obs.set('q');
+        });
+        expect(numListeners()).toEqual(1);
+        expect(num).toEqual(4);
     });
 });
 
