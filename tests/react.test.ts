@@ -393,17 +393,17 @@ describe('useSelector', () => {
         act(() => {
             obs.set('hello');
         });
-        expect(numListeners()).toEqual(3);
+        expect(numListeners()).toEqual(2);
         expect(num).toEqual(4);
         act(() => {
             obs.set('z');
         });
-        expect(numListeners()).toEqual(3);
+        expect(numListeners()).toEqual(2);
         expect(num).toEqual(6);
         act(() => {
             obs.set('q');
         });
-        expect(numListeners()).toEqual(3);
+        expect(numListeners()).toEqual(2);
         expect(num).toEqual(8);
     });
     test('useSelector listener count', () => {

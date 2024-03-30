@@ -29,7 +29,7 @@ function createSelectorFunctions<T>(
     let version = 0;
     let notify: () => void;
     let dispose: (() => void) | undefined;
-    let resubscribe: (() => void) | undefined;
+    let resubscribe: (() => () => void) | undefined;
     let _selector: Selector<T>;
     let prev: T;
 
@@ -95,7 +95,7 @@ function createSelectorFunctions<T>(
                 !dispose &&
                 resubscribe
             ) {
-                resubscribe();
+                dispose = resubscribe();
             }
 
             return () => {
