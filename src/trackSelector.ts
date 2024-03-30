@@ -1,5 +1,5 @@
 import { computeSelector } from './helpers';
-import type { ListenerParams, ObserveEvent, Selector } from './observableInterfaces';
+import type { ListenerParams, ObservableListenerDispose, ObserveEvent, Selector } from './observableInterfaces';
 import type { ObserveOptions } from './observe';
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
@@ -9,11 +9,12 @@ export function trackSelector<T>(
     update: (params: ListenerParams) => void,
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
+    createResubscribe?: boolean,
 ) {
-    let dispose: (() => void) | undefined = undefined;
+    let dispose: undefined | (() => void);
+    let resubscribe: ObservableListenerDispose | undefined;
     let updateFn = update;
 
-    // Compute the selector inside a tracking context
     beginTracking();
     const value = selector ? computeSelector(selector, observeEvent, observeOptions?.fromComputed) : selector;
     const tracker = tracking.current;
@@ -36,7 +37,8 @@ export function trackSelector<T>(
         // useSyncExternalStore doesn't subscribe until after the component mount.
         // We want to subscribe immediately so we don't miss any updates
         dispose = setupTracking(nodes, updateFn, false, observeOptions?.immediate);
+        resubscribe = createResubscribe ? () => setupTracking(nodes, updateFn) : undefined;
     }
 
-    return { value, dispose };
+    return { value, dispose, resubscribe };
 }
