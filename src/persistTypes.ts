@@ -19,8 +19,8 @@ import {
 import { Observable, ObservableReadable, ObservableState } from './observableTypes';
 
 export interface PersistTransform<T = any> {
-    in?: (value: T) => T | Promise<T>;
-    out?: (value: T) => T | Promise<T>;
+    load?: (value: T) => T | Promise<T>;
+    save?: (value: T) => T | Promise<T>;
 }
 
 export interface PersistOptionsLocal<T = any> {

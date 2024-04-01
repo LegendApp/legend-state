@@ -115,7 +115,7 @@ export function transformOutData(
     pathTypes: TypeAtPath[],
     { transform, fieldTransforms }: { transform?: PersistTransform; fieldTransforms?: FieldTransforms<any> },
 ): { value: any; path: string[] } | Promise<{ value: any; path: string[] }> {
-    if (fieldTransforms || transform?.out) {
+    if (fieldTransforms || transform?.save) {
         const transformFn = () => {
             if (fieldTransforms) {
                 const { obj, path: pathTransformed } = transformObjectWithPath(value, path, pathTypes, fieldTransforms);
@@ -126,9 +126,9 @@ export function transformOutData(
             return { value, path };
         };
 
-        if (transform?.out) {
+        if (transform?.save) {
             const constructed = constructObjectWithPath(path, pathTypes, value);
-            const saved = transform.out(constructed);
+            const saved = transform.save(constructed);
             const deconstruct = (toDeconstruct: boolean) => {
                 value = deconstructObjectWithPath(path, pathTypes, toDeconstruct);
                 return transformFn();
@@ -151,8 +151,8 @@ export function transformLoadData(
         value = transformObject(value, inverted);
     }
 
-    if (doUserTransform && transform?.in) {
-        value = transform.in(value);
+    if (doUserTransform && transform?.load) {
+        value = transform.load(value);
     }
 
     return value;

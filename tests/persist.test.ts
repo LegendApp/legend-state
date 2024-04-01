@@ -49,7 +49,7 @@ describe('Adjusting data', () => {
     test('transformOutData with transform', () => {
         const adjusted = transformOutData({ id: 'id', text: 'a' }, [], [], {
             transform: {
-                out: (value) => {
+                save: (value) => {
                     value.text = 'b';
                     return value;
                 },
@@ -61,7 +61,7 @@ describe('Adjusting data', () => {
     test('transformOutData with transform and fieldTransforms', () => {
         const adjusted = transformOutData({ id: 'id', text: 'a' }, [], [], {
             transform: {
-                out: (value) => {
+                save: (value) => {
                     value.text = 'b';
                     return value;
                 },
@@ -77,7 +77,7 @@ describe('Adjusting data', () => {
     test('transformOutData with transform and fieldTransforms and path', () => {
         const adjusted = transformOutData({ id: 'id', text: 'a' }, ['path'], ['object'], {
             transform: {
-                out: (value) => {
+                save: (value) => {
                     value.path.text = 'b';
                     return value;
                 },
@@ -95,7 +95,7 @@ describe('Adjusting data', () => {
     test('transformOutData with transform promise and fieldTransforms and path', async () => {
         const adjusted = await transformOutData({ id: 'id', text: 'a' }, ['path'], ['object'], {
             transform: {
-                out: async (value) => {
+                save: async (value) => {
                     value.path.text = 'b';
                     await promiseTimeout(10);
                     return value;
