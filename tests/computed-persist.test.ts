@@ -510,21 +510,25 @@ describe('subscribing to computeds', () => {
                         setTimeout(() => {
                             didGet = true;
                             resolve('hi there');
-                        }, 5);
+                        }, 10);
                     });
                 },
             }),
         );
-        expect(obs.get()).toEqual(undefined);
         expect(didGet).toEqual(false);
-        await promiseTimeout(0);
-        expect(didGet).toEqual(false);
+        expect(didSubscribe$.get()).toEqual(false);
         expect(obs.get()).toEqual(undefined);
         await promiseTimeout(0);
         expect(didGet).toEqual(false);
+        expect(didSubscribe$.get()).toEqual(false);
+        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(didGet).toEqual(false);
+        expect(didSubscribe$.get()).toEqual(false);
         expect(obs.get()).toEqual(undefined);
         await whenReady(obs);
         expect(didGet).toEqual(true);
+        expect(didSubscribe$.get()).toEqual(false);
         expect(obs.get()).toEqual('hi there');
         await when(didSubscribe$);
         expect(obs.get()).toEqual('from subscribe');
