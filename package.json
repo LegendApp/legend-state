@@ -19,6 +19,7 @@
         "prebuild": "npm run clean",
         "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && mkdir dist/types && cp src/types/* dist/types/ && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
         "postbuild": "node postbuild.mjs",
+        "test": "jest",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
         "publish:betarelease": "npm version prerelease --preid=beta && cd dist && npm publish --tag beta",
