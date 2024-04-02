@@ -78,7 +78,6 @@ beforeEach(() => {
 
 describe('Persist local', () => {
     test('Saves to local', async () => {
-        reset();
         const obs = observable({ test: '' });
 
         persistObservable(obs, {
@@ -89,7 +88,7 @@ describe('Persist local', () => {
 
         await promiseTimeout(0);
 
-        const localValue = sessionStorage.getItem('jestlocal');
+        const localValue = global.sessionStorage.getItem('jestlocal');
 
         // Should have saved to local storage
         expect(localValue).toBe(`{"test":"hello"}`);

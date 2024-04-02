@@ -7,7 +7,7 @@ function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
 
-jest.setTimeout(50);
+jest.setTimeout?.(50);
 beforeEach(() => {
     configureObservablePersistence({ remoteOptions: undefined });
 });

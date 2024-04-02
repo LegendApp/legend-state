@@ -2146,8 +2146,9 @@ describe('when', () => {
     });
     test('when with effect is promise', async () => {
         const obs = observable({ val: false });
-        expect(when(obs.val, () => 'test')).resolves.toEqual('test');
+        const promise = when(obs.val, () => 'test');
         obs.val.set(true);
+        expect(promise).resolves.toEqual('test');
     });
     test('when with promise', async () => {
         let didResolve = false;
@@ -2793,7 +2794,7 @@ describe('Observable with promise', () => {
         if (resolver) {
             resolver(10);
         }
-        await promiseTimeout(1000);
+        await promiseTimeout(20);
         expect(fn).toHaveBeenCalled();
         expect(state.isLoaded.get()).toEqual(true);
     });

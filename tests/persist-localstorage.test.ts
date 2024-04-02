@@ -76,9 +76,8 @@ beforeEach(() => {
     reset();
 });
 
-describe('Persist local', () => {
+describe('Persist local localStorage', () => {
     test('Saves to local', async () => {
-        reset();
         const obs = observable({ test: '' });
 
         persistObservable(obs, {
@@ -103,7 +102,6 @@ describe('Persist local', () => {
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
     test('Saves empty root object to local overwriting complex', async () => {
-        reset();
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
         persistObservable(obs, {
@@ -128,7 +126,6 @@ describe('Persist local', () => {
         expect(obs2.get()).toEqual({ test: {} });
     });
     test('Saves empty root object to local', async () => {
-        reset();
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
         persistObservable(obs, {

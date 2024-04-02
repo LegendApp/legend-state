@@ -19,7 +19,7 @@ configureObservablePersistence({
     pluginLocal: ObservablePersistIndexedDB,
     localOptions: persistLocalOptions,
 });
-jest.setTimeout(50);
+jest.setTimeout?.(50);
 
 async function reset() {
     // eslint-disable-next-line no-global-assign
