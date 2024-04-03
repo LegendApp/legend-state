@@ -18,9 +18,9 @@ import {
 } from './observableInterfaces';
 import { Observable, ObservableReadable, ObservableState } from './observableTypes';
 
-export interface PersistTransform<T = any> {
-    load?: (value: T) => T | Promise<T>;
-    save?: (value: T) => T | Promise<T>;
+export interface PersistTransform<TOrig = any, TSaved = TOrig> {
+    load?: (value: TSaved) => TOrig | Promise<TOrig>;
+    save?: (value: TOrig) => TSaved | Promise<TSaved>;
 }
 
 export interface PersistOptionsLocal<T = any> {
