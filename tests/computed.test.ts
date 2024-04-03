@@ -161,17 +161,23 @@ describe('Computed', () => {
         expect(fn).toHaveBeenCalled();
     });
     test('Computed with promise', async () => {
+        const isDone$ = observable(false);
         const obs = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
         const comp = observable(() => {
             const value = obs.get();
             if (value) {
                 return new Promise((resolve) => {
-                    setTimeout(() => resolve('hi there'), 0);
+                    setTimeout(() => {
+                        resolve('hi there');
+                        setTimeout(() => {
+                            isDone$.set(true);
+                        });
+                    }, 0);
                 });
             }
         });
         expect(comp.get()).toEqual(undefined);
-        await promiseTimeout(10);
+        await when(isDone$);
         expect(comp.get()).toEqual('hi there');
     });
     test('Changing the target', () => {
