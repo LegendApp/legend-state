@@ -1,5 +1,4 @@
-import { getChildNode, getNodeValue, globalState, optimized } from './globals';
-import { clone, getPathType } from './helpers';
+import { clone, getChildNode, getNodeValue, getPathType, globalState, optimized } from './globals';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {

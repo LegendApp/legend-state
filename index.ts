@@ -50,16 +50,20 @@ export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 // Internal:
 import { get, getProxy, observableFns, peek, set } from './src/ObservableObject';
 import {
+    clone,
     ensureNodeValue,
     findIDKey,
     getNode,
+    getPathType,
     globalState,
     optimized,
+    safeParse,
+    safeStringify,
     setNodeValue,
     symbolBound,
     symbolDelete,
 } from './src/globals';
-import { getPathType, setAtPath, initializePathType, safeParse, safeStringify, clone } from './src/helpers';
+import { initializePathType, setAtPath } from './src/helpers';
 import { runWithRetry } from './src/retry';
 
 export const internal = {

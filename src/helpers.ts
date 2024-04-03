@@ -204,10 +204,6 @@ export function setSilently(obs: ObservableReadable, newValue: any) {
     return setNodeValue(node, newValue).newValue;
 }
 
-export function getPathType(value: any): TypeAtPath {
-    return isArray(value) ? 'array' : value instanceof Map ? 'map' : value instanceof Set ? 'set' : 'object';
-}
-
 export function initializePathType(pathType: TypeAtPath): any {
     switch (pathType) {
         case 'array':
@@ -219,47 +215,4 @@ export function initializePathType(pathType: TypeAtPath): any {
         case 'set':
             return new Set();
     }
-}
-
-function replacer(_: string, value: any) {
-    if (value instanceof Map) {
-        return {
-            __LSType: 'Map',
-            value: Array.from(value.entries()), // or with spread: value: [...value]
-        };
-    } else if (value instanceof Set) {
-        return {
-            __LSType: 'Set',
-            value: Array.from(value), // or with spread: value: [...value]
-        };
-    } else {
-        return value;
-    }
-}
-
-const ISO8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
-function reviver(_: string, value: any) {
-    if (value) {
-        if (typeof value === 'string' && ISO8601.test(value)) {
-            return new Date(value);
-        }
-        if (typeof value === 'object') {
-            if (value.__LSType === 'Map') {
-                return new Map(value.value);
-            } else if (value.__LSType === 'Set') {
-                return new Set(value.value);
-            }
-        }
-    }
-    return value;
-}
-
-export function safeStringify(value: any) {
-    return JSON.stringify(value, replacer);
-}
-export function safeParse(value: any) {
-    return JSON.parse(value, reviver);
-}
-export function clone(value: any) {
-    return safeParse(safeStringify(value));
 }

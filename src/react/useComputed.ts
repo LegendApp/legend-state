@@ -28,7 +28,7 @@ export function useComputed<T, T2 = T>(
     return useMemo(
         () =>
             computed<T, T2>(
-                () => (isFunction(ref.current.compute) ? ref.current.compute() : ref.current.compute) as T,
+                () => (isFunction(ref.current.compute) ? ref.current.compute() : ref.current.compute) as any,
                 (set ? (value) => ref.current.set!(value) : undefined) as (value: T2) => void,
             ),
         deps || [],
