@@ -30,7 +30,7 @@ import {
     isPromise,
 } from './is';
 import type {
-    BoundParams,
+    ComputedParams,
     Change,
     ChildNodeValue,
     GetOptions,
@@ -960,7 +960,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 value = value();
             }
             const activated = !isObservable(value)
-                ? (value?.[symbolBound] as BoundParams & { synced: boolean })
+                ? (value?.[symbolBound] as ComputedParams & { synced: boolean })
                 : undefined;
             if (activated) {
                 node.activationState = activated;
@@ -984,7 +984,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
-                const activated = node.activationState! as BoundParams;
+                const activated = node.activationState! as ComputedParams;
                 if (node.state?.peek()?.sync) {
                     node.state.sync();
                     ignoreThisUpdate = true;
@@ -1067,7 +1067,7 @@ function activateNodeBase(node: NodeValue, value: any) {
         ) as any;
     }
     if (node.activationState) {
-        const { set: setFn, get: getFn, initial } = node.activationState as BoundParams;
+        const { set: setFn, get: getFn, initial } = node.activationState as ComputedParams;
 
         value = getFn?.();
 
