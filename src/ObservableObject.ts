@@ -181,6 +181,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     isIdFieldFunction = isFunction(idField);
                     prevChildrenById = new Map();
                     moved = [];
+                }
+
                     const keysSeen: Set<string> =
                         process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
                             ? new Set()
@@ -191,6 +193,13 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                             if (p) {
                                 const child = parent.children.get(i + '');
                                 if (child) {
+                                if (!obj[i]) {
+                                    // If the previous value is not in the new array and it
+                                    // is an activated, disable its listeners
+                                    handleDeletedChild(child, p);
+                                }
+
+                                if (idField) {
                                     const key = isIdFieldFunction
                                         ? (idField as (value: any) => string)(p)
                                         : p[idField as string];
@@ -204,7 +213,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                                         }
                                         keysSeen.add(key);
                                     }
-                                    prevChildrenById.set(key, child);
+                                    prevChildrenById!.set(key, child);
                                 }
                             }
                         }
@@ -223,13 +232,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
                 const prev = isPrevMap ? prevValue.get(key) : prevValue[key];
                 if (prev !== undefined) {
-                    if (!isPrimitive(prev)) {
-                        updateNodes(child, undefined, prev);
-                    }
-
-                    if (child.listeners || child.listenersImmediate) {
-                        notify(child, undefined, prev, 0);
-                    }
+                    handleDeletedChild(child, prev);
                 }
             }
         }
@@ -346,6 +349,21 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         __devUpdateNodes.delete(obj);
     }
     return retValue ?? false;
+}
+
+function handleDeletedChild(child: NodeValue, p: any) {
+    // If the previous value is not in the new array and it
+    // is an activated, disable its listeners
+    child.linkedToNodeDispose?.();
+    child.activatedObserveDispose?.();
+
+    if (!isPrimitive(p)) {
+        updateNodes(child, undefined, p);
+    }
+
+    if (child.listeners || child.listenersImmediate) {
+        notify(child, undefined, p, 0);
+    }
 }
 
 export function getProxy(node: NodeValue, p?: string, asFunction?: Function): Observable {

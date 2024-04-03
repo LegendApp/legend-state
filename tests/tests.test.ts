@@ -1142,6 +1142,20 @@ describe('Array', () => {
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Array splice notifies last element', () => {
+        const obs = observable({ test: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }] });
+        const handler = expectChangeHandler(obs.test[2]);
+        obs.test.splice(1, 1);
+        expect(handler).toHaveBeenCalledWith(undefined, { text: 'there' }, [
+            {
+                path: [],
+                pathTypes: [],
+                valueAtPath: undefined,
+                prevAtPath: { text: 'there' },
+            },
+        ]);
+        expect(handler).toHaveBeenCalledTimes(1);
+    });
     // test('Array of objects requires ids', () => {
     //     const obs = observable({ test: [{ text: 'hi' }] });
     // });
