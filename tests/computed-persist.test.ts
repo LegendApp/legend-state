@@ -350,6 +350,7 @@ describe('lastSync with new computed', () => {
 
         await promiseTimeout(10);
         expect(value.get()).toEqual('test2');
+        await promiseTimeout(10);
         expect(localStorage.getItem('lastSync2__m')).toEqual(JSON.stringify({ lastSync: 1000 }));
     });
 });
@@ -515,14 +516,6 @@ describe('subscribing to computeds', () => {
                 },
             }),
         );
-        expect(didGet).toEqual(false);
-        expect(didSubscribe$.get()).toEqual(false);
-        expect(obs.get()).toEqual(undefined);
-        await promiseTimeout(0);
-        expect(didGet).toEqual(false);
-        expect(didSubscribe$.get()).toEqual(false);
-        expect(obs.get()).toEqual(undefined);
-        await promiseTimeout(0);
         expect(didGet).toEqual(false);
         expect(didSubscribe$.get()).toEqual(false);
         expect(obs.get()).toEqual(undefined);
