@@ -898,14 +898,7 @@ export function persistObservable<T>(
                                 if (mode === 'lastSync' || mode === 'dateModified') {
                                     if (lastSync && !isEmpty(value as unknown as object)) {
                                         onChangeRemote(() => {
-                                            setInObservableAtPath(
-                                                // @ts-expect-error Fix this type
-                                                obs,
-                                                path as string[],
-                                                pathTypes,
-                                                value,
-                                                'assign',
-                                            );
+                                            setInObservableAtPath(obs, path as string[], pathTypes, value, 'assign');
                                         });
                                     }
                                 } else {

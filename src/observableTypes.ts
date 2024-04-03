@@ -58,8 +58,14 @@ interface ObservableBoolean extends ObservablePrimitive<boolean> {
 interface ObservablePrimitive<T> extends ImmutableObservableBase<T>, MutableObservableBase<T> {}
 type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any> & Record<string, any>;
 
-interface ImmutableObservableBase<T> {
+interface ImmutableObservableSimple<T> {
+    peek(): T;
+    get(trackingType?: any): any;
+    onChange(cb: ListenerFn<any>, options?: any): () => void;
+}
+interface ImmutableObservableBase<T> extends ImmutableObservableSimple<T> {
     peek(): RemoveObservables<T>;
+    peek(): T; // This is just to match the Simple base type
     get(trackingType?: TrackingType | GetOptions): RemoveObservables<T>;
     onChange(
         cb: ListenerFn<T>,
@@ -67,7 +73,11 @@ interface ImmutableObservableBase<T> {
     ): () => void;
 }
 
-interface MutableObservableBase<T> {
+interface MutableObservableSimple {
+    set(value: any): void;
+    delete(): void;
+}
+interface MutableObservableBase<T> extends MutableObservableSimple {
     set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): void;
     set(value: RecursiveValueOrFunction<T>): void;
     set(value: Promise<RemoveObservables<T>>): void;
@@ -180,8 +190,8 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
 // Note: The {} makes intellisense display observables as Observable instead of all the subtypes
 type Observable<T = any> = ObservableNode<T> & {};
 
-type ObservableReadable<T = any> = ImmutableObservableBase<T>;
-type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableBase<T>;
+type ObservableReadable<T = any> = ImmutableObservableSimple<T>;
+type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableSimple;
 
 // Allow input types to have functions in them
 type ValueOrFunction<T> = T extends Function ? T : T | ImmutableObservableBase<T> | Promise<T> | (() => T | Promise<T>);

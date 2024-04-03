@@ -227,7 +227,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const { ignoreKeys } = options.remote!.firebase!;
         Object.keys(obs).forEach((key) => {
             if (!ignoreKeys || !ignoreKeys.includes(key)) {
-                const o = obs[key as keyof typeof obs] as ObservableReadable<any>;
+                const o = (obs as any)[key] as ObservableReadable<any>;
                 const q =
                     queryByModified[key as keyof typeof queryByModified] || (queryByModified as { '*': boolean })['*'];
                 const pathChild = path.concat(key);

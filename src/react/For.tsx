@@ -103,9 +103,7 @@ export function For<T, TProps>({
                 const props: ForItemProps<any> & { key: string; item: Observable<any> } = {
                     key,
                     id: key,
-                    // @ts-expect-error asdf
                     item$,
-                    // @ts-expect-error asdf
                     item: item$,
                 };
                 out.push(createElement(item as FC, itemProps ? Object.assign(props, itemProps) : props));
