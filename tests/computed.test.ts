@@ -28,6 +28,16 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
+export function filterRecord<T>(obj: Record<string, T>, filter: (value: T) => boolean): Record<string, T> {
+    const out: Record<string, T> = {};
+    Object.keys(obj).forEach((key) => {
+        if (filter(obj[key])) {
+            out[key] = obj[key];
+        }
+    });
+    return out;
+}
+
 function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
     const ret = jest.fn();
 
@@ -2085,5 +2095,59 @@ describe('Activation', () => {
         expect(isObservable(value.test)).toBe(false);
         // @ts-expect-error Need to fix the types to be both return value and function
         expect(value.test.text === 'hi!').toBe(false);
+    });
+    test('Filtered object works when updating its children', () => {
+        const obs$ = observable<Record<string, { text: string }>>({
+            id1: { text: 'hi' },
+            id2: { text: 'hi2' },
+            id3: { text: 'hello3' },
+            id4: { text: 'hi4' },
+        });
+        const filtered$ = observable(() => {
+            return filterRecord(obs$, (value$) => value$.text.peek().startsWith('hi'));
+        });
+        filtered$.get();
+
+        Object.values(filtered$).forEach((item$: Observable<{ text: string }>) => {
+            item$.text.set((t) => t + '!');
+        });
+
+        expect(filtered$.get()).toEqual({
+            id1: { text: 'hi!' },
+            id2: { text: 'hi2!' },
+            id4: { text: 'hi4!' },
+        });
+
+        expect(obs$.get()).toEqual({
+            id1: { text: 'hi!' },
+            id2: { text: 'hi2!' },
+            id3: { text: 'hello3' },
+            id4: { text: 'hi4!' },
+        });
+    });
+    test('Filtered array works when updating its children', () => {
+        const obs$ = observable<Record<string, { text: string }>>({
+            id1: { text: 'hi' },
+            id2: { text: 'hi2' },
+            id3: { text: 'hello3' },
+            id4: { text: 'hi4' },
+        });
+        const filtered$ = observable(() => {
+            return Object.values(obs$).filter((value$) => value$.text.peek().startsWith('hi'));
+        });
+        filtered$.get();
+
+        filtered$.forEach((item$: Observable<{ text: string }>) => {
+            item$.text.set((t) => t + '!');
+        });
+
+        expect(filtered$.get()).toEqual([{ text: 'hi!' }, { text: 'hi2!' }, { text: 'hi4!' }]);
+
+        expect(obs$.get()).toEqual({
+            id1: { text: 'hi!' },
+            id2: { text: 'hi2!' },
+            id3: { text: 'hello3' },
+            id4: { text: 'hi4!' },
+        });
     });
 });

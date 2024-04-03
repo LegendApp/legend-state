@@ -183,16 +183,16 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     moved = [];
                 }
 
-                    const keysSeen: Set<string> =
-                        process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
-                            ? new Set()
-                            : (undefined as unknown as Set<string>);
-                    if (parent.children) {
-                        for (let i = 0; i < prevValue.length; i++) {
-                            const p = prevValue[i];
-                            if (p) {
-                                const child = parent.children.get(i + '');
-                                if (child) {
+                const keysSeen: Set<string> =
+                    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+                        ? new Set()
+                        : (undefined as unknown as Set<string>);
+                if (parent.children) {
+                    for (let i = 0; i < prevValue.length; i++) {
+                        const p = prevValue[i];
+                        if (p) {
+                            const child = parent.children.get(i + '');
+                            if (child) {
                                 if (!obj[i]) {
                                     // If the previous value is not in the new array and it
                                     // is an activated, disable its listeners
@@ -260,7 +260,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                 const existingChild = parent.children?.get(key);
 
                 if (isObservable(value)) {
-                    if (existingChild?.linkedToNode === getNode(value)) {
+                    const valueNode = getNode(value);
+                    if (existingChild?.linkedToNode === valueNode) {
+                        const targetValue = getNodeValue(valueNode);
+                        isMap ? obj.set(key, targetValue) : ((obj as any)[key] = targetValue);
                         continue;
                     }
                     const obs = value;
