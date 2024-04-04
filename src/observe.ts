@@ -1,5 +1,5 @@
 import { beginBatch, endBatch } from './batching';
-import { isEvent } from './helpers';
+import { isEvent } from './globals';
 import { isFunction } from './is';
 import { ObserveEvent, ObserveEventCallback, Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';

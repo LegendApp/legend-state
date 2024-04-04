@@ -1,19 +1,8 @@
 import { beginBatch, endBatch } from './batching';
-import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolGetNode, symbolOpaque } from './globals';
+import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isObject } from './is';
-import type {
-    NodeValue,
-    ObservableEvent,
-    ObserveEvent,
-    OpaqueObject,
-    Selector,
-    TypeAtPath,
-} from './observableInterfaces';
+import type { ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
-
-export function isEvent(obs: any): obs is ObservableEvent {
-    return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
-}
 
 export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean) {
     let c = selector as any;
