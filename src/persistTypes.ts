@@ -16,7 +16,7 @@ import {
     Selector,
     TypeAtPath,
 } from './observableInterfaces';
-import { Observable, ObservableReadable, ObservableState } from './observableTypes';
+import { Observable, ObservableParam, ObservableState } from './observableTypes';
 
 export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;
@@ -126,14 +126,14 @@ export interface ObservableOnChangeParams {
 }
 export interface ObservablePersistRemoteSetParams<T> {
     syncState: Observable<ObservablePersistState>;
-    obs: Observable<T>;
+    obs: ObservableParam<T>;
     options: PersistOptions<T>;
     changes: Change[];
     value: T;
 }
 export interface ObservablePersistRemoteGetParams<T> {
     state: Observable<ObservablePersistState>;
-    obs: ObservableReadable<T>;
+    obs: ObservableParam<T>;
     options: PersistOptions<T>;
     dateModified?: number;
     lastSync?: number;

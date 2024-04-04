@@ -2,7 +2,7 @@ import { extractPromise, getProxy, peekInternal } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
 import { getNode, globalState } from './globals';
-import type { Observable, ObservablePrimitive, ObservableReadable, RecursiveValueOrFunction } from './observableTypes';
+import type { Observable, ObservablePrimitive, ObservableParam, RecursiveValueOrFunction } from './observableTypes';
 import { ObservablePersistState } from './persistTypes';
 
 export function observable<T>(): Observable<T | undefined>;
@@ -20,7 +20,7 @@ export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimit
     return createObservable(value, true, extractPromise, getProxy, ObservablePrimitiveClass) as any;
 }
 
-export function syncState(obs: ObservableReadable) {
+export function syncState(obs: ObservableParam) {
     const node = getNode(obs);
     if (!node.state) {
         peekInternal(node);

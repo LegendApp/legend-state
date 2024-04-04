@@ -1,7 +1,7 @@
 import {
     computeSelector,
     isFunction,
-    ObservableReadable,
+    ObservableParam,
     observe,
     ObserveEvent,
     ObserveEventCallback,
@@ -30,7 +30,7 @@ export function useObserve<T>(
     }
 
     const ref = useRef<{
-        selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
+        selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
     }>({});

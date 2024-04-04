@@ -3,9 +3,9 @@ import { isObservable } from '../src/globals';
 import { mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Change, TrackingType } from '../src/observableInterfaces';
-import { ObservableReadable } from '../src/observableTypes';
+import { ObservableParam } from '../src/observableTypes';
 
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
+function expectChangeHandler<T>(obs: ObservableParam<T>, track?: TrackingType) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {

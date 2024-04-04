@@ -1,5 +1,5 @@
 import { expectTypeOf } from 'expect-type';
-import { Observable, ObservableBoolean, ObservableReadable, ObservableWriteable } from '../src/observableTypes';
+import { Observable, ObservableBoolean, ObservableParam } from '../src/observableTypes';
 import { observable } from '../src/observable';
 
 describe('Types', () => {
@@ -311,8 +311,20 @@ describe('Types', () => {
                 //  @ts-expect-error Should error
                 tester(observable<{ [x: string]: string }>({}));
             });
-            it('ObservableReadable string', () => {
-                function tester(something: ObservableReadable<string>) {
+            it('Observable any', () => {
+                function tester(something: Observable<any>) {
+                    expect(something.get()).toEqual(something.get());
+                }
+
+                //  tester(observable({ test: true}));
+                tester(observable<Record<string, boolean>>({}));
+                tester(observable<{ [x: string]: boolean }>({}));
+                tester(observable<{ [x: string]: string }>({}));
+                tester(observable<number>(10));
+                tester(observable('hi'));
+            });
+            it('ObservableParam string', () => {
+                function tester(something: ObservableParam<string>) {
                     expect(something.get()).toEqual(something.get());
                 }
 
@@ -320,8 +332,8 @@ describe('Types', () => {
                 tester(observable('Hello'));
                 tester(observable<string>('Hello'));
             });
-            it('ObservableReadable boolean', () => {
-                function tester(something: ObservableReadable<boolean>) {
+            it('ObservableParam boolean', () => {
+                function tester(something: ObservableParam<boolean>) {
                     expect(something.get()).toEqual(something.get());
                 }
 
@@ -330,8 +342,8 @@ describe('Types', () => {
                 tester(observable(true));
                 tester(observable<boolean>(true));
             });
-            it('ObservableReadable object', () => {
-                function tester(something: ObservableReadable<Record<string, boolean>>) {
+            it('ObservableParam object', () => {
+                function tester(something: ObservableParam<Record<string, boolean>>) {
                     expect(something.get()).toEqual(something.get());
                 }
 
@@ -341,8 +353,28 @@ describe('Types', () => {
                 //  @ts-expect-error Should error
                 tester(observable<{ [x: string]: string }>({}));
             });
-            it('ObservableWriteable string', () => {
-                function tester(something: ObservableWriteable<string>) {
+            it('ObservableParam any', () => {
+                function tester(something: ObservableParam<any>) {
+                    expect(something.get()).toEqual(something.get());
+                }
+
+                //  tester(observable({ test: true}));
+                tester(observable<Record<string, boolean>>({}));
+                tester(observable<{ [x: string]: boolean }>({}));
+                tester(observable<{ [x: string]: string }>({}));
+                tester(observable<number>(10));
+                tester(observable(false));
+                tester(observable(false) as ObservableBoolean);
+                tester(observable(true));
+                tester(observable(''));
+                tester(observable('Hello'));
+                tester(observable<string>('Hello'));
+                tester(observable<boolean>(true));
+                tester(observable<Record<string, boolean>>({}));
+                tester(observable<{ [x: string]: boolean }>({}));
+            });
+            it('ObservableParam template string', () => {
+                function tester<T extends ObservableParam<string>>(something: T) {
                     expect(something.get()).toEqual(something.get());
                 }
 
@@ -350,8 +382,8 @@ describe('Types', () => {
                 tester(observable('Hello'));
                 tester(observable<string>('Hello'));
             });
-            it('ObservableWriteable boolean', () => {
-                function tester(something: ObservableWriteable<boolean>) {
+            it('ObservableParam template boolean', () => {
+                function tester<T extends ObservableParam<boolean>>(something: T) {
                     expect(something.get()).toEqual(something.get());
                 }
 
@@ -360,8 +392,8 @@ describe('Types', () => {
                 tester(observable(true));
                 tester(observable<boolean>(true));
             });
-            it('ObservableWriteable object', () => {
-                function tester(something: ObservableWriteable<Record<string, boolean>>) {
+            it('ObservableParam template object', () => {
+                function tester<T extends ObservableParam<Record<string, boolean>>>(something: T) {
                     expect(something.get()).toEqual(something.get());
                 }
 
@@ -371,44 +403,29 @@ describe('Types', () => {
                 //  @ts-expect-error Should error
                 tester(observable<{ [x: string]: string }>({}));
             });
-            it('ObservableWriteable template string', () => {
-                function tester<T extends ObservableWriteable<string>>(something: T) {
-                    expect(something.get()).toEqual(something.get());
-                }
-
-                tester(observable(''));
-                tester(observable('Hello'));
-                tester(observable<string>('Hello'));
-            });
-            it('ObservableWriteable template boolean', () => {
-                function tester<T extends ObservableWriteable<boolean>>(something: T) {
-                    expect(something.get()).toEqual(something.get());
-                }
-
-                tester(observable(false));
-                tester(observable(false) as ObservableBoolean);
-                tester(observable(true));
-                tester(observable<boolean>(true));
-            });
-            it('ObservableWriteable template object', () => {
-                function tester<T extends ObservableWriteable<Record<string, boolean>>>(something: T) {
-                    expect(something.get()).toEqual(something.get());
-                }
-
-                //  tester(observable({ test: true}));
-                tester(observable<Record<string, boolean>>({}));
-                tester(observable<{ [x: string]: boolean }>({}));
-                //  @ts-expect-error Should error
-                tester(observable<{ [x: string]: string }>({}));
-            });
-            it('ObservableWriteable template string props object', () => {
-                function tester<T>(something: { test: ObservableWriteable<T> }) {
+            it('ObservableParam template string props object', () => {
+                function tester<T>(something: { test: ObservableParam<T> }) {
                     expect(something.test.get()).toEqual(something.test.get());
                 }
 
                 tester({ test: observable('') });
                 tester({ test: observable('Hello') });
                 tester({ test: observable<string>('Hello') });
+            });
+            it('ObservableParam template any', () => {
+                function tester<T extends ObservableParam<any>>(something: T) {
+                    expect(something.get()).toEqual(something.get());
+                }
+
+                tester(observable(false));
+                tester(observable(false) as ObservableBoolean);
+                tester(observable(true));
+                tester(observable(''));
+                tester(observable('Hello'));
+                tester(observable<string>('Hello'));
+                tester(observable<boolean>(true));
+                tester(observable<Record<string, boolean>>({}));
+                tester(observable<{ [x: string]: boolean }>({}));
             });
         });
     });

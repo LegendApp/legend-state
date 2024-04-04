@@ -9,7 +9,7 @@ import type {
     Selector,
     TypeAtPath,
 } from './observableInterfaces';
-import type { Observable, ObservableReadable, ObservableWriteable } from './observableTypes';
+import type { Observable, ObservableParam } from './observableTypes';
 
 export function isEvent(obs: any): obs is ObservableEvent {
     return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
@@ -24,7 +24,7 @@ export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, r
     return isObservable(c) && !retainObservable ? c.get() : c;
 }
 
-export function getObservableIndex(obs: ObservableReadable): number {
+export function getObservableIndex(obs: ObservableParam): number {
     const node = getNode(obs);
     const n = +node.key! as number;
     return n - n < 1 ? +n : -1;
@@ -88,7 +88,7 @@ export function setAtPath<T extends object>(
     return obj;
 }
 export function setInObservableAtPath(
-    obs: ObservableWriteable,
+    obs: ObservableParam,
     path: string[],
     pathTypes: TypeAtPath[],
     value: any,
@@ -115,7 +115,7 @@ export function setInObservableAtPath(
         o.set(v);
     }
 }
-export function mergeIntoObservable<T extends ObservableWriteable<Record<string, any>> | object>(
+export function mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(
     target: T,
     ...sources: any[]
 ): T {
@@ -128,7 +128,7 @@ export function mergeIntoObservable<T extends ObservableWriteable<Record<string,
     endBatch();
     return target;
 }
-function _mergeIntoObservable<T extends ObservableWriteable<Record<string, any>> | object>(target: T, source: any): T {
+function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(target: T, source: any): T {
     if (isObservable(source)) {
         source = source.peek();
     }
@@ -199,7 +199,7 @@ export function isObservableValueReady(value: any) {
     return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
 }
 
-export function setSilently(obs: ObservableReadable, newValue: any) {
+export function setSilently(obs: ObservableParam, newValue: any) {
     const node = getNode(obs);
     return setNodeValue(node, newValue).newValue;
 }

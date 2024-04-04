@@ -10,8 +10,7 @@ import type {
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
     ObservablePersistState,
-    ObservableReadable,
-    ObservableWriteable,
+    ObservableParam,
     PersistMetadata,
     PersistOptions,
     PersistOptionsLocal,
@@ -53,7 +52,7 @@ export const mapPersistences: WeakMap<
     }
 > = new WeakMap();
 
-const metadatas = new WeakMap<ObservableReadable<any>, PersistMetadata>();
+const metadatas = new WeakMap<ObservableParam<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
@@ -159,7 +158,7 @@ export function transformLoadData(
 }
 
 async function updateMetadataImmediate<T>(
-    obs: ObservableReadable<any>,
+    obs: ObservableParam<any>,
     localState: LocalState,
     syncState: Observable<ObservablePersistState>,
     persistOptions: PersistOptions<T>,
@@ -198,7 +197,7 @@ async function updateMetadataImmediate<T>(
 }
 
 function updateMetadata<T>(
-    obs: ObservableReadable<any>,
+    obs: ObservableParam<any>,
     localState: LocalState,
     syncState: ObservableObject<ObservablePersistState>,
     persistOptions: PersistOptions<T>,
@@ -693,7 +692,7 @@ function onObsChange<T>(
 }
 
 async function loadLocal<T>(
-    obs: ObservableWriteable<T>,
+    obs: ObservableParam<T>,
     persistOptions: PersistOptions<any>,
     syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
@@ -804,7 +803,7 @@ async function loadLocal<T>(
 export type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
 
 export function persistObservable<T>(
-    obs: ObservableWriteable<T>,
+    obs: ObservableParam<T>,
     persistOptions: PersistOptions<T>,
 ): Observable<ObservablePersistState> {
     const node = getNode(obs);

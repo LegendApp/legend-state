@@ -1,19 +1,19 @@
-import { computed, isArray, isFunction, Observable, ObservableReadable } from '@legendapp/state';
+import { computed, isArray, isFunction, Observable, ObservableParam } from '@legendapp/state';
 import { useMemo, useRef } from 'react';
 
 export function useComputed<T>(compute: () => T | Promise<T>): Observable<T>;
 export function useComputed<T>(compute: () => T | Promise<T>, deps: any[]): Observable<T>;
 export function useComputed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
+    compute: (() => T | Promise<T>) | ObservableParam<T>,
     set: (value: T2) => void,
 ): Observable<T>;
 export function useComputed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
+    compute: (() => T | Promise<T>) | ObservableParam<T>,
     set: (value: T2) => void,
     deps: any[],
 ): Observable<T>;
 export function useComputed<T, T2 = T>(
-    compute: (() => T | Promise<T>) | ObservableReadable<T>,
+    compute: (() => T | Promise<T>) | ObservableParam<T>,
     set?: ((value: T2) => void) | any[],
     deps?: any[],
 ): Observable<T> {
@@ -21,7 +21,7 @@ export function useComputed<T, T2 = T>(
         deps = set;
         set = undefined;
     }
-    const ref = useRef<{ compute?: (() => T | Promise<T>) | ObservableReadable<T>; set?: (value: T2) => void }>({});
+    const ref = useRef<{ compute?: (() => T | Promise<T>) | ObservableParam<T>; set?: (value: T2) => void }>({});
     ref.current.compute = compute;
     ref.current.set = set as (value: T2) => void;
 

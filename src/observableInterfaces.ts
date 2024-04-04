@@ -1,5 +1,5 @@
 import type { symbolOpaque } from './globals';
-import type { Observable, Observable as ObservableNew, ObservableReadable } from './observableTypes';
+import type { Observable, ObservableParam } from './observableTypes';
 import type { CacheOptions, ObservablePersistState } from './persistTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
@@ -37,7 +37,7 @@ export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
-export type Selector<T> = ObservableReadable<T> | ObservableEvent | (() => T) | T;
+export type Selector<T> = ObservableParam<T> | ObservableEvent | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
@@ -76,7 +76,7 @@ interface BaseNodeValue {
     lazy?: boolean;
     lazyFn?: Function;
     needsExtract?: boolean;
-    state?: ObservableNew<ObservablePersistState>;
+    state?: Observable<ObservablePersistState>;
     activated?: boolean;
     activationState?: SyncedParams & { onError?: () => void; persistedRetry?: boolean };
     dirtyFn?: () => void;
@@ -133,7 +133,7 @@ export interface ComputedParams<T = any> {
     waitForSet?:
         | ((params: { value: T; changes: Change[] }) => any)
         | Promise<any>
-        | ObservableReadable<any>
+        | ObservableParam<any>
         | ObservableEvent;
     initial?: T extends Promise<infer t> ? t : T;
 }

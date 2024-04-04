@@ -6,7 +6,7 @@ import {
     isObservable,
     Observable,
     observable,
-    ObservableReadable,
+    ObservableParam,
     observe,
     proxy,
     TrackingType,
@@ -23,7 +23,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
+function expectChangeHandler<T>(obs: ObservableParam<T>, track?: TrackingType) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {

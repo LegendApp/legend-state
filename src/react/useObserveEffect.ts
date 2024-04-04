@@ -1,11 +1,4 @@
-import {
-    isFunction,
-    ObservableReadable,
-    observe,
-    ObserveEvent,
-    ObserveEventCallback,
-    Selector,
-} from '@legendapp/state';
+import { isFunction, ObservableParam, observe, ObserveEvent, ObserveEventCallback, Selector } from '@legendapp/state';
 import { useRef } from 'react';
 import type { ObserveOptions } from '../observe';
 import { useMountOnce } from './useMount';
@@ -29,7 +22,7 @@ export function useObserveEffect<T>(
     }
 
     const ref = useRef<{
-        selector: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableReadable<T>;
+        selector: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
     }>({ selector });
     ref.current = { selector, reaction };

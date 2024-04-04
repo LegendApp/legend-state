@@ -1,7 +1,7 @@
 import {
     Change,
     Observable,
-    ObservableReadable,
+    ObservableParam,
     TrackingType,
     batch,
     beginBatch,
@@ -38,7 +38,7 @@ export function filterRecord<T>(obj: Record<string, T>, filter: (value: T) => bo
     return out;
 }
 
-function expectChangeHandler<T>(obs: ObservableReadable<T>, track?: TrackingType) {
+function expectChangeHandler<T>(obs: ObservableParam<T>, track?: TrackingType) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {

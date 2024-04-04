@@ -4,7 +4,7 @@ import {
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
     ObservablePrimitive,
-    ObservableReadable,
+    ObservableParam,
     PersistOptions,
     QueryByModified,
     TypeAtPath,
@@ -135,7 +135,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
             status$: Observable<LoadStatus>;
         }
     > = new Map();
-    private saveStates = new Map<ObservableReadable<any>, SaveState>();
+    private saveStates = new Map<ObservableParam<any>, SaveState>();
 
     constructor(fns: FirebaseFns) {
         this.fns = fns;
@@ -213,7 +213,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         }
     }
     private iterateListen<T>(
-        obs: ObservableReadable<any>,
+        obs: ObservableParam<any>,
         params: ObservablePersistRemoteGetParams<T>,
         saveState: SaveState,
         path: string[],
@@ -227,7 +227,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         const { ignoreKeys } = options.remote!.firebase!;
         Object.keys(obs).forEach((key) => {
             if (!ignoreKeys || !ignoreKeys.includes(key)) {
-                const o = (obs as any)[key] as ObservableReadable<any>;
+                const o = (obs as any)[key] as ObservableParam<any>;
                 const q =
                     queryByModified[key as keyof typeof queryByModified] || (queryByModified as { '*': boolean })['*'];
                 const pathChild = path.concat(key);
@@ -291,7 +291,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         });
     }
     private async _listen<T>(
-        obs: ObservableReadable<any>,
+        obs: ObservableParam<any>,
         params: ObservablePersistRemoteGetParams<T>,
         saveState: SaveState,
         path: string[],

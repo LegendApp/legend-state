@@ -190,8 +190,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
 // Note: The {} makes intellisense display observables as Observable instead of all the subtypes
 type Observable<T = any> = ObservableNode<T> & {};
 
-type ObservableReadable<T = any> = ImmutableObservableSimple<T>;
-type ObservableWriteable<T = any> = ObservableReadable<T> & MutableObservableSimple;
+type ObservableParam<T = any> = ImmutableObservableSimple<T> & MutableObservableSimple;
 
 // Allow input types to have functions in them
 type ValueOrFunction<T> = T extends Function ? T : T | ImmutableObservableBase<T> | Promise<T> | (() => T | Promise<T>);
@@ -217,7 +216,6 @@ export type {
     ObservableBoolean,
     ObservableObject,
     ObservablePrimitive,
-    ObservableReadable,
-    ObservableWriteable,
+    ObservableParam,
     RecursiveValueOrFunction,
 };

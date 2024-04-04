@@ -1,6 +1,6 @@
 import { isArray, isChildNodeValue, isFunction, isObject } from './is';
 import { NodeValue, TypeAtPath, UpdateFn } from './observableInterfaces';
-import { Observable, ObservablePrimitive, ObservableReadable } from './observableTypes';
+import { Observable, ObservablePrimitive, ObservableParam } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -69,7 +69,7 @@ export function isObservable(obs: any): obs is Observable {
     return !!obs && !!obs[symbolGetNode as any];
 }
 
-export function getNode(obs: ObservableReadable): NodeValue {
+export function getNode(obs: ObservableParam): NodeValue {
     return obs && (obs as any)[symbolGetNode];
 }
 

@@ -1,4 +1,4 @@
-import type { Observable, ObservableObject, ObservableReadable } from '@legendapp/state';
+import type { Observable, ObservableObject, ObservableParam } from '@legendapp/state';
 import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
 import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
@@ -19,7 +19,7 @@ export function For<T, TProps>({
     sortValues,
     children,
 }: {
-    each?: ObservableReadable<T[] | Record<any, T> | Map<any, T>>;
+    each?: ObservableParam<T[] | Record<any, T> | Map<any, T>>;
     optimized?: boolean;
     item?: FC<ForItemProps<T, TProps>>;
     itemProps?: TProps;

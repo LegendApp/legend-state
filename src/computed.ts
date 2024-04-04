@@ -2,7 +2,7 @@ import { ComputedParams } from './observableInterfaces';
 import { symbolBound } from './globals';
 import { isObject } from './is';
 import { observable } from './observable';
-import { Observable, ObservableReadable, RecursiveValueOrFunction } from './observableTypes';
+import { Observable, ObservableParam, RecursiveValueOrFunction } from './observableTypes';
 
 export function computed<T>(get: ComputedParams<T>): Observable<T>;
 export function computed<T>(get: () => RecursiveValueOrFunction<T>): Observable<T>;
@@ -11,7 +11,7 @@ export function computed<T, T2 = T>(
     set: (value: T2) => void,
 ): Observable<T>;
 export function computed<T, T2 = T>(
-    get: (() => T | Promise<T>) | ObservableReadable<T> | ComputedParams<T>,
+    get: (() => T | Promise<T>) | ObservableParam<T> | ComputedParams<T>,
     set?: (value: T2) => void,
 ): Observable<T> {
     const bound = isObject(get) ? get : set ? { get, set: ({ value }: any) => set(value) } : false;
