@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { batch, beginBatch, endBatch } from '../src/batching';
-import { computed } from '../src/computed';
+import { linked } from '../src/linked';
 import { configureLegendState } from '../src/config';
 import '../src/config/enableDirectAccess';
 import { enableDirectAccess } from '../src/config/enableDirectAccess';
@@ -962,7 +962,7 @@ describe('Safety', () => {
     test('Nested assign', () => {
         const obs = observable({ child: { a: 0, b: 0 } });
         const obs2 = observable({ child2: { a: 0, b: 0 } });
-        const comp = computed(() => {
+        const comp = observable(() => {
             const a = obs.child.a.get();
 
             obs2.child2.assign({ a: 2, b: 2 });
@@ -3175,7 +3175,7 @@ describe('new computed', () => {
         let wasSetTo: any;
         let numRuns = 0;
         const obs = observable({
-            child: computed({
+            child: linked({
                 get: () => {
                     numRuns++;
                     return {
@@ -3201,7 +3201,7 @@ describe('new computed', () => {
         // so it's discarded in favor of the onChange value
         const other = observable('hi');
         const obs = observable<{ child: { test: string } }>({
-            child: computed({
+            child: linked({
                 set: ({ value }) => {
                     other.set(value.test);
                 },

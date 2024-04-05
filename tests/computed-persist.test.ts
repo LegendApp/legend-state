@@ -118,13 +118,15 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
     });
     test('cache with initial and no get and set', async () => {
-        const nodes = synced({
-            cache: {
-                plugin: ObservablePersistLocalStorage,
-                name: 'cache with initial and no get and set',
-            },
-            initial: { key00: { key: 'key00', value: 'hi' } },
-        });
+        const nodes = observable(
+            synced({
+                cache: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'cache with initial and no get and set',
+                },
+                initial: { key00: { key: 'key00', value: 'hi' } },
+            }),
+        );
 
         expect(nodes.get()).toEqual({ key00: { key: 'key00', value: 'hi' } });
 
@@ -133,23 +135,27 @@ describe('caching with new computed', () => {
         await promiseTimeout(0);
 
         // Without the same initial it only has the diff
-        const nodes2 = synced({
-            cache: {
-                plugin: ObservablePersistLocalStorage,
-                name: 'cache with initial and no get and set',
-            },
-        });
+        const nodes2 = observable(
+            synced({
+                cache: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'cache with initial and no get and set',
+                },
+            }),
+        );
 
         expect(nodes2.get()).toEqual({ key00: { value: 'hello' } });
 
         // Matches if it has the same initial
-        const nodes3 = synced({
-            cache: {
-                plugin: ObservablePersistLocalStorage,
-                name: 'cache with initial and no get and set',
-            },
-            initial: { key00: { key: 'key00', value: 'hi' } },
-        });
+        const nodes3 = observable(
+            synced({
+                cache: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'cache with initial and no get and set',
+                },
+                initial: { key00: { key: 'key00', value: 'hi' } },
+            }),
+        );
 
         expect(nodes3.get()).toEqual({ key00: { key: 'key00', value: 'hello' } });
     });

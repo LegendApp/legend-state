@@ -1,12 +1,12 @@
-import type { Observable, SyncedParams } from '@legendapp/state';
-import { internal, observable } from '@legendapp/state';
+import type { SyncedParams } from '@legendapp/state';
+import { internal } from '@legendapp/state';
 import { persistActivateNode } from './persistActivateNode';
 
 const { symbolBound } = internal;
 
-export function synced<T>(params: SyncedParams<T>): Observable<T> {
+export function synced<T>(params: SyncedParams<T>): T {
     installPersistActivateNode();
-    return observable(() => ({
+    return (() => ({
         [symbolBound]: { ...params, synced: true },
     })) as any;
 }

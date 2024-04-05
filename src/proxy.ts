@@ -1,4 +1,4 @@
-import { computed } from './computed';
+import { linked } from './linked';
 import { observable } from './observable';
 import { Observable, ObservableParam } from './observableTypes';
 
@@ -18,6 +18,11 @@ export function proxy<T extends Record<string, any>, T2 = T>(
     set?: (key: any, value: T2) => void,
 ): any {
     return observable((key: string) =>
-        computed({ get: () => get(key), set: set ? ({ value }: any) => set!(key, value) : undefined }),
+        set
+            ? linked({
+                  get: () => get(key),
+                  set: ({ value }) => set(key, value as any),
+              })
+            : get(key),
     );
 }

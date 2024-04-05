@@ -1,5 +1,6 @@
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
+export { linked } from './src/linked';
 export { configureLegendState } from './src/config';
 export { event } from './src/event';
 export { isObservable } from './src/globals';
