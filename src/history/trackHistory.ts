@@ -1,4 +1,4 @@
-import { ObservableParam, constructObjectWithPath, internal, mergeIntoObservable, observable } from '@legendapp/state';
+import { ObservableParam, constructObjectWithPath, mergeIntoObservable, observable } from '@legendapp/state';
 
 // This type is purely for documentation.
 type TimestampAsString = string;
@@ -9,10 +9,10 @@ export function trackHistory<T>(
 ): ObservableParam<Record<TimestampAsString, any>> {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
-    obs.onChange(({ changes }) => {
+    obs.onChange(({ loading, remote, changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
-        if (!internal.globalState.isLoadingRemote && !internal.globalState.isLoadingLocal) {
+        if (!loading && !remote) {
             const time: TimestampAsString = Date.now().toString();
 
             // Save to history observable by date, with the previous value
