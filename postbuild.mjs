@@ -54,3 +54,5 @@ delete pkg.scripts;
 delete pkg.engines;
 
 fs.writeFileSync(path.join('dist/package.json'), JSON.stringify(pkg, undefined, 4));
+fs.rmdirSync(path.join('dist/src'), { recursive: true, force: true });
+fs.cpSync('src', 'dist/src', { recursive: true });
