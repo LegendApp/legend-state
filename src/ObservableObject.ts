@@ -308,7 +308,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     // Array has a new / modified element
                     // If object iterate through its children
                     if (isFunction(value) || isObservable(value)) {
-                        extractFunctionOrComputed(parent, obj, key, value);
+                        extractFunctionOrComputed(parent, key, value);
                     } else if (isPrimitive(value)) {
                         hasADiff = true;
                     } else {
@@ -634,7 +634,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         setToObservable(childNode, newValue);
     } else {
         // Set the raw value on the parent object
-        const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
+        const { newValue: savedValue, prevValue } = setNodeValue(childNode, newValue);
 
         const isFunc = isFunction(savedValue);
 
@@ -648,7 +648,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
             childNode.needsExtract = true;
         }
 
-        extractFunctionOrComputed(node, parentValue, key, savedValue);
+        extractFunctionOrComputed(node, key, savedValue);
 
         if (isFunc) {
             savedValue;
@@ -836,13 +836,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
         });
 }
 
-export function extractFunctionOrComputed(
-    node: NodeValue,
-    obj: Record<string, any>,
-    k: string,
-    v: any,
-    activateRecursive?: boolean,
-) {
+export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, activateRecursive?: boolean) {
     if (isPromise(v)) {
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
@@ -917,7 +911,7 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
     if (lazy || node.needsExtract || activateRecursive) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
-                extractFunctionOrComputed(node, value, key, value[key], activateRecursive);
+                extractFunctionOrComputed(node, key, value[key], activateRecursive);
             }
         }
     }

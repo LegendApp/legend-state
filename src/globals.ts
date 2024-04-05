@@ -85,7 +85,6 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     if (isDelete) newValue = undefined;
 
     // Get the value of the parent
-    // const parentValue = isRoot ? node.root : ensureNodeValue(node);
     const parentValue = node.parent ? ensureNodeValue(parentNode) : parentNode.root;
 
     // Save the previous value first
@@ -116,7 +115,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         }
     }
 
-    return { prevValue, newValue, parentValue };
+    return { prevValue, newValue };
 }
 
 const arrNodeKeys: string[] = [];
