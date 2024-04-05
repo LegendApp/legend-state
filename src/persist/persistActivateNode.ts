@@ -12,7 +12,7 @@ import type {
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, runWithRetry, symbolBound } = internal;
+const { getProxy, globalState, runWithRetry, symbolBound, setNodeValue } = internal;
 
 export function persistActivateNode() {
     globalState.activateNodePersist = function activateNodePersist(node: NodeValue, newValue: any) {
@@ -89,6 +89,16 @@ export function persistActivateNode() {
                 };
             }
 
+            const nodeVal = getNodeValue(node);
+            if (promiseReturn !== undefined) {
+                newValue = promiseReturn;
+            } else if (nodeVal !== undefined && !isFunction(nodeVal)) {
+                newValue = nodeVal;
+            } else {
+                newValue = initial;
+            }
+            setNodeValue(node, promiseReturn ? undefined : newValue);
+
             syncState = persistObservable(obs$, {
                 pluginRemote,
                 ...(cache
@@ -125,23 +135,6 @@ export function persistActivateNode() {
                 });
             }
 
-            const nodeVal = getNodeValue(node);
-            if (isFunction(nodeVal)) {
-                if (promiseReturn !== undefined) {
-                    newValue = promiseReturn;
-                    obs$.set(undefined);
-                } else if (newValue === undefined) {
-                    newValue = initial;
-                    obs$.set(newValue);
-                }
-            } else {
-                if (nodeVal !== undefined) {
-                    newValue = nodeVal;
-                } else if (newValue === undefined) {
-                    newValue = initial;
-                }
-                obs$.set(newValue);
-            }
 
             return { update: onChange!, value: newValue };
         } else {

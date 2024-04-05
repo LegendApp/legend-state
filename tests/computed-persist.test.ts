@@ -70,23 +70,20 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key00: { key: 'key00' } });
     });
     test('cache with get and initial', async () => {
-        localStorage.setItem('nodesinitial', JSON.stringify({ key0: { key: 'key0' } }));
+        localStorage.setItem('nodesgetinitial', JSON.stringify({ key0: 'key0' }));
         const nodes = observable(
             synced({
                 cache: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodesinitial',
+                    name: 'nodesgetinitial',
                 },
                 get: async () => {
-                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
-                        setTimeout(() => resolve([{ key: 'key1' }]), 10),
+                    const nodes = await new Promise<Record<string, string>>((resolve) =>
+                        setTimeout(() => resolve({ key2: 'key2', key3: 'key3' }), 10),
                     );
-                    return nodes.reduce((acc: Record<string, { key: string }>, node) => {
-                        acc[node.key] = node;
-                        return acc;
-                    }, {});
+                    return nodes;
                 },
-                initial: { key00: { key: 'key00' } },
+                initial: { key1: 'key1' },
             }),
         );
 
@@ -94,21 +91,39 @@ describe('caching with new computed', () => {
 
         expect(state.isLoadedLocal.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
-        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+        expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
 
         await when(state.isLoaded);
-        expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
+
+        await when(nodes['key2']);
+        expect(nodes.get()).toEqual({ key2: 'key2', key3: 'key3' });
     });
     test('cache with initial and no get', async () => {
+        localStorage.setItem('cache with initial and no get', JSON.stringify({ key0: 'key0' }));
         const nodes = observable(
             synced({
                 cache: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodesinitialnoget',
+                    name: 'cache with initial and no get',
                 },
-                initial: { key00: { key: 'key00', value: 'hi' } },
+                initial: { key1: 'key1' },
             }),
         );
+
+        const state = syncState(nodes);
+
+        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isLoaded.get()).toEqual(true);
+        expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
+    });
+    test('cache with initial and no get and set', async () => {
+        const nodes = synced({
+            cache: {
+                plugin: ObservablePersistLocalStorage,
+                name: 'cache with initial and no get and set',
+            },
+            initial: { key00: { key: 'key00', value: 'hi' } },
+        });
 
         expect(nodes.get()).toEqual({ key00: { key: 'key00', value: 'hi' } });
 
@@ -116,16 +131,26 @@ describe('caching with new computed', () => {
 
         await promiseTimeout(0);
 
-        const nodes2 = observable(
-            synced({
-                cache: {
-                    plugin: ObservablePersistLocalStorage,
-                    name: 'nodesinitialnoget',
-                },
-            }),
-        );
+        // Without the same initial it only has the diff
+        const nodes2 = synced({
+            cache: {
+                plugin: ObservablePersistLocalStorage,
+                name: 'cache with initial and no get and set',
+            },
+        });
 
-        expect(nodes2.get()).toEqual({ key00: { key: 'key00', value: 'hello' } });
+        expect(nodes2.get()).toEqual({ key00: { value: 'hello' } });
+
+        // Matches if it has the same initial
+        const nodes3 = synced({
+            cache: {
+                plugin: ObservablePersistLocalStorage,
+                name: 'cache with initial and no get and set',
+            },
+            initial: { key00: { key: 'key00', value: 'hi' } },
+        });
+
+        expect(nodes3.get()).toEqual({ key00: { key: 'key00', value: 'hello' } });
     });
     test('cache with ownKeys', async () => {
         localStorage.setItem('nodesinitialownkeys', JSON.stringify({ key0: { key: 'key0' } }));
@@ -575,5 +600,26 @@ describe('subscribing to computeds', () => {
         await promiseTimeout(0);
 
         expect(obs$.get()).toEqual('hi 2');
+    });
+    test('synced does not set undefined from initial', async () => {
+        let didSet = false;
+        const obs = observable(
+            synced({
+                cache: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'synced does not set undefined from initial',
+                },
+                get: async () => {
+                    return new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 10));
+                },
+                set: () => {
+                    didSet = true;
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+        expect(didSet).toEqual(false);
+        await when(obs);
+        expect(obs.get()).toEqual('hi');
     });
 });

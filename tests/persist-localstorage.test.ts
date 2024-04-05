@@ -125,6 +125,23 @@ describe('Persist local localStorage', () => {
 
         expect(obs2.get()).toEqual({ test: {} });
     });
+    test('Merges cached value with initial', async () => {
+        const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
+        global.localStorage.setItem('jestlocal', '{"test2":{"text":"hello"}}');
+
+        persistObservable(obs, {
+            local: 'jestlocal',
+        });
+
+        expect(obs.get()).toEqual({
+            test: {
+                text: 'hi',
+            },
+            test2: {
+                text: 'hello',
+            },
+        });
+    });
     test('Saves empty root object to local', async () => {
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
