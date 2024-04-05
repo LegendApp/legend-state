@@ -13,6 +13,8 @@ export type OpaqueObject<T> = T & { [symbolOpaque]: true };
 export interface ListenerParams<T = any> {
     value: T;
     getPrevious: () => T;
+    loading: boolean;
+    remote: boolean;
     changes: Change[];
 }
 

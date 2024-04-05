@@ -1,3 +1,4 @@
+import { onChangeRemote } from '../src/persist/persistObservable';
 import { persistObservable, synced } from '../persist';
 import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
@@ -621,5 +622,39 @@ describe('subscribing to computeds', () => {
         expect(didSet).toEqual(false);
         await when(obs);
         expect(obs.get()).toEqual('hi');
+    });
+});
+describe('Remote changes', () => {
+    test('Remote changes dont trigger set', async () => {
+        let sets = 0;
+        let setTo: string | undefined = undefined;
+        const obs = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: ({ value }) => {
+                    sets++;
+                    setTo = value;
+                },
+            }),
+        );
+        expect(sets).toEqual(0);
+        obs.set('hello');
+        await promiseTimeout(0);
+        expect(sets).toEqual(1);
+        expect(setTo).toEqual('hello');
+        onChangeRemote(() => {
+            obs.set('hello!');
+            expect(sets).toEqual(1);
+        });
+        onChangeRemote(() => {
+            obs.set('hello!!!!');
+            expect(sets).toEqual(1);
+        });
+        obs.set('hiz');
+        await promiseTimeout(0);
+        expect(sets).toEqual(2);
+        expect(setTo).toEqual('hiz');
     });
 });

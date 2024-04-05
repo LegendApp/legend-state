@@ -997,7 +997,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (!ignoreThisUpdate) {
                 const { value, nodes, refresh } = e;
                 refreshFn = refresh;
-                if (!wasPromise || !globalState.isLoadingRemote$.peek()) {
+                if (!wasPromise || !globalState.isLoadingRemote) {
                     if (wasPromise) {
                         if (node.activationState) {
                             const { initial } = node.activationState!;
@@ -1080,10 +1080,14 @@ function activateNodeBase(node: NodeValue, value: any) {
                 if (allChanges.length > 0) {
                     let changes: Change[];
                     let value: any;
+                    let loading = false;
+                    let remote = false;
                     let getPrevious: () => any;
                     if (listenerParams) {
                         changes = listenerParams.changes;
                         value = listenerParams.value;
+                        loading = listenerParams.loading;
+                        remote = listenerParams.remote;
                         getPrevious = listenerParams.getPrevious;
                     } else {
                         // If this is called by flushPending then get the change array
@@ -1111,6 +1115,8 @@ function activateNodeBase(node: NodeValue, value: any) {
                                 setFn({
                                     value,
                                     changes,
+                                    loading,
+                                    remote,
                                     getPrevious,
                                 });
                             },

@@ -1,6 +1,6 @@
 import { isArray, isChildNodeValue, isFunction, isObject } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
-import type { Observable, ObservableParam, ObservablePrimitive } from './observableTypes';
+import type { Observable, ObservableParam } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolGetNode = Symbol('getNode');
@@ -12,7 +12,7 @@ export const symbolBound = Symbol('bound');
 export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
-    isLoadingRemote$: undefined as unknown as ObservablePrimitive<boolean>,
+    isLoadingRemote: false,
     activateNodePersist: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),
     dirtyNodes: new Set<NodeValue>(),

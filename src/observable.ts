@@ -1,8 +1,8 @@
 import { extractPromise, getProxy, peekInternal } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
-import { getNode, globalState } from './globals';
-import type { Observable, ObservablePrimitive, ObservableParam, RecursiveValueOrFunction } from './observableTypes';
+import { getNode } from './globals';
+import type { Observable, ObservableParam, ObservablePrimitive, RecursiveValueOrFunction } from './observableTypes';
 import { ObservablePersistState } from './persistTypes';
 
 export function observable<T>(): Observable<T | undefined>;
@@ -30,5 +30,3 @@ export function syncState(obs: ObservableParam) {
     }
     return node.state!;
 }
-
-globalState.isLoadingRemote$ = observable(false);

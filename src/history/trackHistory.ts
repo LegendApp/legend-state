@@ -12,7 +12,7 @@ export function trackHistory<T>(
     obs.onChange(({ changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
-        if (!internal.globalState.isLoadingRemote$.peek() && !internal.globalState.isLoadingLocal) {
+        if (!internal.globalState.isLoadingRemote && !internal.globalState.isLoadingLocal) {
             const time: TimestampAsString = Date.now().toString();
 
             // Save to history observable by date, with the previous value

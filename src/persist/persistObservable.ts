@@ -94,18 +94,13 @@ function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
 }
 
 export function onChangeRemote(cb: () => void) {
-    when(
-        () => !globalState.isLoadingRemote$.get(),
-        () => {
-            endBatch(true);
-            // Remote changes should only update local state
-            globalState.isLoadingRemote$.set(true);
+    endBatch(true);
+    // Remote changes should only update local state
+    globalState.isLoadingRemote = true;
 
-            batch(cb, () => {
-                globalState.isLoadingRemote$.set(false);
-            });
-        },
-    );
+    batch(cb);
+
+    globalState.isLoadingRemote = false;
 }
 
 export function transformOutData(
@@ -670,10 +665,10 @@ function onObsChange<T>(
     syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
     persistOptions: PersistOptions<T>,
-    { changes }: ListenerParams,
+    { changes, loading, remote }: ListenerParams,
 ) {
-    if (!internal.globalState.isLoadingLocal) {
-        const inRemoteChange = internal.globalState.isLoadingRemote$.peek();
+    if (!loading) {
+        const inRemoteChange = remote;
         const isApplyingPending = localState.isApplyingPending;
         // Queue changes in a microtask so that multiple changes within a frame get run together
         _queuedChanges.push({
@@ -972,6 +967,8 @@ export function persistObservable<T>(
                     // TODO: Not sure why this needs to as unknown as Observable
                     onObsChange(obs as unknown as Observable, syncState, localState, persistOptions, {
                         value: obs.peek(),
+                        loading: false,
+                        remote: false,
                         // TODO getPrevious if any remote persistence layers need it
                         getPrevious: () => undefined,
                         changes,

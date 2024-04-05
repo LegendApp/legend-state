@@ -6,7 +6,7 @@ export { mapPersistences, persistObservable } from './src/persist/persistObserva
 export { synced } from './src/persist/synced';
 
 export function isInRemoteChange() {
-    return internalState.globalState.isLoadingRemote$.get();
+    return internalState.globalState.isLoadingRemote;
 }
 
 import { observablePersistConfiguration } from './src/persist/configureObservablePersistence';

@@ -5,11 +5,15 @@ interface BatchItem {
     value: any;
     prev: any;
     level: number;
+    loading: boolean;
+    remote: boolean;
     whenOptimizedOnlyIf?: boolean;
 }
 interface ChangeInBatch {
     value: any;
     level: number;
+    remote: boolean;
+    loading: boolean;
     whenOptimizedOnlyIf?: boolean;
     changes: Change[];
 }
@@ -85,6 +89,8 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
     computeChangesRecursive(
         changesInBatch,
         node,
+        /*loading*/ globalState.isLoadingLocal,
+        /*remote*/ globalState.isLoadingRemote,
         value,
         [],
         [],
@@ -104,7 +110,14 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
         existing.value = value;
         // TODO: level, whenOptimizedOnlyIf
     } else {
-        _batchMap.set(node, { value, prev, level, whenOptimizedOnlyIf });
+        _batchMap.set(node, {
+            value,
+            prev,
+            level,
+            whenOptimizedOnlyIf,
+            remote: globalState.isLoadingRemote,
+            loading: globalState.isLoadingLocal,
+        });
     }
 
     // If not in a batch run it immediately
@@ -116,6 +129,8 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
 function computeChangesAtNode(
     changesInBatch: Map<NodeValue, ChangeInBatch>,
     node: NodeValue,
+    loading: boolean,
+    remote: boolean,
     value: any,
     path: string[],
     pathTypes: TypeAtPath[],
@@ -145,6 +160,8 @@ function computeChangesAtNode(
             changesInBatch.set(node, {
                 level,
                 value,
+                remote,
+                loading,
                 whenOptimizedOnlyIf,
                 changes: [change],
             });
@@ -155,6 +172,8 @@ function computeChangesAtNode(
 function computeChangesRecursive(
     changesInBatch: Map<NodeValue, ChangeInBatch>,
     node: NodeValue,
+    loading: boolean,
+    remote: boolean,
     value: any,
     path: string[],
     pathTypes: TypeAtPath[],
@@ -168,6 +187,8 @@ function computeChangesRecursive(
     computeChangesAtNode(
         changesInBatch,
         node,
+        loading,
+        remote,
         value,
         path,
         pathTypes,
@@ -183,6 +204,8 @@ function computeChangesRecursive(
             computeChangesRecursive(
                 changesInBatch,
                 childNode,
+                loading,
+                remote,
                 valueAtPath,
                 [],
                 [],
@@ -202,6 +225,8 @@ function computeChangesRecursive(
             computeChangesRecursive(
                 changesInBatch,
                 parent,
+                loading,
+                remote,
                 parentValue,
                 [node.key].concat(path),
                 [getPathType(value)].concat(pathTypes),
@@ -218,7 +243,7 @@ function computeChangesRecursive(
 function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
     const listenersNotified = new Set<ListenerFn>();
     // For each change in the batch, notify all of the listeners
-    changesInBatch.forEach(({ changes, level, value, whenOptimizedOnlyIf }, node) => {
+    changesInBatch.forEach(({ changes, level, value, loading, remote, whenOptimizedOnlyIf }, node) => {
         const listeners = immediate ? node.listenersImmediate : node.listeners;
         if (listeners) {
             let listenerParams: ListenerParams | undefined;
@@ -237,6 +262,8 @@ function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immed
                         if (!noArgs && !listenerParams) {
                             listenerParams = {
                                 value,
+                                loading,
+                                remote,
                                 getPrevious: createPreviousHandler(value, changes),
                                 changes,
                             };
@@ -269,8 +296,21 @@ export function runBatch() {
     // First compute all of the changes at each node. It's important to do this first before
     // running all the notifications because createPreviousHandler depends on knowing
     // all of the changes happening at the node.
-    map.forEach(({ value, prev, level, whenOptimizedOnlyIf }, node) => {
-        computeChangesRecursive(changesInBatch, node, value, [], [], value, prev, false, level, whenOptimizedOnlyIf);
+    map.forEach(({ value, prev, level, loading, remote, whenOptimizedOnlyIf }, node) => {
+        computeChangesRecursive(
+            changesInBatch,
+            node,
+            loading,
+            remote,
+            value,
+            [],
+            [],
+            value,
+            prev,
+            false,
+            level,
+            whenOptimizedOnlyIf,
+        );
     });
 
     // Once all changes are computed, notify all listeners for each node with the computed changes.
