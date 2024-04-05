@@ -61,7 +61,7 @@ import {
     safeParse,
     safeStringify,
     setNodeValue,
-    symbolBound,
+    symbolLinked,
     symbolDelete,
 } from './src/globals';
 import { initializePathType, setAtPath } from './src/helpers';
@@ -86,6 +86,6 @@ export const internal = {
     set,
     setAtPath,
     setNodeValue,
-    symbolBound,
+    symbolLinked,
     symbolDelete,
 };

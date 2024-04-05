@@ -12,7 +12,7 @@ import type {
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
 import { persistObservable } from './persistObservable';
-const { getProxy, globalState, runWithRetry, symbolBound, setNodeValue } = internal;
+const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue } = internal;
 
 export function persistActivateNode() {
     globalState.activateNodePersist = function activateNodePersist(node: NodeValue, newValue: any) {
@@ -41,7 +41,7 @@ export function persistActivateNode() {
                     const value = runWithRetry(node, { attemptNum: 0 }, () => {
                         return get!({
                             value:
-                                isFunction(existingValue) || existingValue?.[symbolBound] ? undefined : existingValue,
+                                isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
                             lastSync: params.lastSync!,
                             updateLastSync,
                             setMode,
@@ -134,7 +134,6 @@ export function persistActivateNode() {
                     });
                 });
             }
-
 
             return { update: onChange!, value: newValue };
         } else {

@@ -7,7 +7,7 @@ export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
-export const symbolBound = Symbol('bound');
+export const symbolLinked = Symbol('linked');
 
 export const globalState = {
     isLoadingLocal: false,

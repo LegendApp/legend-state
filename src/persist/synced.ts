@@ -2,12 +2,12 @@ import type { SyncedParams } from '@legendapp/state';
 import { internal } from '@legendapp/state';
 import { persistActivateNode } from './persistActivateNode';
 
-const { symbolBound } = internal;
+const { symbolLinked } = internal;
 
 export function synced<T>(params: SyncedParams<T>): T {
     installPersistActivateNode();
     return (() => ({
-        [symbolBound]: { ...params, synced: true },
+        [symbolLinked]: { ...params, synced: true },
     })) as any;
 }
 

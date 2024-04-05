@@ -129,7 +129,7 @@ export type SyncedSetParams<T> = SetParams<T> & {
     fromSubscribe: boolean | undefined;
 };
 
-export interface ComputedParams<T = any> {
+export interface LinkedParams<T = any> {
     get?: () => T;
     set?: (params: SetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
@@ -148,7 +148,7 @@ export interface SyncedGetParams {
     setMode: (mode: 'assign' | 'set') => void;
     refresh: () => void;
 }
-export interface SyncedParams<T = any> extends Omit<ComputedParams<T>, 'get' | 'set'> {
+export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => T;
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
