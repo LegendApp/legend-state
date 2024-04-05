@@ -293,6 +293,27 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ child: 'key1' });
         expect(getCalled).toEqual(true);
     });
+    test('get not called on child immediately', async () => {
+        let getCalled = false;
+
+        const nodes = observable({
+            me: synced({
+                get: () => {
+                    return 'key1';
+                },
+            }),
+            child: synced({
+                get: () => {
+                    getCalled = true;
+                    return 'key2';
+                },
+            }),
+        });
+
+        expect(getCalled).toEqual(false);
+        nodes.me.get();
+        expect(getCalled).toEqual(false);
+    });
 });
 
 describe('lastSync with new computed', () => {

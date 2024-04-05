@@ -400,7 +400,7 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        let value = peekInternal(node);
+        let value = peekInternal(node, /*activateRecursive*/ p === 'get');
 
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
@@ -851,7 +851,9 @@ export function extractFunctionOrComputed(
         const fn = () => v;
         extractFunction(node, k, fn);
         const childNode = getChildNode(node, k, fn);
-        const initialValue = peekInternal(getNode(v));
+        const targetNode = getNode(v);
+        // Set node to target's value if activating or it's already activated
+        const initialValue = activateRecursive || !targetNode.lazy ? peekInternal(targetNode) : undefined;
         setNodeValue(childNode, initialValue);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
