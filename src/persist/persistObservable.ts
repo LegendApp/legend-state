@@ -766,23 +766,19 @@ async function loadLocal<T>(
                 value = await value;
             }
 
-            batch(
-                () => {
-                    // isLoadingLocal prevents saving remotely when two different persistences
-                    // are set on the same observable
-                    internal.globalState.isLoadingLocal = true;
-                    // We want to merge the local data on top of any initial state the object is created with
-                    const prevValue = obs.peek();
-                    if (value === null && (!prevValue || (prevValue as any)[symbolBound])) {
-                        obs.set(value);
-                    } else {
-                        mergeIntoObservable(obs, value);
-                    }
-                },
-                () => {
-                    internal.globalState.isLoadingLocal = false;
-                },
-            );
+            // isLoadingLocal prevents saving remotely when two different persistences
+            // are set on the same observable
+            internal.globalState.isLoadingLocal = true;
+
+            // We want to merge the local data on top of any initial state the object is created with
+            const prevValue = obs.peek();
+            if (value === null && (!prevValue || (prevValue as any)[symbolBound])) {
+                obs.set(value);
+            } else {
+                mergeIntoObservable(obs, value);
+            }
+
+            internal.globalState.isLoadingLocal = false;
         }
 
         const node = getNode(obs);

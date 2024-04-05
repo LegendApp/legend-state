@@ -1,4 +1,4 @@
-import { batch, beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
+import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
     extractFunction,
@@ -30,9 +30,9 @@ import {
     isPromise,
 } from './is';
 import type {
-    ComputedParams,
     Change,
     ChildNodeValue,
+    ComputedParams,
     GetOptions,
     ListenerParams,
     NodeValue,
@@ -1110,20 +1110,14 @@ function activateNodeBase(node: NodeValue, value: any) {
                         }
 
                         node.isComputing = true;
-                        batch(
-                            () => {
-                                setFn({
-                                    value,
-                                    changes,
-                                    loading,
-                                    remote,
-                                    getPrevious,
-                                });
-                            },
-                            () => {
-                                node.isComputing = false;
-                            },
-                        );
+                        setFn({
+                            value,
+                            changes,
+                            loading,
+                            remote,
+                            getPrevious,
+                        });
+                        node.isComputing = false;
                     };
                     whenReady(node.state!.isLoaded, run);
                 }

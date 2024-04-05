@@ -21,8 +21,6 @@ let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
 let isRunningBatch = false;
 let didDelayEndBatch = false;
-let _afterBatch: (() => void)[] = [];
-let _queuedBatches: [() => void, () => void][] = [];
 let _batchMap = new Map<NodeValue, BatchItem>();
 
 function onActionTimeout() {
@@ -319,17 +317,7 @@ export function runBatch() {
     }
 }
 
-export function batch(fn: () => void, onComplete?: () => void) {
-    if (onComplete) {
-        // If there's an onComplete we need a batch that's fully isolated from others to ensure it wraps only the given changes.
-        // So if already batching, push this batch onto a queue and run it after the current batch is fully done.
-        if (isRunningBatch) {
-            _queuedBatches.push([fn, onComplete]);
-            return;
-        } else {
-            _afterBatch.push(onComplete);
-        }
-    }
+export function batch(fn: () => void) {
     beginBatch();
     try {
         fn();
@@ -357,12 +345,6 @@ export function endBatch(force?: boolean) {
                 timeout = undefined;
             }
             numInBatch = 0;
-            // Save batch locally and reset _batch first because a new batch could begin while looping over callbacks.
-            // This can happen with computeds for example.
-            const after = _afterBatch;
-            if (after.length) {
-                _afterBatch = [];
-            }
 
             isRunningBatch = true;
 
@@ -370,26 +352,10 @@ export function endBatch(force?: boolean) {
 
             isRunningBatch = false;
 
-            // Run after functions at the end of this batch before running the next batch.
-            // This needs to run before the delayed endBatch because the after functions need
-            // to run before any side effects of the batch
-            for (let i = 0; i < after.length; i++) {
-                after[i]();
-            }
-
             // If an endBatch was delayed run it now
             if (didDelayEndBatch) {
                 didDelayEndBatch = false;
                 endBatch(true);
-            }
-
-            const queued = _queuedBatches;
-            if (queued.length) {
-                _queuedBatches = [];
-                for (let i = 0; i < queued.length; i++) {
-                    const [fn, onComplete] = queued[i];
-                    batch(fn, onComplete);
-                }
             }
         }
     }
