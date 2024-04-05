@@ -94,7 +94,9 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
         level,
         whenOptimizedOnlyIf,
     );
-    batchNotifyChanges(changesInBatch, /*immediate*/ true);
+    if (changesInBatch.size) {
+        batchNotifyChanges(changesInBatch, /*immediate*/ true);
+    }
 
     // Update the current batch
     const existing = _batchMap.get(node);
@@ -272,7 +274,9 @@ export function runBatch() {
     });
 
     // Once all changes are computed, notify all listeners for each node with the computed changes.
-    batchNotifyChanges(changesInBatch, false);
+    if (changesInBatch.size) {
+        batchNotifyChanges(changesInBatch, false);
+    }
 }
 
 export function batch(fn: () => void, onComplete?: () => void) {
