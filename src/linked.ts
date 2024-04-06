@@ -1,6 +1,6 @@
 import { symbolLinked } from './globals';
-import { LinkedParams } from './observableInterfaces';
+import { Linked, LinkedParams } from './observableInterfaces';
 
-export function linked<T>(params: LinkedParams<T>): T {
+export function linked<T>(params: LinkedParams<T>): Linked<T> {
     return (() => ({ [symbolLinked]: params })) as any;
 }

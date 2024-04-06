@@ -181,3 +181,6 @@ export interface CacheReturnValue {
     lastSync: number;
     value: any;
 }
+
+export type Synced<T> = T;
+export type Linked<T> = T;
