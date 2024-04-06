@@ -16,13 +16,15 @@ export const globalState = {
     activateNodePersist: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),
     dirtyNodes: new Set<NodeValue>(),
+    replacer: undefined as undefined | ((this: any, key: string, value: any) => any),
+    reviver: undefined as undefined | ((this: any, key: string, value: any) => any),
 };
 
 export function getPathType(value: any): TypeAtPath {
     return isArray(value) ? 'array' : value instanceof Map ? 'map' : value instanceof Set ? 'set' : 'object';
 }
 
-function replacer(_: string, value: any) {
+function replacer(key: string, value: any) {
     if (value instanceof Map) {
         return {
             __LSType: 'Map',
@@ -33,13 +35,14 @@ function replacer(_: string, value: any) {
             __LSType: 'Set',
             value: Array.from(value), // or with spread: value: [...value]
         };
-    } else {
-        return value;
+    } else if (globalState.replacer) {
+        value = globalState.replacer(key, value);
     }
+    return value;
 }
 
 const ISO8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
-function reviver(_: string, value: any) {
+function reviver(key: string, value: any) {
     if (value) {
         if (typeof value === 'string' && ISO8601.test(value)) {
             return new Date(value);
@@ -50,6 +53,9 @@ function reviver(_: string, value: any) {
             } else if (value.__LSType === 'Set') {
                 return new Set(value.value);
             }
+        }
+        if (globalState.reviver) {
+            value = globalState.reviver(key, value);
         }
     }
     return value;

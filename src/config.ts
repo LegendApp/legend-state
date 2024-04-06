@@ -1,3 +1,4 @@
+import { globalState } from './globals';
 import { observableProperties as _observableProperties, observableFns } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import type { NodeValue } from './observableInterfaces';
@@ -5,9 +6,13 @@ import type { NodeValue } from './observableInterfaces';
 export function configureLegendState({
     observableFunctions,
     observableProperties,
+    jsonReplacer,
+    jsonReviver,
 }: {
     observableFunctions?: Record<string, (node: NodeValue, ...args: any[]) => any>;
     observableProperties?: Record<string, { get: (node: NodeValue) => any; set: (node: NodeValue, value: any) => any }>;
+    jsonReplacer?: (this: any, key: string, value: any) => any;
+    jsonReviver?: (this: any, key: string, value: any) => any;
 }) {
     if (observableFunctions) {
         for (const key in observableFunctions) {
@@ -32,5 +37,11 @@ export function configureLegendState({
                 },
             });
         }
+    }
+    if (jsonReplacer) {
+        globalState.replacer = jsonReplacer;
+    }
+    if (jsonReviver) {
+        globalState.reviver = jsonReviver;
     }
 }
