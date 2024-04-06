@@ -149,7 +149,7 @@ export interface SyncedGetParams {
     refresh: () => void;
 }
 export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
-    get?: (params: SyncedGetParams) => T;
+    get?: (params: SyncedGetParams) => Promise<T> | T;
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     retry?: RetryOptions;
