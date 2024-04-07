@@ -19,6 +19,7 @@ import type {
 import {
     batch,
     constructObjectWithPath,
+    deconstructObjectWithPath,
     endBatch,
     getNode,
     internal,
@@ -105,7 +106,8 @@ export function transformSaveData(
 ): Promise<any> | any {
     if (transform?.save) {
         const constructed = constructObjectWithPath(path, pathTypes, value);
-        value = transform.save(constructed);
+        const saved = transform.save(constructed);
+        value = deconstructObjectWithPath(path, pathTypes, saved);
     }
 
     return value;
@@ -548,7 +550,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             }
         }
 
-        const value = obs.peek();
+        let value = obs.peek();
+        const transformSave = syncOptions?.transform?.save;
+        if (transformSave) {
+            value = transformSave(value);
+        }
 
         onBeforeSet?.();
 

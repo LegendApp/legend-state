@@ -1,5 +1,5 @@
-import type { Change, ObservableCachePlugin, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
-import { setAtPath, internal } from '@legendapp/state';
+import type { Change, ObservableCachePlugin, PersistMetadata } from '@legendapp/state';
+import { internal, setAtPath } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
 
