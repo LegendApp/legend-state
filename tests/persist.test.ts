@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
-import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
+import { ObservablePersistLocalStorage } from '../src/cache-plugins/local-storage';
 import { persistObservable, transformOutData } from '../src/persist/persistObservable';
 import { when } from '../src/when';
 import { mockLocalStorage } from './testglobals';

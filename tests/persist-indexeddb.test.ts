@@ -2,7 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import type { ObservablePersistLocal } from '../src/persistTypes';
-import { ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
+import { ObservablePersistIndexedDB } from '../src/cache-plugins/indexeddb';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 import { when } from '../src/when';

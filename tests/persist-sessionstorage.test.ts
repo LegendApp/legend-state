@@ -1,7 +1,7 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { ObservablePersistLocal } from '../src/persistTypes';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
+import { ObservablePersistLocalStorageBase } from '../src/cache-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 import { mockLocalStorage } from './testglobals';
