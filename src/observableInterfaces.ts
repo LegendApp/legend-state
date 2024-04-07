@@ -1,7 +1,6 @@
 import type { symbolOpaque } from './globals';
 import type { Observable, ObservableParam } from './observableTypes';
-import type { ObservablePersistState } from './persistTypes';
-import { SyncedParams } from './syncTypes';
+import { ObservableSyncState, SyncedParams } from './syncTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
 
@@ -80,7 +79,7 @@ interface BaseNodeValue {
     lazy?: boolean;
     lazyFn?: Function;
     needsExtract?: boolean;
-    state?: Observable<ObservablePersistState>;
+    state?: Observable<ObservableSyncState>;
     activated?: boolean;
     activationState?: SyncedParams & { onError?: () => void; persistedRetry?: boolean };
     dirtyFn?: () => void;

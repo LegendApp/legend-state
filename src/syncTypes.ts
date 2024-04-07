@@ -11,8 +11,10 @@ import {
     NodeValue,
     RetryOptions,
     SetParams,
+    TypeAtPath,
     UpdateFn,
 } from './observableInterfaces';
+import { Observable, ObservableParam, ObservableState } from './observableTypes';
 
 export interface CacheOptions<T = any> {
     name: string;
@@ -53,7 +55,19 @@ export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'se
     cache?: CacheOptions<any>;
     pluginCache?: ClassConstructor<ObservableCachePlugin>;
     debounceSet?: number;
+    // Not implemented yet
+    enableSync?: boolean;
+    syncMode?: 'auto' | 'manual';
+    onGetError?: (error: Error) => void;
+    onSetError?: (error: Error) => void;
+    log?: (message?: any, ...optionalParams: any[]) => void;
+    onBeforeSet?: () => void;
+    onAfterSet?: () => void;
+    transform?: SyncTransform<T>;
+    allowSetIfGetError?: boolean;
 }
+
+export interface SyncedParamsGlobal<T = any> extends Omit<SyncedParams<T>, 'get' | 'set'> {}
 
 export interface ObservableCachePluginOptions {
     onGetError?: (error: Error) => void;
@@ -87,4 +101,65 @@ export interface CacheMetadata {
 export interface SyncTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;
     save?: (value: TOrig) => TSaved | Promise<TSaved>;
+}
+export interface ObservableSyncStateBase {
+    isLoadedLocal: boolean;
+    isEnabledLocal: boolean;
+    isEnabledRemote: boolean;
+    dateModified?: number;
+    lastSync?: number;
+    syncCount?: number;
+    clearLocal: () => Promise<void>;
+    sync: () => Promise<void>;
+    getPendingChanges: () =>
+        | Record<
+              string,
+              {
+                  p: any;
+                  v?: any;
+              }
+          >
+        | undefined;
+}
+export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
+export interface ObservableOnChangeParams {
+    value: unknown;
+    path?: string[];
+    pathTypes?: TypeAtPath[];
+    mode?: 'assign' | 'set' | 'dateModified' | 'lastSync' | 'merge'; // TODOV3 Remove dateModified
+    dateModified?: number | undefined;
+    lastSync?: number | undefined;
+}
+export interface ObservableSyncRemoteSetParams<T> {
+    syncState: Observable<ObservableSyncState>;
+    obs: ObservableParam<T>;
+    options: SyncedParams<T>;
+    changes: Change[];
+    value: T;
+}
+export interface ObservableSyncRemoteGetParams<T> {
+    state: Observable<ObservableSyncState>;
+    obs: ObservableParam<T>;
+    options: SyncedParams<T>;
+    dateModified?: number;
+    lastSync?: number;
+    mode?: 'assign' | 'set' | 'dateModified' | 'merge'; // TODOV3 Remove dateModified
+    onGet: () => void;
+    onError: (error: Error) => void;
+    onChange: (params: ObservableOnChangeParams) => void | Promise<void>;
+}
+export type ObservableSyncRemoteGetFnParams<T> = Omit<ObservableSyncRemoteGetParams<T>, 'onGet'>;
+
+export interface ObservableSyncClass {
+    get?<T>(params: ObservableSyncRemoteGetParams<T>): void;
+    set?<T>(
+        params: ObservableSyncRemoteSetParams<T>,
+    ): void | Promise<void | { changes?: object; dateModified?: number; lastSync?: number; pathStrs?: string[] }>;
+}
+
+export interface ObservableSyncFunctions<T = any> {
+    get?(params: ObservableSyncRemoteGetFnParams<T>): T | Promise<T>;
+    set?(
+        params: ObservableSyncRemoteSetParams<T>,
+    ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;
 }

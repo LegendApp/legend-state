@@ -17,6 +17,7 @@ import {
     TypeAtPath,
 } from './observableInterfaces';
 import { Observable, ObservableParam, ObservableState } from './observableTypes';
+import { ObservableOnChangeParams } from 'src/syncTypes';
 
 export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;
@@ -116,14 +117,6 @@ export interface ObservablePersistLocal {
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
 
-export interface ObservableOnChangeParams {
-    value: unknown;
-    path?: string[];
-    pathTypes?: TypeAtPath[];
-    mode?: 'assign' | 'set' | 'dateModified' | 'lastSync' | 'merge'; // TODOV3 Remove dateModified
-    dateModified?: number | undefined;
-    lastSync?: number | undefined;
-}
 export interface ObservablePersistRemoteSetParams<T> {
     syncState: Observable<ObservablePersistState>;
     obs: ObservableParam<T>;

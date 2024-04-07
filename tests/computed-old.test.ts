@@ -10,8 +10,8 @@ import {
     observe,
     proxy,
     TrackingType,
+    when,
 } from '@legendapp/state';
-import { promiseTimeout } from './testglobals';
 
 let spiedConsole: jest.SpyInstance;
 
@@ -103,17 +103,21 @@ describe('Computed', () => {
         expect(fn).toHaveBeenCalled();
     });
     test('Computed with promise', async () => {
+        const ready$ = observable(false);
         const obs = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
         const comp = computed(() => {
             const value = obs.get();
             if (value) {
                 return new Promise((resolve) => {
-                    setTimeout(() => resolve('hi there'), 0);
+                    setTimeout(() => {
+                        resolve('hi there');
+                        setTimeout(() => ready$.set(true), 0);
+                    }, 0);
                 });
             }
         });
         expect(comp.get()).toEqual(undefined);
-        await promiseTimeout(10);
+        await when(ready$);
         expect(comp.get()).toEqual('hi there');
     });
 });
