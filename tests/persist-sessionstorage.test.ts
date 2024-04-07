@@ -1,14 +1,14 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { ObservablePersistLocal } from '../src/persistTypes';
-import { ObservablePersistLocalStorageBase } from '../src/cache-plugins/local-storage';
+import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
 import { mockLocalStorage } from './testglobals';
 
 // @ts-expect-error This is ok to do in jest
 const sessionStorage = (globalThis._testlocalStorage = mockLocalStorage());
-class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
+class ObservablePersistSessionStorage extends ObservableCacheLocalStorageBase {
     constructor() {
         super(sessionStorage);
     }

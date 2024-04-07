@@ -40,7 +40,7 @@ import {
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
-import { removeNullUndefined } from './persistHelpers';
+import { removeNullUndefined } from '../sync/syncHelpers';
 
 const { globalState, symbolLinked } = internal;
 

@@ -2,13 +2,13 @@ import { onChangeRemote } from '../src/persist/persistObservable';
 import { persistObservable, synced } from '../persist';
 import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
-import { ObservablePersistLocalStorageBase } from '../src/cache-plugins/local-storage';
+import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
 import { when, whenReady } from '../src/when';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
 // @ts-expect-error This is ok to do in jest
 const localStorage = (globalThis._testlocalStorage = mockLocalStorage());
-class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
     constructor() {
         super(localStorage);
     }
@@ -20,7 +20,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'nodesbasic',
                 },
                 get: async () => {
@@ -49,7 +49,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'nodesdelay',
                 },
                 get: () => {
@@ -81,7 +81,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'nodesgetinitial',
                 },
                 get: async () => {
@@ -110,7 +110,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get',
                 },
                 initial: { key1: 'key1' },
@@ -127,7 +127,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get and set',
                 },
                 initial: { key00: { key: 'key00', value: 'hi' } },
@@ -144,7 +144,7 @@ describe('caching with new computed', () => {
         const nodes2 = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get and set',
                 },
             }),
@@ -156,7 +156,7 @@ describe('caching with new computed', () => {
         const nodes3 = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get and set',
                 },
                 initial: { key00: { key: 'key00', value: 'hi' } },
@@ -170,7 +170,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'nodesinitialownkeys',
                 },
                 get: async () => {
@@ -191,7 +191,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'cachedprops',
                 },
                 get: async ({ value }) => {
@@ -216,7 +216,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'nodes',
                 },
                 get: async ({ lastSync, value }) => {
@@ -247,7 +247,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'setNot',
                 },
                 get: async () => {
@@ -279,7 +279,7 @@ describe('caching with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'setNot2',
                 },
                 get: async () => {
@@ -319,7 +319,7 @@ describe('caching with new computed', () => {
             }),
         });
 
-        persistObservable(nodes, { pluginLocal: ObservablePersistLocalStorage, local: 'getnotcalled' });
+        persistObservable(nodes, { pluginLocal: ObservableCacheLocalStorage, local: 'getnotcalled' });
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
 
@@ -359,7 +359,7 @@ describe('lastSync with new computed', () => {
         const nodes = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'nodes-lastSync',
                 },
                 get: async ({ updateLastSync }) => {
@@ -391,7 +391,7 @@ describe('lastSync with new computed', () => {
         const value = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'lastSync2',
                 },
                 subscribe: ({ update }) => {
@@ -445,7 +445,7 @@ describe('retry', () => {
             synced({
                 cache: {
                     name: 'retrypersist',
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                 },
                 retry: {
                     delay: 1,
@@ -619,7 +619,7 @@ describe('subscribing to computeds', () => {
         const obs = observable(
             synced({
                 cache: {
-                    plugin: ObservablePersistLocalStorage,
+                    plugin: ObservableCacheLocalStorage,
                     name: 'synced does not set undefined from initial',
                 },
                 get: async () => {

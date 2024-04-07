@@ -1,6 +1,7 @@
 import type { symbolOpaque } from './globals';
 import type { Observable, ObservableParam } from './observableTypes';
-import type { CacheOptions, ObservablePersistState } from './persistTypes';
+import type { ObservablePersistState } from './persistTypes';
+import { SyncedParams } from './syncTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
 
@@ -120,14 +121,6 @@ export interface ObserveEventCallback<T> {
 }
 
 export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
-export type SyncedSetParams<T> = SetParams<T> & {
-    node: NodeValue;
-    update: UpdateFn;
-    refresh: () => void;
-    cancelRetry: () => void;
-    retryNum: number;
-    fromSubscribe: boolean | undefined;
-};
 
 export interface LinkedParams<T = any> {
     get?: () => T;
@@ -139,23 +132,6 @@ export interface LinkedParams<T = any> {
         | ObservableParam<any>
         | ObservableEvent;
     initial?: T extends Promise<infer t> ? t : T;
-}
-
-export interface SyncedGetParams {
-    value: any;
-    lastSync: number | undefined;
-    updateLastSync: (lastSync: number) => void;
-    setMode: (mode: 'assign' | 'set') => void;
-    refresh: () => void;
-}
-export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
-    get?: (params: SyncedGetParams) => Promise<T> | T;
-    set?: (params: SyncedSetParams<T>) => void | Promise<any>;
-    subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
-    retry?: RetryOptions;
-    offlineBehavior?: false | 'retry';
-    cache?: CacheOptions<any>;
-    debounceSet?: number;
 }
 
 export type UpdateFn = (params: {

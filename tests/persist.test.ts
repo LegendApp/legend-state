@@ -1,23 +1,27 @@
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
-import { ObservablePersistLocalStorage } from '../src/cache-plugins/local-storage';
 import { persistObservable, transformOutData } from '../src/persist/persistObservable';
 import { when } from '../src/when';
 import { mockLocalStorage } from './testglobals';
+import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
-// @ts-expect-error This is ok to do in jest
-globalThis._testlocalStorage = mockLocalStorage();
+const localStorage = mockLocalStorage();
+class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
+    constructor() {
+        super(localStorage);
+    }
+}
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
         const state = persistObservable(nodes, {
-            pluginLocal: ObservablePersistLocalStorage,
+            pluginLocal: ObservableCacheLocalStorage,
             local: 'nodes',
             pluginRemote: {
                 get: async () => {

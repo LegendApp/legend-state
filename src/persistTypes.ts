@@ -184,12 +184,6 @@ export interface WithPersistState {
     _state?: ObservablePersistState;
 }
 
-export interface CacheOptions<T = any> {
-    name?: string;
-    options?: PersistOptionsLocal<T>;
-    plugin?: ClassConstructor<ObservablePersistLocal, T[]>;
-}
-
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler
 declare type ObjectKeys<T> = Pick<

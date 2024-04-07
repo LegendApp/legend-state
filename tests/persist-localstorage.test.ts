@@ -1,12 +1,12 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
-import { ObservablePersistLocalStorageBase } from '../src/cache-plugins/local-storage';
+import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { persistObservable } from '../src/persist/persistObservable';
 import { mockLocalStorage } from './testglobals';
 
 const localStorage = mockLocalStorage();
-class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
     constructor() {
         super(localStorage);
     }
@@ -46,7 +46,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
 }
 
 configureObservablePersistence({
-    pluginLocal: ObservablePersistLocalStorage,
+    pluginLocal: ObservableCacheLocalStorage,
 });
 
 let localNum = 0;

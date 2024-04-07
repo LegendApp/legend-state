@@ -1,11 +1,11 @@
-import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
+import type { Change, ObservableCachePlugin, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
 import { setAtPath, internal } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
 
 const { safeParse, safeStringify } = internal;
 
-export class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
+export class ObservableCacheLocalStorageBase implements ObservableCachePlugin {
     private data: Record<string, any> = {};
     private storage: Storage | undefined;
     constructor(storage: Storage | undefined) {
@@ -18,7 +18,7 @@ export class ObservablePersistLocalStorageBase implements ObservablePersistLocal
                 const value = this.storage.getItem(table);
                 this.data[table] = value ? safeParse(value) : undefined;
             } catch {
-                console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
+                console.error('[legend-state] ObservableCacheLocalStorageBase failed to parse', table);
             }
         }
         return this.data[table];
@@ -64,7 +64,7 @@ export class ObservablePersistLocalStorageBase implements ObservablePersistLocal
         }
     }
 }
-export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+export class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
     constructor() {
         super(
             typeof localStorage !== 'undefined'
@@ -76,7 +76,7 @@ export class ObservablePersistLocalStorage extends ObservablePersistLocalStorage
         );
     }
 }
-export class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
+export class ObservableCacheSessionStorage extends ObservableCacheLocalStorageBase {
     constructor() {
         super(
             typeof sessionStorage !== 'undefined'
