@@ -1,5 +1,5 @@
-import { onChangeRemote } from '../src/persist/persistObservable';
-import { persistObservable, synced } from '../persist';
+import { onChangeRemote } from '../src/sync/syncObservable';
+import { syncObservable, synced } from '../sync';
 import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
 import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
@@ -13,6 +13,8 @@ class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
         super(localStorage);
     }
 }
+
+jest?.setTimeout(1000);
 
 describe('caching with new computed', () => {
     test('cache basic', async () => {
@@ -319,7 +321,7 @@ describe('caching with new computed', () => {
             }),
         });
 
-        persistObservable(nodes, { pluginLocal: ObservableCacheLocalStorage, local: 'getnotcalled' });
+        syncObservable(nodes, { cache: { plugin: ObservableCacheLocalStorage, name: 'getnotcalled' } });
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
 
@@ -606,12 +608,9 @@ describe('subscribing to computeds', () => {
         await whenReady(obs$);
         expect(gets$.get()).toEqual(1);
         expect(obs$.get()).toEqual('hi 1');
-
         refresh$.set((v) => v + 1);
-
         await when(() => gets$.get() === 2);
         await promiseTimeout(0);
-
         expect(obs$.get()).toEqual('hi 2');
     });
     test('synced does not set undefined from initial', async () => {

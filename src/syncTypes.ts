@@ -53,7 +53,6 @@ export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'se
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
     cache?: CacheOptions<any>;
-    pluginCache?: ClassConstructor<ObservableCachePlugin>;
     debounceSet?: number;
     // Not implemented yet
     enableSync?: boolean;

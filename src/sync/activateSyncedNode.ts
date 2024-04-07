@@ -7,11 +7,11 @@ import type {
     ObservablePersistRemoteGetParams,
     ObservablePersistRemoteSetParams,
     ObservablePersistState,
-    PersistOptionsLocal,
+    SyncedGetParams,
     UpdateFn,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
-import { persistObservable } from '../persist/persistObservable';
+import { syncObservable } from './syncObservable';
 const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue } = internal;
 
 export function enableActivateSyncedNode() {
@@ -19,8 +19,7 @@ export function enableActivateSyncedNode() {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, set, subscribe, cache, retry, offlineBehavior, waitForSet, debounceSet } =
-                node.activationState!;
+            const { get, initial, set, subscribe } = node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservablePersistRemoteFunctions = {};
@@ -99,24 +98,8 @@ export function enableActivateSyncedNode() {
             }
             setNodeValue(node, promiseReturn ? undefined : newValue);
 
-            syncState = persistObservable(obs$, {
-                pluginRemote,
-                ...(cache
-                    ? {
-                          local: {
-                              ...cache.options,
-                              ...(cache.name && { name: cache.name }),
-                          } as PersistOptionsLocal,
-                          pluginLocal: cache.plugin,
-                      }
-                    : {}),
-                remote: {
-                    retry,
-                    offlineBehavior,
-                    waitForSet,
-                    debounceSet,
-                },
-            });
+            // @ts-expect-error TODO fix these types
+            syncState = syncObservable(obs$, { ...node.activationState, ...pluginRemote });
 
             if (subscribe) {
                 when(promiseReturn || true, () => {
@@ -139,26 +122,24 @@ export function enableActivateSyncedNode() {
         } else {
             // If it is not a Synced
 
-            let onChange: UpdateFn | undefined = undefined;
-            const pluginRemote: ObservablePersistRemoteFunctions = {
-                get: async (params: ObservablePersistRemoteGetParams<any>) => {
-                    onChange = params.onChange;
-                    if (isPromise(newValue)) {
-                        try {
-                            newValue = await newValue;
-                        } catch {
-                            // TODO Once we have global retry settings this should retry
-                        }
+            let update: UpdateFn | undefined = undefined;
+            const get = async (params: SyncedGetParams) => {
+                update = params.refresh;
+                if (isPromise(newValue)) {
+                    try {
+                        newValue = await newValue;
+                    } catch {
+                        // TODO Once we have global retry settings this should retry
                     }
-                    return newValue;
-                },
+                }
+                return newValue;
             };
 
-            persistObservable(obs$, {
-                pluginRemote,
+            syncObservable(obs$, {
+                get,
             });
 
-            return { update: onChange!, value: newValue };
+            return { update: update!, value: newValue };
         }
     };
 }

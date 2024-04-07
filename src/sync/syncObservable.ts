@@ -32,13 +32,13 @@ import {
     setInObservableAtPath,
     when,
 } from '@legendapp/state';
-import { syncObservableAdapter } from 'src/sync/syncObservableAdapter';
-import { removeNullUndefined } from '../sync/syncHelpers';
+import { syncObservableAdapter } from './syncObservableAdapter';
+import { removeNullUndefined } from './syncHelpers';
 import { observableSyncConfiguration } from './configureObservableSync';
 
 const { globalState, symbolLinked } = internal;
 
-export const mapPlugins: WeakMap<
+export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservableCachePlugin | ObservableSyncClass>,
     {
         plugin: ObservableCachePlugin | ObservableSyncClass;
@@ -370,7 +370,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
     } = queuedChange;
 
     const cache = syncOptions.cache;
-    const { pluginSync: pluginSync } = localState;
+    const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(cache!);
     const configRemote = syncOptions;
     const saveLocal = cache && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
@@ -658,20 +658,20 @@ async function loadLocal<T>(
     localState: LocalState,
 ) {
     const { cache } = syncOptions;
-    const CachePlugin: ClassConstructor<ObservableCachePlugin> =
-        syncOptions.pluginCache! || observableSyncConfiguration.pluginCache;
 
     if (cache) {
+        const CachePlugin: ClassConstructor<ObservableCachePlugin> =
+            cache.plugin! || observableSyncConfiguration.cache?.plugin;
         const { table, config } = parseLocalConfig(cache);
 
         if (!CachePlugin) {
             throw new Error('Local cache is not configured');
         }
         // Ensure there's only one instance of the cache plugin
-        if (!mapPlugins.has(CachePlugin)) {
+        if (!mapSyncPlugins.has(CachePlugin)) {
             const cachePlugin = new CachePlugin();
             const mapValue = { plugin: cachePlugin, initialized: observable(false) };
-            mapPlugins.set(CachePlugin, mapValue);
+            mapSyncPlugins.set(CachePlugin, mapValue);
             if (cachePlugin.initialize) {
                 const initializePromise = cachePlugin.initialize?.(observableSyncConfiguration || {});
                 if (isPromise(initializePromise)) {
@@ -681,7 +681,7 @@ async function loadLocal<T>(
             mapValue.initialized.set(true);
         }
 
-        const { plugin, initialized: initialized$ } = mapPlugins.get(CachePlugin)!;
+        const { plugin, initialized: initialized$ } = mapSyncPlugins.get(CachePlugin)!;
         const cachePlugin = plugin as ObservableCachePlugin;
 
         localState.pluginCache = cachePlugin as ObservableCachePlugin;
@@ -757,14 +757,20 @@ export function syncObservable<T>(
 
     // Merge remote sync options with global options
     if (syncOptions) {
-        syncOptions = Object.assign({}, observableSyncConfiguration, removeNullUndefined(syncOptions));
+        syncOptions = Object.assign(
+            {
+                syncMode: 'auto',
+            } as SyncedParams,
+            observableSyncConfiguration,
+            removeNullUndefined(syncOptions),
+        );
     }
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 
     const syncState = (node.state = observable<ObservableSyncState>({
         isLoadedLocal: false,
-        isLoaded: false,
+        isLoaded: !syncOptions.get,
         isEnabledLocal: true,
         isEnabledRemote: true,
         clearLocal: undefined as unknown as () => Promise<void>,
@@ -774,9 +780,9 @@ export function syncObservable<T>(
 
     loadLocal(obs, syncOptions, syncState, localState);
 
-    if (syncOptions.get) {
-        localState.pluginSync = syncObservableAdapter(syncOptions);
+    localState.pluginSync = syncObservableAdapter(syncOptions);
 
+    if (syncOptions.get) {
         let isSynced = false;
         sync = async () => {
             const lastSync = metadatas.get(obs)?.lastSync;

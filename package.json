@@ -55,6 +55,11 @@
             "require": "./persist.js",
             "types": "./persist.d.ts"
         },
+        "./sync": {
+            "import": "./sync.mjs",
+            "require": "./sync.js",
+            "types": "./sync.d.ts"
+        },
         "./react": {
             "import": "./react.mjs",
             "require": "./react.js",
