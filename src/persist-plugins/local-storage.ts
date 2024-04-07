@@ -5,7 +5,7 @@ const MetadataSuffix = '__m';
 
 const { safeParse, safeStringify } = internal;
 
-class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
+export class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     private data: Record<string, any> = {};
     private storage: Storage | undefined;
     constructor(storage: Storage | undefined) {
@@ -66,11 +66,25 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
 }
 export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
     constructor() {
-        super(typeof localStorage !== 'undefined' ? localStorage : undefined);
+        super(
+            typeof localStorage !== 'undefined'
+                ? localStorage
+                : process.env.NODE_ENV === 'test'
+                ? // @ts-expect-error This is ok to do in jest
+                  globalThis._testlocalStorage
+                : undefined,
+        );
     }
 }
 export class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
     constructor() {
-        super(typeof sessionStorage !== 'undefined' ? sessionStorage : undefined);
+        super(
+            typeof sessionStorage !== 'undefined'
+                ? sessionStorage
+                : process.env.NODE_ENV === 'test'
+                ? // @ts-expect-error This is ok to do in jest
+                  globalThis._testlocalStorage
+                : undefined,
+        );
     }
 }

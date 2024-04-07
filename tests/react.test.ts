@@ -1,7 +1,3 @@
-/**
- * @jest-environment jsdom
- */
-import '@testing-library/jest-dom';
 import { act, render, renderHook } from '@testing-library/react';
 import { StrictMode, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
@@ -21,6 +17,10 @@ import { useSelector } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
 
 type TestObject = { id: string; label: string };
+
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
+
+GlobalRegistrator.register();
 
 describe('useSelector', () => {
     test('useSelector basics', () => {

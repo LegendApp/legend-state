@@ -17,8 +17,7 @@ export function mockLocalStorage() {
             delete this.store[key];
         }
     }
-    // @ts-expect-error This is ok to do in jest
-    global.localStorage = new LocalStorageMock();
+    return new LocalStorageMock() as unknown as Storage;
 }
 
 export function promiseTimeout(time?: number) {

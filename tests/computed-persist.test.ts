@@ -2,11 +2,17 @@ import { onChangeRemote } from '../src/persist/persistObservable';
 import { persistObservable, synced } from '../persist';
 import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
-import { ObservablePersistLocalStorage } from '../src/persist-plugins/local-storage';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { when, whenReady } from '../src/when';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
-mockLocalStorage();
+// @ts-expect-error This is ok to do in jest
+const localStorage = (globalThis._testlocalStorage = mockLocalStorage());
+class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(localStorage);
+    }
+}
 
 describe('caching with new computed', () => {
     test('cache basic', async () => {

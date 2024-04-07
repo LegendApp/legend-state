@@ -1,26 +1,16 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { ObservablePersistLocal } from '../src/persistTypes';
-import { ObservablePersistSessionStorage } from '../src/persist-plugins/local-storage';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
 import { mapPersistences, persistObservable } from '../src/persist/persistObservable';
+import { mockLocalStorage } from './testglobals';
 
-class LocalStorageMock {
-    store: Record<any, any>;
+// @ts-expect-error This is ok to do in jest
+const sessionStorage = (globalThis._testlocalStorage = mockLocalStorage());
+class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
     constructor() {
-        this.store = {};
-    }
-    clear() {
-        this.store = {};
-    }
-    getItem(key: string) {
-        return this.store[key] || null;
-    }
-    setItem(key: string, value: any) {
-        this.store[key] = String(value);
-    }
-    removeItem(key: string) {
-        delete this.store[key];
+        super(sessionStorage);
     }
 }
 
@@ -29,7 +19,7 @@ function promiseTimeout(time?: number) {
 }
 
 function reset() {
-    global.sessionStorage.clear();
+    sessionStorage.clear();
     const persist = mapPersistences.get(ObservablePersistSessionStorage)?.persist as ObservablePersistLocal;
     if (persist) {
         persist.deleteTable('jestlocal', undefined as any);
@@ -65,9 +55,6 @@ export async function recursiveReplaceStrings<T extends string | object | number
     return value;
 }
 
-// @ts-expect-error This is ok to do in jest
-global.sessionStorage = new LocalStorageMock();
-
 configureObservablePersistence({
     pluginLocal: ObservablePersistSessionStorage,
 });
@@ -88,7 +75,7 @@ describe('Persist local', () => {
 
         await promiseTimeout(0);
 
-        const localValue = global.sessionStorage.getItem('jestlocal');
+        const localValue = sessionStorage.getItem('jestlocal');
 
         // Should have saved to local storage
         expect(localValue).toBe(`{"test":"hello"}`);
@@ -113,7 +100,7 @@ describe('Persist local', () => {
 
         await promiseTimeout(0);
 
-        const localValue = global.sessionStorage.getItem('jestlocal');
+        const localValue = sessionStorage.getItem('jestlocal');
 
         // Should have saved to local storage
         expect(localValue).toBe('{"test":{}}');
@@ -138,7 +125,7 @@ describe('Persist local', () => {
 
         await promiseTimeout(0);
 
-        const localValue = global.sessionStorage.getItem('jestlocal');
+        const localValue = sessionStorage.getItem('jestlocal');
 
         // Should have saved to local storage
         expect(localValue).toBe('{}');
@@ -153,7 +140,7 @@ describe('Persist local', () => {
     });
     // TODO: Put this back when adding remote persistence
     // test('Loads from local with modified', () => {
-    //     global.sessionStorage.setItem(
+    //     sessionStorage.setItem(
     //         'jestlocal',
     //         JSON.stringify({
     //             test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
@@ -194,7 +181,7 @@ describe('Persist primitives', () => {
 
         await promiseTimeout(0);
 
-        const localValue = global.sessionStorage.getItem('jestlocal');
+        const localValue = sessionStorage.getItem('jestlocal');
 
         // Should have saved to local storage
         expect(localValue).toBe('"hello"');

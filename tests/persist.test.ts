@@ -9,8 +9,8 @@ import { mockLocalStorage } from './testglobals';
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
-
-mockLocalStorage();
+// @ts-expect-error This is ok to do in jest
+globalThis._testlocalStorage = mockLocalStorage();
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
