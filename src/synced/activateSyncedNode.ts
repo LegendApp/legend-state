@@ -11,11 +11,11 @@ import type {
     UpdateFn,
 } from '@legendapp/state';
 import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
-import { persistObservable } from './persistObservable';
+import { persistObservable } from '../persist/persistObservable';
 const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue } = internal;
 
-export function persistActivateNode() {
-    globalState.activateNodePersist = function activateNodePersist(node: NodeValue, newValue: any) {
+export function enableActivateSyncedNode() {
+    globalState.activateSyncedNode = function activateSyncedNode(node: NodeValue, newValue: any) {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced

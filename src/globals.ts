@@ -13,7 +13,7 @@ export const globalState = {
     isLoadingLocal: false,
     isMerging: false,
     isLoadingRemote: false,
-    activateNodePersist: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
+    activateSyncedNode: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),
     dirtyNodes: new Set<NodeValue>(),
     replacer: undefined as undefined | ((this: any, key: string, value: any) => any),

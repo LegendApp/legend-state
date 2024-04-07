@@ -1,6 +1,6 @@
 import type { Synced, SyncedParams } from '@legendapp/state';
 import { internal } from '@legendapp/state';
-import { persistActivateNode } from './persistActivateNode';
+import { enableActivateSyncedNode } from './activateSyncedNode';
 
 const { symbolLinked } = internal;
 
@@ -14,7 +14,7 @@ export function synced<T>(params: SyncedParams<T>): Synced<T> {
 let didInstall = false;
 function installPersistActivateNode() {
     if (!didInstall) {
-        persistActivateNode();
+        enableActivateSyncedNode();
         didInstall = true;
     }
 }
