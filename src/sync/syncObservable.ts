@@ -97,7 +97,7 @@ export function onChangeRemote(cb: () => void) {
     globalState.isLoadingRemote = false;
 }
 
-export function transformOutData(
+export function transformSaveData(
     value: any,
     path: string[],
     pathTypes: TypeAtPath[],
@@ -327,7 +327,7 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
 
                 const { prevAtPath, valueAtPath, pathTypes } = changes[i];
                 if (saveLocal) {
-                    const promiseTransformLocal = transformOutData(
+                    const promiseTransformLocal = transformSaveData(
                         valueAtPath,
                         path as string[],
                         pathTypes,
@@ -412,7 +412,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                 const { prevAtPath, valueAtPath, pathTypes } = changes[i];
 
                 if (saveRemote) {
-                    const promiseTransformRemote = transformOutData(
+                    const promiseTransformRemote = transformSaveData(
                         valueAtPath,
                         path as string[],
                         pathTypes,
@@ -673,7 +673,7 @@ async function loadLocal<T>(
             const mapValue = { plugin: cachePlugin, initialized: observable(false) };
             mapSyncPlugins.set(CachePlugin, mapValue);
             if (cachePlugin.initialize) {
-                const initializePromise = cachePlugin.initialize?.(observableSyncConfiguration || {});
+                const initializePromise = cachePlugin.initialize?.(observableSyncConfiguration?.cache || {});
                 if (isPromise(initializePromise)) {
                     await initializePromise;
                 }

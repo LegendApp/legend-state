@@ -66,7 +66,9 @@ export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'se
     allowSetIfGetError?: boolean;
 }
 
-export interface SyncedParamsGlobal<T = any> extends Omit<SyncedParams<T>, 'get' | 'set'> {}
+export interface SyncedParamsGlobal<T = any> extends Omit<SyncedParams<T>, 'get' | 'set' | 'cache'> {
+    cache?: ObservableCachePluginOptions & { plugin?: ClassConstructor<ObservableCachePlugin, T[]> };
+}
 
 export interface ObservableCachePluginOptions {
     onGetError?: (error: Error) => void;

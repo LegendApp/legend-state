@@ -1,14 +1,11 @@
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
-import { persistObservable, transformOutData } from '../src/persist/persistObservable';
+import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
 import { mockLocalStorage } from './testglobals';
 import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
 
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
 const localStorage = mockLocalStorage();
 class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
     constructor() {
@@ -20,25 +17,25 @@ describe('Creating', () => {
     test('Loading state works correctly', async () => {
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
-        const state = persistObservable(nodes, {
-            pluginLocal: ObservableCacheLocalStorage,
-            local: 'nodes',
-            pluginRemote: {
-                get: async () => {
-                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
-                        setTimeout(() => resolve([{ key: 'key0' }]), 10),
-                    );
-                    return nodes.reduce(
-                        (acc, node) => {
-                            acc[node.key] = node;
-                            return acc;
-                        },
-                        {} as Record<string, { key: string }>,
-                    );
-                },
-                set: async ({ value }: { value: any; changes: Change[] }) => {
-                    lastSet = value;
-                },
+        const state = syncObservable(nodes, {
+            cache: {
+                plugin: ObservableCacheLocalStorage,
+                name: 'nodes',
+            },
+            get: async () => {
+                const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                    setTimeout(() => resolve([{ key: 'key0' }]), 10),
+                );
+                return nodes.reduce(
+                    (acc, node) => {
+                        acc[node.key] = node;
+                        return acc;
+                    },
+                    {} as Record<string, { key: string }>,
+                );
+            },
+            set: async ({ value }: { value: any; changes: Change[] }) => {
+                lastSet = value;
             },
         });
 
@@ -51,7 +48,7 @@ describe('Creating', () => {
 
 describe('Adjusting data', () => {
     test('transformOutData with transform', () => {
-        const adjusted = transformOutData({ id: 'id', text: 'a' }, [], [], {
+        const adjusted = transformSaveData({ id: 'id', text: 'a' }, [], [], {
             transform: {
                 save: (value) => {
                     value.text = 'b';
@@ -60,59 +57,6 @@ describe('Adjusting data', () => {
             },
         });
 
-        expect(adjusted).toEqual({ path: [], value: { id: 'id', text: 'b' } });
-    });
-    test('transformOutData with transform and fieldTransforms', () => {
-        const adjusted = transformOutData({ id: 'id', text: 'a' }, [], [], {
-            transform: {
-                save: (value) => {
-                    value.text = 'b';
-                    return value;
-                },
-            },
-            fieldTransforms: {
-                id: 'id',
-                text: 't',
-            },
-        });
-
-        expect(adjusted).toEqual({ path: [], value: { id: 'id', t: 'b' } });
-    });
-    test('transformOutData with transform and fieldTransforms and path', () => {
-        const adjusted = transformOutData({ id: 'id', text: 'a' }, ['path'], ['object'], {
-            transform: {
-                save: (value) => {
-                    value.path.text = 'b';
-                    return value;
-                },
-            },
-            fieldTransforms: {
-                _dict: {
-                    id: 'id',
-                    text: 't',
-                },
-            },
-        });
-
-        expect(adjusted).toEqual({ path: ['path'], value: { id: 'id', t: 'b' } });
-    });
-    test('transformOutData with transform promise and fieldTransforms and path', async () => {
-        const adjusted = await transformOutData({ id: 'id', text: 'a' }, ['path'], ['object'], {
-            transform: {
-                save: async (value) => {
-                    value.path.text = 'b';
-                    await promiseTimeout(10);
-                    return value;
-                },
-            },
-            fieldTransforms: {
-                _dict: {
-                    id: 'id',
-                    text: 't',
-                },
-            },
-        });
-
-        expect(adjusted).toEqual({ path: ['path'], value: { id: 'id', t: 'b' } });
+        expect(adjusted).toEqual({ id: 'id', text: 'b' });
     });
 });

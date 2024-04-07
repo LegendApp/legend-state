@@ -1,8 +1,8 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
-import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
-import { persistObservable } from '../src/persist/persistObservable';
+import { configureObservableSync } from '../src/sync/configureObservableSync';
+import { syncObservable } from '../src/sync/syncObservable';
 import { mockLocalStorage } from './testglobals';
 
 const localStorage = mockLocalStorage();
@@ -45,71 +45,73 @@ export async function recursiveReplaceStrings<T extends string | object | number
     return value;
 }
 
-configureObservablePersistence({
-    pluginLocal: ObservableCacheLocalStorage,
+configureObservableSync({
+    cache: {
+        plugin: ObservableCacheLocalStorage,
+    },
 });
 
 let localNum = 0;
-const getLocalName = () => 'jestlocal' + localNum++;
+const getCacheName = () => 'jestlocal' + localNum++;
 
 describe('Persist local localStorage', () => {
     test('Saves to local', async () => {
+        const cacheName = getCacheName();
         const obs = observable({ test: '' });
-        const local = getLocalName();
 
-        persistObservable(obs, {
-            local,
+        syncObservable(obs, {
+            cache: { name: cacheName },
         });
 
         obs.set({ test: 'hello' });
 
         await promiseTimeout(0);
 
-        const localValue = localStorage.getItem(local);
+        const localValue = localStorage.getItem(cacheName);
 
         // Should have saved to local storage
         expect(localValue).toBe(`{"test":"hello"}`);
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        persistObservable(obs2, {
-            local,
+        syncObservable(obs2, {
+            cache: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
     test('Saves empty root object to local overwriting complex', async () => {
-        const local = getLocalName();
+        const cacheName = getCacheName();
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
-        persistObservable(obs, {
-            local,
+        syncObservable(obs, {
+            cache: { name: cacheName },
         });
 
         obs.test.set({});
 
         await promiseTimeout(0);
 
-        const localValue = localStorage.getItem(local);
+        const localValue = localStorage.getItem(cacheName);
 
         // Should have saved to local storage
         expect(localValue).toBe('{"test":{}}');
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        persistObservable(obs2, {
-            local,
+        syncObservable(obs2, {
+            cache: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual({ test: {} });
     });
     test('Merges cached value with initial', async () => {
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
-        const local = getLocalName();
-        localStorage.setItem(local, '{"test2":{"text":"hello"}}');
+        const cacheName = getCacheName();
+        localStorage.setItem(cacheName, '{"test2":{"text":"hello"}}');
 
-        persistObservable(obs, {
-            local,
+        syncObservable(obs, {
+            cache: { name: cacheName },
         });
 
         expect(obs.get()).toEqual({
@@ -122,26 +124,26 @@ describe('Persist local localStorage', () => {
         });
     });
     test('Saves empty root object to local', async () => {
-        const local = getLocalName();
+        const cacheName = getCacheName();
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
-        persistObservable(obs, {
-            local,
+        syncObservable(obs, {
+            cache: { name: cacheName },
         });
 
         obs.set({});
 
         await promiseTimeout(0);
 
-        const localValue = localStorage.getItem(local);
+        const localValue = localStorage.getItem(cacheName);
 
         // Should have saved to local storage
         expect(localValue).toBe('{}');
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        persistObservable(obs2, {
-            local,
+        syncObservable(obs2, {
+            cache: { name: cacheName },
         });
 
         expect(obs2).toEqual({});
@@ -149,7 +151,7 @@ describe('Persist local localStorage', () => {
     // TODO: Put this back when adding remote persistence
     // test('Loads from local with modified', () => {
     //     localStorage.setItem(
-    //         local,
+    //         cacheName,
     //         JSON.stringify({
     //             test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
     //             test4: { test5: { '@': 1001, test6: 'hi6' } },
@@ -163,8 +165,8 @@ describe('Persist local localStorage', () => {
     //         test7: { test8: '' },
     //     });
 
-    //     persistObservable(obs, {
-    //         local,
+    //     syncObservable(obs, {
+    //         cacheName,
     //         // persistRemote: //
     //         remote: {},
     //     });
@@ -179,26 +181,26 @@ describe('Persist local localStorage', () => {
 
 describe('Persist primitives', () => {
     test('Primitive saves to local', async () => {
-        const local = getLocalName();
+        const cacheName = getCacheName();
         const obs = observable('');
 
-        persistObservable(obs, {
-            local,
+        syncObservable(obs, {
+            cache: { name: cacheName },
         });
 
         obs.set('hello');
 
         await promiseTimeout(0);
 
-        const localValue = localStorage.getItem(local);
+        const localValue = localStorage.getItem(cacheName);
 
         // Should have saved to local storage
         expect(localValue).toBe('"hello"');
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable('');
-        persistObservable(obs2, {
-            local,
+        syncObservable(obs2, {
+            cache: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual('hello');
@@ -215,8 +217,8 @@ describe('Persist computed', () => {
             sub: () => sub$.num.get(),
         });
 
-        persistObservable(obs$, {
-            local: 'Persist computed',
+        syncObservable(obs$, {
+            cache: { name: 'Persist computed' },
         });
 
         obs$.sub.get();
@@ -241,8 +243,8 @@ describe('Persist computed', () => {
 
         expect(obs2$.sub.get()).toEqual(2);
 
-        persistObservable(obs2$, {
-            local: 'Persist computed',
+        syncObservable(obs2$, {
+            cache: { name: 'Persist computed' },
         });
 
         expect(obs2$.sub.get()).toEqual(2);
@@ -262,8 +264,8 @@ describe('Persist computed', () => {
             sub: () => sub$.num.get(),
         });
 
-        persistObservable(obs$, {
-            local: 'Persist computed',
+        syncObservable(obs$, {
+            cache: { name: 'Persist computed' },
         });
 
         obs$.sub.get();
@@ -286,8 +288,8 @@ describe('Persist computed', () => {
             },
         });
 
-        persistObservable(obs2$, {
-            local: 'Persist computed',
+        syncObservable(obs2$, {
+            cache: { name: 'Persist computed' },
         });
 
         expect(obs2$.sub.get()).toEqual(2);
