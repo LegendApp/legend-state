@@ -1,6 +1,6 @@
 import { configureLegendState, internal } from '@legendapp/state';
 
-export function enableDirectPeek() {
+export function enable_Peek() {
     configureLegendState({
         observableProperties: {
             _: {
@@ -15,6 +15,9 @@ export function enableDirectPeek() {
     });
 }
 
+// TODOv4 deprecate
+export const enableDirectAccess = enable_Peek;
+
 // Types:
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -22,7 +25,7 @@ import type { ImmutableObservableBase } from '@legendapp/state';
 
 declare module '@legendapp/state' {
     interface ImmutableObservableBase<T> {
-        set _(value: T | null | undefined);
         get _(): T;
+        set _(value: T | null | undefined);
     }
 }

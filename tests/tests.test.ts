@@ -2,9 +2,8 @@
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { linked } from '../src/linked';
 import { configureLegendState } from '../src/config';
-import '../src/config/enableDirectAccess';
-import { enableDirectAccess } from '../src/config/enableDirectAccess';
-import { enableDirectPeek } from '../src/config/enableDirectPeek';
+import { enable$Get } from '../src/config/enable$Get';
+import { enable_Peek } from '../src/config/enable_Peek';
 import { event } from '../src/event';
 import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { setAtPath } from '../src/helpers';
@@ -14,8 +13,8 @@ import { Observable as ObservableNew } from '../src/observableTypes';
 import { observe } from '../src/observe';
 import { when } from '../src/when';
 
-enableDirectAccess();
-enableDirectPeek();
+enable$Get();
+enable_Peek();
 
 function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
