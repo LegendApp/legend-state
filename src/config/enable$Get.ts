@@ -1,6 +1,6 @@
 import { configureLegendState, internal } from '@legendapp/state';
 
-export function enable$Get() {
+export function enable$get() {
     configureLegendState({
         observableProperties: {
             $: {
@@ -15,7 +15,7 @@ export function enable$Get() {
     });
 }
 // TODOv4 deprecate
-export const enableDirectAccess = enable$Get;
+export const enableDirectAccess = enable$get;
 
 // Types:
 

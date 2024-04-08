@@ -1,6 +1,6 @@
 import { configureLegendState, internal } from '@legendapp/state';
 
-export function enable_Peek() {
+export function enable_peek() {
     configureLegendState({
         observableProperties: {
             _: {
@@ -16,7 +16,7 @@ export function enable_Peek() {
 }
 
 // TODOv4 deprecate
-export const enableDirectAccess = enable_Peek;
+export const enableDirectAccess = enable_peek;
 
 // Types:
 
