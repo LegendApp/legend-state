@@ -6,18 +6,17 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 // @ts-ignore
 import type { DatabaseReference, Query } from 'firebase/database';
 
+import { ObservableOnChangeParams } from 'src/syncTypes';
 import {
-    LinkedParams,
     ArrayValue,
     Change,
     ClassConstructor,
+    LinkedParams,
     RecordValue,
     RetryOptions,
     Selector,
-    TypeAtPath,
 } from './observableInterfaces';
 import { Observable, ObservableParam, ObservableState } from './observableTypes';
-import { ObservableOnChangeParams } from 'src/syncTypes';
 
 export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;
@@ -171,11 +170,6 @@ export interface ObservablePersistStateBase {
         | undefined;
 }
 export type ObservablePersistState = ObservableState & ObservablePersistStateBase;
-
-export interface WithPersistState {
-    state?: ObservablePersistState; // TODOV3: remove this
-    _state?: ObservablePersistState;
-}
 
 // This converts the state object's shape to the field transformer's shape
 // TODO: FieldTransformer and this shape can likely be refactored to be simpler

@@ -6,17 +6,16 @@ import type {
     NodeValue,
     Observable,
     ObservableObject,
+    ObservableParam,
     ObservablePersistLocal,
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
     ObservablePersistState,
-    ObservableParam,
     PersistMetadata,
     PersistOptions,
     PersistOptionsLocal,
     PersistOptionsRemote,
     PersistTransform,
-    Primitive,
     TypeAtPath,
 } from '@legendapp/state';
 import {
@@ -37,10 +36,10 @@ import {
     setInObservableAtPath,
     when,
 } from '@legendapp/state';
+import { removeNullUndefined } from '../sync/syncHelpers';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
-import { removeNullUndefined } from '../sync/syncHelpers';
 
 const { globalState, symbolLinked } = internal;
 
@@ -791,13 +790,12 @@ async function loadLocal<T>(
     }
     syncState.isLoadedLocal.set(true);
 }
-export type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
 
 export function persistObservable<T>(
-    obs: ObservableParam<T>,
+    obs$: ObservableParam<T>,
     persistOptions: PersistOptions<T>,
 ): Observable<ObservablePersistState> {
-    const node = getNode(obs);
+    const node = getNode(obs$);
 
     // Merge remote persist options with global options
     if (persistOptions.remote) {
@@ -823,7 +821,7 @@ export function persistObservable<T>(
         getPendingChanges: () => localState.pendingChanges,
     }));
 
-    loadLocal(obs, persistOptions, syncState, localState);
+    loadLocal(obs$, persistOptions, syncState, localState);
 
     if (remote || remotePersistence) {
         if (!remotePersistence) {
@@ -849,7 +847,7 @@ export function persistObservable<T>(
 
         let isSynced = false;
         sync = async () => {
-            const lastSync = metadatas.get(obs)?.lastSync;
+            const lastSync = metadatas.get(obs$)?.lastSync;
             const pending = localState.pendingChanges;
             const get = localState.persistenceRemote!.get?.bind(localState.persistenceRemote);
 
@@ -857,7 +855,7 @@ export function persistObservable<T>(
                 const runGet = () => {
                     get({
                         state: syncState,
-                        obs,
+                        obs: obs$,
                         options: persistOptions as PersistOptions<any>,
                         lastSync,
                         dateModified: lastSync,
@@ -888,7 +886,7 @@ export function persistObservable<T>(
                                 if (mode === 'lastSync' || mode === 'dateModified') {
                                     if (lastSync && !isEmpty(value as unknown as object)) {
                                         onChangeRemote(() => {
-                                            setInObservableAtPath(obs, path as string[], pathTypes, value, 'assign');
+                                            setInObservableAtPath(obs$, path as string[], pathTypes, value, 'assign');
                                         });
                                     }
                                 } else {
@@ -906,7 +904,7 @@ export function persistObservable<T>(
                                                     p,
                                                     t,
                                                     v,
-                                                    obs.peek(),
+                                                    obs$.peek(),
                                                     (path: string[], value: any) => {
                                                         delete pending[key];
                                                         pending[path.join('/')] = {
@@ -922,12 +920,12 @@ export function persistObservable<T>(
 
                                     onChangeRemote(() => {
                                         // @ts-expect-error Fix this type
-                                        setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
+                                        setInObservableAtPath(obs$, path as string[], pathTypes, value, mode);
                                     });
                                 }
                             }
                             if (lastSync && local) {
-                                updateMetadata(obs, localState, syncState, persistOptions as PersistOptions<T>, {
+                                updateMetadata(obs$, localState, syncState, persistOptions as PersistOptions<T>, {
                                     lastSync,
                                 });
                             }
@@ -961,8 +959,8 @@ export function persistObservable<T>(
 
                     // Send the changes into onObsChange so that they get persisted remotely
                     // TODO: Not sure why this needs to as unknown as Observable
-                    onObsChange(obs as unknown as Observable, syncState, localState, persistOptions, {
-                        value: obs.peek(),
+                    onObsChange(obs$ as unknown as Observable, syncState, localState, persistOptions, {
+                        value: obs$.peek(),
                         loading: false,
                         remote: false,
                         // TODO getPrevious if any remote persistence layers need it
@@ -995,7 +993,9 @@ export function persistObservable<T>(
             sync();
         }
 
-        obs.onChange(onObsChange.bind(this, obs as any, syncState, localState, persistOptions as PersistOptions<any>));
+        obs$.onChange(
+            onObsChange.bind(this, obs$ as any, syncState, localState, persistOptions as PersistOptions<any>),
+        );
     });
 
     return syncState;

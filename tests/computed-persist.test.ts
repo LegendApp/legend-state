@@ -14,7 +14,7 @@ class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
     }
 }
 
-jest?.setTimeout(1000);
+jest?.setTimeout?.(1000);
 
 describe('caching with new computed', () => {
     test('cache basic', async () => {

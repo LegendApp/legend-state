@@ -11,7 +11,6 @@ import type {
     ObservableParam,
     ObservableSyncClass,
     ObservableSyncState,
-    Primitive,
     SyncTransform,
     SyncedParams,
     TypeAtPath,
@@ -33,9 +32,9 @@ import {
     setInObservableAtPath,
     when,
 } from '@legendapp/state';
-import { syncObservableAdapter } from './syncObservableAdapter';
-import { removeNullUndefined } from './syncHelpers';
 import { observableSyncConfiguration } from './configureObservableSync';
+import { removeNullUndefined } from './syncHelpers';
+import { syncObservableAdapter } from './syncObservableAdapter';
 
 const { globalState, symbolLinked } = internal;
 
@@ -753,13 +752,12 @@ async function loadLocal<T>(
     }
     syncState.isLoadedLocal.set(true);
 }
-export type WithoutState = any[] | Primitive | (Record<string, any> & { _state?: never });
 
 export function syncObservable<T>(
-    obs: ObservableParam<T>,
+    obs$: ObservableParam<T>,
     syncOptions: SyncedParams<T>,
 ): Observable<ObservableSyncState> {
-    const node = getNode(obs);
+    const node = getNode(obs$);
 
     // Merge remote sync options with global options
     if (syncOptions) {
@@ -784,14 +782,14 @@ export function syncObservable<T>(
         getPendingChanges: () => localState.pendingChanges,
     }));
 
-    loadLocal(obs, syncOptions, syncState, localState);
+    loadLocal(obs$, syncOptions, syncState, localState);
 
     localState.pluginSync = syncObservableAdapter(syncOptions);
 
     if (syncOptions.get) {
         let isSynced = false;
         sync = async () => {
-            const lastSync = metadatas.get(obs)?.lastSync;
+            const lastSync = metadatas.get(obs$)?.lastSync;
             const pending = localState.pendingChanges;
             const get = localState.pluginSync!.get?.bind(localState.pluginSync);
 
@@ -799,7 +797,7 @@ export function syncObservable<T>(
                 const runGet = () => {
                     get({
                         state: syncState,
-                        obs,
+                        obs: obs$,
                         options: syncOptions,
                         lastSync,
                         dateModified: lastSync,
@@ -824,7 +822,7 @@ export function syncObservable<T>(
                                 if (mode === 'lastSync' || mode === 'dateModified') {
                                     if (lastSync && !isEmpty(value as unknown as object)) {
                                         onChangeRemote(() => {
-                                            setInObservableAtPath(obs, path as string[], pathTypes, value, 'assign');
+                                            setInObservableAtPath(obs$, path as string[], pathTypes, value, 'assign');
                                         });
                                     }
                                 } else {
@@ -842,7 +840,7 @@ export function syncObservable<T>(
                                                     p,
                                                     t,
                                                     v,
-                                                    obs.peek(),
+                                                    obs$.peek(),
                                                     (path: string[], value: any) => {
                                                         delete pending[key];
                                                         pending[path.join('/')] = {
@@ -858,12 +856,12 @@ export function syncObservable<T>(
 
                                     onChangeRemote(() => {
                                         // @ts-expect-error Fix this type
-                                        setInObservableAtPath(obs, path as string[], pathTypes, value, mode);
+                                        setInObservableAtPath(obs$, path as string[], pathTypes, value, mode);
                                     });
                                 }
                             }
                             if (lastSync && syncOptions.cache) {
-                                updateMetadata(obs, localState, syncState, syncOptions, {
+                                updateMetadata(obs$, localState, syncState, syncOptions, {
                                     lastSync,
                                 });
                             }
@@ -897,8 +895,8 @@ export function syncObservable<T>(
 
                     // Send the changes into onObsChange so that they get synced remotely
                     // TODO: Not sure why this needs to as unknown as Observable
-                    onObsChange(obs as unknown as Observable, syncState, localState, syncOptions, {
-                        value: obs.peek(),
+                    onObsChange(obs$ as unknown as Observable, syncState, localState, syncOptions, {
+                        value: obs$.peek(),
                         loading: false,
                         remote: false,
                         // TODO getPrevious if any remote sync layers need it
@@ -931,7 +929,7 @@ export function syncObservable<T>(
             sync();
         }
 
-        obs.onChange(onObsChange.bind(this, obs as any, syncState, localState, syncOptions as SyncedParams<any>));
+        obs$.onChange(onObsChange.bind(this, obs$ as any, syncState, localState, syncOptions as SyncedParams<any>));
     });
 
     return syncState;

@@ -54,15 +54,15 @@ export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'se
     offlineBehavior?: false | 'retry';
     cache?: CacheOptions<any>;
     debounceSet?: number;
+    syncMode?: 'auto' | 'manual';
+    transform?: SyncTransform<T>;
     // Not implemented yet
     enableSync?: boolean;
-    syncMode?: 'auto' | 'manual';
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     log?: (message?: any, ...optionalParams: any[]) => void;
     onBeforeSet?: () => void;
     onAfterSet?: () => void;
-    transform?: SyncTransform<T>;
     allowSetIfGetError?: boolean;
 }
 
