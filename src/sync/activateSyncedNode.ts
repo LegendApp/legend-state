@@ -11,9 +11,9 @@ import type {
     SyncedGetParams,
     UpdateFn,
 } from '@legendapp/state';
-import { getNodeValue, internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
+import { internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
 import { syncObservable } from './syncObservable';
-const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue } = internal;
+const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue, getNodeValue } = internal;
 
 export function enableActivateSyncedNode() {
     globalState.activateSyncedNode = function activateSyncedNode(node: NodeValue, newValue: any) {

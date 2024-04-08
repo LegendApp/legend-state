@@ -23,7 +23,6 @@ import {
     constructObjectWithPath,
     deconstructObjectWithPath,
     endBatch,
-    getNode,
     internal,
     isEmpty,
     isFunction,
@@ -41,7 +40,7 @@ import { observablePersistConfiguration } from './configureObservablePersistence
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';
 import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemoteFunctionsAdapter';
 
-const { globalState, symbolLinked } = internal;
+const { globalState, symbolLinked, getNode } = internal;
 
 export const mapPersistences: WeakMap<
     ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
@@ -588,13 +587,18 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         localState.numSavesOutstanding = (localState.numSavesOutstanding || 0) + 1;
 
-        const saved = await persistenceRemote!.set!({
+        let savedPromise = persistenceRemote!.set!({
             obs,
             syncState: syncState,
             options: persistOptions,
             changes: changesRemote,
             value,
-        })?.catch((err) => onSetError?.(err));
+        });
+        if (isPromise(savedPromise)) {
+            savedPromise = savedPromise.catch((err) => onSetError?.(err));
+        }
+
+        const saved = await savedPromise;
 
         localState.numSavesOutstanding--;
 

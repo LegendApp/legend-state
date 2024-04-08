@@ -56,6 +56,7 @@ import {
     ensureNodeValue,
     findIDKey,
     getNode,
+    getNodeValue,
     getPathType,
     globalState,
     optimized,
@@ -67,6 +68,7 @@ import {
 } from './src/globals';
 import { initializePathType, setAtPath } from './src/helpers';
 import { runWithRetry } from './src/retry';
+import { tracking } from './src/tracking';
 
 export const internal = {
     clone,
@@ -74,6 +76,7 @@ export const internal = {
     findIDKey,
     get,
     getNode,
+    getNodeValue,
     getPathType,
     getProxy,
     globalState,
@@ -89,4 +92,5 @@ export const internal = {
     setNodeValue,
     symbolLinked,
     symbolDelete,
+    tracking,
 };

@@ -58,6 +58,11 @@ export interface NodeValueListener {
     noArgs?: boolean;
     listener: ListenerFn;
 }
+export interface TrackingState {
+    nodes?: Map<NodeValue, TrackingNode>;
+    traceListeners?: (nodes: Map<NodeValue, TrackingNode>) => void;
+    traceUpdates?: (fn: Function) => Function;
+}
 
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;

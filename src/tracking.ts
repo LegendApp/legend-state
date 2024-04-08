@@ -1,10 +1,4 @@
-import type { NodeValue, TrackingNode, TrackingType } from './observableInterfaces';
-
-interface TrackingState {
-    nodes?: Map<NodeValue, TrackingNode>;
-    traceListeners?: (nodes: Map<NodeValue, TrackingNode>) => void;
-    traceUpdates?: (fn: Function) => Function;
-}
+import type { NodeValue, TrackingState, TrackingType } from './observableInterfaces';
 
 let trackCount = 0;
 const trackingQueue: (TrackingState | undefined)[] = [];

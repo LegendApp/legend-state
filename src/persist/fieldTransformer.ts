@@ -5,12 +5,11 @@ import {
     isArray,
     isObject,
     isString,
-    symbolDelete,
     TypeAtPath,
     internal,
 } from '@legendapp/state';
 
-const { initializePathType } = internal;
+const { initializePathType, symbolDelete } = internal;
 
 let validateMap: (map: Record<string, any>) => void;
 

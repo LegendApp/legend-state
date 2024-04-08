@@ -20,7 +20,6 @@ import {
     constructObjectWithPath,
     deconstructObjectWithPath,
     endBatch,
-    getNode,
     internal,
     isArray,
     isEmpty,
@@ -37,7 +36,7 @@ import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import { syncObservableAdapter } from './syncObservableAdapter';
 
-const { globalState, symbolLinked } = internal;
+const { globalState, symbolLinked, getNode } = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservableCachePlugin | ObservableSyncClass>,
@@ -560,13 +559,18 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         localState.numSavesOutstanding = (localState.numSavesOutstanding || 0) + 1;
 
-        const saved = await pluginSync!.set!({
+        let savedPromise = pluginSync!.set!({
             obs,
             syncState: syncState,
             options: syncOptions,
             changes: changesRemote,
             value,
-        })?.catch((err) => onSetError?.(err));
+        });
+        if (isPromise(savedPromise)) {
+            savedPromise = savedPromise.catch((err) => onSetError?.(err));
+        }
+
+        const saved = await savedPromise;
 
         localState.numSavesOutstanding--;
 

@@ -6,8 +6,8 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 // @ts-ignore
 import type { DatabaseReference, Query } from 'firebase/database';
 
-import { GetMode } from 'src/syncTypes';
-import {
+import type { GetMode } from './syncTypes';
+import type {
     ArrayValue,
     Change,
     ClassConstructor,
@@ -17,7 +17,7 @@ import {
     Selector,
     TypeAtPath,
 } from './observableInterfaces';
-import { Observable, ObservableParam, ObservableState } from './observableTypes';
+import type { Observable, ObservableParam, ObservableState } from './observableTypes';
 
 export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;

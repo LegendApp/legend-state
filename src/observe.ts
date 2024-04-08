@@ -6,6 +6,8 @@ import { trackSelector } from './trackSelector';
 
 export interface ObserveOptions {
     immediate?: boolean; // Ignore batching and run immediately
+    /* @internal */
+    fromComputed?: boolean;
 }
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;

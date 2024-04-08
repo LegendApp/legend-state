@@ -1,5 +1,6 @@
-import { NodeValue, optimized, tracking, TrackingNode } from '@legendapp/state';
+import { NodeValue, internal, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
+const { optimized, tracking } = internal;
 
 export function useTraceListeners(this: any, name?: string) {
     if (process.env.NODE_ENV === 'development' && tracking.current) {

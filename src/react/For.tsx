@@ -1,8 +1,9 @@
 import type { Observable, ObservableObject, ObservableParam } from '@legendapp/state';
-import { findIDKey, getNode, isArray, isFunction, optimized } from '@legendapp/state';
+import { internal, isArray, isFunction } from '@legendapp/state';
 import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
+const { findIDKey, getNode, optimized } = internal;
 
 const autoMemoCache = new Map<FC<any>, FC<any>>();
 
