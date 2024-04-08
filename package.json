@@ -1,188 +1,191 @@
 {
-    "name": "@legendapp/state",
-    "version": "2.2.0-next.62",
-    "description": "legend-state",
-    "sideEffects": false,
-    "private": true,
-    "main": "./index.js",
-    "module": "./index.mjs",
-    "types": "./index.d.ts",
-    "files": [
-        "**"
-    ],
-    "engines": {
-        "node": ">=16.6.0",
-        "npm": ">=8.11.0"
+  "name": "@legendapp/state",
+  "version": "2.2.0-next.62",
+  "description": "legend-state",
+  "sideEffects": false,
+  "private": true,
+  "main": "./index.js",
+  "module": "./index.mjs",
+  "types": "./index.d.ts",
+  "files": [
+    "**"
+  ],
+  "engines": {
+    "node": ">=16.6.0",
+    "npm": ">=8.11.0"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && mkdir dist/types && cp src/types/* dist/types/ && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
+    "postbuild": "node postbuild.mjs",
+    "test": "jest",
+    "postversion": "npm run build && git push --follow-tags",
+    "jestclear": "jest --clearCache",
+    "publish:betarelease": "bun buntestsilent && npm version prerelease --preid=beta && cd dist && npm publish --tag beta",
+    "publish:manual": "bun buntestsilent && npm run build && cd dist && npm publish",
+    "publish:minor": "bun buntestsilent && npm version minor && cd dist && npm publish",
+    "publish:nextrelease": "bun buntestsilent && npm version prerelease --preid=next && cd dist && npm publish --tag next",
+    "publish:patch": "bun buntestsilent && npm version patch && cd dist && npm publish",
+    "publish:premajor": "bun buntestsilent && npm version premajor --preid=next && cd dist && npm publish --tag next",
+    "publish:preminor": "bun buntestsilent && npm version preminor --preid=next && cd dist && npm publish --tag next",
+    "publish:prepatch": "bun buntestsilent && npm version prepatch --preid=next && cd dist && npm publish --tag next",
+    "publish:rcrelease": "bun buntestsilent && npm version prerelease --preid=rc && cd dist && npm publish --tag rc",
+    "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
+    "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
+    "checksize": "npm run checksize:core && npm run checksize:react",
+    "lint:write": "eslint ./src ./tests --fix --ext .ts,.tsx",
+    "lint:check": "eslint ./src ./tests --ext .ts,.tsx",
+    "format:write": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
+    "release": "release-it",
+    "typecheck": "tsc --noEmit",
+    "buntest": "bun test --timeout 50",
+    "buntestsilent": "bun test --timeout 50 > /dev/null 2>&1"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js",
+      "types": "./index.d.ts"
     },
-    "scripts": {
-        "clean": "rimraf dist",
-        "prebuild": "npm run clean",
-        "build": "npm run lint:check && rollup -c rollup.config.ts --configPlugin @rollup/plugin-typescript && cp README.md dist/README.md && cp CHANGELOG.md dist/CHANGELOG.md && cp LICENSE dist/LICENSE && mkdir dist/types && cp src/types/* dist/types/ && rm -rf dist/tests && rm dist/*.tsbuildinfo && rm dist/rollup.config.d.ts",
-        "postbuild": "node postbuild.mjs",
-        "test": "jest",
-        "postversion": "npm run build && git push --follow-tags",
-        "jestclear": "jest --clearCache",
-        "publish:betarelease": "bun buntestsilent && npm version prerelease --preid=beta && cd dist && npm publish --tag beta",
-        "publish:manual": "bun buntestsilent && npm run build && cd dist && npm publish",
-        "publish:minor": "bun buntestsilent && npm version minor && cd dist && npm publish",
-        "publish:nextrelease": "bun buntestsilent && npm version prerelease --preid=next && cd dist && npm publish --tag next",
-        "publish:patch": "bun buntestsilent && npm version patch && cd dist && npm publish",
-        "publish:premajor": "bun buntestsilent && npm version premajor --preid=next && cd dist && npm publish --tag next",
-        "publish:preminor": "bun buntestsilent && npm version preminor --preid=next && cd dist && npm publish --tag next",
-        "publish:prepatch": "bun buntestsilent && npm version prepatch --preid=next && cd dist && npm publish --tag next",
-        "publish:rcrelease": "bun buntestsilent && npm version prerelease --preid=rc && cd dist && npm publish --tag rc",
-        "checksize:core": "npx esbuild ./testbundles/bundlecore.js --bundle --outfile=temp-built.js --minify && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
-        "checksize:react": "npx esbuild ./testbundles/bundlereact.js --bundle --outfile=temp-built.js --minify --external:react --external:@legendapp/state && gzip temp-built.js && stat -f%z ./temp-built.js.gz && rm temp-built.js.*",
-        "checksize": "npm run checksize:core && npm run checksize:react",
-        "lint:write": "eslint ./src ./tests --fix --ext .ts,.tsx",
-        "lint:check": "eslint ./src ./tests --ext .ts,.tsx",
-        "format:write": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
-        "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
-        "release": "release-it",
-        "typecheck": "tsc --noEmit",
-        "buntest": "bun test --timeout 50",
-        "buntestsilent": "bun test --timeout 50 > /dev/null 2>&1"
+    "./persist": {
+      "import": "./persist.mjs",
+      "require": "./persist.js",
+      "types": "./persist.d.ts"
     },
-    "exports": {
-        "./package.json": "./package.json",
-        ".": {
-            "import": "./index.mjs",
-            "require": "./index.js",
-            "types": "./index.d.ts"
-        },
-        "./persist": {
-            "import": "./persist.mjs",
-            "require": "./persist.js",
-            "types": "./persist.d.ts"
-        },
-        "./sync": {
-            "import": "./sync.mjs",
-            "require": "./sync.js",
-            "types": "./sync.d.ts"
-        },
-        "./react": {
-            "import": "./react.mjs",
-            "require": "./react.js",
-            "types": "./react.d.ts"
-        },
-        "./trace": {
-            "import": "./trace.mjs",
-            "require": "./trace.js",
-            "types": "./trace.d.ts"
-        },
-        "./history": {
-            "import": "./history.mjs",
-            "require": "./history.js",
-            "types": "./history.d.ts"
-        },
-        "./config/*": {
-            "import": "./config/*.mjs",
-            "require": "./config/*.js",
-            "types": "./config/*.d.ts"
-        },
-        "./helpers/*": {
-            "import": "./helpers/*.mjs",
-            "require": "./helpers/*.js",
-            "types": "./helpers/*.d.ts"
-        },
-        "./persist-plugins/*": {
-            "import": "./persist-plugins/*.mjs",
-            "require": "./persist-plugins/*.js",
-            "types": "./persist-plugins/*.d.ts"
-        },
-        "./cache-plugins/*": {
-            "import": "./cache-plugins/*.mjs",
-            "require": "./cache-plugins/*.js",
-            "types": "./cache-plugins/*.d.ts"
-        },
-        "./sync-plugins/*": {
-            "import": "./sync-plugins/*.mjs",
-            "require": "./sync-plugins/*.js",
-            "types": "./sync-plugins/*.d.ts"
-        },
-        "./react-hooks/*": {
-            "import": "./react-hooks/*.mjs",
-            "require": "./react-hooks/*.js",
-            "types": "./react-hooks/*.d.ts"
-        },
-        "./types/babel": {
-            "types": "./types/babel.d.ts"
-        },
-        "./babel": "./babel.js"
+    "./sync": {
+      "import": "./sync.mjs",
+      "require": "./sync.js",
+      "types": "./sync.d.ts"
     },
-    "devDependencies": {
-        "@babel/types": "^7.20.2",
-        "@commitlint/config-conventional": "^17.4.4",
-        "@evilmartians/lefthook": "^1.3.3",
-        "@jest/globals": "^29.6.1",
-        "@happy-dom/global-registrator": "^14.7.0",
-        "@react-native-async-storage/async-storage": "^1.19.3",
-        "@release-it/conventional-changelog": "^5.1.1",
-        "@rollup/plugin-commonjs": "^23.0.2",
-        "@rollup/plugin-node-resolve": "^15.0.1",
-        "@rollup/plugin-typescript": "^9.0.2",
-        "@swc/cli": "^0.1.57",
-        "@swc/core": "^1.3.14",
-        "@tanstack/react-query": "^4.14.6",
-        "@testing-library/jest-dom": "^6.4.2",
-        "@testing-library/react": "^14.2.2",
-        "@types/jest": "^29.5.12",
-        "@types/react": "^18.0.25",
-        "@types/react-dom": "^18.0.8",
-        "@types/react-native": "^0.70.6",
-        "@types/use-sync-external-store": "^0.0.3",
-        "@typescript-eslint/eslint-plugin": "^6.9.1",
-        "@typescript-eslint/parser": "^6.9.1",
-        "babel-jest": "^29.4.1",
-        "commitlint": "^17.4.4",
-        "eslint": "^8.45.0",
-        "eslint-plugin-react": "^7.32.2",
-        "eslint-plugin-react-hooks": "^4.6.0",
-        "expect-type": "^0.16.0",
-        "fake-indexeddb": "^4.0.0",
-        "firebase": "^10.3.0",
-        "jest": "^29.6.1",
-        "jest-environment-jsdom": "^29.6.1",
-        "json": "^11.0.0",
-        "next": "^13",
-        "prettier": "^3.0.0",
-        "react": "18.2.0",
-        "react-native": "^0.70.5",
-        "react-native-mmkv": "^2.5.1",
-        "react-test-renderer": "^18.2.0",
-        "release-it": "^15.7.0",
-        "rimraf": "^3.0.2",
-        "rollup": "^3.2.5",
-        "ts-jest": "^29.1.1",
-        "tslib": "^2.4.1",
-        "typescript": "^5.3.2"
+    "./react": {
+      "import": "./react.mjs",
+      "require": "./react.js",
+      "types": "./react.d.ts"
     },
-    "overrides": {
-        "react": "18.2.0"
+    "./trace": {
+      "import": "./trace.mjs",
+      "require": "./trace.js",
+      "types": "./trace.d.ts"
     },
-    "author": "Legend <contact@legendapp.com> (https://github.com/LegendApp)",
-    "keywords": [
-        "react",
-        "react-native",
-        "state",
-        "hooks",
-        "proxy"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/LegendApp/legend-state.git"
+    "./history": {
+      "import": "./history.mjs",
+      "require": "./history.js",
+      "types": "./history.d.ts"
     },
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/LegendApp/legend-state/issues"
+    "./config/*": {
+      "import": "./config/*.mjs",
+      "require": "./config/*.js",
+      "types": "./config/*.d.ts"
     },
-    "homepage": "https://github.com/LegendApp/legend-state#readme",
-    "publishConfig": {
-        "registry": "https://registry.npmjs.org/"
+    "./helpers/*": {
+      "import": "./helpers/*.mjs",
+      "require": "./helpers/*.js",
+      "types": "./helpers/*.d.ts"
     },
-    "commitlint": {
-        "extends": [
-            "@commitlint/config-conventional"
-        ]
-    }
+    "./persist-plugins/*": {
+      "import": "./persist-plugins/*.mjs",
+      "require": "./persist-plugins/*.js",
+      "types": "./persist-plugins/*.d.ts"
+    },
+    "./cache-plugins/*": {
+      "import": "./cache-plugins/*.mjs",
+      "require": "./cache-plugins/*.js",
+      "types": "./cache-plugins/*.d.ts"
+    },
+    "./sync-plugins/*": {
+      "import": "./sync-plugins/*.mjs",
+      "require": "./sync-plugins/*.js",
+      "types": "./sync-plugins/*.d.ts"
+    },
+    "./react-hooks/*": {
+      "import": "./react-hooks/*.mjs",
+      "require": "./react-hooks/*.js",
+      "types": "./react-hooks/*.d.ts"
+    },
+    "./types/babel": {
+      "types": "./types/babel.d.ts"
+    },
+    "./babel": "./babel.js"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.20.2",
+    "@commitlint/config-conventional": "^17.4.4",
+    "@evilmartians/lefthook": "^1.3.3",
+    "@jest/globals": "^29.6.1",
+    "@happy-dom/global-registrator": "^14.7.0",
+    "@react-native-async-storage/async-storage": "^1.19.3",
+    "@release-it/conventional-changelog": "^5.1.1",
+    "@rollup/plugin-commonjs": "^23.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^9.0.2",
+    "@swc/cli": "^0.1.57",
+    "@swc/core": "^1.3.14",
+    "@tanstack/react-query": "^4.14.6",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.2",
+    "@types/jest": "^29.5.12",
+    "@types/react": "^18.0.25",
+    "@types/react-dom": "^18.0.8",
+    "@types/react-native": "^0.70.6",
+    "@types/use-sync-external-store": "^0.0.3",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "@typescript-eslint/parser": "^6.9.1",
+    "babel-jest": "^29.4.1",
+    "commitlint": "^17.4.4",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "expect-type": "^0.16.0",
+    "fake-indexeddb": "^4.0.0",
+    "firebase": "^10.3.0",
+    "jest": "^29.6.1",
+    "jest-environment-jsdom": "^29.6.1",
+    "json": "^11.0.0",
+    "next": "^13",
+    "prettier": "^3.0.0",
+    "react": "18.2.0",
+    "react-native": "^0.70.5",
+    "react-native-mmkv": "^2.5.1",
+    "react-test-renderer": "^18.2.0",
+    "release-it": "^15.7.0",
+    "rimraf": "^3.0.2",
+    "rollup": "^3.2.5",
+    "ts-jest": "^29.1.1",
+    "tslib": "^2.4.1",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "use-sync-external-store": "^1.2.0"
+  },
+  "overrides": {
+    "react": "18.2.0"
+  },
+  "author": "Legend <contact@legendapp.com> (https://github.com/LegendApp)",
+  "keywords": [
+    "react",
+    "react-native",
+    "state",
+    "hooks",
+    "proxy"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LegendApp/legend-state.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LegendApp/legend-state/issues"
+  },
+  "homepage": "https://github.com/LegendApp/legend-state#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  }
 }
