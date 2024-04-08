@@ -1,6 +1,8 @@
 import { configureLegendState, internal, NodeValue } from '@legendapp/state';
 import { useSelector, UseSelectorOptions } from '@legendapp/state/react';
 
+// TODO: Deprecate
+
 export function enableReactUse() {
     configureLegendState({
         observableFunctions: {

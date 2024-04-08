@@ -125,10 +125,10 @@ export interface ObservableSyncStateBase {
 export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
 export interface ObservableOnChangeParams {
     value: unknown;
-    path?: string[];
-    pathTypes?: TypeAtPath[];
+    path?: string[]; // TODOv4 remove
+    pathTypes?: TypeAtPath[]; // TODOv4 remove
     mode?: 'assign' | 'set' | 'dateModified' | 'lastSync' | 'merge'; // TODOV3 Remove dateModified
-    dateModified?: number | undefined;
+    dateModified?: number | undefined; // TODOv4 remove
     lastSync?: number | undefined;
 }
 export interface ObservableSyncRemoteSetParams<T> {

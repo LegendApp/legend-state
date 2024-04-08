@@ -29,7 +29,6 @@ import {
     mergeIntoObservable,
     observable,
     setAtPath,
-    setInObservableAtPath,
     when,
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
@@ -810,9 +809,7 @@ export function syncObservable<T>(
                                 error: undefined,
                             });
                         },
-                        onChange: async ({ value, path = [], pathTypes = [], mode = 'set', lastSync }) => {
-                            // Note: value is the constructed value, path is used for setInObservableAtPath
-                            // to start the set into the observable from the path
+                        onChange: async ({ value, mode = 'set', lastSync }) => {
                             if (value !== undefined) {
                                 value = transformLoadData(value, syncOptions, true);
                                 if (isPromise(value)) {
@@ -822,7 +819,7 @@ export function syncObservable<T>(
                                 if (mode === 'lastSync' || mode === 'dateModified') {
                                     if (lastSync && !isEmpty(value as unknown as object)) {
                                         onChangeRemote(() => {
-                                            setInObservableAtPath(obs$, path as string[], pathTypes, value, 'assign');
+                                            (obs$ as any).assign(value);
                                         });
                                     }
                                 } else {
@@ -855,8 +852,7 @@ export function syncObservable<T>(
                                     }
 
                                     onChangeRemote(() => {
-                                        // @ts-expect-error Fix this type
-                                        setInObservableAtPath(obs$, path as string[], pathTypes, value, mode);
+                                        mode === 'assign' ? (obs$ as any).assign(value) : (obs$ as any).set(value);
                                     });
                                 }
                             }
