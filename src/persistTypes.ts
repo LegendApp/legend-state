@@ -6,7 +6,7 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 // @ts-ignore
 import type { DatabaseReference, Query } from 'firebase/database';
 
-import { ObservableOnChangeParams } from 'src/syncTypes';
+import { GetMode } from 'src/syncTypes';
 import {
     ArrayValue,
     Change,
@@ -15,6 +15,7 @@ import {
     RecordValue,
     RetryOptions,
     Selector,
+    TypeAtPath,
 } from './observableInterfaces';
 import { Observable, ObservableParam, ObservableState } from './observableTypes';
 
@@ -115,7 +116,14 @@ export interface ObservablePersistLocal {
     setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
     deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
 }
-
+export interface ObservableOnChangeParams {
+    value: unknown;
+    path?: string[]; // TODOv4 remove
+    pathTypes?: TypeAtPath[]; // TODOv4 remove
+    mode?: GetMode;
+    dateModified?: number | undefined; // TODOv4 remove
+    lastSync?: number | undefined;
+}
 export interface ObservablePersistRemoteSetParams<T> {
     syncState: Observable<ObservablePersistState>;
     obs: ObservableParam<T>;
@@ -129,7 +137,7 @@ export interface ObservablePersistRemoteGetParams<T> {
     options: PersistOptions<T>;
     dateModified?: number;
     lastSync?: number;
-    mode?: 'assign' | 'set' | 'dateModified' | 'merge'; // TODOV3 Remove dateModified
+    mode?: GetMode;
     onGet: () => void;
     onError: (error: Error) => void;
     onChange: (params: ObservableOnChangeParams) => void | Promise<void>;

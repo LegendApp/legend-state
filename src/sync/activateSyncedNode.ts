@@ -1,12 +1,13 @@
 import type {
+    GetMode,
     ListenerParams,
     NodeValue,
     Observable,
     ObservableOnChangeParams,
-    ObservablePersistRemoteFunctions,
-    ObservablePersistRemoteGetParams,
-    ObservablePersistRemoteSetParams,
     ObservablePersistState,
+    ObservableSyncFunctions,
+    ObservableSyncGetParams,
+    ObservableSyncSetParams,
     SyncedGetParams,
     UpdateFn,
 } from '@legendapp/state';
@@ -22,7 +23,7 @@ export function enableActivateSyncedNode() {
             const { get, initial, set, subscribe } = node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
-            const pluginRemote: ObservablePersistRemoteFunctions = {};
+            const pluginRemote: ObservableSyncFunctions = {};
             let promiseReturn: any = undefined;
 
             // Not sure why this disable is needed, but it's needed to make the linter happy
@@ -31,10 +32,10 @@ export function enableActivateSyncedNode() {
             const refresh = () => syncState?.sync();
 
             if (get) {
-                pluginRemote.get = (params: ObservablePersistRemoteGetParams<any>) => {
+                pluginRemote.get = (params: ObservableSyncGetParams<any>) => {
                     onChange = params.onChange;
                     const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
-                    const setMode = (mode: 'assign' | 'set') => (params.mode = mode);
+                    const setMode = (mode: GetMode) => (params.mode = mode);
 
                     const existingValue = getNodeValue(node);
                     const value = runWithRetry(node, { attemptNum: 0 }, () => {
@@ -55,7 +56,7 @@ export function enableActivateSyncedNode() {
             }
             if (set) {
                 // TODO: Work out these types better
-                pluginRemote.set = async (params: ObservablePersistRemoteSetParams<any>) => {
+                pluginRemote.set = async (params: ObservableSyncSetParams<any>) => {
                     if (node.state?.isLoaded.get()) {
                         const retryAttempts = { attemptNum: 0 };
                         return runWithRetry(node, retryAttempts, async (retryEvent) => {

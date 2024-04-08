@@ -11,8 +11,8 @@ import {
     NodeValue,
     RetryOptions,
     SetParams,
-    TypeAtPath,
     UpdateFn,
+    UpdateFnParams,
 } from './observableInterfaces';
 import { Observable, ObservableParam, ObservableState } from './observableTypes';
 
@@ -46,6 +46,8 @@ export type SyncedSetParams<T> = SetParams<T> & {
     fromSubscribe: boolean | undefined;
 };
 
+export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
+
 export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
@@ -55,6 +57,7 @@ export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'se
     cache?: CacheOptions<any>;
     debounceSet?: number;
     syncMode?: 'auto' | 'manual';
+    getMode?: GetMode;
     transform?: SyncTransform<T>;
     // Not implemented yet
     enableSync?: boolean;
@@ -123,44 +126,37 @@ export interface ObservableSyncStateBase {
         | undefined;
 }
 export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
-export interface ObservableOnChangeParams {
-    value: unknown;
-    path?: string[]; // TODOv4 remove
-    pathTypes?: TypeAtPath[]; // TODOv4 remove
-    mode?: 'assign' | 'set' | 'dateModified' | 'lastSync' | 'merge'; // TODOV3 Remove dateModified
-    dateModified?: number | undefined; // TODOv4 remove
-    lastSync?: number | undefined;
-}
-export interface ObservableSyncRemoteSetParams<T> {
+
+export interface ObservableSyncSetParams<T> {
     syncState: Observable<ObservableSyncState>;
     obs: ObservableParam<T>;
     options: SyncedParams<T>;
     changes: Change[];
     value: T;
 }
-export interface ObservableSyncRemoteGetParams<T> {
+export interface ObservableSyncGetParams<T> {
     state: Observable<ObservableSyncState>;
     obs: ObservableParam<T>;
     options: SyncedParams<T>;
     dateModified?: number;
     lastSync?: number;
-    mode?: 'assign' | 'set' | 'dateModified' | 'merge'; // TODOV3 Remove dateModified
+    mode?: GetMode;
     onGet: () => void;
     onError: (error: Error) => void;
-    onChange: (params: ObservableOnChangeParams) => void | Promise<void>;
+    onChange: (params: UpdateFnParams) => void | Promise<void>;
 }
-export type ObservableSyncRemoteGetFnParams<T> = Omit<ObservableSyncRemoteGetParams<T>, 'onGet'>;
+export type ObservableSyncRemoteGetFnParams<T> = Omit<ObservableSyncGetParams<T>, 'onGet'>;
 
 export interface ObservableSyncClass {
-    get?<T>(params: ObservableSyncRemoteGetParams<T>): void;
+    get?<T>(params: ObservableSyncGetParams<T>): void;
     set?<T>(
-        params: ObservableSyncRemoteSetParams<T>,
+        params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object; dateModified?: number; lastSync?: number; pathStrs?: string[] }>;
 }
 
 export interface ObservableSyncFunctions<T = any> {
     get?(params: ObservableSyncRemoteGetFnParams<T>): T | Promise<T>;
     set?(
-        params: ObservableSyncRemoteSetParams<T>,
+        params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;
 }

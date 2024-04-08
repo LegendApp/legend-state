@@ -883,7 +883,7 @@ export function persistObservable<T>(
                                     path = transformPath(path as string[], pathTypes, invertedMap);
                                 }
 
-                                if (mode === 'lastSync' || mode === 'dateModified') {
+                                if ((mode as any) === 'lastSync' || (mode as any) === 'dateModified') {
                                     if (lastSync && !isEmpty(value as unknown as object)) {
                                         onChangeRemote(() => {
                                             setInObservableAtPath(obs$, path as string[], pathTypes, value, 'assign');
@@ -919,8 +919,13 @@ export function persistObservable<T>(
                                     }
 
                                     onChangeRemote(() => {
-                                        // @ts-expect-error Fix this type
-                                        setInObservableAtPath(obs$, path as string[], pathTypes, value, mode);
+                                        setInObservableAtPath(
+                                            obs$,
+                                            path as string[],
+                                            pathTypes,
+                                            value,
+                                            mode as 'assign' | 'set',
+                                        );
                                     });
                                 }
                             }

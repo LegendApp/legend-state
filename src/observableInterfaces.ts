@@ -1,6 +1,6 @@
 import type { symbolOpaque } from './globals';
 import type { Observable, ObservableParam } from './observableTypes';
-import { ObservableSyncState, SyncedParams } from './syncTypes';
+import { GetMode, ObservableSyncState, SyncedParams } from './syncTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
 
@@ -133,12 +133,12 @@ export interface LinkedParams<T = any> {
     initial?: T extends Promise<infer t> ? t : T;
 }
 
-export type UpdateFn = (params: {
+export interface UpdateFnParams {
     value: unknown;
-    mode?: 'assign' | 'set' | 'lastSync' | 'dateModified' | 'merge';
-    dateModified?: number | undefined;
+    mode?: GetMode;
     lastSync?: number | undefined;
-}) => void;
+}
+export type UpdateFn = (params: UpdateFnParams) => void;
 export interface RetryOptions {
     infinite?: boolean;
     times?: number;

@@ -22,8 +22,10 @@ import {
     endBatch,
     getNode,
     internal,
+    isArray,
     isEmpty,
     isFunction,
+    isObject,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -809,52 +811,55 @@ export function syncObservable<T>(
                                 error: undefined,
                             });
                         },
-                        onChange: async ({ value, mode = 'set', lastSync }) => {
+                        onChange: async ({ value, mode, lastSync }) => {
+                            mode = syncOptions.getMode || mode || 'set';
                             if (value !== undefined) {
                                 value = transformLoadData(value, syncOptions, true);
                                 if (isPromise(value)) {
                                     value = await (value as Promise<T>);
                                 }
 
-                                if (mode === 'lastSync' || mode === 'dateModified') {
-                                    if (lastSync && !isEmpty(value as unknown as object)) {
-                                        onChangeRemote(() => {
-                                            (obs$ as any).assign(value);
-                                        });
-                                    }
-                                } else {
-                                    const pending = localState.pendingChanges;
-                                    if (pending) {
-                                        Object.keys(pending).forEach((key) => {
-                                            const p = key.split('/').filter((p) => p !== '');
-                                            const { v, t } = pending[key];
+                                const pending = localState.pendingChanges;
+                                if (pending) {
+                                    Object.keys(pending).forEach((key) => {
+                                        const p = key.split('/').filter((p) => p !== '');
+                                        const { v, t } = pending[key];
 
-                                            if (t.length === 0 || !value) {
-                                                value = v;
-                                            } else if ((value as any)[p[0]] !== undefined) {
-                                                (value as any) = setAtPath(
-                                                    value as any,
-                                                    p,
-                                                    t,
-                                                    v,
-                                                    obs$.peek(),
-                                                    (path: string[], value: any) => {
-                                                        delete pending[key];
-                                                        pending[path.join('/')] = {
-                                                            p: null,
-                                                            v: value,
-                                                            t: t.slice(0, path.length),
-                                                        };
-                                                    },
-                                                );
-                                            }
-                                        });
-                                    }
-
-                                    onChangeRemote(() => {
-                                        mode === 'assign' ? (obs$ as any).assign(value) : (obs$ as any).set(value);
+                                        if (t.length === 0 || !value) {
+                                            value = v;
+                                        } else if ((value as any)[p[0]] !== undefined) {
+                                            (value as any) = setAtPath(
+                                                value as any,
+                                                p,
+                                                t,
+                                                v,
+                                                obs$.peek(),
+                                                (path: string[], value: any) => {
+                                                    delete pending[key];
+                                                    pending[path.join('/')] = {
+                                                        p: null,
+                                                        v: value,
+                                                        t: t.slice(0, path.length),
+                                                    };
+                                                },
+                                            );
+                                        }
                                     });
                                 }
+
+                                onChangeRemote(() => {
+                                    if (mode === 'assign' && isObject(value)) {
+                                        (obs$ as unknown as Observable<object>).assign(value);
+                                    } else if (mode === 'append' && isArray(value)) {
+                                        (obs$ as unknown as Observable<any[]>).push(...value);
+                                    } else if (mode === 'prepend' && isArray(value)) {
+                                        (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
+                                    } else if (mode === 'merge') {
+                                        mergeIntoObservable(obs$, value);
+                                    } else {
+                                        obs$.set(value);
+                                    }
+                                });
                             }
                             if (lastSync && syncOptions.cache) {
                                 updateMetadata(obs$, localState, syncState, syncOptions, {

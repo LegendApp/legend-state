@@ -1,10 +1,10 @@
-import { ObservableSyncRemoteGetParams, SyncedParams, isPromise, type ObservableSyncClass } from '@legendapp/state';
+import { ObservableSyncGetParams, SyncedParams, isPromise, type ObservableSyncClass } from '@legendapp/state';
 
 export function syncObservableAdapter<T = {}>({ get, set }: SyncedParams<T>): ObservableSyncClass {
     const ret: ObservableSyncClass = {};
 
     if (get) {
-        ret.get = (async (params: ObservableSyncRemoteGetParams<T>) => {
+        ret.get = (async (params: ObservableSyncGetParams<T>) => {
             try {
                 let value = get(params as any);
                 if (isPromise(value)) {
@@ -13,9 +13,8 @@ export function syncObservableAdapter<T = {}>({ get, set }: SyncedParams<T>): Ob
 
                 params.onChange({
                     value,
-                    dateModified: params.dateModified,
                     lastSync: params.lastSync,
-                    mode: params.mode,
+                    mode: params.mode!,
                 });
                 params.onGet();
                 // eslint-disable-next-line no-empty
