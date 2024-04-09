@@ -286,7 +286,7 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
     const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(cache);
     const configRemote = syncOptions;
-    const saveLocal = cache && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
+    const saveLocal = cache?.name && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
     const saveRemote = !!(
         !inRemoteChange &&
         pluginSync?.set &&
