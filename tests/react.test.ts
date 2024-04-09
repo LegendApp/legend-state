@@ -965,7 +965,6 @@ describe('observer', () => {
 
         expect(num).toEqual(2);
     });
-
     test('observer with useSelector inside', () => {
         let num = 0;
         const obs$ = observable(0);
@@ -988,6 +987,40 @@ describe('observer', () => {
         });
 
         expect(num).toEqual(2);
+    });
+    test('useSelector renders once when it returns the same thing inside an observer', () => {
+        const obs = observable('hi');
+        let num = 0;
+        let num2 = 0;
+        let lastValue = false;
+
+        const Test = observer(function Test() {
+            num2++;
+            lastValue = useSelector(() => {
+                num++;
+                return obs.get() === 'hi';
+            });
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(lastValue).toEqual(true);
+        expect(num).toEqual(1);
+        expect(num2).toEqual(1);
+        act(() => {
+            obs.set('hello');
+        });
+        expect(num).toEqual(3);
+        expect(num2).toEqual(2);
+        act(() => {
+            obs.set('hello2');
+        });
+        expect(num).toEqual(4);
+        expect(num2).toEqual(2);
     });
 });
 describe('useObservable', () => {
