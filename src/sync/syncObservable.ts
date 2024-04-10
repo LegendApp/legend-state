@@ -189,8 +189,8 @@ interface QueuedChange<T = any> {
 }
 
 let _queuedChanges: QueuedChange[] = [];
-let _queuedRemoteChanges: QueuedChange[] = [];
-let timeoutSaveRemote: any = undefined;
+const _queuedRemoteChanges: Map<SyncedParams, QueuedChange[]> = new Map();
+const _queuedRemoteChangesTimeouts: Map<SyncedParams, number> = new Map();
 
 function mergeChanges(changes: Change[]) {
     const changesByPath = new Map<string, Change>();
@@ -235,7 +235,17 @@ async function processQueuedChanges() {
     const queuedChanges = mergeQueuedChanges(_queuedChanges);
     _queuedChanges = [];
 
-    _queuedRemoteChanges.push(...queuedChanges.filter((c) => !c.inRemoteChange));
+    const pendingSyncOptions = new Set<SyncedParams>();
+    for (let i = 0; i < queuedChanges.length; i++) {
+        const change = queuedChanges[i];
+        if (!change.inRemoteChange) {
+            if (!_queuedRemoteChanges.has(change.syncOptions)) {
+                _queuedRemoteChanges.set(change.syncOptions, []);
+            }
+            pendingSyncOptions.add(change.syncOptions);
+            _queuedRemoteChanges.get(change.syncOptions)!.push(change);
+        }
+    }
 
     // Note: Summary of the order of operations these functions:
     // 1. Prepare all changes for saving. This may involve waiting for promises if the user has asynchronous transform.
@@ -253,30 +263,37 @@ async function processQueuedChanges() {
 
     const preppedChangesLocal = await Promise.all(queuedChanges.map(prepChangeLocal));
 
-    // TODO Clean this up: We only need to prep this now in ordre to save pending changes, don't need any of the other stuff. Should split that up?
+    // TODO Clean this up: We only need to prep this now in order to save pending changes, don't need any of the other stuff. Should split that up?
     await Promise.all(queuedChanges.map(prepChangeRemote));
 
     await Promise.all(preppedChangesLocal.map(doChangeLocal));
 
-    const timeout = observableSyncConfiguration?.debounceSet;
-    if (timeout) {
-        if (timeoutSaveRemote) {
-            clearTimeout(timeoutSaveRemote);
-        }
+    for (const options of pendingSyncOptions) {
+        const timeout = options.debounceSet ?? observableSyncConfiguration?.debounceSet;
+        const timeoutSaveRemote = _queuedRemoteChangesTimeouts.get(options);
+        const run = () => processQueuedRemoteChanges(options);
+        if (timeout) {
+            if (timeoutSaveRemote) {
+                clearTimeout(timeoutSaveRemote);
+            }
 
-        timeoutSaveRemote = setTimeout(processQueuedRemoteChanges, timeout);
-    } else {
-        processQueuedRemoteChanges();
+            _queuedRemoteChangesTimeouts.set(options, setTimeout(run, timeout) as any);
+        } else {
+            run();
+        }
     }
 }
 
-async function processQueuedRemoteChanges() {
-    const queuedRemoteChanges = mergeQueuedChanges(_queuedRemoteChanges);
-    _queuedRemoteChanges = [];
+async function processQueuedRemoteChanges(syncOptions: SyncedParams) {
+    const arr = _queuedRemoteChanges.get(syncOptions);
+    if (arr?.length) {
+        const queuedRemoteChanges = mergeQueuedChanges(arr);
+        _queuedRemoteChanges.set(syncOptions, []);
 
-    const preppedChangesRemote = await Promise.all(queuedRemoteChanges.map(prepChangeRemote));
+        const preppedChangesRemote = await Promise.all(queuedRemoteChanges.map(prepChangeRemote));
 
-    preppedChangesRemote.forEach(doChangeRemote);
+        preppedChangesRemote.forEach(doChangeRemote);
+    }
 }
 
 async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {

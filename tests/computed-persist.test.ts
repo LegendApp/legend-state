@@ -1,5 +1,5 @@
 import { onChangeRemote } from '../src/sync/syncObservable';
-import { syncObservable, synced } from '../sync';
+import { configureObservableSync, syncObservable, synced } from '../sync';
 import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
 import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
@@ -667,5 +667,112 @@ describe('Remote changes', () => {
         await promiseTimeout(0);
         expect(sets).toEqual(2);
         expect(setTo).toEqual('hiz');
+    });
+});
+describe('Debouncing', () => {
+    test('Remote changes do not debounce by default', async () => {
+        let startTime = 0;
+        const didSet$ = observable<string>();
+        const obs = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: ({ value }) => {
+                    didSet$.set(value);
+                },
+            }),
+        );
+
+        startTime = performance.now();
+        obs.set('hello');
+        const res = await when(didSet$);
+        expect(res).toEqual('hello');
+        expect(performance.now() - startTime).toBeLessThan(5);
+    });
+    test('Remote changes debounce', async () => {
+        let startTime = 0;
+        const didSet$ = observable<string>();
+        const obs = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: ({ value }) => {
+                    didSet$.set(value);
+                },
+                debounceSet: 20,
+            }),
+        );
+
+        startTime = performance.now();
+        obs.set('hello');
+        const res = await when(didSet$);
+        expect(res).toEqual('hello');
+        expect(performance.now() - startTime).toBeGreaterThan(18);
+    });
+    test('Remote changes debounce with global config', async () => {
+        let startTime = 0;
+        const didSet$ = observable<string>();
+        configureObservableSync({
+            debounceSet: 20,
+        });
+        const obs = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: ({ value }) => {
+                    didSet$.set(value);
+                },
+            }),
+        );
+
+        startTime = performance.now();
+        obs.set('hello');
+        const res = await when(didSet$);
+        expect(res).toEqual('hello');
+        expect(performance.now() - startTime).toBeGreaterThan(18);
+    });
+    test('Remote changes debounce with global config and custom', async () => {
+        let startTime = 0;
+        const didSet1$ = observable<string>();
+        const didSet2$ = observable<string>();
+        configureObservableSync({
+            debounceSet: 10,
+        });
+        const obs = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: ({ value }) => {
+                    didSet1$.set(value);
+                },
+            }),
+        );
+        const obs2 = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: ({ value }) => {
+                    didSet2$.set(value);
+                },
+                debounceSet: 20,
+            }),
+        );
+
+        startTime = performance.now();
+        obs.set('hello');
+        obs2.set('hello');
+        await when(didSet1$);
+        const diff1 = performance.now() - startTime;
+        expect(diff1).toBeGreaterThan(8);
+        expect(diff1).toBeLessThan(18);
+        await when(didSet2$);
+        const diff2 = performance.now() - startTime;
+        expect(diff2).toBeGreaterThan(18);
+        expect(diff2).toBeLessThan(28);
     });
 });
