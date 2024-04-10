@@ -1,5 +1,5 @@
 import { configureObservablePersistence } from '../src/persist/configureObservablePersistence';
-import { observable } from '../src/observable';
+import { observable, syncState } from '../src/observable';
 import { persistObservable } from '../src/persist/persistObservable';
 import { when } from '../src/when';
 
@@ -14,8 +14,8 @@ beforeEach(() => {
 
 describe('Persist remote with functions', () => {
     test('Persist remote fns basic', async () => {
-        const obs = observable({ test: { x: 'hi' } });
-        const state = persistObservable(obs, {
+        const obs$ = observable({ test: { x: 'hi' } });
+        persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -27,17 +27,18 @@ describe('Persist remote with functions', () => {
                 },
             },
         });
+        const state = syncState(obs$);
 
-        expect(obs.peek()).toEqual({ test: { x: 'hi' } });
+        expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 
         await when(state.isLoaded);
 
-        expect(obs.peek()).toEqual({ test: { x: 'hello' } });
+        expect(obs$.peek()).toEqual({ test: { x: 'hello' } });
     });
     test('Persist remote fns with set', async () => {
         let setTo: { lastSync: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
-        const state = persistObservable(obs$, {
+        persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -60,6 +61,8 @@ describe('Persist remote with functions', () => {
             },
         });
 
+        const state = syncState(obs$);
+
         expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 
         await when(state.isLoaded);
@@ -76,7 +79,7 @@ describe('Persist remote with functions', () => {
         let setTo: { lastSync: number; value: any } | undefined = undefined;
         const obs$ = observable({ test: { x: 'hi' } });
         const didSave$ = observable(false);
-        const state = persistObservable(obs$, {
+        persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -104,6 +107,8 @@ describe('Persist remote with functions', () => {
             },
         });
 
+        const state = syncState(obs$);
+
         expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 
         await when(state.isLoaded);
@@ -123,7 +128,7 @@ describe('Persist remote with functions', () => {
         configureObservablePersistence({ remoteOptions: { debounceSet: 10 } });
 
         const obs$ = observable({ test: { x: 'hi' } });
-        const state = persistObservable(obs$, {
+        persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -147,6 +152,8 @@ describe('Persist remote with functions', () => {
             },
         });
 
+        const state = syncState(obs$);
+
         expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 
         await when(state.isLoaded);
@@ -167,7 +174,7 @@ describe('Persist remote with functions', () => {
         configureObservablePersistence({ remoteOptions: { debounceSet: 10 } });
 
         const obs$ = observable({ test: { x: 'hi' } });
-        const state = persistObservable(obs$, {
+        persistObservable(obs$, {
             pluginRemote: {
                 async get() {
                     // Emulate a network request with a timeout
@@ -191,6 +198,8 @@ describe('Persist remote with functions', () => {
                 },
             },
         });
+
+        const state = syncState(obs$);
 
         expect(obs$.peek()).toEqual({ test: { x: 'hi' } });
 

@@ -27,6 +27,7 @@ import {
     isEmpty,
     isFunction,
     isObject,
+    isObservable,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -795,10 +796,20 @@ async function loadLocal<T>(
     syncState.isLoadedLocal.set(true);
 }
 
+export function persistObservable<T>(observable: ObservableParam<T>, persistOptions: PersistOptions<T>): Observable<T>;
 export function persistObservable<T>(
-    obs$: ObservableParam<T>,
+    initial: T | (() => T) | (() => Promise<T>),
     persistOptions: PersistOptions<T>,
-): Observable<ObservablePersistState> {
+): Observable<T>;
+export function persistObservable<T>(
+    initialOrObservable: ObservableParam<T> | T | (() => T) | (() => Promise<T>),
+    persistOptions: PersistOptions<T>,
+): Observable<T> {
+    const obs$ = (
+        isObservable(initialOrObservable)
+            ? initialOrObservable
+            : observable(isFunction(initialOrObservable) ? initialOrObservable() : initialOrObservable)
+    ) as Observable<any>;
     const node = getNode(obs$);
 
     // Merge remote persist options with global options
@@ -1007,5 +1018,5 @@ export function persistObservable<T>(
         );
     });
 
-    return syncState;
+    return obs$ as any;
 }
