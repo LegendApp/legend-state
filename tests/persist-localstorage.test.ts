@@ -80,6 +80,31 @@ describe('Persist local localStorage', () => {
 
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
+    test('Saves primitive to local', async () => {
+        const cacheName = getCacheName();
+        const obs = observable('');
+
+        syncObservable(obs, {
+            cache: { name: cacheName },
+        });
+
+        obs.set('hello');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(cacheName);
+
+        // Should have saved to local storage
+        expect(localValue).toBe('"hello"');
+
+        // obs2 should load with the same value it was just saved as
+        const obs2 = observable();
+        syncObservable(obs2, {
+            cache: { name: cacheName },
+        });
+
+        expect(obs2.get()).toEqual('hello');
+    });
     test('Saves empty root object to local overwriting complex', async () => {
         const cacheName = getCacheName();
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });

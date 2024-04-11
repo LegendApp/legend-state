@@ -766,7 +766,7 @@ async function loadLocal<T>(
 
         const node = getNode(obs);
 
-        (node.state as Observable<ObservableSyncState>).peek().clearLocal = () =>
+        node.state!.peek().clearLocal = () =>
             Promise.all([
                 cachePlugin.deleteTable(table, config),
                 cachePlugin.deleteMetadata(table, config),
@@ -847,13 +847,18 @@ export function syncObservable<T>(
                                         const { v, t } = pending[key];
 
                                         if (t.length === 0 || !value) {
-                                            value = v;
+                                            if (isObject(value) && isObject(v)) {
+                                                Object.assign(value, v);
+                                            } else {
+                                                value = v;
+                                            }
                                         } else if ((value as any)[p[0]] !== undefined) {
                                             (value as any) = setAtPath(
                                                 value as any,
                                                 p,
                                                 t,
                                                 v,
+                                                'merge',
                                                 obs$.peek(),
                                                 (path: string[], value: any) => {
                                                     delete pending[key];

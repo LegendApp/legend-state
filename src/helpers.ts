@@ -41,37 +41,49 @@ export function setAtPath<T extends object>(
     path: string[],
     pathTypes: TypeAtPath[],
     value: any,
+    mode?: 'set' | 'merge',
     fullObj?: T,
     restore?: (path: string[], value: any) => void,
 ) {
     let o: Record<string, any> = obj;
     let oFull: Record<string, any> | undefined = fullObj;
+    let p: string | undefined = undefined;
     if (path.length > 0) {
         for (let i = 0; i < path.length; i++) {
-            const p = path[i];
-            if (i === path.length - 1) {
-                // Don't set if the value is the same. This prevents creating a new key
-                // when setting undefined on an object without this key
-                if (o[p] !== value) {
-                    o[p] = value;
-                }
-            } else if (o[p] === symbolDelete) {
+            p = path[i];
+            if (o[p] === symbolDelete) {
                 // If this was previously deleted, restore it
                 if (oFull) {
                     o[p] = oFull[p];
                     restore?.(path.slice(0, i + 1), o[p]);
                 }
-                break;
+                return obj;
             } else if (o[p] === undefined || o[p] === null) {
                 o[p] = initializePathType(pathTypes[i]);
             }
-            o = o[p];
-            if (oFull) {
-                oFull = oFull[p];
+            if (i < path.length - 1) {
+                o = o[p];
+                if (oFull) {
+                    oFull = oFull[p];
+                }
             }
         }
+    }
+
+    // Don't set if the value is the same. This prevents creating a new key
+    // when setting undefined on an object without this key
+    if (p === undefined) {
+        if (mode === 'merge') {
+            obj = _mergeIntoObservable(obj, value);
+        } else {
+            obj = value;
+        }
     } else {
-        obj = value;
+        if (mode === 'merge') {
+            o[p] = _mergeIntoObservable(o[p], value);
+        } else {
+            o[p] = value;
+        }
     }
 
     return obj;
@@ -81,7 +93,7 @@ export function setInObservableAtPath(
     path: string[],
     pathTypes: TypeAtPath[],
     value: any,
-    mode: 'assign' | 'set',
+    mode: 'assign' | 'set' | 'merge',
 ) {
     let o: Record<string, any> = obs;
     let v = value;
@@ -100,6 +112,8 @@ export function setInObservableAtPath(
     // Assign if possible, or set otherwise
     else if (mode === 'assign' && (o as Observable).assign && isObject(o.peek())) {
         (o as Observable<{}>).assign(v);
+    } else if (mode === 'merge') {
+        mergeIntoObservable(o, v);
     } else {
         o.set(v);
     }
