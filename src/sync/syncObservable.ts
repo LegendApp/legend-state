@@ -156,7 +156,6 @@ async function updateMetadataImmediate<T>(
         if (lastSync) {
             syncState.assign({
                 lastSync: lastSync,
-                dateModified: lastSync,
             });
         }
     }
@@ -732,9 +731,7 @@ async function loadLocal<T>(
         if (metadata) {
             metadatas.set(obs, metadata);
             localState.pendingChanges = metadata.pending;
-            // TODOV3 Remove dateModified
             syncState.assign({
-                dateModified: metadata.lastSync,
                 lastSync: metadata.lastSync,
             });
         }

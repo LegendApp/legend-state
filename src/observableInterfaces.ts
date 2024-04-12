@@ -67,7 +67,6 @@ export interface TrackingState {
 interface BaseNodeValue {
     children?: Map<string, ChildNodeValue>;
     proxy?: object;
-    // TODOV3 Remove this
     root: ObservableRoot;
     listeners?: Set<NodeValueListener>;
     listenersImmediate?: Set<NodeValueListener>;

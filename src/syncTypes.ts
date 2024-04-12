@@ -110,7 +110,6 @@ export interface ObservableSyncStateBase {
     isLoadedLocal: boolean;
     isEnabledLocal: boolean;
     isEnabledRemote: boolean;
-    dateModified?: number;
     lastSync?: number;
     syncCount?: number;
     clearLocal: () => Promise<void>;
