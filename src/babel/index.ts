@@ -11,35 +11,35 @@ import {
 } from '@babel/types';
 
 export default function () {
-    let imported: Record<string, string>;
+    let hasLegendImport = false;
     return {
         visitor: {
-            Program() {
-                imported = {};
-            },
             ImportDeclaration: {
-                enter(path: { node: any; replaceWith: (param: any) => any }) {
+                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void }) {
                     if (path.node.source.value === '@legendapp/state/react') {
                         const specifiers = path.node.specifiers;
                         for (let i = 0; i < specifiers.length; i++) {
                             const s = specifiers[i].imported.name;
-                            if (!imported[s] && (s === 'Computed' || s === 'Memo')) {
-                                imported[s] = specifiers[i].local.name;
+                            if (!hasLegendImport && (s === 'Computed' || s === 'Memo' || s === 'Show')) {
+                                hasLegendImport = true;
+                                path.skip();
+                                break;
                             }
                         }
                     }
                 },
             },
             JSXElement: {
-                enter(path: { node: any; replaceWith: (param: any) => any }) {
-                    const openingElement = path.node.openingElement;
+                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void }) {
+                    if (!hasLegendImport) {
+                        return;
+                    }
 
-                    const children_ = path.node.children;
+                    const openingElement = path.node.openingElement;
                     const name = openingElement.name.name;
 
                     if (name === 'Computed' || name === 'Memo' || name === 'Show') {
-                        const children = removEmptyText(children_);
-
+                        const children = removeEmptyText(path.node.children);
                         const attrs = openingElement.attributes;
 
                         if (children.length > 0 && children[0].type === 'JSXElement') {
@@ -65,6 +65,6 @@ export default function () {
     };
 }
 
-function removEmptyText(nodes: any[]) {
+function removeEmptyText(nodes: any[]) {
     return nodes.filter((node) => !(node.type === 'JSXText' && node.value.trim().length === 0));
 }
