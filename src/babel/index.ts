@@ -30,8 +30,9 @@ export default function () {
                 },
             },
             JSXElement: {
-                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void }) {
+                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void, traverse: (path: any) => any }) {
                     if (!hasLegendImport) {
+                        path.skip();
                         return;
                     }
 
