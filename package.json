@@ -115,6 +115,7 @@
         "@typescript-eslint/eslint-plugin": "^6.13.1",
         "@typescript-eslint/parser": "^6.13.1",
         "babel-jest": "^29.4.1",
+        "babel-plugin-tester": "^11.0.4",
         "commitlint": "^17.4.4",
         "eslint": "^8.45.0",
         "eslint-plugin-react": "^7.32.2",
