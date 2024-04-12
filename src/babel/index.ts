@@ -1,4 +1,5 @@
 import {
+    arrayExpression,
     arrowFunctionExpression,
     jsxClosingElement,
     jsxClosingFragment,
@@ -41,8 +42,6 @@ export default function () {
 
                     if (name === 'Computed' || name === 'Memo' || name === 'Show') {
                         const children = removeEmptyText(path.node.children);
-                        const attrs = openingElement.attributes;
-
                         if (children.length === 0) return;
 
                         if (children[0].type === 'JSXElement' ||
@@ -51,6 +50,7 @@ export default function () {
                             children[0].expression.type !== 'FunctionExpression' &&
                             children[0].expression.type !== 'MemberExpression' &&
                             children[0].expression.type !== 'Identifier') {
+                            const attrs = openingElement.attributes;
                             path.replaceWith(
                                 jsxElement(
                                     jsxOpeningElement(jsxIdentifier(name), attrs),
@@ -59,7 +59,7 @@ export default function () {
                                         jsxExpressionContainer(
                                             arrowFunctionExpression(
                                                 [],
-                                                jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children),
+                                                maybeWrapFragment(children),
                                             ),
                                         ),
                                     ],
@@ -71,6 +71,11 @@ export default function () {
             },
         },
     };
+}
+
+function maybeWrapFragment(children: any[]) {
+    if (children.length === 1 && children[0].type == "JSXExpressionContainer") return children[0].expression; 
+    return jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children);
 }
 
 function removeEmptyText(nodes: any[]) {
