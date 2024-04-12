@@ -43,7 +43,14 @@ export default function () {
                         const children = removeEmptyText(path.node.children);
                         const attrs = openingElement.attributes;
 
-                        if (children.length > 0 && children[0].type === 'JSXElement') {
+                        if (children.length === 0) return;
+
+                        if (children[0].type === 'JSXElement' ||
+                            children[0].type === 'JSXExpressionContainer' && 
+                            children[0].expression.type !== 'ArrowFunctionExpression' && 
+                            children[0].expression.type !== 'FunctionExpression' &&
+                            children[0].expression.type !== 'MemberExpression' &&
+                            children[0].expression.type !== 'Identifier') {
                             path.replaceWith(
                                 jsxElement(
                                     jsxOpeningElement(jsxIdentifier(name), attrs),

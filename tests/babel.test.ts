@@ -109,19 +109,36 @@ pluginTester({
                 return <Memo>{functionCall}</Memo>;
             }
         `,
-        'does not change for ConditionalExpression': `
-            import { Memo } from '@legendapp/state/react';
-            function C() {
-                return <Memo>{true ? state$.count : state$.count}</Memo>;
-            }
-        `,
+        // doesn't need to wrap
+        'handles ConditionalExpression': {
+            code: `
+                import { Memo } from '@legendapp/state/react';
+                function C() {
+                    return <Memo>{true ? state$.count : state$.count}</Memo>;
+                }
+            `,
+            output: `
+                import { Memo } from '@legendapp/state/react';
+                function C() {
+                    return <Memo>{() => <>{true ? state$.count : state$.count}</>}</Memo>;
+                }
+            `,
+        },  
         // it could do this, since it doesn't return a function
-        'does not change for ConditionalExpression without Observable': `
-            import { Memo } from '@legendapp/state/react';
-            function C() {
-                return <Memo>{true ? 'hi' : 'bye'}</Memo>;
-            }
+        'handles ConditionalExpression without Observable': {
+            code: `
+                import { Memo } from '@legendapp/state/react';
+                function C() {
+                    return <Memo>{true ? 'hi' : 'bye'}</Memo>;
+                }
         `,
+            output: `
+                import { Memo } from '@legendapp/state/react';
+                function C() {
+                    return <Memo>{() => <>{true ? 'hi' : 'bye'}</>}</Memo>;
+                }
+        `,
+        },
         'handles Computed': {
             code: `
                 import { Computed } from '@legendapp/state/react';
