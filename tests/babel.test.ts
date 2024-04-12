@@ -109,8 +109,7 @@ pluginTester({
                 return <Memo>{functionCall}</Memo>;
             }
         `,
-        // doesn't need to wrap
-        'handles ConditionalExpression': {
+        'handles ConditionalExpression with single child': {
             code: `
                 import { Memo } from '@legendapp/state/react';
                 function C() {
@@ -120,11 +119,34 @@ pluginTester({
             output: `
                 import { Memo } from '@legendapp/state/react';
                 function C() {
-                    return <Memo>{() => <>{true ? state$.count : state$.count}</>}</Memo>;
+                    return <Memo>{() => (true ? state$.count : state$.count)}</Memo>;
                 }
             `,
         },  
-        // it could do this, since it doesn't return a function
+        'handles ConditionalExpression with multiple children by wrapping in a fragment': {
+            code: `
+                import { Memo } from '@legendapp/state/react';
+                function C() {
+                    return <Memo><div>hi</div>{true ? state$.count : state$.count}<div>hi</div></Memo>;
+                }
+            `,
+            output: `
+                import { Memo } from '@legendapp/state/react';
+                function C() {
+                    return (
+                        <Memo>
+                            {() => (
+                                <>
+                                    <div>hi</div>
+                                    {true ? state$.count : state$.count}
+                                    <div>hi</div>
+                                </>
+                            )}
+                        </Memo>
+                    );
+                }
+            `,
+        },  
         'handles ConditionalExpression without Observable': {
             code: `
                 import { Memo } from '@legendapp/state/react';
@@ -135,7 +157,7 @@ pluginTester({
             output: `
                 import { Memo } from '@legendapp/state/react';
                 function C() {
-                    return <Memo>{() => <>{true ? 'hi' : 'bye'}</>}</Memo>;
+                    return <Memo>{() => (true ? 'hi' : 'bye')}</Memo>;
                 }
         `,
         },
