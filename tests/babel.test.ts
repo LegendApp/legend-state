@@ -65,6 +65,63 @@ pluginTester({
             );
         `,
         },
+        'does not change if expression has a ArrowFunctionExpression': `
+            import { Computed } from '@legendapp/state/react';
+            function Component() {
+                return (
+                    <Computed>
+                        {() =>
+                            state$.messages.map((message) => (
+                                <div key={message.id}>
+                                    {message.text} {localVar}
+                                </div>
+                            ))
+                        }
+                    </Computed>
+                );
+            }
+        `,
+        'does not change if expression has a FunctionExpression': `
+            import { Memo } from '@legendapp/state/react';
+            function C() {
+                return (
+                    <Memo>
+                        {function a() {
+                            state$.messages.map((message) => (
+                                <div key={message.id}>
+                                    {message.text} {localVar}
+                                </div>
+                            ));
+                        }}
+                    </Memo>
+                );
+            }
+        `,
+        'does not change if expression is Observable (MemberExpression)': `
+            import { Memo } from '@legendapp/state/react';
+            function C() {
+                return <Memo>{state$.count}</Memo>;
+            }
+        `,
+        'does not change if expression is Observable (Function Identifier)': `
+            import { Memo } from '@legendapp/state/react';
+            function C() {
+                return <Memo>{functionCall}</Memo>;
+            }
+        `,
+        'does not change for ConditionalExpression': `
+            import { Memo } from '@legendapp/state/react';
+            function C() {
+                return <Memo>{true ? state$.count : state$.count}</Memo>;
+            }
+        `,
+        // it could do this, since it doesn't return a function
+        'does not change for ConditionalExpression without Observable': `
+            import { Memo } from '@legendapp/state/react';
+            function C() {
+                return <Memo>{true ? 'hi' : 'bye'}</Memo>;
+            }
+        `,
         'handles Computed': {
             code: `
                 import { Computed } from '@legendapp/state/react';
