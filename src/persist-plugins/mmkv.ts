@@ -18,12 +18,12 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         ],
     ]);
     // Gets
-    public getTable<T = any>(table: string, config: PersistOptionsLocal): T {
+    public getTable<T = any>(table: string, config: PersistOptionsLocal, init: object): T {
         const storage = this.getStorage(config);
         if (this.data[table] === undefined) {
             try {
                 const value = storage.getString(table);
-                this.data[table] = value ? safeParse(value) : undefined;
+                this.data[table] = value ? safeParse(value) : init;
             } catch {
                 console.error('[legend-state] MMKV failed to parse', table);
             }
@@ -31,7 +31,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         return this.data[table];
     }
     public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
-        return this.getTable(table + MetadataSuffix, config);
+        return this.getTable(table + MetadataSuffix, config, {});
     }
     // Sets
     public set(table: string, changes: Change[], config: PersistOptionsLocal) {

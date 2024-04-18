@@ -3,6 +3,7 @@ import type {
     ObservablePersistLocal,
     ObservablePersistenceConfigLocalGlobalOptions,
     PersistMetadata,
+    PersistOptionsLocal,
 } from '@legendapp/state';
 import { isArray, setAtPath, internal } from '@legendapp/state';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
@@ -58,11 +59,11 @@ export class ObservablePersistAsyncStorage implements ObservablePersistLocal {
         }
     }
     // Gets
-    public getTable(table: string) {
-        return this.data[table] ?? {};
+    public getTable(table: string, config: PersistOptionsLocal, init: object) {
+        return this.data[table] ?? init ?? {};
     }
-    public getMetadata(table: string): PersistMetadata {
-        return this.getTable(table + MetadataSuffix);
+    public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
+        return this.getTable(table + MetadataSuffix, config, {});
     }
     // Sets
     public set(table: string, changes: Change[]): Promise<void> {

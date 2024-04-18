@@ -25,6 +25,7 @@ import {
     constructObjectWithPath,
     deconstructObjectWithPath,
     getNode,
+    getNodeValue,
     internal,
     isEmpty,
     isFunction,
@@ -528,6 +529,7 @@ async function loadLocal<T>(
 
     if (local) {
         const { table, config } = parseLocalConfig(local);
+        const node = getNode(obs);
 
         if (!localPersistence) {
             throw new Error('Local persistence is not configured');
@@ -567,8 +569,11 @@ async function loadLocal<T>(
             }
         }
 
+        // Get current value for init
+        const prevValue = getNodeValue(node) as object;
+
         // Get the value from state
-        let value = persistenceLocal.getTable(table, config);
+        let value = persistenceLocal.getTable(table, config, prevValue);
         const metadata = persistenceLocal.getMetadata(table, config);
 
         if (metadata) {
@@ -600,8 +605,6 @@ async function loadLocal<T>(
                 },
             );
         }
-
-        const node = getNode(obs);
 
         (node.state as Observable<ObservablePersistState>).peek().clearLocal = () =>
             Promise.all([

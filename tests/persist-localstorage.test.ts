@@ -252,4 +252,52 @@ describe('Persist computed', () => {
         sub2$.num.set(3);
         expect(obs2$.get()).toEqual({ sub: 3 });
     });
+    test('Persist Map', async () => {
+        const cacheName = 'persistmap';
+        const obs$ = observable(new Map<string, string>());
+
+        persistObservable(obs$, {
+            local: { name: cacheName },
+        });
+        obs$.set('key', 'val');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(cacheName)!;
+
+        // Should have saved to local storage
+        expect(localValue).toEqual('{"__LSType":"Map","value":[["key","val"]]}');
+
+        const obs2$ = observable(new Map<string, string>());
+
+        persistObservable(obs2$, {
+            local: { name: cacheName },
+        });
+
+        expect(obs2$.get()).toEqual(new Map([['key', 'val']]));
+    });
+    test('Persist Set', async () => {
+        const cacheName = 'persistset';
+        const obs$ = observable(new Set<string>());
+
+        persistObservable(obs$, {
+            local: { name: cacheName },
+        });
+        obs$.add('key');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(cacheName)!;
+
+        // Should have saved to local storage
+        expect(localValue).toEqual('{"__LSType":"Set","value":["key"]}');
+
+        const obs2$ = observable(new Set<string>());
+
+        persistObservable(obs2$, {
+            local: { name: cacheName },
+        });
+
+        expect(obs2$.get()).toEqual(new Set(['key']));
+    });
 });

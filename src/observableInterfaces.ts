@@ -222,7 +222,7 @@ export interface PersistMetadata {
 export interface ObservablePersistLocal {
     initialize?(config: ObservablePersistenceConfigLocalGlobalOptions): void | Promise<void>;
     loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
-    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
+    getTable<T = any>(table: string, config: PersistOptionsLocal, init: object): T;
     set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
     deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
     getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;

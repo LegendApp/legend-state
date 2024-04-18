@@ -1,4 +1,4 @@
-import type { Change, ObservablePersistLocal, PersistMetadata } from '@legendapp/state';
+import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '@legendapp/state';
 import { setAtPath, internal } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
@@ -11,20 +11,20 @@ class ObservablePersistLocalStorageBase implements ObservablePersistLocal {
     constructor(storage: Storage | undefined) {
         this.storage = storage;
     }
-    public getTable(table: string) {
+    public getTable(table: string, config: PersistOptionsLocal, init: any) {
         if (!this.storage) return undefined;
         if (this.data[table] === undefined) {
             try {
                 const value = this.storage.getItem(table);
-                this.data[table] = value ? safeParse(value) : undefined;
+                this.data[table] = value ? safeParse(value) : init;
             } catch {
                 console.error('[legend-state] ObservablePersistLocalStorage failed to parse', table);
             }
         }
         return this.data[table];
     }
-    public getMetadata(table: string): PersistMetadata {
-        return this.getTable(table + MetadataSuffix);
+    public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
+        return this.getTable(table + MetadataSuffix, config, {});
     }
     public set(table: string, changes: Change[]): void {
         if (!this.data[table]) {
