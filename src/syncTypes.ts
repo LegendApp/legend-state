@@ -69,11 +69,11 @@ export interface SyncedOptions<T = any> extends Omit<LinkedParams<T>, 'get' | 's
     allowSetIfGetError?: boolean;
 }
 
-export interface SyncedParamsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'cache'> {
-    cache?: ObservableCachePluginOptions & { plugin?: ClassConstructor<ObservablePersistPlugin, T[]> };
+export interface SyncedParamsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'persist'> {
+    persist?: ObservablePersistPluginOptions & { plugin?: ClassConstructor<ObservablePersistPlugin, T[]> };
 }
 
-export interface ObservableCachePluginOptions {
+export interface ObservablePersistPluginOptions {
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     indexedDB?: {
@@ -87,16 +87,16 @@ export interface ObservableCachePluginOptions {
     };
 }
 export interface ObservablePersistPlugin {
-    initialize?(config: ObservableCachePluginOptions): void | Promise<void>;
+    initialize?(config: ObservablePersistPluginOptions): void | Promise<void>;
     loadTable?(table: string, config: PersistOptions): Promise<any> | void;
     getTable<T = any>(table: string, init: object, config: PersistOptions): T;
     set(table: string, changes: Change[], config: PersistOptions): Promise<any> | void;
     deleteTable(table: string, config: PersistOptions): Promise<any> | void;
-    getMetadata(table: string, config: PersistOptions): CacheMetadata;
-    setMetadata(table: string, metadata: CacheMetadata, config: PersistOptions): Promise<any> | void;
+    getMetadata(table: string, config: PersistOptions): PersistMetadata;
+    setMetadata(table: string, metadata: PersistMetadata, config: PersistOptions): Promise<any> | void;
     deleteMetadata(table: string, config: PersistOptions): Promise<any> | void;
 }
-export interface CacheMetadata {
+export interface PersistMetadata {
     id?: '__legend_metadata';
     // modified ?: number;
     lastSync?: number;

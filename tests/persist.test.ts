@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { ObservableCacheLocalStorageBase } from '../src/persist-plugins/local-storage';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
@@ -8,7 +8,7 @@ import { synced } from '../sync';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
 const localStorage = mockLocalStorage();
-class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
+class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
     constructor() {
         super(localStorage);
     }
@@ -20,7 +20,7 @@ describe('Creating', () => {
         let lastSet;
         const state = syncObservable(nodes, {
             persist: {
-                plugin: ObservableCacheLocalStorage,
+                plugin: ObservablePersistLocalStorage,
                 name: 'nodes',
             },
             get: async () => {
@@ -104,9 +104,9 @@ describe('Adjusting data', () => {
         expect(value.get()).toEqual({ test: 'hello1' });
         expect(await when(setValue$)).toEqual('hello2');
     });
-    test('transform in cache', async () => {
-        const cacheName = 'load1';
-        localStorage.setItem(cacheName, JSON.stringify({ test: 'hi' }));
+    test('transform in persist', async () => {
+        const persistName = 'load1';
+        localStorage.setItem(persistName, JSON.stringify({ test: 'hi' }));
         const value = observable(
             synced({
                 get: async () => {
@@ -114,8 +114,8 @@ describe('Adjusting data', () => {
                     return { test: 'hiz1' };
                 },
                 persist: {
-                    name: cacheName,
-                    plugin: ObservableCacheLocalStorage,
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
                     transform: {
                         load: (value) => ({
                             test: value.test + '1',
@@ -135,7 +135,7 @@ describe('Adjusting data', () => {
         value.test.set('hello1');
         expect(value.get().test).toEqual('hello1');
         await promiseTimeout(0);
-        expect(localStorage.getItem(cacheName)).toEqual('{"test":"hello2"}');
+        expect(localStorage.getItem(persistName)).toEqual('{"test":"hello2"}');
     });
     test('transform save in synced', async () => {
         const setValue$ = observable<string | undefined>(undefined);

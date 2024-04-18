@@ -1,5 +1,5 @@
 import type {
-    CacheMetadata,
+    PersistMetadata,
     PersistOptions,
     Change,
     ClassConstructor,
@@ -46,11 +46,11 @@ export const mapSyncPlugins: WeakMap<
     }
 > = new WeakMap();
 
-const metadatas = new WeakMap<ObservableParam<any>, CacheMetadata>();
+const metadatas = new WeakMap<ObservableParam<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
-    pluginCache?: ObservablePersistPlugin;
+    pluginPersist?: ObservablePersistPlugin;
     pluginSync?: ObservableSyncClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     numSavesOutstanding?: number;
@@ -129,18 +129,18 @@ async function updateMetadataImmediate<T>(
     localState: LocalState,
     syncState: Observable<ObservableSyncState>,
     syncOptions: SyncedOptions<T>,
-    newMetadata: CacheMetadata,
+    newMetadata: PersistMetadata,
 ) {
     const saves = Array.from(promisesLocalSaves);
     if (saves.length > 0) {
         await Promise.all(saves);
     }
 
-    const { pluginCache } = localState;
+    const { pluginPersist } = localState;
     const { table, config } = parseLocalConfig(syncOptions?.persist);
 
     // Save metadata
-    const oldMetadata: CacheMetadata | undefined = metadatas.get(obs);
+    const oldMetadata: PersistMetadata | undefined = metadatas.get(obs);
 
     const { lastSync, pending } = newMetadata;
 
@@ -149,8 +149,8 @@ async function updateMetadataImmediate<T>(
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
         metadatas.set(obs, metadata);
-        if (pluginCache) {
-            await pluginCache!.setMetadata(table, metadata, config);
+        if (pluginPersist) {
+            await pluginPersist!.setMetadata(table, metadata, config);
         }
 
         if (lastSync) {
@@ -166,7 +166,7 @@ function updateMetadata<T>(
     localState: LocalState,
     syncState: ObservableObject<ObservableSyncState>,
     syncOptions: SyncedOptions<T>,
-    newMetadata: CacheMetadata,
+    newMetadata: PersistMetadata,
 ) {
     if (localState.timeoutSaveMetadata) {
         clearTimeout(localState.timeoutSaveMetadata);
@@ -298,11 +298,11 @@ async function processQueuedRemoteChanges(syncOptions: SyncedOptions) {
 async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {
     const { syncState, changes, localState, syncOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
-    const cache = syncOptions.persist;
+    const persist = syncOptions.persist;
     const { pluginSync } = localState;
-    const { config: configLocal } = parseLocalConfig(cache);
+    const { config: configLocal } = parseLocalConfig(persist);
     const configRemote = syncOptions;
-    const saveLocal = cache?.name && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
+    const saveLocal = persist?.name && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
     const saveRemote = !!(
         !inRemoteChange &&
         pluginSync?.set &&
@@ -312,7 +312,10 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isLoadedLocal.peek()) {
-            console.error('[legend-state] WARNING: An observable was changed before being loaded from cache', cache);
+            console.error(
+                '[legend-state] WARNING: An observable was changed before being loaded from persist',
+                persist,
+            );
             return undefined;
         }
         const changesLocal: ChangeWithPathStr[] = [];
@@ -386,17 +389,20 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
         isApplyingPending,
     } = queuedChange;
 
-    const cache = syncOptions.persist;
+    const persist = syncOptions.persist;
     const { pluginSync } = localState;
-    const { config: configLocal } = parseLocalConfig(cache!);
+    const { config: configLocal } = parseLocalConfig(persist!);
     const configRemote = syncOptions;
-    const saveLocal = cache && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
+    const saveLocal = persist && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
     const saveRemote =
         !inRemoteChange && pluginSync?.set && configRemote?.enableSync !== false && syncState.isEnabledRemote.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isLoadedLocal.peek()) {
-            console.error('[legend-state] WARNING: An observable was changed before being loaded from cache', cache);
+            console.error(
+                '[legend-state] WARNING: An observable was changed before being loaded from persist',
+                persist,
+            );
             return undefined;
         }
         const changesRemote: ChangeWithPathStr[] = [];
@@ -508,12 +514,12 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
 
     const { queuedChange, changesLocal, saveRemote } = changeInfo;
     const { obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
-    const { pluginCache } = localState;
+    const { pluginPersist } = localState;
 
-    const cache = syncOptions.persist;
-    const { table, config: configLocal } = parseLocalConfig(cache!);
+    const persist = syncOptions.persist;
+    const { table, config: configLocal } = parseLocalConfig(persist!);
     const configRemote = syncOptions;
-    const shouldSaveMetadata = cache && configRemote?.offlineBehavior === 'retry';
+    const shouldSaveMetadata = persist && configRemote?.offlineBehavior === 'retry';
 
     if (saveRemote && shouldSaveMetadata) {
         // First save pending changes before saving local or remote
@@ -525,7 +531,7 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
     if (changesLocal.length > 0) {
         // Save the changes to local cache before saving to remote. They are already marked as pending so
         // if remote sync fails or the app is closed before remote sync, it will attempt to sync them on the next load.
-        let promiseSet = pluginCache!.set(table, changesLocal, configLocal);
+        let promiseSet = pluginPersist!.set(table, changesLocal, configLocal);
 
         if (promiseSet) {
             promiseSet = promiseSet.then(() => {
@@ -544,13 +550,13 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const { queuedChange, changesRemote } = changeInfo;
     const { obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
-    const { pluginCache, pluginSync } = localState;
+    const { pluginPersist, pluginSync } = localState;
 
-    const cache = syncOptions.persist;
-    const { table, config: configLocal } = parseLocalConfig(cache!);
+    const persist = syncOptions.persist;
+    const { table, config: configLocal } = parseLocalConfig(persist!);
     const { offlineBehavior, allowSetIfGetError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
         syncOptions || ({} as SyncedOptions);
-    const shouldSaveMetadata = cache && offlineBehavior === 'retry';
+    const shouldSaveMetadata = persist && offlineBehavior === 'retry';
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
@@ -597,9 +603,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
             const { changes, lastSync } = saved;
             if (pathStrs.length > 0) {
-                if (cache) {
-                    const metadata: CacheMetadata = {};
-                    const pending = pluginCache!.getMetadata(table, configLocal)?.pending;
+                if (persist) {
+                    const metadata: PersistMetadata = {};
+                    const pending = pluginPersist!.getMetadata(table, configLocal)?.pending;
                     let transformedChanges: object | undefined = undefined;
 
                     for (let i = 0; i < pathStrs.length; i++) {
@@ -683,24 +689,24 @@ async function loadLocal<T>(
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
 ) {
-    const { persist: cache } = syncOptions;
+    const { persist } = syncOptions;
 
-    if (cache) {
-        const CachePlugin: ClassConstructor<ObservablePersistPlugin> =
-            cache.plugin! || observableSyncConfiguration.cache?.plugin;
-        const { table, config } = parseLocalConfig(cache);
+    if (persist) {
+        const PersistPlugin: ClassConstructor<ObservablePersistPlugin> =
+            persist.plugin! || observableSyncConfiguration.persist?.plugin;
+        const { table, config } = parseLocalConfig(persist);
         const node = getNode(obs);
 
-        if (!CachePlugin) {
-            throw new Error('Local cache is not configured');
+        if (!PersistPlugin) {
+            throw new Error('Local persist is not configured');
         }
         // Ensure there's only one instance of the cache plugin
-        if (!mapSyncPlugins.has(CachePlugin)) {
-            const cachePlugin = new CachePlugin();
-            const mapValue = { plugin: cachePlugin, initialized: observable(false) };
-            mapSyncPlugins.set(CachePlugin, mapValue);
-            if (cachePlugin.initialize) {
-                const initializePromise = cachePlugin.initialize?.(observableSyncConfiguration?.cache || {});
+        if (!mapSyncPlugins.has(PersistPlugin)) {
+            const persistPlugin = new PersistPlugin();
+            const mapValue = { plugin: persistPlugin, initialized: observable(false) };
+            mapSyncPlugins.set(PersistPlugin, mapValue);
+            if (persistPlugin.initialize) {
+                const initializePromise = persistPlugin.initialize?.(observableSyncConfiguration?.persist || {});
                 if (isPromise(initializePromise)) {
                     await initializePromise;
                 }
@@ -708,18 +714,18 @@ async function loadLocal<T>(
             mapValue.initialized.set(true);
         }
 
-        const { plugin, initialized: initialized$ } = mapSyncPlugins.get(CachePlugin)!;
-        const cachePlugin = plugin as ObservablePersistPlugin;
+        const { plugin, initialized: initialized$ } = mapSyncPlugins.get(PersistPlugin)!;
+        const persistPlugin = plugin as ObservablePersistPlugin;
 
-        localState.pluginCache = cachePlugin as ObservablePersistPlugin;
+        localState.pluginPersist = persistPlugin as ObservablePersistPlugin;
 
         if (!initialized$.peek()) {
             await when(initialized$);
         }
 
         // If cache has an asynchronous load, wait for it
-        if (cachePlugin.loadTable) {
-            const promise = cachePlugin.loadTable(table, config);
+        if (persistPlugin.loadTable) {
+            const promise = persistPlugin.loadTable(table, config);
             if (promise) {
                 await promise;
             }
@@ -729,8 +735,8 @@ async function loadLocal<T>(
         const prevValue = getNodeValue(node) as object;
 
         // Get the value from state
-        let value = cachePlugin.getTable(table, prevValue, config);
-        const metadata = cachePlugin.getMetadata(table, config);
+        let value = persistPlugin.getTable(table, prevValue, config);
+        const metadata = persistPlugin.getMetadata(table, config);
 
         if (metadata) {
             metadatas.set(obs, metadata);
@@ -766,8 +772,8 @@ async function loadLocal<T>(
 
         node.state!.peek().clearLocal = () =>
             Promise.all([
-                cachePlugin.deleteTable(table, config),
-                cachePlugin.deleteMetadata(table, config),
+                persistPlugin.deleteTable(table, config),
+                persistPlugin.deleteMetadata(table, config),
             ]) as unknown as Promise<void>;
     }
     syncState.isLoadedLocal.set(true);

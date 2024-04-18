@@ -6,7 +6,7 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 // @ts-ignore
 import type { DatabaseReference, Query } from 'firebase/database';
 
-import type { GetMode } from './syncTypes';
+import type { GetMode, PersistMetadata } from './syncTypes';
 import type {
     ArrayValue,
     Change,
@@ -97,13 +97,6 @@ export interface LegacyPersistOptions<T = any> {
     remote?: LegacyPersistOptionsRemote<T>;
     pluginLocal?: ClassConstructor<ObservablePersistLocal>;
     pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
-}
-
-export interface PersistMetadata {
-    id?: '__legend_metadata';
-    // modified ?: number;
-    lastSync?: number;
-    pending?: any;
 }
 
 export interface ObservablePersistLocal {

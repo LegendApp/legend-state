@@ -5,7 +5,7 @@ const MetadataSuffix = '__m';
 
 const { safeParse, safeStringify } = internal;
 
-export class ObservableCacheLocalStorageBase implements ObservablePersistPlugin {
+export class ObservablePersistLocalStorageBase implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
     private storage: Storage | undefined;
     constructor(storage: Storage | undefined) {
@@ -18,7 +18,7 @@ export class ObservableCacheLocalStorageBase implements ObservablePersistPlugin 
                 const value = this.storage.getItem(table);
                 this.data[table] = value ? safeParse(value) : init;
             } catch {
-                console.error('[legend-state] ObservableCacheLocalStorageBase failed to parse', table);
+                console.error('[legend-state] ObservablePersistLocalStorageBase failed to parse', table);
             }
         }
         return this.data[table];
@@ -64,7 +64,7 @@ export class ObservableCacheLocalStorageBase implements ObservablePersistPlugin 
         }
     }
 }
-export class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase {
+export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
     constructor() {
         super(
             typeof localStorage !== 'undefined'
@@ -76,7 +76,7 @@ export class ObservableCacheLocalStorage extends ObservableCacheLocalStorageBase
         );
     }
 }
-export class ObservableCacheSessionStorage extends ObservableCacheLocalStorageBase {
+export class ObservablePersistSessionStorage extends ObservablePersistLocalStorageBase {
     constructor() {
         super(
             typeof sessionStorage !== 'undefined'

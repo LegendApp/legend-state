@@ -1,7 +1,7 @@
 import type {
     Change,
     Observable,
-    ObservableCachePluginOptions,
+    ObservablePersistPluginOptions,
     ObservablePersistPlugin,
     PersistMetadata,
     PersistOptions,
@@ -30,7 +30,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         this.doSave = this.doSave.bind(this);
     }
 
-    public async initialize(config: ObservableCachePluginOptions) {
+    public async initialize(config: ObservablePersistPluginOptions) {
         if (typeof indexedDB === 'undefined') return;
         if (process.env.NODE_ENV === 'development' && !config?.indexedDB) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
