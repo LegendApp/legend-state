@@ -1,6 +1,6 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
-import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
+import { ObservableCacheLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { configureObservableSync } from '../src/sync/configureObservableSync';
 import { syncObservable } from '../src/sync/syncObservable';
 import { mockLocalStorage } from './testglobals';

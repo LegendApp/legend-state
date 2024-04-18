@@ -2,7 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import type { ObservablePersistPlugin, ObservableCachePluginOptions } from '../src/syncTypes';
-import { ObservablePersistIndexedDB } from '../src/cache-plugins/indexeddb';
+import { ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureObservableSync } from '../src/sync/configureObservableSync';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import { when } from '../src/when';

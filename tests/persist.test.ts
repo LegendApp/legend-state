@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
+import { ObservableCacheLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';

@@ -90,11 +90,6 @@
       "require": "./persist-plugins/*.js",
       "types": "./persist-plugins/*.d.ts"
     },
-    "./cache-plugins/*": {
-      "import": "./cache-plugins/*.mjs",
-      "require": "./cache-plugins/*.js",
-      "types": "./cache-plugins/*.d.ts"
-    },
     "./sync-plugins/*": {
       "import": "./sync-plugins/*.mjs",
       "require": "./sync-plugins/*.js",

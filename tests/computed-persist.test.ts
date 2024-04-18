@@ -2,7 +2,7 @@ import { onChangeRemote } from '../src/sync/syncObservable';
 import { configureObservableSync, syncObservable, synced } from '../sync';
 import { event } from '../src/event';
 import { observable, syncState } from '../src/observable';
-import { ObservableCacheLocalStorageBase } from '../src/cache-plugins/local-storage';
+import { ObservableCacheLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { when, whenReady } from '../src/when';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
 
