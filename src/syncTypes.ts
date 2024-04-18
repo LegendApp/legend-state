@@ -89,7 +89,7 @@ export interface ObservableCachePluginOptions {
 export interface ObservablePersistPlugin {
     initialize?(config: ObservableCachePluginOptions): void | Promise<void>;
     loadTable?(table: string, config: PersistOptions): Promise<any> | void;
-    getTable<T = any>(table: string, config: PersistOptions): T;
+    getTable<T = any>(table: string, init: object, config: PersistOptions): T;
     set(table: string, changes: Change[], config: PersistOptions): Promise<any> | void;
     deleteTable(table: string, config: PersistOptions): Promise<any> | void;
     getMetadata(table: string, config: PersistOptions): CacheMetadata;

@@ -2,7 +2,7 @@ import type {
     Change,
     Observable,
     ObservableCachePluginOptions,
-    ObservablePersistLocal,
+    ObservablePersistPlugin,
     PersistMetadata,
     PersistOptions,
 } from '@legendapp/state';
@@ -14,7 +14,7 @@ function requestToPromise(request: IDBRequest) {
     return new Promise<void>((resolve) => (request.onsuccess = () => resolve()));
 }
 
-export class ObservablePersistIndexedDB implements ObservablePersistLocal {
+export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     private tableData: Record<string, any> = {};
     private tableMetadata: Record<string, any> = {};
     private tablesAdjusted: Map<string, Observable<boolean>> = new Map();
@@ -94,7 +94,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             } else {
                 const obsLoaded = observable(false);
                 this.tablesAdjusted.set(tableName, obsLoaded);
-                const data = this.getTable(table, config);
+                const data = this.getTable(table, {}, config);
                 let hasPromise = false;
                 let promises: Promise<any>[];
                 if (data) {
@@ -122,7 +122,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             }
         }
     }
-    public getTable(table: string, config: PersistOptions) {
+    public getTable(table: string, init: object, config: PersistOptions) {
         const configIDB = config.indexedDB;
         const prefix = configIDB?.prefixID;
         const data = this.tableData[prefix ? table + '/' + prefix : table];

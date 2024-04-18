@@ -171,37 +171,33 @@ describe('Persist local localStorage', () => {
             persist: { name: cacheName },
         });
 
-        expect(obs2).toEqual({});
+        expect(obs2.get()).toEqual({});
     });
-    // TODO: Put this back when adding remote persistence
-    // test('Loads from local with modified', () => {
-    //     localStorage.setItem(
-    //         cacheName,
-    //         JSON.stringify({
-    //             test: { '@': 1000, test2: 'hi2', test3: 'hi3' },
-    //             test4: { test5: { '@': 1001, test6: 'hi6' } },
-    //             test7: { test8: 'hi8' },
-    //         })
-    //     );
+    test('Init with empty and add data', async () => {
+        const cacheName = getCacheName();
+        const obs = observable();
 
-    //     const obs = observable({
-    //         test: { test2: '', test3: '' },
-    //         test4: { test5: { test6: '' } },
-    //         test7: { test8: '' },
-    //     });
+        syncObservable(obs, {
+            persist: { name: cacheName },
+        });
 
-    //     syncObservable(obs, {
-    //         cacheName,
-    //         // persistRemote: //
-    //         remote: {},
-    //     });
+        obs.set({ key: 'value' });
 
-    //     expect(obs.get()).toEqual({
-    //         test: { [symbolDateModified]: 1000, test2: 'hi2', test3: 'hi3' },
-    //         test4: { test5: { [symbolDateModified]: 1001, test6: 'hi6' } },
-    //         test7: { test8: 'hi8' },
-    //     });
-    // });
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(cacheName);
+
+        // Should have saved to local storage
+        expect(localValue).toBe('{"key":"value"}');
+
+        // obs2 should load with the same value it was just saved as
+        const obs2 = observable();
+        syncObservable(obs2, {
+            persist: { name: cacheName },
+        });
+
+        expect(obs2.get()).toEqual({ key: 'value' });
+    });
 });
 
 describe('Persist primitives', () => {
@@ -234,6 +230,7 @@ describe('Persist primitives', () => {
 
 describe('Persist computed', () => {
     test('Persist nested computed', async () => {
+        const cacheName = getCacheName();
         const sub$ = observable({
             num: 0,
         });
@@ -243,7 +240,7 @@ describe('Persist computed', () => {
         });
 
         syncObservable(obs$, {
-            persist: { name: 'Persist computed' },
+            persist: { name: cacheName },
         });
 
         obs$.sub.get();
@@ -251,7 +248,7 @@ describe('Persist computed', () => {
 
         await promiseTimeout(0);
 
-        const localValue = localStorage.getItem('Persist computed')!;
+        const localValue = localStorage.getItem(cacheName)!;
 
         // Should have saved to local storage
         expect(JSON.parse(localValue)).toEqual({ sub: 1 });
@@ -281,6 +278,7 @@ describe('Persist computed', () => {
         expect(obs2$.get()).toEqual({ sub: 3 });
     });
     test('Persist nested computed (2)', async () => {
+        const cacheName = getCacheName();
         const sub$ = observable({
             num: 0,
         });
@@ -290,7 +288,7 @@ describe('Persist computed', () => {
         });
 
         syncObservable(obs$, {
-            persist: { name: 'Persist computed' },
+            persist: { name: cacheName },
         });
 
         obs$.sub.get();
@@ -298,7 +296,7 @@ describe('Persist computed', () => {
 
         await promiseTimeout(0);
 
-        const localValue = localStorage.getItem('Persist computed')!;
+        const localValue = localStorage.getItem(cacheName)!;
 
         // Should have saved to local storage
         expect(JSON.parse(localValue)).toEqual({ sub: 1 });
@@ -324,5 +322,53 @@ describe('Persist computed', () => {
         // Ensure computed is still hooked up
         sub2$.num.set(3);
         expect(obs2$.get()).toEqual({ sub: 3 });
+    });
+    test('Persist Map', async () => {
+        const cacheName = getCacheName();
+        const obs$ = observable(new Map<string, string>());
+
+        syncObservable(obs$, {
+            persist: { name: cacheName },
+        });
+        obs$.set('key', 'val');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(cacheName)!;
+
+        // Should have saved to local storage
+        expect(localValue).toEqual('{"__LSType":"Map","value":[["key","val"]]}');
+
+        const obs2$ = observable(new Map<string, string>());
+
+        syncObservable(obs2$, {
+            persist: { name: cacheName },
+        });
+
+        expect(obs2$.get()).toEqual(new Map([['key', 'val']]));
+    });
+    test('Persist Set', async () => {
+        const cacheName = getCacheName();
+        const obs$ = observable(new Set<string>());
+
+        syncObservable(obs$, {
+            persist: { name: cacheName },
+        });
+        obs$.add('key');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(cacheName)!;
+
+        // Should have saved to local storage
+        expect(localValue).toEqual('{"__LSType":"Set","value":["key"]}');
+
+        const obs2$ = observable(new Set<string>());
+
+        syncObservable(obs2$, {
+            persist: { name: cacheName },
+        });
+
+        expect(obs2$.get()).toEqual(new Set(['key']));
     });
 });

@@ -152,7 +152,7 @@ describe('caching with new computed', () => {
             }),
         );
 
-        expect(nodes2.get()).toEqual({ key00: { value: 'hello' } });
+        expect(nodes2.get()).toEqual({ key00: { key: 'key00', value: 'hello' } });
 
         // Matches if it has the same initial
         const nodes3 = observable(

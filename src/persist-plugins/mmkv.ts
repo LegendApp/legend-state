@@ -1,4 +1,4 @@
-import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptions } from '@legendapp/state';
+import type { Change, ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
 
@@ -7,7 +7,7 @@ const MetadataSuffix = '__m';
 
 const { safeParse, safeStringify } = internal;
 
-export class ObservablePersistMMKV implements ObservablePersistLocal {
+export class ObservablePersistMMKV implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
     private storages = new Map<symbol | string, MMKV>([
         [
@@ -18,12 +18,12 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         ],
     ]);
     // Gets
-    public getTable<T = any>(table: string, config: PersistOptions): T {
+    public getTable<T = any>(table: string, init: object, config: PersistOptions): T {
         const storage = this.getStorage(config);
         if (this.data[table] === undefined) {
             try {
                 const value = storage.getString(table);
-                this.data[table] = value ? safeParse(value) : undefined;
+                this.data[table] = value ? safeParse(value) : init;
             } catch {
                 console.error('[legend-state] MMKV failed to parse', table);
             }
@@ -31,7 +31,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         return this.data[table];
     }
     public getMetadata(table: string, config: PersistOptions): PersistMetadata {
-        return this.getTable(table + MetadataSuffix, config);
+        return this.getTable(table + MetadataSuffix, {}, config);
     }
     // Sets
     public set(table: string, changes: Change[], config: PersistOptions) {

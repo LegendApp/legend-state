@@ -36,7 +36,7 @@ import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import { syncObservableAdapter } from './syncObservableAdapter';
 
-const { globalState, symbolLinked, getNode } = internal;
+const { globalState, symbolLinked, getNode, getNodeValue } = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin | ObservableSyncClass>,
@@ -689,6 +689,7 @@ async function loadLocal<T>(
         const CachePlugin: ClassConstructor<ObservablePersistPlugin> =
             cache.plugin! || observableSyncConfiguration.cache?.plugin;
         const { table, config } = parseLocalConfig(cache);
+        const node = getNode(obs);
 
         if (!CachePlugin) {
             throw new Error('Local cache is not configured');
@@ -724,8 +725,11 @@ async function loadLocal<T>(
             }
         }
 
+        // Get current value for init
+        const prevValue = getNodeValue(node) as object;
+
         // Get the value from state
-        let value = cachePlugin.getTable(table, config);
+        let value = cachePlugin.getTable(table, prevValue, config);
         const metadata = cachePlugin.getMetadata(table, config);
 
         if (metadata) {
@@ -751,7 +755,6 @@ async function loadLocal<T>(
             internal.globalState.isLoadingLocal = true;
 
             // We want to merge the local data on top of any initial state the object is created with
-            const prevValue = obs.peek();
             if (value === null && (!prevValue || (prevValue as any)[symbolLinked])) {
                 obs.set(value);
             } else {
@@ -760,8 +763,6 @@ async function loadLocal<T>(
 
             internal.globalState.isLoadingLocal = false;
         }
-
-        const node = getNode(obs);
 
         node.state!.peek().clearLocal = () =>
             Promise.all([

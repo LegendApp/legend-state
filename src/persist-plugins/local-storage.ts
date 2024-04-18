@@ -11,12 +11,12 @@ export class ObservableCacheLocalStorageBase implements ObservablePersistPlugin 
     constructor(storage: Storage | undefined) {
         this.storage = storage;
     }
-    public getTable(table: string) {
+    public getTable(table: string, init: any) {
         if (!this.storage) return undefined;
         if (this.data[table] === undefined) {
             try {
                 const value = this.storage.getItem(table);
-                this.data[table] = value ? safeParse(value) : undefined;
+                this.data[table] = value ? safeParse(value) : init;
             } catch {
                 console.error('[legend-state] ObservableCacheLocalStorageBase failed to parse', table);
             }
@@ -24,7 +24,7 @@ export class ObservableCacheLocalStorageBase implements ObservablePersistPlugin 
         return this.data[table];
     }
     public getMetadata(table: string): PersistMetadata {
-        return this.getTable(table + MetadataSuffix);
+        return this.getTable(table + MetadataSuffix, {});
     }
     public set(table: string, changes: Change[]): void {
         if (!this.data[table]) {
