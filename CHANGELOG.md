@@ -1,3 +1,15 @@
+## 2.1.13
+- Fix: Not persisting Map/Set correctly if at root of observable
+
+## 2.1.12
+- Fix: useSelector only short-circuits creating a hook if parameter is an observable, fixing useSelector re-rendering when its return value hadn't changed
+
+## 2.1.11
+- Fix: Recent useSelector optimizations causing some issuesin dev strict mode
+
+## 2.1.10
+- Fix: Types of observer
+
 ## 2.1.9
 - Fix: useSelector was creating too many listeners
 
