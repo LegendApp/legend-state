@@ -5,7 +5,7 @@ import {
     ObservablePersistRemoteSetParams,
     ObservablePrimitive,
     ObservableParam,
-    PersistOptions,
+    LegacyPersistOptions,
     QueryByModified,
     TypeAtPath,
     batch,
@@ -82,7 +82,7 @@ type SaveInfoDictionary<T = any> = {
 };
 
 interface PendingSaves {
-    options: PersistOptions;
+    options: LegacyPersistOptions;
     saves: SaveInfoDictionary;
 }
 
@@ -564,7 +564,7 @@ class ObservablePersistFirebaseBase implements ObservablePersistRemoteClass {
         return {};
     }
     private _constructBatch(
-        options: PersistOptions,
+        options: LegacyPersistOptions,
         batch: Record<string, string | object>,
         basePath: string,
         saves: SaveInfoDictionary,

@@ -24,7 +24,7 @@ export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     save?: (value: TOrig) => TSaved | Promise<TSaved>;
 }
 
-export interface PersistOptionsLocal<T = any> {
+export interface LegacyPersistOptionsLocal<T = any> {
     name: string;
     transform?: PersistTransform<T>;
     fieldTransforms?: FieldTransforms<T>;
@@ -36,7 +36,7 @@ export interface PersistOptionsLocal<T = any> {
     };
     options?: any;
 }
-export type PersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
+export type LegacyPersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
     waitForGet?: Selector<any>;
     waitForSet?: LinkedParams['waitForSet'];
@@ -92,9 +92,9 @@ export interface ObservablePersistenceConfig {
     localOptions?: ObservablePersistenceConfigLocalGlobalOptions;
     remoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
 }
-export interface PersistOptions<T = any> {
-    local?: string | PersistOptionsLocal<T>;
-    remote?: PersistOptionsRemote<T>;
+export interface LegacyPersistOptions<T = any> {
+    local?: string | LegacyPersistOptionsLocal<T>;
+    remote?: LegacyPersistOptionsRemote<T>;
     pluginLocal?: ClassConstructor<ObservablePersistLocal>;
     pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
 }
@@ -108,13 +108,13 @@ export interface PersistMetadata {
 
 export interface ObservablePersistLocal {
     initialize?(config: ObservablePersistenceConfigLocalGlobalOptions): void | Promise<void>;
-    loadTable?(table: string, config: PersistOptionsLocal): Promise<any> | void;
-    getTable<T = any>(table: string, config: PersistOptionsLocal): T;
-    set(table: string, changes: Change[], config: PersistOptionsLocal): Promise<any> | void;
-    deleteTable(table: string, config: PersistOptionsLocal): Promise<any> | void;
-    getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata;
-    setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal): Promise<any> | void;
-    deleteMetadata(table: string, config: PersistOptionsLocal): Promise<any> | void;
+    loadTable?(table: string, config: LegacyPersistOptionsLocal): Promise<any> | void;
+    getTable<T = any>(table: string, config: LegacyPersistOptionsLocal): T;
+    set(table: string, changes: Change[], config: LegacyPersistOptionsLocal): Promise<any> | void;
+    deleteTable(table: string, config: LegacyPersistOptionsLocal): Promise<any> | void;
+    getMetadata(table: string, config: LegacyPersistOptionsLocal): PersistMetadata;
+    setMetadata(table: string, metadata: PersistMetadata, config: LegacyPersistOptionsLocal): Promise<any> | void;
+    deleteMetadata(table: string, config: LegacyPersistOptionsLocal): Promise<any> | void;
 }
 export interface ObservableOnChangeParams {
     value: unknown;
@@ -127,14 +127,14 @@ export interface ObservableOnChangeParams {
 export interface ObservablePersistRemoteSetParams<T> {
     syncState: Observable<ObservablePersistState>;
     obs: ObservableParam<T>;
-    options: PersistOptions<T>;
+    options: LegacyPersistOptions<T>;
     changes: Change[];
     value: T;
 }
 export interface ObservablePersistRemoteGetParams<T> {
     state: Observable<ObservablePersistState>;
     obs: ObservableParam<T>;
-    options: PersistOptions<T>;
+    options: LegacyPersistOptions<T>;
     dateModified?: number;
     lastSync?: number;
     mode?: GetMode;

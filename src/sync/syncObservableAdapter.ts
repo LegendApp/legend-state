@@ -1,6 +1,6 @@
-import { ObservableSyncGetParams, SyncedParams, isPromise, type ObservableSyncClass } from '@legendapp/state';
+import { ObservableSyncGetParams, SyncedOptions, isPromise, type ObservableSyncClass } from '@legendapp/state';
 
-export function syncObservableAdapter<T = {}>({ get, set }: SyncedParams<T>): ObservableSyncClass {
+export function syncObservableAdapter<T = {}>({ get, set }: SyncedOptions<T>): ObservableSyncClass {
     const ret: ObservableSyncClass = {};
 
     if (get) {

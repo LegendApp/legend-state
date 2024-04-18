@@ -4,7 +4,7 @@ import type {
     ObservableCachePluginOptions,
     ObservablePersistLocal,
     PersistMetadata,
-    PersistOptionsLocal,
+    PersistOptions,
 } from '@legendapp/state';
 import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 
@@ -21,7 +21,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
     private db: IDBDatabase | undefined;
     private isSaveTaskQueued = false;
     private pendingSaves = new Map<
-        PersistOptionsLocal,
+        PersistOptions,
         Record<string, { tableName: string; tablePrev?: any; items: Set<string> }>
     >();
     private promisesQueued: (() => void)[] = [];
@@ -75,7 +75,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             };
         });
     }
-    public loadTable(table: string, config: PersistOptionsLocal): void | Promise<void> {
+    public loadTable(table: string, config: PersistOptions): void | Promise<void> {
         if (!this.tableData[table]) {
             const transaction = this.db!.transaction(table, 'readonly');
 
@@ -122,7 +122,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             }
         }
     }
-    public getTable(table: string, config: PersistOptionsLocal) {
+    public getTable(table: string, config: PersistOptions) {
         const configIDB = config.indexedDB;
         const prefix = configIDB?.prefixID;
         const data = this.tableData[prefix ? table + '/' + prefix : table];
@@ -132,11 +132,11 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
             return data;
         }
     }
-    public getMetadata(table: string, config: PersistOptionsLocal) {
+    public getMetadata(table: string, config: PersistOptions) {
         const { tableName } = this.getMetadataTableName(table, config);
         return this.tableMetadata[tableName];
     }
-    public async setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
+    public async setMetadata(table: string, metadata: PersistMetadata, config: PersistOptions) {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         // Assign new metadata into the table, and make sure it has the id
         this.tableMetadata[tableName] = Object.assign(metadata, {
@@ -146,14 +146,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const store = this.transactionStore(table);
         return store.put(metadata);
     }
-    public async deleteMetadata(table: string, config: PersistOptionsLocal): Promise<void> {
+    public async deleteMetadata(table: string, config: PersistOptions): Promise<void> {
         const { tableName, tableNameBase } = this.getMetadataTableName(table, config);
         delete this.tableMetadata[tableName];
         const store = this.transactionStore(table);
         const key = tableNameBase + MetadataSuffix;
         store.delete(key);
     }
-    public async set(table: string, changes: Change[], config: PersistOptionsLocal) {
+    public async set(table: string, changes: Change[], config: PersistOptions) {
         if (typeof indexedDB === 'undefined') return;
 
         if (!this.pendingSaves.has(config)) {
@@ -249,7 +249,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
 
         promisesQueued.forEach((resolve) => resolve());
     }
-    public async deleteTable(table: string, config: PersistOptionsLocal): Promise<void> {
+    public async deleteTable(table: string, config: PersistOptions): Promise<void> {
         const configIDB = config.indexedDB;
         const prefixID = configIDB?.prefixID;
         const tableName = prefixID ? table + '/' + prefixID : table;
@@ -289,7 +289,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         }
     }
     // Private
-    private getMetadataTableName(table: string, config: PersistOptionsLocal) {
+    private getMetadataTableName(table: string, config: PersistOptions) {
         const configIDB = config.indexedDB;
         let name = '';
         if (configIDB) {
@@ -357,7 +357,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         const transaction = this.db!.transaction(table, 'readwrite');
         return transaction.objectStore(table);
     }
-    private _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptionsLocal) {
+    private _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptions) {
         if (!value) {
             if (this.tableData[table]) {
                 delete this.tableData[table][key];
@@ -399,7 +399,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistLocal {
         prev: object,
         value: Record<string, any>,
         store: IDBObjectStore,
-        config: PersistOptionsLocal,
+        config: PersistOptions,
     ) {
         const keys = Object.keys(value);
         let lastSet: IDBRequest | undefined;

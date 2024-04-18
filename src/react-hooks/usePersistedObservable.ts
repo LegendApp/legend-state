@@ -1,4 +1,4 @@
-import { Observable, ObservableParam, PersistOptions, observable } from '@legendapp/state';
+import { Observable, ObservableParam, LegacyPersistOptions, observable } from '@legendapp/state';
 import { persistObservable } from '@legendapp/state/persist';
 import { useMemo } from 'react';
 
@@ -13,7 +13,7 @@ import { useMemo } from 'react';
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
 export function usePersistedObservable<T>(params: {
-    options: PersistOptions<T>;
+    options: LegacyPersistOptions<T>;
     initialValue?: T | (() => T) | (() => Promise<T>);
 }): Observable<T> {
     // Create the observable from the default value

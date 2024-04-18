@@ -60,7 +60,7 @@ describe('Persist local localStorage', () => {
         const obs = observable({ test: '' });
 
         syncObservable(obs, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         obs.set({ test: 'hello' });
@@ -75,7 +75,7 @@ describe('Persist local localStorage', () => {
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
         syncObservable(obs2, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual({ test: 'hello' });
@@ -85,7 +85,7 @@ describe('Persist local localStorage', () => {
         const obs = observable('');
 
         syncObservable(obs, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         obs.set('hello');
@@ -100,7 +100,7 @@ describe('Persist local localStorage', () => {
         // obs2 should load with the same value it was just saved as
         const obs2 = observable();
         syncObservable(obs2, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual('hello');
@@ -110,7 +110,7 @@ describe('Persist local localStorage', () => {
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
         syncObservable(obs, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         obs.test.set({});
@@ -125,7 +125,7 @@ describe('Persist local localStorage', () => {
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
         syncObservable(obs2, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual({ test: {} });
@@ -136,7 +136,7 @@ describe('Persist local localStorage', () => {
         localStorage.setItem(cacheName, '{"test2":{"text":"hello"}}');
 
         syncObservable(obs, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         expect(obs.get()).toEqual({
@@ -153,7 +153,7 @@ describe('Persist local localStorage', () => {
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
         syncObservable(obs, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         obs.set({});
@@ -168,7 +168,7 @@ describe('Persist local localStorage', () => {
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
         syncObservable(obs2, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         expect(obs2).toEqual({});
@@ -210,7 +210,7 @@ describe('Persist primitives', () => {
         const obs = observable('');
 
         syncObservable(obs, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         obs.set('hello');
@@ -225,7 +225,7 @@ describe('Persist primitives', () => {
         // obs2 should load with the same value it was just saved as
         const obs2 = observable('');
         syncObservable(obs2, {
-            cache: { name: cacheName },
+            persist: { name: cacheName },
         });
 
         expect(obs2.get()).toEqual('hello');
@@ -243,7 +243,7 @@ describe('Persist computed', () => {
         });
 
         syncObservable(obs$, {
-            cache: { name: 'Persist computed' },
+            persist: { name: 'Persist computed' },
         });
 
         obs$.sub.get();
@@ -269,7 +269,7 @@ describe('Persist computed', () => {
         expect(obs2$.sub.get()).toEqual(2);
 
         syncObservable(obs2$, {
-            cache: { name: 'Persist computed' },
+            persist: { name: 'Persist computed' },
         });
 
         expect(obs2$.sub.get()).toEqual(2);
@@ -290,7 +290,7 @@ describe('Persist computed', () => {
         });
 
         syncObservable(obs$, {
-            cache: { name: 'Persist computed' },
+            persist: { name: 'Persist computed' },
         });
 
         obs$.sub.get();
@@ -314,7 +314,7 @@ describe('Persist computed', () => {
         });
 
         syncObservable(obs2$, {
-            cache: { name: 'Persist computed' },
+            persist: { name: 'Persist computed' },
         });
 
         expect(obs2$.sub.get()).toEqual(2);

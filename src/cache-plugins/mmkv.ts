@@ -1,4 +1,4 @@
-import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptionsLocal } from '@legendapp/state';
+import type { Change, ObservablePersistLocal, PersistMetadata, PersistOptions } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
 import { MMKV } from 'react-native-mmkv';
 
@@ -18,7 +18,7 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         ],
     ]);
     // Gets
-    public getTable<T = any>(table: string, config: PersistOptionsLocal): T {
+    public getTable<T = any>(table: string, config: PersistOptions): T {
         const storage = this.getStorage(config);
         if (this.data[table] === undefined) {
             try {
@@ -30,11 +30,11 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         }
         return this.data[table];
     }
-    public getMetadata(table: string, config: PersistOptionsLocal): PersistMetadata {
+    public getMetadata(table: string, config: PersistOptions): PersistMetadata {
         return this.getTable(table + MetadataSuffix, config);
     }
     // Sets
-    public set(table: string, changes: Change[], config: PersistOptionsLocal) {
+    public set(table: string, changes: Change[], config: PersistOptions) {
         if (!this.data[table]) {
             this.data[table] = {};
         }
@@ -44,19 +44,19 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
         }
         this.save(table, config);
     }
-    public setMetadata(table: string, metadata: PersistMetadata, config: PersistOptionsLocal) {
+    public setMetadata(table: string, metadata: PersistMetadata, config: PersistOptions) {
         return this.setValue(table + MetadataSuffix, metadata, config);
     }
-    public deleteTable(table: string, config: PersistOptionsLocal): void {
+    public deleteTable(table: string, config: PersistOptions): void {
         const storage = this.getStorage(config);
         delete this.data[table];
         storage.delete(table);
     }
-    public deleteMetadata(table: string, config: PersistOptionsLocal) {
+    public deleteMetadata(table: string, config: PersistOptions) {
         this.deleteTable(table + MetadataSuffix, config);
     }
     // Private
-    private getStorage(config: PersistOptionsLocal): MMKV {
+    private getStorage(config: PersistOptions): MMKV {
         const { mmkv } = config;
         if (mmkv) {
             const key = JSON.stringify(mmkv);
@@ -70,11 +70,11 @@ export class ObservablePersistMMKV implements ObservablePersistLocal {
             return this.storages.get(symbolDefault)!;
         }
     }
-    private async setValue(table: string, value: any, config: PersistOptionsLocal) {
+    private async setValue(table: string, value: any, config: PersistOptions) {
         this.data[table] = value;
         this.save(table, config);
     }
-    private save(table: string, config: PersistOptionsLocal) {
+    private save(table: string, config: PersistOptions) {
         const storage = this.getStorage(config);
         const v = this.data[table];
         if (v !== undefined) {

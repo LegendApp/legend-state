@@ -21,7 +21,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('nodesbasic', JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'nodesbasic',
                 },
@@ -50,7 +50,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('nodesdelay', JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'nodesdelay',
                 },
@@ -82,7 +82,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('nodesgetinitial', JSON.stringify({ key0: 'key0' }));
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'nodesgetinitial',
                 },
@@ -111,7 +111,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('cache with initial and no get', JSON.stringify({ key0: 'key0' }));
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get',
                 },
@@ -128,7 +128,7 @@ describe('caching with new computed', () => {
     test('cache with initial and no get and set', async () => {
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get and set',
                 },
@@ -145,7 +145,7 @@ describe('caching with new computed', () => {
         // Without the same initial it only has the diff
         const nodes2 = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get and set',
                 },
@@ -157,7 +157,7 @@ describe('caching with new computed', () => {
         // Matches if it has the same initial
         const nodes3 = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'cache with initial and no get and set',
                 },
@@ -171,7 +171,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('nodesinitialownkeys', JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'nodesinitialownkeys',
                 },
@@ -192,7 +192,7 @@ describe('caching with new computed', () => {
         localStorage.setItem('cachedprops', JSON.stringify('cached'));
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'cachedprops',
                 },
@@ -217,7 +217,7 @@ describe('caching with new computed', () => {
 
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'nodes',
                 },
@@ -248,7 +248,7 @@ describe('caching with new computed', () => {
 
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'setNot',
                 },
@@ -280,7 +280,7 @@ describe('caching with new computed', () => {
 
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'setNot2',
                 },
@@ -321,7 +321,7 @@ describe('caching with new computed', () => {
             }),
         });
 
-        syncObservable(nodes, { cache: { plugin: ObservableCacheLocalStorage, name: 'getnotcalled' } });
+        syncObservable(nodes, { persist: { plugin: ObservableCacheLocalStorage, name: 'getnotcalled' } });
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
 
@@ -360,7 +360,7 @@ describe('lastSync with new computed', () => {
     test('lastSync from updateLastSync', async () => {
         const nodes = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'nodes-lastSync',
                 },
@@ -392,7 +392,7 @@ describe('lastSync with new computed', () => {
     test('lastSync from subscribe', async () => {
         const value = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'lastSync2',
                 },
@@ -445,7 +445,7 @@ describe('retry', () => {
         const attemptNum$ = observable(0);
         const obs$ = observable(
             synced({
-                cache: {
+                persist: {
                     name: 'retrypersist',
                     plugin: ObservableCacheLocalStorage,
                 },
@@ -617,7 +617,7 @@ describe('subscribing to computeds', () => {
         let didSet = false;
         const obs = observable(
             synced({
-                cache: {
+                persist: {
                     plugin: ObservableCacheLocalStorage,
                     name: 'synced does not set undefined from initial',
                 },

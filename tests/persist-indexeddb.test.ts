@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
-import type { ObservableCachePlugin, ObservableCachePluginOptions } from '../src/syncTypes';
+import type { ObservablePersistPlugin, ObservableCachePluginOptions } from '../src/syncTypes';
 import { ObservablePersistIndexedDB } from '../src/cache-plugins/indexeddb';
 import { configureObservableSync } from '../src/sync/configureObservableSync';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
@@ -28,7 +28,7 @@ async function reset() {
     // eslint-disable-next-line no-global-assign
     indexedDB = new IDBFactory();
 
-    const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservableCachePlugin;
+    const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
 
     if (persist) {
         await persist.initialize!(cacheOptions);
@@ -60,7 +60,7 @@ describe('Persist IDB', () => {
         const obs = observable<Record<string, any>>({});
 
         const state = syncObservable(obs, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -76,7 +76,7 @@ describe('Persist IDB', () => {
         const obs = observable<Record<string, any>>({});
 
         const state = syncObservable(obs, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -92,7 +92,7 @@ describe('Persist IDB', () => {
         const obs = observable<Record<string, any>>({});
 
         const state = syncObservable(obs, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -101,13 +101,13 @@ describe('Persist IDB', () => {
 
         obs['test'].set({ id: 'test', text: 'hi' });
 
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservableCachePlugin;
+        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
         await persist.initialize!(cacheOptions);
 
         const obs2 = observable<Record<string, any>>({});
 
         const state2 = syncObservable(obs2, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -121,7 +121,7 @@ describe('Persist IDB', () => {
         const obs = observable<Record<string, any>>({});
 
         const state = syncObservable(obs, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -132,12 +132,12 @@ describe('Persist IDB', () => {
 
         expectIDB(cacheName, [{ id: 'test', text: 'hi' }]);
 
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservableCachePlugin;
+        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
         await persist.initialize!(cacheOptions);
 
         const obs2 = observable<Record<string, any>>({});
         const state2 = syncObservable(obs2, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -148,12 +148,12 @@ describe('Persist IDB', () => {
     });
     test('Persist IDB with no id', async () => {
         const cacheName = getLocalName();
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservableCachePlugin;
+        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
 
         const obs = observable<Record<string, any>>({});
 
         const state = syncObservable(obs, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });
@@ -168,7 +168,7 @@ describe('Persist IDB', () => {
 
         const obs2 = observable<Record<string, any>>({});
         const state2 = syncObservable(obs2, {
-            cache: {
+            persist: {
                 name: cacheName,
             },
         });

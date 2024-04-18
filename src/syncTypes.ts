@@ -16,9 +16,9 @@ import {
 } from './observableInterfaces';
 import { Observable, ObservableParam, ObservableState } from './observableTypes';
 
-export interface CacheOptions<T = any> {
+export interface PersistOptions<T = any> {
     name: string;
-    plugin?: ClassConstructor<ObservableCachePlugin, T[]>;
+    plugin?: ClassConstructor<ObservablePersistPlugin, T[]>;
     transform?: SyncTransform<T>;
     readonly?: boolean;
     mmkv?: MMKVConfiguration;
@@ -48,13 +48,13 @@ export type SyncedSetParams<T> = SetParams<T> & {
 
 export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
 
-export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
+export interface SyncedOptions<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     retry?: RetryOptions;
     offlineBehavior?: false | 'retry';
-    cache?: CacheOptions<any>;
+    persist?: PersistOptions<any>;
     debounceSet?: number;
     syncMode?: 'auto' | 'manual';
     getMode?: GetMode;
@@ -69,8 +69,8 @@ export interface SyncedParams<T = any> extends Omit<LinkedParams<T>, 'get' | 'se
     allowSetIfGetError?: boolean;
 }
 
-export interface SyncedParamsGlobal<T = any> extends Omit<SyncedParams<T>, 'get' | 'set' | 'cache'> {
-    cache?: ObservableCachePluginOptions & { plugin?: ClassConstructor<ObservableCachePlugin, T[]> };
+export interface SyncedParamsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'cache'> {
+    cache?: ObservableCachePluginOptions & { plugin?: ClassConstructor<ObservablePersistPlugin, T[]> };
 }
 
 export interface ObservableCachePluginOptions {
@@ -86,15 +86,15 @@ export interface ObservableCachePluginOptions {
         preload?: boolean | string[];
     };
 }
-export interface ObservableCachePlugin {
+export interface ObservablePersistPlugin {
     initialize?(config: ObservableCachePluginOptions): void | Promise<void>;
-    loadTable?(table: string, config: CacheOptions): Promise<any> | void;
-    getTable<T = any>(table: string, config: CacheOptions): T;
-    set(table: string, changes: Change[], config: CacheOptions): Promise<any> | void;
-    deleteTable(table: string, config: CacheOptions): Promise<any> | void;
-    getMetadata(table: string, config: CacheOptions): CacheMetadata;
-    setMetadata(table: string, metadata: CacheMetadata, config: CacheOptions): Promise<any> | void;
-    deleteMetadata(table: string, config: CacheOptions): Promise<any> | void;
+    loadTable?(table: string, config: PersistOptions): Promise<any> | void;
+    getTable<T = any>(table: string, config: PersistOptions): T;
+    set(table: string, changes: Change[], config: PersistOptions): Promise<any> | void;
+    deleteTable(table: string, config: PersistOptions): Promise<any> | void;
+    getMetadata(table: string, config: PersistOptions): CacheMetadata;
+    setMetadata(table: string, metadata: CacheMetadata, config: PersistOptions): Promise<any> | void;
+    deleteMetadata(table: string, config: PersistOptions): Promise<any> | void;
 }
 export interface CacheMetadata {
     id?: '__legend_metadata';
@@ -129,14 +129,14 @@ export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
 export interface ObservableSyncSetParams<T> {
     syncState: Observable<ObservableSyncState>;
     obs: ObservableParam<T>;
-    options: SyncedParams<T>;
+    options: SyncedOptions<T>;
     changes: Change[];
     value: T;
 }
 export interface ObservableSyncGetParams<T> {
     state: Observable<ObservableSyncState>;
     obs: ObservableParam<T>;
-    options: SyncedParams<T>;
+    options: SyncedOptions<T>;
     dateModified?: number;
     lastSync?: number;
     mode?: GetMode;

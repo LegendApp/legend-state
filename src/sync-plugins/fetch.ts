@@ -1,7 +1,7 @@
-import { Synced, SyncedParams, SyncedSetParams, isString } from '@legendapp/state';
+import { Synced, SyncedOptions, SyncedSetParams, isString } from '@legendapp/state';
 import { synced } from '@legendapp/state/persist';
 
-export interface SyncedFetchProps extends Omit<SyncedParams, 'get' | 'set'> {
+export interface SyncedFetchProps extends Omit<SyncedOptions, 'get' | 'set'> {
     get: string | RequestInfo;
     set?: string | RequestInfo;
     getInit?: RequestInit;
@@ -20,7 +20,7 @@ export function syncedFetch<T>({
     onSet,
     onSetValueType,
 }: SyncedFetchProps): Synced<T> {
-    const ret: SyncedParams = {
+    const ret: SyncedOptions = {
         get: () => fetch(get, getInit).then((response) => response[valueType || 'json']()),
     };
 

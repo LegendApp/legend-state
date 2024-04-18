@@ -12,9 +12,9 @@ import type {
     ObservablePersistRemoteFunctions,
     ObservablePersistState,
     PersistMetadata,
-    PersistOptions,
-    PersistOptionsLocal,
-    PersistOptionsRemote,
+    LegacyPersistOptions,
+    LegacyPersistOptionsLocal,
+    LegacyPersistOptionsRemote,
     PersistTransform,
     TypeAtPath,
 } from '@legendapp/state';
@@ -77,15 +77,15 @@ interface PreppedChangeRemote {
 
 type ChangeWithPathStr = Change & { pathStr: string };
 
-function parseLocalConfig(config: string | PersistOptionsLocal | undefined): {
+function parseLocalConfig(config: string | LegacyPersistOptionsLocal | undefined): {
     table: string;
-    config: PersistOptionsLocal;
+    config: LegacyPersistOptionsLocal;
 } {
     return config
         ? isString(config)
             ? { table: config, config: { name: config } }
             : { table: config.name, config }
-        : ({} as { table: string; config: PersistOptionsLocal });
+        : ({} as { table: string; config: LegacyPersistOptionsLocal });
 }
 
 function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
@@ -155,7 +155,7 @@ async function updateMetadataImmediate<T>(
     obs: ObservableParam<any>,
     localState: LocalState,
     syncState: Observable<ObservablePersistState>,
-    persistOptions: PersistOptions<T>,
+    persistOptions: LegacyPersistOptions<T>,
     newMetadata: PersistMetadata,
 ) {
     const saves = Array.from(promisesLocalSaves);
@@ -194,14 +194,15 @@ function updateMetadata<T>(
     obs: ObservableParam<any>,
     localState: LocalState,
     syncState: ObservableObject<ObservablePersistState>,
-    persistOptions: PersistOptions<T>,
+    persistOptions: LegacyPersistOptions<T>,
     newMetadata: PersistMetadata,
 ) {
     if (localState.timeoutSaveMetadata) {
         clearTimeout(localState.timeoutSaveMetadata);
     }
     localState.timeoutSaveMetadata = setTimeout(
-        () => updateMetadataImmediate(obs, localState, syncState, persistOptions as PersistOptions<T>, newMetadata),
+        () =>
+            updateMetadataImmediate(obs, localState, syncState, persistOptions as LegacyPersistOptions<T>, newMetadata),
         persistOptions?.remote?.metadataTimeout || 0,
     );
 }
@@ -212,7 +213,7 @@ interface QueuedChange<T = any> {
     obs: Observable<T>;
     syncState: ObservableObject<ObservablePersistState>;
     localState: LocalState;
-    persistOptions: PersistOptions<T>;
+    persistOptions: LegacyPersistOptions<T>;
     changes: ListenerParams['changes'];
 }
 
@@ -566,7 +567,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const local = persistOptions.local;
     const { table, config: configLocal } = parseLocalConfig(local!);
     const { offlineBehavior, allowSetIfError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
-        persistOptions.remote || ({} as PersistOptionsRemote);
+        persistOptions.remote || ({} as LegacyPersistOptionsRemote);
     const shouldSaveMetadata = local && offlineBehavior === 'retry';
 
     if (changesRemote.length > 0) {
@@ -668,7 +669,7 @@ function onObsChange<T>(
     obs: Observable<T>,
     syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
-    persistOptions: PersistOptions<T>,
+    persistOptions: LegacyPersistOptions<T>,
     { changes, loading, remote }: ListenerParams,
 ) {
     if (!loading) {
@@ -692,7 +693,7 @@ function onObsChange<T>(
 
 async function loadLocal<T>(
     obs: ObservableParam<T>,
-    persistOptions: PersistOptions<any>,
+    persistOptions: LegacyPersistOptions<any>,
     syncState: ObservableObject<ObservablePersistState>,
     localState: LocalState,
 ) {
@@ -796,14 +797,17 @@ async function loadLocal<T>(
     syncState.isLoadedLocal.set(true);
 }
 
-export function persistObservable<T>(observable: ObservableParam<T>, persistOptions: PersistOptions<T>): Observable<T>;
+export function persistObservable<T>(
+    observable: ObservableParam<T>,
+    persistOptions: LegacyPersistOptions<T>,
+): Observable<T>;
 export function persistObservable<T>(
     initial: T | (() => T) | (() => Promise<T>),
-    persistOptions: PersistOptions<T>,
+    persistOptions: LegacyPersistOptions<T>,
 ): Observable<T>;
 export function persistObservable<T>(
     initialOrObservable: ObservableParam<T> | T | (() => T) | (() => Promise<T>),
-    persistOptions: PersistOptions<T>,
+    persistOptions: LegacyPersistOptions<T>,
 ): Observable<T> {
     const obs$ = (
         isObservable(initialOrObservable)
@@ -820,7 +824,7 @@ export function persistObservable<T>(
             removeNullUndefined(persistOptions.remote),
         );
     }
-    let { remote } = persistOptions as { remote: PersistOptionsRemote<T> };
+    let { remote } = persistOptions as { remote: LegacyPersistOptionsRemote<T> };
     const { local } = persistOptions;
     const remotePersistence = persistOptions.pluginRemote! || observablePersistConfiguration?.pluginRemote;
     const localState: LocalState = {};
@@ -871,7 +875,7 @@ export function persistObservable<T>(
                     get({
                         state: syncState,
                         obs: obs$,
-                        options: persistOptions as PersistOptions<any>,
+                        options: persistOptions as LegacyPersistOptions<any>,
                         lastSync,
                         dateModified: lastSync,
                         onError: (error: Error) => {
@@ -945,7 +949,7 @@ export function persistObservable<T>(
                                 }
                             }
                             if (lastSync && local) {
-                                updateMetadata(obs$, localState, syncState, persistOptions as PersistOptions<T>, {
+                                updateMetadata(obs$, localState, syncState, persistOptions as LegacyPersistOptions<T>, {
                                     lastSync,
                                 });
                             }
@@ -1014,7 +1018,7 @@ export function persistObservable<T>(
         }
 
         obs$.onChange(
-            onObsChange.bind(this, obs$ as any, syncState, localState, persistOptions as PersistOptions<any>),
+            onObsChange.bind(this, obs$ as any, syncState, localState, persistOptions as LegacyPersistOptions<any>),
         );
     });
 

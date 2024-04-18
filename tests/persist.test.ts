@@ -19,7 +19,7 @@ describe('Creating', () => {
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
         const state = syncObservable(nodes, {
-            cache: {
+            persist: {
                 plugin: ObservableCacheLocalStorage,
                 name: 'nodes',
             },
@@ -113,7 +113,7 @@ describe('Adjusting data', () => {
                     await promiseTimeout(0);
                     return { test: 'hiz1' };
                 },
-                cache: {
+                persist: {
                     name: cacheName,
                     plugin: ObservableCacheLocalStorage,
                     transform: {

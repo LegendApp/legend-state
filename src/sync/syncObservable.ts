@@ -1,18 +1,18 @@
 import type {
     CacheMetadata,
-    CacheOptions,
+    PersistOptions,
     Change,
     ClassConstructor,
     ListenerParams,
     NodeValue,
     Observable,
-    ObservableCachePlugin,
+    ObservablePersistPlugin,
     ObservableObject,
     ObservableParam,
     ObservableSyncClass,
     ObservableSyncState,
     SyncTransform,
-    SyncedParams,
+    SyncedOptions,
     TypeAtPath,
 } from '@legendapp/state';
 import {
@@ -39,9 +39,9 @@ import { syncObservableAdapter } from './syncObservableAdapter';
 const { globalState, symbolLinked, getNode } = internal;
 
 export const mapSyncPlugins: WeakMap<
-    ClassConstructor<ObservableCachePlugin | ObservableSyncClass>,
+    ClassConstructor<ObservablePersistPlugin | ObservableSyncClass>,
     {
-        plugin: ObservableCachePlugin | ObservableSyncClass;
+        plugin: ObservablePersistPlugin | ObservableSyncClass;
         initialized: Observable<boolean>;
     }
 > = new WeakMap();
@@ -50,7 +50,7 @@ const metadatas = new WeakMap<ObservableParam<any>, CacheMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
-    pluginCache?: ObservableCachePlugin;
+    pluginCache?: ObservablePersistPlugin;
     pluginSync?: ObservableSyncClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     numSavesOutstanding?: number;
@@ -72,15 +72,15 @@ interface PreppedChangeRemote {
 
 type ChangeWithPathStr = Change & { pathStr: string };
 
-function parseLocalConfig(config: string | CacheOptions | undefined): {
+function parseLocalConfig(config: string | PersistOptions | undefined): {
     table: string;
-    config: CacheOptions;
+    config: PersistOptions;
 } {
     return config
         ? isString(config)
             ? { table: config, config: { name: config } }
             : { table: config.name, config }
-        : ({} as { table: string; config: CacheOptions });
+        : ({} as { table: string; config: PersistOptions });
 }
 
 function doInOrder<T>(arg1: T | Promise<T>, arg2: (value: T) => void): any {
@@ -128,7 +128,7 @@ async function updateMetadataImmediate<T>(
     obs: ObservableParam<any>,
     localState: LocalState,
     syncState: Observable<ObservableSyncState>,
-    syncOptions: SyncedParams<T>,
+    syncOptions: SyncedOptions<T>,
     newMetadata: CacheMetadata,
 ) {
     const saves = Array.from(promisesLocalSaves);
@@ -137,7 +137,7 @@ async function updateMetadataImmediate<T>(
     }
 
     const { pluginCache } = localState;
-    const { table, config } = parseLocalConfig(syncOptions?.cache);
+    const { table, config } = parseLocalConfig(syncOptions?.persist);
 
     // Save metadata
     const oldMetadata: CacheMetadata | undefined = metadatas.get(obs);
@@ -165,14 +165,14 @@ function updateMetadata<T>(
     obs: ObservableParam<any>,
     localState: LocalState,
     syncState: ObservableObject<ObservableSyncState>,
-    syncOptions: SyncedParams<T>,
+    syncOptions: SyncedOptions<T>,
     newMetadata: CacheMetadata,
 ) {
     if (localState.timeoutSaveMetadata) {
         clearTimeout(localState.timeoutSaveMetadata);
     }
     localState.timeoutSaveMetadata = setTimeout(
-        () => updateMetadataImmediate(obs, localState, syncState, syncOptions as SyncedParams<T>, newMetadata),
+        () => updateMetadataImmediate(obs, localState, syncState, syncOptions as SyncedOptions<T>, newMetadata),
         0,
     );
 }
@@ -183,13 +183,13 @@ interface QueuedChange<T = any> {
     obs: Observable<T>;
     syncState: ObservableObject<ObservableSyncState>;
     localState: LocalState;
-    syncOptions: SyncedParams<T>;
+    syncOptions: SyncedOptions<T>;
     changes: ListenerParams['changes'];
 }
 
 let _queuedChanges: QueuedChange[] = [];
-const _queuedRemoteChanges: Map<SyncedParams, QueuedChange[]> = new Map();
-const _queuedRemoteChangesTimeouts: Map<SyncedParams, number> = new Map();
+const _queuedRemoteChanges: Map<SyncedOptions, QueuedChange[]> = new Map();
+const _queuedRemoteChangesTimeouts: Map<SyncedOptions, number> = new Map();
 
 function mergeChanges(changes: Change[]) {
     const changesByPath = new Map<string, Change>();
@@ -234,7 +234,7 @@ async function processQueuedChanges() {
     const queuedChanges = mergeQueuedChanges(_queuedChanges);
     _queuedChanges = [];
 
-    const pendingSyncOptions = new Set<SyncedParams>();
+    const pendingSyncOptions = new Set<SyncedOptions>();
     for (let i = 0; i < queuedChanges.length; i++) {
         const change = queuedChanges[i];
         if (!change.inRemoteChange) {
@@ -283,7 +283,7 @@ async function processQueuedChanges() {
     }
 }
 
-async function processQueuedRemoteChanges(syncOptions: SyncedParams) {
+async function processQueuedRemoteChanges(syncOptions: SyncedOptions) {
     const arr = _queuedRemoteChanges.get(syncOptions);
     if (arr?.length) {
         const queuedRemoteChanges = mergeQueuedChanges(arr);
@@ -298,7 +298,7 @@ async function processQueuedRemoteChanges(syncOptions: SyncedParams) {
 async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {
     const { syncState, changes, localState, syncOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
-    const cache = syncOptions.cache;
+    const cache = syncOptions.persist;
     const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(cache);
     const configRemote = syncOptions;
@@ -386,7 +386,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
         isApplyingPending,
     } = queuedChange;
 
-    const cache = syncOptions.cache;
+    const cache = syncOptions.persist;
     const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(cache!);
     const configRemote = syncOptions;
@@ -510,7 +510,7 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
     const { obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
     const { pluginCache } = localState;
 
-    const cache = syncOptions.cache;
+    const cache = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(cache!);
     const configRemote = syncOptions;
     const shouldSaveMetadata = cache && configRemote?.offlineBehavior === 'retry';
@@ -546,10 +546,10 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const { obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
     const { pluginCache, pluginSync } = localState;
 
-    const cache = syncOptions.cache;
+    const cache = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(cache!);
     const { offlineBehavior, allowSetIfGetError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
-        syncOptions || ({} as SyncedParams);
+        syncOptions || ({} as SyncedOptions);
     const shouldSaveMetadata = cache && offlineBehavior === 'retry';
 
     if (changesRemote.length > 0) {
@@ -655,7 +655,7 @@ function onObsChange<T>(
     obs: Observable<T>,
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
-    syncOptions: SyncedParams<T>,
+    syncOptions: SyncedOptions<T>,
     { changes, loading, remote }: ListenerParams,
 ) {
     if (!loading) {
@@ -679,14 +679,14 @@ function onObsChange<T>(
 
 async function loadLocal<T>(
     obs: ObservableParam<T>,
-    syncOptions: SyncedParams<any>,
+    syncOptions: SyncedOptions<any>,
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
 ) {
-    const { cache } = syncOptions;
+    const { persist: cache } = syncOptions;
 
     if (cache) {
-        const CachePlugin: ClassConstructor<ObservableCachePlugin> =
+        const CachePlugin: ClassConstructor<ObservablePersistPlugin> =
             cache.plugin! || observableSyncConfiguration.cache?.plugin;
         const { table, config } = parseLocalConfig(cache);
 
@@ -708,9 +708,9 @@ async function loadLocal<T>(
         }
 
         const { plugin, initialized: initialized$ } = mapSyncPlugins.get(CachePlugin)!;
-        const cachePlugin = plugin as ObservableCachePlugin;
+        const cachePlugin = plugin as ObservablePersistPlugin;
 
-        localState.pluginCache = cachePlugin as ObservableCachePlugin;
+        localState.pluginCache = cachePlugin as ObservablePersistPlugin;
 
         if (!initialized$.peek()) {
             await when(initialized$);
@@ -774,7 +774,7 @@ async function loadLocal<T>(
 
 export function syncObservable<T>(
     obs$: ObservableParam<T>,
-    syncOptions: SyncedParams<T>,
+    syncOptions: SyncedOptions<T>,
 ): Observable<ObservableSyncState> {
     const node = getNode(obs$);
 
@@ -783,7 +783,7 @@ export function syncObservable<T>(
         syncOptions = Object.assign(
             {
                 syncMode: 'auto',
-            } as SyncedParams,
+            } as SyncedOptions,
             observableSyncConfiguration,
             removeNullUndefined(syncOptions),
         );
@@ -884,7 +884,7 @@ export function syncObservable<T>(
                                     }
                                 });
                             }
-                            if (lastSync && syncOptions.cache) {
+                            if (lastSync && syncOptions.persist) {
                                 updateMetadata(obs$, localState, syncState, syncOptions, {
                                     lastSync,
                                 });
@@ -953,7 +953,7 @@ export function syncObservable<T>(
             sync();
         }
 
-        obs$.onChange(onObsChange.bind(this, obs$ as any, syncState, localState, syncOptions as SyncedParams<any>));
+        obs$.onChange(onObsChange.bind(this, obs$ as any, syncState, localState, syncOptions as SyncedOptions<any>));
     });
 
     return syncState;

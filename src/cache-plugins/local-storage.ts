@@ -1,11 +1,11 @@
-import type { Change, ObservableCachePlugin, PersistMetadata } from '@legendapp/state';
+import type { Change, ObservablePersistPlugin, PersistMetadata } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
 
 const MetadataSuffix = '__m';
 
 const { safeParse, safeStringify } = internal;
 
-export class ObservableCacheLocalStorageBase implements ObservableCachePlugin {
+export class ObservableCacheLocalStorageBase implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
     private storage: Storage | undefined;
     constructor(storage: Storage | undefined) {
