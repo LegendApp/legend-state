@@ -3274,3 +3274,20 @@ describe('Clone', () => {
         expect(clone(test)).toEqual(test);
     });
 });
+describe('Dates', () => {
+    test('Dates dont set if the same', () => {
+        const date = new Date();
+        const obs$ = observable(date);
+        const obs2$ = observable({ date });
+        const handler = expectChangeHandler(obs$);
+        const handler2 = expectChangeHandler(obs2$);
+        obs$.set(date);
+        expect(handler).not.toHaveBeenCalled();
+        obs2$.set({ date });
+        expect(handler2).not.toHaveBeenCalled();
+        obs2$.assign({ date });
+        expect(handler2).not.toHaveBeenCalled();
+        obs2$.date.set(date);
+        expect(handler2).not.toHaveBeenCalled();
+    });
+});

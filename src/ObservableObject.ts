@@ -1,6 +1,7 @@
 import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
+    equals,
     extractFunction,
     findIDKey,
     getChildNode,
@@ -10,9 +11,9 @@ import {
     isObservable,
     optimized,
     setNodeValue,
-    symbolLinked,
     symbolDelete,
     symbolGetNode,
+    symbolLinked,
     symbolOpaque,
     symbolToPrimitive,
 } from './globals';
@@ -21,7 +22,6 @@ import {
     isArray,
     isBoolean,
     isChildNodeValue,
-    isDate,
     isEmpty,
     isFunction,
     isNullOrUndefined,
@@ -32,8 +32,8 @@ import {
 import type {
     Change,
     ChildNodeValue,
-    LinkedParams,
     GetOptions,
+    LinkedParams,
     ListenerParams,
     NodeValue,
     TrackingType,
@@ -248,7 +248,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
             let value = isMap ? obj.get(key) : (obj as any)[key];
             const prev = isPrevMap ? prevValue?.get(key) : prevValue?.[key];
 
-            let isDiff = isDate(value) ? +value !== +prev : value !== prev;
+            let isDiff = !equals(value, prev);
             if (isDiff) {
                 const id =
                     idField && value
@@ -640,7 +640,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
         const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
 
-        if (savedValue !== prevValue) {
+        if (!equals(savedValue, prevValue)) {
             updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
         }
 

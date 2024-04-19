@@ -1,4 +1,4 @@
-import { isArray, isChildNodeValue, isFunction, isObject } from './is';
+import { isArray, isChildNodeValue, isDate, isFunction, isObject } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -218,4 +218,7 @@ export function extractFunction(node: NodeValue, key: string, fnOrComputed: Func
     }
 
     node.functions.set(key, fnOrComputed);
+}
+export function equals(a: unknown, b: unknown) {
+    return a === b || (isDate(a) && isDate(b) && +a === +b);
 }
