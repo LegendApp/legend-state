@@ -616,7 +616,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             if (pathStrs.length > 0) {
                 if (persist) {
                     const metadata: PersistMetadata = {};
-                    const pending = pluginPersist!.getMetadata(table, configLocal)?.pending;
+                    const pendingMetadata = pluginPersist!.getMetadata(table, configLocal)?.pending;
+                    const pending = localState.pendingChanges;
                     let transformedChanges: object | undefined = undefined;
 
                     for (let i = 0; i < pathStrs.length; i++) {
@@ -625,7 +626,12 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         if (pending?.[pathStr]) {
                             // Remove pending from local state
                             delete pending[pathStr];
-                            metadata.pending = pending;
+                        }
+                        // Clear pending for this path
+                        if (pendingMetadata?.[pathStr]) {
+                            // Remove pending from persisted medata state
+                            delete pendingMetadata[pathStr];
+                            metadata.pending = pendingMetadata;
                         }
                     }
 
@@ -647,7 +653,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                             localState.pendingSaveResults.push(transformedChanges);
                         }
                     } else {
-                        let allChanges = [...(localState.pendingSaveResults || []), transformedChanges];
+                        let allChanges = [...(localState.pendingSaveResults || []), transformedChanges].filter(
+                            (v) => v !== undefined,
+                        );
                         if (allChanges.length > 0) {
                             if (allChanges.some((change) => isPromise(change))) {
                                 allChanges = await Promise.all(allChanges);

@@ -1,11 +1,11 @@
 import 'fake-indexeddb/auto';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
-import { observable } from '../src/observable';
+import { observable, syncState } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
 import { synced } from '../sync';
-import { mockLocalStorage, promiseTimeout } from './testglobals';
+import { getPersistName, mockLocalStorage, promiseTimeout } from './testglobals';
 
 const localStorage = mockLocalStorage();
 class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
@@ -164,5 +164,78 @@ describe('Adjusting data', () => {
 
         expect(value.get()).toEqual({ test: 'hello1' });
         expect(await when(setValue$)).toEqual('hello2');
+    });
+});
+describe('Pending', () => {
+    test('Pending created and updated', async () => {
+        const persistName = getPersistName();
+        let isOk = false;
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    return { test: 'hi' };
+                },
+                set: ({ value }) => {
+                    if (!isOk) {
+                        throw new Error('Did not save' + value);
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                },
+                retry: {
+                    times: 2,
+                    delay: 10,
+                    backoff: 'constant',
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+
+        // Sets pending
+        obs$.test.set('hello');
+        await promiseTimeout(0);
+        let pending = state$.getPendingChanges();
+        expect(pending).toEqual({ test: { p: 'hi', t: ['object'], v: 'hello' } });
+
+        // Updates pending
+        obs$.test.set('hello2');
+        await promiseTimeout(0);
+        pending = state$.getPendingChanges();
+        expect(pending).toEqual({ test: { p: 'hi', t: ['object'], v: 'hello2' } });
+
+        // Let it save
+        isOk = true;
+
+        await promiseTimeout(10);
+
+        pending = state$.getPendingChanges();
+        expect(pending).toEqual({});
+
+        isOk = false;
+
+        // Nothing changed
+        obs$.test.set('hello2');
+
+        await promiseTimeout(0);
+        pending = state$.getPendingChanges();
+        expect(pending).toEqual({});
+
+        // Changed again
+        obs$.test.set('hello');
+
+        await promiseTimeout(0);
+        pending = state$.getPendingChanges();
+        expect(pending).toEqual({ test: { p: 'hello2', t: ['object'], v: 'hello' } });
+
+        // Let it save
+        isOk = true;
+
+        await promiseTimeout(10);
+
+        pending = state$.getPendingChanges();
+        expect(pending).toEqual({});
     });
 });

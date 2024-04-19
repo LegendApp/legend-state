@@ -3,7 +3,7 @@ import { observable } from '../src/observable';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { configureObservableSync } from '../src/sync/configureObservableSync';
 import { syncObservable } from '../src/sync/syncObservable';
-import { mockLocalStorage } from './testglobals';
+import { getPersistName, mockLocalStorage } from './testglobals';
 
 const localStorage = mockLocalStorage();
 class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
@@ -50,9 +50,6 @@ configureObservableSync({
         plugin: ObservablePersistLocalStorage,
     },
 });
-
-let localNum = 0;
-const getPersistName = () => 'jestlocal' + localNum++;
 
 describe('Persist local localStorage', () => {
     test('Saves to local', async () => {

@@ -23,3 +23,6 @@ export function mockLocalStorage() {
 export function promiseTimeout(time?: number) {
     return new Promise((resolve) => setTimeout(resolve, time || 0));
 }
+
+let localNum = 0;
+export const getPersistName = () => 'jestlocal' + localNum++;
