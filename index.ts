@@ -51,6 +51,7 @@ export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
 // Internal:
 import { get, getProxy, observableFns, peek, set } from './src/ObservableObject';
+import { createPreviousHandler } from './src/batching';
 import {
     clone,
     ensureNodeValue,
@@ -71,6 +72,7 @@ import { runWithRetry } from './src/retry';
 import { tracking } from './src/tracking';
 
 export const internal = {
+    createPreviousHandler,
     clone,
     ensureNodeValue,
     findIDKey,

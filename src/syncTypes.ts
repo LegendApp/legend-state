@@ -39,6 +39,7 @@ export interface SyncedGetParams {
 
 export type SyncedSetParams<T> = SetParams<T> & {
     node: NodeValue;
+    valuePrevious: T;
     update: UpdateFn;
     refresh: () => void;
     cancelRetry: () => void;
@@ -132,6 +133,7 @@ export interface ObservableSyncSetParams<T> {
     options: SyncedOptions<T>;
     changes: Change[];
     value: T;
+    valuePrevious: T;
 }
 export interface ObservableSyncGetParams<T> {
     state: Observable<ObservableSyncState>;

@@ -36,7 +36,7 @@ import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import { syncObservableAdapter } from './syncObservableAdapter';
 
-const { globalState, symbolLinked, getNode, getNodeValue } = internal;
+const { createPreviousHandler, globalState, symbolLinked, getNode, getNodeValue } = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin | ObservableSyncClass>,
@@ -71,6 +71,7 @@ interface PreppedChangeRemote {
 }
 
 type ChangeWithPathStr = Change & { pathStr: string };
+type ChangeWithPathStrAndPrevious = ChangeWithPathStr & { valuePrevious: any };
 
 function parseLocalConfig(config: string | PersistOptions | undefined): {
     table: string;
@@ -185,6 +186,8 @@ interface QueuedChange<T = any> {
     localState: LocalState;
     syncOptions: SyncedOptions<T>;
     changes: ListenerParams['changes'];
+    valuePrevious?: T;
+    getPrevious: () => T;
 }
 
 let _queuedChanges: QueuedChange[] = [];
@@ -212,18 +215,23 @@ function mergeChanges(changes: Change[]) {
 function mergeQueuedChanges(allChanges: QueuedChange[]) {
     const changesByObsRemote = new Map<Observable, Change[]>();
     const changesByObsLocal = new Map<Observable, Change[]>();
-
+    const previousByObs = new Map<Observable, any>();
     const outRemote: Map<Observable, QueuedChange> = new Map();
     const outLocal: Map<Observable, QueuedChange> = new Map();
+
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
-        const { obs, changes, inRemoteChange } = value;
+        const { obs, changes, inRemoteChange, getPrevious } = value;
         const changesMap = inRemoteChange ? changesByObsRemote : changesByObsLocal;
         const existing = changesMap.get(obs);
         const newChanges = existing ? [...existing, ...changes] : changes;
         const merged = mergeChanges(newChanges);
         changesMap.set(obs, merged);
         value.changes = merged;
+        if (!previousByObs.has(obs)) {
+            previousByObs.set(obs, getPrevious());
+        }
+        value.valuePrevious = previousByObs.get(obs);
         (inRemoteChange ? outRemote : outLocal).set(obs, value);
     }
     return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
@@ -387,6 +395,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
         syncOptions: syncOptions,
         inRemoteChange,
         isApplyingPending,
+        valuePrevious,
     } = queuedChange;
 
     const persist = syncOptions.persist;
@@ -405,7 +414,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
             );
             return undefined;
         }
-        const changesRemote: ChangeWithPathStr[] = [];
+        const changesRemote: ChangeWithPathStrAndPrevious[] = [];
         const changesPaths = new Set<string>();
         let promisesTransform: (void | Promise<any>)[] = [];
 
@@ -492,6 +501,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                                 prevAtPath,
                                 valueAtPath: valueTransformed,
                                 pathStr,
+                                valuePrevious,
                             });
                         }),
                     );
@@ -549,7 +559,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     if (!changeInfo) return;
 
     const { queuedChange, changesRemote } = changeInfo;
-    const { obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
+    const { obs, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
     const { pluginPersist, pluginSync } = localState;
 
     const persist = syncOptions.persist;
@@ -587,6 +597,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             options: syncOptions,
             changes: changesRemote,
             value,
+            valuePrevious: previous,
         });
         if (isPromise(savedPromise)) {
             savedPromise = savedPromise.catch((err) => onSetError?.(err));
@@ -658,11 +669,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 }
 
 function onObsChange<T>(
-    obs: Observable<T>,
+    obs: ObservableParam<T>,
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
     syncOptions: SyncedOptions<T>,
-    { changes, loading, remote }: ListenerParams,
+    { changes, loading, remote, getPrevious }: ListenerParams,
 ) {
     if (!loading) {
         const inRemoteChange = remote;
@@ -676,6 +687,7 @@ function onObsChange<T>(
             changes,
             inRemoteChange,
             isApplyingPending: isApplyingPending!,
+            getPrevious,
         });
         if (_queuedChanges.length === 1) {
             queueMicrotask(processQueuedChanges);
@@ -925,13 +937,12 @@ export function syncObservable<T>(
                     }
 
                     // Send the changes into onObsChange so that they get synced remotely
-                    // TODO: Not sure why this needs to as unknown as Observable
-                    onObsChange(obs$ as unknown as Observable, syncState, localState, syncOptions, {
-                        value: obs$.peek(),
+                    const value = getNodeValue(node);
+                    onObsChange(obs$, syncState, localState, syncOptions, {
+                        value,
                         loading: false,
                         remote: false,
-                        // TODO getPrevious if any remote sync layers need it
-                        getPrevious: () => undefined,
+                        getPrevious: createPreviousHandler(value, changes),
                         changes,
                     });
                     localState.isApplyingPending = false;

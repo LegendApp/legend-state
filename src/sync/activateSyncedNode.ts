@@ -1,6 +1,5 @@
 import type {
     GetMode,
-    ListenerParams,
     NodeValue,
     Observable,
     ObservableOnChangeParams,
@@ -9,6 +8,7 @@ import type {
     ObservableSyncGetParams,
     ObservableSyncSetParams,
     SyncedGetParams,
+    SyncedSetParams,
     UpdateFn,
 } from '@legendapp/state';
 import { internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
@@ -71,7 +71,7 @@ export function enableActivateSyncedNode() {
                             };
 
                             await set({
-                                ...(params as unknown as ListenerParams),
+                                ...(params as unknown as SyncedSetParams<any>),
                                 node,
                                 update: (params) => {
                                     const { value, lastSync } = params;
