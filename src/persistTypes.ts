@@ -11,7 +11,7 @@ import type {
     ArrayValue,
     Change,
     ClassConstructor,
-    LinkedParams,
+    LinkedOptions,
     RecordValue,
     RetryOptions,
     Selector,
@@ -39,7 +39,7 @@ export interface LegacyPersistOptionsLocal<T = any> {
 export type LegacyPersistOptionsRemote<T = any> = ObservablePersistenceConfigRemoteGlobalOptions & {
     readonly?: boolean;
     waitForGet?: Selector<any>;
-    waitForSet?: LinkedParams['waitForSet'];
+    waitForSet?: LinkedOptions['waitForSet'];
     manual?: boolean;
     fieldTransforms?: FieldTransforms<T>;
     allowSetIfError?: boolean;

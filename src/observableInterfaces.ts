@@ -125,8 +125,8 @@ export interface ObserveEventCallback<T> {
 
 export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
 
-export interface LinkedParams<T = any> {
-    get?: () => T;
+export interface LinkedOptions<T = any> {
+    get?: () => Promise<T> | T;
     set?: (params: SetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
     waitForSet?:

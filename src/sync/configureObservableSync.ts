@@ -1,7 +1,7 @@
-import type { SyncedParamsGlobal } from '@legendapp/state';
+import type { SyncedOptionsGlobal } from '@legendapp/state';
 
-export const observableSyncConfiguration: SyncedParamsGlobal = {};
+export const observableSyncConfiguration: SyncedOptionsGlobal = {};
 
-export function configureObservableSync(options?: SyncedParamsGlobal) {
+export function configureObservableSync(options?: SyncedOptionsGlobal) {
     Object.assign(observableSyncConfiguration, options);
 }

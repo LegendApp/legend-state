@@ -33,7 +33,7 @@ import type {
     Change,
     ChildNodeValue,
     GetOptions,
-    LinkedParams,
+    LinkedOptions,
     ListenerParams,
     NodeValue,
     TrackingType,
@@ -956,7 +956,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 value = value();
             }
             const activated = !isObservable(value)
-                ? (value?.[symbolLinked] as LinkedParams & { synced: boolean })
+                ? (value?.[symbolLinked] as LinkedOptions & { synced: boolean })
                 : undefined;
             if (activated) {
                 node.activationState = activated;
@@ -980,7 +980,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 update = newUpdate;
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
-                const activated = node.activationState! as LinkedParams;
+                const activated = node.activationState! as LinkedOptions;
                 if (node.state?.peek()?.sync) {
                     node.state.sync();
                     ignoreThisUpdate = true;
@@ -1063,7 +1063,7 @@ function activateNodeBase(node: NodeValue, value: any) {
         ) as any;
     }
     if (node.activationState) {
-        const { set: setFn, get: getFn, initial } = node.activationState as LinkedParams;
+        const { set: setFn, get: getFn, initial } = node.activationState as LinkedOptions;
 
         value = getFn?.();
 

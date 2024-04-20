@@ -7,7 +7,7 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 import {
     Change,
     ClassConstructor,
-    LinkedParams,
+    LinkedOptions,
     NodeValue,
     RetryOptions,
     SetParams,
@@ -49,7 +49,7 @@ export type SyncedSetParams<T> = SetParams<T> & {
 
 export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
 
-export interface SyncedOptions<T = any> extends Omit<LinkedParams<T>, 'get' | 'set'> {
+export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
@@ -70,7 +70,7 @@ export interface SyncedOptions<T = any> extends Omit<LinkedParams<T>, 'get' | 's
     allowSetIfGetError?: boolean;
 }
 
-export interface SyncedParamsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'persist'> {
+export interface SyncedOptionsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'persist'> {
     persist?: ObservablePersistPluginOptions & { plugin?: ClassConstructor<ObservablePersistPlugin, T[]> };
 }
 
