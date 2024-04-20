@@ -33,7 +33,7 @@ export interface SyncedGetParams {
     value: any;
     lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
-    setMode: (mode: 'assign' | 'set') => void;
+    setMode: (mode: GetMode) => void;
     refresh: () => void;
 }
 
@@ -58,7 +58,7 @@ export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | '
     persist?: PersistOptions<any>;
     debounceSet?: number;
     syncMode?: 'auto' | 'manual';
-    getMode?: GetMode;
+    mode?: GetMode;
     transform?: SyncTransform<T>;
     // Not implemented yet
     enableSync?: boolean;

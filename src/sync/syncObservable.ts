@@ -857,7 +857,7 @@ export function syncObservable<T>(
                             });
                         },
                         onChange: async ({ value, mode, lastSync }) => {
-                            mode = syncOptions.getMode || mode || 'set';
+                            mode = mode || syncOptions.mode || 'set';
                             if (value !== undefined) {
                                 value = transformLoadData(value, syncOptions, true);
                                 if (isPromise(value)) {

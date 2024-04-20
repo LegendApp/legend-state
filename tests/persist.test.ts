@@ -239,3 +239,75 @@ describe('Pending', () => {
         expect(pending).toEqual({});
     });
 });
+describe('get mode', () => {
+    test('synced get sets by default', async () => {
+        const obs$ = observable(
+            synced<Record<string, string>>({
+                get: () => promiseTimeout(1, { key1: 'hi', key2: 'hi' }),
+                initial: { key0: 'hello' },
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ key0: 'hello' });
+        await promiseTimeout(1);
+        expect(obs$.get()).toEqual({ key1: 'hi', key2: 'hi' });
+    });
+    test('synced get assigns with option', async () => {
+        const obs$ = observable(
+            synced<Record<string, string>>({
+                get: () => promiseTimeout(1, { key1: 'hi', key2: 'hi' }),
+                initial: { key0: 'hello' },
+                mode: 'assign',
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ key0: 'hello' });
+        await promiseTimeout(1);
+        expect(obs$.get()).toEqual({ key0: 'hello', key1: 'hi', key2: 'hi' });
+    });
+    test('synced get merges with option', async () => {
+        const obs$ = observable(
+            synced<Record<string, any>>({
+                get: () => promiseTimeout(1, { key1: 'hi', key2: 'hi', obj: { a: true, c: true } }),
+                initial: { key0: 'hello', obj: { a: false, b: true } },
+                mode: 'merge',
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ key0: 'hello', obj: { a: false, b: true } });
+        await promiseTimeout(1);
+        expect(obs$.get()).toEqual({ key0: 'hello', key1: 'hi', key2: 'hi', obj: { a: true, b: true, c: true } });
+    });
+    test('synced get assigns with setMode', async () => {
+        const obs$ = observable(
+            synced<Record<string, string>>({
+                get: ({ setMode }) => {
+                    setMode('assign');
+                    return promiseTimeout(1, { key1: 'hi', key2: 'hi' });
+                },
+                initial: { key0: 'hello' },
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ key0: 'hello' });
+        await promiseTimeout(1);
+        expect(obs$.get()).toEqual({ key0: 'hello', key1: 'hi', key2: 'hi' });
+    });
+    test('linked setMode overrides option', async () => {
+        const obs$ = observable(
+            synced<Record<string, any>>({
+                get: ({ setMode }) => {
+                    setMode('merge');
+                    return promiseTimeout(1, { key1: 'hi', key2: 'hi', obj: { a: true, c: true } });
+                },
+                initial: { key0: 'hello', obj: { a: false, b: true } },
+                mode: 'assign',
+            }),
+        );
+
+        // Expect it should merge
+        expect(obs$.get()).toEqual({ key0: 'hello', obj: { a: false, b: true } });
+        await promiseTimeout(1);
+        expect(obs$.get()).toEqual({ key0: 'hello', key1: 'hi', key2: 'hi', obj: { a: true, b: true, c: true } });
+    });
+});

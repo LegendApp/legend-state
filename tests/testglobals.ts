@@ -20,8 +20,8 @@ export function mockLocalStorage() {
     return new LocalStorageMock() as unknown as Storage;
 }
 
-export function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
+export function promiseTimeout<T>(time?: number, value?: T) {
+    return new Promise<T>((resolve) => setTimeout(() => resolve(value!), time || 0));
 }
 
 let localNum = 0;
