@@ -1,18 +1,7 @@
-import { useEffect } from 'react';
 import { isPromise } from '@legendapp/state';
 import { useEffectOnce } from './useEffectOnce';
 
 export function useMount(fn: () => (void | (() => void)) | Promise<void>) {
-    return useEffect(() => {
-        const ret = fn();
-        // Allow the function to be async but if so ignore its return value
-        if (!isPromise(ret)) {
-            return ret;
-        }
-    }, []);
-}
-
-export function useMountOnce(fn: () => (void | (() => void)) | Promise<void>) {
     return useEffectOnce(() => {
         const ret = fn();
         // Allow the function to be async but if so ignore its return value
@@ -21,3 +10,6 @@ export function useMountOnce(fn: () => (void | (() => void)) | Promise<void>) {
         }
     }, []);
 }
+
+// TODOV4 Deprecate
+export const useMountOnce = useMount;
