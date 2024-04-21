@@ -15,6 +15,7 @@ import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
+import { Memo } from '../src/react/Memo';
 
 type TestObject = { id: string; label: string };
 
@@ -1195,5 +1196,46 @@ describe('Reactive', () => {
         // items = container.querySelectorAll('li');
         // expect(items.length).toEqual(2);
         // expect(items[0].id).toEqual('1');
+    });
+});
+describe('Memo', () => {
+    test('Memo works with function returning function', () => {
+        let num = 0;
+        let obs$: Observable<boolean>;
+        function A() {
+            return 'AA';
+        }
+        function B() {
+            return 'BB';
+        }
+        const Test = function Test() {
+            const [obsLocal$] = useObservableState(true);
+            num++;
+
+            obs$ = obsLocal$;
+
+            return createElement(
+                'div',
+                undefined,
+                createElement(Memo, undefined, (() => (obsLocal$.get() ? A : B)) as any),
+            );
+        };
+
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('div');
+
+        expect(items[0].textContent).toEqual('AA');
+
+        expect(num).toEqual(1);
+
+        act(() => {
+            obs$.set(false);
+        });
+
+        expect(num).toEqual(1);
+
+        items = container.querySelectorAll('div');
+        expect(items[0].textContent).toEqual('BB');
     });
 });
