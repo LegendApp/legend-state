@@ -788,7 +788,7 @@ async function loadLocal<T>(
 
         const node = getNode(obs);
 
-        (node.state as Observable<ObservablePersistState>).peek().clearLocal = () =>
+        (node.state as unknown as Observable<ObservablePersistState>).peek().clearLocal = () =>
             Promise.all([
                 persistenceLocal.deleteTable(table, config),
                 persistenceLocal.deleteMetadata(table, config),
@@ -838,7 +838,7 @@ export function persistObservable<T>(
         clearLocal: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
-    }));
+    }) as any);
 
     loadLocal(obs$, persistOptions, syncState, localState);
 

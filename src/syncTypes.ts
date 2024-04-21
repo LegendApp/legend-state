@@ -113,7 +113,7 @@ export interface ObservableSyncStateBase {
     isEnabledRemote: boolean;
     lastSync?: number;
     syncCount?: number;
-    clearLocal: () => Promise<void>;
+    clearPersist: () => Promise<void>;
     sync: () => Promise<void>;
     getPendingChanges: () =>
         | Record<

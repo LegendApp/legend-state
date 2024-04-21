@@ -790,7 +790,7 @@ async function loadLocal<T>(
             internal.globalState.isLoadingLocal = false;
         }
 
-        node.state!.peek().clearLocal = () =>
+        node.state!.peek().clearPersist = () =>
             Promise.all([
                 persistPlugin.deleteTable(table, config),
                 persistPlugin.deleteMetadata(table, config),
@@ -823,7 +823,7 @@ export function syncObservable<T>(
         isLoaded: !syncOptions.get,
         isEnabledLocal: true,
         isEnabledRemote: true,
-        clearLocal: undefined as unknown as () => Promise<void>,
+        clearPersist: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
     }));

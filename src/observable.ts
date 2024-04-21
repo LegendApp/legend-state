@@ -3,7 +3,7 @@ import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
 import { getNode } from './globals';
 import type { Observable, ObservableParam, ObservablePrimitive, RecursiveValueOrFunction } from './observableTypes';
-import { ObservablePersistState } from './persistTypes';
+import type { ObservableSyncState } from './syncTypes';
 
 export function observable<T>(): Observable<T | undefined>;
 export function observable<T>(
@@ -26,7 +26,7 @@ export function syncState(obs: ObservableParam) {
         peekInternal(node);
     }
     if (!node.state) {
-        node.state = observable({} as ObservablePersistState);
+        node.state = observable({} as ObservableSyncState);
     }
     return node.state!;
 }
