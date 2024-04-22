@@ -168,16 +168,26 @@ pluginTester({
             `,
             output: `
                 import { Computed } from '@legendapp/state/react';
+                const Test = <Computed>{() => <div>hi</div>}</Computed>;
+            `
+        },
+        'handles Computed with multiple children': {
+            code: `
+                import { Computed } from '@legendapp/state/react';
+                const Test = <Computed><div>hi</div><div>hi2</div></Computed>;
+            `,
+            output: `
+                import { Computed } from '@legendapp/state/react';
                 const Test = (
                     <Computed>
                         {() => (
                             <>
                                 <div>hi</div>
+                                <div>hi2</div>
                             </>
                         )}
                     </Computed>
-                );
-            `
+                );`
         },
         'handles Memo': {
             code: `
@@ -186,16 +196,26 @@ pluginTester({
             `,
             output: `
                 import { Memo } from '@legendapp/state/react';
+                const Test = <Memo>{() => <div>hi</div>}</Memo>;
+            `
+        },
+        'handles Memo with multiple children': {
+            code: `
+                import { Memo } from '@legendapp/state/react';
+                const Test = <Memo><div>hi</div><div>hi2</div></Memo>;
+            `,
+            output: `
+                import { Memo } from '@legendapp/state/react';
                 const Test = (
                     <Memo>
                         {() => (
                             <>
                                 <div>hi</div>
+                                <div>hi2</div>
                             </>
                         )}
                     </Memo>
-                );
-            `
+                );`
         },
         'handles Show': {
             code: `
@@ -204,16 +224,26 @@ pluginTester({
             `,
             output: `
                 import { Show } from '@legendapp/state/react';
+                const Test = <Show if={true}>{() => <div>hi</div>}</Show>;
+            `
+        },
+        'handles Show with multiple children': {
+            code: `
+                import { Show } from '@legendapp/state/react';
+                const Test = <Show if={true}><div>hi</div><div>hi2</div></Show>;
+            `,
+            output: `
+                import { Show } from '@legendapp/state/react';
                 const Test = (
                     <Show if={true}>
                         {() => (
                             <>
                                 <div>hi</div>
+                                <div>hi2</div>
                             </>
                         )}
                     </Show>
-                );
-            `
-        }
+                );`
+        },
     }
 });

@@ -74,6 +74,7 @@ export default function () {
 }
 
 function maybeWrapFragment(children: any[]) {
+    if (children.length === 1 && children[0].type == "JSXElement") return children[0];  
     if (children.length === 1 && children[0].type == "JSXExpressionContainer") return children[0].expression; 
     return jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children);
 }
