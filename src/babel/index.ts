@@ -1,5 +1,4 @@
 import {
-    arrayExpression,
     arrowFunctionExpression,
     jsxClosingElement,
     jsxClosingFragment,
@@ -31,7 +30,12 @@ export default function () {
                 },
             },
             JSXElement: {
-                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void, traverse: (path: any) => any }) {
+                enter(path: {
+                    node: any;
+                    replaceWith: (param: any) => any;
+                    skip: () => void;
+                    traverse: (path: any) => any;
+                }) {
                     if (!hasLegendImport) {
                         path.skip();
                         return;
@@ -44,25 +48,20 @@ export default function () {
                         const children = removeEmptyText(path.node.children);
                         if (children.length === 0) return;
 
-                        if (children[0].type === 'JSXElement' ||
-                            children[0].type === 'JSXExpressionContainer' && 
-                            children[0].expression.type !== 'ArrowFunctionExpression' && 
-                            children[0].expression.type !== 'FunctionExpression' &&
-                            children[0].expression.type !== 'MemberExpression' &&
-                            children[0].expression.type !== 'Identifier') {
+                        if (
+                            children[0].type === 'JSXElement' ||
+                            (children[0].type === 'JSXExpressionContainer' &&
+                                children[0].expression.type !== 'ArrowFunctionExpression' &&
+                                children[0].expression.type !== 'FunctionExpression' &&
+                                children[0].expression.type !== 'MemberExpression' &&
+                                children[0].expression.type !== 'Identifier')
+                        ) {
                             const attrs = openingElement.attributes;
                             path.replaceWith(
                                 jsxElement(
                                     jsxOpeningElement(jsxIdentifier(name), attrs),
                                     jsxClosingElement(jsxIdentifier(name)),
-                                    [
-                                        jsxExpressionContainer(
-                                            arrowFunctionExpression(
-                                                [],
-                                                maybeWrapFragment(children),
-                                            ),
-                                        ),
-                                    ],
+                                    [jsxExpressionContainer(arrowFunctionExpression([], maybeWrapFragment(children)))],
                                 ),
                             );
                         }
@@ -74,8 +73,8 @@ export default function () {
 }
 
 function maybeWrapFragment(children: any[]) {
-    if (children.length === 1 && children[0].type == "JSXElement") return children[0];  
-    if (children.length === 1 && children[0].type == "JSXExpressionContainer") return children[0].expression; 
+    if (children.length === 1 && children[0].type == 'JSXElement') return children[0];
+    if (children.length === 1 && children[0].type == 'JSXExpressionContainer') return children[0].expression;
     return jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children);
 }
 
