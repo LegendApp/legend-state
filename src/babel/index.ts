@@ -11,50 +11,57 @@ import {
 } from '@babel/types';
 
 export default function () {
-    let imported: Record<string, string>;
+    let hasLegendImport = false;
     return {
         visitor: {
-            Program() {
-                imported = {};
-            },
             ImportDeclaration: {
-                enter(path: { node: any; replaceWith: (param: any) => any }) {
+                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void }) {
                     if (path.node.source.value === '@legendapp/state/react') {
                         const specifiers = path.node.specifiers;
                         for (let i = 0; i < specifiers.length; i++) {
                             const s = specifiers[i].imported.name;
-                            if (!imported[s] && (s === 'Computed' || s === 'Memo')) {
-                                imported[s] = specifiers[i].local.name;
+                            if (!hasLegendImport && (s === 'Computed' || s === 'Memo' || s === 'Show')) {
+                                hasLegendImport = true;
+                                path.skip();
+                                break;
                             }
                         }
                     }
                 },
             },
             JSXElement: {
-                enter(path: { node: any; replaceWith: (param: any) => any }) {
-                    const openingElement = path.node.openingElement;
+                enter(path: {
+                    node: any;
+                    replaceWith: (param: any) => any;
+                    skip: () => void;
+                    traverse: (path: any) => any;
+                }) {
+                    if (!hasLegendImport) {
+                        path.skip();
+                        return;
+                    }
 
-                    const children_ = path.node.children;
+                    const openingElement = path.node.openingElement;
                     const name = openingElement.name.name;
 
                     if (name === 'Computed' || name === 'Memo' || name === 'Show') {
-                        const children = removEmptyText(children_);
+                        const children = removeEmptyText(path.node.children);
+                        if (children.length === 0) return;
 
-                        const attrs = openingElement.attributes;
-
-                        if (children.length > 0 && children[0].type === 'JSXElement') {
+                        if (
+                            children[0].type === 'JSXElement' ||
+                            (children[0].type === 'JSXExpressionContainer' &&
+                                children[0].expression.type !== 'ArrowFunctionExpression' &&
+                                children[0].expression.type !== 'FunctionExpression' &&
+                                children[0].expression.type !== 'MemberExpression' &&
+                                children[0].expression.type !== 'Identifier')
+                        ) {
+                            const attrs = openingElement.attributes;
                             path.replaceWith(
                                 jsxElement(
                                     jsxOpeningElement(jsxIdentifier(name), attrs),
                                     jsxClosingElement(jsxIdentifier(name)),
-                                    [
-                                        jsxExpressionContainer(
-                                            arrowFunctionExpression(
-                                                [],
-                                                jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children),
-                                            ),
-                                        ),
-                                    ],
+                                    [jsxExpressionContainer(arrowFunctionExpression([], maybeWrapFragment(children)))],
                                 ),
                             );
                         }
@@ -65,6 +72,12 @@ export default function () {
     };
 }
 
-function removEmptyText(nodes: any[]) {
+function maybeWrapFragment(children: any[]) {
+    if (children.length === 1 && children[0].type == 'JSXElement') return children[0];
+    if (children.length === 1 && children[0].type == 'JSXExpressionContainer') return children[0].expression;
+    return jsxFragment(jsxOpeningFragment(), jsxClosingFragment(), children);
+}
+
+function removeEmptyText(nodes: any[]) {
     return nodes.filter((node) => !(node.type === 'JSXText' && node.value.trim().length === 0));
 }
