@@ -3007,6 +3007,16 @@ describe('Functions', () => {
 
         expect(raw.test() === 'hi!');
     });
+    test('Functions apply', () => {
+        let count = 0;
+        const obs = observable({
+            test: () => {
+                count++;
+            },
+        });
+        obs.test.apply(this);
+        expect(count).toEqual(1);
+    });
 });
 
 describe('Extend observableFunctions', () => {

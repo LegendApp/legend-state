@@ -400,6 +400,13 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
+        if (p === 'apply') {
+            const nodeValue = getNodeValue(node);
+            if (isFunction(nodeValue)) {
+                return nodeValue.apply;
+            }
+        }
+
         let value = peekInternal(node, /*activateRecursive*/ p === 'get');
 
         // If this node is linked to another observable then forward to the target's handler.
