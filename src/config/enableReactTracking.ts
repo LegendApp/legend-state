@@ -1,14 +1,14 @@
 import {
+    type GetOptions,
     configureLegendState,
     internal,
-    type NodeValue,
-    tracking,
-    type TrackingType,
     isObject,
+    tracking,
+    type NodeValue,
+    type TrackingType,
 } from '@legendapp/state';
 import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
 import { createContext, useContext } from 'react';
-import type { RemoveObservables } from '../observableTypes';
 // @ts-expect-error Internals
 import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals } from 'react';
 
@@ -57,15 +57,4 @@ export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptio
             },
         },
     });
-}
-
-// Types:
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { GetOptions, ImmutableObservableBase } from '@legendapp/state';
-
-declare module '@legendapp/state' {
-    interface ImmutableObservableBase<T> {
-        get(options?: TrackingType | GetOptions | { suspense?: boolean }): RemoveObservables<T>;
-    }
 }
