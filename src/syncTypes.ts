@@ -108,8 +108,8 @@ export interface SyncTransform<TOrig = any, TSaved = TOrig> {
     save?: (value: TOrig) => TSaved | Promise<TSaved>;
 }
 export interface ObservableSyncStateBase {
-    isLoadedLocal: boolean;
-    isEnabledLocal: boolean;
+    isPersistLoaded: boolean;
+    isPersistEnabled: boolean;
     isEnabledRemote: boolean;
     lastSync?: number;
     syncCount?: number;

@@ -40,7 +40,7 @@ describe('Creating', () => {
             },
         });
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
         await when(state.isLoaded);
         expect(lastSet).toEqual(undefined);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });

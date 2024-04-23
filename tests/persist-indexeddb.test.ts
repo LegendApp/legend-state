@@ -65,7 +65,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
 
         obs['test'].set({ id: 'test', text: 'hi' });
 
@@ -81,7 +81,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
 
         obs.test.test2.set({ text: 'hi' });
 
@@ -97,7 +97,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
 
         obs['test'].set({ id: 'test', text: 'hi' });
 
@@ -112,7 +112,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state2.isLoadedLocal);
+        await when(state2.isPersistLoaded);
 
         expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
     });
@@ -126,7 +126,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
 
         obs.set({ test: { id: 'test', text: 'hi' } });
 
@@ -142,7 +142,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state2.isLoadedLocal);
+        await when(state2.isPersistLoaded);
 
         expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
     });
@@ -158,7 +158,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
 
         obs['test2'].set({ text: 'hi' });
 
@@ -173,7 +173,7 @@ describe('Persist IDB', () => {
             },
         });
 
-        await when(state2.isLoadedLocal);
+        await when(state2.isPersistLoaded);
 
         expect(obs2.get()).toEqual({ test2: { id: 'test2', text: 'hi' } });
     });

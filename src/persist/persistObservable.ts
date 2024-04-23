@@ -1003,7 +1003,10 @@ export function persistObservable<T>(
     const onAllLoadedLocal = () => {
         let parentNode: NodeValue | undefined = node;
         while (parentNode) {
-            if (parentNode.state?.isLoadedLocal?.get() === false) {
+            if (
+                (parentNode.state as unknown as ObservableObject<ObservablePersistState>)?.isLoadedLocal?.get() ===
+                false
+            ) {
                 return false;
             }
             parentNode = parentNode.parent;

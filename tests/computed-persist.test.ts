@@ -39,7 +39,7 @@ describe('caching with new computed', () => {
 
         const state = syncState(nodes);
 
-        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
@@ -98,7 +98,7 @@ describe('caching with new computed', () => {
 
         const state = syncState(nodes);
 
-        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
 
@@ -121,7 +121,7 @@ describe('caching with new computed', () => {
 
         const state = syncState(nodes);
 
-        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(true);
         expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
     });
@@ -204,7 +204,7 @@ describe('caching with new computed', () => {
 
         const state = syncState(nodes);
 
-        expect(state.isLoadedLocal.get()).toEqual(true);
+        expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
         expect(nodes.get()).toEqual('persistd');
 
@@ -381,7 +381,7 @@ describe('lastSync with new computed', () => {
 
         const state = syncState(nodes);
 
-        await when(state.isLoadedLocal);
+        await when(state.isPersistLoaded);
         await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 

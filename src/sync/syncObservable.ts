@@ -310,7 +310,7 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
     const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(persist);
     const configRemote = syncOptions;
-    const saveLocal = persist?.name && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
+    const saveLocal = persist?.name && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
     const saveRemote = !!(
         !inRemoteChange &&
         pluginSync?.set &&
@@ -319,7 +319,7 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
     );
 
     if (saveLocal || saveRemote) {
-        if (saveLocal && !syncState.isLoadedLocal.peek()) {
+        if (saveLocal && !syncState.isPersistLoaded.peek()) {
             console.error(
                 '[legend-state] WARNING: An observable was changed before being loaded from persist',
                 persist,
@@ -402,12 +402,12 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
     const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(persist!);
     const configRemote = syncOptions;
-    const saveLocal = persist && !configLocal.readonly && !isApplyingPending && syncState.isEnabledLocal.peek();
+    const saveLocal = persist && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
     const saveRemote =
         !inRemoteChange && pluginSync?.set && configRemote?.enableSync !== false && syncState.isEnabledRemote.peek();
 
     if (saveLocal || saveRemote) {
-        if (saveLocal && !syncState.isLoadedLocal.peek()) {
+        if (saveLocal && !syncState.isPersistLoaded.peek()) {
             console.error(
                 '[legend-state] WARNING: An observable was changed before being loaded from persist',
                 persist,
@@ -796,7 +796,7 @@ async function loadLocal<T>(
                 persistPlugin.deleteMetadata(table, config),
             ]) as unknown as Promise<void>;
     }
-    syncState.isLoadedLocal.set(true);
+    syncState.isPersistLoaded.set(true);
 }
 
 export function syncObservable<T>(
@@ -819,9 +819,9 @@ export function syncObservable<T>(
     let sync: () => Promise<void>;
 
     const syncState = (node.state = observable<ObservableSyncState>({
-        isLoadedLocal: false,
+        isPersistLoaded: false,
         isLoaded: !syncOptions.get,
-        isEnabledLocal: true,
+        isPersistEnabled: true,
         isEnabledRemote: true,
         clearPersist: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
@@ -962,10 +962,10 @@ export function syncObservable<T>(
     }
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
-    const onAllLoadedLocal = () => {
+    const onAllPersistLoaded = () => {
         let parentNode: NodeValue | undefined = node;
         while (parentNode) {
-            if (parentNode.state?.isLoadedLocal?.get() === false) {
+            if (parentNode.state?.isPersistLoaded?.get() === false) {
                 return false;
             }
             parentNode = parentNode.parent;
@@ -973,7 +973,7 @@ export function syncObservable<T>(
         return true;
     };
     // When all is loaded locally we can start syncing and listening for changes
-    when(onAllLoadedLocal, function (this: any) {
+    when(onAllPersistLoaded, function (this: any) {
         // If remote is not manual, then sync() is called automatically
         if (syncOptions.get && syncOptions.syncMode === 'auto') {
             sync();
