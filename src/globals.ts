@@ -99,7 +99,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     const isFunc = isFunction(newValue);
 
     // Compute newValue if newValue is a function or an observable
-    newValue = !parentNode.isAssigning && isFunc ? newValue(prevValue) : newValue;
+    newValue = !parentNode.isAssigning && isFunc && !isFunction(prevValue) ? newValue(prevValue) : newValue;
 
     if (
         !globalState.isMerging ||

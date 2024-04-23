@@ -239,6 +239,58 @@ describe('Pending', () => {
         expect(pending).toEqual({});
     });
 });
+describe('persist objects', () => {
+    test('persist object with functions', async () => {
+        const persistName = getPersistName();
+        const draftBom$ = observable({
+            items: [] as string[],
+            addItem(item: string) {
+                const newItems = Array.from(new Set(draftBom$.items.get()).add(item));
+                draftBom$.items.set(newItems);
+            },
+            deleteItem(item: string) {
+                const newItems = draftBom$.items.get().filter((i) => i !== item);
+                draftBom$.items.set(newItems);
+            },
+        });
+        syncObservable(draftBom$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        draftBom$.addItem('hi');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(persistName);
+        expect(localValue).toBe(`{"items":["hi"]}`);
+
+        const addItem = (item: string) => {
+            const newItems = Array.from(new Set(draftBom$.items.get()).add(item));
+            draftBom$.items.set(newItems);
+        };
+        const deleteItem = (item: string) => {
+            const newItems = draftBom$.items.get().filter((i) => i !== item);
+            draftBom$.items.set(newItems);
+        };
+
+        const draftBom2$ = observable({
+            items: [] as string[],
+            addItem,
+            deleteItem,
+        });
+        syncObservable(draftBom2$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        expect(JSON.stringify(draftBom2$.get())).toEqual(JSON.stringify({ addItem, deleteItem, items: ['hi'] }));
+    });
+});
 describe('get mode', () => {
     test('synced get sets by default', async () => {
         const obs$ = observable(
