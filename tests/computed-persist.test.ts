@@ -5,6 +5,7 @@ import { observable, syncState } from '../src/observable';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { when, whenReady } from '../src/when';
 import { mockLocalStorage, promiseTimeout } from './testglobals';
+import { observe } from '../src/observe';
 
 // @ts-expect-error This is ok to do in jest
 const localStorage = (globalThis._testlocalStorage = mockLocalStorage());
@@ -667,6 +668,25 @@ describe('Remote changes', () => {
         await promiseTimeout(0);
         expect(sets).toEqual(2);
         expect(setTo).toEqual('hiz');
+    });
+    test('Sets from observe during remote change are not remote', async () => {
+        const obs$ = observable('hi');
+        const target$ = observable('');
+
+        observe(() => {
+            target$.set(obs$.get());
+        });
+
+        target$.onChange(({ remote, value }) => {
+            expect(remote).toEqual(false);
+            expect(value).toEqual(obs$.get());
+        });
+
+        onChangeRemote(() => {
+            obs$.set('hello!');
+        });
+        expect(obs$.get()).toEqual('hello!');
+        expect(target$.get()).toEqual('hello!');
     });
 });
 describe('Debouncing', () => {

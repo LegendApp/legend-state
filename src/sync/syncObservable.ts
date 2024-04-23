@@ -1,22 +1,22 @@
 import type {
-    PersistMetadata,
-    PersistOptions,
     Change,
     ClassConstructor,
     ListenerParams,
     NodeValue,
     Observable,
-    ObservablePersistPlugin,
     ObservableObject,
     ObservableParam,
+    ObservablePersistPlugin,
     ObservableSyncClass,
     ObservableSyncState,
+    PersistMetadata,
+    PersistOptions,
     SyncTransform,
     SyncedOptions,
     TypeAtPath,
 } from '@legendapp/state';
 import {
-    batch,
+    beginBatch,
     constructObjectWithPath,
     deconstructObjectWithPath,
     endBatch,
@@ -93,9 +93,12 @@ export function onChangeRemote(cb: () => void) {
     // Remote changes should only update local state
     globalState.isLoadingRemote = true;
 
-    batch(cb);
-
+    beginBatch();
+    cb();
+    // Reset isLoadingRemote before ending the batch so it doesn't
+    // apply to any side effects
     globalState.isLoadingRemote = false;
+    endBatch(true);
 }
 
 export function transformSaveData(
