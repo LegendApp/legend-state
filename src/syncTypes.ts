@@ -110,7 +110,7 @@ export interface SyncTransform<TOrig = any, TSaved = TOrig> {
 export interface ObservableSyncStateBase {
     isPersistLoaded: boolean;
     isPersistEnabled: boolean;
-    isEnabledRemote: boolean;
+    isSyncEnabled: boolean;
     lastSync?: number;
     syncCount?: number;
     clearPersist: () => Promise<void>;

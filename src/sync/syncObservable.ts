@@ -318,7 +318,7 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
         !inRemoteChange &&
         pluginSync?.set &&
         configRemote?.enableSync !== false &&
-        syncState.isEnabledRemote.peek()
+        syncState.isSyncEnabled.peek()
     );
 
     if (saveLocal || saveRemote) {
@@ -407,7 +407,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
     const configRemote = syncOptions;
     const saveLocal = persist && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
     const saveRemote =
-        !inRemoteChange && pluginSync?.set && configRemote?.enableSync !== false && syncState.isEnabledRemote.peek();
+        !inRemoteChange && pluginSync?.set && configRemote?.enableSync !== false && syncState.isSyncEnabled.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isPersistLoaded.peek()) {
@@ -825,7 +825,7 @@ export function syncObservable<T>(
         isPersistLoaded: false,
         isLoaded: !syncOptions.get,
         isPersistEnabled: true,
-        isEnabledRemote: true,
+        isSyncEnabled: true,
         clearPersist: undefined as unknown as () => Promise<void>,
         sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
