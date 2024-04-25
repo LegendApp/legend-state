@@ -18,6 +18,8 @@ export type ExtractFCPropsType<T> = T extends FC<infer P> ? P : never;
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
+let didWarnProps = false;
+
 // TODOV2: Change bindKeys to an options object, where one of the options is "convertChildren" so that behavior can be optional
 function createReactiveComponent<P = object>(
     component: FC<P>,
@@ -75,19 +77,17 @@ function createReactiveComponent<P = object>(
                     }
                     // Convert reactive props
                     else if (key.startsWith('$') || key.endsWith('$')) {
-                        // TODOV3 Add this warning and then remove the deprecated endsWith option
-                        // if (
-                        //     process.env.NODE_ENV === 'development' &&
-                        //     !internal.globalState.noDepWarn &&
-                        //     key.endsWith('$')
-                        // ) {
-                        //     console.warn(
-                        //         `[legend-state] Reactive props will be changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
-                        //             '$',
-                        //             '',
-                        //         )}. See https://legendapp.com/open-source/state/migrating for more details.`,
-                        //     );
-                        // }
+                        // TODOV3 Add this warning
+                        // TODOV4 Remove the deprecated endsWith option
+                        if (process.env.NODE_ENV === 'development' && !didWarnProps && key.endsWith('$')) {
+                            didWarnProps = true;
+                            console.warn(
+                                `[legend-state] Reactive props were changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
+                                    '$',
+                                    '',
+                                )}. See https://legendapp.com/open-source/state/migrating for more details.`,
+                            );
+                        }
                         const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and listen to the selector for changes
 

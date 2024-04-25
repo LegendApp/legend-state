@@ -1,12 +1,21 @@
 import { configureLegendState, internal, NodeValue } from '@legendapp/state';
 import { useSelector, UseSelectorOptions } from '@legendapp/state/react';
 
-// TODO: Deprecate
+// TODO: Deprecated, remove in v4
+let didWarn = false;
 
 export function enableReactUse() {
     configureLegendState({
         observableFunctions: {
-            use: (node: NodeValue, options?: UseSelectorOptions) => useSelector(internal.getProxy(node), options),
+            use: (node: NodeValue, options?: UseSelectorOptions) => {
+                if (process.env.NODE_ENV === 'development' && !didWarn) {
+                    didWarn = true;
+                    console.warn(
+                        '[legend-state] enableReactUse() is deprecated. Please switch to using get() with observer, which is safer and more efficient. See https://legendapp.com/open-source/state/v3/react/react-api/',
+                    );
+                }
+                return useSelector(internal.getProxy(node), options);
+            },
         },
     });
 }
