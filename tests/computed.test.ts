@@ -1745,6 +1745,12 @@ describe('Link directly', () => {
         const obs2 = observable(obs);
         expect(obs2.get()).toEqual('hi');
     });
+    test('Delete child of a direct link', () => {
+        const obs = observable({ key1: 'hi', key2: 'hi2' });
+        const obs2 = observable(obs);
+        obs2.key1.delete();
+        expect(obs.get()).toEqual({ key2: 'hi2' });
+    });
 });
 describe('Complex computeds', () => {
     test('Computed returning a link as child', () => {

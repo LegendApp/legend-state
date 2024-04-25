@@ -487,6 +487,7 @@ const proxyHandler: ProxyHandler<any> = {
 
                     return function (cbOrig: any, thisArg: any) {
                         const isReduce = p === 'reduce';
+                        // Callbacks are given the Proxy rather than the underlying data
                         const cbWrapped = isReduce
                             ? (previousValue: any, currentValue: any, currentIndex: number, array: any[]) => {
                                   return cbOrig(
@@ -510,6 +511,7 @@ const proxyHandler: ProxyHandler<any> = {
                             type LooperType = Parameters<typeof Array.prototype.map>[0];
                             if ((cbWrapped as LooperType)(value[i], i, value)) {
                                 const proxy = getProxy(node, i + '');
+                                // find returns the first match, otherwise it returns an array
                                 if (isFind) {
                                     return proxy;
                                 }
