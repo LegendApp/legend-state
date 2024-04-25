@@ -45,6 +45,39 @@ describe('Creating', () => {
         expect(lastSet).toEqual(undefined);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
+    test('syncObservable with synced as options', async () => {
+        const nodes = observable<Record<string, { key: string }>>({});
+        let lastSet;
+        const state = syncObservable(
+            nodes,
+            synced({
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: 'nodes',
+                },
+                get: async () => {
+                    const nodes = await new Promise<{ key: string }[]>((resolve) =>
+                        setTimeout(() => resolve([{ key: 'key0' }]), 10),
+                    );
+                    return nodes.reduce(
+                        (acc, node) => {
+                            acc[node.key] = node;
+                            return acc;
+                        },
+                        {} as Record<string, { key: string }>,
+                    );
+                },
+                set: async ({ value }: { value: any; changes: Change[] }) => {
+                    lastSet = value;
+                },
+            }),
+        );
+
+        await when(state.isPersistLoaded);
+        await when(state.isLoaded);
+        expect(lastSet).toEqual(undefined);
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+    });
 });
 
 describe('Adjusting data', () => {

@@ -12,6 +12,7 @@ import type {
     PersistMetadata,
     PersistOptions,
     SyncTransform,
+    Synced,
     SyncedOptions,
     TypeAtPath,
 } from '@legendapp/state';
@@ -805,7 +806,17 @@ async function loadLocal<T>(
 export function syncObservable<T>(
     obs$: ObservableParam<T>,
     syncOptions: SyncedOptions<T>,
+): Observable<ObservableSyncState>;
+export function syncObservable<T>(obs$: ObservableParam<T>, syncOptions: Synced<T>): Observable<ObservableSyncState>;
+export function syncObservable<T>(
+    obs$: ObservableParam<T>,
+    syncOptionsOrSynced: SyncedOptions<T> | Synced<T>,
 ): Observable<ObservableSyncState> {
+    let syncOptions = syncOptionsOrSynced as SyncedOptions<T>;
+    // If it's a synced then get the SyncOptions from it
+    if (isFunction(syncOptions)) {
+        syncOptions = syncOptions()[symbolLinked];
+    }
     const node = getNode(obs$);
 
     // Merge remote sync options with global options
