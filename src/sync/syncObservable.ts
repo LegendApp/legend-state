@@ -36,7 +36,6 @@ import {
 import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import { syncObservableAdapter } from './syncObservableAdapter';
-import {} from 'src/helpers';
 
 const { createPreviousHandler, getValueAtPath, globalState, symbolLinked, getNode, getNodeValue } = internal;
 
