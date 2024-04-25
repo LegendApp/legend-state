@@ -67,7 +67,7 @@ import {
     symbolLinked,
     symbolDelete,
 } from './src/globals';
-import { initializePathType, setAtPath } from './src/helpers';
+import { getValueAtPath, initializePathType, setAtPath } from './src/helpers';
 import { runWithRetry } from './src/retry';
 import { tracking } from './src/tracking';
 
@@ -81,6 +81,7 @@ export const internal = {
     getNodeValue,
     getPathType,
     getProxy,
+    getValueAtPath,
     globalState,
     initializePathType,
     observableFns,

@@ -36,8 +36,9 @@ import {
 import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import { syncObservableAdapter } from './syncObservableAdapter';
+import {} from 'src/helpers';
 
-const { createPreviousHandler, globalState, symbolLinked, getNode, getNodeValue } = internal;
+const { createPreviousHandler, getValueAtPath, globalState, symbolLinked, getNode, getNodeValue } = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin | ObservableSyncClass>,
@@ -627,15 +628,16 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     for (let i = 0; i < pathStrs.length; i++) {
                         const pathStr = pathStrs[i];
                         // Clear pending for this path
-                        if (pending?.[pathStr]) {
-                            // Remove pending from local state
-                            delete pending[pathStr];
-                        }
-                        // Clear pending for this path
                         if (pendingMetadata?.[pathStr]) {
                             // Remove pending from persisted medata state
                             delete pendingMetadata[pathStr];
                             metadata.pending = pendingMetadata;
+                        }
+                        // Clear pending for this path if not already removed by above
+                        // pendingMetadata === pending sometimes
+                        if (pending?.[pathStr]) {
+                            // Remove pending from local state
+                            delete pending[pathStr];
                         }
                     }
 
@@ -879,7 +881,9 @@ export function syncObservable<T>(
                                 }
 
                                 const pending = localState.pendingChanges;
+                                const currentValue = obs$.peek();
                                 if (pending) {
+                                    let didChangeMetadata = false;
                                     Object.keys(pending).forEach((key) => {
                                         const p = key.split('/').filter((p) => p !== '');
                                         const { v, t } = pending[key];
@@ -891,24 +895,37 @@ export function syncObservable<T>(
                                                 value = v;
                                             }
                                         } else if ((value as any)[p[0]] !== undefined) {
-                                            (value as any) = setAtPath(
-                                                value as any,
-                                                p,
-                                                t,
-                                                v,
-                                                'merge',
-                                                obs$.peek(),
-                                                (path: string[], value: any) => {
-                                                    delete pending[key];
-                                                    pending[path.join('/')] = {
-                                                        p: null,
-                                                        v: value,
-                                                        t: t.slice(0, path.length),
-                                                    };
-                                                },
-                                            );
+                                            const curValue = getValueAtPath(currentValue as object, p);
+                                            const newValue = getValueAtPath(value as object, p);
+                                            if (JSON.stringify(curValue) === JSON.stringify(newValue)) {
+                                                delete pending[key];
+                                                didChangeMetadata = true;
+                                            } else {
+                                                (value as any) = setAtPath(
+                                                    value as any,
+                                                    p,
+                                                    t,
+                                                    v,
+                                                    'merge',
+                                                    obs$.peek(),
+                                                    (path: string[], value: any) => {
+                                                        delete pending[key];
+                                                        pending[path.join('/')] = {
+                                                            p: null,
+                                                            v: value,
+                                                            t: t.slice(0, path.length),
+                                                        };
+                                                    },
+                                                );
+                                            }
                                         }
                                     });
+
+                                    if (didChangeMetadata) {
+                                        updateMetadata(obs$, localState, syncState, syncOptions, {
+                                            pending,
+                                        });
+                                    }
                                 }
 
                                 onChangeRemote(() => {

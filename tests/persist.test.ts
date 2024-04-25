@@ -271,6 +271,130 @@ describe('Pending', () => {
         pending = state$.getPendingChanges();
         expect(pending).toEqual({});
     });
+    test('Pending applied if changed', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    return { test: { text: 'hi' } };
+                },
+                set: ({ value }) => {
+                    throw new Error('Did not save' + value);
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                },
+                offlineBehavior: 'retry',
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+
+        // Sets pending
+        obs$.test.set({ text: 'hello' });
+        await promiseTimeout(0);
+        const pending = state$.getPendingChanges();
+        expect(pending).toEqual({ test: { p: { text: 'hi' }, t: ['object'], v: { text: 'hello' } } });
+
+        // Copy pending to new one to emulate reload
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName2, localStorage.getItem(persistName)!);
+        localStorage.setItem(persistName2 + '__m', localStorage.getItem(persistName + '__m')!);
+
+        let valueSetTo = undefined;
+        const didSet$ = observable(false);
+        const obs2$ = observable(
+            synced({
+                get: () => {
+                    return { test: { text: 'hi' } };
+                },
+                set: ({ value, update }) => {
+                    valueSetTo = value;
+                    update({ value });
+                    didSet$.set(true);
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName2,
+                },
+                offlineBehavior: 'retry',
+            }),
+        );
+
+        const state2$ = syncState(obs2$);
+
+        obs2$.get();
+
+        await when(didSet$);
+        await promiseTimeout(0);
+
+        // Should have deleted the pending because it's the same
+        const pending2 = state2$.getPendingChanges();
+        expect(pending2).toEqual({});
+
+        expect(valueSetTo).toEqual({ test: { text: 'hello' } });
+    });
+    test('Pending removed if already equal', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    return { test: { text: 'hi' } };
+                },
+                set: ({ value }) => {
+                    throw new Error('Did not save' + value);
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                },
+                offlineBehavior: 'retry',
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+
+        // Sets pending
+        obs$.test.set({ text: 'hello' });
+        await promiseTimeout(0);
+        const pending = state$.getPendingChanges();
+        expect(pending).toEqual({ test: { p: { text: 'hi' }, t: ['object'], v: { text: 'hello' } } });
+
+        // Copy pending to new one to emulate reload
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName2, localStorage.getItem(persistName)!);
+        localStorage.setItem(persistName2 + '__m', localStorage.getItem(persistName + '__m')!);
+
+        const obs2$ = observable(
+            synced({
+                get: () => {
+                    return { test: { text: 'hello' } };
+                },
+                set: ({ value }) => {
+                    throw new Error('Did not save' + value);
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName2,
+                },
+                offlineBehavior: 'retry',
+            }),
+        );
+
+        const state2$ = syncState(obs2$);
+
+        obs2$.get();
+        await promiseTimeout(0);
+
+        // Should have deleted the pending because it's the same
+        const pending2 = state2$.getPendingChanges();
+        expect(pending2).toEqual({});
+    });
 });
 describe('persist objects', () => {
     test('persist object with functions', async () => {
