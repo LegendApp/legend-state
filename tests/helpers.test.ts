@@ -112,6 +112,21 @@ describe('mergeIntoObservable', () => {
         expect(merged).toEqual([{ key: '0' }, { key: '1' }]);
         expect(isObservable(merged)).toBe(false);
     });
+    test('Can merge if parent null', () => {
+        interface Data {
+            test?: {
+                test2?: {
+                    test3?: string;
+                };
+            };
+        }
+        const obs = observable<Data>({ test: () => null });
+        obs.test.get();
+        obs.test.set(null as any);
+
+        mergeIntoObservable(obs.test, { test2: { test3: 'hi' } });
+        expect(obs.test.test2.test3.get()).toEqual('hi');
+    });
 });
 
 describe('isObservableValueReady', () => {

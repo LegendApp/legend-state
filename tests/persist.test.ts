@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { observable, syncState } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
 import { synced } from '../sync';

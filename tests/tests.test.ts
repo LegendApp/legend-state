@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { batch, beginBatch, endBatch } from '../src/batching';
-import { linked } from '../src/linked';
 import { configureLegendState } from '../src/config';
 import { enable$get } from '../src/config/enable$get';
 import { enable_peek } from '../src/config/enable_peek';
 import { event } from '../src/event';
 import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { setAtPath } from '../src/helpers';
+import { linked } from '../src/linked';
 import { observable, observablePrimitive, syncState } from '../src/observable';
 import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
 import { Observable as ObservableNew } from '../src/observableTypes';

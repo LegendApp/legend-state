@@ -1,4 +1,4 @@
-import { isArray, isChildNodeValue, isDate, isFunction, isObject } from './is';
+import { isArray, isChildNodeValue, isDate, isFunction, isNullOrUndefined, isObject } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -103,7 +103,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
 
     if (
         !globalState.isMerging ||
-        prevValue === undefined ||
+        isNullOrUndefined(prevValue) ||
         isFunction(prevValue) ||
         !node.parent?.functions?.get(key)
     ) {
