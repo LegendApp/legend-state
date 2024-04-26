@@ -219,7 +219,7 @@ describe('Pending', () => {
                 },
                 retry: {
                     times: 2,
-                    delay: 10,
+                    delay: 1,
                     backoff: 'constant',
                 },
             }),
@@ -394,6 +394,26 @@ describe('Pending', () => {
         // Should have deleted the pending because it's the same
         const pending2 = state2$.getPendingChanges();
         expect(pending2).toEqual({});
+    });
+    test('set to same as previous removes from remote changes', async () => {
+        let didSave = false;
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    return 'hi';
+                },
+                set: () => {
+                    didSave = true;
+                },
+            }),
+        );
+
+        obs$.set('hello');
+        obs$.set('hi');
+
+        await promiseTimeout(0);
+
+        expect(didSave).toEqual(false);
     });
 });
 describe('persist objects', () => {

@@ -207,7 +207,12 @@ function mergeChanges(changes: Change[]) {
         const pathStr = change.path.join('/');
         const existing = changesByPath.get(pathStr);
         if (existing) {
-            existing.valueAtPath = change.valueAtPath;
+            // If setting a value back to what it was, no need to save it
+            if (change.valueAtPath === existing.prevAtPath) {
+                changesOut.splice(changesOut.indexOf(change), 1);
+            } else {
+                existing.valueAtPath = change.valueAtPath;
+            }
         } else {
             changesByPath.set(pathStr, change);
             changesOut.push(change);
@@ -226,6 +231,7 @@ function mergeQueuedChanges(allChanges: QueuedChange[]) {
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
         const { obs, changes, inRemoteChange, getPrevious } = value;
+        const targetMap = inRemoteChange ? outRemote : outLocal;
         const changesMap = inRemoteChange ? changesByObsRemote : changesByObsLocal;
         const existing = changesMap.get(obs);
         const newChanges = existing ? [...existing, ...changes] : changes;
@@ -236,7 +242,7 @@ function mergeQueuedChanges(allChanges: QueuedChange[]) {
             previousByObs.set(obs, getPrevious());
         }
         value.valuePrevious = previousByObs.get(obs);
-        (inRemoteChange ? outRemote : outLocal).set(obs, value);
+        targetMap.set(obs, value);
     }
     return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
 }
