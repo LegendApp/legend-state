@@ -58,6 +58,9 @@ export function setAtPath<T extends object>(
                     restore?.(path.slice(0, i + 1), o[p]);
                 }
                 return obj;
+            } else if (o[p] === undefined && value === undefined && i === path.length - 1) {
+                // If setting undefined and the key is undefined, no need to initialize or set it
+                return obj;
             } else if (o[p] === undefined || o[p] === null) {
                 o[p] = initializePathType(pathTypes[i]);
             }

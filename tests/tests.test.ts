@@ -3126,17 +3126,30 @@ describe('setAtPath', () => {
     test('At root', () => {
         const value = {};
 
-        setAtPath(value, [], [], { x: true });
+        const res = setAtPath(value, [], [], { x: true });
+
+        expect(res).toEqual({ x: true });
     });
     test('At one level deep', () => {
         const value = {};
 
-        setAtPath(value, ['x'], ['object'], true);
+        const res = setAtPath(value, ['x'], ['object'], true);
+
+        expect(res).toEqual({ x: true });
     });
     test('Two levels deep', () => {
         const value = { test: {} };
 
-        setAtPath(value, ['test', 'x'], ['object', 'object'], true);
+        const res = setAtPath(value, ['test', 'x'], ['object', 'object'], true);
+
+        expect(res).toEqual({ test: { x: true } });
+    });
+    test('Set to undefined should not ensure path', () => {
+        const value = {};
+
+        const res = setAtPath(value, ['test'], ['object'], undefined);
+        expect(Object.keys(res)).toEqual([]);
+        expect(res).toEqual({});
     });
 });
 describe('new computed', () => {
