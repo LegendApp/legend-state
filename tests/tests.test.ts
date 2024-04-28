@@ -2173,6 +2173,20 @@ describe('when', () => {
         await promiseTimeout(20);
         expect(didResolve).toEqual(true);
     });
+    test('when with function returning promise', async () => {
+        let didResolve = false;
+        const fn = async () => {
+            await promiseTimeout(0);
+            return true;
+        };
+        when(
+            () => fn(),
+            () => (didResolve = true),
+        );
+        expect(didResolve).toEqual(false);
+        await promiseTimeout(0);
+        expect(didResolve).toEqual(true);
+    });
     test('when type of return', async () => {
         const obs = observable({ val: 10 });
         let resolved: string | undefined;

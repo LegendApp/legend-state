@@ -16,7 +16,12 @@ function _when<T, T2>(predicate: Selector<T>, effect?: (value: T) => T2, checkRe
     function run(e: ObserveEvent<T>) {
         const ret = computeSelector(predicate);
 
-        if (!isPromise(ret) && (checkReady ? isObservableValueReady(ret) : ret)) {
+        if (isPromise(ret)) {
+            value = ret as any;
+            // We want value to be the Promise but return undefined
+            // so it doesn't run the effect with the Promise as the value
+            return undefined;
+        } else if (!isPromise(ret) && (checkReady ? isObservableValueReady(ret) : ret)) {
             value = ret;
 
             // Set cancel so that observe does not track anymore
