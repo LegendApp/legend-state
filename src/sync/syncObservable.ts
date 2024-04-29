@@ -624,11 +624,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
             const { changes, lastSync } = saved;
             if (pathStrs.length > 0) {
+                let transformedChanges: object | undefined = undefined;
+                const metadata: PersistMetadata = {};
                 if (persist) {
-                    const metadata: PersistMetadata = {};
                     const pendingMetadata = pluginPersist!.getMetadata(table, configLocal)?.pending;
                     const pending = localState.pendingChanges;
-                    let transformedChanges: object | undefined = undefined;
 
                     for (let i = 0; i < pathStrs.length; i++) {
                         const pathStr = pathStrs[i];
@@ -649,37 +649,39 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     if (lastSync) {
                         metadata.lastSync = lastSync;
                     }
+                }
 
-                    // Remote can optionally have data that needs to be merged back into the observable,
-                    // for example Firebase may update dateModified with the server timestamp
-                    if (changes && !isEmpty(changes)) {
-                        transformedChanges = transformLoadData(changes, syncOptions, false);
+                // Remote can optionally have data that needs to be merged back into the observable,
+                // for example Firebase may update dateModified with the server timestamp
+                if (changes && !isEmpty(changes)) {
+                    transformedChanges = transformLoadData(changes, syncOptions, false);
+                }
+
+                if (localState.numSavesOutstanding > 0) {
+                    if (transformedChanges) {
+                        if (!localState.pendingSaveResults) {
+                            localState.pendingSaveResults = [];
+                        }
+                        localState.pendingSaveResults.push(transformedChanges);
+                    }
+                } else {
+                    let allChanges = [...(localState.pendingSaveResults || []), transformedChanges].filter(
+                        (v) => v !== undefined,
+                    );
+                    if (allChanges.length > 0) {
+                        if (allChanges.some((change) => isPromise(change))) {
+                            allChanges = await Promise.all(allChanges);
+                        }
+                        onChangeRemote(() => mergeIntoObservable(obs, ...allChanges));
                     }
 
-                    if (localState.numSavesOutstanding > 0) {
-                        if (transformedChanges) {
-                            if (!localState.pendingSaveResults) {
-                                localState.pendingSaveResults = [];
-                            }
-                            localState.pendingSaveResults.push(transformedChanges);
-                        }
-                    } else {
-                        let allChanges = [...(localState.pendingSaveResults || []), transformedChanges].filter(
-                            (v) => v !== undefined,
-                        );
-                        if (allChanges.length > 0) {
-                            if (allChanges.some((change) => isPromise(change))) {
-                                allChanges = await Promise.all(allChanges);
-                            }
-                            onChangeRemote(() => mergeIntoObservable(obs, ...allChanges));
-                        }
-
+                    if (persist) {
                         if (shouldSaveMetadata && !isEmpty(metadata)) {
                             updateMetadata(obs, localState, syncState, syncOptions, metadata);
                         }
-
-                        localState.pendingSaveResults = [];
                     }
+
+                    localState.pendingSaveResults = [];
                 }
                 onAfterSet?.();
             }

@@ -20,13 +20,15 @@ export type CrudResult<T> = T;
 
 export interface SyncedCrudPropsSingle<TGet> {
     get?: (params: SyncedGetParams) => Promise<CrudResult<TGet | null>> | CrudResult<TGet | null>;
+    initial?: TGet;
 }
 export interface SyncedCrudPropsMany<TGet, TOption extends CrudAsOption> {
     list?: (params: SyncedGetParams) => Promise<CrudResult<TGet[]>> | CrudResult<TGet[]>;
     as?: TOption;
+    initial?: InitialValue<TGet, TOption>;
 }
 export interface SyncedCrudPropsBase<TGet extends { id: string }, TSet = TGet, TOut = TGet>
-    extends Omit<SyncedOptions<TGet>, 'get' | 'set' | 'subscribe' | 'transform'> {
+    extends Omit<SyncedOptions<TGet>, 'get' | 'set' | 'subscribe' | 'transform' | 'initial'> {
     generateId?: () => string;
     create?: (input: TSet, params: SyncedSetParams<TSet>) => Promise<CrudResult<TGet>>;
     update?: (input: Partial<TGet>, params: SyncedSetParams<TSet>) => Promise<CrudResult<Partial<TGet>>>;
@@ -38,6 +40,14 @@ export interface SyncedCrudPropsBase<TGet extends { id: string }, TSet = TGet, T
 }
 
 type OutputType<TGet, TSet> = [TSet] extends [unknown] ? TGet : Partial<TGet> & TSet;
+
+type InitialValue<T, TOption extends CrudAsOption> = TOption extends 'Map'
+    ? Map<string, T>
+    : TOption extends 'object'
+    ? Record<string, T>
+    : TOption extends 'first'
+    ? T
+    : T[];
 
 export type SyncedCrudReturnType<TGet, TSet, TOption extends CrudAsOption> = Promise<
     TOption extends 'Map'

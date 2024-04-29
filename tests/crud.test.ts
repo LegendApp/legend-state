@@ -27,7 +27,7 @@ type GetTestParams =
     | { get: () => BasicValue | null; list?: never; as?: never }
     | { list: () => BasicValue[]; as: 'first'; get?: never };
 
-describe('Crud record get', () => {
+describe('Crud object get', () => {
     const getTests = {
         get: async (params: GetTestParams) => {
             const obs = observable(syncedCrud(params));
@@ -292,7 +292,7 @@ describe('Crud record get', () => {
             as: 'first',
         }));
 });
-describe('Crud as Object', () => {
+describe('Crud as Object list', () => {
     test('as Object list', async () => {
         const obs = observable(
             syncedCrud({
@@ -933,6 +933,127 @@ describe('Crud record transform', () => {
         expect(obs.get()).toEqual({
             id: 'id1',
             test2: 'hello',
+        });
+    });
+});
+describe('fieldUpdatedAt', () => {
+    test('fieldUpdatedAt creates if no updatedAt', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                initial: { id1: ItemBasicValue() },
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        await promiseTimeout(0);
+
+        obs.id1.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual(undefined);
+        expect(created).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
+    });
+    test('fieldUpdatedAt updates with updatedAt', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } },
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        await promiseTimeout(0);
+
+        obs.id1.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+            updatedAt: 'before',
+        });
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                updatedAt: 'before',
+            },
+        });
+    });
+    test('fieldUpdatedAt updates with updatedAt', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } },
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    expect(input).toEqual({
+                        id: 'id1',
+                        test: 'hello',
+                        updatedAt: 'before',
+                    });
+                    return input;
+                },
+                onSaved: (saved) => {
+                    return { ...saved, updatedAt: 'now' };
+                },
+            }),
+        );
+
+        await promiseTimeout(0);
+
+        obs.id1.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+            updatedAt: 'now',
+        });
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                updatedAt: 'now',
+            },
         });
     });
 });
