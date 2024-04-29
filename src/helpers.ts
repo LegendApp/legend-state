@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { isArray, isEmpty, isFunction, isObject } from './is';
+import { isArray, isEmpty, isFunction, isNumber, isObject } from './is';
 import type { ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -16,7 +16,7 @@ export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, r
 export function getObservableIndex(obs: ObservableParam): number {
     const node = getNode(obs);
     const n = +node.key! as number;
-    return n - n < 1 ? +n : -1;
+    return isNumber(n) ? n : -1;
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {

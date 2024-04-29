@@ -30,6 +30,10 @@ export function isBoolean(obj: unknown): obj is boolean {
 export function isPromise<T>(obj: unknown): obj is Promise<T> {
     return obj instanceof Promise;
 }
+export function isNumber(obj: unknown): obj is number {
+    const n = obj as number;
+    return n - n < 1;
+}
 export function isEmpty(obj: object): boolean {
     // Looping and returning false on the first property is faster than Object.keys(obj).length === 0
     // https://jsbench.me/qfkqv692c8

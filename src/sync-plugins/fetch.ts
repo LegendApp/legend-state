@@ -1,5 +1,5 @@
 import { Synced, SyncedOptions, SyncedSetParams, isString } from '@legendapp/state';
-import { synced } from '@legendapp/state/persist';
+import { synced } from '@legendapp/state/sync';
 
 export interface SyncedFetchProps extends Omit<SyncedOptions, 'get' | 'set'> {
     get: string | RequestInfo;

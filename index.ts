@@ -24,6 +24,7 @@ export {
     isEmpty,
     isFunction,
     isNullOrUndefined,
+    isNumber,
     isObject,
     isPrimitive,
     isPromise,
