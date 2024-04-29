@@ -510,8 +510,8 @@ describe('get mode', () => {
     test('synced get assigns with setMode', async () => {
         const obs$ = observable(
             synced<Record<string, string>>({
-                get: ({ setMode }) => {
-                    setMode('assign');
+                get: (params) => {
+                    params.mode = 'assign';
                     return promiseTimeout(1, { key1: 'hi', key2: 'hi' });
                 },
                 initial: { key0: 'hello' },
@@ -522,11 +522,11 @@ describe('get mode', () => {
         await promiseTimeout(1);
         expect(obs$.get()).toEqual({ key0: 'hello', key1: 'hi', key2: 'hi' });
     });
-    test('linked setMode overrides option', async () => {
+    test('linked setting mode overrides option', async () => {
         const obs$ = observable(
             synced<Record<string, any>>({
-                get: ({ setMode }) => {
-                    setMode('merge');
+                get: (params) => {
+                    params.mode = 'merge';
                     return promiseTimeout(1, { key1: 'hi', key2: 'hi', obj: { a: true, c: true } });
                 },
                 initial: { key0: 'hello', obj: { a: false, b: true } },

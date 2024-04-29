@@ -35,18 +35,21 @@ export function enableActivateSyncedNode() {
                 pluginRemote.get = (params: ObservableSyncGetParams<any>) => {
                     onChange = params.onChange;
                     const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
-                    const setMode = (mode: GetMode) => (params.mode = mode);
 
                     const existingValue = getNodeValue(node);
                     const value = runWithRetry(node, { attemptNum: 0 }, () => {
-                        return get!({
+                        const paramsToGet = {
                             value:
                                 isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
                             lastSync: params.lastSync!,
                             updateLastSync,
-                            setMode,
+                            mode: params.mode!,
                             refresh,
-                        });
+                        };
+
+                        const ret = get!(paramsToGet);
+                        params.mode = paramsToGet.mode;
+                        return ret;
                     });
 
                     promiseReturn = value;

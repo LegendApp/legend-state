@@ -33,7 +33,7 @@ export interface SyncedGetParams {
     value: any;
     lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
-    setMode: (mode: GetMode) => void;
+    mode: GetMode;
     refresh: () => void;
 }
 

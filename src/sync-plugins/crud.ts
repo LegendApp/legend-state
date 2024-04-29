@@ -178,10 +178,10 @@ export function syncedCrud<
     const get: undefined | ((params: SyncedGetParams) => Promise<TOut>) =
         getFn || listFn
             ? async (getParams: SyncedGetParams) => {
-                  const { updateLastSync, lastSync, setMode } = getParams;
+                  const { updateLastSync, lastSync } = getParams;
                   if (listFn) {
                       if (lastSync) {
-                          setMode('assign');
+                          getParams.mode = 'assign';
                       }
 
                       let data = await listFn(getParams);
