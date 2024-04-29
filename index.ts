@@ -23,6 +23,7 @@ export {
     isDate,
     isEmpty,
     isFunction,
+    isMap,
     isNullOrUndefined,
     isNumber,
     isObject,

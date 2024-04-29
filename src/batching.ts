@@ -1,3 +1,4 @@
+import { isMap } from './is';
 import { clone, getChildNode, getNodeValue, getPathType, globalState, optimized } from './globals';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
@@ -57,7 +58,7 @@ function createPreviousHandlerInner(value: any, changes: Change[]) {
                     o = o[path[i]];
                 }
                 const key = path[i];
-                if (o instanceof Map) {
+                if (isMap(o)) {
                     o.set(key, prevAtPath);
                 } else {
                     o[key] = prevAtPath;

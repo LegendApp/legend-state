@@ -1,4 +1,4 @@
-import { isArray, isChildNodeValue, isDate, isFunction, isNullOrUndefined, isObject } from './is';
+import { isArray, isChildNodeValue, isDate, isMap, isFunction, isNullOrUndefined, isObject } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -21,11 +21,11 @@ export const globalState = {
 };
 
 export function getPathType(value: any): TypeAtPath {
-    return isArray(value) ? 'array' : value instanceof Map ? 'map' : value instanceof Set ? 'set' : 'object';
+    return isArray(value) ? 'array' : isMap(value) ? 'map' : value instanceof Set ? 'set' : 'object';
 }
 
 function replacer(key: string, value: any) {
-    if (value instanceof Map) {
+    if (isMap(value)) {
         return {
             __LSType: 'Map',
             value: Array.from(value.entries()), // or with spread: value: [...value]
@@ -135,7 +135,7 @@ export function getNodeValue(node: NodeValue): any {
     let child = node.root._;
     for (let i = count - 1; child && i >= 0; i--) {
         const key = arrNodeKeys[i] as any;
-        child = key !== 'size' && (child instanceof Map || child instanceof WeakMap) ? child.get(key) : child[key];
+        child = key !== 'size' && (isMap(child) || child instanceof WeakMap) ? child.get(key) : child[key];
     }
     return child;
 }

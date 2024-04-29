@@ -30,6 +30,9 @@ export function isBoolean(obj: unknown): obj is boolean {
 export function isPromise<T>(obj: unknown): obj is Promise<T> {
     return obj instanceof Promise;
 }
+export function isMap(obj: unknown): obj is Map<any, any> {
+    return obj instanceof Map;
+}
 export function isNumber(obj: unknown): obj is number {
     const n = obj as number;
     return n - n < 1;

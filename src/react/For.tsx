@@ -1,5 +1,5 @@
 import type { Observable, ObservableObject, ObservableParam } from '@legendapp/state';
-import { internal, isArray, isFunction } from '@legendapp/state';
+import { internal, isArray, isFunction, isMap } from '@legendapp/state';
 import { FC, ReactElement, createElement, memo, useMemo, useRef } from 'react';
 import { observer } from './reactive-observer';
 import { useSelector } from './useSelector';
@@ -92,15 +92,15 @@ export function For<T, TProps>({
         }
     } else {
         // Render the values of the object / Map
-        const isMap = value instanceof Map;
-        const keys = isMap ? Array.from(value.keys()) : Object.keys(value);
+        const asMap = isMap(value);
+        const keys = asMap ? Array.from(value.keys()) : Object.keys(value);
         if (sortValues) {
-            keys.sort((A, B) => sortValues(isMap ? value.get(A)! : value[A], isMap ? value.get(B)! : value[B], A, B));
+            keys.sort((A, B) => sortValues(asMap ? value.get(A)! : value[A], asMap ? value.get(B)! : value[B], A, B));
         }
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            if (isMap ? value.get(key) : value[key]) {
-                const item$ = isMap ? each!.get(key) : (each as ObservableObject<Record<string, any>>)[key];
+            if (asMap ? value.get(key) : value[key]) {
+                const item$ = asMap ? each!.get(key) : (each as ObservableObject<Record<string, any>>)[key];
                 const props: ForItemProps<any> & { key: string; item: Observable<any> } = {
                     key,
                     id: key,

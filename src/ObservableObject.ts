@@ -24,6 +24,7 @@ import {
     isChildNodeValue,
     isEmpty,
     isFunction,
+    isMap,
     isNullOrUndefined,
     isObject,
     isPrimitive,
@@ -157,10 +158,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     let prevChildrenById: Map<string, ChildNodeValue> | undefined;
     let moved: [string, ChildNodeValue][] | undefined;
 
-    const isMap = obj instanceof Map;
-    const isPrevMap = prevValue instanceof Map;
+    const isCurMap = isMap(obj);
+    const isPrevMap = isMap(prevValue);
 
-    const keys = getKeys(obj, isArr, isMap);
+    const keys = getKeys(obj, isArr, isCurMap);
     const keysPrev = getKeys(prevValue, isArr, isPrevMap);
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
@@ -245,7 +246,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
         for (let i = 0; i < length; i++) {
             const key = isArr ? i + '' : keys[i];
-            let value = isMap ? obj.get(key) : (obj as any)[key];
+            let value = isCurMap ? obj.get(key) : (obj as any)[key];
             const prev = isPrevMap ? prevValue?.get(key) : prevValue?.[key];
 
             let isDiff = !equals(value, prev);
@@ -263,7 +264,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     const valueNode = getNode(value);
                     if (existingChild?.linkedToNode === valueNode) {
                         const targetValue = getNodeValue(valueNode);
-                        isMap ? obj.set(key, targetValue) : ((obj as any)[key] = targetValue);
+                        isCurMap ? obj.set(key, targetValue) : ((obj as any)[key] = targetValue);
                         continue;
                     }
                     const obs = value;
@@ -417,7 +418,7 @@ const proxyHandler: ProxyHandler<any> = {
             return proxyHandler.get!(targetNode, p, receiver);
         }
 
-        if (value instanceof Map || value instanceof WeakMap || value instanceof Set || value instanceof WeakSet) {
+        if (isMap(value) || value instanceof WeakMap || value instanceof Set || value instanceof WeakSet) {
             const ret = handlerMapSet(node, p, value);
             if (ret !== undefined) {
                 return ret;
@@ -722,6 +723,8 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<a
                         updateNodesAndNotify(getChildNode(node, a), b, prev);
                     }
                     return ret;
+                } else if (l === 1 && isMap(value)) {
+                    set(node, a);
                 }
             } else if (p === 'delete') {
                 if (l > 0) {
