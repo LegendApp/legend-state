@@ -809,6 +809,54 @@ describe('Crud as Array', () => {
             },
         ]);
     });
+    test('as Array set deep child', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'array',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs[0].parent.child.baby.set('test');
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hi',
+            parent: {
+                child: {
+                    baby: 'test',
+                },
+            },
+        });
+        expect(obs.get()).toEqual([
+            {
+                id: 'id1',
+                test: 'hi',
+                parent: {
+                    child: {
+                        baby: 'test',
+                    },
+                },
+            },
+        ]);
+    });
 });
 describe('Crud record transform', () => {
     test('get transformed', async () => {
@@ -1022,6 +1070,8 @@ describe('fieldUpdatedAt', () => {
                 },
                 update: async (input) => {
                     updated = input;
+                    // Check this here because it will be updated in place by onSaved before
+                    // the next expects can get to it
                     expect(input).toEqual({
                         id: 'id1',
                         test: 'hello',
