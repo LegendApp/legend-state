@@ -14,7 +14,7 @@ import { synced, diffObjects } from '@legendapp/state/sync';
 
 const { clone } = internal;
 
-export type CrudAsOption = 'Map' | 'record' | 'first';
+export type CrudAsOption = 'Map' | 'record' | 'first' | 'array';
 
 export type CrudResult<T> = T;
 
@@ -161,7 +161,7 @@ export function syncedCrud<
         asType = (getFn ? 'first' : _asOption || 'record') as CrudAsOption as TOption;
     }
 
-    const isMap = asType === 'Map';
+    const asMap = asType === 'Map';
 
     const ensureId = (obj: { id: string }) => obj.id || (obj.id = generateId!());
 
@@ -190,13 +190,15 @@ export function syncedCrud<
                       }
                       if (asType === 'first') {
                           return data.length > 0 ? data[0] : lastSync ? {} : null;
-                      } else {
-                          const out: Record<string, any> = isMap ? new Map() : {};
+                      } else if (asType === 'Map') {
+                          const out: Record<string, any> = asMap ? new Map() : {};
                           data.forEach((result: any) => {
                               const value = result.__deleted ? internal.symbolDelete : result;
-                              isMap ? (out as Map<any, any>).set(result.id, value) : (out[result.id] = value);
+                              asMap ? (out as Map<any, any>).set(result.id, value) : (out[result.id] = value);
                           });
                           return out;
+                      } else {
+                          return data;
                       }
                   } else if (getFn) {
                       let data = await getFn(getParams);
@@ -244,10 +246,14 @@ export function syncedCrud<
                       } else {
                           let itemsChanged: any[] | undefined = undefined;
                           if (path.length === 0) {
-                              itemsChanged = Object.values(valueAtPath);
+                              itemsChanged = asMap
+                                  ? Array.from((valueAtPath as Map<any, any>).values())
+                                  : isArray(valueAtPath)
+                                  ? valueAtPath
+                                  : Object.values(valueAtPath);
                           } else {
                               const itemKey = path[0];
-                              const itemValue = isMap ? value.get(itemKey) : value[itemKey];
+                              const itemValue = asMap ? value.get(itemKey) : value[itemKey];
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       if (deleteFn) {
