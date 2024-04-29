@@ -3,6 +3,8 @@
     "testEnvironment": "node",
     "modulePathIgnorePatterns": ["<rootDir>/dist"],
     "moduleNameMapper": {
+        "@legendapp/state/sync-plugins/crud": "<rootDir>/src/sync-plugins/crud",
+        "@legendapp/state/sync": "<rootDir>/sync",
         "@legendapp/state": "<rootDir>/index"
     }
 }

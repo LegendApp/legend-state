@@ -58,11 +58,17 @@
             "@legendapp/state/persist": [
                 "persist"
             ],
+            "@legendapp/state/sync": [
+                "sync"
+            ],
             "@legendapp/state/react": [
                 "react"
             ],
             "@legendapp/state/helpers/fetch": [
                 "src/helpers/fetch"
+            ],
+            "@legendapp/state/sync-plugins/crud": [
+                "src/sync-plugins/crud"
             ],
         },
         "resolveJsonModule": true,
