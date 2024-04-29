@@ -5,10 +5,17 @@ import { promiseTimeout } from './testglobals';
 interface BasicValue {
     id: string;
     test: string;
+    updatedAt?: string | null;
+    parent?: {
+        child: {
+            baby: string;
+        };
+    };
 }
 interface BasicValue2 {
     id: string;
     test2: string;
+    updatedAt?: string | null;
 }
 
 const ItemBasicValue: () => BasicValue = () => ({
@@ -17,7 +24,7 @@ const ItemBasicValue: () => BasicValue = () => ({
 });
 
 type GetTestParams =
-    | { get: () => BasicValue; list?: never; as?: never }
+    | { get: () => BasicValue | null; list?: never; as?: never }
     | { list: () => BasicValue[]; as: 'first'; get?: never };
 
 describe('Crud record get', () => {
@@ -75,6 +82,83 @@ describe('Crud record get', () => {
             });
         },
         getWithSet: async (params: GetTestParams) => {
+            let created = undefined;
+            let updated = undefined;
+            const obs = observable(
+                syncedCrud({
+                    ...params,
+                    create: async (input) => {
+                        created = input;
+                        return input;
+                    },
+                    update: async (input) => {
+                        updated = input;
+                        return input;
+                    },
+                }),
+            );
+
+            expect(obs.get()).toEqual(undefined);
+
+            await promiseTimeout(0);
+
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hi',
+            });
+
+            obs.test.set('hello');
+
+            await promiseTimeout(0);
+
+            expect(created).toEqual(undefined);
+            expect(updated).toEqual({
+                id: 'id1',
+                test: 'hello',
+            });
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hello',
+            });
+        },
+        getWithSetNoInitial: async (params: GetTestParams) => {
+            let created = undefined;
+            let updated = undefined;
+            const obs = observable(
+                syncedCrud({
+                    ...params,
+                    create: async (input) => {
+                        created = input;
+                        return input;
+                    },
+                    update: async (input) => {
+                        updated = input;
+                        return input;
+                    },
+                }),
+            );
+
+            expect(obs.get()).toEqual(undefined);
+
+            await promiseTimeout(0);
+
+            expect(obs.get()).toEqual(null);
+
+            obs.set({ id: 'id1', test: 'hello' });
+
+            await promiseTimeout(0);
+
+            expect(created).toEqual({
+                id: 'id1',
+                test: 'hello',
+            });
+            expect(updated).toEqual(undefined);
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hello',
+            });
+        },
+        getWithSetDeepChild: async (params: GetTestParams) => {
             let saved = undefined;
             const obs = observable(
                 syncedCrud({
@@ -95,18 +179,58 @@ describe('Crud record get', () => {
                 test: 'hi',
             });
 
-            obs.test.set('hello');
+            obs.parent.child.baby.set('test');
 
             await promiseTimeout(0);
 
             expect(saved).toEqual({
                 id: 'id1',
-                test: 'hello',
+                test: 'hi',
+                parent: {
+                    child: {
+                        baby: 'test',
+                    },
+                },
             });
             expect(obs.get()).toEqual({
                 id: 'id1',
-                test: 'hello',
+                test: 'hi',
+                parent: {
+                    child: {
+                        baby: 'test',
+                    },
+                },
             });
+        },
+        getWithDelete: async (params: GetTestParams) => {
+            let deleted = undefined;
+            const obs = observable(
+                syncedCrud({
+                    ...params,
+                    delete: async (input) => {
+                        deleted = input;
+                    },
+                }),
+            );
+
+            expect(obs.get()).toEqual(undefined);
+
+            await promiseTimeout(0);
+
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hi',
+            });
+
+            obs.delete();
+
+            await promiseTimeout(0);
+
+            expect(deleted).toEqual({
+                id: 'id1',
+                test: 'hi',
+            });
+            expect(obs.get()).toEqual(undefined);
         },
     };
     test('get', () =>
@@ -123,6 +247,18 @@ describe('Crud record get', () => {
         }));
     test('get with set', () =>
         getTests.getWithSet({
+            get: ItemBasicValue,
+        }));
+    test('get with set no initial', () =>
+        getTests.getWithSetNoInitial({
+            get: () => null,
+        }));
+    test('get with set deep child', () =>
+        getTests.getWithSetDeepChild({
+            get: ItemBasicValue,
+        }));
+    test('get with delete', () =>
+        getTests.getWithDelete({
             get: ItemBasicValue,
         }));
     test('list first', () =>
@@ -145,6 +281,215 @@ describe('Crud record get', () => {
             list: () => [ItemBasicValue()],
             as: 'first',
         }));
+    test('list first with set deep child', () =>
+        getTests.getWithSetDeepChild({
+            list: () => [ItemBasicValue()],
+            as: 'first',
+        }));
+    test('list first with delete', () =>
+        getTests.getWithDelete({
+            list: () => [ItemBasicValue()],
+            as: 'first',
+        }));
+});
+describe('Crud as Object', () => {
+    test('as Object list', async () => {
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+            },
+        });
+        expect(obs.id1.get()).toEqual({ id: 'id1', test: 'hi' });
+        expect(obs.id1.test.get()).toEqual('hi');
+    });
+    test('as Object set', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.id1.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+            },
+        });
+    });
+    test('as Object set at root', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.set({ id1: { id: 'id1', test: 'hello' } });
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+            },
+        });
+    });
+    test('as Object set deep child', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.id1.parent.child.baby.set('test');
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hi',
+            parent: {
+                child: {
+                    baby: 'test',
+                },
+            },
+        });
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+                parent: {
+                    child: {
+                        baby: 'test',
+                    },
+                },
+            },
+        });
+    });
+    test('as Object delete', async () => {
+        let deleted = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.id1.delete();
+
+        await promiseTimeout(0);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs.get()).toEqual({});
+    });
+    test('as Object update', async () => {
+        let deleted = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.id1.delete();
+
+        await promiseTimeout(0);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs.get()).toEqual({});
+    });
 });
 describe('Crud as Map', () => {
     test('as Map list', async () => {
@@ -174,13 +519,18 @@ describe('Crud as Map', () => {
         expect(obs.get('id1').test.get()).toEqual('hi');
     });
     test('as Map set', async () => {
-        let saved = undefined;
+        let created = undefined;
+        let updated = undefined;
         const obs = observable(
             syncedCrud({
                 list: () => [ItemBasicValue()],
                 as: 'Map',
                 create: async (input: BasicValue) => {
-                    saved = input;
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
                     return input;
                 },
             }),
@@ -194,7 +544,8 @@ describe('Crud as Map', () => {
 
         await promiseTimeout(0);
 
-        expect(saved).toEqual({
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
         });
@@ -211,13 +562,18 @@ describe('Crud as Map', () => {
         );
     });
     test('as Map set at root', async () => {
-        let saved = undefined;
+        let created = undefined;
+        let updated = undefined;
         const obs = observable(
             syncedCrud({
                 list: () => [ItemBasicValue()],
                 as: 'Map',
                 create: async (input: BasicValue) => {
-                    saved = input;
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
                     return input;
                 },
             }),
@@ -231,7 +587,8 @@ describe('Crud as Map', () => {
 
         await promiseTimeout(0);
 
-        expect(saved).toEqual({
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
         });
@@ -247,6 +604,112 @@ describe('Crud as Map', () => {
             ]),
         );
     });
+    test('as Map set deep child', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'Map',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.get('id1').parent.child.baby.set('test');
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hi',
+            parent: {
+                child: {
+                    baby: 'test',
+                },
+            },
+        });
+        expect(obs.get()).toEqual(
+            new Map([
+                [
+                    'id1',
+                    {
+                        id: 'id1',
+                        test: 'hi',
+                        parent: {
+                            child: {
+                                baby: 'test',
+                            },
+                        },
+                    },
+                ],
+            ]),
+        );
+    });
+    test('as Map delete', async () => {
+        let deleted = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'Map',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.delete('id1');
+
+        await promiseTimeout(0);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs.get()).toEqual(new Map());
+    });
+    // TODO
+    // test('as Map clear', async () => {
+    //     let deleted = undefined;
+    //     const obs = observable(
+    //         syncedCrud({
+    //             list: () => [ItemBasicValue()],
+    //             as: 'Map',
+    //             delete: async (input) => {
+    //                 deleted = input;
+    //             },
+    //         }),
+    //     );
+
+    //     expect(obs.get()).toEqual(undefined);
+
+    //     await promiseTimeout(0);
+
+    //     obs.clear();
+
+    //     await promiseTimeout(0);
+
+    //     expect(deleted).toEqual({
+    //         id: 'id1',
+    //         test: 'hi',
+    //     });
+    //     expect(obs.get()).toEqual(new Map());
+    // });
 });
 describe('Crud as Array', () => {
     test('as Array list', async () => {
@@ -271,13 +734,18 @@ describe('Crud as Array', () => {
         expect(obs[0].test.get()).toEqual('hi');
     });
     test('as Array set', async () => {
-        let saved = undefined;
+        let created = undefined;
+        let updated = undefined;
         const obs = observable(
             syncedCrud({
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    saved = input;
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
                     return input;
                 },
             }),
@@ -291,7 +759,8 @@ describe('Crud as Array', () => {
 
         await promiseTimeout(0);
 
-        expect(saved).toEqual({
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
         });
@@ -303,13 +772,18 @@ describe('Crud as Array', () => {
         ]);
     });
     test('as Array set at root', async () => {
-        let saved = undefined;
+        let created = undefined;
+        let updated = undefined;
         const obs = observable(
             syncedCrud({
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    saved = input;
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
                     return input;
                 },
             }),
@@ -323,7 +797,8 @@ describe('Crud as Array', () => {
 
         await promiseTimeout(0);
 
-        expect(saved).toEqual({
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
         });
@@ -359,13 +834,67 @@ describe('Crud record transform', () => {
             test2: 'hi',
         });
     });
+    test('get/set transformed with no initial', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                get: () => null,
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+                transform: {
+                    load: (value: BasicValue) =>
+                        ({
+                            id: value.id,
+                            test2: value.test,
+                        }) as BasicValue2,
+                    save: (value: BasicValue2) =>
+                        ({
+                            id: value.id,
+                            test: value.test2,
+                        }) as BasicValue,
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual(null);
+
+        obs.set({ id: 'id1', test2: 'hello' });
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual(undefined);
+        expect(created).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test2: 'hello',
+        });
+    });
     test('get/set transformed', async () => {
-        let saved = undefined;
+        let created = undefined;
+        let updated = undefined;
         const obs = observable(
             syncedCrud({
                 get: ItemBasicValue,
-                create: async (input) => {
-                    saved = input;
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
                     return input;
                 },
                 transform: {
@@ -396,7 +925,8 @@ describe('Crud record transform', () => {
 
         await promiseTimeout(0);
 
-        expect(saved).toEqual({
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
         });

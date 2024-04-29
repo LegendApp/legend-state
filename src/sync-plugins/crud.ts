@@ -14,12 +14,12 @@ import { synced, diffObjects } from '@legendapp/state/sync';
 
 const { clone } = internal;
 
-export type CrudAsOption = 'Map' | 'record' | 'first' | 'array';
+export type CrudAsOption = 'Map' | 'object' | 'first' | 'array';
 
 export type CrudResult<T> = T;
 
 export interface SyncedCrudPropsSingle<TGet> {
-    get?: (params: SyncedGetParams) => Promise<CrudResult<TGet>> | CrudResult<TGet>;
+    get?: (params: SyncedGetParams) => Promise<CrudResult<TGet | null>> | CrudResult<TGet | null>;
 }
 export interface SyncedCrudPropsMany<TGet, TOption extends CrudAsOption> {
     list?: (params: SyncedGetParams) => Promise<CrudResult<TGet[]>> | CrudResult<TGet[]>;
@@ -29,8 +29,8 @@ export interface SyncedCrudPropsBase<TGet extends { id: string }, TSet = TGet, T
     extends Omit<SyncedOptions<TGet>, 'get' | 'set' | 'subscribe' | 'transform'> {
     generateId?: () => string;
     create?: (input: TSet, params: SyncedSetParams<TSet>) => Promise<CrudResult<TGet>>;
-    update?: (input: Partial<TGet>, params: SyncedSetParams<TSet>) => Promise<CrudResult<TGet>>;
-    delete?: (input: Partial<TGet>, params: SyncedSetParams<TSet>) => Promise<CrudResult<string>>;
+    update?: (input: Partial<TGet>, params: SyncedSetParams<TSet>) => Promise<CrudResult<Partial<TGet>>>;
+    delete?: (input: TGet, params: SyncedSetParams<TSet>) => Promise<CrudResult<any>>;
     onSaved?: (saved: Partial<TGet>, input: Partial<TGet>, isCreate: boolean) => Partial<TGet>;
     transform?: SyncTransform<TOut, TGet>;
     fieldUpdatedAt?: string;
@@ -42,7 +42,7 @@ type OutputType<TGet, TSet> = [TSet] extends [unknown] ? TGet : Partial<TGet> & 
 export type SyncedCrudReturnType<TGet, TSet, TOption extends CrudAsOption> = Promise<
     TOption extends 'Map'
         ? Map<string, OutputType<TGet, TSet>>
-        : TOption extends 'record'
+        : TOption extends 'object'
         ? Record<string, OutputType<TGet, TSet>>
         : TOption extends 'first'
         ? OutputType<TGet, TSet>
@@ -129,7 +129,7 @@ export function syncedCrud<
     TGet extends { id: string },
     TSet = TGet,
     TOut = TGet,
-    TOption extends CrudAsOption = 'record',
+    TOption extends CrudAsOption = 'object',
 >(
     props: SyncedCrudPropsBase<TGet, TSet, TOut> & SyncedCrudPropsMany<TGet, TOption>,
 ): SyncedCrudReturnType<TOut, TSet, Exclude<TOption, 'first'>>;
@@ -137,7 +137,7 @@ export function syncedCrud<
     TGet extends { id: string },
     TSet = TGet,
     TOut = TGet,
-    TOption extends CrudAsOption = 'record',
+    TOption extends CrudAsOption = 'object',
 >(
     props: SyncedCrudPropsBase<TGet, TSet, TOut> & (SyncedCrudPropsSingle<TGet> & SyncedCrudPropsMany<TGet, TOption>),
 ): SyncedCrudReturnType<TOut, TSet, TOption> {
@@ -158,7 +158,7 @@ export function syncedCrud<
     let asType = props.as;
 
     if (!asType) {
-        asType = (getFn ? 'first' : _asOption || 'record') as CrudAsOption as TOption;
+        asType = (getFn ? 'first' : _asOption || 'array') as CrudAsOption as TOption;
     }
 
     const asMap = asType === 'Map';
@@ -190,25 +190,27 @@ export function syncedCrud<
                       }
                       if (asType === 'first') {
                           return data.length > 0 ? data[0] : lastSync ? {} : null;
-                      } else if (asType === 'Map') {
+                      } else if (asType === 'array') {
+                          return data;
+                      } else {
                           const out: Record<string, any> = asMap ? new Map() : {};
                           data.forEach((result: any) => {
                               const value = result.__deleted ? internal.symbolDelete : result;
                               asMap ? (out as Map<any, any>).set(result.id, value) : (out[result.id] = value);
                           });
                           return out;
-                      } else {
-                          return data;
                       }
                   } else if (getFn) {
                       let data = await getFn(getParams);
 
-                      const newLastSync = (data as any)[fieldUpdatedAt as any];
-                      if (newLastSync && newLastSync !== lastSync) {
-                          updateLastSync(newLastSync);
-                      }
-                      if (transform?.load) {
-                          data = transform.load(data) as any;
+                      if (data) {
+                          const newLastSync = (data as any)[fieldUpdatedAt as any];
+                          if (newLastSync && newLastSync !== lastSync) {
+                              updateLastSync(newLastSync);
+                          }
+                          if (transform?.load) {
+                              data = transform.load(data as any) as any;
+                          }
                       }
 
                       return data as any;
@@ -228,7 +230,7 @@ export function syncedCrud<
                       if (asType === 'first') {
                           if (value) {
                               let id = value?.id;
-                              const isCreate = !value[fieldUpdatedAt!];
+                              const isCreate = fieldUpdatedAt ? !value[fieldUpdatedAt!] : !prevAtPath;
                               if (isCreate || retryAsCreate) {
                                   id = ensureId(value);
                                   creates.set(id, value);
@@ -242,10 +244,26 @@ export function syncedCrud<
                                   const key = path[0];
                                   updates.set(id, Object.assign(updates.get(id) || { id }, { [key]: value[key] }));
                               }
+                          } else if (path.length === 0) {
+                              const id = prevAtPath?.id;
+                              if (id) {
+                                  deletes.set(id, prevAtPath);
+                              }
                           }
                       } else {
                           let itemsChanged: any[] | undefined = undefined;
+                          let isCreateGuess: boolean;
                           if (path.length === 0) {
+                              isCreateGuess =
+                                  !fieldUpdatedAt &&
+                                  !(
+                                      (asMap
+                                          ? Array.from((valueAtPath as Map<any, any>).values())
+                                          : isArray(valueAtPath)
+                                          ? valueAtPath
+                                          : Object.values(valueAtPath)
+                                      )?.length > 0
+                                  );
                               itemsChanged = asMap
                                   ? Array.from((valueAtPath as Map<any, any>).values())
                                   : isArray(valueAtPath)
@@ -254,6 +272,7 @@ export function syncedCrud<
                           } else {
                               const itemKey = path[0];
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
+                              isCreateGuess = !fieldUpdatedAt && path.length === 1 && !prevAtPath;
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       if (deleteFn) {
@@ -268,7 +287,7 @@ export function syncedCrud<
                           }
                           itemsChanged?.forEach((item) => {
                               ensureId(item);
-                              const isCreate = !item[fieldUpdatedAt!];
+                              const isCreate = fieldUpdatedAt ? !item[fieldUpdatedAt!] : isCreateGuess;
                               if (isCreate) {
                                   if (createFn) {
                                       creates.set(item.id, item);
@@ -329,7 +348,7 @@ export function syncedCrud<
                           }
                       }),
                       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                      ...Array.from(deletes).map(([_, itemValue]) => deleteFn!(itemValue, params)),
+                      ...Array.from(deletes).map(([_, itemValue]) => deleteFn!(itemValue as TGet, params)),
                   ]);
               }
             : undefined;
