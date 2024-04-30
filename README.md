@@ -146,7 +146,7 @@ function Component() {
 - ✨ Persistence plugins for automatically saving/loading from storage
 - ✨ State can be global or within components
 
-[Read more](https://www.legendapp.com/open-source/state/why/) about why Legend-State might be right for you.
+[Read more](https://www.legendapp.com/open-source/state/intro/why/) about why Legend-State might be right for you.
 
 ## Documentation
 
