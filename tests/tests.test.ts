@@ -1141,6 +1141,75 @@ describe('Array', () => {
         );
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Array splice and unshift', () => {
+        const obs = observable({ test: [{ text: '1' }, { text: '2' }, { text: '3' }] });
+        const last = obs.test[2].get();
+        obs.test.splice(2, 1);
+        obs.test.unshift(last);
+        // Moves last to first
+        expect(obs.test.get()).toEqual([{ text: '3' }, { text: '1' }, { text: '2' }]);
+
+        // A version with removing the middle
+        const obs3 = observable({ test: [{ text: '1' }, { text: '2' }, { text: '3' }] });
+        const mid = obs3.test[1].get();
+        expect(mid.text).toEqual('2');
+
+        // Remove middle
+        obs3.test.splice(1, 1);
+        expect(mid.text).toEqual('2');
+        expect(obs3.test[1].text.get()).toEqual('3');
+        expect(obs3.test.get()).toEqual([{ text: '1' }, { text: '3' }]);
+
+        // Put what was middle at front
+        obs3.test.unshift(mid);
+        expect(obs3.test.get()).toEqual([{ text: '2' }, { text: '1' }, { text: '3' }]);
+    });
+    test('Array unshift notifies first element', () => {
+        const obs = observable({ test: [{ text: '1' }, { text: '2' }, { text: '3' }] });
+        let lastSeen: string | undefined = undefined;
+        observe(() => {
+            lastSeen = obs.test[0].text.get();
+        });
+        expect(lastSeen).toEqual('1');
+        batch(() => {
+            const last = obs.test[2].get();
+            obs.test.splice(2, 1);
+            obs.test.unshift(last);
+        });
+        expect(lastSeen).toEqual('3');
+        batch(() => {
+            const last = obs.test[2].get();
+            obs.test.splice(2, 1);
+            obs.test.unshift(last);
+        });
+        expect(lastSeen).toEqual('2');
+    });
+    test('Array unshift notifies first element with ids', () => {
+        const obs = observable({
+            test: [
+                { id: '1', text: '1' },
+                { id: '2', text: '2' },
+                { id: '3', text: '3' },
+            ],
+        });
+        let lastSeen: string | undefined = undefined;
+        observe(() => {
+            lastSeen = obs.test[0].text.get();
+        });
+        expect(lastSeen).toEqual('1');
+        batch(() => {
+            const last = obs.test[2].get();
+            obs.test.splice(2, 1);
+            obs.test.unshift(last);
+        });
+        expect(lastSeen).toEqual('3');
+        batch(() => {
+            const last = obs.test[2].get();
+            obs.test.splice(2, 1);
+            obs.test.unshift(last);
+        });
+        expect(lastSeen).toEqual('2');
+    });
     test('Array splice notifies last element', () => {
         const obs = observable({ test: [{ text: 'hi' }, { text: 'hello' }, { text: 'there' }] });
         const handler = expectChangeHandler(obs.test[2]);
@@ -1372,16 +1441,19 @@ describe('Array', () => {
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
     });
-    test('Array splice does not call child listeners', () => {
+    test('Array splice does not call child listeners when not affected', () => {
         const obs = observable({
             arr: [
                 { id: 'h1', text: 'h1' },
                 { id: 'h2', text: 'h2' },
+                { id: 'h3', text: 'h3' },
             ],
         });
-        const handler = expectChangeHandler(obs.arr[0]);
-        obs.arr.splice(0, 1);
-        expect(handler).not.toBeCalled();
+        const handler0 = expectChangeHandler(obs.arr[0]);
+        const handler1 = expectChangeHandler(obs.arr[1]);
+        obs.arr.splice(1, 1);
+        expect(handler0).not.toHaveBeenCalled();
+        expect(handler1).toHaveBeenCalled();
     });
     test('Array has stable reference', () => {
         interface Data {

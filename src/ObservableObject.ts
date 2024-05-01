@@ -284,7 +284,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                     const prevChild = id !== undefined ? prevChildrenById?.get(id) : undefined;
                     if (!prevChild) {
                         // This id was not in the array before so it does not need to notify children
-                        isDiff = false;
+                        // It does need to notify itself so isDiff should remain.
                         hasADiff = true;
                     } else if (prevChild !== undefined && prevChild.key !== key) {
                         const valuePrevChild = prevValue[prevChild.key];
