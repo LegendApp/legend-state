@@ -1,11 +1,12 @@
 import { observable } from '@legendapp/state';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { promiseTimeout } from './testglobals';
+import { getPersistName, mockLocalStorage, promiseTimeout } from './testglobals';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 
 interface BasicValue {
     id: string;
     test: string;
-    updatedAt?: string | null;
+    updatedAt?: string | number | null;
     parent?: {
         child: {
             baby: string;
@@ -15,7 +16,7 @@ interface BasicValue {
 interface BasicValue2 {
     id: string;
     test2: string;
-    updatedAt?: string | null;
+    updatedAt?: string | number | null;
 }
 
 const ItemBasicValue: () => BasicValue = () => ({
@@ -26,6 +27,13 @@ const ItemBasicValue: () => BasicValue = () => ({
 type GetTestParams =
     | { get: () => BasicValue | null; list?: never; as?: never }
     | { list: () => BasicValue[]; as: 'first'; get?: never };
+
+const localStorage = mockLocalStorage();
+class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(localStorage);
+    }
+}
 
 describe('Crud object get', () => {
     const getTests = {
@@ -1105,5 +1113,88 @@ describe('fieldUpdatedAt', () => {
                 updatedAt: 'now',
             },
         });
+    });
+});
+describe('lastSync', () => {
+    test('as Object assign if lastSync', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ id2: { id: 'id2', test: 'hi2', updatedAt: 1 } }));
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const obs = observable(
+            syncedCrud<BasicValue>({
+                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual({ id2: { id: 'id2', test: 'hi2', updatedAt: 1 } });
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', updatedAt: 2 },
+            id2: { id: 'id2', test: 'hi2', updatedAt: 1 },
+        });
+    });
+    test('as array push if lastSync', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify([{ id: 'id2', test: 'hi2', updatedAt: 1 }]));
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const obs = observable(
+            syncedCrud({
+                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
+                as: 'array',
+                fieldUpdatedAt: 'updatedAt',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual([{ id: 'id2', test: 'hi2', updatedAt: 1 }]);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual([
+            { id: 'id2', test: 'hi2', updatedAt: 1 },
+            { id: 'id1', test: 'hi', updatedAt: 2 },
+        ]);
+    });
+    test('as Map assign if lastSync', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(
+            persistName,
+            JSON.stringify({ __LSType: 'Map', value: [['id2', { id: 'id2', test: 'hi2', updatedAt: 1 }]] }),
+        );
+
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const obs = observable(
+            syncedCrud({
+                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
+                as: 'Map',
+                fieldUpdatedAt: 'updatedAt',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(new Map([['id2', { id: 'id2', test: 'hi2', updatedAt: 1 }]]));
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual(
+            new Map([
+                ['id2', { id: 'id2', test: 'hi2', updatedAt: 1 }],
+                ['id1', { id: 'id1', test: 'hi', updatedAt: 2 }],
+            ]),
+        );
     });
 });

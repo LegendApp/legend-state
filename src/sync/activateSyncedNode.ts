@@ -1,5 +1,4 @@
 import type {
-    GetMode,
     NodeValue,
     Observable,
     ObservableOnChangeParams,

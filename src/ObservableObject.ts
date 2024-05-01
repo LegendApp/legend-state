@@ -675,12 +675,20 @@ function assign(node: NodeValue, value: any) {
         node.root._ = {};
     }
 
-    // Set inAssign to allow setting on safe observables
-    node.isAssigning = (node.isAssigning || 0) + 1;
-    try {
-        Object.assign(proxy, value);
-    } finally {
-        node.isAssigning--;
+    if (isMap(value)) {
+        const currentValue = getNodeValue(node);
+        if (isMap(currentValue)) {
+            value.forEach((value, key) => currentValue.set(key, value));
+        }
+    } else {
+        // Set inAssign to allow setting on safe observables
+        node.isAssigning = (node.isAssigning || 0) + 1;
+        try {
+            // TODO: If current value is a Map how to assign into the Map?
+            Object.assign(proxy, value);
+        } finally {
+            node.isAssigning--;
+        }
     }
 
     endBatch();
