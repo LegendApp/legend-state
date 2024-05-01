@@ -1,7 +1,8 @@
 import { observable } from '@legendapp/state';
+import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { getPersistName, mockLocalStorage, promiseTimeout } from './testglobals';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
+import { getPersistName, mockLocalStorage, promiseTimeout } from './testglobals';
 
 interface BasicValue {
     id: string;
@@ -34,6 +35,13 @@ class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
         super(localStorage);
     }
 }
+
+beforeAll(() => {
+    configureObservableSync({
+        debounceSet: null,
+        persist: null,
+    } as any);
+});
 
 describe('Crud object get', () => {
     const getTests = {
