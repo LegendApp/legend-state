@@ -162,6 +162,7 @@ export function syncedCrud<
         generateId,
         updatePartial,
         onSaved,
+        mode: modeParam,
         ...rest
     } = props;
 
@@ -181,7 +182,8 @@ export function syncedCrud<
                   const { updateLastSync, lastSync } = getParams;
                   if (listFn) {
                       if (lastSync) {
-                          getParams.mode = 'assign';
+                          getParams.mode =
+                              modeParam || (asType === 'array' ? 'append' : asType === 'first' ? 'set' : 'assign');
                       }
 
                       let data = await listFn(getParams);

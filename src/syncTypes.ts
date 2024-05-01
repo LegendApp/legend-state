@@ -19,6 +19,7 @@ import { Observable, ObservableParam, ObservableState } from './observableTypes'
 export interface PersistOptions<T = any> {
     name: string;
     plugin?: ClassConstructor<ObservablePersistPlugin, T[]>;
+    retrySync?: boolean;
     transform?: SyncTransform<T>;
     readonly?: boolean;
     mmkv?: MMKVConfiguration;
@@ -54,7 +55,6 @@ export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | '
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
     subscribe?: (params: { node: NodeValue; update: UpdateFn; refresh: () => void }) => void;
     retry?: RetryOptions;
-    offlineBehavior?: false | 'retry';
     persist?: PersistOptions<any>;
     debounceSet?: number;
     syncMode?: 'auto' | 'manual';

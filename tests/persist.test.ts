@@ -284,8 +284,8 @@ describe('Pending', () => {
                 persist: {
                     plugin: ObservablePersistLocalStorage,
                     name: persistName,
+                    retrySync: true,
                 },
-                offlineBehavior: 'retry',
             }),
         );
 
@@ -319,8 +319,8 @@ describe('Pending', () => {
                 persist: {
                     plugin: ObservablePersistLocalStorage,
                     name: persistName2,
+                    retrySync: true,
                 },
-                offlineBehavior: 'retry',
             }),
         );
 
@@ -350,8 +350,8 @@ describe('Pending', () => {
                 persist: {
                     plugin: ObservablePersistLocalStorage,
                     name: persistName,
+                    retrySync: true,
                 },
-                offlineBehavior: 'retry',
             }),
         );
 
@@ -381,8 +381,8 @@ describe('Pending', () => {
                 persist: {
                     plugin: ObservablePersistLocalStorage,
                     name: persistName2,
+                    retrySync: true,
                 },
-                offlineBehavior: 'retry',
             }),
         );
 

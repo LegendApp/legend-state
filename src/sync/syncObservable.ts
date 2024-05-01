@@ -538,8 +538,7 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
-    const configRemote = syncOptions;
-    const shouldSaveMetadata = persist && configRemote?.offlineBehavior === 'retry';
+    const shouldSaveMetadata = persist?.retrySync;
 
     if (saveRemote && shouldSaveMetadata) {
         // First save pending changes before saving local or remote
@@ -574,9 +573,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
-    const { offlineBehavior, allowSetIfGetError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
+    const { allowSetIfGetError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
         syncOptions || ({} as SyncedOptions);
-    const shouldSaveMetadata = persist && offlineBehavior === 'retry';
+    const shouldSaveMetadata = persist?.retrySync;
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
