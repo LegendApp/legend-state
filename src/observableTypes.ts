@@ -41,11 +41,16 @@ interface ObservableObjectFns<T> {
 
 interface ObservableObjectFunctions<T = Record<string, any>> extends ObservablePrimitive<T>, ObservableObjectFns<T> {}
 
+type MapKey<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['has']>[0];
+type MapValue<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['get']>[0];
 type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
     Omit<ObservablePrimitive<T>, 'get' | 'size'> & {
         get(key: Parameters<T['get']>[0]): Observable<Parameters<T['set']>[1]>;
         get(): T;
         size: ImmutableObservableBase<number>;
+        assign(
+            value: Record<MapKey<T>, MapValue<T>> | Map<MapKey<T>, MapValue<T>> | WeakMap<MapKey<T>, MapValue<T>>,
+        ): Observable<T>;
     };
 
 type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &

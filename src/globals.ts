@@ -110,11 +110,21 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         try {
             parentNode.isSetting = (parentNode.isSetting || 0) + 1;
 
+            const useMapFn = isMap(parentValue);
             // Save the new value
             if (isDelete) {
-                delete parentValue[key];
+                if (useMapFn) {
+                    parentValue.delete(key);
+                } else {
+                    delete parentValue[key];
+                }
             } else {
-                parentValue[key] = newValue;
+                const useMapFn = isMap(parentValue);
+                if (useMapFn) {
+                    parentValue.set(key, newValue);
+                } else {
+                    parentValue[key] = newValue;
+                }
             }
         } finally {
             parentNode.isSetting!--;

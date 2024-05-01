@@ -62,6 +62,28 @@ describe('Map default behavior', () => {
         obs.test.clear();
         expect(obs.test.has('key2')).toEqual(false);
     });
+    test('Map assign object', () => {
+        const obs = observable({ test: new Map([['key', 'value']]) });
+        obs.test.assign({
+            key2: 'value2',
+        });
+        expect(obs.test.get()).toEqual(
+            new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+        );
+    });
+    test('Map assign map', () => {
+        const obs = observable({ test: new Map([['key', 'value']]) });
+        obs.test.assign(new Map([['key2', 'value2']]));
+        expect(obs.test.get()).toEqual(
+            new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+        );
+    });
 });
 
 describe('Map is observable', () => {
