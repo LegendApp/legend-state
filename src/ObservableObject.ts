@@ -893,9 +893,10 @@ export function peek(node: NodeValue) {
 
 export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
     if (node.dirtyFn) {
-        node.dirtyFn();
-        globalState.dirtyNodes.delete(node);
+        const dirtyFn = node.dirtyFn;
         node.dirtyFn = undefined;
+        globalState.dirtyNodes.delete(node);
+        dirtyFn();
     }
     let value = getNodeValue(node);
     value = checkLazy(node, value, !!activateRecursive);
@@ -953,6 +954,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     let update: UpdateFn;
     let wasPromise: boolean | undefined;
     let ignoreThisUpdate: boolean | undefined;
+    let isFirst = true;
     const activateFn = lazyFn;
     let activatedValue;
     let disposes: (() => void)[] = [];
@@ -964,6 +966,12 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
 
     node.activatedObserveDispose = observe(
         () => {
+            // Set it to undefined so that the activation function gets undefined
+            // if it peeks itself
+            if (isFirst) {
+                isFirst = false;
+                setNodeValue(node, undefined);
+            }
             // Run the function at this node
             let value = activateFn();
 

@@ -284,8 +284,11 @@ export function runBatch() {
     const dirtyNodes = Array.from(globalState.dirtyNodes);
     globalState.dirtyNodes.clear();
     dirtyNodes.forEach((node) => {
-        node.dirtyFn?.();
-        node.dirtyFn = undefined;
+        const dirtyFn = node.dirtyFn;
+        if (dirtyFn) {
+            node.dirtyFn = undefined;
+            dirtyFn();
+        }
     });
     // Save batch locally and reset _batchMap first because a new batch could begin while looping over callbacks.
     // This can happen with computeds for example.

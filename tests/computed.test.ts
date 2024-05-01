@@ -257,6 +257,18 @@ describe('Computed', () => {
         obs2$.set(true);
         expect(comp$.get()).toEqual(false);
     });
+    test('peeking self in computed should return the previous value', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = observable<{ prev: number; sum: number }>(() => ({
+            prev: comp.sum.peek(),
+            sum: obs.test.get() + obs.test2.get(),
+        }));
+        expect(comp.get()).toEqual({ prev: undefined, sum: 30 });
+        obs.test.set(15);
+        expect(comp.get()).toEqual({ prev: 30, sum: 35 });
+        obs.test.set(11);
+        expect(comp.get()).toEqual({ prev: 35, sum: 31 });
+    });
 });
 describe('Two way Computed', () => {
     test('Bound to two, get', () => {
