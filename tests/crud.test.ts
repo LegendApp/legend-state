@@ -506,6 +506,42 @@ describe('Crud as Object list', () => {
         });
         expect(obs.get()).toEqual({});
     });
+    test('as Object with paging', async () => {
+        const page$ = observable(1);
+        const obs = observable(
+            syncedCrud({
+                list: () => (page$.get() === 1 ? [ItemBasicValue()] : [{ id: 'id2', test: 'hi2' }]),
+                as: 'object',
+                mode: 'assign',
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+            },
+        });
+
+        page$.set(2);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+            },
+            id2: {
+                id: 'id2',
+                test: 'hi2',
+            },
+        });
+    });
 });
 describe('Crud as Map', () => {
     test('as Map list', async () => {
@@ -870,6 +906,42 @@ describe('Crud as Array', () => {
                         baby: 'test',
                     },
                 },
+            },
+        ]);
+    });
+    test('as array with paging', async () => {
+        const page$ = observable(1);
+        const obs = observable(
+            syncedCrud({
+                list: () => (page$.get() === 1 ? [ItemBasicValue()] : [{ id: 'id2', test: 'hi2' }]),
+                as: 'array',
+                mode: 'append',
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual([
+            {
+                id: 'id1',
+                test: 'hi',
+            },
+        ]);
+
+        page$.set(2);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual([
+            {
+                id: 'id1',
+                test: 'hi',
+            },
+            {
+                id: 'id2',
+                test: 'hi2',
             },
         ]);
     });

@@ -368,6 +368,7 @@ export function syncedCrud<
     return synced<any>({
         set,
         get,
+        mode: modeParam,
         ...rest,
     });
 }
