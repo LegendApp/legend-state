@@ -23,19 +23,23 @@ export interface SyncedCrudPropsSingle<TGet> {
     initial?: TGet;
 }
 export interface SyncedCrudPropsMany<TGet, TOption extends CrudAsOption> {
-    list?: (params: SyncedGetParams) => Promise<CrudResult<TGet[]>> | CrudResult<TGet[]>;
+    list?: (params: SyncedGetParams) => Promise<CrudResult<TGet[] | null>> | CrudResult<TGet[] | null>;
     as?: TOption;
     initial?: InitialValue<TGet, TOption>;
 }
-export interface SyncedCrudPropsBase<TGet extends { id: string }, TSet = TGet, TOut = TGet>
-    extends Omit<SyncedOptions<TGet>, 'get' | 'set' | 'subscribe' | 'transform' | 'initial'> {
-    generateId?: () => string;
-    create?: (input: TSet, params: SyncedSetParams<TSet>) => Promise<CrudResult<TGet>>;
-    update?: (input: Partial<TGet>, params: SyncedSetParams<TSet>) => Promise<CrudResult<Partial<TGet>>>;
+export interface SyncedCrudPropsBase<TGet extends { id: string | number }, TSet = TGet, TOut = TGet>
+    extends Omit<SyncedOptions<TGet>, 'get' | 'set' | 'transform' | 'initial'> {
+    generateId?: () => string | number;
+    create?: (input: TSet, params: SyncedSetParams<TSet>) => Promise<CrudResult<TGet> | null | undefined>;
+    update?: (
+        input: Partial<TGet>,
+        params: SyncedSetParams<TSet>,
+    ) => Promise<CrudResult<Partial<TGet> | null | undefined>>;
     delete?: (input: TGet, params: SyncedSetParams<TSet>) => Promise<CrudResult<any>>;
     onSaved?: (saved: Partial<TGet>, input: Partial<TGet>, isCreate: boolean) => Partial<TGet>;
     transform?: SyncTransform<TOut, TGet>;
     fieldUpdatedAt?: string;
+    fieldCreatedAt?: string;
     updatePartial?: boolean;
 }
 
@@ -132,11 +136,11 @@ export function combineTransforms<T, T2>(
     };
 }
 
-export function syncedCrud<TGet extends { id: string }, TSet = TGet, TOut = TGet>(
+export function syncedCrud<TGet extends { id: string | number }, TSet = TGet, TOut = TGet>(
     props: SyncedCrudPropsBase<TGet, TSet, TOut> & SyncedCrudPropsSingle<TGet>,
 ): SyncedCrudReturnType<TOut, TSet, 'first'>;
 export function syncedCrud<
-    TGet extends { id: string },
+    TGet extends { id: string | number },
     TSet = TGet,
     TOut = TGet,
     TOption extends CrudAsOption = 'object',
@@ -144,7 +148,7 @@ export function syncedCrud<
     props: SyncedCrudPropsBase<TGet, TSet, TOut> & SyncedCrudPropsMany<TGet, TOption>,
 ): SyncedCrudReturnType<TOut, TSet, Exclude<TOption, 'first'>>;
 export function syncedCrud<
-    TGet extends { id: string },
+    TGet extends { id: string | number },
     TSet = TGet,
     TOut = TGet,
     TOption extends CrudAsOption = 'object',
@@ -158,6 +162,7 @@ export function syncedCrud<
         update: updateFn,
         delete: deleteFn,
         transform,
+        fieldCreatedAt,
         fieldUpdatedAt,
         generateId,
         updatePartial,
@@ -169,12 +174,12 @@ export function syncedCrud<
     let asType = props.as;
 
     if (!asType) {
-        asType = (getFn ? 'first' : _asOption || 'array') as CrudAsOption as TOption;
+        asType = (getFn ? 'first' : _asOption || 'object') as CrudAsOption as TOption;
     }
 
     const asMap = asType === 'Map';
 
-    const ensureId = (obj: { id: string }) => obj.id || (obj.id = generateId!());
+    const ensureId = (obj: { id: string | number }) => obj.id || (obj.id = generateId!());
 
     const get: undefined | ((params: SyncedGetParams) => Promise<TOut>) =
         getFn || listFn
@@ -186,10 +191,11 @@ export function syncedCrud<
                               modeParam || (asType === 'array' ? 'append' : asType === 'first' ? 'set' : 'assign');
                       }
 
-                      let data = await listFn(getParams);
+                      let data = (await listFn(getParams)) || [];
                       let newLastSync = 0;
                       for (let i = 0; i < data.length; i++) {
-                          const updated = (data[i] as any)[fieldUpdatedAt as any];
+                          const updated =
+                              (data[i] as any)[fieldUpdatedAt as any] || (data[i] as any)[fieldCreatedAt as any];
                           if (updated) {
                               newLastSync = Math.max(newLastSync, +new Date(updated));
                           }
@@ -216,7 +222,8 @@ export function syncedCrud<
                       let data = await getFn(getParams);
 
                       if (data) {
-                          const newLastSync = (data as any)[fieldUpdatedAt as any];
+                          const newLastSync =
+                              (data as any)[fieldUpdatedAt as any] || (data as any)[fieldCreatedAt as any];
                           if (newLastSync && newLastSync !== lastSync) {
                               updateLastSync(newLastSync);
                           }
@@ -242,7 +249,7 @@ export function syncedCrud<
                       if (asType === 'first') {
                           if (value) {
                               let id = value?.id;
-                              const isCreate = fieldUpdatedAt ? !value[fieldUpdatedAt!] : !prevAtPath;
+                              const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
                               if (isCreate || retryAsCreate) {
                                   id = ensureId(value);
                                   creates.set(id, value);
@@ -267,7 +274,7 @@ export function syncedCrud<
                           let isCreateGuess: boolean;
                           if (path.length === 0) {
                               isCreateGuess =
-                                  !fieldUpdatedAt &&
+                                  !(fieldCreatedAt || fieldUpdatedAt) &&
                                   !(
                                       (asMap
                                           ? Array.from((valueAtPath as Map<any, any>).values())
@@ -284,7 +291,7 @@ export function syncedCrud<
                           } else {
                               const itemKey = path[0];
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
-                              isCreateGuess = !fieldUpdatedAt && path.length === 1 && !prevAtPath;
+                              isCreateGuess = !(fieldCreatedAt || fieldUpdatedAt) && path.length === 1 && !prevAtPath;
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       if (deleteFn) {
@@ -299,7 +306,11 @@ export function syncedCrud<
                           }
                           itemsChanged?.forEach((item) => {
                               ensureId(item);
-                              const isCreate = fieldUpdatedAt ? !item[fieldUpdatedAt!] : isCreateGuess;
+                              const isCreate = fieldCreatedAt
+                                  ? !item[fieldCreatedAt!]
+                                  : fieldUpdatedAt
+                                  ? !item[fieldUpdatedAt]
+                                  : isCreateGuess;
                               if (isCreate) {
                                   if (createFn) {
                                       creates.set(item.id, item);
@@ -328,13 +339,14 @@ export function syncedCrud<
 
                           const savedOut = onSaved(dataLoaded, input, isCreate);
 
+                          const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TGet] : undefined;
                           const updatedAt = fieldUpdatedAt ? savedOut[fieldUpdatedAt as keyof TGet] : undefined;
 
                           const value =
                               itemKey !== 'undefined' && asType !== 'first' ? { [itemKey]: savedOut } : savedOut;
                           update({
                               value,
-                              lastSync: updatedAt ? +new Date(updatedAt as any) : undefined,
+                              lastSync: updatedAt || createdAt ? +new Date(updatedAt || (createdAt as any)) : undefined,
                               mode: 'merge',
                           });
                       }

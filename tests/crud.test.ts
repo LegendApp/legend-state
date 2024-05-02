@@ -309,6 +309,26 @@ describe('Crud object get', () => {
         }));
 });
 describe('Crud as Object list', () => {
+    test('defaults to object', async () => {
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+            },
+        });
+        expect(obs.id1.get()).toEqual({ id: 'id1', test: 'hi' });
+        expect(obs.id1.test.get()).toEqual('hi');
+    });
     test('as Object list', async () => {
         const obs = observable(
             syncedCrud({
@@ -1200,8 +1220,8 @@ describe('lastSync', () => {
         const persistName = getPersistName();
         localStorage.setItem(persistName, JSON.stringify({ id2: { id: 'id2', test: 'hi2', updatedAt: 1 } }));
         localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
-        const obs = observable(
-            syncedCrud<BasicValue>({
+        const obs = observable<Record<string, BasicValue>>(
+            syncedCrud({
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
@@ -1276,5 +1296,82 @@ describe('lastSync', () => {
                 ['id1', { id: 'id1', test: 'hi', updatedAt: 2 }],
             ]),
         );
+    });
+});
+
+describe('lastSync', () => {
+    test('generateId as string', async () => {
+        const generateId = () => 'id1';
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [],
+                as: 'array',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+                generateId,
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.push({ id: undefined as any, test: 'test1' });
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual(undefined);
+        expect(created).toEqual({ id: 'id1', test: 'test1' });
+        expect(obs.get()).toEqual([
+            {
+                id: 'id1',
+                test: 'test1',
+            },
+        ]);
+    });
+    test('generateId as number', async () => {
+        const generateId = () => 1001;
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [],
+                as: 'array',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+                generateId,
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.push({ id: undefined as any, test: 'test1' });
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual(undefined);
+        expect(created).toEqual({ id: 1001, test: 'test1' });
+        expect(obs.get()).toEqual([
+            {
+                id: 1001,
+                test: 'test1',
+            },
+        ]);
     });
 });

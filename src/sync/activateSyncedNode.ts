@@ -109,6 +109,7 @@ export function enableActivateSyncedNode() {
                     subscribe({
                         node,
                         update: (params: ObservableOnChangeParams) => {
+                            params.mode ||= 'merge';
                             if (!onChange) {
                                 // TODO: Make this message better
                                 console.log('[legend-state] Cannot update immediately before the first return');
