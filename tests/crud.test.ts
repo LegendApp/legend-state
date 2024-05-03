@@ -1039,7 +1039,7 @@ describe('lastSync', () => {
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
-                listByLastSync: true,
+                changesSince: 'last-sync',
                 persist: {
                     name: persistName,
                     plugin: ObservablePersistLocalStorage,
@@ -1069,7 +1069,7 @@ describe('lastSync', () => {
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
                 as: 'Map',
                 fieldUpdatedAt: 'updatedAt',
-                listByLastSync: true,
+                changesSince: 'last-sync',
                 persist: {
                     name: persistName,
                     plugin: ObservablePersistLocalStorage,

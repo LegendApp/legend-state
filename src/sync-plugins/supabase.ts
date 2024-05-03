@@ -81,13 +81,13 @@ export function syncedSupabase<
     Collection extends CollectionOf<Client> & string,
     AsOption extends CrudAsOption = 'object',
 >(props: SyncedSupabaseProps<Client, Collection, AsOption>): SyncedCrudReturnType<RowOf<Client, Collection>, AsOption> {
-    const { supabase: client, collection, filter, actions, fieldUpdatedAt, realtime, listByLastSync, ...rest } = props;
+    const { supabase: client, collection, filter, actions, fieldUpdatedAt, realtime, changesSince, ...rest } = props;
     const list =
         !actions || actions.includes('read')
             ? async (params: SyncedGetParams) => {
                   const { lastSync } = params;
                   let select = client.from(collection).select();
-                  if (listByLastSync && lastSync) {
+                  if (changesSince === 'last-sync' && lastSync) {
                       const date = new Date(lastSync).toISOString();
                       select = select.or(
                           `created_at.gt.${date}${fieldUpdatedAt ? `,${fieldUpdatedAt}.gt.${date}` : ''}`,
