@@ -755,33 +755,29 @@ describe('Crud as Map', () => {
         });
         expect(obs.get()).toEqual(new Map());
     });
-    // TODO
-    // test('as Map clear', async () => {
-    //     let deleted = undefined;
-    //     const obs = observable(
-    //         syncedCrud({
-    //             list: () => [ItemBasicValue()],
-    //             as: 'Map',
-    //             delete: async (input) => {
-    //                 deleted = input;
-    //             },
-    //         }),
-    //     );
+    test('as Map clear does nothing', async () => {
+        let deleted = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'Map',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
 
-    //     expect(obs.get()).toEqual(undefined);
+        expect(obs.get()).toEqual(undefined);
 
-    //     await promiseTimeout(0);
+        await promiseTimeout(0);
 
-    //     obs.clear();
+        obs.clear();
 
-    //     await promiseTimeout(0);
+        await promiseTimeout(0);
 
-    //     expect(deleted).toEqual({
-    //         id: 'id1',
-    //         test: 'hi',
-    //     });
-    //     expect(obs.get()).toEqual(new Map());
-    // });
+        expect(deleted).toEqual(undefined);
+        expect(obs.get()).toEqual(new Map());
+    });
 });
 describe('Crud as Array', () => {
     test('as Array list', async () => {
@@ -1225,6 +1221,7 @@ describe('lastSync', () => {
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
+                listByLastSync: true,
                 persist: {
                     name: persistName,
                     plugin: ObservablePersistLocalStorage,
@@ -1250,6 +1247,7 @@ describe('lastSync', () => {
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
                 as: 'array',
                 fieldUpdatedAt: 'updatedAt',
+                listByLastSync: true,
                 persist: {
                     name: persistName,
                     plugin: ObservablePersistLocalStorage,
@@ -1279,6 +1277,7 @@ describe('lastSync', () => {
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
                 as: 'Map',
                 fieldUpdatedAt: 'updatedAt',
+                listByLastSync: true,
                 persist: {
                     name: persistName,
                     plugin: ObservablePersistLocalStorage,

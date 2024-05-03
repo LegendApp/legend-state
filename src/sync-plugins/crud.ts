@@ -42,6 +42,7 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     updatePartial?: boolean;
+    listByLastSync?: boolean;
 }
 
 type InitialValue<T, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
@@ -166,6 +167,7 @@ export function syncedCrud<
         updatePartial,
         onSaved,
         mode: modeParam,
+        listByLastSync,
         ...rest
     } = props;
 
@@ -184,7 +186,7 @@ export function syncedCrud<
             ? async (getParams: SyncedGetParams) => {
                   const { updateLastSync, lastSync } = getParams;
                   if (listFn) {
-                      if (lastSync) {
+                      if (listByLastSync && lastSync) {
                           getParams.mode =
                               modeParam || (asType === 'array' ? 'append' : asType === 'first' ? 'set' : 'assign');
                       }
