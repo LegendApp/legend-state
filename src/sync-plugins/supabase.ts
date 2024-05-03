@@ -1,4 +1,10 @@
-import { getNodeValue, symbolDelete, type SyncedGetParams, type SyncedSubscribeParams } from '@legendapp/state';
+import {
+    SyncedOptionsGlobal,
+    getNodeValue,
+    symbolDelete,
+    type SyncedGetParams,
+    type SyncedSubscribeParams,
+} from '@legendapp/state';
 import {
     CrudAsOption,
     SyncedCrudPropsBase,
@@ -31,6 +37,10 @@ export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
     'create' | 'update' | 'delete' | 'onSaved' | 'transform' | 'fieldCreatedAt' | 'updatePartial' | 'subscribe'
 >;
 
+export interface SyncedSupabaseGlobalConfig extends Omit<SyncedSupabaseConfig<{ id: string }>, 'persist'> {
+    persist?: SyncedOptionsGlobal;
+}
+
 interface SyncedSupabaseProps<
     TClient extends SupabaseClient,
     TCollection extends CollectionOf<TClient>,
@@ -60,9 +70,9 @@ interface SyncedSupabaseProps<
 }
 
 let channelNum = 1;
-const supabaseConfig: SyncedSupabaseConfig<{ id: string }> = {};
+const supabaseConfig: SyncedSupabaseGlobalConfig = {};
 
-export function configureSyncedSupabase(config: SyncedSupabaseConfig<{ id: string }>) {
+export function configureSyncedSupabase(config: SyncedSupabaseGlobalConfig) {
     Object.assign(supabaseConfig, config);
 }
 
