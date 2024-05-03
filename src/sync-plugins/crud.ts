@@ -18,49 +18,48 @@ export type CrudAsOption = 'Map' | 'object' | 'first' | 'array';
 
 export type CrudResult<T> = T;
 
-export interface SyncedCrudPropsSingle<TGet> {
-    get?: (params: SyncedGetParams) => Promise<CrudResult<TGet | null>> | CrudResult<TGet | null>;
-    initial?: TGet;
+export interface SyncedCrudPropsSingle<TRemote, TLocal> {
+    get?: (params: SyncedGetParams) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
+    initial?: TLocal;
+    as?: never | 'first';
 }
-export interface SyncedCrudPropsMany<TGet, TOption extends CrudAsOption> {
-    list?: (params: SyncedGetParams) => Promise<CrudResult<TGet[] | null>> | CrudResult<TGet[] | null>;
-    as?: TOption;
-    initial?: InitialValue<TGet, TOption>;
+export interface SyncedCrudPropsMany<TRemote, TLocal, TAsOption extends CrudAsOption> {
+    list?: (params: SyncedGetParams) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
+    as?: TAsOption;
+    initial?: InitialValue<TLocal, TAsOption>;
 }
-export interface SyncedCrudPropsBase<TGet extends { id: string | number }, TSet = TGet, TOut = TGet>
-    extends Omit<SyncedOptions<TGet>, 'get' | 'set' | 'transform' | 'initial'> {
-    generateId?: () => string | number;
-    create?: (input: TSet, params: SyncedSetParams<TSet>) => Promise<CrudResult<TGet> | null | undefined>;
-    update?: (
-        input: Partial<TGet>,
-        params: SyncedSetParams<TSet>,
-    ) => Promise<CrudResult<Partial<TGet> | null | undefined>>;
-    delete?: (input: TGet, params: SyncedSetParams<TSet>) => Promise<CrudResult<any>>;
-    onSaved?: (saved: Partial<TGet>, input: Partial<TGet>, isCreate: boolean) => Partial<TGet>;
-    transform?: SyncTransform<TOut, TGet>;
+export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TLocal = TRemote>
+    extends Omit<SyncedOptions<TLocal>, 'get' | 'set' | 'transform' | 'initial'> {
+    generateId?(): string | number;
+    create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
+    update?(
+        input: Partial<TRemote>,
+        params: SyncedSetParams<TRemote>,
+    ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
+    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
+    onSaved?(saved: Partial<TLocal>, input: Partial<TLocal>, isCreate: boolean): Partial<TLocal>;
+    transform?: SyncTransform<TLocal, TRemote>;
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     updatePartial?: boolean;
 }
 
-type OutputType<TGet, TSet> = [TSet] extends [unknown] ? TGet : Partial<TGet> & TSet;
-
-type InitialValue<T, TOption extends CrudAsOption> = TOption extends 'Map'
+type InitialValue<T, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
     ? Map<string, T>
-    : TOption extends 'object'
+    : TAsOption extends 'object'
     ? Record<string, T>
-    : TOption extends 'first'
+    : TAsOption extends 'first'
     ? T
     : T[];
 
-export type SyncedCrudReturnType<TGet, TSet, TOption extends CrudAsOption> = Promise<
-    TOption extends 'Map'
-        ? Map<string, OutputType<TGet, TSet>>
-        : TOption extends 'object'
-        ? Record<string, OutputType<TGet, TSet>>
-        : TOption extends 'first'
-        ? OutputType<TGet, TSet>
-        : TGet[]
+export type SyncedCrudReturnType<TLocal, TAsOption extends CrudAsOption> = Promise<
+    TAsOption extends 'Map'
+        ? Map<string, TLocal>
+        : TAsOption extends 'object'
+        ? Record<string, TLocal>
+        : TAsOption extends 'first'
+        ? TLocal
+        : TLocal[]
 > & {};
 
 let _asOption: CrudAsOption;
@@ -136,25 +135,24 @@ export function combineTransforms<T, T2>(
     };
 }
 
-export function syncedCrud<TGet extends { id: string | number }, TSet = TGet, TOut = TGet>(
-    props: SyncedCrudPropsBase<TGet, TSet, TOut> & SyncedCrudPropsSingle<TGet>,
-): SyncedCrudReturnType<TOut, TSet, 'first'>;
+export function syncedCrud<TRemote extends { id: string | number }, TLocal = TRemote>(
+    props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
+): SyncedCrudReturnType<TLocal, 'first'>;
 export function syncedCrud<
-    TGet extends { id: string | number },
-    TSet = TGet,
-    TOut = TGet,
-    TOption extends CrudAsOption = 'object',
+    TRemote extends { id: string | number },
+    TLocal = TRemote,
+    TAsOption extends CrudAsOption = 'object',
 >(
-    props: SyncedCrudPropsBase<TGet, TSet, TOut> & SyncedCrudPropsMany<TGet, TOption>,
-): SyncedCrudReturnType<TOut, TSet, Exclude<TOption, 'first'>>;
+    props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>,
+): SyncedCrudReturnType<TLocal, Exclude<TAsOption, 'first'>>;
 export function syncedCrud<
-    TGet extends { id: string | number },
-    TSet = TGet,
-    TOut = TGet,
-    TOption extends CrudAsOption = 'object',
+    TRemote extends { id: string | number },
+    TLocal = TRemote,
+    TAsOption extends CrudAsOption = 'object',
 >(
-    props: SyncedCrudPropsBase<TGet, TSet, TOut> & (SyncedCrudPropsSingle<TGet> & SyncedCrudPropsMany<TGet, TOption>),
-): SyncedCrudReturnType<TOut, TSet, TOption> {
+    props: SyncedCrudPropsBase<TRemote, TLocal> &
+        (SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>),
+): SyncedCrudReturnType<TLocal, TAsOption> {
     const {
         get: getFn,
         list: listFn,
@@ -171,17 +169,17 @@ export function syncedCrud<
         ...rest
     } = props;
 
-    let asType = props.as;
+    let asType = props.as as TAsOption;
 
     if (!asType) {
-        asType = (getFn ? 'first' : _asOption || 'object') as CrudAsOption as TOption;
+        asType = (getFn ? 'first' : _asOption || 'object') as CrudAsOption as TAsOption;
     }
 
     const asMap = asType === 'Map';
 
     const ensureId = (obj: { id: string | number }) => obj.id || (obj.id = generateId!());
 
-    const get: undefined | ((params: SyncedGetParams) => Promise<TOut>) =
+    const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
         getFn || listFn
             ? async (getParams: SyncedGetParams) => {
                   const { updateLastSync, lastSync } = getParams;
@@ -191,7 +189,7 @@ export function syncedCrud<
                               modeParam || (asType === 'array' ? 'append' : asType === 'first' ? 'set' : 'assign');
                       }
 
-                      let data = (await listFn(getParams)) || [];
+                      const data = (await listFn(getParams)) || [];
                       let newLastSync = 0;
                       for (let i = 0; i < data.length; i++) {
                           const updated =
@@ -203,24 +201,26 @@ export function syncedCrud<
                       if (newLastSync && newLastSync !== lastSync) {
                           updateLastSync(newLastSync);
                       }
+                      let transformed = data as unknown as TLocal[];
                       if (transform?.load) {
-                          data = data.map(transform.load) as any;
+                          transformed = await Promise.all(data.map(transform.load));
                       }
                       if (asType === 'first') {
-                          return data.length > 0 ? data[0] : lastSync ? {} : null;
+                          return transformed.length > 0 ? transformed[0] : null;
                       } else if (asType === 'array') {
-                          return data;
+                          return transformed;
                       } else {
                           const out: Record<string, any> = asMap ? new Map() : {};
-                          data.forEach((result: any) => {
+                          transformed.forEach((result: any) => {
                               const value = result.__deleted ? internal.symbolDelete : result;
                               asMap ? (out as Map<any, any>).set(result.id, value) : (out[result.id] = value);
                           });
                           return out;
                       }
                   } else if (getFn) {
-                      let data = await getFn(getParams);
+                      const data = await getFn(getParams);
 
+                      let transformed = data as unknown as TLocal;
                       if (data) {
                           const newLastSync =
                               (data as any)[fieldUpdatedAt as any] || (data as any)[fieldCreatedAt as any];
@@ -228,11 +228,11 @@ export function syncedCrud<
                               updateLastSync(newLastSync);
                           }
                           if (transform?.load) {
-                              data = transform.load(data as any) as any;
+                              transformed = await transform.load(data);
                           }
                       }
 
-                      return data as any;
+                      return transformed as any;
                   }
               }
             : undefined;
@@ -241,7 +241,7 @@ export function syncedCrud<
         createFn || updateFn || deleteFn
             ? async (params: SyncedSetParams<any> & { retryAsCreate?: boolean }) => {
                   const { value, changes, update, retryAsCreate, valuePrevious } = params;
-                  const creates = new Map<string, TSet>();
+                  const creates = new Map<string, TRemote>();
                   const updates = new Map<string, object>();
                   const deletes = new Map<string, object>();
 
@@ -331,16 +331,16 @@ export function syncedCrud<
                   const saveResult = async (
                       itemKey: string,
                       input: object,
-                      data: CrudResult<TSet>,
+                      data: CrudResult<TRemote>,
                       isCreate: boolean,
                   ) => {
                       if (data && onSaved) {
-                          const dataLoaded: TGet = (transform?.load ? transform.load(data as any) : data) as any;
+                          const dataLoaded: TLocal = (transform?.load ? transform.load(data as any) : data) as any;
 
                           const savedOut = onSaved(dataLoaded, input, isCreate);
 
-                          const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TGet] : undefined;
-                          const updatedAt = fieldUpdatedAt ? savedOut[fieldUpdatedAt as keyof TGet] : undefined;
+                          const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TLocal] : undefined;
+                          const updatedAt = fieldUpdatedAt ? savedOut[fieldUpdatedAt as keyof TLocal] : undefined;
 
                           const value =
                               itemKey !== 'undefined' && asType !== 'first' ? { [itemKey]: savedOut } : savedOut;
@@ -363,7 +363,7 @@ export function syncedCrud<
                           const toSave = updatePartial
                               ? diffObjects(asType === 'first' ? valuePrevious : valuePrevious[itemKey], itemValue)
                               : itemValue;
-                          const changed = transformOut(toSave as TGet, transform?.save as any);
+                          const changed = transformOut(toSave as TRemote, transform?.save as any);
 
                           if (Object.keys(changed).length > 0) {
                               return updateFn!(changed, params).then((result) =>
@@ -372,7 +372,7 @@ export function syncedCrud<
                           }
                       }),
                       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                      ...Array.from(deletes).map(([_, itemValue]) => deleteFn!(itemValue as TGet, params)),
+                      ...Array.from(deletes).map(([_, itemValue]) => deleteFn!(itemValue as TRemote, params)),
                   ]);
               }
             : undefined;
