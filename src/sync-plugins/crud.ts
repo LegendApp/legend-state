@@ -14,7 +14,7 @@ import { synced, diffObjects } from '@legendapp/state/sync';
 
 const { clone } = internal;
 
-export type CrudAsOption = 'Map' | 'object' | 'first' | 'array';
+export type CrudAsOption = 'Map' | 'object' | 'first';
 
 export type CrudResult<T> = T;
 
@@ -30,7 +30,6 @@ export interface SyncedCrudPropsMany<TRemote, TLocal, TAsOption extends CrudAsOp
 }
 export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TLocal = TRemote>
     extends Omit<SyncedOptions<TLocal>, 'get' | 'set' | 'transform' | 'initial'> {
-    generateId?(): string | number;
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
     update?(
         input: Partial<TRemote>,
@@ -163,7 +162,6 @@ export function syncedCrud<
         transform,
         fieldCreatedAt,
         fieldUpdatedAt,
-        generateId,
         updatePartial,
         onSaved,
         mode: modeParam,
@@ -179,16 +177,13 @@ export function syncedCrud<
 
     const asMap = asType === 'Map';
 
-    const ensureId = (obj: { id: string | number }) => obj.id || (obj.id = generateId!());
-
     const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
         getFn || listFn
             ? async (getParams: SyncedGetParams) => {
                   const { updateLastSync, lastSync } = getParams;
                   if (listFn) {
                       if (listByLastSync && lastSync) {
-                          getParams.mode =
-                              modeParam || (asType === 'array' ? 'append' : asType === 'first' ? 'set' : 'assign');
+                          getParams.mode = modeParam || (asType === 'first' ? 'set' : 'assign');
                       }
 
                       const data = (await listFn(getParams)) || [];
@@ -209,8 +204,6 @@ export function syncedCrud<
                       }
                       if (asType === 'first') {
                           return transformed.length > 0 ? transformed[0] : null;
-                      } else if (asType === 'array') {
-                          return transformed;
                       } else {
                           const out: Record<string, any> = asMap ? new Map() : {};
                           transformed.forEach((result: any) => {
@@ -250,20 +243,23 @@ export function syncedCrud<
                   changes.forEach(({ path, prevAtPath, valueAtPath }) => {
                       if (asType === 'first') {
                           if (value) {
-                              let id = value?.id;
-                              const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
-                              if (isCreate || retryAsCreate) {
-                                  id = ensureId(value);
-                                  creates.set(id, value);
-                              } else if (path.length === 0) {
-                                  if (valueAtPath) {
-                                      updates.set(id, valueAtPath);
-                                  } else if (prevAtPath) {
-                                      deletes.set(prevAtPath?.id, prevAtPath);
+                              const id = value?.id;
+                              if (id) {
+                                  const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
+                                  if (isCreate || retryAsCreate) {
+                                      creates.set(id, value);
+                                  } else if (path.length === 0) {
+                                      if (valueAtPath) {
+                                          updates.set(id, valueAtPath);
+                                      } else if (prevAtPath) {
+                                          deletes.set(prevAtPath?.id, prevAtPath);
+                                      }
+                                  } else {
+                                      const key = path[0];
+                                      updates.set(id, Object.assign(updates.get(id) || { id }, { [key]: value[key] }));
                                   }
                               } else {
-                                  const key = path[0];
-                                  updates.set(id, Object.assign(updates.get(id) || { id }, { [key]: value[key] }));
+                                  console.error('[legend-state]: added item without an id');
                               }
                           } else if (path.length === 0) {
                               const id = prevAtPath?.id;
@@ -307,7 +303,6 @@ export function syncedCrud<
                               }
                           }
                           itemsChanged?.forEach((item) => {
-                              ensureId(item);
                               const isCreate = fieldCreatedAt
                                   ? !item[fieldCreatedAt!]
                                   : fieldUpdatedAt

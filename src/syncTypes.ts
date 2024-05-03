@@ -38,7 +38,7 @@ export interface SyncedGetParams {
     refresh: () => void;
 }
 
-export type SyncedSetParams<T> = SetParams<T> & {
+export interface SyncedSetParams<T> extends SetParams<T> {
     node: NodeValue;
     valuePrevious: T;
     update: UpdateFn;
@@ -46,7 +46,7 @@ export type SyncedSetParams<T> = SetParams<T> & {
     cancelRetry: () => void;
     retryNum: number;
     fromSubscribe: boolean | undefined;
-};
+}
 
 export interface SyncedSubscribeParams {
     node: NodeValue;
@@ -54,7 +54,7 @@ export interface SyncedSubscribeParams {
     refresh: () => void;
 }
 
-export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
+export type GetMode = 'set' | 'assign' | 'merge';
 
 export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
