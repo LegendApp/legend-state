@@ -1,4 +1,4 @@
-import { symbolLinked } from './globals';
+import { linked } from './linked';
 import { observable } from './observable';
 import { LinkedOptions } from './observableInterfaces';
 import { Observable, ObservableParam, RecursiveValueOrFunction } from './observableTypes';
@@ -12,5 +12,7 @@ export function computed<T, T2 = T>(
     get: (() => T | Promise<T>) | ObservableParam<T> | LinkedOptions<T>,
     set?: (value: T2) => void,
 ): Observable<T> {
-    return observable(set ? () => ({ [symbolLinked]: { get, set: ({ value }: any) => set(value) } }) : get) as any;
+    return observable(
+        set ? linked({ get: get as LinkedOptions['get'], set: ({ value }: any) => set(value) }) : get,
+    ) as any;
 }
