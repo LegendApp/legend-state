@@ -1,7 +1,6 @@
 import type {
     NodeValue,
     Observable,
-    ObservableOnChangeParams,
     ObservablePersistState,
     ObservableSyncFunctions,
     ObservableSyncGetParams,
@@ -10,7 +9,7 @@ import type {
     SyncedSetParams,
     UpdateFn,
 } from '@legendapp/state';
-import { internal, isFunction, isPromise, mergeIntoObservable, when, whenReady } from '@legendapp/state';
+import { internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { syncObservable } from './syncObservable';
 const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue, getNodeValue } = internal;
 
@@ -19,7 +18,7 @@ export function enableActivateSyncedNode() {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, set, subscribe } = node.activationState!;
+            const { get, initial, set } = node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservableSyncFunctions = {};
@@ -103,24 +102,6 @@ export function enableActivateSyncedNode() {
 
             // @ts-expect-error TODO fix these types
             syncState = syncObservable(obs$, { ...node.activationState, ...pluginRemote });
-
-            if (subscribe) {
-                when(promiseReturn || true, () => {
-                    subscribe({
-                        node,
-                        update: (params: ObservableOnChangeParams) => {
-                            params.mode ||= 'merge';
-                            if (!onChange) {
-                                // TODO: Make this message better
-                                console.log('[legend-state] Cannot update immediately before the first return');
-                            } else {
-                                onChange(params);
-                            }
-                        },
-                        refresh,
-                    });
-                });
-            }
 
             return { update: onChange!, value: newValue };
         } else {

@@ -5,6 +5,7 @@ import type {
     NodeValue,
     Observable,
     ObservableObject,
+    ObservableOnChangeParams,
     ObservableParam,
     ObservablePersistPlugin,
     ObservableSyncClass,
@@ -15,6 +16,7 @@ import type {
     Synced,
     SyncedOptions,
     TypeAtPath,
+    UpdateFnParams,
 } from '@legendapp/state';
 import {
     beginBatch,
@@ -863,6 +865,82 @@ export function syncObservable<T>(
 
             if (get) {
                 const runGet = () => {
+                    const onChange = async ({ value, mode, lastSync }: UpdateFnParams) => {
+                        mode = mode || syncOptions.mode || 'set';
+                        if (value !== undefined) {
+                            value = transformLoadData(value, syncOptions, true);
+                            if (isPromise(value)) {
+                                value = await (value as Promise<T>);
+                            }
+
+                            const pending = localState.pendingChanges;
+                            const currentValue = obs$.peek();
+                            if (pending) {
+                                let didChangeMetadata = false;
+                                Object.keys(pending).forEach((key) => {
+                                    const p = key.split('/').filter((p) => p !== '');
+                                    const { v, t } = pending[key];
+
+                                    if (t.length === 0 || !value) {
+                                        if (isObject(value) && isObject(v)) {
+                                            Object.assign(value, v);
+                                        } else {
+                                            value = v;
+                                        }
+                                    } else if ((value as any)[p[0]] !== undefined) {
+                                        const curValue = getValueAtPath(currentValue as object, p);
+                                        const newValue = getValueAtPath(value as object, p);
+                                        if (JSON.stringify(curValue) === JSON.stringify(newValue)) {
+                                            delete pending[key];
+                                            didChangeMetadata = true;
+                                        } else {
+                                            (value as any) = setAtPath(
+                                                value as any,
+                                                p,
+                                                t,
+                                                v,
+                                                'merge',
+                                                obs$.peek(),
+                                                (path: string[], value: any) => {
+                                                    delete pending[key];
+                                                    pending[path.join('/')] = {
+                                                        p: null,
+                                                        v: value,
+                                                        t: t.slice(0, path.length),
+                                                    };
+                                                },
+                                            );
+                                        }
+                                    }
+                                });
+
+                                if (didChangeMetadata) {
+                                    updateMetadata(obs$, localState, syncState, syncOptions, {
+                                        pending,
+                                    });
+                                }
+                            }
+
+                            onChangeRemote(() => {
+                                if (mode === 'assign' && isObject(value)) {
+                                    (obs$ as unknown as Observable<object>).assign(value);
+                                } else if (mode === 'append' && isArray(value)) {
+                                    (obs$ as unknown as Observable<any[]>).push(...value);
+                                } else if (mode === 'prepend' && isArray(value)) {
+                                    (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
+                                } else if (mode === 'merge') {
+                                    mergeIntoObservable(obs$, value);
+                                } else {
+                                    obs$.set(value);
+                                }
+                            });
+                        }
+                        if (lastSync && syncOptions.persist) {
+                            updateMetadata(obs$, localState, syncState, syncOptions, {
+                                lastSync,
+                            });
+                        }
+                    };
                     get({
                         state: syncState,
                         obs: obs$,
@@ -873,87 +951,24 @@ export function syncObservable<T>(
                             syncOptions.onGetError?.(error);
                         },
                         onGet: () => {
+                            const isFirstLoad = !node.state!.isLoaded.peek();
                             node.state!.assign({
                                 isLoaded: true,
                                 error: undefined,
                             });
-                        },
-                        onChange: async ({ value, mode, lastSync }) => {
-                            mode = mode || syncOptions.mode || 'set';
-                            if (value !== undefined) {
-                                value = transformLoadData(value, syncOptions, true);
-                                if (isPromise(value)) {
-                                    value = await (value as Promise<T>);
-                                }
 
-                                const pending = localState.pendingChanges;
-                                const currentValue = obs$.peek();
-                                if (pending) {
-                                    let didChangeMetadata = false;
-                                    Object.keys(pending).forEach((key) => {
-                                        const p = key.split('/').filter((p) => p !== '');
-                                        const { v, t } = pending[key];
-
-                                        if (t.length === 0 || !value) {
-                                            if (isObject(value) && isObject(v)) {
-                                                Object.assign(value, v);
-                                            } else {
-                                                value = v;
-                                            }
-                                        } else if ((value as any)[p[0]] !== undefined) {
-                                            const curValue = getValueAtPath(currentValue as object, p);
-                                            const newValue = getValueAtPath(value as object, p);
-                                            if (JSON.stringify(curValue) === JSON.stringify(newValue)) {
-                                                delete pending[key];
-                                                didChangeMetadata = true;
-                                            } else {
-                                                (value as any) = setAtPath(
-                                                    value as any,
-                                                    p,
-                                                    t,
-                                                    v,
-                                                    'merge',
-                                                    obs$.peek(),
-                                                    (path: string[], value: any) => {
-                                                        delete pending[key];
-                                                        pending[path.join('/')] = {
-                                                            p: null,
-                                                            v: value,
-                                                            t: t.slice(0, path.length),
-                                                        };
-                                                    },
-                                                );
-                                            }
-                                        }
-                                    });
-
-                                    if (didChangeMetadata) {
-                                        updateMetadata(obs$, localState, syncState, syncOptions, {
-                                            pending,
-                                        });
-                                    }
-                                }
-
-                                onChangeRemote(() => {
-                                    if (mode === 'assign' && isObject(value)) {
-                                        (obs$ as unknown as Observable<object>).assign(value);
-                                    } else if (mode === 'append' && isArray(value)) {
-                                        (obs$ as unknown as Observable<any[]>).push(...value);
-                                    } else if (mode === 'prepend' && isArray(value)) {
-                                        (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
-                                    } else if (mode === 'merge') {
-                                        mergeIntoObservable(obs$, value);
-                                    } else {
-                                        obs$.set(value);
-                                    }
-                                });
-                            }
-                            if (lastSync && syncOptions.persist) {
-                                updateMetadata(obs$, localState, syncState, syncOptions, {
-                                    lastSync,
+                            if (isFirstLoad && syncOptions.subscribe) {
+                                syncOptions.subscribe({
+                                    node,
+                                    update: (params: ObservableOnChangeParams) => {
+                                        params.mode ||= syncOptions.mode || 'merge';
+                                        onChange(params);
+                                    },
+                                    refresh: sync,
                                 });
                             }
                         },
+                        onChange,
                     });
                 };
                 runGet();

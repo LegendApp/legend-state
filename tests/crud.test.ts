@@ -1,4 +1,4 @@
-import { observable } from '@legendapp/state';
+import { observable, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
@@ -25,7 +25,7 @@ const ItemBasicValue: () => BasicValue = () => ({
     test: 'hi',
 });
 
-type GetTestParams =
+type GetOrListTestParams =
     | { get: () => BasicValue | null; list?: never; as?: never }
     | { list: () => BasicValue[]; as: 'first'; get?: never };
 
@@ -45,7 +45,7 @@ beforeAll(() => {
 
 describe('Crud object get', () => {
     const getTests = {
-        get: async (params: GetTestParams) => {
+        get: async (params: GetOrListTestParams) => {
             const obs = observable(syncedCrud(params));
             expect(obs.get()).toEqual(undefined);
 
@@ -56,7 +56,7 @@ describe('Crud object get', () => {
                 test: 'hi',
             });
         },
-        getWithInitial: async (params: GetTestParams) => {
+        getWithInitial: async (params: GetOrListTestParams) => {
             const obs = observable(
                 syncedCrud({
                     ...params,
@@ -78,7 +78,7 @@ describe('Crud object get', () => {
                 test: 'hi',
             });
         },
-        getWithWaitFor: async (params: GetTestParams) => {
+        getWithWaitFor: async (params: GetOrListTestParams) => {
             const obsWait$ = observable(false);
             const obs = observable(syncedCrud({ ...params, waitFor: obsWait$ }));
 
@@ -97,7 +97,7 @@ describe('Crud object get', () => {
                 test: 'hi',
             });
         },
-        getWithSet: async (params: GetTestParams) => {
+        getWithSet: async (params: GetOrListTestParams) => {
             let created = undefined;
             let updated = undefined;
             const obs = observable(
@@ -137,7 +137,7 @@ describe('Crud object get', () => {
                 test: 'hello',
             });
         },
-        getWithSetNoInitial: async (params: GetTestParams) => {
+        getWithSetNoInitial: async (params: GetOrListTestParams) => {
             let created = undefined;
             let updated = undefined;
             const obs = observable(
@@ -174,7 +174,7 @@ describe('Crud object get', () => {
                 test: 'hello',
             });
         },
-        getWithSetDeepChild: async (params: GetTestParams) => {
+        getWithSetDeepChild: async (params: GetOrListTestParams) => {
             let saved = undefined;
             const obs = observable(
                 syncedCrud({
@@ -218,7 +218,7 @@ describe('Crud object get', () => {
                 },
             });
         },
-        getWithDelete: async (params: GetTestParams) => {
+        getWithDelete: async (params: GetOrListTestParams) => {
             let deleted = undefined;
             const obs = observable(
                 syncedCrud({
@@ -1169,7 +1169,7 @@ describe('fieldUpdatedAt', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } },
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } as BasicValue },
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
@@ -1373,5 +1373,68 @@ describe('lastSync', () => {
                 test: 'test1',
             },
         ]);
+    });
+});
+describe('subscribe', () => {
+    test('subscribe with refresh', async () => {
+        let retValue = 1;
+        const set1$ = observable(false);
+        const set2$ = observable(false);
+        const obs = observable(
+            syncedCrud({
+                list: () => [{ id: retValue++ }],
+                as: 'array',
+                mode: 'append',
+                subscribe: ({ refresh }) => {
+                    when(set1$, refresh);
+                    when(set2$, refresh);
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual([{ id: 1 }]);
+
+        set1$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }]);
+
+        set2$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    });
+    test('subscribe with update', async () => {
+        const set1$ = observable(false);
+        const set2$ = observable(false);
+        const obs = observable(
+            syncedCrud({
+                list: () => [{ id: 1 }],
+                as: 'array',
+                mode: 'append',
+                subscribe: ({ update }) => {
+                    when(set1$, () => {
+                        update({ value: [{ id: 2 }] });
+                    });
+                    when(set2$, () => {
+                        update({ value: [{ id: 3 }] });
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual([{ id: 1 }]);
+
+        set1$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }]);
+
+        set2$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
     });
 });
