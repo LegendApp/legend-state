@@ -1,6 +1,7 @@
 import {
     SyncedOptionsGlobal,
     getNodeValue,
+    mergeIntoObservable,
     symbolDelete,
     type SyncedGetParams,
     type SyncedSubscribeParams,
@@ -81,6 +82,7 @@ export function syncedSupabase<
     Collection extends CollectionOf<Client> & string,
     AsOption extends CrudAsOption = 'object',
 >(props: SyncedSupabaseProps<Client, Collection, AsOption>): SyncedCrudReturnType<RowOf<Client, Collection>, AsOption> {
+    mergeIntoObservable(props, supabaseConfig);
     const { supabase: client, collection, filter, actions, fieldUpdatedAt, realtime, changesSince, ...rest } = props;
     const list =
         !actions || actions.includes('read')
