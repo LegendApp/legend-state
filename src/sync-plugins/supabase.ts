@@ -87,11 +87,14 @@ export function syncedSupabase<
             ? async (params: SyncedGetParams) => {
                   const { lastSync } = params;
                   let select = client.from(collection).select();
-                  if (changesSince === 'last-sync' && lastSync) {
-                      const date = new Date(lastSync).toISOString();
-                      select = select.or(
-                          `created_at.gt.${date}${fieldUpdatedAt ? `,${fieldUpdatedAt}.gt.${date}` : ''}`,
-                      );
+                  if (changesSince === 'last-sync') {
+                      select = select.neq('deleted', true);
+                      if (lastSync) {
+                          const date = new Date(lastSync).toISOString();
+                          select = select.or(
+                              `created_at.gt.${date}${fieldUpdatedAt ? `,${fieldUpdatedAt}.gt.${date}` : ''}`,
+                          );
+                      }
                   }
                   if (filter) {
                       select = filter(select, params);
@@ -103,36 +106,27 @@ export function syncedSupabase<
                   return (data! || []) as RowOf<Client, Collection>[];
               }
             : undefined;
-    const create =
-        !actions || actions.includes('create')
-            ? async (input: RowOf<Client, Collection>) => {
-                  const res = await client.from(collection).upsert(input).select();
-                  const { data, error } = res;
-                  if (data) {
-                      const created = data[0];
-                      return created;
-                  } else {
-                      throw new Error(error?.message);
-                  }
-              }
-            : undefined;
-    const update =
-        !actions || actions.includes('update')
-            ? async (input: RowOf<Client, Collection>) => {
-                  const res = await client.from(collection).upsert(input).select();
-                  const { data, error } = res;
-                  if (data) {
-                      const created = data[0];
-                      return created;
-                  } else {
-                      throw new Error(error?.message);
-                  }
-              }
-            : undefined;
+
+    const upsert = async (input: RowOf<Client, Collection>) => {
+        const res = await client.from(collection).upsert(input).select();
+        const { data, error } = res;
+        if (data) {
+            const created = data[0];
+            return created;
+        } else {
+            throw new Error(error?.message);
+        }
+    };
+    const create = !actions || actions.includes('create') ? upsert : undefined;
+    const update = !actions || actions.includes('update') ? upsert : undefined;
     const deleteFn =
         !actions || actions.includes('delete')
             ? async (input: RowOf<Client, Collection>) => {
-                  const res = await client.from(collection).upsert(input).select();
+                  const id = input.id;
+                  const from = client.from(collection);
+                  const res = await (changesSince === 'last-sync' ? from.update({ deleted: true }) : from.delete())
+                      .eq('id', id)
+                      .select();
                   const { data, error } = res;
                   if (data) {
                       const created = data[0];
