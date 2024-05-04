@@ -13,6 +13,7 @@ import type {
     PersistMetadata,
     PersistOptions,
     SyncTransform,
+    SyncTransformMethod,
     Synced,
     SyncedOptions,
     TypeAtPath,
@@ -123,9 +124,10 @@ export function transformLoadData(
     value: any,
     { transform }: { transform?: SyncTransform },
     doUserTransform: boolean,
+    method: SyncTransformMethod,
 ): Promise<any> | any {
     if (doUserTransform && transform?.load) {
-        value = transform.load(value);
+        value = transform.load(value, method);
     }
 
     return value;
@@ -655,7 +657,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 // Remote can optionally have data that needs to be merged back into the observable,
                 // for example Firebase may update dateModified with the server timestamp
                 if (changes && !isEmpty(changes)) {
-                    transformedChanges = transformLoadData(changes, syncOptions, false);
+                    transformedChanges = transformLoadData(changes, syncOptions, false, 'set');
                 }
 
                 if (localState.numSavesOutstanding > 0) {
@@ -784,7 +786,7 @@ async function loadLocal<T>(
         if (value !== undefined) {
             const { transform } = config;
 
-            value = transformLoadData(value, { transform }, true);
+            value = transformLoadData(value, { transform }, true, 'get');
 
             if (isPromise(value)) {
                 value = await value;
@@ -868,7 +870,7 @@ export function syncObservable<T>(
                     const onChange = async ({ value, mode, lastSync }: UpdateFnParams) => {
                         mode = mode || syncOptions.mode || 'set';
                         if (value !== undefined) {
-                            value = transformLoadData(value, syncOptions, true);
+                            value = transformLoadData(value, syncOptions, true, 'get');
                             if (isPromise(value)) {
                                 value = await (value as Promise<T>);
                             }

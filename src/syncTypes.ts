@@ -109,8 +109,9 @@ export interface PersistMetadata {
     lastSync?: number;
     pending?: any;
 }
+export type SyncTransformMethod = 'get' | 'set';
 export interface SyncTransform<TOrig = any, TSaved = TOrig> {
-    load?: (value: TSaved) => TOrig | Promise<TOrig>;
+    load?: (value: TSaved, method: SyncTransformMethod) => TOrig | Promise<TOrig>;
     save?: (value: TOrig) => TSaved | Promise<TSaved>;
 }
 export interface ObservableSyncStateBase {

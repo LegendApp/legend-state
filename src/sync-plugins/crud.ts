@@ -1,5 +1,6 @@
 import {
     SyncTransform,
+    SyncTransformMethod,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
@@ -112,11 +113,11 @@ export function combineTransforms<T, T2>(
     ...transforms: Partial<SyncTransform<T2, T>>[]
 ): SyncTransform<T2, T> {
     return {
-        load: (value: T) => {
-            let inValue = transform1.load?.(value) as any;
+        load: (value: T, method: SyncTransformMethod) => {
+            let inValue = transform1.load?.(value, method) as any;
             transforms.forEach((transform) => {
                 if (transform.load) {
-                    inValue = transform.load(inValue);
+                    inValue = transform.load(inValue, method);
                 }
             });
             return inValue;
@@ -198,7 +199,7 @@ export function syncedCrud<
                       }
                       let transformed = data as unknown as TLocal[];
                       if (transform?.load) {
-                          transformed = await Promise.all(data.map(transform.load));
+                          transformed = await Promise.all(data.map((value) => transform.load!(value, 'get')));
                       }
                       if (asType === 'first') {
                           return transformed.length > 0 ? transformed[0] : null;
@@ -221,7 +222,7 @@ export function syncedCrud<
                               updateLastSync(newLastSync);
                           }
                           if (transform?.load) {
-                              transformed = await transform.load(data);
+                              transformed = await transform.load(data, 'get');
                           }
                       }
 
@@ -330,7 +331,9 @@ export function syncedCrud<
                       isCreate: boolean,
                   ) => {
                       if (data && onSaved) {
-                          const dataLoaded: TLocal = (transform?.load ? transform.load(data as any) : data) as any;
+                          const dataLoaded: TLocal = (
+                              transform?.load ? transform.load(data as any, 'set') : data
+                          ) as any;
 
                           const savedOut = onSaved(dataLoaded, input, isCreate);
 

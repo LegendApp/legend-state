@@ -35,7 +35,7 @@ export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<T
         let value = await response[valueType || 'json']();
 
         if (transform?.load) {
-            value = transform?.load(value);
+            value = transform?.load(value, 'get');
         }
 
         return value;
@@ -55,7 +55,7 @@ export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<T
             }
             if (onSaved) {
                 const responseValue = await response[onSavedValueType || valueType || 'json']();
-                const transformed = transform?.load ? await transform.load(responseValue) : responseValue;
+                const transformed = transform?.load ? await transform.load(responseValue, 'set') : responseValue;
                 const valueSave = onSaved(transformed, value);
                 update({
                     value: valueSave,
