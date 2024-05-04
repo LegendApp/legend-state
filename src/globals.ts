@@ -67,7 +67,7 @@ export function safeStringify(value: any) {
 export function safeParse(value: any) {
     return JSON.parse(value, reviver);
 }
-export function clone(value: any) {
+export function clone<T>(value: T) {
     return safeParse(safeStringify(value));
 }
 

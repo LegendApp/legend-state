@@ -1,7 +1,10 @@
 import {
+    Observable,
     SyncedOptionsGlobal,
+    computeSelector,
     getNodeValue,
     mergeIntoObservable,
+    observable,
     symbolDelete,
     type SyncedGetParams,
     type SyncedSubscribeParams,
@@ -40,6 +43,7 @@ export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
 
 export interface SyncedSupabaseGlobalConfig extends Omit<SyncedSupabaseConfig<{ id: string }>, 'persist'> {
     persist?: SyncedOptionsGlobal;
+    enabled?: Observable<boolean>;
 }
 
 interface SyncedSupabaseProps<
@@ -72,9 +76,14 @@ interface SyncedSupabaseProps<
 
 let channelNum = 1;
 const supabaseConfig: SyncedSupabaseGlobalConfig = {};
+const isEnabled$ = observable(true);
 
 export function configureSyncedSupabase(config: SyncedSupabaseGlobalConfig) {
-    Object.assign(supabaseConfig, config);
+    const { enabled, ...rest } = config;
+    if (enabled !== undefined) {
+        isEnabled$.set(enabled);
+    }
+    Object.assign(supabaseConfig, rest);
 }
 
 export function syncedSupabase<
@@ -83,7 +92,18 @@ export function syncedSupabase<
     AsOption extends CrudAsOption = 'object',
 >(props: SyncedSupabaseProps<Client, Collection, AsOption>): SyncedCrudReturnType<RowOf<Client, Collection>, AsOption> {
     mergeIntoObservable(props, supabaseConfig);
-    const { supabase: client, collection, filter, actions, fieldUpdatedAt, realtime, changesSince, ...rest } = props;
+    const {
+        supabase: client,
+        collection,
+        filter,
+        actions,
+        fieldUpdatedAt,
+        realtime,
+        changesSince,
+        waitFor,
+        waitForSet,
+        ...rest
+    } = props;
     const list =
         !actions || actions.includes('read')
             ? async (params: SyncedGetParams) => {
@@ -182,6 +202,7 @@ export function syncedSupabase<
         : undefined;
 
     return syncedCrud<RowOf<Client, Collection>, RowOf<Client, Collection>, AsOption>({
+        ...rest,
         list,
         create,
         update,
@@ -198,6 +219,7 @@ export function syncedSupabase<
         fieldCreatedAt: 'created_at',
         fieldUpdatedAt,
         updatePartial: true,
-        ...rest,
+        waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
+        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
     });
 }

@@ -11,7 +11,7 @@ import { observable, observablePrimitive, syncState } from '../src/observable';
 import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
 import { Observable as ObservableNew } from '../src/observableTypes';
 import { observe } from '../src/observe';
-import { when } from '../src/when';
+import { when, whenReady } from '../src/when';
 
 enable$get();
 enable_peek();
@@ -2257,6 +2257,40 @@ describe('when', () => {
         );
         expect(didResolve).toEqual(false);
         await promiseTimeout(0);
+        expect(didResolve).toEqual(true);
+    });
+    test('whenReady with function returning promise', async () => {
+        let didResolve = false;
+        const fn = async () => {
+            await promiseTimeout(0);
+            return true;
+        };
+        whenReady(
+            () => fn(),
+            () => (didResolve = true),
+        );
+        expect(didResolve).toEqual(false);
+        await promiseTimeout(0);
+        expect(didResolve).toEqual(true);
+    });
+    test('whenReady with function returning promise', async () => {
+        let promise: Promise<boolean> | undefined = undefined;
+        let didResolve = false;
+        const fn = async () => {
+            await promiseTimeout(10);
+            return true;
+        };
+        promise = whenReady(
+            () => fn(),
+            () => {
+                didResolve = true;
+                return true;
+            },
+        );
+        expect(didResolve).toEqual(false);
+
+        const promiseResult = await promise;
+        expect(promiseResult).toEqual(true);
         expect(didResolve).toEqual(true);
     });
     test('when type of return', async () => {

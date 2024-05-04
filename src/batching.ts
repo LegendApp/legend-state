@@ -48,6 +48,8 @@ export function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
 function createPreviousHandlerInner(value: any, changes: Change[]) {
     try {
         // Clones the current state and inject the previous data at the changed path
+        // TODO: Is this behavior similar to setAtPath or mergeIntoObservable so one
+        // of those could be used here?
         let cloned = value ? clone(value) : {};
         for (let i = 0; i < changes.length; i++) {
             const { path, prevAtPath } = changes[i];

@@ -77,7 +77,7 @@ export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | '
 }
 
 export interface SyncedOptionsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'persist'> {
-    persist?: ObservablePersistPluginOptions & { plugin?: ClassConstructor<ObservablePersistPlugin, T[]> };
+    persist?: ObservablePersistPluginOptions & Omit<PersistOptions, 'name' | 'transform' | 'options'>;
 }
 
 export interface ObservablePersistPluginOptions {

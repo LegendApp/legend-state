@@ -129,12 +129,13 @@ export interface LinkedOptions<T = any> {
     get?: () => Promise<T> | T;
     set?: (params: SetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
-    waitForSet?:
-        | ((params: { value: T; changes: Change[] }) => any)
-        | Promise<any>
-        | ObservableParam<any>
-        | ObservableEvent;
+    waitForSet?: ((params: WaitForSetFnParams<T>) => any) | Promise<any> | ObservableParam<any> | ObservableEvent;
     initial?: T extends Promise<infer t> ? t : T;
+}
+
+export interface WaitForSetFnParams<T = any> {
+    value: T;
+    changes: Change[];
 }
 
 export interface UpdateFnParams {

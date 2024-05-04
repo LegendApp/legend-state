@@ -52,15 +52,13 @@ type InitialValue<T, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
     ? T
     : T[];
 
-export type SyncedCrudReturnType<TLocal, TAsOption extends CrudAsOption> = Promise<
-    TAsOption extends 'Map'
-        ? Map<string, TLocal>
-        : TAsOption extends 'object'
-        ? Record<string, TLocal>
-        : TAsOption extends 'first'
-        ? TLocal
-        : TLocal[]
-> & {};
+export type SyncedCrudReturnType<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
+    ? Map<string, TLocal>
+    : TAsOption extends 'object'
+    ? Record<string, TLocal>
+    : TAsOption extends 'first'
+    ? TLocal
+    : TLocal[];
 
 let _asOption: CrudAsOption;
 

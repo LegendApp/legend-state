@@ -1,4 +1,12 @@
-import { SyncedSetParams, internal, type SyncedGetParams, type SyncedSubscribeParams } from '@legendapp/state';
+import {
+    SyncedSetParams,
+    computeSelector,
+    internal,
+    observable,
+    when,
+    type SyncedGetParams,
+    type SyncedSubscribeParams,
+} from '@legendapp/state';
 import {
     CrudAsOption,
     CrudResult,
@@ -11,15 +19,15 @@ import {
 const { clone } = internal;
 
 // Keel types
-type BaseKeelType = {
+export interface KeelObjectBase {
     id: string;
     createdAt: Date;
     updatedAt: Date;
-};
+}
 export type KeelKey = 'createdAt' | 'updatedAt';
 export const KeelKeys: KeelKey[] = ['createdAt', 'updatedAt'];
 export type OmitKeelBuiltins<T, T2 extends string = ''> = Omit<T, KeelKey | T2>;
-type APIError = { type: string; message: string; requrestId?: string };
+type APIError = { type: string; message: string; requestId?: string };
 
 type APIResult<T> = Result<T, APIError>;
 
@@ -49,18 +57,19 @@ interface ListGetParams {
     maxResults?: number;
 }
 
-export interface RealtimePlugin {
+export interface KeelRealtimePlugin {
     subscribe: (realtimeKey: string, refresh: () => void) => void;
     setLatestChange: (realtimeKey: string, time: Date) => void;
 }
 
-interface KeelPluginConfiguration {
+interface SyncedKeelConfiguration {
     client: {
         auth: { refresh: () => Promise<boolean>; isAuthenticated: () => Promise<boolean> };
         api: { queries: Record<string, (i: any) => Promise<any>> };
     };
-    realtimePlugin?: RealtimePlugin;
+    realtimePlugin?: KeelRealtimePlugin;
     as?: CrudAsOption;
+    enabled?: boolean;
     onError?: (params: APIResult<any>['error']) => void;
 }
 
@@ -72,14 +81,14 @@ interface PageInfo {
     totalCount: number;
 }
 
-interface KeelPluginPropsMany<TRemote, TLocal, AOption extends CrudAsOption>
+interface SyncedKeelPropsMany<TRemote, TLocal, AOption extends CrudAsOption>
     extends Omit<SyncedCrudPropsMany<TRemote, TLocal, AOption>, 'list'> {
     list?: (params: ListGetParams) => Promise<CrudResult<APIResult<{ results: TRemote[]; pageInfo: any }>>>;
     maxResults?: number;
     get?: never;
 }
 
-interface KeelPluginPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
+interface SyncedKeelPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
     get?: (params: GetGetParams) => Promise<APIResult<TRemote>>;
 
     maxResults?: never;
@@ -87,20 +96,22 @@ interface KeelPluginPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSin
     as?: never;
 }
 
-interface KeelPluginPropsBase<TRemote extends { id: string }, TLocal = TRemote>
+interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     extends Omit<SyncedCrudPropsBase<TRemote, TLocal>, 'create' | 'update' | 'delete'> {
-    create?: (i: TRemote) => Promise<APIResult<TRemote>>;
+    create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
 }
 
-let _client: KeelPluginConfiguration['client'];
+let _client: SyncedKeelConfiguration['client'];
 let _asOption: CrudAsOption;
-let _realtimePlugin: RealtimePlugin;
+let _realtimePlugin: KeelRealtimePlugin;
 let _onError: (error: APIResult<any>['error']) => void;
 const modifiedClients = new WeakSet<Record<string, any>>();
+const isEnabled$ = observable(true);
 
 async function ensureAuthToken() {
+    await when(isEnabled$.get());
     let isAuthed = await _client.auth.isAuthenticated();
     if (!isAuthed) {
         isAuthed = await _client.auth.refresh();
@@ -133,12 +144,21 @@ function convertObjectToCreate<TRemote, TLocal>(item: TRemote) {
     return cloned as unknown as TLocal;
 }
 
-export function configureKeelPlugin({ realtimePlugin, as: asOption, client, onError }: KeelPluginConfiguration) {
+export function configureSyncedKeel({
+    realtimePlugin,
+    as: asOption,
+    client,
+    enabled,
+    onError,
+}: SyncedKeelConfiguration) {
     if (asOption) {
         _asOption = asOption;
     }
     if (client) {
         _client = client;
+    }
+    if (enabled !== undefined) {
+        isEnabled$.set(enabled);
     }
 
     if (realtimePlugin) {
@@ -149,9 +169,6 @@ export function configureKeelPlugin({ realtimePlugin, as: asOption, client, onEr
             Object.keys(queries).forEach((key) => {
                 const oldFn = queries[key];
                 queries[key] = (i) => {
-                    if (__DEV__) {
-                        console.log('running', key);
-                    }
                     const subscribe =
                         key.startsWith('list') &&
                         i.where &&
@@ -232,15 +249,15 @@ async function getAllPages<TRemote>(
     return { results: allData, subscribe: subscribe_ };
 }
 
-export function syncedKeel<TRemote extends BaseKeelType, TLocal>(
-    props: KeelPluginPropsBase<TRemote, TLocal> & KeelPluginPropsSingle<TRemote, TLocal>,
+export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote>(
+    props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'first'>;
-export function syncedKeel<TRemote extends BaseKeelType, TLocal, TOption extends CrudAsOption = 'object'>(
-    props: KeelPluginPropsBase<TRemote, TLocal> & KeelPluginPropsMany<TRemote, TLocal, TOption>,
+export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOption extends CrudAsOption = 'object'>(
+    props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsMany<TRemote, TLocal, TOption>,
 ): SyncedCrudReturnType<TLocal, Exclude<TOption, 'first'>>;
-export function syncedKeel<TRemote extends BaseKeelType, TLocal, TOption extends CrudAsOption>(
-    props: KeelPluginPropsBase<TRemote, TLocal> &
-        (KeelPluginPropsSingle<TRemote, TLocal> | KeelPluginPropsMany<TRemote, TLocal, TOption>),
+export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOption extends CrudAsOption = 'object'>(
+    props: SyncedKeelPropsBase<TRemote, TLocal> &
+        (SyncedKeelPropsSingle<TRemote, TLocal> | SyncedKeelPropsMany<TRemote, TLocal, TOption>),
 ): SyncedCrudReturnType<TLocal, TOption> {
     const {
         get: getParam,
@@ -250,6 +267,8 @@ export function syncedKeel<TRemote extends BaseKeelType, TLocal, TOption extends
         delete: deleteParam,
         maxResults,
         initial,
+        waitFor,
+        waitForSet,
         ...rest
     } = props;
 
@@ -382,7 +401,7 @@ export function syncedKeel<TRemote extends BaseKeelType, TLocal, TOption extends
     const update = updateParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
               const id = input.id;
-              const values = input as unknown as Partial<TRemote>;
+              const values = input as unknown as Partial<KeelObjectBase>;
               delete values.id;
               delete values.createdAt;
               delete values.updatedAt;
@@ -416,8 +435,8 @@ export function syncedKeel<TRemote extends BaseKeelType, TLocal, TOption extends
         update,
         delete: deleteFn,
         retry: { infinite: true },
-        waitFor: () => ensureAuthToken(),
-        waitForSet: () => ensureAuthToken(),
+        waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
+        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
