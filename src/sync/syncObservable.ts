@@ -24,6 +24,7 @@ import {
     deconstructObjectWithPath,
     endBatch,
     internal,
+    isArray,
     isEmpty,
     isFunction,
     isObject,
@@ -923,6 +924,10 @@ export function syncObservable<T>(
                             onChangeRemote(() => {
                                 if (mode === 'assign' && isObject(value)) {
                                     (obs$ as unknown as Observable<object>).assign(value);
+                                } else if (mode === 'append' && isArray(value)) {
+                                    (obs$ as unknown as Observable<any[]>).push(...value);
+                                } else if (mode === 'prepend' && isArray(value)) {
+                                    (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
                                 } else if (mode === 'merge') {
                                     mergeIntoObservable(obs$, value);
                                 } else {

@@ -54,7 +54,7 @@ export interface SyncedSubscribeParams {
     refresh: () => void;
 }
 
-export type GetMode = 'set' | 'assign' | 'merge';
+export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
 
 export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
