@@ -68,7 +68,7 @@ interface SyncedKeelConfiguration {
         api: { queries: Record<string, (i: any) => Promise<any>> };
     };
     realtimePlugin?: KeelRealtimePlugin;
-    as?: CrudAsOption;
+    as?: Exclude<CrudAsOption, 'first'>;
     enabled?: boolean;
     onError?: (params: APIResult<any>['error']) => void;
 }

@@ -76,7 +76,11 @@ export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | '
     allowSetIfGetError?: boolean;
 }
 
-export interface SyncedOptionsGlobal<T = any> extends Omit<SyncedOptions<T>, 'get' | 'set' | 'persist'> {
+export interface SyncedOptionsGlobal<T = any>
+    extends Omit<
+        SyncedOptions<T>,
+        'get' | 'set' | 'persist' | 'initial' | 'waitForSet' | 'waitFor' | 'transform' | 'subscribe'
+    > {
     persist?: ObservablePersistPluginOptions & Omit<PersistOptions, 'name' | 'transform' | 'options'>;
 }
 

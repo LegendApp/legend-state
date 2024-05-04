@@ -1,5 +1,6 @@
 import {
     Observable,
+    SyncedOptions,
     SyncedOptionsGlobal,
     computeSelector,
     getNodeValue,
@@ -38,12 +39,14 @@ type RowOf<
 
 export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
     SyncedCrudPropsBase<T>,
-    'create' | 'update' | 'delete' | 'onSaved' | 'transform' | 'fieldCreatedAt' | 'updatePartial' | 'subscribe'
+    'create' | 'update' | 'delete' | 'onSaved' | 'transform' | 'updatePartial' | 'subscribe'
 >;
 
-export interface SyncedSupabaseGlobalConfig extends Omit<SyncedSupabaseConfig<{ id: string }>, 'persist'> {
+export interface SyncedSupabaseGlobalConfig
+    extends Omit<SyncedSupabaseConfig<{ id: string }>, 'persist' | keyof SyncedOptions> {
     persist?: SyncedOptionsGlobal;
     enabled?: Observable<boolean>;
+    as?: Exclude<CrudAsOption, 'first'>;
 }
 
 interface SyncedSupabaseProps<
@@ -97,6 +100,7 @@ export function syncedSupabase<
         collection,
         filter,
         actions,
+        fieldCreatedAt,
         fieldUpdatedAt,
         realtime,
         changesSince,
@@ -114,7 +118,10 @@ export function syncedSupabase<
                       if (lastSync) {
                           const date = new Date(lastSync).toISOString();
                           select = select.or(
-                              `created_at.gt.${date}${fieldUpdatedAt ? `,${fieldUpdatedAt}.gt.${date}` : ''}`,
+                              [
+                                  fieldCreatedAt && `${fieldCreatedAt}.gt.${date}`,
+                                  fieldUpdatedAt && `${fieldUpdatedAt}.gt.${date}`,
+                              ].join(','),
                           );
                       }
                   }
@@ -175,8 +182,14 @@ export function syncedSupabase<
                           const { eventType, new: value, old } = payload;
                           if (eventType === 'INSERT' || eventType === 'UPDATE') {
                               const cur = getNodeValue(node)?.[value.id];
-                              const curDateStr = cur && (cur.updated_at || cur.created_at);
-                              const valueDateStr = value.updated_at || value.created_at;
+                              const curDateStr =
+                                  cur &&
+                                  ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||
+                                      fieldCreatedAt ||
+                                      cur[fieldCreatedAt as any]);
+                              const valueDateStr =
+                                  (fieldUpdatedAt && value[fieldUpdatedAt]) ||
+                                  (fieldCreatedAt && value[fieldCreatedAt]);
                               const valueDate = +new Date(valueDateStr);
                               // Check if new or newer than last seen locally
                               if (valueDateStr && (!curDateStr || valueDate > +new Date(curDateStr))) {
@@ -209,14 +222,21 @@ export function syncedSupabase<
         delete: deleteFn,
         onSaved: (saved) => {
             // Update the local timestamps with server response
-            return {
-                id: saved.id,
-                created_at: saved.created_at,
-                updated_at: saved.updated_at,
-            };
+            if (fieldCreatedAt || fieldUpdatedAt) {
+                const ret: any = {
+                    id: saved.id,
+                };
+                if (fieldCreatedAt) {
+                    ret[fieldCreatedAt] = fieldCreatedAt;
+                }
+                if (fieldUpdatedAt) {
+                    ret[fieldUpdatedAt] = fieldUpdatedAt;
+                }
+                return ret;
+            }
         },
         subscribe,
-        fieldCreatedAt: 'created_at',
+        fieldCreatedAt,
         fieldUpdatedAt,
         updatePartial: true,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
