@@ -1,42 +1,72 @@
-import { Synced, SyncedOptions, SyncedSetParams, isString } from '@legendapp/state';
+import { SyncTransform, Synced, SyncedOptions, SyncedSetParams, computeSelector, isString } from '@legendapp/state';
 import { synced } from '@legendapp/state/sync';
 
-export interface SyncedFetchProps extends Omit<SyncedOptions, 'get' | 'set'> {
-    get: string | RequestInfo;
-    set?: string | RequestInfo;
+export interface SyncedFetchProps<TRemote, TLocal> extends Omit<SyncedOptions, 'get' | 'set' | 'transform'> {
+    get: Selector<string>;
+    set?: Selector<string>;
     getInit?: RequestInit;
     setInit?: RequestInit;
+    transform?: SyncTransform<TLocal, TRemote>;
     valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
-    onSetValueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
-    onSet?: (params: SyncedSetParams<any>) => void;
+    onSavedValueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
+    onSaved?(saved: TLocal, input: TRemote): Partial<TLocal> | void;
 }
 
-export function syncedFetch<T>({
-    get,
-    set,
-    getInit,
-    setInit,
-    valueType,
-    onSet,
-    onSetValueType,
-}: SyncedFetchProps): Synced<T> {
-    const ret: SyncedOptions = {
-        get: () => fetch(get, getInit).then((response) => response[valueType || 'json']()),
+export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<TRemote, TLocal>): Synced<TLocal> {
+    const {
+        get: getParam,
+        set: setParam,
+        getInit,
+        setInit,
+        valueType,
+        onSaved,
+        onSavedValueType,
+        transform,
+        ...rest
+    } = props;
+    const get = async () => {
+        const url = computeSelector(getParam);
+        const response = await fetch(url, getInit);
+
+        if (!response.ok) {
+            throw new Error(response.statusText);
+        }
+
+        let value = await response[valueType || 'json']();
+
+        if (transform?.load) {
+            value = transform?.load(value);
+        }
+
+        return value;
     };
 
-    if (set) {
-        ret.set = async (params: SyncedSetParams<any>) => {
-            const requestInfo = isString(set) ? ({ url: set } as RequestInfo) : set;
+    let set: ((params: SyncedSetParams<TRemote>) => void | Promise<any>) | undefined = undefined;
+    if (setParam) {
+        set = async ({ value, update }: SyncedSetParams<any>) => {
+            const url = computeSelector(setParam);
+
             const response = await fetch(
-                Object.assign({ method: 'POST' }, requestInfo, { body: JSON.stringify(params.value) }),
-                setInit,
+                url,
+                Object.assign({ method: 'POST' }, setInit, { body: JSON.stringify(value) }),
             );
-            if (onSet) {
-                params.value = response[onSetValueType || valueType || 'json']();
-                onSet(params);
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+            if (onSaved) {
+                const responseValue = await response[onSavedValueType || valueType || 'json']();
+                const transformed = transform?.load ? await transform.load(responseValue) : responseValue;
+                const valueSave = onSaved(transformed, value);
+                update({
+                    value: valueSave,
+                });
             }
         };
     }
 
-    return synced(ret);
+    return synced({
+        ...rest,
+        get,
+        set,
+    });
 }
