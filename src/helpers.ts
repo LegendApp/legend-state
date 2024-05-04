@@ -4,7 +4,7 @@ import { isArray, isEmpty, isFunction, isNumber, isObject } from './is';
 import type { ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
-export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean) {
+export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean): T {
     let c = selector as any;
     if (!isObservable(c) && isFunction(c)) {
         c = e ? c(e) : c();
