@@ -60,7 +60,7 @@ export interface KeelRealtimePlugin {
     setLatestChange: (realtimeKey: string, time: Date) => void;
 }
 
-interface SyncedKeelConfiguration
+export interface SyncedKeelConfiguration
     extends Omit<
         SyncedCrudPropsBase<any>,
         | keyof SyncedOptions
