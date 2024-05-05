@@ -52,7 +52,6 @@ interface ListGetParams {
     refresh?: () => void;
     after?: string;
     first?: number;
-    maxResults?: number;
 }
 
 export interface KeelRealtimePlugin {
@@ -60,7 +59,20 @@ export interface KeelRealtimePlugin {
     setLatestChange: (realtimeKey: string, time: Date) => void;
 }
 
-interface SyncedKeelConfiguration {
+interface SyncedKeelConfiguration
+    extends Omit<
+        SyncedCrudPropsBase<any>,
+        | keyof SyncedOptions
+        | 'create'
+        | 'update'
+        | 'delete'
+        | 'onSaved'
+        | 'transform'
+        | 'updatePartial'
+        | 'subscribe'
+        | 'fieldCreatedAt'
+        | 'fieldUpdatedAt'
+    > {
     client: {
         auth: { refresh: () => Promise<boolean>; isAuthenticated: () => Promise<boolean> };
         api: { queries: Record<string, (i: any) => Promise<any>> };
@@ -82,14 +94,14 @@ interface PageInfo {
 interface SyncedKeelPropsMany<TRemote, TLocal, AOption extends CrudAsOption>
     extends Omit<SyncedCrudPropsMany<TRemote, TLocal, AOption>, 'list'> {
     list?: (params: ListGetParams) => Promise<CrudResult<APIResult<{ results: TRemote[]; pageInfo: any }>>>;
-    maxResults?: number;
+    first?: number;
     get?: never;
 }
 
 interface SyncedKeelPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
     get?: (params: GetGetParams) => Promise<APIResult<TRemote>>;
 
-    maxResults?: never;
+    first?: never;
     list?: never;
     as?: never;
 }
@@ -212,10 +224,10 @@ async function getAllPages<TRemote>(
     let pageInfo: PageInfo | undefined = undefined;
     let subscribe_;
 
-    const { maxResults } = params;
+    const { first: firstParam } = params;
 
     do {
-        const first = maxResults ? Math.min(maxResults - allData.length, NumPerPage) : NumPerPage;
+        const first = firstParam ? Math.min(firstParam - allData.length, NumPerPage) : NumPerPage;
         if (first < 1) {
             break;
         }
@@ -263,12 +275,13 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         create: createParam,
         update: updateParam,
         delete: deleteParam,
-        maxResults,
-        initial,
+        first,
         waitFor,
         waitForSet,
         ...rest
     } = props;
+
+    const { changesSince } = props;
 
     let asType = props.as as TOption;
 
@@ -285,10 +298,10 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
     const list = listParam
         ? async (listParams: SyncedGetParams) => {
               const { lastSync, refresh } = listParams;
-              const queryBySync = !!lastSync;
+              const queryBySync = !!lastSync && changesSince === 'last-sync';
               const isRawRequest = (listParam || getParam).toString().includes('rawRequest');
               const where = queryBySync ? { updatedAt: { after: new Date(+new Date(lastSync) + 1) } } : {};
-              const params: ListGetParams = isRawRequest ? { where, maxResults } : { where, refresh, maxResults };
+              const params: ListGetParams = isRawRequest ? { where, first } : { where, refresh, first };
 
               // TODO: Error?
               const { results, subscribe } = await getAllPages(listParam, params);
@@ -438,7 +451,7 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
-        initial: initial as any, // This errors because of the get/list union type
+        changesSince,
         // @ts-expect-error This errors because of the get/list union type
         get: get as any,
     }) as SyncedCrudReturnType<TLocal, TOption>;
