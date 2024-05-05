@@ -21,10 +21,11 @@ function createRetryTimeout(retryOptions: RetryOptions, attemptNum: number, fn: 
 
 export function runWithRetry<T>(
     node: NodeValue,
-    state: { attemptNum: number },
+    state: { attemptNum: number; retry: RetryOptions | undefined },
     fn: (e: { cancel?: boolean }) => T | Promise<T>,
 ): T | Promise<T> {
-    const { retry, waitFor } = node.activationState!;
+    const { waitFor } = node.activationState!;
+    const { retry } = state;
 
     const e = { cancel: false };
     let value: any = undefined;

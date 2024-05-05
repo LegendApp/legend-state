@@ -16,7 +16,7 @@ export function enableActivateSyncedNode() {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, set } = node.activationState!;
+            const { get, initial, set, retry } = node.activationState!;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservableSyncFunctions = {};
@@ -33,7 +33,7 @@ export function enableActivateSyncedNode() {
                     const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
 
                     const existingValue = getNodeValue(node);
-                    const value = runWithRetry(node, { attemptNum: 0 }, () => {
+                    const value = runWithRetry(node, { attemptNum: 0, retry: retry || params.options?.retry }, () => {
                         const paramsToGet = {
                             value:
                                 isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
@@ -57,7 +57,7 @@ export function enableActivateSyncedNode() {
                 // TODO: Work out these types better
                 pluginRemote.set = async (params: ObservableSyncSetParams<any>) => {
                     if (node.state?.isLoaded.get()) {
-                        const retryAttempts = { attemptNum: 0 };
+                        const retryAttempts = { attemptNum: 0, retry: retry || params.options?.retry };
                         return runWithRetry(node, retryAttempts, async (retryEvent) => {
                             let changes = {};
                             let maxModified = 0;
