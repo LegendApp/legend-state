@@ -19,25 +19,22 @@ import {
     SyncedCrudReturnType,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
-import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Unused types but maybe useful in the future so keeping them for now
-// type DatabaseOf<TClient extends SupabaseClient> = TClient extends SupabaseClient<infer TDB> ? TDB : never;
-// type SchemaNameOf<TClient extends SupabaseClient> = TClient extends SupabaseClient<infer _, infer TSchemaName>
-//     ? TSchemaName
+// type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
+// type SchemaNameOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer _, infer SchemaName>
+//     ? SchemaName
 //     : never;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type SchemaOf<TClient extends SupabaseClient> = TClient extends SupabaseClient<infer _, infer __, infer TSchema>
-    ? TSchema
+type SchemaOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer _, infer __, infer Schema>
+    ? Schema
     : never;
-type TableOf<TClient extends SupabaseClient> = SchemaOf<TClient>['Tables'];
-type CollectionOf<TClient extends SupabaseClient> = keyof TableOf<TClient>;
-type RowOf<
-    TClient extends SupabaseClient,
-    TCollection extends CollectionOf<TClient>,
-> = TableOf<TClient>[TCollection]['Row'];
+type TableOf<Client extends SupabaseClient> = SchemaOf<Client>['Tables'];
+type CollectionOf<Client extends SupabaseClient> = keyof TableOf<Client>;
+type RowOf<Client extends SupabaseClient, Collection extends CollectionOf<Client>> = TableOf<Client>[Collection]['Row'];
 
 export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
     SyncedCrudPropsBase<T>,
@@ -52,27 +49,36 @@ export interface SyncedSupabaseGlobalConfig
 }
 
 interface SyncedSupabaseProps<
-    TClient extends SupabaseClient,
-    TCollection extends CollectionOf<TClient>,
+    Client extends SupabaseClient,
+    Collection extends CollectionOf<Client>,
     TOption extends CrudAsOption = 'object',
-> extends SyncedSupabaseConfig<RowOf<TClient, TCollection>>,
-        SyncedCrudPropsMany<RowOf<TClient, TCollection>, RowOf<TClient, TCollection>, TOption> {
-    supabase: TClient;
-    collection: TCollection;
+> extends SyncedSupabaseConfig<RowOf<Client, Collection>>,
+        SyncedCrudPropsMany<RowOf<Client, Collection>, RowOf<Client, Collection>, TOption> {
+    supabase: Client;
+    collection: Collection;
+    select?: (
+        query: PostgrestQueryBuilder<SchemaOf<Client>, TableOf<Client>[Collection], Collection>,
+    ) => PostgrestFilterBuilder<
+        SchemaOf<Client>,
+        RowOf<Client, Collection>,
+        RowOf<Client, Collection>[],
+        Collection,
+        []
+    >;
     filter?: (
         select: PostgrestFilterBuilder<
-            SchemaOf<TClient>,
-            RowOf<TClient, TCollection>,
-            RowOf<TClient, TCollection>[],
-            TCollection,
+            SchemaOf<Client>,
+            RowOf<Client, Collection>,
+            RowOf<Client, Collection>[],
+            Collection,
             []
         >,
         params: SyncedGetParams,
     ) => PostgrestFilterBuilder<
-        SchemaOf<TClient>,
-        RowOf<TClient, TCollection>,
-        RowOf<TClient, TCollection>[],
-        TCollection,
+        SchemaOf<Client>,
+        RowOf<Client, Collection>,
+        RowOf<Client, Collection>[],
+        Collection,
         []
     >;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
@@ -100,6 +106,7 @@ export function syncedSupabase<
     const {
         supabase: client,
         collection,
+        select: selectFn,
         filter,
         actions,
         fieldCreatedAt,
@@ -114,7 +121,8 @@ export function syncedSupabase<
         !actions || actions.includes('read')
             ? async (params: SyncedGetParams) => {
                   const { lastSync } = params;
-                  let select = client.from(collection).select();
+                  const from = client.from(collection);
+                  let select = selectFn ? selectFn(from) : from.select();
                   if (changesSince === 'last-sync') {
                       select = select.neq('deleted', true);
                       if (lastSync) {
