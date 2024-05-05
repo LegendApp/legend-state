@@ -1,6 +1,7 @@
 import { computeSelector, observable, when, internal } from '@legendapp/state';
 import {
     SyncedOptions,
+    removeNullUndefined,
     type SyncedGetParams,
     type SyncedSetParams,
     type SyncedSubscribeParams,
@@ -113,18 +114,15 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
 }
 
-let _client: SyncedKeelConfiguration['client'];
-let _asOption: CrudAsOption;
-let _realtimePlugin: KeelRealtimePlugin;
-let _onError: (error: APIResult<any>['error']) => void;
+const keelConfig: SyncedKeelConfiguration = {} as SyncedKeelConfiguration;
 const modifiedClients = new WeakSet<Record<string, any>>();
 const isEnabled$ = observable(true);
 
 async function ensureAuthToken() {
     await when(isEnabled$.get());
-    let isAuthed = await _client.auth.isAuthenticated();
+    let isAuthed = await keelConfig.client.auth.isAuthenticated();
     if (!isAuthed) {
-        isAuthed = await _client.auth.refresh();
+        isAuthed = await keelConfig.client.auth.refresh();
     }
 
     return isAuthed;
@@ -154,25 +152,17 @@ function convertObjectToCreate<TRemote, TLocal>(item: TRemote) {
     return cloned as unknown as TLocal;
 }
 
-export function configureSyncedKeel({
-    realtimePlugin,
-    as: asOption,
-    client,
-    enabled,
-    onError,
-}: SyncedKeelConfiguration) {
-    if (asOption) {
-        _asOption = asOption;
-    }
-    if (client) {
-        _client = client;
-    }
+export function configureSyncedKeel(config: SyncedKeelConfiguration) {
+    const { enabled, realtimePlugin, ...rest } = config;
+    Object.assign(keelConfig, removeNullUndefined(rest));
+
     if (enabled !== undefined) {
         isEnabled$.set(enabled);
     }
+    const { client } = keelConfig;
 
     if (realtimePlugin) {
-        _realtimePlugin = realtimePlugin;
+        keelConfig.realtimePlugin = realtimePlugin;
         if (client && !modifiedClients.has(client)) {
             modifiedClients.add(client);
             const queries = client.api.queries;
@@ -203,10 +193,6 @@ export function configureSyncedKeel({
                 };
             });
         }
-    }
-
-    if (onError) {
-        _onError = onError;
     }
 }
 
@@ -286,9 +272,10 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
     let asType = props.as as TOption;
 
     if (!asType) {
-        asType = (getParam ? 'first' : _asOption || undefined) as TOption;
+        asType = (getParam ? 'first' : keelConfig.as || undefined) as TOption;
     }
 
+    const realtimePlugin = keelConfig.realtimePlugin;
     let realtimeKeyList: string | undefined = undefined;
     let realtimeKeyGet: string | undefined = undefined;
 
@@ -299,7 +286,10 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         ? async (listParams: SyncedGetParams) => {
               const { lastSync, refresh } = listParams;
               const queryBySync = !!lastSync && changesSince === 'last-sync';
+              // If this is one of the customized functions for use with realtime then we need to pass
+              // the refresh function to it
               const isRawRequest = (listParam || getParam).toString().includes('rawRequest');
+              // If querying with lastSync pass it to the "where" parameters
               const where = queryBySync ? { updatedAt: { after: new Date(+new Date(lastSync) + 1) } } : {};
               const params: ListGetParams = isRawRequest ? { where, first } : { where, refresh, first };
 
@@ -353,12 +343,12 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
 
             const updatedAt = data[fieldUpdatedAt as keyof TLocal] as Date;
 
-            if (updatedAt && _realtimePlugin) {
+            if (updatedAt && realtimePlugin) {
                 if (realtimeKeyGet) {
-                    _realtimePlugin.setLatestChange(realtimeKeyGet, updatedAt);
+                    realtimePlugin.setLatestChange(realtimeKeyGet, updatedAt);
                 }
                 if (realtimeKeyList) {
-                    _realtimePlugin.setLatestChange(realtimeKeyList, updatedAt);
+                    realtimePlugin.setLatestChange(realtimeKeyList, updatedAt);
                 }
             }
 
@@ -383,7 +373,7 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
                 mode: 'assign',
             });
         } else if (error.type === 'bad_request') {
-            _onError?.(error);
+            keelConfig.onError?.(error);
 
             if (retryNum > 4) {
                 cancelRetry();

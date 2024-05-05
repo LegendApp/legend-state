@@ -834,15 +834,13 @@ export function syncObservable<T>(
     const node = getNode(obs$);
 
     // Merge remote sync options with global options
-    if (syncOptions) {
-        syncOptions = Object.assign(
-            {
-                syncMode: 'auto',
-            } as SyncedOptions,
-            observableSyncConfiguration,
-            removeNullUndefined(syncOptions),
-        );
-    }
+    syncOptions = mergeIntoObservable(
+        {
+            syncMode: 'auto',
+        } as SyncedOptions,
+        observableSyncConfiguration,
+        removeNullUndefined(syncOptions || {}),
+    );
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 

@@ -9,6 +9,7 @@ import {
 import {
     SyncedOptions,
     SyncedOptionsGlobal,
+    removeNullUndefined,
     type SyncedGetParams,
     type SyncedSubscribeParams,
 } from '@legendapp/state/sync';
@@ -94,7 +95,7 @@ export function configureSyncedSupabase(config: SyncedSupabaseGlobalConfig) {
     if (enabled !== undefined) {
         isEnabled$.set(enabled);
     }
-    Object.assign(supabaseConfig, rest);
+    Object.assign(supabaseConfig, removeNullUndefined(rest));
 }
 
 export function syncedSupabase<
