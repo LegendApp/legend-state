@@ -1,4 +1,4 @@
-import type { Synced, SyncedOptions } from '@legendapp/state';
+import type { Synced, SyncedOptions } from './syncTypes';
 import { internal } from '@legendapp/state';
 import { enableActivateSyncedNode } from './activateSyncedNode';
 

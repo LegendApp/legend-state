@@ -1,4 +1,5 @@
-import { Observable, ObservableParam, LegacyPersistOptions, observable } from '@legendapp/state';
+import { Observable, ObservableParam, observable } from '@legendapp/state';
+import { LegacyPersistOptions } from '@legendapp/state/sync';
 import { persistObservable } from '@legendapp/state/persist';
 import { useMemo } from 'react';
 

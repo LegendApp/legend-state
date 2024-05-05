@@ -1,15 +1,17 @@
 import {
     Observable,
-    SyncedOptions,
-    SyncedOptionsGlobal,
     computeSelector,
     getNodeValue,
     mergeIntoObservable,
     observable,
     symbolDelete,
+} from '@legendapp/state';
+import {
+    SyncedOptions,
+    SyncedOptionsGlobal,
     type SyncedGetParams,
     type SyncedSubscribeParams,
-} from '@legendapp/state';
+} from '@legendapp/state/sync';
 import {
     CrudAsOption,
     SyncedCrudPropsBase,

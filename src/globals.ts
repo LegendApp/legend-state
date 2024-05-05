@@ -1,4 +1,4 @@
-import { isArray, isChildNodeValue, isDate, isMap, isFunction, isNullOrUndefined, isObject } from './is';
+import { isArray, isChildNodeValue, isDate, isFunction, isMap, isNullOrUndefined, isObject } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 

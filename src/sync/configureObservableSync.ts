@@ -1,4 +1,4 @@
-import type { SyncedOptionsGlobal } from '@legendapp/state';
+import type { SyncedOptionsGlobal } from '@legendapp/state/sync';
 
 export const observableSyncConfiguration: SyncedOptionsGlobal = {};
 

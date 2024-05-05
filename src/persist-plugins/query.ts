@@ -1,9 +1,5 @@
-import {
-    ObservablePersistRemoteFunctions,
-    isFunction,
-    observe,
-    type ObservablePersistRemoteSetParams,
-} from '@legendapp/state';
+import { isFunction, observe } from '@legendapp/state';
+import { ObservablePersistRemoteFunctions, type ObservablePersistRemoteSetParams } from '@legendapp/state/sync';
 import {
     InfiniteQueryObserver,
     MutationObserver,

@@ -1,5 +1,6 @@
 import { whenReady } from './when';
-import type { NodeValue, RetryOptions } from './observableInterfaces';
+import type { NodeValue } from './observableInterfaces';
+import type { RetryOptions } from './sync/syncTypes';
 import { isPromise } from './is';
 
 function calculateRetryDelay(retryOptions: RetryOptions, attemptNum: number): number | null {

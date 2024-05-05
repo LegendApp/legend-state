@@ -1,12 +1,10 @@
+import { computeSelector, observable, when, internal } from '@legendapp/state';
 import {
-    SyncedSetParams,
-    computeSelector,
-    internal,
-    observable,
-    when,
+    SyncedOptions,
     type SyncedGetParams,
+    type SyncedSetParams,
     type SyncedSubscribeParams,
-} from '@legendapp/state';
+} from '@legendapp/state/sync';
 import {
     CrudAsOption,
     CrudResult,

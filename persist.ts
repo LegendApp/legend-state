@@ -1,4 +1,4 @@
-import type { ObservablePersistenceConfig } from '@legendapp/state';
+import type { ObservablePersistenceConfig } from '@legendapp/state/sync';
 import { internal as internalState } from '@legendapp/state';
 export { configureObservablePersistence } from './src/persist/configureObservablePersistence';
 export { invertFieldMap, transformObject, transformPath } from './src/persist/fieldTransformer';

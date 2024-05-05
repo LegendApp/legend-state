@@ -36,8 +36,6 @@ export { observable, observablePrimitive, syncState } from './src/observable';
 export * from './src/observableInterfaces';
 export * from './src/observableTypes';
 export { observe } from './src/observe';
-export * from './src/persistTypes';
-export * from './src/syncTypes';
 export { proxy } from './src/proxy';
 export { trackSelector } from './src/trackSelector';
 export { when, whenReady } from './src/when';

@@ -1,11 +1,10 @@
+import type { Change, Observable } from '@legendapp/state';
 import type {
-    Change,
-    Observable,
     ObservablePersistPluginOptions,
     ObservablePersistPlugin,
     PersistMetadata,
     PersistOptions,
-} from '@legendapp/state';
+} from '@legendapp/state/sync';
 import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 
 const MetadataSuffix = '__legend_metadata';

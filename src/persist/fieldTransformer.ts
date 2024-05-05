@@ -1,13 +1,13 @@
 import {
     constructObjectWithPath,
     deconstructObjectWithPath,
-    FieldTransforms,
     isArray,
     isObject,
     isString,
     TypeAtPath,
     internal,
 } from '@legendapp/state';
+import type { FieldTransforms } from '@legendapp/state/sync';
 
 const { initializePathType, symbolDelete } = internal;
 

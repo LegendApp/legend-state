@@ -1,21 +1,11 @@
 import type {
     Change,
     ClassConstructor,
-    FieldTransforms,
     ListenerParams,
     NodeValue,
     Observable,
     ObservableObject,
     ObservableParam,
-    ObservablePersistLocal,
-    ObservablePersistRemoteClass,
-    ObservablePersistRemoteFunctions,
-    ObservablePersistState,
-    PersistMetadata,
-    LegacyPersistOptions,
-    LegacyPersistOptionsLocal,
-    LegacyPersistOptionsRemote,
-    PersistTransform,
     TypeAtPath,
 } from '@legendapp/state';
 import {
@@ -36,6 +26,18 @@ import {
     setInObservableAtPath,
     when,
 } from '@legendapp/state';
+import type {
+    FieldTransforms,
+    LegacyPersistOptions,
+    LegacyPersistOptionsLocal,
+    LegacyPersistOptionsRemote,
+    ObservablePersistLocal,
+    ObservablePersistRemoteClass,
+    ObservablePersistRemoteFunctions,
+    ObservablePersistState,
+    PersistMetadata,
+    PersistTransform,
+} from '@legendapp/state/sync';
 import { removeNullUndefined } from '../sync/syncHelpers';
 import { observablePersistConfiguration } from './configureObservablePersistence';
 import { invertFieldMap, transformObject, transformObjectWithPath, transformPath } from './fieldTransformer';

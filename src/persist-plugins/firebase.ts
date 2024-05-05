@@ -1,12 +1,7 @@
 import {
     Observable,
-    ObservablePersistRemoteClass,
-    ObservablePersistRemoteGetParams,
-    ObservablePersistRemoteSetParams,
-    ObservablePrimitive,
     ObservableParam,
-    LegacyPersistOptions,
-    QueryByModified,
+    ObservablePrimitive,
     TypeAtPath,
     batch,
     constructObjectWithPath,
@@ -24,6 +19,13 @@ import {
     whenReady,
 } from '@legendapp/state';
 import { internal as internalPersist, transformObject, transformPath } from '@legendapp/state/persist';
+import {
+    LegacyPersistOptions,
+    ObservablePersistRemoteClass,
+    ObservablePersistRemoteGetParams,
+    ObservablePersistRemoteSetParams,
+    QueryByModified,
+} from '@legendapp/state/sync';
 import { getAuth, type User } from 'firebase/auth';
 import type { DataSnapshot } from 'firebase/database';
 import {

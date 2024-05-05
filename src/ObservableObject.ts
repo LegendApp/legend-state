@@ -1,4 +1,3 @@
-import { linked } from './linked';
 import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -31,6 +30,7 @@ import {
     isPrimitive,
     isPromise,
 } from './is';
+import { linked } from './linked';
 import type {
     Change,
     ChildNodeValue,
@@ -44,6 +44,7 @@ import type {
 import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
+import type {} from './sync/syncTypes';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
 

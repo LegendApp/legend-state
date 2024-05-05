@@ -1,4 +1,5 @@
-import { ObservablePersistRemoteFunctions, isString, type ObservablePersistRemoteSetParams } from '@legendapp/state';
+import { isString } from '@legendapp/state';
+import { ObservablePersistRemoteFunctions, type ObservablePersistRemoteSetParams } from '@legendapp/state/sync';
 
 interface PersistFetchProps {
     get: string | RequestInfo;

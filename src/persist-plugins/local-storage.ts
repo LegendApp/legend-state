@@ -1,5 +1,6 @@
-import type { Change, ObservablePersistPlugin, PersistMetadata } from '@legendapp/state';
+import type { Change } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
+import type { ObservablePersistPlugin, PersistMetadata } from '@legendapp/state/sync';
 
 const MetadataSuffix = '__m';
 

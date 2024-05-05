@@ -5,17 +5,7 @@ import type {
     NodeValue,
     Observable,
     ObservableObject,
-    ObservableOnChangeParams,
     ObservableParam,
-    ObservablePersistPlugin,
-    ObservableSyncClass,
-    ObservableSyncState,
-    PersistMetadata,
-    PersistOptions,
-    SyncTransform,
-    SyncTransformMethod,
-    Synced,
-    SyncedOptions,
     TypeAtPath,
     UpdateFnParams,
 } from '@legendapp/state';
@@ -37,8 +27,20 @@ import {
     when,
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
+import type { ObservableOnChangeParams } from './persistTypes';
 import { removeNullUndefined } from './syncHelpers';
 import { syncObservableAdapter } from './syncObservableAdapter';
+import type {
+    ObservablePersistPlugin,
+    ObservableSyncClass,
+    ObservableSyncState,
+    PersistMetadata,
+    PersistOptions,
+    SyncTransform,
+    SyncTransformMethod,
+    Synced,
+    SyncedOptions,
+} from './syncTypes';
 
 const { createPreviousHandler, getValueAtPath, globalState, symbolLinked, getNode, getNodeValue } = internal;
 

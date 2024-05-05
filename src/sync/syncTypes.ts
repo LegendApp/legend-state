@@ -7,14 +7,14 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 import {
     Change,
     ClassConstructor,
+    GetMode,
     LinkedOptions,
     NodeValue,
-    RetryOptions,
     SetParams,
     UpdateFn,
     UpdateFnParams,
-} from './observableInterfaces';
-import { Observable, ObservableParam, ObservableState } from './observableTypes';
+} from '../observableInterfaces';
+import { Observable, ObservableParam, ObservableState } from '../observableTypes';
 
 export interface PersistOptions<T = any> {
     name: string;
@@ -53,8 +53,6 @@ export interface SyncedSubscribeParams {
     update: UpdateFn;
     refresh: () => void;
 }
-
-export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
 
 export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
@@ -172,3 +170,19 @@ export interface ObservableSyncFunctions<T = any> {
         params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;
 }
+
+export interface RetryOptions {
+    infinite?: boolean;
+    times?: number;
+    delay?: number;
+    backoff?: 'constant' | 'exponential';
+    maxDelay?: number;
+}
+
+export interface SubscribeOptions {
+    node: NodeValue;
+    update: UpdateFn;
+    refresh: () => void;
+}
+
+export type Synced<T> = T;

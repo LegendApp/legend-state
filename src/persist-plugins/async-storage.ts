@@ -1,9 +1,9 @@
+import type { Change } from '@legendapp/state';
 import type {
-    Change,
     ObservablePersistPlugin,
     ObservablePersistenceConfigLocalGlobalOptions,
     PersistMetadata,
-} from '@legendapp/state';
+} from '@legendapp/state/sync';
 import { internal, isArray, setAtPath } from '@legendapp/state';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 

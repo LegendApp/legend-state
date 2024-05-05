@@ -1,14 +1,12 @@
+import type { NodeValue, Observable, UpdateFn } from '@legendapp/state';
 import type {
-    NodeValue,
-    Observable,
-    ObservablePersistState,
     ObservableSyncFunctions,
     ObservableSyncGetParams,
     ObservableSyncSetParams,
     SyncedGetParams,
     SyncedSetParams,
-    UpdateFn,
-} from '@legendapp/state';
+} from './syncTypes';
+import type { ObservablePersistState } from './persistTypes';
 import { internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { syncObservable } from './syncObservable';
 const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue, getNodeValue } = internal;

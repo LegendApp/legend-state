@@ -1,9 +1,9 @@
+import { isPromise } from '@legendapp/state';
 import {
-    isPromise,
     type ObservablePersistRemoteClass,
     type ObservablePersistRemoteFunctions,
     type ObservablePersistRemoteGetParams,
-} from '@legendapp/state';
+} from '@legendapp/state/sync';
 
 export function observablePersistRemoteFunctionsAdapter<T = {}>({
     get,

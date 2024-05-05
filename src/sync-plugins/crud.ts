@@ -1,17 +1,13 @@
+import { internal, isArray, isNullOrUndefined, isNumber, isObject, isString } from '@legendapp/state';
 import {
+    synced,
+    diffObjects,
     SyncTransform,
     SyncTransformMethod,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
-    internal,
-    isArray,
-    isNullOrUndefined,
-    isNumber,
-    isObject,
-    isString,
-} from '@legendapp/state';
-import { synced, diffObjects } from '@legendapp/state/sync';
+} from '@legendapp/state/sync';
 
 const { clone } = internal;
 

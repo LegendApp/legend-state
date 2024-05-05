@@ -1,5 +1,5 @@
-import { Selector, SyncTransform, Synced, SyncedOptions, SyncedSetParams, computeSelector } from '@legendapp/state';
-import { synced } from '@legendapp/state/sync';
+import { Selector, computeSelector } from '@legendapp/state';
+import { synced, SyncTransform, Synced, SyncedOptions, SyncedSetParams } from '@legendapp/state/sync';
 
 export interface SyncedFetchProps<TRemote, TLocal> extends Omit<SyncedOptions, 'get' | 'set' | 'transform'> {
     get: Selector<string>;

@@ -1,5 +1,6 @@
-import type { Change, ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state';
+import type { Change } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
+import type { ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state/sync';
 import { MMKV } from 'react-native-mmkv';
 
 const symbolDefault = Symbol();
