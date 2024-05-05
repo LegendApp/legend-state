@@ -439,7 +439,7 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         update,
         delete: deleteFn,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
+        waitForSet,
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,

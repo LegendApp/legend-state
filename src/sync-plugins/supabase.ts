@@ -256,6 +256,6 @@ export function syncedSupabase<
         updatePartial: true,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
+        waitForSet,
     });
 }
