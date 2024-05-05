@@ -270,6 +270,39 @@ describe('Computed', () => {
         expect(comp.get()).toEqual({ prev: 35, sum: 31 });
     });
 });
+describe('Accessor functions', () => {
+    test('get fn', () => {
+        const obs1 = observable(20);
+        const obs = observable({
+            get test2() {
+                return obs1.get();
+            },
+        });
+
+        const handler = expectChangeHandler(obs.test2);
+        expect(obs.test2.get()).toEqual(20);
+        obs1.set(10);
+        expect(handler).toHaveBeenCalledWith(10, 20, [{ path: [], pathTypes: [], prevAtPath: 20, valueAtPath: 10 }]);
+        expect(obs.test2.get()).toEqual(10);
+    });
+    test('get/set fn', () => {
+        const obs = observable({ test: false, test2: false });
+        const comp = observable({
+            get test() {
+                return obs.test.get() && obs.test2.get();
+            },
+            set test(value) {
+                obs.test.set(value);
+                obs.test2.set(value);
+            },
+        });
+
+        expect(comp.test.get()).toEqual(false);
+        comp.test.set(true);
+        expect(obs.test.get()).toEqual(true);
+        expect(obs.test2.get()).toEqual(true);
+    });
+});
 describe('Two way Computed', () => {
     test('Bound to two, get', () => {
         const obs = observable({ test: false, test2: false });

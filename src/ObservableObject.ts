@@ -1,3 +1,4 @@
+import { linked } from './linked';
 import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -932,6 +933,16 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
     if (lazy || node.needsExtract || activateRecursive) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
+                const property = Object.getOwnPropertyDescriptor(value, key);
+                if (property?.get) {
+                    delete value[key];
+                    value[key] = property.set
+                        ? linked({
+                              get: property.get,
+                              set: ({ value }) => property.set!(value),
+                          })
+                        : property.get;
+                }
                 extractFunctionOrComputed(node, key, value[key], activateRecursive);
             }
         }
