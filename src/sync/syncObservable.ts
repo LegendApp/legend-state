@@ -42,7 +42,7 @@ import type {
     SyncedOptions,
 } from './syncTypes';
 
-const { createPreviousHandler, getValueAtPath, globalState, symbolLinked, getNode, getNodeValue } = internal;
+const { createPreviousHandler, clone, getValueAtPath, globalState, symbolLinked, getNode, getNodeValue } = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin | ObservableSyncClass>,
@@ -838,7 +838,7 @@ export function syncObservable<T>(
         {
             syncMode: 'auto',
         } as SyncedOptions,
-        observableSyncConfiguration,
+        clone(observableSyncConfiguration),
         removeNullUndefined(syncOptions || {}),
     );
     const localState: LocalState = {};
