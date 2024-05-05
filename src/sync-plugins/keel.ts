@@ -264,6 +264,7 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         first,
         waitFor,
         waitForSet,
+        generateId: generateIdParam,
         ...rest
     } = props;
 
@@ -274,6 +275,8 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
     if (!asType) {
         asType = (getParam ? 'first' : keelConfig.as || undefined) as TOption;
     }
+
+    const generateId = generateIdParam || keelConfig.generateId;
 
     const realtimePlugin = keelConfig.realtimePlugin;
     let realtimeKeyList: string | undefined = undefined;
@@ -435,13 +438,14 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         create,
         update,
         delete: deleteFn,
-        retry: { infinite: true },
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
         waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
         changesSince,
+        updatePartial: true,
+        generateId,
         // @ts-expect-error This errors because of the get/list union type
         get: get as any,
     }) as SyncedCrudReturnType<TLocal, TOption>;

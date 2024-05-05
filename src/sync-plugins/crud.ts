@@ -39,6 +39,7 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
     fieldCreatedAt?: string;
     updatePartial?: boolean;
     changesSince?: 'all' | 'last-sync';
+    generateId?: () => string | number;
 }
 
 type InitialValue<T, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
@@ -130,6 +131,13 @@ export function combineTransforms<T, T2>(
     };
 }
 
+function ensureId(obj: { id: string | number }, generateId: () => string | number) {
+    if (!obj.id) {
+        obj.id = generateId();
+    }
+    return obj.id;
+}
+
 export function syncedCrud<TRemote extends { id: string | number }, TLocal = TRemote>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'first'>;
@@ -161,6 +169,7 @@ export function syncedCrud<
         onSaved,
         mode: modeParam,
         changesSince,
+        generateId,
         ...rest
     } = props;
 
@@ -238,9 +247,12 @@ export function syncedCrud<
                   changes.forEach(({ path, prevAtPath, valueAtPath }) => {
                       if (asType === 'first') {
                           if (value) {
-                              const id = value?.id;
+                              let id = value?.id;
+                              const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
+                              if (!id && generateId) {
+                                  id = ensureId(value, generateId);
+                              }
                               if (id) {
-                                  const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
                                   if (isCreate || retryAsCreate) {
                                       creates.set(id, value);
                                   } else if (path.length === 0) {
@@ -304,6 +316,12 @@ export function syncedCrud<
                                   ? !item[fieldUpdatedAt]
                                   : isCreateGuess;
                               if (isCreate) {
+                                  if (generateId) {
+                                      ensureId(item, generateId);
+                                  }
+                                  if (!item.id) {
+                                      console.error('[legend-state]: added item without an id');
+                                  }
                                   if (createFn) {
                                       creates.set(item.id, item);
                                   } else {
@@ -358,7 +376,10 @@ export function syncedCrud<
                       }),
                       ...Array.from(updates).map(([itemKey, itemValue]) => {
                           const toSave = updatePartial
-                              ? diffObjects(asType === 'first' ? valuePrevious : valuePrevious[itemKey], itemValue)
+                              ? Object.assign(
+                                    diffObjects(asType === 'first' ? valuePrevious : valuePrevious[itemKey], itemValue),
+                                    { id: (itemValue as any).id },
+                                )
                               : itemValue;
                           const changed = transformOut(toSave as TLocal, transform?.save) as TRemote;
 

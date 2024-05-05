@@ -116,8 +116,12 @@ export function syncedSupabase<
         changesSince,
         waitFor,
         waitForSet,
+        generateId: generateIdParam,
         ...rest
     } = props;
+
+    const generateId = generateIdParam || supabaseConfig.generateId;
+
     const list =
         !actions || actions.includes('read')
             ? async (params: SyncedGetParams) => {
@@ -250,6 +254,7 @@ export function syncedSupabase<
         fieldCreatedAt,
         fieldUpdatedAt,
         updatePartial: true,
+        generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
         waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
     });
