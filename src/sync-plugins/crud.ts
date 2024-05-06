@@ -32,7 +32,7 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
         input: Partial<TRemote>,
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
-    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
+    delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
     onSaved?(saved: TLocal, input: TRemote, isCreate: boolean): Partial<TLocal> | void;
     transform?: SyncTransform<TLocal, TRemote>;
     fieldUpdatedAt?: string;
@@ -242,7 +242,7 @@ export function syncedCrud<
                   const { value, changes, update, retryAsCreate, valuePrevious } = params;
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
-                  const deletes = new Map<string, object>();
+                  const deletes = new Set<string>();
 
                   changes.forEach(({ path, prevAtPath, valueAtPath }) => {
                       if (asType === 'first') {
@@ -259,7 +259,7 @@ export function syncedCrud<
                                       if (valueAtPath) {
                                           updates.set(id, valueAtPath);
                                       } else if (prevAtPath) {
-                                          deletes.set(prevAtPath?.id, prevAtPath);
+                                          deletes.add(prevAtPath?.id);
                                       }
                                   } else {
                                       const key = path[0];
@@ -271,11 +271,11 @@ export function syncedCrud<
                           } else if (path.length === 0) {
                               const id = prevAtPath?.id;
                               if (id) {
-                                  deletes.set(id, prevAtPath);
+                                  deletes.add(id);
                               }
                           }
                       } else {
-                          let itemsChanged: any[] | undefined = undefined;
+                          let itemsChanged: [string, any][] | undefined = undefined;
                           let isCreateGuess: boolean;
                           if (path.length === 0) {
                               isCreateGuess =
@@ -289,10 +289,10 @@ export function syncedCrud<
                                       )?.length > 0
                                   );
                               itemsChanged = asMap
-                                  ? Array.from((valueAtPath as Map<any, any>).values())
+                                  ? Array.from((valueAtPath as Map<any, any>).entries())
                                   : isArray(valueAtPath)
                                   ? valueAtPath
-                                  : Object.values(valueAtPath);
+                                  : Object.entries(valueAtPath);
                           } else {
                               const itemKey = path[0];
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
@@ -300,38 +300,42 @@ export function syncedCrud<
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       if (deleteFn) {
-                                          deletes.set(itemKey, prevAtPath);
+                                          deletes.add(itemKey);
                                       } else {
                                           console.log('[legend-state] missing delete function');
                                       }
                                   }
                               } else {
-                                  itemsChanged = [itemValue];
+                                  itemsChanged = [[itemKey, itemValue]];
                               }
                           }
-                          itemsChanged?.forEach((item) => {
-                              const isCreate = fieldCreatedAt
-                                  ? !item[fieldCreatedAt!]
-                                  : fieldUpdatedAt
-                                  ? !item[fieldUpdatedAt]
-                                  : isCreateGuess;
-                              if (isCreate) {
-                                  if (generateId) {
-                                      ensureId(item, generateId);
-                                  }
-                                  if (!item.id) {
-                                      console.error('[legend-state]: added item without an id');
-                                  }
-                                  if (createFn) {
-                                      creates.set(item.id, item);
-                                  } else {
-                                      console.log('[legend-state] missing create function');
-                                  }
+                          itemsChanged?.forEach(([itemKey, item]) => {
+                              if (isNullOrUndefined(item)) {
+                                  deletes.add(itemKey);
                               } else {
-                                  if (updateFn) {
-                                      updates.set(item.id, item);
+                                  const isCreate = fieldCreatedAt
+                                      ? !item[fieldCreatedAt!]
+                                      : fieldUpdatedAt
+                                      ? !item[fieldUpdatedAt]
+                                      : isCreateGuess;
+                                  if (isCreate) {
+                                      if (generateId) {
+                                          ensureId(item, generateId);
+                                      }
+                                      if (!item.id) {
+                                          console.error('[legend-state]: added item without an id');
+                                      }
+                                      if (createFn) {
+                                          creates.set(item.id, item);
+                                      } else {
+                                          console.log('[legend-state] missing create function');
+                                      }
                                   } else {
-                                      console.log('[legend-state] missing update function');
+                                      if (updateFn) {
+                                          updates.set(item.id, item);
+                                      } else {
+                                          console.log('[legend-state] missing update function');
+                                      }
                                   }
                               }
                           });
@@ -390,7 +394,7 @@ export function syncedCrud<
                           }
                       }),
                       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                      ...Array.from(deletes).map(([_, itemValue]) => deleteFn!(itemValue as TRemote, params)),
+                      ...Array.from(deletes).map((itemKey) => deleteFn!({ id: itemKey }, params)),
                   ]);
               }
             : undefined;

@@ -165,7 +165,7 @@ export function syncedSupabase<
     const update = !actions || actions.includes('update') ? upsert : undefined;
     const deleteFn =
         !actions || actions.includes('delete')
-            ? async (input: RowOf<Client, Collection>) => {
+            ? async (input: { id: RowOf<Client, Collection>['id'] }) => {
                   const id = input.id;
                   const from = client.from(collection);
                   const res = await (changesSince === 'last-sync' ? from.update({ deleted: true }) : from.delete())

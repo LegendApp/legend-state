@@ -244,7 +244,6 @@ describe('Crud object get', () => {
 
             expect(deleted).toEqual({
                 id: 'id1',
-                test: 'hi',
             });
             expect(obs.get()).toEqual(undefined);
         },
@@ -496,7 +495,6 @@ describe('Crud as Object list', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
-            test: 'hi',
         });
         expect(obs.get()).toEqual({});
     });
@@ -522,7 +520,6 @@ describe('Crud as Object list', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
-            test: 'hi',
         });
         expect(obs.get()).toEqual({});
     });
@@ -561,6 +558,31 @@ describe('Crud as Object list', () => {
                 test: 'hi2',
             },
         });
+    });
+    test('as Object set children to null', async () => {
+        let deleted = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.set({ id1: null as any });
+
+        await promiseTimeout(0);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+        });
+        expect(obs.get()).toEqual({ id1: null });
     });
 });
 describe('Crud as Map', () => {
@@ -751,7 +773,6 @@ describe('Crud as Map', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
-            test: 'hi',
         });
         expect(obs.get()).toEqual(new Map());
     });
