@@ -137,7 +137,7 @@ async function handleApiError(error: APIError, retry?: () => any) {
     }
 }
 
-function convertObjectToCreate<TRemote, TLocal>(item: TRemote) {
+function convertObjectToCreate<TRemote>(item: TRemote): TRemote {
     const cloned = clone(item);
     Object.keys(cloned).forEach((key) => {
         if (key.endsWith('Id')) {
@@ -149,7 +149,7 @@ function convertObjectToCreate<TRemote, TLocal>(item: TRemote) {
     });
     delete cloned.createdAt;
     delete cloned.updatedAt;
-    return cloned as unknown as TLocal;
+    return cloned as unknown as TRemote;
 }
 
 export function configureSyncedKeel(config: SyncedKeelConfiguration) {
@@ -405,7 +405,7 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
     const update = updateParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
               const id = input.id;
-              const values = input as unknown as Partial<KeelObjectBase>;
+              const values = convertObjectToCreate(input as unknown as Partial<KeelObjectBase>);
               delete values.id;
               delete values.createdAt;
               delete values.updatedAt;
