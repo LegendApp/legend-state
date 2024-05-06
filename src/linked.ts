@@ -6,5 +6,9 @@ export function linked<T>(params: LinkedOptions<T> | (() => T)): Linked<T> {
     if (isFunction(params)) {
         params = { get: params };
     }
-    return (() => ({ [symbolLinked]: params })) as any;
+    const ret = function () {
+        return { [symbolLinked]: params };
+    };
+    ret.prototype[symbolLinked] = params;
+    return ret as Linked<T>;
 }

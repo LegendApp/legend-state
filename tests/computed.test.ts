@@ -2230,4 +2230,99 @@ describe('Activation', () => {
             id4: { text: 'hi4!' },
         });
     });
+    test('No recursive activation for functions', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: () => {
+                didCall = true;
+                return obs.test.get() + obs.test2.get();
+            },
+        });
+        const child = obs.peek()['child'];
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child });
+        expect(didCall).toEqual(false);
+    });
+    test('Recursive activation for linked function', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: linked((): number => {
+                didCall = true;
+                return obs.test.get() + obs.test2.get();
+            }),
+        });
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+        expect(didCall).toEqual(true);
+    });
+    test('Recursive activation for linked', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: linked({
+                get: (): number => {
+                    didCall = true;
+                    return obs.test.get() + obs.test2.get();
+                },
+            }),
+        });
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+        expect(didCall).toEqual(true);
+    });
+    test('Recursive activation for linked activate auto', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: linked({
+                get: (): number => {
+                    didCall = true;
+                    return obs.test.get() + obs.test2.get();
+                },
+                activate: 'auto',
+            }),
+        });
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+        expect(didCall).toEqual(true);
+    });
+    test('Recursive activation for deep descendant in linked activate auto', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: {
+                child2: {
+                    child3: linked({
+                        get: (): number => {
+                            didCall = true;
+                            return obs.test.get() + obs.test2.get();
+                        },
+                        activate: 'auto',
+                    }),
+                },
+            },
+        });
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child: { child2: { child3: 30 } } });
+        expect(didCall).toEqual(true);
+    });
+    test('No recursive activation for linked activate lazy', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: linked({
+                get: (): number => {
+                    didCall = true;
+                    return obs.test.get() + obs.test2.get();
+                },
+                activate: 'lazy',
+            }),
+        });
+        const child = obs.peek()['child'];
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child });
+        expect(didCall).toEqual(false);
+    });
 });

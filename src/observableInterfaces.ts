@@ -131,6 +131,7 @@ export interface LinkedOptions<T = any> {
     waitFor?: Selector<any>;
     waitForSet?: ((params: WaitForSetFnParams<T>) => any) | Promise<any> | ObservableParam<any> | ObservableEvent;
     initial?: T extends Promise<infer t> ? t : T;
+    activate?: 'auto' | 'lazy';
 }
 
 export interface WaitForSetFnParams<T = any> {

@@ -873,6 +873,15 @@ export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, ac
         setNodeValue(childNode, initialValue);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
+        if (activateRecursive) {
+            const linkedOptions = v.prototype?.[symbolLinked] as LinkedOptions;
+            if (linkedOptions) {
+                const activate = linkedOptions.activate;
+                if (!activate || activate === 'auto') {
+                    peekInternal(getChildNode(node, k, v), activateRecursive);
+                }
+            }
+        }
     } else if (activateRecursive && typeof v == 'object' && v !== null && v !== undefined) {
         const childNode = getChildNode(node, k);
         checkLazy(childNode, v, activateRecursive);
