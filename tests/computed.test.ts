@@ -2132,6 +2132,11 @@ describe('Complex computeds', () => {
     });
 });
 describe('Activation', () => {
+    test('linked with function', () => {
+        const obs = observable({ test: 10, test2: 20 });
+        const comp = observable(linked(() => obs.test.get() + obs.test2.get()));
+        expect(comp.get()).toEqual(30);
+    });
     test('Computed in observable gets activated by accessing root', () => {
         const obs = observable({
             text: 'hi',
