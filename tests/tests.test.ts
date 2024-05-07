@@ -547,6 +547,23 @@ describe('Listeners', () => {
             ],
         );
     });
+    test('Set with object with same value should not notify', () => {
+        interface Data {
+            test: Record<string, any>;
+        }
+        const obs = observable<Data>({ test: { hi: '1', hi2: '2', hi3: [] } });
+        const handler = expectChangeHandler(obs);
+        const handler2 = expectChangeHandler(obs.test);
+        const handler3 = expectChangeHandler(obs.test.hi1);
+        const handler4 = expectChangeHandler(obs.test.hi2);
+        const handler5 = expectChangeHandler(obs.test.hi3);
+        obs.set({ test: { hi: '1', hi2: '2', hi3: [] } });
+        expect(handler).toHaveBeenCalledTimes(0);
+        expect(handler2).toHaveBeenCalledTimes(0);
+        expect(handler3).toHaveBeenCalledTimes(0);
+        expect(handler4).toHaveBeenCalledTimes(0);
+        expect(handler5).toHaveBeenCalledTimes(0);
+    });
     test('Listener promises', async () => {
         const obs = observable({ test: 'hi' });
         const promise = when(() => obs.test.get() === 'hi2');

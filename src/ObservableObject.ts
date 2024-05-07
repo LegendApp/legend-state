@@ -318,9 +318,10 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
                         // Always need to updateNodes so we notify through all children
                         const updatedNodes = updateNodes(child, value, prev);
                         hasADiff = hasADiff || updatedNodes;
+                        isDiff = updatedNodes;
                     }
                 }
-                if (isDiff || !isArrDiff) {
+                if (isDiff || (isArr && !isArrDiff)) {
                     // Notify for this child if this element is different and it has listeners
                     // Or if the position changed in an array whose length did not change
                     // But do not notify child if the parent is an array with changing length -
