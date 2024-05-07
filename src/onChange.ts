@@ -99,7 +99,7 @@ function createCb(linkedFromNode: NodeValue, path: string[], callback: ListenerF
     let { valueAtPath: prevAtPath } = getValueAtPath(getNodeValue(linkedFromNode), path);
 
     return function ({ value: valueA, loading, remote }: ListenerParams<any>) {
-        const { valueAtPath, pathTypes } = getValueAtPath(valueA, path);
+        const { valueAtPath } = getValueAtPath(valueA, path);
         if (valueAtPath !== prevAtPath) {
             callback({
                 value: valueAtPath,
@@ -107,8 +107,8 @@ function createCb(linkedFromNode: NodeValue, path: string[], callback: ListenerF
                 remote,
                 changes: [
                     {
-                        path,
-                        pathTypes,
+                        path: [],
+                        pathTypes: [],
                         prevAtPath,
                         valueAtPath,
                     },
