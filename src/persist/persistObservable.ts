@@ -13,6 +13,7 @@ import {
     constructObjectWithPath,
     deconstructObjectWithPath,
     endBatch,
+    getNodeValue,
     internal,
     isEmpty,
     isFunction,
@@ -790,7 +791,7 @@ async function loadLocal<T>(
 
         const node = getNode(obs);
 
-        (node.state as unknown as Observable<ObservablePersistState>).peek().clearLocal = () =>
+        getNodeValue(getNode(node.state!)).clearLocal = () =>
             Promise.all([
                 persistenceLocal.deleteTable(table, config),
                 persistenceLocal.deleteMetadata(table, config),

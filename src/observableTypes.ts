@@ -28,6 +28,12 @@ export type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
     ? {
           [K in keyof T]: RemoveObservables<T[K]>;
       }
+    : T extends ImmutableObservableBase<infer TObs>
+    ? TObs
+    : T extends () => ImmutableObservableBase<infer TObs>
+    ? TObs & T
+    : T extends () => infer TRet
+    ? TRet & T
     : T;
 
 interface ObservableArray<T, U>

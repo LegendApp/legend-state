@@ -2173,7 +2173,6 @@ describe('Activation', () => {
         });
         const value = obs.get();
         expect(isObservable(value.test)).toBe(false);
-        // @ts-expect-error Need to fix the types to be both return value and function
         expect(value.test.text === 'hi!').toBe(false);
     });
     test('Filtered object works when updating its children', () => {
