@@ -2325,4 +2325,63 @@ describe('Activation', () => {
         expect(obs.get()).toEqual({ test: 10, test2: 20, child });
         expect(didCall).toEqual(false);
     });
+    test('linked child of observable link activated recursively', () => {
+        let didGet = false;
+        const valuesById$ = observable<Record<string, number>>({
+            a: 1,
+            b: 2,
+            c: 3,
+        });
+
+        const obs$ = observable({
+            currentId: 'a',
+            children: (id: string) => ({
+                value$: linked({
+                    get: () => {
+                        didGet = true;
+                        return valuesById$[id];
+                    },
+                }),
+            }),
+            currentChild: linked({
+                get: (): Observable<{ value$: Observable<number> }> => obs$.children[obs$.currentId.get()],
+                activate: 'lazy',
+            }),
+        });
+
+        obs$.get();
+        expect(didGet).toEqual(false);
+        obs$.currentChild.get();
+        expect(didGet).toEqual(true);
+    });
+    test('lazy linked child of observable link not activated recursively', () => {
+        let didGet = false;
+        const valuesById$ = observable<Record<string, number>>({
+            a: 1,
+            b: 2,
+            c: 3,
+        });
+
+        const obs$ = observable({
+            currentId: 'a',
+            children: (id: string) => ({
+                value$: linked({
+                    get: () => {
+                        didGet = true;
+                        return valuesById$[id];
+                    },
+                    activate: 'lazy',
+                }),
+            }),
+            currentChild: linked({
+                get: (): Observable<{ value$: Observable<number> }> => obs$.children[obs$.currentId.get()],
+                activate: 'lazy',
+            }),
+        });
+
+        obs$.get();
+        expect(didGet).toEqual(false);
+        obs$.currentChild.get();
+        expect(didGet).toEqual(false);
+    });
 });

@@ -941,7 +941,7 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
         }
     }
 
-    if ((lazy || node.needsExtract || activateRecursive) && !isPrimitive(value)) {
+    if ((lazy || node.needsExtract || activateRecursive) && !isObservable(value) && !isPrimitive(value)) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
                 const property = Object.getOwnPropertyDescriptor(value, key);
