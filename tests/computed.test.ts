@@ -2224,34 +2224,34 @@ describe('Activation', () => {
         expect(obs.get()).toEqual({ test: 10, test2: 20, child });
         expect(didCall).toEqual(false);
     });
-    test('Recursive activation for linked function', () => {
-        let didCall = false;
-        const obs = observable({
-            test: 10,
-            test2: 20,
-            child: linked((): number => {
-                didCall = true;
-                return obs.test.get() + obs.test2.get();
-            }),
-        });
-        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
-        expect(didCall).toEqual(true);
-    });
-    test('Recursive activation for linked', () => {
-        let didCall = false;
-        const obs = observable({
-            test: 10,
-            test2: 20,
-            child: linked({
-                get: (): number => {
-                    didCall = true;
-                    return obs.test.get() + obs.test2.get();
-                },
-            }),
-        });
-        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
-        expect(didCall).toEqual(true);
-    });
+    // test('Recursive activation for linked function', () => {
+    //     let didCall = false;
+    //     const obs = observable({
+    //         test: 10,
+    //         test2: 20,
+    //         child: linked((): number => {
+    //             didCall = true;
+    //             return obs.test.get() + obs.test2.get();
+    //         }),
+    //     });
+    //     expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+    //     expect(didCall).toEqual(true);
+    // });
+    // test('Recursive activation for linked', () => {
+    //     let didCall = false;
+    //     const obs = observable({
+    //         test: 10,
+    //         test2: 20,
+    //         child: linked({
+    //             get: (): number => {
+    //                 didCall = true;
+    //                 return obs.test.get() + obs.test2.get();
+    //             },
+    //         }),
+    //     });
+    //     expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+    //     expect(didCall).toEqual(true);
+    // });
     test('Recursive activation for linked activate auto', () => {
         let didCall = false;
         const obs = observable({

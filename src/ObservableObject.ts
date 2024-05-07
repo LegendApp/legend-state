@@ -877,7 +877,8 @@ export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, ac
             const linkedOptions = v.prototype?.[symbolLinked] as LinkedOptions;
             if (linkedOptions) {
                 const activate = linkedOptions.activate;
-                if (!activate || activate === 'auto') {
+                // if (!activate || activate === 'auto') {
+                if (activate === 'auto') {
                     peekInternal(getChildNode(node, k, v), activateRecursive);
                 }
             }
