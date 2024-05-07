@@ -877,8 +877,7 @@ export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, ac
             const linkedOptions = v.prototype?.[symbolLinked] as LinkedOptions;
             if (linkedOptions) {
                 const activate = linkedOptions.activate;
-                // if (!activate || activate === 'auto') {
-                if (activate === 'auto') {
+                if (!activate || activate === 'auto') {
                     peekInternal(getChildNode(node, k, v), activateRecursive);
                 }
             }
@@ -941,7 +940,7 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
         }
     }
 
-    if (lazy || node.needsExtract || activateRecursive) {
+    if ((lazy || node.needsExtract || activateRecursive) && !isPrimitive(value)) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
                 const property = Object.getOwnPropertyDescriptor(value, key);
@@ -1216,7 +1215,7 @@ function setToObservable(node: NodeValue, value: any) {
         node.linkedToNodeDispose = onChange(
             linkedNode,
             () => {
-                value = peek(linkedNode);
+                value = peekInternal(linkedNode);
                 set(node, value);
             },
             { initial: true },

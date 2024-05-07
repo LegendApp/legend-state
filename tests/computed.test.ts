@@ -2128,6 +2128,26 @@ describe('Activation', () => {
         expect(isObservable(value.test)).toBe(false);
         expect(value.test.text === 'hi!').toBe(true);
     });
+    test('Computed in observable with linked gets activated by accessing root', () => {
+        let didCall = false;
+        const obs = observable({
+            text: 'hi',
+            test: observable((): { text: string; test2: number } => {
+                return {
+                    text: obs.text.get() + '!',
+                    test2: linked(() => {
+                        didCall = true;
+                        return 10;
+                    }),
+                };
+            }),
+        });
+        const value = obs.get();
+        expect(isObservable(value.test)).toBe(false);
+        expect(value.test.text).toEqual('hi!');
+        expect(value.test.test2).toEqual(10);
+        expect(didCall).toEqual(true);
+    });
     test('Computed descendant in observable gets activated by accessing root', () => {
         const obs = observable({
             text: 'hi',
@@ -2224,34 +2244,34 @@ describe('Activation', () => {
         expect(obs.get()).toEqual({ test: 10, test2: 20, child });
         expect(didCall).toEqual(false);
     });
-    // test('Recursive activation for linked function', () => {
-    //     let didCall = false;
-    //     const obs = observable({
-    //         test: 10,
-    //         test2: 20,
-    //         child: linked((): number => {
-    //             didCall = true;
-    //             return obs.test.get() + obs.test2.get();
-    //         }),
-    //     });
-    //     expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
-    //     expect(didCall).toEqual(true);
-    // });
-    // test('Recursive activation for linked', () => {
-    //     let didCall = false;
-    //     const obs = observable({
-    //         test: 10,
-    //         test2: 20,
-    //         child: linked({
-    //             get: (): number => {
-    //                 didCall = true;
-    //                 return obs.test.get() + obs.test2.get();
-    //             },
-    //         }),
-    //     });
-    //     expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
-    //     expect(didCall).toEqual(true);
-    // });
+    test('Recursive activation for linked function', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: linked((): number => {
+                didCall = true;
+                return obs.test.get() + obs.test2.get();
+            }),
+        });
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+        expect(didCall).toEqual(true);
+    });
+    test('Recursive activation for linked', () => {
+        let didCall = false;
+        const obs = observable({
+            test: 10,
+            test2: 20,
+            child: linked({
+                get: (): number => {
+                    didCall = true;
+                    return obs.test.get() + obs.test2.get();
+                },
+            }),
+        });
+        expect(obs.get()).toEqual({ test: 10, test2: 20, child: 30 });
+        expect(didCall).toEqual(true);
+    });
     test('Recursive activation for linked activate auto', () => {
         let didCall = false;
         const obs = observable({
