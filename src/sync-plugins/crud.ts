@@ -262,8 +262,7 @@ export function syncedCrud<
                                           deletes.add(prevAtPath?.id);
                                       }
                                   } else {
-                                      const key = path[0];
-                                      updates.set(id, Object.assign(updates.get(id) || { id }, { [key]: value[key] }));
+                                      updates.set(id, Object.assign(updates.get(id) || { id }, value));
                                   }
                               } else {
                                   console.error('[legend-state]: added item without an id');

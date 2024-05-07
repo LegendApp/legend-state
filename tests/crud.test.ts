@@ -1102,6 +1102,115 @@ describe('lastSync', () => {
         );
     });
 });
+describe('update partial', () => {
+    test('without updatePartial', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                get: () => ({ ...ItemBasicValue(), other: 2, another: 3 }),
+                update: async (value) => {
+                    updated = value;
+                    return value;
+                },
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 2,
+            another: 3,
+        });
+
+        obs.other.set(4);
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual({ id: 'id1', test: 'hi', other: 4, another: 3 });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 4,
+            another: 3,
+        });
+    });
+    test('with updatePartial', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                get: () => ({ ...ItemBasicValue(), other: 2, another: 3 }),
+                update: async (value) => {
+                    updated = value;
+                    return value;
+                },
+                updatePartial: true,
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 2,
+            another: 3,
+        });
+
+        obs.other.set(4);
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual({ id: 'id1', other: 4 });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 4,
+            another: 3,
+        });
+    });
+    test('with updatePartial set root', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                get: () => ({ ...ItemBasicValue(), other: 2, another: 3 }),
+                update: async (value) => {
+                    updated = value;
+                    return value;
+                },
+                updatePartial: true,
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 2,
+            another: 3,
+        });
+
+        obs.set({ ...obs.get(), other: 4 });
+
+        await promiseTimeout(0);
+
+        expect(updated).toEqual({ id: 'id1', other: 4 });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 4,
+            another: 3,
+        });
+    });
+});
 describe('subscribe', () => {
     test('subscribe with refresh', async () => {
         let retValue = 1;
