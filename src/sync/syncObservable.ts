@@ -808,7 +808,7 @@ async function loadLocal<T>(
             internal.globalState.isLoadingLocal = false;
         }
 
-        node.state!.peek().clearPersist = () =>
+        getNodeValue(getNode(node.state!)).clearPersist = () =>
             Promise.all([
                 persistPlugin.deleteTable(table, config),
                 persistPlugin.deleteMetadata(table, config),
