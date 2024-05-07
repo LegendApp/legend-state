@@ -1,11 +1,4 @@
-import {
-    Observable,
-    computeSelector,
-    getNodeValue,
-    mergeIntoObservable,
-    observable,
-    symbolDelete,
-} from '@legendapp/state';
+import { Observable, computeSelector, mergeIntoObservable, observable, symbolDelete } from '@legendapp/state';
 import {
     SyncedOptions,
     SyncedOptionsGlobal,
@@ -181,7 +174,7 @@ export function syncedSupabase<
               }
             : undefined;
     const subscribe = realtime
-        ? ({ node, update }: SyncedSubscribeParams) => {
+        ? ({ node, value$, update }: SyncedSubscribeParams) => {
               const { filter, schema } = realtime;
               const channel = client
                   .channel(`LS_${node.key || ''}${channelNum++}`)
@@ -196,7 +189,7 @@ export function syncedSupabase<
                       (payload) => {
                           const { eventType, new: value, old } = payload;
                           if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                              const cur = getNodeValue(node)?.[value.id];
+                              const cur = value$.peek()?.[value.id];
                               const curDateStr =
                                   cur &&
                                   ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||

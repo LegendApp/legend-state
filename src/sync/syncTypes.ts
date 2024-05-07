@@ -48,8 +48,9 @@ export interface SyncedSetParams<T> extends SetParams<T> {
     fromSubscribe: boolean | undefined;
 }
 
-export interface SyncedSubscribeParams {
+export interface SyncedSubscribeParams<T = any> {
     node: NodeValue;
+    value$: ObservableParam<T>;
     update: UpdateFn;
     refresh: () => void;
 }
@@ -57,7 +58,7 @@ export interface SyncedSubscribeParams {
 export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | 'set'> {
     get?: (params: SyncedGetParams) => Promise<T> | T;
     set?: (params: SyncedSetParams<T>) => void | Promise<any>;
-    subscribe?: (params: SyncedSubscribeParams) => void;
+    subscribe?: (params: SyncedSubscribeParams<T>) => void;
     retry?: RetryOptions;
     persist?: PersistOptions<any>;
     debounceSet?: number;

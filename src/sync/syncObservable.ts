@@ -962,6 +962,7 @@ export function syncObservable<T>(
                             if (isFirstLoad && syncOptions.subscribe) {
                                 syncOptions.subscribe({
                                     node,
+                                    value$: obs$,
                                     update: (params: ObservableOnChangeParams) => {
                                         params.mode ||= syncOptions.mode || 'merge';
                                         onChange(params);
