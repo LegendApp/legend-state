@@ -71,16 +71,16 @@ export function clone<T>(value: T) {
     return safeParse(safeStringify(value));
 }
 
-export function isObservable(obs: any): obs is Observable {
-    return !!obs && !!obs[symbolGetNode as any];
+export function isObservable(value$: any): value$ is Observable {
+    return !!value$ && !!value$[symbolGetNode as any];
 }
 
-export function getNode(obs: ObservableParam): NodeValue {
-    return obs && (obs as any)[symbolGetNode];
+export function getNode(value$: ObservableParam): NodeValue {
+    return value$ && (value$ as any)[symbolGetNode];
 }
 
-export function isEvent(obs: any): obs is ObservableEvent {
-    return obs && (obs[symbolGetNode as any] as NodeValue)?.isEvent;
+export function isEvent(value$: any): value$ is ObservableEvent {
+    return value$ && (value$[symbolGetNode as any] as NodeValue)?.isEvent;
 }
 
 export function setNodeValue(node: NodeValue, newValue: any) {

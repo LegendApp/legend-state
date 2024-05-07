@@ -13,8 +13,8 @@ export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, r
     return isObservable(c) && !retainObservable ? c.get() : c;
 }
 
-export function getObservableIndex(obs: ObservableParam): number {
-    const node = getNode(obs);
+export function getObservableIndex(value$: ObservableParam): number {
+    const node = getNode(value$);
     const n = +node.key! as number;
     return isNumber(n) ? n : -1;
 }
@@ -92,13 +92,13 @@ export function setAtPath<T extends object>(
     return obj;
 }
 export function setInObservableAtPath(
-    obs: ObservableParam,
+    value$: ObservableParam,
     path: string[],
     pathTypes: TypeAtPath[],
     value: any,
     mode: 'assign' | 'set' | 'merge',
 ) {
-    let o: Record<string, any> = obs;
+    let o: Record<string, any> = value$;
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
@@ -205,8 +205,8 @@ export function isObservableValueReady(value: any) {
     return !!value && ((!isObject(value) && !isArray(value)) || !isEmpty(value));
 }
 
-export function setSilently(obs: ObservableParam, newValue: any) {
-    const node = getNode(obs);
+export function setSilently(value$: ObservableParam, newValue: any) {
+    const node = getNode(value$);
     return setNodeValue(node, newValue).newValue;
 }
 

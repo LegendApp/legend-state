@@ -5,7 +5,7 @@ import { observable } from '../src/observable';
 import { Change, TrackingType } from '../src/observableInterfaces';
 import { ObservableParam } from '../src/observableTypes';
 
-function expectChangeHandler<T>(obs: ObservableParam<T>, track?: TrackingType) {
+function expectChangeHandler<T>(value$: ObservableParam<T>, track?: TrackingType) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
@@ -14,7 +14,7 @@ function expectChangeHandler<T>(obs: ObservableParam<T>, track?: TrackingType) {
         ret(value, prev, changes);
     }
 
-    obs.onChange(handler, { trackingType: track });
+    value$.onChange(handler, { trackingType: track });
 
     return ret;
 }

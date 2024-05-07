@@ -4,12 +4,12 @@ import { ObservableParam, constructObjectWithPath, mergeIntoObservable, observab
 type TimestampAsString = string;
 
 export function trackHistory<T>(
-    obs: ObservableParam<T>,
+    value$: ObservableParam<T>,
     targetObservable?: ObservableParam<Record<TimestampAsString, Partial<T>>>,
 ): ObservableParam<Record<TimestampAsString, any>> {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
-    obs.onChange(({ loading, remote, changes }) => {
+    value$.onChange(({ loading, remote, changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
         if (!loading && !remote) {

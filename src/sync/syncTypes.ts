@@ -139,7 +139,7 @@ export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
 
 export interface ObservableSyncSetParams<T> {
     syncState: Observable<ObservableSyncState>;
-    obs: ObservableParam<T>;
+    value$: ObservableParam<T>;
     options: SyncedOptions<T>;
     changes: Change[];
     value: T;
@@ -147,7 +147,7 @@ export interface ObservableSyncSetParams<T> {
 }
 export interface ObservableSyncGetParams<T> {
     state: Observable<ObservableSyncState>;
-    obs: ObservableParam<T>;
+    value$: ObservableParam<T>;
     options: SyncedOptions<T>;
     dateModified?: number;
     lastSync?: number;

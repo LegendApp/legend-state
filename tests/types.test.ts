@@ -259,8 +259,8 @@ describe('Types', () => {
                     createdAt: Date;
                 }
 
-                function func(obs: Observable<{ id: string; title: string }>) {
-                    return obs;
+                function func(value$: Observable<{ id: string; title: string }>) {
+                    return value$;
                 }
                 const obs = observable<Thing>({ id: '', title: '', createdAt: new Date() });
                 func(obs);

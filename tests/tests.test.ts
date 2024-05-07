@@ -30,7 +30,7 @@ afterAll(() => {
     spiedConsole.mockRestore();
 });
 
-function expectChangeHandler(obs: ObservableNew, track?: TrackingType) {
+function expectChangeHandler(value$: ObservableNew, track?: TrackingType) {
     const ret = jest.fn();
 
     function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
@@ -39,7 +39,7 @@ function expectChangeHandler(obs: ObservableNew, track?: TrackingType) {
         ret(value, prev, changes);
     }
 
-    obs.onChange(handler, { trackingType: track });
+    value$.onChange(handler, { trackingType: track });
 
     return ret;
 }

@@ -136,7 +136,7 @@ export function transformLoadData(
 }
 
 async function updateMetadataImmediate<T>(
-    obs: ObservableParam<any>,
+    value$: ObservableParam<any>,
     localState: LocalState,
     syncState: Observable<ObservableSyncState>,
     syncOptions: SyncedOptions<T>,
@@ -151,7 +151,7 @@ async function updateMetadataImmediate<T>(
     const { table, config } = parseLocalConfig(syncOptions?.persist);
 
     // Save metadata
-    const oldMetadata: PersistMetadata | undefined = metadatas.get(obs);
+    const oldMetadata: PersistMetadata | undefined = metadatas.get(value$);
 
     const { lastSync, pending } = newMetadata;
 
@@ -159,7 +159,7 @@ async function updateMetadataImmediate<T>(
 
     if (needsUpdate) {
         const metadata = Object.assign({}, oldMetadata, newMetadata);
-        metadatas.set(obs, metadata);
+        metadatas.set(value$, metadata);
         if (pluginPersist) {
             await pluginPersist!.setMetadata(table, metadata, config);
         }
@@ -173,7 +173,7 @@ async function updateMetadataImmediate<T>(
 }
 
 function updateMetadata<T>(
-    obs: ObservableParam<any>,
+    value$: ObservableParam<any>,
     localState: LocalState,
     syncState: ObservableObject<ObservableSyncState>,
     syncOptions: SyncedOptions<T>,
@@ -183,7 +183,7 @@ function updateMetadata<T>(
         clearTimeout(localState.timeoutSaveMetadata);
     }
     localState.timeoutSaveMetadata = setTimeout(
-        () => updateMetadataImmediate(obs, localState, syncState, syncOptions as SyncedOptions<T>, newMetadata),
+        () => updateMetadataImmediate(value$, localState, syncState, syncOptions as SyncedOptions<T>, newMetadata),
         0,
     );
 }
@@ -191,7 +191,7 @@ function updateMetadata<T>(
 interface QueuedChange<T = any> {
     inRemoteChange: boolean;
     isApplyingPending: boolean;
-    obs: Observable<T>;
+    value$: Observable<T>;
     syncState: ObservableObject<ObservableSyncState>;
     localState: LocalState;
     syncOptions: SyncedOptions<T>;
@@ -236,7 +236,7 @@ function mergeQueuedChanges(allChanges: QueuedChange[]) {
 
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
-        const { obs, changes, inRemoteChange, getPrevious } = value;
+        const { value$: obs, changes, inRemoteChange, getPrevious } = value;
         const targetMap = inRemoteChange ? outRemote : outLocal;
         const changesMap = inRemoteChange ? changesByObsRemote : changesByObsLocal;
         const existing = changesMap.get(obs);
@@ -539,7 +539,7 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
     if (!changeInfo) return;
 
     const { queuedChange, changesLocal, saveRemote } = changeInfo;
-    const { obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
+    const { value$: obs, syncState, localState, syncOptions: syncOptions } = queuedChange;
     const { pluginPersist } = localState;
 
     const persist = syncOptions.persist;
@@ -574,7 +574,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     if (!changeInfo) return;
 
     const { queuedChange, changesRemote } = changeInfo;
-    const { obs, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
+    const { value$: obs, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
     const { pluginPersist, pluginSync } = localState;
 
     const persist = syncOptions.persist;
@@ -607,7 +607,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         localState.numSavesOutstanding = (localState.numSavesOutstanding || 0) + 1;
 
         let savedPromise = pluginSync!.set!({
-            obs,
+            value$: obs,
             syncState: syncState,
             options: syncOptions,
             changes: changesRemote,
@@ -695,7 +695,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 }
 
 function onObsChange<T>(
-    obs: ObservableParam<T>,
+    value$: ObservableParam<T>,
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
     syncOptions: SyncedOptions<T>,
@@ -706,7 +706,7 @@ function onObsChange<T>(
         const isApplyingPending = localState.isApplyingPending;
         // Queue changes in a microtask so that multiple changes within a frame get run together
         _queuedChanges.push({
-            obs: obs as Observable<any>,
+            value$: value$ as Observable<any>,
             syncState,
             localState,
             syncOptions,
@@ -722,7 +722,7 @@ function onObsChange<T>(
 }
 
 async function loadLocal<T>(
-    obs: ObservableParam<T>,
+    value$: ObservableParam<T>,
     syncOptions: SyncedOptions<any>,
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
@@ -733,7 +733,7 @@ async function loadLocal<T>(
         const PersistPlugin: ClassConstructor<ObservablePersistPlugin> =
             persist.plugin! || observableSyncConfiguration.persist?.plugin;
         const { table, config } = parseLocalConfig(persist);
-        const node = getNode(obs);
+        const node = getNode(value$);
 
         if (!PersistPlugin) {
             throw new Error('Local persist is not configured');
@@ -777,7 +777,7 @@ async function loadLocal<T>(
         const metadata = persistPlugin.getMetadata(table, config);
 
         if (metadata) {
-            metadatas.set(obs, metadata);
+            metadatas.set(value$, metadata);
             localState.pendingChanges = metadata.pending;
             syncState.assign({
                 lastSync: metadata.lastSync,
@@ -800,9 +800,9 @@ async function loadLocal<T>(
 
             // We want to merge the local data on top of any initial state the object is created with
             if (value === null && (!prevValue || (prevValue as any)[symbolLinked])) {
-                obs.set(value);
+                value$.set(value);
             } else {
-                mergeIntoObservable(obs, value);
+                mergeIntoObservable(value$, value);
             }
 
             internal.globalState.isLoadingLocal = false;
@@ -945,7 +945,7 @@ export function syncObservable<T>(
                     };
                     get({
                         state: syncState,
-                        obs: obs$,
+                        value$: obs$,
                         options: syncOptions,
                         lastSync,
                         dateModified: lastSync,
