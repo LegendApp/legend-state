@@ -405,12 +405,13 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
     const update = updateParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
               const id = input.id;
-              const values = convertObjectToCreate(input as unknown as Partial<KeelObjectBase>);
+              const values = convertObjectToCreate(input as unknown as Partial<KeelObjectBase>) as Partial<TRemote> &
+                  Partial<KeelObjectBase>;
               delete values.id;
               delete values.createdAt;
               delete values.updatedAt;
 
-              const { data, error } = await updateParam({ where: { id }, values: input });
+              const { data, error } = await updateParam({ where: { id }, values: values });
 
               if (error) {
                   handleSetError(error, params, false);
