@@ -2,10 +2,7 @@ import { beginBatch, endBatch } from '../src/batching';
 import { trackHistory } from '../src/history/trackHistory';
 import { undoRedo } from '../src/history/undoRedo';
 import { observable } from '../src/observable';
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
+import { promiseTimeout } from './testglobals';
 
 describe('History', () => {
     test('Basic history', () => {

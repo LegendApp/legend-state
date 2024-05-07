@@ -1,8 +1,7 @@
 import { observable, symbolDelete, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
-import { getPersistName, mockLocalStorage, promiseTimeout } from './testglobals';
+import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 interface BasicValue {
     id: string;
@@ -28,13 +27,6 @@ const ItemBasicValue: () => BasicValue = () => ({
 type GetOrListTestParams =
     | { get: () => BasicValue | null; list?: never; as?: never }
     | { list: () => BasicValue[]; as: 'first'; get?: never };
-
-const localStorage = mockLocalStorage();
-class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
-    constructor() {
-        super(localStorage);
-    }
-}
 
 beforeAll(() => {
     configureObservableSync({

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
+import { expectChangeHandler, promiseTimeout } from './testglobals';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { configureLegendState } from '../src/config';
 import { enable$get } from '../src/config/enable$get';
@@ -8,17 +8,12 @@ import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } 
 import { setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive, syncState } from '../src/observable';
-import { Change, NodeValue, TrackingType } from '../src/observableInterfaces';
-import { Observable as ObservableNew } from '../src/observableTypes';
+import { NodeValue } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when, whenReady } from '../src/when';
 
 enable$get();
 enable_peek();
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
 
 let spiedConsole: jest.SpyInstance;
 
@@ -29,20 +24,6 @@ beforeEach(() => {
 afterAll(() => {
     spiedConsole.mockRestore();
 });
-
-function expectChangeHandler(value$: ObservableNew, track?: TrackingType) {
-    const ret = jest.fn();
-
-    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
-        const prev = getPrevious();
-
-        ret(value, prev, changes);
-    }
-
-    value$.onChange(handler, { trackingType: track });
-
-    return ret;
-}
 
 describe('Set', () => {
     test('Set', () => {

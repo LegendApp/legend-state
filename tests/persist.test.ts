@@ -1,18 +1,10 @@
 import 'fake-indexeddb/auto';
 import { observable, syncState } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
 import { synced } from '../sync';
-import { getPersistName, mockLocalStorage, promiseTimeout } from './testglobals';
-
-const localStorage = mockLocalStorage();
-class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
-    constructor() {
-        super(localStorage);
-    }
-}
+import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {

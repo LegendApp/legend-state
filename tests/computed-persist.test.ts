@@ -1,16 +1,7 @@
-import { onChangeRemote } from '../src/sync/syncObservable';
+import { event, observable, observe, syncState, when, whenReady } from '@legendapp/state';
 import { configureObservableSync, syncObservable, synced } from '@legendapp/state/sync';
-import { event, observable, syncState, when, whenReady, observe } from '@legendapp/state';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
-import { mockLocalStorage, promiseTimeout } from './testglobals';
-
-// @ts-expect-error This is ok to do in jest
-const localStorage = (globalThis._testlocalStorage = mockLocalStorage());
-class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
-    constructor() {
-        super(localStorage);
-    }
-}
+import { onChangeRemote } from '../src/sync/syncObservable';
+import { ObservablePersistLocalStorage, localStorage, promiseTimeout } from './testglobals';
 
 jest?.setTimeout?.(1000);
 

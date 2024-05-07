@@ -1,3 +1,8 @@
+import { jest } from '@jest/globals';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
+import type { Change, TrackingType } from '../src/observableInterfaces';
+import type { Observable } from '../src/observableTypes';
+
 export function mockLocalStorage() {
     class LocalStorageMock {
         store: Record<any, any>;
@@ -26,3 +31,24 @@ export function promiseTimeout<T>(time?: number, value?: T) {
 
 let localNum = 0;
 export const getPersistName = () => 'jestlocal' + localNum++;
+
+export function expectChangeHandler(value$: Observable, track?: TrackingType) {
+    const ret = jest.fn();
+
+    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
+        const prev = getPrevious();
+
+        ret(value, prev, changes);
+    }
+
+    value$.onChange(handler, { trackingType: track });
+
+    return ret;
+}
+
+export const localStorage = mockLocalStorage();
+export class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
+    constructor() {
+        super(localStorage);
+    }
+}

@@ -1,20 +1,8 @@
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import { configureObservableSync } from '../src/sync/configureObservableSync';
 import { syncObservable } from '../src/sync/syncObservable';
-import { getPersistName, mockLocalStorage } from './testglobals';
-
-const localStorage = mockLocalStorage();
-class ObservablePersistLocalStorage extends ObservablePersistLocalStorageBase {
-    constructor() {
-        super(localStorage);
-    }
-}
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
+import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 export async function recursiveReplaceStrings<T extends string | object | number | boolean>(
     value: T,

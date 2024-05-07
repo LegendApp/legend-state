@@ -1,8 +1,5 @@
 import {
-    Change,
     Observable,
-    ObservableParam,
-    TrackingType,
     batch,
     beginBatch,
     endBatch,
@@ -13,10 +10,7 @@ import {
     syncState,
     when,
 } from '../index';
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
+import { expectChangeHandler, promiseTimeout } from './testglobals';
 
 let spiedConsole: jest.SpyInstance;
 
@@ -36,20 +30,6 @@ export function filterRecord<T>(obj: Record<string, T>, filter: (value: T) => bo
         }
     });
     return out;
-}
-
-function expectChangeHandler<T>(value$: ObservableParam<T>, track?: TrackingType) {
-    const ret = jest.fn();
-
-    function handler({ value, getPrevious, changes }: { value: any; getPrevious: () => any; changes: Change[] }) {
-        const prev = getPrevious();
-
-        ret(value, prev, changes);
-    }
-
-    value$.onChange(handler, { trackingType: track });
-
-    return ret;
 }
 
 describe('Functions', () => {

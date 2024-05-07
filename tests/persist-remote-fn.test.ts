@@ -2,10 +2,7 @@ import { configureObservablePersistence } from '../src/persist/configureObservab
 import { observable, syncState } from '../src/observable';
 import { persistObservable } from '../src/persist/persistObservable';
 import { when } from '../src/when';
-
-function promiseTimeout(time?: number) {
-    return new Promise((resolve) => setTimeout(resolve, time || 0));
-}
+import { promiseTimeout } from './testglobals';
 
 jest.setTimeout?.(50);
 beforeEach(() => {
