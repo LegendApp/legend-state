@@ -1,4 +1,4 @@
-import { computeSelector, observable, when, internal } from '@legendapp/state';
+import { computeSelector, observable, when, internal, isFunction } from '@legendapp/state';
 import {
     SyncedOptions,
     removeNullUndefined,
@@ -44,15 +44,14 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 
 // Keel plugin types
 
-interface GetGetParams {
-    refresh: () => void;
-}
+export interface KeelGetParams {}
 
-interface ListGetParams {
-    where: { updatedAt?: { after: Date } };
-    refresh?: () => void;
+export interface KeelListParams<Where = {}> {
+    where: { updatedAt?: { after: Date } } & Where;
     after?: string;
     first?: number;
+    last?: number;
+    before?: string;
 }
 
 export interface KeelRealtimePlugin {
@@ -92,23 +91,60 @@ interface PageInfo {
     totalCount: number;
 }
 
-interface SyncedKeelPropsMany<TRemote, TLocal, AOption extends CrudAsOption>
+interface SyncedKeelPropsManyBase<TRemote, TLocal, AOption extends CrudAsOption>
     extends Omit<SyncedCrudPropsMany<TRemote, TLocal, AOption>, 'list'> {
-    list?: (params: ListGetParams) => Promise<CrudResult<APIResult<{ results: TRemote[]; pageInfo: any }>>>;
     first?: number;
     get?: never;
 }
+interface SyncedKeelPropsManyWhere<TRemote, TLocal, AOption extends CrudAsOption, Where extends Record<string, any>>
+    extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
+    list?: (params: KeelListParams<NoInfer<Where>>) => Promise<
+        CrudResult<
+            APIResult<{
+                results: TRemote[];
+                pageInfo: any;
+            }>
+        >
+    >;
+    where?: Where | (() => Where);
+}
+interface SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption extends CrudAsOption>
+    extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
+    list?: (params: KeelListParams<{}>) => Promise<
+        CrudResult<
+            APIResult<{
+                results: TRemote[];
+                pageInfo: any;
+            }>
+        >
+    >;
+    where?: never | {};
+}
+type HasAnyKeys<T> = keyof T extends never ? false : true;
+
+type SyncedKeelPropsMany<
+    TRemote,
+    TLocal,
+    AOption extends CrudAsOption,
+    Where extends Record<string, any>,
+> = HasAnyKeys<Where> extends true
+    ? SyncedKeelPropsManyWhere<TRemote, TLocal, AOption, Where>
+    : SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption>;
 
 interface SyncedKeelPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
-    get?: (params: GetGetParams) => Promise<APIResult<TRemote>>;
+    get?: (params: KeelGetParams) => Promise<APIResult<TRemote>>;
 
     first?: never;
+    where?: never;
     list?: never;
     as?: never;
 }
 
 interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
-    extends Omit<SyncedCrudPropsBase<TRemote, TLocal>, 'create' | 'update' | 'delete'> {
+    extends Omit<
+        SyncedCrudPropsBase<TRemote, TLocal>,
+        'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt'
+    > {
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
@@ -198,13 +234,13 @@ export function configureSyncedKeel(config: SyncedKeelConfiguration) {
 
 const NumPerPage = 200;
 async function getAllPages<TRemote>(
-    listFn: (params: ListGetParams) => Promise<
+    listFn: (params: KeelListParams<any>) => Promise<
         APIResult<{
             results: TRemote[];
             pageInfo: any;
         }>
     >,
-    params: ListGetParams,
+    params: KeelListParams,
 ): Promise<{ results: TRemote[]; subscribe: (params: { refresh: () => void }) => string }> {
     const allData: TRemote[] = [];
     let pageInfo: PageInfo | undefined = undefined;
@@ -218,7 +254,7 @@ async function getAllPages<TRemote>(
             break;
         }
         const pageEndCursor = pageInfo?.endCursor;
-        const paramsWithCursor: ListGetParams = pageEndCursor
+        const paramsWithCursor: KeelListParams = pageEndCursor
             ? { first, ...params, after: pageEndCursor }
             : { first, ...params };
         pageInfo = undefined;
@@ -248,12 +284,22 @@ async function getAllPages<TRemote>(
 export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote>(
     props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'first'>;
-export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOption extends CrudAsOption = 'object'>(
-    props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsMany<TRemote, TLocal, TOption>,
+export function syncedKeel<
+    TRemote extends { id: string },
+    TLocal = TRemote,
+    TOption extends CrudAsOption = 'object',
+    Where extends Record<string, any> = {},
+>(
+    props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsMany<TRemote, TLocal, TOption, Where>,
 ): SyncedCrudReturnType<TLocal, Exclude<TOption, 'first'>>;
-export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOption extends CrudAsOption = 'object'>(
+export function syncedKeel<
+    TRemote extends { id: string },
+    TLocal = TRemote,
+    TOption extends CrudAsOption = 'object',
+    Where extends Record<string, any> = {},
+>(
     props: SyncedKeelPropsBase<TRemote, TLocal> &
-        (SyncedKeelPropsSingle<TRemote, TLocal> | SyncedKeelPropsMany<TRemote, TLocal, TOption>),
+        (SyncedKeelPropsSingle<TRemote, TLocal> | SyncedKeelPropsMany<TRemote, TLocal, TOption, Where>),
 ): SyncedCrudReturnType<TLocal, TOption> {
     const {
         get: getParam,
@@ -262,8 +308,8 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         update: updateParam,
         delete: deleteParam,
         first,
+        where: whereParam,
         waitFor,
-        waitForSet,
         generateId: generateIdParam,
         ...rest
     } = props;
@@ -289,12 +335,12 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         ? async (listParams: SyncedGetParams) => {
               const { lastSync, refresh } = listParams;
               const queryBySync = !!lastSync && changesSince === 'last-sync';
-              // If this is one of the customized functions for use with realtime then we need to pass
-              // the refresh function to it
-              const isRawRequest = (listParam || getParam).toString().includes('rawRequest');
               // If querying with lastSync pass it to the "where" parameters
-              const where = queryBySync ? { updatedAt: { after: new Date(+new Date(lastSync) + 1) } } : {};
-              const params: ListGetParams = isRawRequest ? { where, first } : { where, refresh, first };
+              const where = Object.assign(
+                  queryBySync ? { updatedAt: { after: new Date(+new Date(lastSync) + 1) } } : {},
+                  isFunction(whereParam) ? whereParam() : whereParam,
+              );
+              const params: KeelListParams = { where, first };
 
               // TODO: Error?
               const { results, subscribe } = await getAllPages(listParam, params);
@@ -440,7 +486,6 @@ export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote, TOp
         update,
         delete: deleteFn,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet,
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
