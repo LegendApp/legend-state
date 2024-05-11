@@ -563,11 +563,18 @@ const proxyHandler: ProxyHandler<any> = {
         if (isArray(value) && keys[keys.length - 1] === 'length') {
             keys.splice(keys.length - 1, 1);
         }
+        if (isFunction(node)) {
+            const reflectedKeys = Reflect.ownKeys(node);
+            ['caller', 'arguments', 'prototype'].forEach((key) => reflectedKeys.includes(key) && keys.push(key));
+        }
         return keys;
     },
     getOwnPropertyDescriptor(node: NodeValue, prop: string) {
+        if (prop === 'caller' || prop === 'arguments' || prop === 'prototype') {
+            return { configurable: false, enumerable: false };
+        }
         const value = getNodeValue(node);
-        return !isPrimitive(value) ? Reflect.getOwnPropertyDescriptor(value, prop) : undefined;
+        return isPrimitive(value) ? undefined : Reflect.getOwnPropertyDescriptor(value, prop);
     },
     set(node: NodeValue, prop: string, value: any) {
         // If this assignment comes from within an observable function it's allowed
