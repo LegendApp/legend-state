@@ -55,16 +55,16 @@ export interface SyncedSubscribeParams<T = any> {
     refresh: () => void;
 }
 
-export interface SyncedOptions<T = any> extends Omit<LinkedOptions<T>, 'get' | 'set'> {
-    get?: (params: SyncedGetParams) => Promise<T> | T;
-    set?: (params: SyncedSetParams<T>) => void | Promise<any>;
-    subscribe?: (params: SyncedSubscribeParams<T>) => void;
+export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {
+    get?: (params: SyncedGetParams) => Promise<TRemote> | TRemote;
+    set?: (params: SyncedSetParams<TRemote>) => void | Promise<any>;
+    subscribe?: (params: SyncedSubscribeParams<TRemote>) => void;
     retry?: RetryOptions;
     persist?: PersistOptions<any>;
     debounceSet?: number;
     syncMode?: 'auto' | 'manual';
     mode?: GetMode;
-    transform?: SyncTransform<T>;
+    transform?: SyncTransform<TLocal, TRemote>;
     // Not implemented yet
     enableSync?: boolean;
     onGetError?: (error: Error) => void;

@@ -25,7 +25,7 @@ export interface SyncedCrudPropsMany<TRemote, TLocal, TAsOption extends CrudAsOp
     initial?: InitialValue<TLocal, TAsOption>;
 }
 export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TLocal = TRemote>
-    extends Omit<SyncedOptions<TLocal>, 'get' | 'set' | 'transform' | 'initial'> {
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
     update?(
         input: Partial<TRemote>,
@@ -33,7 +33,6 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
     ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
     delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
     onSaved?(saved: TLocal, input: TRemote, isCreate: boolean): Partial<TLocal> | void;
-    transform?: SyncTransform<TLocal, TRemote>;
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     updatePartial?: boolean;

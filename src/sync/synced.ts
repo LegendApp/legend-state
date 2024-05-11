@@ -2,7 +2,9 @@ import { isFunction, linked } from '@legendapp/state';
 import { enableActivateSyncedNode } from './activateSyncedNode';
 import type { Synced, SyncedOptions } from './syncTypes';
 
-export function synced<T>(params: SyncedOptions<T> | (() => T)): Synced<T> {
+export function synced<TRemote, TLocal = TRemote>(
+    params: SyncedOptions<TRemote, TLocal> | (() => TRemote),
+): Synced<TLocal> {
     installPersistActivateNode();
     if (isFunction(params)) {
         params = { get: params };
