@@ -1,12 +1,11 @@
-import { internal, isArray, isNullOrUndefined, isNumber, isObject, isString } from '@legendapp/state';
+import { internal, isArray, isNullOrUndefined } from '@legendapp/state';
 import {
-    synced,
-    diffObjects,
     SyncTransform,
-    SyncTransformMethod,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
+    diffObjects,
+    synced,
 } from '@legendapp/state/sync';
 
 const { clone } = internal;
@@ -62,73 +61,6 @@ let _asOption: CrudAsOption;
 
 function transformOut<T1, T2>(data: T1, transform: undefined | ((value: T1) => T2)) {
     return transform ? transform(clone(data)) : data;
-}
-
-// TODO
-export function createTransform<T extends Record<string, any>, T2 extends Record<string, any>>(
-    ...keys: (keyof T | { from: keyof T; to: keyof T2 })[]
-): SyncTransform<T2, T> {
-    return {
-        load: (value: T) => {
-            (keys as string[]).forEach((key) => {
-                const keyRemote = isObject(key) ? key.from : key;
-                const keyLocal = isObject(key) ? key.to : key;
-                const v = value[keyRemote];
-                if (!isNullOrUndefined(v)) {
-                    value[keyLocal as keyof T] = isString(v) ? JSON.parse(v as string) : v;
-                }
-                if (keyLocal !== keyRemote) {
-                    delete value[keyRemote];
-                }
-            });
-            return value as unknown as T2;
-        },
-        save: (value: T2) => {
-            (keys as string[]).forEach((key: string) => {
-                const keyRemote = isObject(key) ? key.from : key;
-                const keyLocal = isObject(key) ? key.to : key;
-                let v = (value as any)[keyLocal];
-                if (!isNullOrUndefined(v)) {
-                    if (isArray(v)) {
-                        v = v.filter((val) => !isNullOrUndefined(val));
-                    }
-                    value[keyRemote as keyof T2] =
-                        isNumber(v) || isObject(v) || isArray(v) ? (JSON.stringify(v) as any) : v;
-                }
-                if (keyLocal !== keyRemote) {
-                    delete value[keyLocal];
-                }
-            });
-            return value as unknown as T;
-        },
-    };
-}
-
-// TODO
-export function combineTransforms<T, T2>(
-    transform1: SyncTransform<T2, T>,
-    ...transforms: Partial<SyncTransform<T2, T>>[]
-): SyncTransform<T2, T> {
-    return {
-        load: (value: T, method: SyncTransformMethod) => {
-            let inValue = transform1.load?.(value, method) as any;
-            transforms.forEach((transform) => {
-                if (transform.load) {
-                    inValue = transform.load(inValue, method);
-                }
-            });
-            return inValue;
-        },
-        save: (value: T2) => {
-            let outValue = value as any;
-            transforms.forEach((transform) => {
-                if (transform.save) {
-                    outValue = transform.save(outValue);
-                }
-            });
-            return transform1.save?.(outValue) ?? outValue;
-        },
-    };
 }
 
 function ensureId(obj: { id: string | number }, generateId: () => string | number) {

@@ -599,7 +599,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         let value = obs.peek();
         const transformSave = syncOptions?.transform?.save;
         if (transformSave) {
-            value = transformSave(value);
+            // Clone value before transforming to ensure it doesn't change observable value
+            value = transformSave(clone(value));
         }
 
         onBeforeSet?.();

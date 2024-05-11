@@ -1,11 +1,11 @@
 import { internal as internalState } from '@legendapp/state';
 import type { SyncedOptionsGlobal } from './src/sync/syncTypes';
-export * from './src/sync/persistTypes';
 export { configureObservableSync } from './src/sync/configureObservableSync';
-export { deepEqual, diffObjects, removeNullUndefined } from './src/sync/syncHelpers';
+export * from './src/sync/persistTypes';
+export * from './src/sync/syncHelpers';
 export { mapSyncPlugins, syncObservable } from './src/sync/syncObservable';
-export { synced } from './src/sync/synced';
 export * from './src/sync/syncTypes';
+export { synced } from './src/sync/synced';
 
 export function isInRemoteChange() {
     return internalState.globalState.isLoadingRemote;
