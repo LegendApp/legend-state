@@ -22,13 +22,21 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 //     ? SchemaName
 //     : never;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type SchemaOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer _, infer __, infer Schema>
+export type SupabaseSchemaOf<Client extends SupabaseClient> = Client extends SupabaseClient<
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    infer _,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    infer __,
+    infer Schema
+>
     ? Schema
     : never;
-type TableOf<Client extends SupabaseClient> = SchemaOf<Client>['Tables'];
-type CollectionOf<Client extends SupabaseClient> = keyof TableOf<Client>;
-type RowOf<Client extends SupabaseClient, Collection extends CollectionOf<Client>> = TableOf<Client>[Collection]['Row'];
+export type SupabaseTableOf<Client extends SupabaseClient> = SupabaseSchemaOf<Client>['Tables'];
+export type SupabaseCollectionOf<Client extends SupabaseClient> = keyof SupabaseTableOf<Client>;
+export type SupabaseRowOf<
+    Client extends SupabaseClient,
+    Collection extends SupabaseCollectionOf<Client>,
+> = SupabaseTableOf<Client>[Collection]['Row'];
 
 export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
     SyncedCrudPropsBase<T>,
@@ -44,34 +52,34 @@ export interface SyncedSupabaseGlobalConfig
 
 interface SyncedSupabaseProps<
     Client extends SupabaseClient,
-    Collection extends CollectionOf<Client>,
+    Collection extends SupabaseCollectionOf<Client>,
     TOption extends CrudAsOption = 'object',
-> extends SyncedSupabaseConfig<RowOf<Client, Collection>>,
-        SyncedCrudPropsMany<RowOf<Client, Collection>, RowOf<Client, Collection>, TOption> {
+> extends SyncedSupabaseConfig<SupabaseRowOf<Client, Collection>>,
+        SyncedCrudPropsMany<SupabaseRowOf<Client, Collection>, SupabaseRowOf<Client, Collection>, TOption> {
     supabase: Client;
     collection: Collection;
     select?: (
-        query: PostgrestQueryBuilder<SchemaOf<Client>, TableOf<Client>[Collection], Collection>,
+        query: PostgrestQueryBuilder<SupabaseSchemaOf<Client>, SupabaseTableOf<Client>[Collection], Collection>,
     ) => PostgrestFilterBuilder<
-        SchemaOf<Client>,
-        RowOf<Client, Collection>,
-        RowOf<Client, Collection>[],
+        SupabaseSchemaOf<Client>,
+        SupabaseRowOf<Client, Collection>,
+        SupabaseRowOf<Client, Collection>[],
         Collection,
         []
     >;
     filter?: (
         select: PostgrestFilterBuilder<
-            SchemaOf<Client>,
-            RowOf<Client, Collection>,
-            RowOf<Client, Collection>[],
+            SupabaseSchemaOf<Client>,
+            SupabaseRowOf<Client, Collection>,
+            SupabaseRowOf<Client, Collection>[],
             Collection,
             []
         >,
         params: SyncedGetParams,
     ) => PostgrestFilterBuilder<
-        SchemaOf<Client>,
-        RowOf<Client, Collection>,
-        RowOf<Client, Collection>[],
+        SupabaseSchemaOf<Client>,
+        SupabaseRowOf<Client, Collection>,
+        SupabaseRowOf<Client, Collection>[],
         Collection,
         []
     >;
@@ -93,9 +101,11 @@ export function configureSyncedSupabase(config: SyncedSupabaseGlobalConfig) {
 
 export function syncedSupabase<
     Client extends SupabaseClient,
-    Collection extends CollectionOf<Client> & string,
+    Collection extends SupabaseCollectionOf<Client> & string,
     AsOption extends CrudAsOption = 'object',
->(props: SyncedSupabaseProps<Client, Collection, AsOption>): SyncedCrudReturnType<RowOf<Client, Collection>, AsOption> {
+>(
+    props: SyncedSupabaseProps<Client, Collection, AsOption>,
+): SyncedCrudReturnType<SupabaseRowOf<Client, Collection>, AsOption> {
     mergeIntoObservable(props, supabaseConfig);
     const {
         supabase: client,
@@ -140,11 +150,11 @@ export function syncedSupabase<
                   if (error) {
                       throw new Error(error?.message);
                   }
-                  return (data! || []) as RowOf<Client, Collection>[];
+                  return (data! || []) as SupabaseRowOf<Client, Collection>[];
               }
             : undefined;
 
-    const upsert = async (input: RowOf<Client, Collection>) => {
+    const upsert = async (input: SupabaseRowOf<Client, Collection>) => {
         const res = await client.from(collection).upsert(input).select();
         const { data, error } = res;
         if (data) {
@@ -158,7 +168,7 @@ export function syncedSupabase<
     const update = !actions || actions.includes('update') ? upsert : undefined;
     const deleteFn =
         !actions || actions.includes('delete')
-            ? async (input: { id: RowOf<Client, Collection>['id'] }) => {
+            ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
                   const id = input.id;
                   const from = client.from(collection);
                   const res = await (changesSince === 'last-sync' ? from.update({ deleted: true }) : from.delete())
@@ -222,7 +232,7 @@ export function syncedSupabase<
           }
         : undefined;
 
-    return syncedCrud<RowOf<Client, Collection>, RowOf<Client, Collection>, AsOption>({
+    return syncedCrud<SupabaseRowOf<Client, Collection>, SupabaseRowOf<Client, Collection>, AsOption>({
         ...rest,
         list,
         create,
