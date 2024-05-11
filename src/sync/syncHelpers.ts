@@ -1,4 +1,4 @@
-import { isArray, isDate, isNullOrUndefined, isNumber, isObject, isString } from '@legendapp/state';
+import { isDate, isNullOrUndefined, isObject, isString } from '@legendapp/state';
 import type { SyncTransform, SyncTransformMethod } from './syncTypes';
 
 export function removeNullUndefined<T extends Record<string, any>>(a: T, recursive?: boolean): T {
@@ -90,23 +90,17 @@ export interface TransformStringifyOptions {
 }
 export type TransformStringifyKeys<TRemote, TLocal> = (keyof TRemote | { from: keyof TRemote; to: keyof TLocal })[];
 
+export type StringToDate<T extends Record<string, any>> = {
+    [K in keyof T]: T[K] extends string ? string | Date : T[K];
+};
+
 const ISO8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
-export function transformStringify<TRemote extends Record<string, any>, TLocal extends Record<string, any>>(
-    { stringifyIf, filterArrays }: TransformStringifyOptions,
+
+export function transformStringifyKeys<TRemote extends Record<string, any>, TLocal extends Record<string, any>>(
     ...keys: TransformStringifyKeys<TRemote, TLocal>
 ): SyncTransform<TLocal, TRemote> {
     return {
         load: (value: TRemote) => {
-            if (stringifyIf?.date) {
-                const keys = Object.keys(value);
-                for (let i = 0; i < keys.length; i++) {
-                    const key = keys[i];
-                    const keyValue = value[key];
-                    if (isString(keyValue) && keyValue.match(ISO8601)) {
-                        (value as any)[key] = new Date(keyValue);
-                    }
-                }
-            }
             (keys as string[]).forEach((key) => {
                 const keyRemote = isObject(key) ? key.from : key;
                 const keyLocal = isObject(key) ? key.to : key;
@@ -121,37 +115,47 @@ export function transformStringify<TRemote extends Record<string, any>, TLocal e
             return value as unknown as TLocal;
         },
         save: (value: TLocal) => {
-            if (stringifyIf?.date) {
-                const keys = Object.keys(value);
-                for (let i = 0; i < keys.length; i++) {
-                    const key = keys[i];
-                    const keyValue = value[key];
-                    if (isDate(keyValue)) {
-                        (value as any)[key] = keyValue.toISOString();
-                    }
-                }
-            }
             (keys as string[]).forEach((key: string) => {
                 const keyRemote = isObject(key) ? key.from : key;
                 const keyLocal = isObject(key) ? key.to : key;
-                let v = (value as any)[keyLocal];
-                if (!isNullOrUndefined(v)) {
-                    if (filterArrays && isArray(v)) {
-                        v = v.filter((val) => !isNullOrUndefined(val));
-                    }
-                    if (stringifyIf) {
-                        value[keyRemote as keyof TLocal] =
-                            (stringifyIf.number && isNumber(v)) ||
-                            (stringifyIf.object && isObject(v)) ||
-                            (stringifyIf.array && isArray(v))
-                                ? JSON.stringify(v)
-                                : v;
-                    }
+                const v = (value as any)[keyLocal];
+                if (!isNullOrUndefined(v) && !isString(v)) {
+                    (value as any)[keyRemote as keyof TLocal] = JSON.stringify(v);
                 }
                 if (keyLocal !== keyRemote) {
                     delete value[keyLocal];
                 }
             });
+            return value as unknown as TRemote;
+        },
+    };
+}
+export function transformStringifyDates<
+    TRemote extends Record<string, any>,
+    TLocal extends Record<string, any>,
+>(): SyncTransform<TLocal, TRemote> {
+    return {
+        load: (value: TRemote) => {
+            const keys = Object.keys(value);
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const keyValue = value[key];
+                if (isString(keyValue) && keyValue.match(ISO8601)) {
+                    (value as any)[key] = new Date(keyValue);
+                }
+            }
+
+            return value as unknown as TLocal;
+        },
+        save: (value: TLocal) => {
+            const keys = Object.keys(value);
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const keyValue = value[key];
+                if (isDate(keyValue)) {
+                    (value as any)[key] = keyValue.toISOString();
+                }
+            }
             return value as unknown as TRemote;
         },
     };
