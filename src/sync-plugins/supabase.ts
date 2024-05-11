@@ -32,7 +32,7 @@ type RowOf<Client extends SupabaseClient, Collection extends CollectionOf<Client
 
 export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
     SyncedCrudPropsBase<T>,
-    'create' | 'update' | 'delete' | 'onSaved' | 'transform' | 'updatePartial' | 'subscribe'
+    'create' | 'update' | 'delete'
 >;
 
 export interface SyncedSupabaseGlobalConfig
