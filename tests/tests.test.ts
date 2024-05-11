@@ -1,8 +1,8 @@
 import { expectChangeHandler, promiseTimeout } from './testglobals';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { configureLegendState } from '../src/config';
-import { enable$get } from '../src/config/enable$get';
-import { enable_peek } from '../src/config/enable_peek';
+import { enable$GetSet } from '../src/config/enable$GetSet';
+import { enable_PeekAssign } from '../src/config/enable_PeekAssign';
 import { event } from '../src/event';
 import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { setAtPath } from '../src/helpers';
@@ -12,8 +12,8 @@ import { NodeValue } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { when, whenReady } from '../src/when';
 
-enable$get();
-enable_peek();
+enable$GetSet();
+enable_PeekAssign();
 
 let spiedConsole: jest.SpyInstance;
 

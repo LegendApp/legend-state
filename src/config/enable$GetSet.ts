@@ -1,22 +1,21 @@
 import { configureLegendState, internal } from '@legendapp/state';
 
-export function enable_peek() {
+export function enable$GetSet() {
     configureLegendState({
         observableProperties: {
-            _: {
+            $: {
                 get(node) {
-                    return internal.peek(node);
+                    return internal.get(node);
                 },
                 set(node, value) {
-                    internal.setNodeValue(node, value);
+                    internal.set(node, value);
                 },
             },
         },
     });
 }
-
 // TODOv4 deprecate
-export const enableDirectAccess = enable_peek;
+export const enableDirectAccess = enable$GetSet;
 
 // Types:
 
@@ -25,7 +24,7 @@ import type { ImmutableObservableBase } from '@legendapp/state';
 
 declare module '@legendapp/state' {
     interface ImmutableObservableBase<T> {
-        get _(): T;
-        set _(value: T | null | undefined);
+        get $(): T;
+        set $(value: T | null | undefined);
     }
 }
