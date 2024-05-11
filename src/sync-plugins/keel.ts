@@ -369,30 +369,11 @@ export function syncedKeel<
           }
         : undefined;
 
-    const onSaved = (data: TLocal, input: TRemote, isCreate: boolean): Partial<TLocal> | void => {
-        if (data) {
-            const savedOut: Partial<TLocal> = {};
-            if (isCreate) {
-                // Update with any fields that were undefined when creating
-                Object.keys(data).forEach((key) => {
-                    if (input[key as keyof TRemote] === undefined) {
-                        savedOut[key as keyof TLocal] = data[key as keyof TLocal];
-                    }
-                });
-            } else {
-                // Update with any fields ending in createdAt or updatedAt
-                Object.keys(data).forEach((key) => {
-                    const k = key as keyof TLocal;
-                    const keyLower = key.toLowerCase();
-                    if ((keyLower.endsWith('createdat') || keyLower.endsWith('updatedat')) && data[k] instanceof Date) {
-                        savedOut[k] = data[k];
-                    }
-                });
-            }
-
+    const onSaved = (data: TLocal) => {
+        if (realtimePlugin && data) {
             const updatedAt = data[fieldUpdatedAt as keyof TLocal] as Date;
 
-            if (updatedAt && realtimePlugin) {
+            if (updatedAt) {
                 if (realtimeKeyGet) {
                     realtimePlugin.setLatestChange(realtimeKeyGet, updatedAt);
                 }
@@ -400,8 +381,6 @@ export function syncedKeel<
                     realtimePlugin.setLatestChange(realtimeKeyList, updatedAt);
                 }
             }
-
-            return savedOut;
         }
     };
 

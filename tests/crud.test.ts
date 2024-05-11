@@ -994,6 +994,7 @@ describe('fieldUpdatedAt', () => {
     test('fieldUpdatedAt updates with updatedAt', async () => {
         let created = undefined;
         let updated = undefined;
+        let saved = undefined;
         const obs = observable(
             syncedCrud({
                 initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } as BasicValue },
@@ -1012,10 +1013,10 @@ describe('fieldUpdatedAt', () => {
                         test: 'hello',
                         updatedAt: 'before',
                     });
-                    return input;
+                    return { ...input, updatedAt: 'now' };
                 },
-                onSaved: (saved) => {
-                    return { ...saved, updatedAt: 'now' };
+                onSaved: (output) => {
+                    saved = output;
                 },
             }),
         );
@@ -1028,6 +1029,11 @@ describe('fieldUpdatedAt', () => {
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+            updatedAt: 'now',
+        });
+        expect(saved).toEqual({
             id: 'id1',
             test: 'hello',
             updatedAt: 'now',
