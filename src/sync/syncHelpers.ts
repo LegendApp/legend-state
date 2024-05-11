@@ -130,33 +130,47 @@ export function transformStringifyKeys<TRemote extends Record<string, any>, TLoc
         },
     };
 }
+
+export type TransformStringsToDates<T extends {}, Keys extends keyof T> = {
+    [K in Keys]: Date | Exclude<T[K], string>;
+} & Omit<T, Keys>;
+
 export function transformStringifyDates<
     TRemote extends Record<string, any>,
-    TLocal extends Record<string, any>,
->(): SyncTransform<TLocal, TRemote> {
+    TLocal extends Record<string, any> = TRemote,
+>(): SyncTransform<TLocal, TRemote>;
+export function transformStringifyDates<
+    TRemote extends Record<string, any>,
+    Keys extends keyof TRemote = keyof TRemote,
+>(...args: Keys[]): SyncTransform<TransformStringsToDates<TRemote, Keys>, TRemote>;
+export function transformStringifyDates<
+    TRemote extends Record<string, any>,
+    TLocal extends Record<string, any> = TRemote,
+    Keys extends keyof TLocal = keyof TLocal,
+>(...args: Keys[]): SyncTransform<TransformStringsToDates<TLocal, Keys>, TRemote> {
     return {
         load: (value: TRemote) => {
-            const keys = Object.keys(value);
+            const keys = args.length > 0 ? args : Object.keys(value);
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
-                const keyValue = value[key];
+                const keyValue = value[key as keyof TRemote];
                 if (isString(keyValue) && keyValue.match(ISO8601)) {
                     (value as any)[key] = new Date(keyValue);
                 }
             }
 
-            return value as unknown as TLocal;
+            return value as any;
         },
-        save: (value: TLocal) => {
-            const keys = Object.keys(value);
+        save: (value: TransformStringsToDates<TLocal, Keys>) => {
+            const keys = args.length > 0 ? args : Object.keys(value);
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
-                const keyValue = value[key];
+                const keyValue = (value as any)[key];
                 if (isDate(keyValue)) {
                     (value as any)[key] = keyValue.toISOString();
                 }
             }
-            return value as unknown as TRemote;
+            return value as any;
         },
     };
 }

@@ -1,11 +1,66 @@
 import { observable, when } from '@legendapp/state';
-import { combineTransforms, synced, transformStringifyDates, transformStringifyKeys } from '@legendapp/state/sync';
+import {
+    TransformStringsToDates,
+    combineTransforms,
+    synced,
+    transformStringifyDates,
+    transformStringifyKeys,
+} from '@legendapp/state/sync';
+import { expectTypeOf } from 'expect-type';
 import { promiseTimeout } from './testglobals';
 
-jest?.setTimeout?.(1000);
-
 describe('transform', () => {
-    test('transform dates', async () => {
+    test('TransformStringsToDates', async () => {
+        interface Remote {
+            text: string | null;
+            date: string | null;
+            date2: string;
+            num: number;
+        }
+        type Local = TransformStringsToDates<Remote, 'date' | 'date2'>;
+
+        expectTypeOf<Local['text']>().toEqualTypeOf<string | null>();
+        expectTypeOf<Local['date']>().toEqualTypeOf<Date | null>();
+        expectTypeOf<Local['date2']>().toEqualTypeOf<Date>();
+        expectTypeOf<Local['num']>().toEqualTypeOf<number>();
+    });
+    test('transform dates args', async () => {
+        let setVal = undefined;
+        const date = new Date();
+        interface Remote {
+            text: string | null;
+            date: string | null;
+        }
+        const obs$ = observable(
+            synced({
+                get: async () =>
+                    ({
+                        text: 'hi',
+                        date: date.toISOString(),
+                    }) as Remote,
+                set: ({ value }) => {
+                    setVal = value;
+                },
+                transform: transformStringifyDates<Remote, 'date'>('date'),
+            }),
+        );
+
+        expectTypeOf<(typeof obs$)['text']['get']>().returns.toEqualTypeOf<string | null>();
+        expectTypeOf<(typeof obs$)['date']['get']>().returns.toEqualTypeOf<Date | null>();
+
+        await when(obs$);
+
+        expect(obs$.get()).toEqual({ text: 'hi', date });
+
+        const dateNew = new Date(+date + 1000);
+        obs$.date.set(dateNew);
+
+        await promiseTimeout(0);
+
+        expect(setVal).toEqual({ text: 'hi', date: dateNew.toISOString() });
+        expect(obs$.get()).toEqual({ text: 'hi', date: dateNew });
+    });
+    test('transform dates auto', async () => {
         let setVal = undefined;
         const date = new Date();
         interface Remote {
@@ -28,6 +83,9 @@ describe('transform', () => {
                 transform: transformStringifyDates<Remote, Local>(),
             }),
         );
+
+        expectTypeOf<(typeof obs$)['text']['get']>().returns.toEqualTypeOf<string | null>();
+        expectTypeOf<(typeof obs$)['date']['get']>().returns.toEqualTypeOf<Date | null>();
 
         await when(obs$);
 

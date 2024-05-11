@@ -113,9 +113,9 @@ export interface PersistMetadata {
     pending?: any;
 }
 export type SyncTransformMethod = 'get' | 'set';
-export interface SyncTransform<TOrig = any, TSaved = TOrig> {
-    load?: (value: TSaved, method: SyncTransformMethod) => TOrig | Promise<TOrig>;
-    save?: (value: TOrig) => TSaved | Promise<TSaved>;
+export interface SyncTransform<TLocal = any, TSaved = TLocal> {
+    load?: (value: TSaved, method: SyncTransformMethod) => TLocal | Promise<TLocal>;
+    save?: (value: TLocal) => TSaved | Promise<TSaved>;
 }
 export interface ObservableSyncStateBase {
     isPersistLoaded: boolean;
