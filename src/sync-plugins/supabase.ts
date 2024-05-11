@@ -246,7 +246,7 @@ export function syncedSupabase<
         subscribe,
         fieldCreatedAt,
         fieldUpdatedAt,
-        updatePartial: true,
+        updatePartial: false,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
         waitForSet,
