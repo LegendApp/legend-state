@@ -1,4 +1,4 @@
-import { Observable, computeSelector, mergeIntoObservable, observable, symbolDelete } from '@legendapp/state';
+import { Observable, computeSelector, isObject, mergeIntoObservable, observable, symbolDelete } from '@legendapp/state';
 import {
     SyncedOptions,
     SyncedOptionsGlobal,
@@ -84,7 +84,7 @@ interface SyncedSupabaseProps<
         []
     >;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
-    realtime?: { schema?: string; filter?: string };
+    realtime?: boolean | { schema?: string; filter?: string };
 }
 
 let channelNum = 1;
@@ -182,7 +182,7 @@ export function syncedSupabase<
             : undefined;
     const subscribe = realtime
         ? ({ node, value$, update }: SyncedSubscribeParams) => {
-              const { filter, schema } = realtime;
+              const { filter, schema } = (isObject(realtime) ? realtime : {}) as { schema?: string; filter?: string };
               const channel = client
                   .channel(`LS_${node.key || ''}${channelNum++}`)
                   .on(
