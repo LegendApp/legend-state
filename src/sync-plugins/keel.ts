@@ -1,4 +1,4 @@
-import { computeSelector, observable, when, internal, isFunction } from '@legendapp/state';
+import { computeSelector, observable, when, internal, isFunction, mergeIntoObservable } from '@legendapp/state';
 import {
     SyncedOptions,
     removeNullUndefined,
@@ -187,13 +187,12 @@ function convertObjectToCreate<TRemote>(item: TRemote): TRemote {
 }
 
 export function configureSyncedKeel(config: SyncedKeelConfiguration) {
-    const { enabled, realtimePlugin, ...rest } = config;
+    const { enabled, realtimePlugin, client, ...rest } = config;
     Object.assign(keelConfig, removeNullUndefined(rest));
 
     if (enabled !== undefined) {
         isEnabled$.set(enabled);
     }
-    const { client } = keelConfig;
 
     if (realtimePlugin) {
         keelConfig.realtimePlugin = realtimePlugin;
@@ -299,6 +298,9 @@ export function syncedKeel<
     props: SyncedKeelPropsBase<TRemote, TLocal> &
         (SyncedKeelPropsSingle<TRemote, TLocal> | SyncedKeelPropsMany<TRemote, TLocal, TOption, Where>),
 ): SyncedCrudReturnType<TLocal, TOption> {
+    const { realtimePlugin } = keelConfig;
+    mergeIntoObservable(props, keelConfig);
+
     const {
         get: getParam,
         list: listParam,
@@ -314,15 +316,10 @@ export function syncedKeel<
 
     const { changesSince } = props;
 
-    let asType = props.as as TOption;
-
-    if (!asType) {
-        asType = (getParam ? 'first' : keelConfig.as || undefined) as TOption;
-    }
+    const asType: TOption = getParam ? ('first' as TOption) : props.as!;
 
     const generateId = generateIdParam || keelConfig.generateId;
 
-    const realtimePlugin = keelConfig.realtimePlugin;
     let realtimeKeyList: string | undefined = undefined;
     let realtimeKeyGet: string | undefined = undefined;
 
