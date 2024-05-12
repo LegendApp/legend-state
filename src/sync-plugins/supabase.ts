@@ -43,7 +43,7 @@ export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
     'create' | 'update' | 'delete'
 >;
 
-export interface SyncedSupabaseGlobalConfig
+export interface SyncedSupabaseConfiguration
     extends Omit<SyncedSupabaseConfig<{ id: string }>, 'persist' | keyof SyncedOptions> {
     persist?: SyncedOptionsGlobal;
     enabled?: Observable<boolean>;
@@ -88,10 +88,10 @@ interface SyncedSupabaseProps<
 }
 
 let channelNum = 1;
-const supabaseConfig: SyncedSupabaseGlobalConfig = {};
+const supabaseConfig: SyncedSupabaseConfiguration = {};
 const isEnabled$ = observable(true);
 
-export function configureSyncedSupabase(config: SyncedSupabaseGlobalConfig) {
+export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
     const { enabled, ...rest } = config;
     if (enabled !== undefined) {
         isEnabled$.set(enabled);
@@ -132,7 +132,6 @@ export function syncedSupabase<
                   const from = client.from(collection);
                   let select = selectFn ? selectFn(from) : from.select();
                   if (changesSince === 'last-sync') {
-                      select = select.neq('deleted', true);
                       if (lastSync) {
                           const date = new Date(lastSync).toISOString();
                           select = select.or(
@@ -171,9 +170,7 @@ export function syncedSupabase<
             ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
                   const id = input.id;
                   const from = client.from(collection);
-                  const res = await (changesSince === 'last-sync' ? from.update({ deleted: true }) : from.delete())
-                      .eq('id', id)
-                      .select();
+                  const res = await from.delete().eq('id', id).select();
                   const { data, error } = res;
                   if (data) {
                       const created = data[0];

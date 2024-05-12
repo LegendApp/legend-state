@@ -1,12 +1,5 @@
 import { internal, isArray, isNullOrUndefined } from '@legendapp/state';
-import {
-    SyncTransform,
-    SyncedGetParams,
-    SyncedOptions,
-    SyncedSetParams,
-    diffObjects,
-    synced,
-} from '@legendapp/state/sync';
+import { SyncedGetParams, SyncedOptions, SyncedSetParams, diffObjects, synced } from '@legendapp/state/sync';
 
 const { clone } = internal;
 
@@ -35,6 +28,7 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
     onSaved?(saved: TLocal, input: TRemote, isCreate: boolean): void;
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
+    fieldDeleted?: string;
     updatePartial?: boolean;
     changesSince?: 'all' | 'last-sync';
     generateId?: () => string | number;
@@ -96,6 +90,7 @@ export function syncedCrud<
         transform,
         fieldCreatedAt,
         fieldUpdatedAt,
+        fieldDeleted,
         updatePartial,
         onSaved,
         mode: modeParam,
@@ -142,7 +137,8 @@ export function syncedCrud<
                       } else {
                           const out: Record<string, any> = asMap ? new Map() : {};
                           transformed.forEach((result: any) => {
-                              const value = result.__deleted ? internal.symbolDelete : result;
+                              const value =
+                                  result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
                               asMap ? (out as Map<any, any>).set(result.id, value) : (out[result.id] = value);
                           });
                           return out;
@@ -229,11 +225,7 @@ export function syncedCrud<
                               isCreateGuess = !(fieldCreatedAt || fieldUpdatedAt) && path.length === 1 && !prevAtPath;
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
-                                      if (deleteFn) {
-                                          deletes.add(itemKey);
-                                      } else {
-                                          console.log('[legend-state] missing delete function');
-                                      }
+                                      deletes.add(itemKey);
                                   }
                               } else {
                                   itemsChanged = [[itemKey, itemValue]];
@@ -325,8 +317,15 @@ export function syncedCrud<
                               );
                           }
                       }),
-                      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                      ...Array.from(deletes).map((itemKey) => deleteFn!({ id: itemKey }, params)),
+                      ...Array.from(deletes).map((id) => {
+                          if (fieldDeleted && updateFn) {
+                              updateFn({ id, [fieldDeleted]: true } as any, params);
+                          } else if (deleteFn) {
+                              deleteFn({ id }, params);
+                          } else {
+                              console.log('[legend-state] missing delete function');
+                          }
+                      }),
                   ]);
               }
             : undefined;

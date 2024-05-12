@@ -67,9 +67,7 @@ export interface SyncedKeelConfiguration
         | 'update'
         | 'delete'
         | 'onSaved'
-        | 'transform'
         | 'updatePartial'
-        | 'subscribe'
         | 'fieldCreatedAt'
         | 'fieldUpdatedAt'
     > {
@@ -446,8 +444,8 @@ export function syncedKeel<
           }
         : undefined;
     const deleteFn = deleteParam
-        ? async (input: { id: string }, params: SyncedSetParams<TRemote>) => {
-              const { data, error } = await deleteParam({ id: input.id });
+        ? async ({ id }: { id: string }, params: SyncedSetParams<TRemote>) => {
+              const { data, error } = await deleteParam({ id });
 
               if (error) {
                   handleSetError(error, params, false);
