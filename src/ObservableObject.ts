@@ -877,7 +877,8 @@ export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, ac
         const childNode = getChildNode(node, k, fn);
         const targetNode = getNode(v);
         // Set node to target's value if activating or it's already activated
-        const initialValue = activateRecursive || !targetNode.lazy ? peekInternal(targetNode) : undefined;
+        const initialValue =
+            activateRecursive || !targetNode.lazy ? peekInternal(targetNode, /*activateRecursive*/ true) : undefined;
         setNodeValue(childNode, initialValue);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
@@ -948,7 +949,7 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
         }
     }
 
-    if ((lazy || node.needsExtract || activateRecursive) && !isObservable(value) && !isPrimitive(value)) {
+    if ((lazy || node.needsExtract) && !isObservable(value) && !isPrimitive(value)) {
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
                 const property = Object.getOwnPropertyDescriptor(value, key);
