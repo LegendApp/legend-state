@@ -146,6 +146,10 @@ export function transformStringifyDates<
 export function transformStringifyDates<
     TRemote extends Record<string, any>,
     TLocal extends Record<string, any> = TRemote,
+>(...args: (keyof TRemote)[]): SyncTransform<TRemote, TLocal>;
+export function transformStringifyDates<
+    TRemote extends Record<string, any>,
+    TLocal extends Record<string, any> = TRemote,
     Keys extends keyof TLocal = keyof TLocal,
 >(...args: Keys[]): SyncTransform<TransformStringsToDates<TLocal, Keys>, TRemote> {
     return {

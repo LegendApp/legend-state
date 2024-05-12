@@ -38,13 +38,13 @@ export type SupabaseRowOf<
     Collection extends SupabaseCollectionOf<Client>,
 > = SupabaseTableOf<Client>[Collection]['Row'];
 
-export type SyncedSupabaseConfig<T extends { id: string }> = Omit<
-    SyncedCrudPropsBase<T>,
+export type SyncedSupabaseConfig<TRemote extends { id: string }, TLocal> = Omit<
+    SyncedCrudPropsBase<TRemote, TLocal>,
     'create' | 'update' | 'delete'
 >;
 
 export interface SyncedSupabaseConfiguration
-    extends Omit<SyncedSupabaseConfig<{ id: string }>, 'persist' | keyof SyncedOptions> {
+    extends Omit<SyncedSupabaseConfig<{ id: string }, { id: string }>, 'persist' | keyof SyncedOptions> {
     persist?: SyncedOptionsGlobal;
     enabled?: Observable<boolean>;
     as?: Exclude<CrudAsOption, 'first'>;
@@ -54,35 +54,19 @@ interface SyncedSupabaseProps<
     Client extends SupabaseClient,
     Collection extends SupabaseCollectionOf<Client>,
     TOption extends CrudAsOption = 'object',
-> extends SyncedSupabaseConfig<SupabaseRowOf<Client, Collection>>,
-        SyncedCrudPropsMany<SupabaseRowOf<Client, Collection>, SupabaseRowOf<Client, Collection>, TOption> {
+    TRemote extends SupabaseRowOf<Client, Collection> = SupabaseRowOf<Client, Collection>,
+    TLocal = TRemote,
+> extends SyncedSupabaseConfig<TRemote, TLocal>,
+        SyncedCrudPropsMany<TRemote, TRemote, TOption> {
     supabase: Client;
     collection: Collection;
     select?: (
         query: PostgrestQueryBuilder<SupabaseSchemaOf<Client>, SupabaseTableOf<Client>[Collection], Collection>,
-    ) => PostgrestFilterBuilder<
-        SupabaseSchemaOf<Client>,
-        SupabaseRowOf<Client, Collection>,
-        SupabaseRowOf<Client, Collection>[],
-        Collection,
-        []
-    >;
+    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
     filter?: (
-        select: PostgrestFilterBuilder<
-            SupabaseSchemaOf<Client>,
-            SupabaseRowOf<Client, Collection>,
-            SupabaseRowOf<Client, Collection>[],
-            Collection,
-            []
-        >,
+        select: PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>,
         params: SyncedGetParams,
-    ) => PostgrestFilterBuilder<
-        SupabaseSchemaOf<Client>,
-        SupabaseRowOf<Client, Collection>,
-        SupabaseRowOf<Client, Collection>[],
-        Collection,
-        []
-    >;
+    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
     realtime?: boolean | { schema?: string; filter?: string };
 }
@@ -103,9 +87,9 @@ export function syncedSupabase<
     Client extends SupabaseClient,
     Collection extends SupabaseCollectionOf<Client> & string,
     AsOption extends CrudAsOption = 'object',
->(
-    props: SyncedSupabaseProps<Client, Collection, AsOption>,
-): SyncedCrudReturnType<SupabaseRowOf<Client, Collection>, AsOption> {
+    TRemote extends SupabaseRowOf<Client, Collection> = SupabaseRowOf<Client, Collection>,
+    TLocal = TRemote,
+>(props: SyncedSupabaseProps<Client, Collection, AsOption, TRemote, TLocal>): SyncedCrudReturnType<TLocal, AsOption> {
     mergeIntoObservable(props, supabaseConfig);
     const {
         supabase: client,
