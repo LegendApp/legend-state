@@ -458,7 +458,7 @@ const proxyHandler: ProxyHandler<any> = {
             return property.get(node);
         }
 
-        let vProp = checkProperty(value, p);
+        let vProp = value?.[p];
 
         if (isObject(value) && value[symbolOpaque as any]) {
             return vProp;
@@ -471,6 +471,8 @@ const proxyHandler: ProxyHandler<any> = {
             } else {
                 return getProxy(node, p, fnOrComputed as Function);
             }
+        } else {
+            vProp = checkProperty(value, p);
         }
 
         if (isNullOrUndefined(value) && vProp === undefined && (ArrayModifiers.has(p) || ArrayLoopers.has(p))) {
@@ -527,9 +529,7 @@ const proxyHandler: ProxyHandler<any> = {
                 }
             }
 
-            // const childNode = getChildNode(node, p, vProp);
             extractFunctionOrComputed(node, p, vProp);
-            // checkLazy(getChildNode(node, p, vProp), vProp, false);
 
             const fnOrComputed2 = node.functions?.get(p);
             if (fnOrComputed2) {
@@ -669,8 +669,6 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         // Set the raw value on the parent object
         const { newValue: savedValue, prevValue } = setNodeValue(childNode, newValue);
 
-        const isFunc = isFunction(savedValue);
-
         const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
 
         if (!equals(savedValue, prevValue)) {
@@ -682,10 +680,6 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         }
 
         extractFunctionOrComputed(node, key, savedValue);
-
-        if (isFunc) {
-            savedValue;
-        }
     }
 }
 
