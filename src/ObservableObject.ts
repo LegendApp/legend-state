@@ -1027,9 +1027,13 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             // Run the function at this node
             let value = activateFn();
 
+            let didSetToObs = false;
             // If target is an observable, make this node a link to it
             if (isObservable(value)) {
+                didSetToObs = true;
                 value = setToObservable(node, value);
+                // } else {
+                //     traverseObject(value, node)
             }
 
             if (isFunction(value)) {
@@ -1056,8 +1060,12 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                     ignoreThisUpdate = true;
                 }
 
-                const { update: newUpdate, value: newValue } = activateNodeFn(node, value);
-                update = newUpdate;
+                const result = activateNodeFn(node, value);
+                update = result.update;
+                let newValue = result.value;
+                if (!didSetToObs && isObservable(newValue)) {
+                    newValue = setToObservable(node, newValue);
+                }
                 value = newValue ?? activated?.initial;
             } else if (node.activationState) {
                 const activated = node.activationState! as LinkedOptions;

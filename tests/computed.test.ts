@@ -2383,4 +2383,36 @@ describe('Activation', () => {
         obs$.currentChild.get();
         expect(didGet).toEqual(false);
     });
+    test('Activates linked through link and lookup table redirect', () => {
+        const valuesById$ = observable<Record<string, number>>({
+            a: 1,
+            b: 2,
+            c: 3,
+        });
+
+        const obs$ = observable({
+            currentId: 'a',
+            children: (id: string) => ({
+                id,
+                value: linked(() => valuesById$[id]),
+            }),
+            currentChild: linked(
+                (): Observable<{ id: string; value: Observable<number> }> => obs$.children[obs$.currentId.get()],
+            ),
+        });
+
+        expect(obs$.get()).toEqual({
+            children: {
+                a: {
+                    id: 'a',
+                    value: 1,
+                },
+            },
+            currentChild: {
+                id: 'a',
+                value: 1,
+            },
+            currentId: 'a',
+        });
+    });
 });
