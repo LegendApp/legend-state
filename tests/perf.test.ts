@@ -1,3 +1,4 @@
+import { linked } from '../src/linked';
 import { observable } from '../src/observable';
 
 describe('Perf', () => {
@@ -15,17 +16,97 @@ describe('Perf', () => {
     });
     test('Lazy activation perf', () => {
         const obj: Record<string, any> = {};
-        for (let i = 0; i < 10000; i++) {
-            obj['key' + i] = { child: { grandchild: { value: 'hi' } } };
+        const Num = 10000;
+        for (let i = 0; i < Num; i++) {
+            obj['key' + i] = {
+                child: {
+                    grandchild: {
+                        value: 'hi',
+                    },
+                },
+            };
         }
 
         const obs = observable(obj);
+
         const now = performance.now();
         obs.get();
         const then = performance.now();
 
-        // console.log('traverse', end - start);
+        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 20);
+    });
+    test('Lazy activation perf2', () => {
+        const obj: Record<string, any> = {};
+        const Num = 10000;
+        let numCalled = 0;
+        for (let i = 0; i < Num; i++) {
+            obj['key' + i] = {
+                child: {
+                    grandchild: {
+                        value: 'hi',
+                        fn: () => {
+                            numCalled++;
+                            return 'test';
+                        },
+                    },
+                },
+            };
+        }
+
+        const obs = observable(obj);
+
+        const now = performance.now();
+        obs.get();
+        const then = performance.now();
+
+        expect(numCalled).toEqual(0);
+        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 20);
+    });
+    test('Lazy activation perf3', () => {
+        const obj: Record<string, any> = {};
+        const Num = 1000;
+        let numCalled = 0;
+        let numActivated = 0;
+        for (let i = 0; i < Num; i++) {
+            obj['key' + i] = {
+                child: {
+                    grandchild: {
+                        value: 'hi',
+                        fn: () => {
+                            numCalled++;
+                            return 'test';
+                        },
+                        arr: [
+                            {
+                                link: linked({
+                                    get: () => {
+                                        numActivated++;
+                                        return 'got';
+                                    },
+                                }),
+                            },
+                        ],
+                    },
+                },
+            };
+        }
+
+        const obs = observable(obj);
+
+        const now = performance.now();
+        obs.get();
+        const then = performance.now();
+
         console.log(then - now);
-        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 30);
+
+        expect(numCalled).toEqual(0);
+        expect(numActivated).toEqual(Num);
+        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 300 : 100);
+
+        const now2 = performance.now();
+        obs.get();
+        const then2 = performance.now();
+
+        expect(then2 - now2).toBeLessThan(process.env.CI === 'true' ? 5 : 1);
     });
 });
