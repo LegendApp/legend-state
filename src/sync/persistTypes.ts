@@ -17,7 +17,7 @@ import type {
     TypeAtPath,
 } from '../observableInterfaces';
 import type { Observable, ObservableParam, ObservableState } from '../observableTypes';
-import type { PersistMetadata, RetryOptions } from './syncTypes';
+import type { ObservablePersistPlugin, RetryOptions } from './syncTypes';
 
 export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;
@@ -87,7 +87,7 @@ export interface ObservablePersistenceConfigRemoteGlobalOptions {
     onAfterSet?: () => void;
 }
 export interface ObservablePersistenceConfig {
-    pluginLocal?: ClassConstructor<ObservablePersistLocal>;
+    pluginLocal?: ClassConstructor<ObservablePersistPlugin>;
     pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions;
     localOptions?: ObservablePersistenceConfigLocalGlobalOptions;
     remoteOptions?: ObservablePersistenceConfigRemoteGlobalOptions;
@@ -95,20 +95,10 @@ export interface ObservablePersistenceConfig {
 export interface LegacyPersistOptions<T = any> {
     local?: string | LegacyPersistOptionsLocal<T>;
     remote?: LegacyPersistOptionsRemote<T>;
-    pluginLocal?: ClassConstructor<ObservablePersistLocal>;
+    pluginLocal?: ClassConstructor<ObservablePersistPlugin>;
     pluginRemote?: ClassConstructor<ObservablePersistRemoteClass> | ObservablePersistRemoteFunctions<T>;
 }
 
-export interface ObservablePersistLocal {
-    initialize?(config: ObservablePersistenceConfigLocalGlobalOptions): void | Promise<void>;
-    loadTable?(table: string, config: LegacyPersistOptionsLocal): Promise<any> | void;
-    getTable<T = any>(table: string, config: LegacyPersistOptionsLocal): T;
-    set(table: string, changes: Change[], config: LegacyPersistOptionsLocal): Promise<any> | void;
-    deleteTable(table: string, config: LegacyPersistOptionsLocal): Promise<any> | void;
-    getMetadata(table: string, config: LegacyPersistOptionsLocal): PersistMetadata;
-    setMetadata(table: string, metadata: PersistMetadata, config: LegacyPersistOptionsLocal): Promise<any> | void;
-    deleteMetadata(table: string, config: LegacyPersistOptionsLocal): Promise<any> | void;
-}
 export interface ObservableOnChangeParams {
     value: unknown;
     path?: string[]; // TODOv4 remove

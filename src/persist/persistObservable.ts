@@ -32,7 +32,7 @@ import type {
     LegacyPersistOptions,
     LegacyPersistOptionsLocal,
     LegacyPersistOptionsRemote,
-    ObservablePersistLocal,
+    ObservablePersistPlugin,
     ObservablePersistRemoteClass,
     ObservablePersistRemoteFunctions,
     ObservablePersistState,
@@ -47,9 +47,9 @@ import { observablePersistRemoteFunctionsAdapter } from './observablePersistRemo
 const { globalState, symbolLinked, getNode } = internal;
 
 export const mapPersistences: WeakMap<
-    ClassConstructor<ObservablePersistLocal | ObservablePersistRemoteClass>,
+    ClassConstructor<ObservablePersistPlugin | ObservablePersistRemoteClass>,
     {
-        persist: ObservablePersistLocal | ObservablePersistRemoteClass;
+        persist: ObservablePersistPlugin | ObservablePersistRemoteClass;
         initialized?: Observable<boolean>;
     }
 > = new WeakMap();
@@ -58,7 +58,7 @@ const metadatas = new WeakMap<ObservableParam<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
-    persistenceLocal?: ObservablePersistLocal;
+    persistenceLocal?: ObservablePersistPlugin;
     persistenceRemote?: ObservablePersistRemoteClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     numSavesOutstanding?: number;
@@ -701,7 +701,7 @@ async function loadLocal<T>(
     localState: LocalState,
 ) {
     const { local } = persistOptions;
-    const localPersistence: ClassConstructor<ObservablePersistLocal> =
+    const localPersistence: ClassConstructor<ObservablePersistPlugin> =
         persistOptions.pluginLocal! || observablePersistConfiguration.pluginLocal;
 
     if (local) {
@@ -727,7 +727,7 @@ async function loadLocal<T>(
         }
 
         const { persist: persistenceLocal, initialized } = mapPersistences.get(localPersistence) as {
-            persist: ObservablePersistLocal;
+            persist: ObservablePersistPlugin;
             initialized: Observable<boolean>;
         };
 
@@ -745,8 +745,12 @@ async function loadLocal<T>(
             }
         }
 
+        const node = getNode(obs);
+        // Get current value for init
+        const prevValue = getNodeValue(node) as object;
+
         // Get the value from state
-        let value = persistenceLocal.getTable(table, config);
+        let value = persistenceLocal.getTable(table, prevValue, config);
         const metadata = persistenceLocal.getMetadata(table, config);
 
         if (metadata) {
@@ -788,8 +792,6 @@ async function loadLocal<T>(
 
             internal.globalState.isLoadingLocal = false;
         }
-
-        const node = getNode(obs);
 
         getNodeValue(getNode(node.state!)).clearLocal = () =>
             Promise.all([
