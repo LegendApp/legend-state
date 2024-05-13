@@ -1,4 +1,12 @@
-import { Observable, computeSelector, isObject, mergeIntoObservable, observable, symbolDelete } from '@legendapp/state';
+import {
+    Observable,
+    internal,
+    computeSelector,
+    isObject,
+    mergeIntoObservable,
+    observable,
+    symbolDelete,
+} from '@legendapp/state';
 import {
     SyncedOptions,
     SyncedOptionsGlobal,
@@ -15,7 +23,7 @@ import {
 } from '@legendapp/state/sync-plugins/crud';
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
+const { clone } = internal;
 // Unused types but maybe useful in the future so keeping them for now
 // type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
 // type SchemaNameOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer _, infer SchemaName>
@@ -90,7 +98,7 @@ export function syncedSupabase<
     TRemote extends SupabaseRowOf<Client, Collection> = SupabaseRowOf<Client, Collection>,
     TLocal = TRemote,
 >(props: SyncedSupabaseProps<Client, Collection, AsOption, TRemote, TLocal>): SyncedCrudReturnType<TLocal, AsOption> {
-    mergeIntoObservable(props, supabaseConfig);
+    mergeIntoObservable(props, supabaseConfig, clone(props));
     const {
         supabase: client,
         collection,
