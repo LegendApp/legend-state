@@ -458,7 +458,7 @@ const proxyHandler: ProxyHandler<any> = {
             return property.get(node);
         }
 
-        let vProp = value?.[p];
+        let vProp = checkProperty(value, p);
 
         if (isObject(value) && value[symbolOpaque as any]) {
             return vProp;
@@ -526,6 +526,16 @@ const proxyHandler: ProxyHandler<any> = {
                     };
                 }
             }
+
+            // const childNode = getChildNode(node, p, vProp);
+            extractFunctionOrComputed(node, p, vProp);
+            // checkLazy(getChildNode(node, p, vProp), vProp, false);
+
+            const fnOrComputed2 = node.functions?.get(p);
+            if (fnOrComputed2) {
+                return getProxy(node, p, fnOrComputed2 as Function);
+            }
+
             // Return the function bound to the value
             return vProp.bind(value);
         }
@@ -614,6 +624,9 @@ const proxyHandler: ProxyHandler<any> = {
     },
     apply(target, thisArg, argArray) {
         // If it's a function call it as a function
+        if (isObservable(thisArg)) {
+            thisArg = thisArg.peek();
+        }
         return Reflect.apply(target.lazyFn || target, thisArg, argArray);
     },
 };
@@ -871,16 +884,19 @@ function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
         setNodeValue(childNode, undefined);
+        return undefined;
     } else if (isObservable(v)) {
         const fn = () => v;
         extractFunction(node, k, fn);
         const childNode = getChildNode(node, k, fn);
         const targetNode = getNode(v);
         // Set node to target's value if activating or it's already activated
-        const initialValue = !targetNode.lazy ? peekInternal(targetNode) : undefined;
+        const initialValue = peekInternal(targetNode, true);
         setNodeValue(childNode, initialValue);
+        return getNodeValue(childNode);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
+        return k;
     }
 }
 
@@ -912,6 +928,7 @@ export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
 }
 
 function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
+    const origValue = value;
     // If node is not yet lazily computed go do that
     const lazy = node.lazy;
     if (lazy) {
@@ -933,6 +950,8 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
 
                 value = activateNodeFunction(node as any, lazyFn);
             }
+        } else if (isObservable(value)) {
+            value = extractFunctionOrComputed(node.parent!, node.key!, value);
         }
     }
 
@@ -940,24 +959,43 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
         if (activateRecursive) {
             traverseObject(value, node);
         }
-        for (const key in value) {
-            if (hasOwnProperty.call(value, key)) {
-                const property = Object.getOwnPropertyDescriptor(value, key);
-                if (property?.get) {
-                    delete value[key];
-                    value[key] = property.set
-                        ? linked({
-                              get: property.get,
-                              set: ({ value }) => property.set!(value),
-                          })
-                        : property.get;
-                }
-                extractFunctionOrComputed(node, key, value[key]);
-            }
+        if (node.parent) {
+            extractFunctionOrComputed(node.parent!, node.key!, origValue);
         }
+        // for (const key in value) {
+        //     if (hasOwnProperty.call(value, key)) {
+        //         const property = Object.getOwnPropertyDescriptor(value, key);
+        //         if (property?.get) {
+        //             delete value[key];
+        //             value[key] = property.set
+        //                 ? linked({
+        //                       get: property.get,
+        //                       set: ({ value }) => property.set!(value),
+        //                   })
+        //                 : property.get;
+        //         }
+        //         extractFunctionOrComputed(node, key, value[key]);
+        //     }
+        // }
     }
 
     return value;
+}
+
+function checkProperty(value: any, key: string) {
+    if (value) {
+        const property = Object.getOwnPropertyDescriptor(value, key);
+        if (property?.get) {
+            delete value[key];
+            value[key] = property.set
+                ? linked({
+                      get: property.get,
+                      set: ({ value }) => property.set!(value),
+                  })
+                : property.get;
+        }
+        return value[key];
+    }
 }
 
 function reactivateNode(node: NodeValue, lazyFn: Function) {
@@ -1225,7 +1263,7 @@ function setToObservable(node: NodeValue, value: any) {
 }
 
 export function traverseObject(obj: Record<string, any>, node: NodeValue) {
-    if (isObject(obj)) {
+    if (isObject(obj) || isArray(obj)) {
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
             let childNode = node;
@@ -1249,10 +1287,10 @@ export function traverseObjectInner(
 ) {
     for (const key in obj) {
         if (hasOwnProperty.call(obj, key)) {
-            let value = obj[key];
+            const value = obj[key];
 
             if (isObservable(value)) {
-                value = peekInternal(getNode(value as Observable));
+                // value = peekInternal(getNode(value as Observable));
                 const childNode = getNodeAtPath();
                 extractFunctionOrComputed(childNode, key, value);
                 delete childNode.lazy;

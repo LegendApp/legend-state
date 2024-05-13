@@ -190,7 +190,7 @@ describe('Computed', () => {
 
         expect(latestValue!).toEqual({ id: '3' });
     });
-    test('Operating on obseravble array ', () => {
+    test('Operating on observable array ', () => {
         const stateTest$ = observable({
             items: { 1: { id: '1' }, 2: { id: '2' }, 3: { id: '3' }, 4: { id: '4' }, 20: { id: '20' } },
             evenItems: () => {
