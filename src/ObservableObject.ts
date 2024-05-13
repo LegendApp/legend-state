@@ -866,7 +866,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
         });
 }
 
-export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, activateRecursive?: boolean) {
+function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
     if (isPromise(v)) {
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
@@ -877,20 +877,10 @@ export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, ac
         const childNode = getChildNode(node, k, fn);
         const targetNode = getNode(v);
         // Set node to target's value if activating or it's already activated
-        const initialValue =
-            activateRecursive || !targetNode.lazy ? peekInternal(targetNode, /*activateRecursive*/ true) : undefined;
+        const initialValue = !targetNode.lazy ? peekInternal(targetNode) : undefined;
         setNodeValue(childNode, initialValue);
     } else if (typeof v === 'function') {
         extractFunction(node, k, v);
-        if (activateRecursive) {
-            const linkedOptions = v.prototype?.[symbolLinked] as LinkedOptions;
-            if (linkedOptions) {
-                const activate = linkedOptions.activate;
-                if (!activate || activate === 'auto') {
-                    peekInternal(getChildNode(node, k, v), activateRecursive);
-                }
-            }
-        }
     }
 }
 
@@ -948,9 +938,7 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
 
     if ((lazy || node.needsExtract) && !isObservable(value) && !isPrimitive(value)) {
         if (activateRecursive) {
-            traverseObject(value, node, (node, value, key) => {
-                extractFunctionOrComputed(node, key, value, true);
-            });
+            traverseObject(value, node);
         }
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
@@ -1236,11 +1224,7 @@ function setToObservable(node: NodeValue, value: any) {
     return value;
 }
 
-export function traverseObject(
-    obj: Record<string, any>,
-    node: NodeValue,
-    callback: (node: NodeValue, value: any, key: string) => void,
-) {
+export function traverseObject(obj: Record<string, any>, node: NodeValue) {
     if (isObject(obj)) {
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
@@ -1248,41 +1232,44 @@ export function traverseObject(
             for (let i = 0; i < pathStack.length; i++) {
                 const { key } = pathStack[i];
                 const value = getNodeValue(childNode)?.[key];
-                if (isObservable(value)) {
-                    extractFunctionOrComputed(childNode, key, value);
-                }
                 childNode = getChildNode(childNode, key, isFunction(value) ? value : undefined);
-                checkLazy(childNode, getNodeValue(childNode), false);
+                peekInternal(childNode);
             }
 
             return childNode;
         };
-        traverseObjectInner(obj, callback, pathStack, getNodeAtPath);
+        traverseObjectInner(obj, pathStack, getNodeAtPath);
     }
 }
 
 export function traverseObjectInner(
     obj: Record<string, any>,
-    callback: (node: NodeValue, value: any, key: string) => void,
     pathStack: { key: string; value: any }[],
     getNodeAtPath: () => NodeValue,
 ) {
     for (const key in obj) {
         if (hasOwnProperty.call(obj, key)) {
             let value = obj[key];
-            let wasObs = false;
+
             if (isObservable(value)) {
-                wasObs = true;
                 value = peekInternal(getNode(value as Observable));
-            }
-            if (wasObs || (isFunction(value) && value.prototype?.[symbolLinked])) {
                 const childNode = getNodeAtPath();
-                callback(childNode, value, key);
+                extractFunctionOrComputed(childNode, key, value);
                 delete childNode.lazy;
+            } else {
+                const linkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
+                if (linkedOptions) {
+                    const activate = linkedOptions.activate;
+                    if (!activate || activate === 'auto') {
+                        const childNode = getNodeAtPath();
+                        peekInternal(getChildNode(childNode, key, value), true);
+                    }
+                }
             }
+
             if (typeof value === 'object') {
                 pathStack.push({ key, value });
-                traverseObjectInner(value, callback, pathStack, getNodeAtPath); // Recursively traverse
+                traverseObjectInner(value, pathStack, getNodeAtPath); // Recursively traverse
                 pathStack.pop();
             }
         }
