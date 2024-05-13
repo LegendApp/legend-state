@@ -110,9 +110,10 @@ export function syncedCrud<
     const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
         getFn || listFn
             ? async (getParams: SyncedGetParams) => {
-                  const { updateLastSync, lastSync } = getParams;
+                  const { updateLastSync, lastSync, value } = getParams;
                   if (listFn) {
-                      if (changesSince === 'last-sync' && lastSync) {
+                      const isLastSyncMode = changesSince === 'last-sync';
+                      if (isLastSyncMode && lastSync) {
                           getParams.mode = modeParam || (asType === 'first' ? 'set' : 'assign');
                       }
 
@@ -133,7 +134,9 @@ export function syncedCrud<
                           transformed = await Promise.all(data.map((value) => transform.load!(value, 'get')));
                       }
                       if (asType === 'first') {
-                          return transformed.length > 0 ? transformed[0] : null;
+                          return transformed.length > 0
+                              ? transformed[0]
+                              : (isLastSyncMode && lastSync && value) || null;
                       } else {
                           const out: Record<string, any> = asMap ? new Map() : {};
                           transformed.forEach((result: any) => {

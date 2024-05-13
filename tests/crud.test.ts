@@ -1075,6 +1075,56 @@ describe('lastSync', () => {
             id2: { id: 'id2', test: 'hi2', updatedAt: 1 },
         });
     });
+    test('as first set if lastSync', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ id: 'id2', test: 'hi2', updatedAt: 1 }));
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const obs = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
+                as: 'first',
+                fieldUpdatedAt: 'updatedAt',
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 1 });
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            updatedAt: 2,
+        });
+    });
+    test('as first leaves existing if lastSync and returning []', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ id: 'id2', test: 'hi2', updatedAt: 1 }));
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const obs = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => [],
+                as: 'first',
+                fieldUpdatedAt: 'updatedAt',
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 1 });
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 1 });
+    });
     test('as Map assign if lastSync', async () => {
         const persistName = getPersistName();
         localStorage.setItem(
