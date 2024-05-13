@@ -891,9 +891,6 @@ export function extractFunctionOrComputed(node: NodeValue, k: string, v: any, ac
                 }
             }
         }
-    } else if (activateRecursive && typeof v == 'object' && v !== null && v !== undefined) {
-        const childNode = getChildNode(node, k);
-        checkLazy(childNode, v, activateRecursive);
     }
 }
 
@@ -950,6 +947,11 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
     }
 
     if ((lazy || node.needsExtract) && !isObservable(value) && !isPrimitive(value)) {
+        if (activateRecursive) {
+            traverseWithJSONStringifyWithPath(value, node, (node, value, key) => {
+                extractFunctionOrComputed(node, key, value, true);
+            });
+        }
         for (const key in value) {
             if (hasOwnProperty.call(value, key)) {
                 const property = Object.getOwnPropertyDescriptor(value, key);
@@ -962,7 +964,7 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
                           })
                         : property.get;
                 }
-                extractFunctionOrComputed(node, key, value[key], activateRecursive);
+                extractFunctionOrComputed(node, key, value[key]);
             }
         }
     }
@@ -1232,4 +1234,62 @@ function setToObservable(node: NodeValue, value: any) {
         );
     }
     return value;
+}
+
+export function traverseWithJSONStringifyWithPath(
+    obj: any,
+    node: NodeValue,
+    callback: (node: NodeValue, value: any, key: string, parent: any) => void,
+) {
+    const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
+    const setSeenKeys = new Set<string>();
+
+    function getNodeAtPath() {
+        let childNode = node;
+        for (let i = 0; i < pathStack.length; i++) {
+            const { key } = pathStack[i];
+            const value = getNodeValue(childNode)?.[key];
+            if (isObservable(value)) {
+                extractFunctionOrComputed(childNode, key, value);
+            }
+            childNode = getChildNode(childNode, key, isFunction(value) ? value : undefined);
+            checkLazy(childNode, getNodeValue(childNode), false);
+        }
+
+        return childNode;
+    }
+
+    JSON.stringify(obj, (key, value) => {
+        if (key === '') return value;
+        let leaf;
+
+        let wasObs = false;
+        if (isObservable(value)) {
+            wasObs = true;
+            value = peekInternal(getNode(value as Observable));
+        }
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            leaf = pathStack[pathStack.length - 1];
+            if (!leaf || (hasOwnProperty.call(leaf.value, key) && !setSeenKeys.has(key))) {
+                setSeenKeys.add(key);
+                break;
+            } else {
+                setSeenKeys.clear();
+                pathStack.pop();
+            }
+        }
+
+        if (wasObs || (isFunction(value) && value.prototype?.[symbolLinked])) {
+            const childNode = getNodeAtPath();
+            callback(childNode, value, key, leaf);
+            delete childNode.lazy;
+        }
+
+        if (typeof value === 'object') {
+            pathStack.push({ key, value });
+            return value;
+        }
+    });
 }

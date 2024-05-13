@@ -2132,9 +2132,9 @@ describe('Activation', () => {
         let didCall = false;
         const obs = observable({
             text: 'hi',
-            test: observable((): { text: string; test2: number } => {
+            test: observable((): { text2: string; test2: number } => {
                 return {
-                    text: obs.text.get() + '!',
+                    text2: obs.text.get() + '!',
                     test2: linked(() => {
                         didCall = true;
                         return 10;
@@ -2144,7 +2144,7 @@ describe('Activation', () => {
         });
         const value = obs.get();
         expect(isObservable(value.test)).toBe(false);
-        expect(value.test.text).toEqual('hi!');
+        expect(value.test.text2).toEqual('hi!');
         expect(value.test.test2).toEqual(10);
         expect(didCall).toEqual(true);
     });
