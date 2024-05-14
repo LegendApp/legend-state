@@ -18,6 +18,7 @@ import {
     when,
     whenReady,
 } from '@legendapp/state';
+// @ts-expect-error asdf
 import { internal as internalPersist, transformObject, transformPath } from '@legendapp/state/persist';
 import {
     LegacyPersistOptions,

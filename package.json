@@ -51,11 +51,6 @@
       "require": "./index.js",
       "types": "./index.d.ts"
     },
-    "./persist": {
-      "import": "./persist.mjs",
-      "require": "./persist.js",
-      "types": "./persist.d.ts"
-    },
     "./sync": {
       "import": "./sync.mjs",
       "require": "./sync.js",

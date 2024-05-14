@@ -1,4 +1,5 @@
 import { Observable } from '@legendapp/state';
+// @ts-expect-error asdf
 import { observableFetch } from '@legendapp/state/helpers/fetch';
 import { useMemo } from 'react';
 
