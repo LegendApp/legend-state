@@ -885,7 +885,7 @@ function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
         const childNode = getChildNode(node, k, fn);
         const targetNode = getNode(v);
         // Set node to target's value if activating or it's already activated
-        const initialValue = peekInternal(targetNode, true);
+        const initialValue = peek(targetNode);
         setNodeValue(childNode, initialValue);
         return getNodeValue(childNode);
     } else if (typeof v === 'function') {
@@ -903,9 +903,7 @@ export function get(node: NodeValue, options?: TrackingType | GetOptions) {
 }
 
 export function peek(node: NodeValue) {
-    const value = peekInternal(node, true);
-
-    return value;
+    return peekInternal(node, true);
 }
 
 export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
@@ -1292,7 +1290,6 @@ export function traverseObjectInner(
             const value = obj[key];
 
             if (isObservable(value)) {
-                // value = peekInternal(getNode(value as Observable));
                 const childNode = getNodeAtPath();
                 extractFunctionOrComputed(childNode, key, value);
                 delete childNode.lazy;
@@ -1302,7 +1299,7 @@ export function traverseObjectInner(
                     const activate = linkedOptions.activate;
                     if (!activate || activate === 'auto') {
                         const childNode = getNodeAtPath();
-                        peekInternal(getChildNode(childNode, key, value), true);
+                        peek(getChildNode(childNode, key, value));
                     }
                 }
             }
