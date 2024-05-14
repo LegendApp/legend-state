@@ -1,12 +1,11 @@
 import { Selector, computeSelector } from '@legendapp/state';
-import { synced, SyncTransform, Synced, SyncedOptions, SyncedSetParams } from '@legendapp/state/sync';
+import { Synced, SyncedOptions, SyncedSetParams, synced } from '@legendapp/state/sync';
 
-export interface SyncedFetchProps<TRemote, TLocal> extends Omit<SyncedOptions, 'get' | 'set' | 'transform'> {
+export interface SyncedFetchProps<TRemote, TLocal> extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set'> {
     get: Selector<string>;
     set?: Selector<string>;
     getInit?: RequestInit;
     setInit?: RequestInit;
-    transform?: SyncTransform<TLocal, TRemote>;
     valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
     onSavedValueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
     onSaved?(saved: TLocal, input: TRemote): Partial<TLocal> | void;
