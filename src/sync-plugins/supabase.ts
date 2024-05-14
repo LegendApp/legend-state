@@ -124,6 +124,17 @@ export function syncedSupabase<
                   const from = client.from(collection);
                   let select = selectFn ? selectFn(from) : from.select();
                   if (changesSince === 'last-sync') {
+                      if (process.env.NODE_ENV === 'development') {
+                          if (!fieldCreatedAt) {
+                              console.warn(
+                                  `[legend-state] changesSince: 'last-sync' requires the 'fieldCreatedAt' option`,
+                              );
+                          } else if (!fieldUpdatedAt) {
+                              console.warn(
+                                  `[legend-state] changesSince: 'last-sync' requires the 'fieldUpdatedAt' option`,
+                              );
+                          }
+                      }
                       if (lastSync) {
                           const date = new Date(lastSync).toISOString();
                           select = select.or(
@@ -160,6 +171,11 @@ export function syncedSupabase<
     const deleteFn =
         !actions || actions.includes('delete')
             ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
+                  if (process.env.NODE_ENV === 'development' && changesSince === 'last-sync') {
+                      console.warn(
+                          `[legend-state] deleting with changesSince: 'last-sync' should be a soft delete with the 'fieldDeleted' option`,
+                      );
+                  }
                   const id = input.id;
                   const from = client.from(collection);
                   const res = await from.delete().eq('id', id).select();
