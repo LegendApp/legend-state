@@ -954,26 +954,26 @@ export function syncObservable<T>(
                             syncOptions.onGetError?.(error);
                         },
                         onGet: () => {
-                            const isFirstLoad = !node.state!.isLoaded.peek();
                             node.state!.assign({
                                 isLoaded: true,
                                 error: undefined,
                             });
-
-                            if (isFirstLoad && syncOptions.subscribe) {
-                                syncOptions.subscribe({
-                                    node,
-                                    value$: obs$,
-                                    update: (params: ObservableOnChangeParams) => {
-                                        params.mode ||= syncOptions.mode || 'merge';
-                                        onChange(params);
-                                    },
-                                    refresh: sync,
-                                });
-                            }
                         },
                         onChange,
                     });
+                    if (!isSynced && syncOptions.subscribe) {
+                        syncOptions.subscribe({
+                            node,
+                            value$: obs$,
+                            update: (params: ObservableOnChangeParams) => {
+                                when(node.state!.isLoaded, () => {
+                                    params.mode ||= syncOptions.mode || 'merge';
+                                    onChange(params);
+                                });
+                            },
+                            refresh: () => when(node.state!.isLoaded, sync),
+                        });
+                    }
                 };
                 runGet();
             } else {

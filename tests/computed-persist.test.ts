@@ -388,7 +388,7 @@ describe('lastSync with new computed', () => {
                 subscribe: ({ update }) => {
                     setTimeout(() => {
                         update({ value: 'test2', lastSync: 1000 });
-                    }, 5);
+                    }, 10);
                 },
                 get: () => new Promise<string>((resolve) => setTimeout(() => resolve('test'), 1)),
             }),
@@ -545,7 +545,7 @@ describe('subscribing to computeds', () => {
         await when(() => waiter$.get() === 2);
         expect(obs.get()).toEqual('hi there 1');
     });
-    test('subscribe update runs after get', async () => {
+    test('subscribe update runs right after get', async () => {
         let didGet = false;
         const didSubscribe$ = observable(false);
         const obs = observable(
@@ -571,10 +571,43 @@ describe('subscribing to computeds', () => {
         expect(obs.get()).toEqual(undefined);
         await whenReady(obs);
         expect(didGet).toEqual(true);
-        expect(didSubscribe$.get()).toEqual(false);
-        expect(obs.get()).toEqual('hi there');
-        await when(didSubscribe$);
+        expect(didSubscribe$.get()).toEqual(true);
         expect(obs.get()).toEqual('from subscribe');
+    });
+    test('subscribe refresh runs after get', async () => {
+        const numGets$ = observable(0);
+        const didSubscribe$ = observable(false);
+        let refreshNum = 0;
+        const obs = observable(
+            synced({
+                subscribe: ({ refresh }) => {
+                    setTimeout(() => {
+                        refresh();
+                        didSubscribe$.set(true);
+                    }, 0);
+                },
+                get: () => {
+                    return new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            numGets$.set((v) => v + 1);
+                            resolve(refreshNum++ > 0 ? 'after subscribed' : 'before');
+                        }, 10);
+                    });
+                },
+            }),
+        );
+        expect(numGets$.peek()).toEqual(0);
+        expect(didSubscribe$.get()).toEqual(false);
+        expect(obs.get()).toEqual(undefined);
+        await whenReady(obs);
+        expect(numGets$.peek()).toEqual(1);
+        expect(didSubscribe$.get()).toEqual(true);
+        expect(obs.get()).toEqual('before');
+        await when(() => numGets$.get() === 2);
+        expect(obs.get()).toEqual('before');
+        await promiseTimeout(0);
+        expect(numGets$.peek()).toEqual(2);
+        expect(obs.get()).toEqual('after subscribed');
     });
     test('activated with get running multiple times', async () => {
         const gets$ = observable(0);
