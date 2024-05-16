@@ -4,7 +4,7 @@ import type {
     ObservablePersistenceConfigLocalGlobalOptions,
     PersistMetadata,
 } from '@legendapp/state/sync';
-import { internal, isArray, setAtPath } from '@legendapp/state';
+import { applyChanges, internal, isArray, setAtPath } from '@legendapp/state';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
 const MetadataSuffix = '__m';
@@ -70,10 +70,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
             this.data[table] = {};
         }
 
-        for (let i = 0; i < changes.length; i++) {
-            const { path, valueAtPath, pathTypes } = changes[i];
-            this.data[table] = setAtPath(this.data[table], path as string[], pathTypes, valueAtPath);
-        }
+        this.data[table] = applyChanges(this.data[table], changes);
         return this.save(table);
     }
     public setMetadata(table: string, metadata: PersistMetadata) {

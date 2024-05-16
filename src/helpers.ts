@@ -1,7 +1,7 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { isArray, isEmpty, isFunction, isNumber, isObject } from './is';
-import type { ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
+import { isArray, isEmpty, isFunction, isMap, isNumber, isObject } from './is';
+import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
 export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean): T {
@@ -84,6 +84,8 @@ export function setAtPath<T extends object>(
     } else {
         if (mode === 'merge') {
             o[p] = _mergeIntoObservable(o[p], value);
+        } else if (isMap(o)) {
+            o.set(p, value);
         } else {
             o[p] = value;
         }
@@ -221,4 +223,14 @@ export function initializePathType(pathType: TypeAtPath): any {
         case 'set':
             return new Set();
     }
+}
+export function applyChange<T extends object>(value: T, change: Change, applyPrevious?: boolean): T {
+    const { path, valueAtPath, prevAtPath, pathTypes } = change;
+    return setAtPath(value, path as string[], pathTypes, applyPrevious ? prevAtPath : valueAtPath);
+}
+export function applyChanges<T extends object>(value: T, changes: Change[], applyPrevious?: boolean): T {
+    for (let i = 0; i < changes.length; i++) {
+        value = applyChange(value, changes[i], applyPrevious);
+    }
+    return value;
 }

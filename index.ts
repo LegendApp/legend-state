@@ -5,6 +5,8 @@ export { configureLegendState } from './src/config';
 export { event } from './src/event';
 export { isObservable } from './src/globals';
 export {
+    applyChange,
+    applyChanges,
     computeSelector,
     constructObjectWithPath,
     deconstructObjectWithPath,

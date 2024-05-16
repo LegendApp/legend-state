@@ -1,5 +1,5 @@
-import { isMap } from './is';
 import { clone, getChildNode, getNodeValue, getPathType, globalState, optimized } from './globals';
+import { applyChanges } from './helpers';
 import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {
@@ -48,28 +48,7 @@ export function isArraySubset<T>(mainArr: T[], subsetArr: T[]) {
 function createPreviousHandlerInner(value: any, changes: Change[]) {
     try {
         // Clones the current state and inject the previous data at the changed path
-        // TODO: Is this behavior similar to setAtPath or mergeIntoObservable so one
-        // of those could be used here?
-        let cloned = value ? clone(value) : {};
-        for (let i = 0; i < changes.length; i++) {
-            const { path, prevAtPath } = changes[i];
-            let o = cloned;
-            if (path.length > 0) {
-                let i: number;
-                for (i = 0; i < path.length - 1; i++) {
-                    o = o[path[i]];
-                }
-                const key = path[i];
-                if (isMap(o)) {
-                    o.set(key, prevAtPath);
-                } else {
-                    o[key] = prevAtPath;
-                }
-            } else {
-                cloned = prevAtPath;
-            }
-        }
-        return cloned;
+        return applyChanges(value ? clone(value) : {}, changes, true);
     } catch {
         return undefined;
     }

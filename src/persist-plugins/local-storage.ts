@@ -1,10 +1,10 @@
 import type { Change } from '@legendapp/state';
-import { internal, setAtPath } from '@legendapp/state';
+import { applyChanges, internal, setAtPath } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata } from '@legendapp/state/sync';
 
-const MetadataSuffix = '__m';
-
 const { safeParse, safeStringify } = internal;
+
+const MetadataSuffix = '__m';
 
 export class ObservablePersistLocalStorageBase implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
@@ -31,14 +31,13 @@ export class ObservablePersistLocalStorageBase implements ObservablePersistPlugi
         if (!this.data[table]) {
             this.data[table] = {};
         }
-        for (let i = 0; i < changes.length; i++) {
-            const { path, valueAtPath, pathTypes } = changes[i];
-            this.data[table] = setAtPath(this.data[table], path as string[], pathTypes, valueAtPath);
-        }
+        this.data[table] = applyChanges(this.data[table], changes);
         this.save(table);
     }
     public setMetadata(table: string, metadata: PersistMetadata) {
-        return this.setValue(table + MetadataSuffix, metadata);
+        table = table + MetadataSuffix;
+        this.data[table] = metadata;
+        this.save(table);
     }
     public deleteTable(table: string) {
         if (!this.storage) return undefined;
@@ -49,10 +48,6 @@ export class ObservablePersistLocalStorageBase implements ObservablePersistPlugi
         this.deleteTable(table + MetadataSuffix);
     }
     // Private
-    private setValue(table: string, value: any) {
-        this.data[table] = value;
-        this.save(table);
-    }
     private save(table: string) {
         if (!this.storage) return undefined;
 
