@@ -26,14 +26,9 @@ export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
     return value as OpaqueObject<T>;
 }
 
+const getValueAtPathReducer = (o: any, p: any) => o && o[p];
 export function getValueAtPath(obj: Record<string, any>, path: string[]): any {
-    let o: Record<string, any> = obj;
-    for (let i = 0; o && i < path.length; i++) {
-        const p = path[i];
-        o = o[p];
-    }
-
-    return o;
+    return path.reduce(getValueAtPathReducer, obj);
 }
 
 export function setAtPath<T extends object>(
@@ -45,10 +40,10 @@ export function setAtPath<T extends object>(
     fullObj?: T,
     restore?: (path: string[], value: any) => void,
 ) {
-    let o: Record<string, any> = obj;
-    let oFull: Record<string, any> | undefined = fullObj;
     let p: string | undefined = undefined;
+    let o: Record<string, any> = obj;
     if (path.length > 0) {
+        let oFull: Record<string, any> | undefined = fullObj;
         for (let i = 0; i < path.length; i++) {
             p = path[i];
             if (o[p] === symbolDelete) {
