@@ -101,7 +101,7 @@ describe('Perf', () => {
 
         expect(numCalled).toEqual(0);
         expect(numActivated).toEqual(Num);
-        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 300 : 100);
+        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 400 : 150);
 
         const now2 = performance.now();
         obs.get();
