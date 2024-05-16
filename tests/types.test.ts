@@ -218,7 +218,7 @@ describe('with function', () => {
 
     it('should make nested function optional if parent is optional', () => {
         type State = Observable<{ foo?: { bar: () => void } }>;
-        expectTypeOf<State['foo']['bar']>().toEqualTypeOf<(() => void) | undefined>();
+        expectTypeOf<State['foo']['bar']>().toMatchTypeOf<(() => void) | undefined>();
     });
 });
 

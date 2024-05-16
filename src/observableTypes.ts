@@ -141,7 +141,7 @@ type ObservableFunctionChildren<T> = {
             : t extends Observable
             ? t
             : Observable<t> & (() => t)
-        : T[K];
+        : T[K] & Observable<T[K]>;
 };
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
