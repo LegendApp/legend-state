@@ -1,10 +1,10 @@
 import type { Change } from '@legendapp/state';
+import { applyChanges, internal, isArray } from '@legendapp/state';
 import type {
     ObservablePersistPlugin,
     ObservablePersistenceConfigLocalGlobalOptions,
     PersistMetadata,
 } from '@legendapp/state/sync';
-import { applyChanges, internal, isArray, setAtPath } from '@legendapp/state';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
 const MetadataSuffix = '__m';

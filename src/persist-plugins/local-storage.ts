@@ -1,5 +1,5 @@
 import type { Change } from '@legendapp/state';
-import { applyChanges, internal, setAtPath } from '@legendapp/state';
+import { applyChanges, internal } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata } from '@legendapp/state/sync';
 
 const { safeParse, safeStringify } = internal;
