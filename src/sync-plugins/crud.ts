@@ -1,4 +1,4 @@
-import { internal, isArray, isNullOrUndefined } from '@legendapp/state';
+import { getNodeValue, internal, isArray, isNullOrUndefined } from '@legendapp/state';
 import { SyncedGetParams, SyncedOptions, SyncedSetParams, diffObjects, synced } from '@legendapp/state/sync';
 
 const { clone } = internal;
@@ -17,6 +17,13 @@ export interface SyncedCrudPropsMany<TRemote, TLocal, TAsOption extends CrudAsOp
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
 }
+export interface SyncedCrudOnSavedParams<TRemote extends { id: string | number }, TLocal> {
+    saved: TLocal;
+    input: TRemote;
+    currentValue: TLocal;
+    isCreate: boolean;
+    props: SyncedCrudPropsBase<TRemote, TLocal>;
+}
 export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TLocal = TRemote>
     extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
@@ -25,7 +32,8 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
     delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
-    onSaved?(saved: TLocal, input: TRemote, isCreate: boolean): Partial<TLocal> | void;
+    onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
+    onSavedUpdate?: 'createdUpdatedAt';
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     fieldDeleted?: string;
@@ -63,6 +71,39 @@ function ensureId(obj: { id: string | number }, generateId: () => string | numbe
     return obj.id;
 }
 
+function onSavedCreatedUpdatedAt<TRemote extends { id: string | number }, TLocal>(
+    mode: SyncedCrudPropsBase<TRemote>['onSavedUpdate'],
+    { saved, currentValue, isCreate, props }: SyncedCrudOnSavedParams<TRemote, TLocal>,
+): Partial<TLocal> {
+    const savedOut: Partial<TLocal> = {};
+
+    if (isCreate) {
+        // Update with any fields that are currently undefined
+        Object.keys(saved!).forEach((key) => {
+            if (isNullOrUndefined(currentValue[key as keyof TLocal])) {
+                savedOut[key as keyof TLocal] = saved[key as keyof TLocal];
+            }
+        });
+    } else if (mode === 'createdUpdatedAt') {
+        // Update with any fields ending in createdAt or updatedAt
+        Object.keys(saved!).forEach((key) => {
+            const k = key as keyof TLocal;
+            const keyLower = key.toLowerCase();
+            if (
+                (key === props.fieldCreatedAt ||
+                    key === props.fieldUpdatedAt ||
+                    keyLower.endsWith('createdat') ||
+                    keyLower.endsWith('updatedat')) &&
+                saved[k] instanceof Date
+            ) {
+                savedOut[k] = saved[k];
+            }
+        });
+    }
+
+    return savedOut;
+}
+
 export function syncedCrud<TRemote extends { id: string | number }, TLocal = TRemote>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'first'>;
@@ -93,6 +134,7 @@ export function syncedCrud<
         fieldDeleted,
         updatePartial,
         onSaved,
+        onSavedUpdate,
         mode: modeParam,
         changesSince,
         generateId,
@@ -169,7 +211,7 @@ export function syncedCrud<
     const set =
         createFn || updateFn || deleteFn
             ? async (params: SyncedSetParams<any> & { retryAsCreate?: boolean }) => {
-                  const { value, changes, update, retryAsCreate, valuePrevious } = params;
+                  const { value, changes, update, retryAsCreate, valuePrevious, node } = params;
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
                   const deletes = new Set<string>();
@@ -273,12 +315,33 @@ export function syncedCrud<
                       data: CrudResult<TRemote>,
                       isCreate: boolean,
                   ) => {
-                      if (data && onSaved) {
-                          const dataLoaded: TLocal = (
-                              transform?.load ? transform.load(data as any, 'set') : data
-                          ) as any;
+                      if (data && (onSaved || onSavedUpdate)) {
+                          const saved: TLocal = (transform?.load ? transform.load(data as any, 'set') : data) as any;
 
-                          const savedOut = onSaved(dataLoaded, input, isCreate);
+                          const isChild = itemKey !== 'undefined' && asType !== 'first';
+                          const currentPeeked = getNodeValue(node);
+
+                          const currentValue = isChild ? currentPeeked?.[itemKey] : currentPeeked;
+
+                          const dataOnSaved: SyncedCrudOnSavedParams<TRemote, TLocal> = {
+                              saved,
+                              input,
+                              currentValue,
+                              isCreate,
+                              props,
+                          };
+                          let savedOut: Partial<TLocal> | undefined = undefined;
+
+                          if (onSavedUpdate) {
+                              savedOut = onSavedCreatedUpdatedAt(onSavedUpdate, dataOnSaved);
+                          }
+
+                          if (onSaved) {
+                              const ret = onSaved(dataOnSaved);
+                              if (ret) {
+                                  savedOut = ret;
+                              }
+                          }
 
                           if (savedOut) {
                               const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TLocal] : undefined;
