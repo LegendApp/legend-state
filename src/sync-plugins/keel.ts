@@ -342,7 +342,7 @@ export function syncedKeel<
               const queryBySync = !!lastSync && changesSince === 'last-sync';
               // If querying with lastSync pass it to the "where" parameters
               const where = Object.assign(
-                  queryBySync ? { updatedAt: { after: new Date(+new Date(lastSync) + 1) } } : {},
+                  queryBySync ? { updatedAt: { after: new Date(lastSync + 1) } } : {},
                   isFunction(whereParam) ? whereParam() : whereParam,
               );
               const params: KeelListParams = { where, first };

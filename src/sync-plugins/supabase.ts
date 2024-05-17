@@ -105,17 +105,21 @@ export function syncedSupabase<
         select: selectFn,
         filter,
         actions,
-        fieldCreatedAt,
-        fieldUpdatedAt,
+        fieldCreatedAt: fieldCreatedAtParam,
+        fieldUpdatedAt: fieldUpdatedAtParam,
+        fieldDeleted: fieldDeletedParam,
         realtime,
         changesSince,
         waitFor,
         waitForSet,
-        generateId: generateIdParam,
+        generateId,
         ...rest
     } = props;
 
-    const generateId = generateIdParam || supabaseConfig.generateId;
+    // If using last-sync mode then put it into soft delete mode
+    const fieldCreatedAt = fieldCreatedAtParam || (changesSince === 'last-sync' ? 'created_at' : undefined);
+    const fieldUpdatedAt = fieldUpdatedAtParam || (changesSince === 'last-sync' ? 'updated_at' : undefined);
+    const fieldDeleted = fieldDeletedParam || (changesSince === 'last-sync' ? 'deleted' : undefined);
 
     const list =
         !actions || actions.includes('read')
@@ -123,28 +127,13 @@ export function syncedSupabase<
                   const { lastSync } = params;
                   const from = client.from(collection);
                   let select = selectFn ? selectFn(from) : from.select();
-                  if (changesSince === 'last-sync') {
-                      if (process.env.NODE_ENV === 'development') {
-                          if (!fieldCreatedAt) {
-                              console.warn(
-                                  `[legend-state] changesSince: 'last-sync' requires the 'fieldCreatedAt' option`,
-                              );
-                          } else if (!fieldUpdatedAt) {
-                              console.warn(
-                                  `[legend-state] changesSince: 'last-sync' requires the 'fieldUpdatedAt' option`,
-                              );
-                          }
-                      }
-                      if (lastSync) {
-                          const date = new Date(lastSync).toISOString();
-                          select = select.or(
-                              [
-                                  fieldCreatedAt && `${fieldCreatedAt}.gt.${date}`,
-                                  fieldUpdatedAt && `${fieldUpdatedAt}.gt.${date}`,
-                              ].join(','),
-                          );
-                      }
+
+                  // in last-sync mode, filter for rows updated more recently than the last sync
+                  if (changesSince === 'last-sync' && lastSync) {
+                      const date = new Date(lastSync).toISOString();
+                      select = select.gt(fieldUpdatedAt!, date);
                   }
+                  // filter with filter parameter
                   if (filter) {
                       select = filter(select, params);
                   }
@@ -169,16 +158,10 @@ export function syncedSupabase<
     const create = !actions || actions.includes('create') ? upsert : undefined;
     const update = !actions || actions.includes('update') ? upsert : undefined;
     const deleteFn =
-        !actions || actions.includes('delete')
+        !fieldDeleted && (!actions || actions.includes('delete'))
             ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
-                  if (process.env.NODE_ENV === 'development' && changesSince === 'last-sync') {
-                      console.warn(
-                          `[legend-state] deleting with changesSince: 'last-sync' should be a soft delete with the 'fieldDeleted' option`,
-                      );
-                  }
                   const id = input.id;
-                  const from = client.from(collection);
-                  const res = await from.delete().eq('id', id).select();
+                  const res = await client.from(collection).delete().eq('id', id).select();
                   const { data, error } = res;
                   if (data) {
                       const created = data[0];
@@ -246,6 +229,7 @@ export function syncedSupabase<
         subscribe,
         fieldCreatedAt,
         fieldUpdatedAt,
+        fieldDeleted,
         updatePartial: false,
         onSavedUpdate: 'createdUpdatedAt',
         generateId,
