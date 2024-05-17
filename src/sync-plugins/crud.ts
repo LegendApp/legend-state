@@ -1,5 +1,5 @@
-import { getNodeValue, internal, isArray, isNullOrUndefined } from '@legendapp/state';
-import { SyncedGetParams, SyncedOptions, SyncedSetParams, diffObjects, synced } from '@legendapp/state/sync';
+import { getNodeValue, internal, isNullOrUndefined } from '@legendapp/state';
+import { SyncedGetParams, SyncedOptions, SyncedSetParams, deepEqual, diffObjects, synced } from '@legendapp/state/sync';
 
 const { clone } = internal;
 
@@ -247,27 +247,21 @@ export function syncedCrud<
                           }
                       } else {
                           let itemsChanged: [string, any][] | undefined = undefined;
-                          let isCreateGuess: boolean;
                           if (path.length === 0) {
-                              isCreateGuess =
-                                  !(fieldCreatedAt || fieldUpdatedAt) &&
-                                  !(
-                                      (asMap
-                                          ? Array.from((valueAtPath as Map<any, any>).values())
-                                          : isArray(valueAtPath)
-                                          ? valueAtPath
-                                          : Object.values(valueAtPath)
-                                      )?.length > 0
-                                  );
-                              itemsChanged = asMap
+                              // Do a deep equal of each element vs its previous element to see which have changed
+                              itemsChanged = (
+                                  asMap
                                   ? Array.from((valueAtPath as Map<any, any>).entries())
-                                  : isArray(valueAtPath)
-                                  ? valueAtPath
-                                  : Object.entries(valueAtPath);
+                                      : Object.entries(valueAtPath)
+                              ).filter(([key, value]) => {
+                                  const prev = asMap ? prevAtPath.get(key) : prevAtPath[key];
+                                  const isDiff = !prevAtPath || !deepEqual(value, prev);
+
+                                  return isDiff;
+                              });
                           } else {
                               const itemKey = path[0];
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
-                              isCreateGuess = !(fieldCreatedAt || fieldUpdatedAt) && path.length === 1 && !prevAtPath;
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       deletes.add(itemKey);
@@ -280,11 +274,13 @@ export function syncedCrud<
                               if (isNullOrUndefined(item)) {
                                   deletes.add(itemKey);
                               } else {
+                                  const prev = asMap ? valuePrevious.get(itemKey) : valuePrevious[itemKey];
+
                                   const isCreate = fieldCreatedAt
                                       ? !item[fieldCreatedAt!]
                                       : fieldUpdatedAt
                                       ? !item[fieldUpdatedAt]
-                                      : isCreateGuess;
+                                      : isNullOrUndefined(prev);
                                   if (isCreate) {
                                       if (generateId) {
                                           ensureId(item, generateId);

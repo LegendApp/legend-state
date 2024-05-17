@@ -1,4 +1,4 @@
-import { observable, symbolDelete, when } from '@legendapp/state';
+import { observable, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
@@ -379,7 +379,7 @@ describe('Crud as Object list', () => {
             },
         });
     });
-    test('as Object set at root', async () => {
+    test('as Object set at root updates', async () => {
         let created = undefined;
         let updated = undefined;
         const obs = observable(
@@ -415,6 +415,42 @@ describe('Crud as Object list', () => {
                 id: 'id1',
                 test: 'hello',
             },
+        });
+    });
+    test('as Object set at root adds', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                list: () => [ItemBasicValue()],
+                as: 'object',
+                create: async (input: BasicValue) => {
+                    created = input;
+                    return input;
+                },
+                update: async (input) => {
+                    updated = input;
+                    return input;
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        obs.set({ id1: { id: 'id1', test: 'hi' }, id2: { id: 'id2', test: 'hi2' } });
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual({ id: 'id2', test: 'hi2' });
+        expect(updated).toEqual(undefined);
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+            },
+            id2: { id: 'id2', test: 'hi2' },
         });
     });
     test('as Object set deep child', async () => {
