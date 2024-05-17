@@ -319,6 +319,7 @@ export function syncedKeel<
         first,
         where: whereParam,
         waitFor,
+        fieldDeleted,
         generateId: generateIdParam,
         ...rest
     } = props;
@@ -474,6 +475,7 @@ export function syncedKeel<
         onSavedUpdate: 'createdUpdatedAt',
         fieldCreatedAt,
         fieldUpdatedAt,
+        fieldDeleted: fieldDeleted || 'deleted',
         changesSince,
         updatePartial: true,
         generateId,
