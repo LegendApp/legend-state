@@ -1014,7 +1014,7 @@ describe('fieldUpdatedAt', () => {
                     });
                     return input;
                 },
-                onSaved: (saved) => {
+                onSaved: ({ saved }) => {
                     return { ...saved, updatedAt: 'now' };
                 },
             }),
