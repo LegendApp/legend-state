@@ -874,6 +874,8 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
 }
 
 function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
+    // We want to extract these types of values from the observable's raw value so that
+    // the raw value does not contain Promises, Observables or functions
     if (isPromise(v)) {
         const childNode = getChildNode(node, k);
         extractPromise(childNode, v);
@@ -948,27 +950,14 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
     }
 
     if ((lazy || node.needsExtract) && !isObservable(value) && !isPrimitive(value)) {
+        // If this is a purposeful get, check descendants for observable or auto activated linked
         if (activateRecursive) {
-            traverseObject(value, node);
+            recursivelyAutoActivate(value, node);
         }
+        // If this is an extractable node, extract it from parent before it's accessed
         if (node.parent) {
             extractFunctionOrComputed(node.parent!, node.key!, origValue);
         }
-        // for (const key in value) {
-        //     if (hasOwnProperty.call(value, key)) {
-        //         const property = Object.getOwnPropertyDescriptor(value, key);
-        //         if (property?.get) {
-        //             delete value[key];
-        //             value[key] = property.set
-        //                 ? linked({
-        //                       get: property.get,
-        //                       set: ({ value }) => property.set!(value),
-        //                   })
-        //                 : property.get;
-        //         }
-        //         extractFunctionOrComputed(node, key, value[key]);
-        //     }
-        // }
     }
 
     return value;
@@ -1262,7 +1251,7 @@ function setToObservable(node: NodeValue, value: any) {
     return value;
 }
 
-export function traverseObject(obj: Record<string, any>, node: NodeValue) {
+function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
     if (isObject(obj) || isArray(obj)) {
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
@@ -1276,11 +1265,11 @@ export function traverseObject(obj: Record<string, any>, node: NodeValue) {
 
             return childNode;
         };
-        traverseObjectInner(obj, pathStack, getNodeAtPath);
+        recursivelyAutoActivateInner(obj, pathStack, getNodeAtPath);
     }
 }
 
-export function traverseObjectInner(
+function recursivelyAutoActivateInner(
     obj: Record<string, any>,
     pathStack: { key: string; value: any }[],
     getNodeAtPath: () => NodeValue,
@@ -1306,7 +1295,7 @@ export function traverseObjectInner(
 
             if (typeof value === 'object') {
                 pathStack.push({ key, value });
-                traverseObjectInner(value, pathStack, getNodeAtPath); // Recursively traverse
+                recursivelyAutoActivateInner(value, pathStack, getNodeAtPath); // Recursively traverse
                 pathStack.pop();
             }
         }
