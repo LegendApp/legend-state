@@ -148,6 +148,7 @@ export function syncedCrud<
     }
 
     const asMap = asType === 'Map';
+    const asArray = asType === 'array';
 
     const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
         getFn || listFn
@@ -180,15 +181,22 @@ export function syncedCrud<
                           return transformed.length > 0
                               ? transformed[0]
                               : (isLastSyncMode && lastSync && value) || null;
-                      } else if (asType === 'array') {
-                          return transformed;
                       } else {
-                          const out: Record<string, any> = asMap ? new Map() : {};
-                          transformed.forEach((result: any) => {
-                              const value =
-                                  result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
-                              asMap ? (out as Map<any, any>).set(result.id, value) : (out[result.id] = value);
-                          });
+                          const results = transformed.map((result: any) =>
+                              result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result,
+                          );
+                          const out = asType === 'array' ? [] : asMap ? new Map() : {};
+                          for (let i = 0; i < results.length; i++) {
+                              let result = results[i];
+                              result = result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
+                              if (asArray) {
+                                  (out as any[]).push(result);
+                              } else if (asMap) {
+                                  (out as Map<string, any>).set(result.id, result);
+                              } else {
+                                  (out as Record<string, any>)[result.id] = result;
+                              }
+                          }
                           return out;
                       }
                   } else if (getFn) {
