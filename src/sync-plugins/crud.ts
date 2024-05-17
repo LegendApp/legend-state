@@ -376,8 +376,8 @@ export function syncedCrud<
                           const changed = transformOut(toSave as TLocal, transform?.save) as TRemote;
 
                           if (Object.keys(changed).length > 0) {
-                              return updateFn!(changed, params).then((result) =>
-                                  saveResult(itemKey, changed, result as any, false),
+                              return updateFn!(changed, params).then(
+                                  (result) => result && saveResult(itemKey, changed, result as any, false),
                               );
                           }
                       }),

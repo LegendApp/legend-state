@@ -1,4 +1,12 @@
-import { computeSelector, observable, when, internal, isFunction, mergeIntoObservable } from '@legendapp/state';
+import {
+    computeSelector,
+    observable,
+    when,
+    internal,
+    isFunction,
+    mergeIntoObservable,
+    isEmpty,
+} from '@legendapp/state';
 import {
     SyncedOptions,
     removeNullUndefined,
@@ -431,14 +439,15 @@ export function syncedKeel<
               delete values.id;
               delete values.createdAt;
               delete values.updatedAt;
+              if (!isEmpty(values)) {
+                  const { data, error } = await updateParam({ where: { id }, values });
 
-              const { data, error } = await updateParam({ where: { id }, values: values });
+                  if (error) {
+                      handleSetError(error, params, false);
+                  }
 
-              if (error) {
-                  handleSetError(error, params, false);
+                  return data;
               }
-
-              return data;
           }
         : undefined;
     const deleteFn = deleteParam
