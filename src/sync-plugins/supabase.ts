@@ -243,6 +243,21 @@ export function syncedSupabase<
         create,
         update,
         delete: deleteFn,
+        onSaved: (saved) => {
+            // Update the local timestamps with server response
+            if (fieldCreatedAt || fieldUpdatedAt) {
+                const ret: any = {
+                    id: saved.id,
+                };
+                if (fieldCreatedAt) {
+                    ret[fieldCreatedAt] = fieldCreatedAt;
+                }
+                if (fieldUpdatedAt) {
+                    ret[fieldUpdatedAt] = fieldUpdatedAt;
+                }
+                return ret;
+            }
+        },
         subscribe,
         fieldCreatedAt,
         fieldUpdatedAt,

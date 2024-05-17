@@ -25,7 +25,7 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
     delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
-    onSaved?(saved: TLocal, input: TRemote, isCreate: boolean): void;
+    onSaved?(saved: TLocal, input: TRemote, isCreate: boolean): Partial<TLocal> | void;
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     fieldDeleted?: string;
@@ -278,7 +278,7 @@ export function syncedCrud<
                               transform?.load ? transform.load(data as any, 'set') : data
                           ) as any;
 
-                          const savedOut = diffObjects(input, dataLoaded as any);
+                          const savedOut = onSaved(dataLoaded, input, isCreate);
 
                           if (savedOut) {
                               const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TLocal] : undefined;
@@ -292,8 +292,6 @@ export function syncedCrud<
                                       updatedAt || createdAt ? +new Date(updatedAt || (createdAt as any)) : undefined,
                                   mode: 'merge',
                               });
-
-                              onSaved(dataLoaded, input, isCreate);
                           }
                       }
                   };
