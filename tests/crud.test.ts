@@ -26,7 +26,7 @@ const ItemBasicValue: () => BasicValue = () => ({
 
 type GetOrListTestParams =
     | { get: () => BasicValue | null; list?: never; as?: never }
-    | { list: () => BasicValue[]; as: 'first'; get?: never };
+    | { list: () => BasicValue[]; as: 'value'; get?: never };
 
 beforeAll(() => {
     configureObservableSync({
@@ -271,32 +271,32 @@ describe('Crud object get', () => {
     test('list first', () =>
         getTests.get({
             list: () => [ItemBasicValue()],
-            as: 'first',
+            as: 'value',
         }));
     test('list first with initial', () =>
         getTests.getWithInitial({
             list: () => [ItemBasicValue()],
-            as: 'first',
+            as: 'value',
         }));
     test('list first with waitFor', () =>
         getTests.getWithWaitFor({
             list: () => [ItemBasicValue()],
-            as: 'first',
+            as: 'value',
         }));
     test('list first with set', () =>
         getTests.getWithSet({
             list: () => [ItemBasicValue()],
-            as: 'first',
+            as: 'value',
         }));
     test('list first with set deep child', () =>
         getTests.getWithSetDeepChild({
             list: () => [ItemBasicValue()],
-            as: 'first',
+            as: 'value',
         }));
     test('list first with delete', () =>
         getTests.getWithDelete({
             list: () => [ItemBasicValue()],
-            as: 'first',
+            as: 'value',
         }));
 });
 describe('Crud as Object list', () => {
@@ -1076,7 +1076,7 @@ describe('lastSync', () => {
         const obs = observable<Record<string, BasicValue>>(
             syncedCrud({
                 list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
-                as: 'first',
+                as: 'value',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
                 persist: {
@@ -1103,7 +1103,7 @@ describe('lastSync', () => {
         const obs = observable<Record<string, BasicValue>>(
             syncedCrud({
                 list: () => [],
-                as: 'first',
+                as: 'value',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
                 persist: {

@@ -55,7 +55,7 @@ export interface SyncedSupabaseConfiguration
     extends Omit<SyncedSupabaseConfig<{ id: string }, { id: string }>, 'persist' | keyof SyncedOptions> {
     persist?: SyncedOptionsGlobal;
     enabled?: Observable<boolean>;
-    as?: Exclude<CrudAsOption, 'first'>;
+    as?: Exclude<CrudAsOption, 'value'>;
 }
 
 interface SyncedSupabaseProps<

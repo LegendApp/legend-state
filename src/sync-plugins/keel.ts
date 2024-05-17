@@ -85,7 +85,7 @@ export interface SyncedKeelConfiguration
         api: { queries: Record<string, (i: any) => Promise<any>> };
     };
     realtimePlugin?: KeelRealtimePlugin;
-    as?: Exclude<CrudAsOption, 'first'>;
+    as?: Exclude<CrudAsOption, 'value'>;
     enabled?: boolean;
     onError?: (params: APIResult<any>['error']) => void;
 }
@@ -289,7 +289,7 @@ async function getAllPages<TRemote>(
 
 export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote>(
     props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsSingle<TRemote, TLocal>,
-): SyncedCrudReturnType<TLocal, 'first'>;
+): SyncedCrudReturnType<TLocal, 'value'>;
 export function syncedKeel<
     TRemote extends { id: string },
     TLocal = TRemote,
@@ -297,7 +297,7 @@ export function syncedKeel<
     Where extends Record<string, any> = {},
 >(
     props: SyncedKeelPropsBase<TRemote, TLocal> & SyncedKeelPropsMany<TRemote, TLocal, TOption, Where>,
-): SyncedCrudReturnType<TLocal, Exclude<TOption, 'first'>>;
+): SyncedCrudReturnType<TLocal, Exclude<TOption, 'value'>>;
 export function syncedKeel<
     TRemote extends { id: string },
     TLocal = TRemote,
@@ -325,7 +325,7 @@ export function syncedKeel<
 
     const { changesSince } = props;
 
-    const asType: TOption = getParam ? ('first' as TOption) : props.as!;
+    const asType: TOption = getParam ? ('value' as TOption) : props.as!;
 
     const generateId = generateIdParam || keelConfig.generateId;
 
