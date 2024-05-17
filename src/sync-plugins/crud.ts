@@ -3,7 +3,7 @@ import { SyncedGetParams, SyncedOptions, SyncedSetParams, deepEqual, diffObjects
 
 const { clone } = internal;
 
-export type CrudAsOption = 'Map' | 'object' | 'value';
+export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 
 export type CrudResult<T> = T;
 
@@ -156,7 +156,8 @@ export function syncedCrud<
                   if (listFn) {
                       const isLastSyncMode = changesSince === 'last-sync';
                       if (isLastSyncMode && lastSync) {
-                          getParams.mode = modeParam || (asType === 'value' ? 'set' : 'assign');
+                          getParams.mode =
+                              modeParam || (asType === 'array' ? 'append' : asType === 'value' ? 'set' : 'assign');
                       }
 
                       const data = (await listFn(getParams)) || [];
@@ -179,6 +180,8 @@ export function syncedCrud<
                           return transformed.length > 0
                               ? transformed[0]
                               : (isLastSyncMode && lastSync && value) || null;
+                      } else if (asType === 'array') {
+                          return transformed;
                       } else {
                           const out: Record<string, any> = asMap ? new Map() : {};
                           transformed.forEach((result: any) => {
@@ -237,7 +240,7 @@ export function syncedCrud<
                                       updates.set(id, Object.assign(updates.get(id) || { id }, value));
                                   }
                               } else {
-                                  console.error('[legend-state]: added item without an id');
+                                  console.error('[legend-state]: added synced item without an id');
                               }
                           } else if (path.length === 0) {
                               const id = prevAtPath?.id;
@@ -251,7 +254,7 @@ export function syncedCrud<
                               // Do a deep equal of each element vs its previous element to see which have changed
                               itemsChanged = (
                                   asMap
-                                  ? Array.from((valueAtPath as Map<any, any>).entries())
+                                      ? Array.from((valueAtPath as Map<any, any>).entries())
                                       : Object.entries(valueAtPath)
                               ).filter(([key, value]) => {
                                   const prev = asMap ? prevAtPath.get(key) : prevAtPath[key];
