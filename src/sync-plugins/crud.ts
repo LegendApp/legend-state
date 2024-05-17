@@ -381,10 +381,10 @@ export function syncedCrud<
                           }
                       }),
                       ...Array.from(deletes).map((id) => {
-                          if (fieldDeleted && updateFn) {
-                              updateFn({ id, [fieldDeleted]: true } as any, params);
-                          } else if (deleteFn) {
+                          if (deleteFn) {
                               deleteFn({ id }, params);
+                          } else if (fieldDeleted && updateFn) {
+                              updateFn({ id, [fieldDeleted]: true } as any, params);
                           } else {
                               console.log('[legend-state] missing delete function');
                           }
