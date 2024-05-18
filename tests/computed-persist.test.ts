@@ -817,3 +817,41 @@ describe('Debouncing', () => {
         expect(diff2).toBeLessThan(28);
     });
 });
+
+describe('initial function', () => {
+    test('initial function', () => {
+        const obs = observable(
+            synced({
+                initial: () => ({ id: 'hi', test: 'hi' }),
+            }),
+        );
+
+        expect(obs.get()).toEqual({ id: 'hi', test: 'hi' });
+    });
+    test('initial function with immediate get', async () => {
+        const obs = observable(
+            synced({
+                initial: () => ({ id: 'hi', test: 'hi' }),
+                get: () => ({ id: 'hi', test: 'hi2' }),
+            }),
+        );
+
+        expect(obs.get()).toEqual({ id: 'hi', test: 'hi2' });
+    });
+    test('initial function with delayed get', async () => {
+        const obs = observable(
+            synced({
+                initial: () => ({ id: 'hi', test: 'hi' }),
+                get: async () => {
+                    await promiseTimeout(0);
+                    return { id: 'hi', test: 'hi2' };
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual({ id: 'hi', test: 'hi' });
+
+        await promiseTimeout();
+        expect(obs.get()).toEqual({ id: 'hi', test: 'hi2' });
+    });
+});
