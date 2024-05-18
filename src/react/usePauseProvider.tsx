@@ -1,13 +1,16 @@
-import { Observable, observable } from '@legendapp/state';
-import { ReactNode, createContext, createElement, useState } from 'react';
+import { Observable, ObservableBoolean, observable } from '@legendapp/state';
+import { Context, ReactNode, createContext, createElement, useState } from 'react';
 
-export const PauseContext = createContext<Observable<boolean>>(null as any);
+let pauseContext: Context<ObservableBoolean> | undefined = undefined;
+export const getPauseContext = () => {
+    return (pauseContext ||= createContext<Observable<boolean>>(null as any));
+};
 
 export function usePauseProvider() {
     const [value] = useState(() => observable(false));
     return {
         PauseProvider: ({ children }: { children: ReactNode }) =>
-            createElement(PauseContext.Provider, { value }, children),
+            createElement(getPauseContext().Provider, { value }, children),
         isPaused$: value,
     };
 }

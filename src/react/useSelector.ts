@@ -14,7 +14,7 @@ import React, { useContext, useMemo } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import { reactGlobals } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
-import { PauseContext } from './usePauseProvider';
+import { getPauseContext } from './usePauseProvider';
 
 interface SelectorFunctions<T> {
     subscribe: (onStoreChange: () => void) => () => void;
@@ -123,7 +123,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     let value;
 
     try {
-        const isPaused$ = useContext(PauseContext);
+        const isPaused$ = useContext(getPauseContext());
         const selectorFn = useMemo(() => createSelectorFunctions<T>(options, isPaused$), []);
         const { subscribe, getVersion, run } = selectorFn;
 
