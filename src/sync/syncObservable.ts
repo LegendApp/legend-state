@@ -626,7 +626,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         // If this remote save changed anything then update cache and metadata
         // Because save happens after a timeout and they're batched together, some calls to save will
         // return saved data and others won't, so those can be ignored.
-        if (saved) {
+        if (saved !== undefined) {
             const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
             const { changes, lastSync } = saved;
             if (pathStrs.length > 0) {

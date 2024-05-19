@@ -93,7 +93,9 @@ function onSavedCreatedUpdatedAt<TRemote extends { id: string | number }, TLocal
                 (key === props.fieldCreatedAt ||
                     key === props.fieldUpdatedAt ||
                     keyLower.endsWith('createdat') ||
-                    keyLower.endsWith('updatedat')) &&
+                    keyLower.endsWith('updatedat') ||
+                    keyLower.endsWith('created_at') ||
+                    keyLower.endsWith('updated_at')) &&
                 saved[k] instanceof Date
             ) {
                 savedOut[k] = saved[k];
