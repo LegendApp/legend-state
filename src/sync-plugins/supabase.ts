@@ -8,9 +8,12 @@ import {
     symbolDelete,
 } from '@legendapp/state';
 import {
+    SyncTransform,
     SyncedOptions,
     SyncedOptionsGlobal,
+    combineTransforms,
     removeNullUndefined,
+    transformStringifyDates,
     type SyncedGetParams,
     type SyncedSubscribeParams,
 } from '@legendapp/state/sync';
@@ -77,6 +80,7 @@ interface SyncedSupabaseProps<
     ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
     realtime?: boolean | { schema?: string; filter?: string };
+    stringifyDates?: boolean;
 }
 
 let channelNum = 1;
@@ -110,6 +114,8 @@ export function syncedSupabase<
         fieldDeleted: fieldDeletedParam,
         realtime,
         changesSince,
+        transform: transformParam,
+        stringifyDates,
         waitFor,
         waitForSet,
         generateId,
@@ -220,6 +226,12 @@ export function syncedSupabase<
           }
         : undefined;
 
+    let transform = transformParam;
+    if (stringifyDates) {
+        const stringifier = transformStringifyDates() as SyncTransform<TLocal, TRemote>;
+        transform = transform ? combineTransforms(stringifier, transform) : stringifier;
+    }
+
     return syncedCrud<SupabaseRowOf<Client, Collection>, SupabaseRowOf<Client, Collection>, AsOption>({
         ...rest,
         list,
@@ -232,6 +244,7 @@ export function syncedSupabase<
         fieldDeleted,
         updatePartial: false,
         onSavedUpdate: 'createdUpdatedAt',
+        transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
         waitForSet,
