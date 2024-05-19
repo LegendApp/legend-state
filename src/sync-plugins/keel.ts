@@ -53,6 +53,8 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 
 // Keel plugin types
 
+type SubscribeFn = (params: { refresh: () => void }) => () => void;
+
 export interface KeelGetParams {}
 
 export interface KeelListParams<Where = {}> {
@@ -211,24 +213,22 @@ export function configureSyncedKeel(config: SyncedKeelConfiguration) {
             Object.keys(queries).forEach((key) => {
                 const oldFn = queries[key];
                 queries[key] = (i) => {
+                    const realtimeChild = Object.values(i.where)
+                        .filter((value) => value && typeof value !== 'object')
+                        .join('/');
+                    const realtimeKey = `${key}/${realtimeChild}`;
                     const subscribe =
                         key.startsWith('list') &&
                         i.where &&
                         (({ refresh }: SyncedSubscribeParams) => {
-                            const realtimeChild = Object.values(i.where)
-                                .filter((value) => value && typeof value !== 'object')
-                                .join('/');
-
                             if (realtimeChild) {
-                                const realtimeKey = `${key}/${realtimeChild}`;
-
-                                realtimePlugin.subscribe(realtimeKey, refresh);
-                                return realtimeKey;
+                                return realtimePlugin.subscribe(realtimeKey, refresh);
                             }
                         });
                     return oldFn(i).then((ret) => {
                         if (subscribe) {
                             ret.subscribe = subscribe;
+                            ret.subscribeKey = realtimeKey;
                         }
                         return ret;
                     });
@@ -247,10 +247,11 @@ async function getAllPages<TRemote>(
         }>
     >,
     params: KeelListParams,
-): Promise<{ results: TRemote[]; subscribe: (params: { refresh: () => void }) => string }> {
+): Promise<{ results: TRemote[]; subscribe: SubscribeFn; subscribeKey: string }> {
     const allData: TRemote[] = [];
     let pageInfo: PageInfo | undefined = undefined;
     let subscribe_;
+    let subscribeKey_;
 
     const { first: firstParam } = params;
 
@@ -268,10 +269,11 @@ async function getAllPages<TRemote>(
 
         if (ret) {
             // @ts-expect-error TODOKEEL
-            const { data, error, subscribe } = ret;
+            const { data, error, subscribe, subscribeKey } = ret;
 
             if (subscribe) {
                 subscribe_ = subscribe;
+                subscribeKey_ = subscribeKey;
             }
 
             if (error) {
@@ -284,7 +286,7 @@ async function getAllPages<TRemote>(
         }
     } while (pageInfo?.hasNextPage);
 
-    return { results: allData, subscribe: subscribe_ };
+    return { results: allData, subscribe: subscribe_, subscribeKey: subscribeKey_ };
 }
 
 export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote>(
@@ -330,8 +332,8 @@ export function syncedKeel<
 
     const generateId = generateIdParam || keelConfig.generateId;
 
-    let realtimeKeyList: string | undefined = undefined;
-    let realtimeKeyGet: string | undefined = undefined;
+    let subscribeFn: SubscribeFn;
+    const subscribeFnKey$ = observable('');
 
     const fieldCreatedAt: KeelKey = 'createdAt';
     const fieldUpdatedAt: KeelKey = 'updatedAt';
@@ -348,9 +350,10 @@ export function syncedKeel<
               const params: KeelListParams = { where, first };
 
               // TODO: Error?
-              const { results, subscribe } = await getAllPages(listParam, params);
-              if (!realtimeKeyList) {
-                  realtimeKeyList = subscribe?.({ refresh });
+              const { results, subscribe, subscribeKey } = await getAllPages(listParam, params);
+              if (subscribe) {
+                  subscribeFn = () => subscribe({ refresh });
+                  subscribeFnKey$.set(subscribeKey);
               }
 
               return results;
@@ -361,9 +364,10 @@ export function syncedKeel<
         ? async (getParams: SyncedGetParams) => {
               const { refresh } = getParams;
               //   @ts-expect-error TODOKEEL
-              const { data, error, subscribe } = await getParam({ refresh });
-              if (!realtimeKeyGet) {
-                  realtimeKeyGet = subscribe?.({ refresh });
+              const { data, error, subscribe, subscribeKey } = await getParam({ refresh });
+              if (subscribe) {
+                  subscribeFn = () => subscribe({ refresh });
+                  subscribeFnKey$.set(subscribeKey);
               }
 
               if (error) {
@@ -379,11 +383,9 @@ export function syncedKeel<
             const updatedAt = saved[fieldUpdatedAt as keyof TLocal] as Date;
 
             if (updatedAt && realtimePlugin) {
-                if (realtimeKeyGet) {
-                    realtimePlugin.setLatestChange(realtimeKeyGet, updatedAt);
-                }
-                if (realtimeKeyList) {
-                    realtimePlugin.setLatestChange(realtimeKeyList, updatedAt);
+                const subscribeFnKey = subscribeFnKey$.get();
+                if (subscribeFnKey) {
+                    realtimePlugin.setLatestChange(subscribeFnKey, updatedAt);
                 }
             }
         }
@@ -463,6 +465,16 @@ export function syncedKeel<
           }
         : undefined;
 
+    const subscribe = (params: SyncedSubscribeParams<TRemote>) => {
+        let unsubscribe: undefined | (() => void) = undefined;
+        when(subscribeFnKey$, () => {
+            unsubscribe = subscribeFn!(params);
+        });
+        return () => {
+            unsubscribe?.();
+        };
+    };
+
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
         as: asType,
@@ -478,8 +490,9 @@ export function syncedKeel<
         fieldDeleted: fieldDeleted || 'deleted',
         changesSince,
         updatePartial: true,
+        subscribe,
         generateId,
         // @ts-expect-error This errors because of the get/list union type
-        get: get as any,
+        get,
     }) as SyncedCrudReturnType<TLocal, TOption>;
 }
