@@ -489,7 +489,7 @@ const proxyHandler: ProxyHandler<any> = {
                     return (...args: any[]) => collectionSetter(node, value, p, ...args);
                 } else if (ArrayLoopers.has(p)) {
                     // Update that this node was accessed for observers
-                    updateTracking(node);
+                    updateTracking(node, true);
 
                     return function (cbOrig: any, thisArg: any) {
                         const isReduce = p === 'reduce';
@@ -1115,8 +1115,8 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
 
                 disposes.forEach((fn) => fn());
                 disposes = [];
-                nodes?.forEach(({ node }) => {
-                    disposes.push(onChange(node, markDirty, { immediate: true }));
+                nodes?.forEach(({ node, track }) => {
+                    disposes.push(onChange(node, markDirty, { immediate: true, trackingType: track }));
                 });
             }
             e.cancel = true;

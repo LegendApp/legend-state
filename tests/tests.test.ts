@@ -1884,6 +1884,18 @@ describe('Array', () => {
         const obs = observable([0, 1, 2]);
         expect(obs.includes(1)).toBe(true);
     });
+    test('Array map is shallow', () => {
+        const obs$ = observable([{ text: '0' }, { text: '1' }]);
+        const comp$ = observable(() => {
+            return obs$.map((el$) => el$.text.peek());
+        });
+
+        expect(comp$.get()).toEqual(['0', '1']);
+
+        obs$[0].text.set('00');
+
+        expect(comp$.get()).toEqual(['0', '1']);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
