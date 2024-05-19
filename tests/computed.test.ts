@@ -309,15 +309,14 @@ describe('Two way Computed', () => {
         expect(obs.test.get()).toEqual(true);
         expect(obs.test2.get()).toEqual(true);
     });
-    test('Bound to two, set', () => {
+    test('Bound to two, set with first param', () => {
         const obs = observable({ test: false, test2: false });
         const comp = observable(
-            linked({
+            linked(() => obs.test.get() && obs.test2.get(), {
                 set: ({ value }) => {
                     obs.test.set(value);
                     obs.test2.set(value);
                 },
-                get: () => obs.test.get() && obs.test2.get(),
             }),
         );
         expect(comp.get()).toEqual(false);
@@ -1596,6 +1595,27 @@ describe('loading', () => {
                 },
                 initial: 'initial',
             }),
+        );
+        const state = syncState(obs);
+        expect(state.isLoaded.get()).toEqual(false);
+        await promiseTimeout(0);
+        expect(state.isLoaded.get()).toEqual(true);
+        expect(obs.get()).toEqual('hi there');
+    });
+    test('isLoaded with activated and second param', async () => {
+        const obs = observable(
+            linked(
+                {
+                    get: () => {
+                        return new Promise<string>((resolve) => {
+                            setTimeout(() => resolve('hi there'), 0);
+                        });
+                    },
+                },
+                {
+                    initial: 'initial',
+                },
+            ),
         );
         const state = syncState(obs);
         expect(state.isLoaded.get()).toEqual(false);

@@ -2,9 +2,12 @@ import { isFunction } from './is';
 import { symbolLinked } from './globals';
 import { Linked, LinkedOptions } from './observableInterfaces';
 
-export function linked<T>(params: LinkedOptions<T> | (() => T)): Linked<T> {
+export function linked<T>(params: LinkedOptions<T> | (() => T), options?: LinkedOptions<T>): Linked<T> {
     if (isFunction(params)) {
         params = { get: params };
+    }
+    if (options) {
+        params = { ...params, ...options };
     }
     const ret = function () {
         return { [symbolLinked]: params };
