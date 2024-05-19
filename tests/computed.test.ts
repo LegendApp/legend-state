@@ -3,6 +3,7 @@ import {
     batch,
     beginBatch,
     endBatch,
+    getNode,
     isObservable,
     linked,
     observable,
@@ -10,6 +11,7 @@ import {
     syncState,
     when,
 } from '../index';
+import { synced } from '../sync';
 import { expectChangeHandler, promiseTimeout } from './testglobals';
 
 let spiedConsole: jest.SpyInstance;
@@ -157,6 +159,7 @@ describe('Computed', () => {
             }
         });
         expect(comp.get()).toEqual(undefined);
+        await when(comp);
         await when(isDone$);
         expect(comp.get()).toEqual('hi there');
     });
@@ -637,6 +640,7 @@ describe('Two way Computed', () => {
         });
 
         // First get activates it
+        observe(() => comp.get());
         expect(comp.get()).toEqual(0);
 
         batch(() => {
@@ -713,6 +717,10 @@ describe('Two way Computed', () => {
         await promiseTimeout(0);
 
         expect(obs.child.get()).toEqual('hi');
+
+        // TODO: Should not have to do this
+        // expect(obs.other.c.get()).toEqual('hi');
+
         expect(obs.get()).toEqual({ child: 'hi', other: { c: 'hi' } });
     });
 });
@@ -929,6 +937,8 @@ describe('Computed inside observable', () => {
         expect(comp.get()).toEqual(undefined);
 
         num$.set(1);
+        // Get it again because it's not observed
+        expect(comp.get()).toEqual(undefined);
 
         await promiseTimeout(10);
 
@@ -2434,5 +2444,202 @@ describe('Activation', () => {
             },
             currentId: 'a',
         });
+    });
+});
+describe('Deactivation', () => {
+    test('Computed does not recompute unless listened or called', () => {
+        let numComputes = 0;
+        const obs$ = observable({ test: 10 });
+        const comp$ = observable(() => {
+            numComputes++;
+            return obs$.test.get();
+        });
+        expect(getNode(comp$).listeners?.size).toEqual(undefined);
+        expect(numComputes).toEqual(0);
+        expect(comp$.get()).toEqual(10);
+        expect(getNode(comp$).listeners?.size).toEqual(undefined);
+        expect(numComputes).toEqual(1);
+        obs$.test.set(20);
+        expect(numComputes).toEqual(1);
+        expect(comp$.get()).toEqual(20);
+        expect(numComputes).toEqual(2);
+    });
+    test('Computed recomputes with onChange', () => {
+        let numComputes = 0;
+        let numChanges = 0;
+        let lastValue = 0;
+        const obs$ = observable({ test: 10 });
+        const obs2$ = observable(() => obs$.test.get());
+        const comp$ = observable(() => {
+            numComputes++;
+            return obs2$.get();
+        });
+        comp$.onChange(
+            ({ value }) => {
+                numChanges++;
+                lastValue = value;
+            },
+            { initial: true },
+        );
+        expect(getNode(comp$).listeners?.size).toEqual(1);
+        expect(numComputes).toEqual(1);
+        expect(numChanges).toEqual(1);
+        expect(lastValue).toEqual(10);
+        obs$.test.set(20);
+        // TODO: Seems like this should be 2? Why is it 3?
+        expect(numComputes).toEqual(3);
+        expect(numChanges).toEqual(2);
+        expect(lastValue).toEqual(20);
+    });
+    test('Computed stops recomputing when unlistened', () => {
+        let numComputes = 0;
+        const obs$ = observable({ test: 10 });
+        const comp$ = observable(() => {
+            numComputes++;
+            return obs$.test.get();
+        });
+        expect(getNode(comp$).numListenersRecursive).toEqual(0);
+        expect(getNode(comp$).listeners?.size).toEqual(undefined);
+
+        const dispose = observe(() => {
+            expect(comp$.get() === obs$.test.peek());
+        });
+        expect(getNode(comp$).listeners?.size).toEqual(1);
+        expect(getNode(comp$).numListenersRecursive).toEqual(1);
+        expect(numComputes).toEqual(1);
+        expect(comp$.get()).toEqual(10);
+        expect(getNode(comp$).listeners?.size).toEqual(1);
+        expect(getNode(comp$).numListenersRecursive).toEqual(1);
+        expect(numComputes).toEqual(1);
+        obs$.test.set(20);
+        expect(numComputes).toEqual(2);
+        expect(comp$.get()).toEqual(20);
+        expect(numComputes).toEqual(2);
+        expect(getNode(comp$).listeners?.size).toEqual(1);
+        dispose();
+        expect(getNode(comp$).listeners?.size).toEqual(0);
+        expect(getNode(comp$).numListenersRecursive).toEqual(0);
+        obs$.test.set(30);
+        expect(numComputes).toEqual(2);
+        obs$.test.set(40);
+        expect(numComputes).toEqual(2);
+        expect(comp$.get()).toEqual(40);
+        expect(numComputes).toEqual(3);
+        expect(getNode(comp$).listeners?.size).toEqual(0);
+        expect(getNode(comp$).numListenersRecursive).toEqual(0);
+    });
+    test('Computed subscribe does not refresh when not observed', async () => {
+        let interval: NodeJS.Timer | undefined = undefined;
+        let numComputes = 0;
+        const comp$ = observable(
+            synced({
+                get: () => {
+                    return numComputes++;
+                },
+                subscribe: ({ refresh }) => {
+                    interval = setInterval(refresh, 1);
+                },
+            }),
+        );
+        expect(numComputes).toEqual(0);
+        comp$.get();
+
+        expect(numComputes).toEqual(1);
+        await promiseTimeout(1);
+        expect(numComputes).toEqual(1);
+        await promiseTimeout(10);
+        expect(numComputes).toEqual(1);
+
+        clearInterval(interval);
+    });
+    test('Computed stops refreshing from subscribe when unlistened', async () => {
+        const num$ = observable(0);
+        let observerDispose: () => void = () => {};
+        let numComputes = 0;
+        let isFirst = false;
+        const comp$ = observable(
+            synced({
+                get: () => numComputes++,
+                subscribe: ({ refresh }) => {
+                    isFirst = true;
+                    observerDispose = observe(num$, () => !isFirst && refresh());
+                    isFirst = false;
+                },
+            }),
+        );
+        expect(numComputes).toEqual(0);
+
+        let dispose = observe(() => comp$.get());
+        expect(numComputes).toEqual(1);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(2);
+        dispose();
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(2);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(2);
+
+        dispose = observe(() => comp$.get());
+        expect(numComputes).toEqual(3);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(4);
+        dispose();
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(4);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(4);
+
+        observerDispose?.();
+    });
+    test('Unsubscribe called when unlistened', async () => {
+        let subscribed = false;
+        const num$ = observable(0);
+        let observerDispose: () => void = () => {};
+        let numComputes = 0;
+        let isFirst = false;
+        const comp$ = observable(
+            synced({
+                get: () => numComputes++,
+                subscribe: ({ refresh }) => {
+                    isFirst = true;
+                    observerDispose = observe(num$, () => !isFirst && refresh());
+                    isFirst = false;
+                    subscribed = true;
+                    return () => {
+                        subscribed = false;
+                        observerDispose();
+                    };
+                },
+            }),
+        );
+        expect(numComputes).toEqual(0);
+        comp$.get();
+        // It subscribes the first time because it doesn't know if it's being tracked
+        expect(subscribed).toEqual(true);
+
+        let dispose = observe(() => comp$.get());
+        expect(numComputes).toEqual(1);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(2);
+        dispose();
+        num$.set((v) => v + 1);
+        // Unsubscribes after the next refresh after disposing observer
+        expect(subscribed).toEqual(false);
+        expect(numComputes).toEqual(2);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(2);
+
+        dispose = observe(() => comp$.get());
+        expect(subscribed).toEqual(true);
+        expect(numComputes).toEqual(3);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(4);
+        dispose();
+        num$.set((v) => v + 1);
+        // Unsubscribes after the next refresh after disposing observer
+        expect(subscribed).toEqual(false);
+        expect(numComputes).toEqual(4);
+        num$.set((v) => v + 1);
+        expect(numComputes).toEqual(4);
     });
 });

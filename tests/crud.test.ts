@@ -1,4 +1,4 @@
-import { observable, when } from '@legendapp/state';
+import { observable, observe, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
@@ -561,6 +561,9 @@ describe('Crud as Object list', () => {
             }),
         );
 
+        // Observe to make it refresh
+        const dispose = observe(() => obs.get());
+
         expect(obs.get()).toEqual(undefined);
 
         await promiseTimeout(0);
@@ -586,6 +589,8 @@ describe('Crud as Object list', () => {
                 test: 'hi2',
             },
         });
+
+        dispose();
     });
     test('as Object set children to null', async () => {
         let deleted = undefined;
@@ -1098,6 +1103,9 @@ describe('Crud as Array', () => {
             }),
         );
 
+        // Observe to make it refresh
+        const dispose = observe(() => obs.get());
+
         expect(obs.get()).toEqual(undefined);
 
         await promiseTimeout(0);
@@ -1123,6 +1131,8 @@ describe('Crud as Array', () => {
                 test: 'hi2',
             },
         ]);
+
+        dispose();
     });
 });
 describe('Crud record transform', () => {
@@ -1668,6 +1678,7 @@ describe('subscribe', () => {
                 },
             }),
         );
+        const dispose = observe(() => obs.get());
         expect(obs.get()).toEqual(undefined);
 
         await promiseTimeout(0);
@@ -1681,6 +1692,8 @@ describe('subscribe', () => {
         set2$.set(true);
         await promiseTimeout(0);
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+
+        dispose();
     });
     test('subscribe with update', async () => {
         const set1$ = observable(false);

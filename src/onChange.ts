@@ -1,5 +1,5 @@
-import { isArray } from './is';
 import { getNodeValue } from './globals';
+import { isArray } from './is';
 import type { ListenerFn, ListenerParams, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -73,6 +73,7 @@ export function onChange(
     node.linkedFromNodes?.forEach((linkedFromNode) => addLinkedNodeListeners(linkedFromNode));
 
     // Go up through the parents and add listeners for linked from nodes
+    node.numListenersRecursive++;
     let parent = node.parent;
     let pathParent: string[] = [node!.key!];
     while (parent) {
@@ -84,6 +85,8 @@ export function onChange(
                 }
             }
         }
+        parent.numListenersRecursive++;
+
         pathParent = [parent!.key!, ...pathParent];
         parent = parent.parent;
     }
@@ -91,6 +94,13 @@ export function onChange(
     return () => {
         listeners!.delete(listener);
         extraDisposes?.forEach((fn) => fn());
+
+        let parent = node;
+        while (parent) {
+            parent.numListenersRecursive--;
+
+            parent = parent.parent!;
+        }
     };
 }
 

@@ -24,6 +24,7 @@ export function createObservable<T>(
     let node: NodeValue = {
         root,
         lazy: true,
+        numListenersRecursive: 0,
     };
 
     if (valueIsFunction) {

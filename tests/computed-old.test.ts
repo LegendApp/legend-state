@@ -88,21 +88,24 @@ describe('Computed', () => {
     });
     test('Computed with promise', async () => {
         const ready$ = observable(false);
-        const obs = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
-        const comp = computed(() => {
-            const value = obs.get();
+        const obs$ = observable(new Promise<string>((resolve) => setTimeout(() => resolve('hi'), 0)));
+        const comp$ = computed(() => {
+            const value = obs$.get();
             if (value) {
                 return new Promise((resolve) => {
                     setTimeout(() => {
                         resolve('hi there');
-                        setTimeout(() => ready$.set(true), 0);
+                        setTimeout(() => {
+                            ready$.set(true);
+                        }, 0);
                     }, 0);
                 });
             }
         });
-        expect(comp.get()).toEqual(undefined);
+        expect(comp$.get()).toEqual(undefined);
+        await when(comp$);
         await when(ready$);
-        expect(comp.get()).toEqual('hi there');
+        expect(comp$.get()).toEqual('hi there');
     });
 });
 describe('Two way Computed', () => {
