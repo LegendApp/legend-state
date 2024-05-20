@@ -310,7 +310,7 @@ export function syncedKeel<
         (SyncedKeelPropsSingle<TRemote, TLocal> | SyncedKeelPropsMany<TRemote, TLocal, TOption, Where>),
 ): SyncedCrudReturnType<TLocal, TOption> {
     const { realtimePlugin } = keelConfig;
-    mergeIntoObservable(props, keelConfig, clone(props));
+    props = { ...keelConfig, ...props } as any;
 
     const {
         get: getParam,
