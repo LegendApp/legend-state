@@ -83,10 +83,12 @@ interface BaseNodeValue {
     lazy?: boolean;
     lazyFn?: Function;
     needsExtract?: boolean;
+    numListenersRecursive: number;
     state?: Observable<ObservableSyncState>;
     activated?: boolean;
     activationState?: SyncedOptions & { onError?: () => void; persistedRetry?: boolean };
     dirtyFn?: () => void;
+    dirtyChildren?: Set<NodeValue>;
 }
 
 export interface RootNodeValue extends BaseNodeValue {

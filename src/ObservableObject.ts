@@ -44,7 +44,6 @@ import type {
 import { Observable, ObservableState } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
-import type {} from './sync/syncTypes';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
 
@@ -908,13 +907,24 @@ export function peek(node: NodeValue) {
     return peekInternal(node, true);
 }
 
+let isFlushing = false;
+
 export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
+    isFlushing = true;
+    if (node.dirtyChildren?.size) {
+        const dirty = Array.from(node.dirtyChildren);
+        node.dirtyChildren.clear();
+        dirty.forEach((node) => node.dirtyFn && peekInternal(node));
+    }
     if (node.dirtyFn) {
         const dirtyFn = node.dirtyFn;
         node.dirtyFn = undefined;
         globalState.dirtyNodes.delete(node);
         dirtyFn();
     }
+
+    isFlushing = false;
+
     let value = getNodeValue(node);
     value = checkLazy(node, value, !!activateRecursive);
 
@@ -987,6 +997,39 @@ function reactivateNode(node: NodeValue, lazyFn: Function) {
     node.lazy = true;
 }
 
+export function isObserved(node: NodeValue) {
+    let parent = node;
+    let hasListeners = node.numListenersRecursive > 0;
+    while (parent && !hasListeners) {
+        if (!!parent.listeners?.size || !!parent.listenersImmediate?.size) {
+            hasListeners = true;
+        }
+        parent = parent.parent!;
+    }
+    return hasListeners;
+}
+
+export function shouldIgnoreUnobserved(node: NodeValue, refreshFn: () => void) {
+    if (!isFlushing) {
+        const hasListeners = isObserved(node);
+        if (!hasListeners) {
+            if (refreshFn) {
+                node.dirtyFn = refreshFn;
+            }
+            let parent = node;
+            while (parent) {
+                if (!parent.dirtyChildren) {
+                    parent.dirtyChildren = new Set();
+                }
+                parent.dirtyChildren.add(node);
+
+                parent = parent.parent!;
+            }
+            return true;
+        }
+    }
+}
+
 function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     // let prevTarget$: Observable<any>;
     // let curTarget$: Observable<any>;
@@ -1010,6 +1053,11 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isFirst) {
                 isFirst = false;
                 setNodeValue(node, undefined);
+            } else if (!isFlushing && refreshFn) {
+                if (shouldIgnoreUnobserved(node, refreshFn)) {
+                    ignoreThisUpdate = true;
+                    return;
+                }
             }
             // Run the function at this node
             let value = activateFn();
@@ -1019,8 +1067,6 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isObservable(value)) {
                 didSetToObs = true;
                 value = setToObservable(node, value);
-                // } else {
-                //     traverseObject(value, node)
             }
 
             if (isFunction(value)) {
@@ -1069,9 +1115,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             return value;
         },
         (e) => {
+            const { value, nodes, refresh } = e;
+            refreshFn = refresh;
             if (!ignoreThisUpdate) {
-                const { value, nodes, refresh } = e;
-                refreshFn = refresh;
                 if (!wasPromise || !globalState.isLoadingRemote) {
                     if (wasPromise) {
                         if (node.activationState) {

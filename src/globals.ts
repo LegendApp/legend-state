@@ -161,6 +161,7 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
             parent: node,
             key,
             lazy: true,
+            numListenersRecursive: 0,
         };
         // Lookup functions are bound with the child key
         if (node.lazyFn?.length === 1) {

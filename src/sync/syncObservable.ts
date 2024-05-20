@@ -24,6 +24,7 @@ import {
     mergeIntoObservable,
     observable,
     setAtPath,
+    shouldIgnoreUnobserved,
     when,
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
@@ -861,7 +862,17 @@ export function syncObservable<T>(
 
     if (syncOptions.get) {
         let isSynced = false;
+        let isSubscribed = false;
+        let unsubscribe: void | (() => void) = undefined;
         sync = async () => {
+            if (isSynced && shouldIgnoreUnobserved(node, sync)) {
+                if (unsubscribe) {
+                    isSubscribed = false;
+                    unsubscribe();
+                    unsubscribe = undefined;
+                }
+                return;
+            }
             const lastSync = metadatas.get(obs$)?.lastSync;
             const pending = localState.pendingChanges;
             const get = localState.pluginSync!.get?.bind(localState.pluginSync);
@@ -961,8 +972,9 @@ export function syncObservable<T>(
                         },
                         onChange,
                     });
-                    if (!isSynced && syncOptions.subscribe) {
-                        syncOptions.subscribe({
+                    if (!isSubscribed && syncOptions.subscribe) {
+                        isSubscribed = true;
+                        unsubscribe = syncOptions.subscribe({
                             node,
                             value$: obs$,
                             update: (params: ObservableOnChangeParams) => {
@@ -1035,7 +1047,11 @@ export function syncObservable<T>(
             sync();
         }
 
-        obs$.onChange(onObsChange.bind(this, obs$ as any, syncState, localState, syncOptions as SyncedOptions<any>));
+        if (syncOptions?.set || syncOptions?.persist) {
+            obs$.onChange(
+                onObsChange.bind(this, obs$ as any, syncState, localState, syncOptions as SyncedOptions<any>),
+            );
+        }
     });
 
     return syncState;

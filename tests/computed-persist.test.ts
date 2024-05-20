@@ -542,7 +542,7 @@ describe('subscribing to computeds', () => {
         expect(obs.get()).toEqual(undefined);
         await promiseTimeout(0);
         expect(obs.get()).toEqual('hi there 0');
-        await when(() => waiter$.get() === 2);
+        await when(() => obs.get() === 'hi there 1');
         expect(obs.get()).toEqual('hi there 1');
     });
     test('subscribe update runs right after get', async () => {
@@ -575,7 +575,7 @@ describe('subscribing to computeds', () => {
         expect(obs.get()).toEqual('from subscribe');
     });
     test('subscribe refresh runs after get', async () => {
-        const numGets$ = observable(0);
+        let numGets = 0;
         const didSubscribe$ = observable(false);
         let refreshNum = 0;
         const obs = observable(
@@ -589,24 +589,22 @@ describe('subscribing to computeds', () => {
                 get: () => {
                     return new Promise<string>((resolve) => {
                         setTimeout(() => {
-                            numGets$.set((v) => v + 1);
+                            numGets++;
                             resolve(refreshNum++ > 0 ? 'after subscribed' : 'before');
                         }, 10);
                     });
                 },
             }),
         );
-        expect(numGets$.peek()).toEqual(0);
+        expect(numGets).toEqual(0);
         expect(didSubscribe$.get()).toEqual(false);
         expect(obs.get()).toEqual(undefined);
         await whenReady(obs);
-        expect(numGets$.peek()).toEqual(1);
+        expect(numGets).toEqual(1);
         expect(didSubscribe$.get()).toEqual(true);
         expect(obs.get()).toEqual('before');
-        await when(() => numGets$.get() === 2);
-        expect(obs.get()).toEqual('before');
-        await promiseTimeout(0);
-        expect(numGets$.peek()).toEqual(2);
+        await when(() => obs.get() === 'after subscribed');
+        expect(numGets).toEqual(2);
         expect(obs.get()).toEqual('after subscribed');
     });
     test('activated with get running multiple times', async () => {
@@ -631,8 +629,7 @@ describe('subscribing to computeds', () => {
         expect(gets$.get()).toEqual(1);
         expect(obs$.get()).toEqual('hi 1');
         refresh$.set((v) => v + 1);
-        await when(() => gets$.get() === 2);
-        await promiseTimeout(0);
+        await when(() => obs$.get() === 'hi 2');
         expect(obs$.get()).toEqual('hi 2');
     });
     test('synced does not set undefined from initial', async () => {

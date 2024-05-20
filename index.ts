@@ -41,6 +41,7 @@ export { observe } from './src/observe';
 export { proxy } from './src/proxy';
 export { trackSelector } from './src/trackSelector';
 export { when, whenReady } from './src/when';
+export { isObserved, shouldIgnoreUnobserved } from './src/ObservableObject';
 
 /** @internal */
 export { beginTracking, endTracking, tracking, updateTracking } from './src/tracking';
