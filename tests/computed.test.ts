@@ -2642,4 +2642,41 @@ describe('Deactivation', () => {
         num$.set((v) => v + 1);
         expect(numComputes).toEqual(4);
     });
+    test('unobserve lookup', () => {
+        const count$ = observable(0);
+
+        let numComputes = 0;
+
+        const obs$ = observable((id: string) => {
+            numComputes++;
+            const count = count$.get();
+            return id + count;
+        });
+
+        const disposeA = observe(() => {
+            obs$['a'].get();
+        });
+
+        const disposeB = observe(() => {
+            obs$['b'].get();
+        });
+
+        expect(numComputes).toBe(2);
+
+        count$.set(1);
+
+        expect(numComputes).toBe(4);
+
+        disposeA();
+
+        count$.set(2);
+
+        expect(numComputes).toBe(5); // fails
+
+        disposeB();
+
+        count$.set(3);
+
+        expect(numComputes).toBe(5);
+    });
 });

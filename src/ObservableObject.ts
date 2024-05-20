@@ -410,7 +410,7 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
-        let value = peekInternal(node, /*activateRecursive*/ p === 'get');
+        let value = peekInternal(node, /*activateRecursive*/ p === 'get' || p === 'peek');
 
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
@@ -911,7 +911,8 @@ let isFlushing = false;
 
 export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
     isFlushing = true;
-    if (node.dirtyChildren?.size) {
+    // Need to refresh all dirty children when getting
+    if (activateRecursive && node.dirtyChildren?.size) {
         const dirty = Array.from(node.dirtyChildren);
         node.dirtyChildren.clear();
         dirty.forEach((node) => node.dirtyFn && peekInternal(node));
