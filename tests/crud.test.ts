@@ -1667,6 +1667,7 @@ describe('subscribe', () => {
         let retValue = 1;
         const set1$ = observable(false);
         const set2$ = observable(false);
+
         const obs = observable(
             syncedCrud({
                 list: () => [{ id: retValue++ }],

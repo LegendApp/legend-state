@@ -42,18 +42,18 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
     generateId?: () => string | number;
 }
 
-type InitialValue<T, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
-    ? Map<string, T>
+type InitialValue<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
+    ? Map<string | number, TLocal>
     : TAsOption extends 'object'
-    ? Record<string, T>
+    ? Record<string | number, TLocal>
     : TAsOption extends 'value'
-    ? T
-    : T[];
+    ? TLocal
+    : TLocal[];
 
 export type SyncedCrudReturnType<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
-    ? Map<string, TLocal>
+    ? Map<TLocal extends { id: number } ? number : string, TLocal>
     : TAsOption extends 'object'
-    ? Record<string, TLocal>
+    ? Record<TLocal extends { id: number } ? number : string, TLocal>
     : TAsOption extends 'value'
     ? TLocal
     : TLocal[];

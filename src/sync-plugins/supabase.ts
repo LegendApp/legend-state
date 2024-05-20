@@ -40,13 +40,16 @@ export type SupabaseRowOf<
     Collection extends SupabaseCollectionOf<Client>,
 > = SupabaseTableOf<Client>[Collection]['Row'];
 
-export type SyncedSupabaseConfig<TRemote extends { id: string }, TLocal> = Omit<
+export type SyncedSupabaseConfig<TRemote extends { id: string | number }, TLocal> = Omit<
     SyncedCrudPropsBase<TRemote, TLocal>,
     'create' | 'update' | 'delete'
 >;
 
 export interface SyncedSupabaseConfiguration
-    extends Omit<SyncedSupabaseConfig<{ id: string }, { id: string }>, 'persist' | keyof SyncedOptions> {
+    extends Omit<
+        SyncedSupabaseConfig<{ id: string | number }, { id: string | number }>,
+        'persist' | keyof SyncedOptions
+    > {
     persist?: SyncedOptionsGlobal;
     enabled?: Observable<boolean>;
     as?: Exclude<CrudAsOption, 'value'>;
