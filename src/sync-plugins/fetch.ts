@@ -1,14 +1,22 @@
-import { Selector, computeSelector } from '@legendapp/state';
+import { Selector, computeSelector, getNodeValue } from '@legendapp/state';
 import { Synced, SyncedOptions, SyncedSetParams, synced } from '@legendapp/state/sync';
 
-export interface SyncedFetchProps<TRemote, TLocal> extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set'> {
+export interface SyncedFetchOnSavedParams<TRemote, TLocal = TRemote> {
+    saved: TLocal;
+    input: TRemote;
+    currentValue: TLocal;
+    props: SyncedFetchProps<TRemote, TLocal>;
+}
+
+export interface SyncedFetchProps<TRemote, TLocal = TRemote>
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set'> {
     get: Selector<string>;
     set?: Selector<string>;
     getInit?: RequestInit;
     setInit?: RequestInit;
     valueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
     onSavedValueType?: 'arrayBuffer' | 'blob' | 'formData' | 'json' | 'text';
-    onSaved?(saved: TLocal, input: TRemote): Partial<TLocal> | void;
+    onSaved?: (params: SyncedFetchOnSavedParams<TRemote, TLocal>) => Partial<TLocal> | void;
 }
 
 export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<TRemote, TLocal>): Synced<TLocal> {
@@ -42,7 +50,7 @@ export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<T
 
     let set: ((params: SyncedSetParams<TRemote>) => void | Promise<any>) | undefined = undefined;
     if (setParam) {
-        set = async ({ value, update }: SyncedSetParams<any>) => {
+        set = async ({ value, node, update }: SyncedSetParams<any>) => {
             const url = computeSelector(setParam);
 
             const response = await fetch(
@@ -55,7 +63,8 @@ export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<T
             if (onSaved) {
                 const responseValue = await response[onSavedValueType || valueType || 'json']();
                 const transformed = transform?.load ? await transform.load(responseValue, 'set') : responseValue;
-                const valueSave = onSaved(transformed, value);
+                const currentValue = getNodeValue(node);
+                const valueSave = onSaved({ input: value, saved: transformed, currentValue, props });
                 update({
                     value: valueSave,
                 });
