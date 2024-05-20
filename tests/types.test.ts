@@ -1,5 +1,5 @@
 import { expectTypeOf } from 'expect-type';
-import { Observable, ObservableBoolean, ObservableParam } from '../src/observableTypes';
+import { Observable, ObservableBoolean, ObservableParam, ObservablePrimitive } from '../src/observableTypes';
 import { observable } from '../src/observable';
 
 describe('observable', () => {
@@ -457,5 +457,29 @@ describe('with function or observable child', () => {
         expectTypeOf<Type['fn']['get']>().returns.toMatchTypeOf<string>();
         expectTypeOf<ReturnType<Type['get']>['fn']>().toMatchTypeOf<string>();
         expectTypeOf<ReturnType<Type['get']>['fn']>().toMatchTypeOf<() => string>();
+    });
+});
+
+describe('lookup table', () => {
+    it('should type lookup table as Record', () => {
+        const num$ = observable(0);
+
+        const obs$ = observable({
+            computed: () => {
+                return num$;
+            },
+            lookup: (x: string) => {
+                return num$.get() + x;
+            },
+        });
+
+        const gotten = obs$.get();
+
+        expectTypeOf<(typeof obs$)['computed']['get']>().returns.toMatchTypeOf<number>();
+        expectTypeOf<(typeof obs$)['lookup']['get']>().returns.toMatchTypeOf<Record<string, string>>();
+        expectTypeOf<(typeof gotten)['computed']>().toMatchTypeOf<number>();
+        expectTypeOf<(typeof gotten)['computed']>().toMatchTypeOf<() => ObservablePrimitive<number>>();
+        expectTypeOf<(typeof gotten)['lookup']>().toMatchTypeOf<Record<string, string>>();
+        expectTypeOf<(typeof gotten)['lookup']>().toMatchTypeOf<(key: string) => string>();
     });
 });
