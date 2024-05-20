@@ -203,28 +203,27 @@ export function configureSyncedKeel(config: SyncedKeelConfiguration) {
             modifiedClients.add(client);
             const queries = client.api.queries;
             Object.keys(queries).forEach((key) => {
-                const oldFn = queries[key];
-                queries[key] = (i) => {
-                    const realtimeChild = Object.values(i.where)
-                        .filter((value) => value && typeof value !== 'object')
-                        .join('/');
-                    const realtimeKey = `${key}/${realtimeChild}`;
-                    const subscribe =
-                        key.startsWith('list') &&
-                        i.where &&
-                        (({ refresh }: SyncedSubscribeParams) => {
-                            if (realtimeChild) {
+                if (key.startsWith('list')) {
+                    const oldFn = queries[key];
+                    queries[key] = (i) => {
+                        const realtimeKey = [key, ...Object.values(i.where || {})]
+                            .filter((value) => value && typeof value !== 'object')
+                            .join('/');
+
+                        const subscribe = ({ refresh }: SyncedSubscribeParams) => {
+                            if (realtimeKey) {
                                 return realtimePlugin.subscribe(realtimeKey, refresh);
                             }
+                        };
+                        return oldFn(i).then((ret) => {
+                            if (subscribe) {
+                                ret.subscribe = subscribe;
+                                ret.subscribeKey = realtimeKey;
+                            }
+                            return ret;
                         });
-                    return oldFn(i).then((ret) => {
-                        if (subscribe) {
-                            ret.subscribe = subscribe;
-                            ret.subscribeKey = realtimeKey;
-                        }
-                        return ret;
-                    });
-                };
+                    };
+                }
             });
         }
     }
