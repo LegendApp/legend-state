@@ -482,4 +482,25 @@ describe('lookup table', () => {
         expectTypeOf<(typeof gotten)['lookup']>().toMatchTypeOf<Record<string, string>>();
         expectTypeOf<(typeof gotten)['lookup']>().toMatchTypeOf<(key: string) => string>();
     });
+    it('should type lookup table as Record', () => {
+        const num$ = observable<Record<string, string>>({ '0': 'hi' });
+
+        const obs$ = observable({
+            computed: () => {
+                return num$;
+            },
+            lookup: (x: string) => {
+                return num$[x];
+            },
+        });
+
+        const gotten = obs$.get();
+
+        expectTypeOf<(typeof obs$)['computed']['get']>().returns.toMatchTypeOf<Record<string, string>>();
+        expectTypeOf<(typeof obs$)['lookup']['get']>().returns.toMatchTypeOf<Record<string, string>>();
+        expectTypeOf<(typeof gotten)['computed']>().toMatchTypeOf<Record<string, string>>();
+        expectTypeOf<(typeof gotten)['computed']>().toMatchTypeOf<() => ObservablePrimitive<Record<string, string>>>();
+        expectTypeOf<(typeof gotten)['lookup']>().toMatchTypeOf<Record<string, string>>();
+        expectTypeOf<(typeof gotten)['lookup']>().toMatchTypeOf<(key: string) => Observable<string>>();
+    });
 });
