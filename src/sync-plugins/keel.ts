@@ -189,6 +189,9 @@ function convertObjectToCreate<TRemote>(item: TRemote): TRemote {
     return cloned as unknown as TRemote;
 }
 
+export function getSyncedKeelConfiguration() {
+    return keelConfig;
+}
 export function configureSyncedKeel(config: SyncedKeelConfiguration) {
     const { enabled, realtimePlugin, client, ...rest } = config;
     Object.assign(keelConfig, removeNullUndefined(rest));

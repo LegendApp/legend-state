@@ -81,6 +81,9 @@ let channelNum = 1;
 const supabaseConfig: SyncedSupabaseConfiguration = {};
 const isEnabled$ = observable(true);
 
+export function getSyncedSupabaseConfiguration() {
+    return supabaseConfig;
+}
 export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
     const { enabled, ...rest } = config;
     if (enabled !== undefined) {
