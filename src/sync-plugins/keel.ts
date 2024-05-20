@@ -1,12 +1,4 @@
-import {
-    computeSelector,
-    observable,
-    when,
-    internal,
-    isFunction,
-    mergeIntoObservable,
-    isEmpty,
-} from '@legendapp/state';
+import { computeSelector, internal, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
     SyncedOptions,
     removeNullUndefined,
