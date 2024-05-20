@@ -30,6 +30,7 @@ export default Object.keys(pkg.exports)
             '@legendapp/state/persist',
             '@legendapp/state/sync',
             '@legendapp/state/sync-plugins/crud',
+            '@legendapp/state/sync-plugins/tanstack-query',
             '@legendapp/state/react',
             '@legendapp/state/helpers/fetch',
             'firebase/auth',

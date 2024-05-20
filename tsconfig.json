@@ -70,6 +70,9 @@
             "@legendapp/state/sync-plugins/crud": [
                 "src/sync-plugins/crud"
             ],
+            "@legendapp/state/sync-plugins/tanstack-query": [
+                "src/sync-plugins/tanstack-query"
+            ],
         },
         "resolveJsonModule": true,
         "noEmit": true
