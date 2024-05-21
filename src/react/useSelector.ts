@@ -116,7 +116,7 @@ function createSelectorFunctions<T>(
 export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
     // Short-circuit to skip creating the hook if selector is an observable
     // and running in an observer. If selector is a function it needs to run in its own context.
-    if (reactGlobals.inObserver && isObservable(selector)) {
+    if (reactGlobals.inObserver && isObservable(selector) && !options?.suspense) {
         return computeSelector(selector);
     }
 
