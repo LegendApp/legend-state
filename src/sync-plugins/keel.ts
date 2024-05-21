@@ -1,3 +1,4 @@
+import ksuid from 'ksuid';
 import { computeSelector, internal, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
     SyncedOptions,
@@ -47,6 +48,10 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 
 type SubscribeFn = (params: { refresh: () => void }) => () => void;
 
+export function generateKeelId() {
+    return ksuid.randomSync().string;
+}
+
 export interface KeelGetParams {}
 
 export interface KeelListParams<Where = {}> {
@@ -73,6 +78,7 @@ export interface SyncedKeelConfiguration
         | 'updatePartial'
         | 'fieldCreatedAt'
         | 'fieldUpdatedAt'
+        | 'generateId'
     > {
     client: {
         auth: { refresh: () => Promise<boolean>; isAuthenticated: () => Promise<boolean> };
@@ -316,15 +322,12 @@ export function syncedKeel<
         where: whereParam,
         waitFor,
         fieldDeleted,
-        generateId: generateIdParam,
         ...rest
     } = props;
 
     const { changesSince } = props;
 
     const asType: TOption = getParam ? ('value' as TOption) : props.as!;
-
-    const generateId = generateIdParam || keelConfig.generateId;
 
     let subscribeFn: SubscribeFn;
     const subscribeFnKey$ = observable('');
@@ -485,7 +488,7 @@ export function syncedKeel<
         changesSince,
         updatePartial: true,
         subscribe,
-        generateId,
+        generateId: generateKeelId,
         // @ts-expect-error This errors because of the get/list union type
         get,
     }) as SyncedCrudReturnType<TLocal, TOption>;
