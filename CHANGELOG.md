@@ -1,3 +1,44 @@
+## 2.1.14
+- Fix: Improved and better tested babel plugin - By @hzoo https://github.com/LegendApp/legend-state/pull/270
+- Fix: useSelector with an observable was ignoring suspense option - By @lishine https://github.com/LegendApp/legend-state/pull/291
+- Feat: An undoRedo helper to add undo/redo functionality to an observable
+
+## 2.1.13
+- Fix: Not persisting Map/Set correctly if at root of observable
+
+## 2.1.12
+- Fix: useSelector only short-circuits creating a hook if parameter is an observable, fixing useSelector re-rendering when its return value hadn't changed
+
+## 2.1.11
+- Fix: Recent useSelector optimizations causing some issuesin dev strict mode
+
+## 2.1.10
+- Fix: Types of observer
+
+## 2.1.9
+- Fix: useSelector was creating too many listeners
+
+## 2.1.8
+- Fix: array includes was not working correctly
+
+## 2.1.7
+- Fix: typescript errors when external imports are not available
+
+## 2.1.6
+- Fix: changed type imports from external packages to fail gracefully if they don't exist in node
+
+## 2.1.5
+- Fix: Dates were being considered as objects and were sometimes not being considered changed
+
+## 2.1.4
+- Fix: observe not running reaction if selector is an object or array
+
+## 2.1.3
+- Fix: An occasional error in sync get function
+
+## 2.1.2
+- Fix: Local cache was not saving Map/Set correctly
+
 ## 2.1.1
 - Feat: usePauseProvider to pause/resume all updates under a context
 
