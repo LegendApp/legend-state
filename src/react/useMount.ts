@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { isPromise } from 'src/is';
+import { isPromise } from '../is';
 import { useEffectOnce } from './useEffectOnce';
 
 export function useMount(fn: () => (void | (() => void)) | Promise<void>) {
