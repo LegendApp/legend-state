@@ -1749,6 +1749,26 @@ describe('Array', () => {
         });
         expect(obs.test.find((a) => a.text.peek() === 'hi')).toBe(undefined);
     });
+    test('Array.find tracking is shallow', () => {
+        const state = observable({
+            messages: [{ value: 'hello' }],
+        });
+
+        let numObserves = 0;
+
+        observe(() => {
+            numObserves++;
+            state.messages.find((message) => message.value.peek() === '');
+        });
+
+        expect(numObserves).toEqual(1);
+        state.messages.push({ value: '' });
+        expect(numObserves).toEqual(2);
+        state.messages[0].value.set('');
+        expect(numObserves).toEqual(2);
+        state.messages[0].value.set('hi');
+        expect(numObserves).toEqual(2);
+    });
     test('Notifies on second element', () => {
         const obs = observable({
             test: [{ text: 1 }, { text: 2 }],
