@@ -1,3 +1,8 @@
+## 2.1.14
+- Fix: Improved and better tested babel plugin - By @hzoo https://github.com/LegendApp/legend-state/pull/270
+- Fix: useSelector with an observable was ignoring suspense option - By @lishine https://github.com/LegendApp/legend-state/pull/291
+- Feat: An undoRedo helper to add undo/redo functionality to an observable
+
 ## 2.1.13
 - Fix: Not persisting Map/Set correctly if at root of observable
 
