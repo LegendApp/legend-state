@@ -1580,6 +1580,14 @@ describe('lookup', () => {
             },
         ]);
     });
+    test('get root of lookup is just function until a child is activated', async () => {
+        const fn = (key: string) => 'proxied_' + key;
+        const obs = observable(fn);
+        expect(obs.get()).toEqual(fn);
+
+        expect(obs.test.get()).toEqual('proxied_test');
+        expect(obs.get()).toEqual({ test: 'proxied_test' });
+    });
 });
 
 describe('loading', () => {
