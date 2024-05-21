@@ -1,3 +1,18 @@
+## 3.0.0-alpha
+See https://www.legendapp.com/open-source/state/v3/other/migrating/ for details
+- Types: Rewritten from scratch to be much better
+- Feat: computed/proxy are now just functions
+- Feat: New synced with much improved sync/persist functionality
+- Feat: New sync plugins for Keel, Supabase, TanStack Query, fetch
+- Removed: Old persist system, persistObservable, usePersistedObservable, etc...
+- Change: useObservable with a function parameter is now reactive like useComputed was. So use peek() when accessing observables inside it if you want it to be just an initial value and not be reactive.
+- Change: Computeds now only re-compute themselves when observed. This may cause some migration issues if your computeds had side effects, as they will not re-run when dependencies change unless being observed.
+- Removed:  lockObservable - With the new method of computeds it's not possible to modify the types to be readonly, so we removed this feature.
+- Change: set and toggle return void: They had previously returned the observable in order to allow chaining, but it caused unintended side effects, so they now return void.
+- Change: `onSet` was renamed to `onAfterSet` for clarity
+- Removed: The concept of "after batch" - it was generally unreliable because batches can run recursively
+- Renamed: `enableDirectAccess()` to `enable$GetSet()` and `enableDirectPeek()` to `enable_PeekAssign()` for clarity
+
 ## 2.1.14
 - Fix: Improved and better tested babel plugin - By @hzoo https://github.com/LegendApp/legend-state/pull/270
 - Fix: useSelector with an observable was ignoring suspense option - By @lishine https://github.com/LegendApp/legend-state/pull/291
