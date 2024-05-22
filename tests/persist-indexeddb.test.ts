@@ -6,6 +6,7 @@ import { ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureObservableSync } from '../src/sync/configureObservableSync';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import { when } from '../src/when';
+import { promiseTimeout } from './testglobals';
 
 const TableNameBase = 'jestlocal';
 const tableNames = Array.from({ length: 100 }, (_, i) => TableNameBase + i);
@@ -176,5 +177,44 @@ describe('Persist IDB', () => {
         await when(state2.isPersistLoaded);
 
         expect(obs2.get()).toEqual({ test2: { id: 'test2', text: 'hi' } });
+    });
+    test('Persist IDB with itemID and primitive', async () => {
+        const persistName = getLocalName();
+        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+
+        const obs = observable('text');
+
+        const state = syncObservable(obs, {
+            persist: {
+                name: persistName,
+                indexedDB: {
+                    itemID: 'testItemId',
+                },
+            },
+        });
+
+        await when(state.isPersistLoaded);
+
+        obs.set('hi');
+
+        await promiseTimeout(0);
+
+        expectIDB(persistName, [{ id: 'testItemId', __legend_primitive: 'hi' }]);
+
+        await persist.initialize!(persistOptions);
+
+        const obs2 = observable<Record<string, any>>({});
+        const state2 = syncObservable(obs2, {
+            persist: {
+                name: persistName,
+                indexedDB: {
+                    itemID: 'testItemId',
+                },
+            },
+        });
+
+        await when(state2.isPersistLoaded);
+
+        expect(obs2.get()).toEqual('hi');
     });
 });

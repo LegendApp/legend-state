@@ -8,6 +8,7 @@ import type {
 import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 
 const MetadataSuffix = '__legend_metadata';
+const PrimitiveName = '__legend_primitive';
 
 function requestToPromise(request: IDBRequest) {
     return new Promise<void>((resolve) => (request.onsuccess = () => resolve()));
@@ -342,10 +343,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
                             val.id = id;
                         }
 
+                        const id = val.id;
+
+                        const outValue = val[PrimitiveName] !== undefined ? val[PrimitiveName] : val;
+
                         if (!this.tableData[tableName]) {
                             this.tableData[tableName] = {};
                         }
-                        this.tableData[tableName][val.id] = val;
+                        this.tableData[tableName][id] = outValue;
                     }
                 }
                 resolve();
@@ -363,7 +368,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
             }
             return store.delete(key);
         } else {
-            if (isPrimitive(value)) return;
+            if (isPrimitive(value)) {
+                value = { [PrimitiveName]: value };
+            }
 
             if (value.id === undefined) {
                 // If value does not have its own ID, assign it the key from the Record
