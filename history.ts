@@ -1,1 +1,1 @@
-export * from './src/history/trackHistory';
+export * from './src/helpers/trackHistory';

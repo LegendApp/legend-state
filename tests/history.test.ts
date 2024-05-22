@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from '../src/batching';
-import { trackHistory } from '../src/history/trackHistory';
-import { undoRedo } from '../src/history/undoRedo';
+import { trackHistory } from '../src/helpers/trackHistory';
+import { undoRedo } from '../src/helpers/undoRedo';
 import { observable } from '../src/observable';
 import { promiseTimeout } from './testglobals';
 
