@@ -5,6 +5,7 @@ import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
 import { synced } from '../sync';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import type { Observable } from '../src/observableTypes';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -69,6 +70,17 @@ describe('Creating', () => {
         await when(state.isLoaded);
         expect(lastSet).toEqual(undefined);
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
+    });
+    test('Throws error if observable is undefined', async () => {
+        const nodes = undefined as unknown as Observable<Record<string, any>>;
+        expect(() => {
+            syncObservable(nodes, {
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: getPersistName(),
+                },
+            });
+        }).toThrow('[legend-state] syncObservable called with undefined observable');
     });
 });
 

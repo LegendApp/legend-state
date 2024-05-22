@@ -835,6 +835,9 @@ export function syncObservable<T>(
     }
     const node = getNode(obs$);
 
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && (!obs$ || !node)) {
+        throw new Error('[legend-state] syncObservable called with undefined observable');
+    }
     // Merge remote sync options with global options
     syncOptions = {
         syncMode: 'auto',
