@@ -630,6 +630,39 @@ describe('For', () => {
         expect(items[0].id).toEqual('A');
         expect(items[1].id).toEqual('B');
     });
+    test('For with object and deleted', () => {
+        const obs = observable({
+            items: {
+                m2: { label: 'B', id: 'B' },
+                m1: { label: 'A', id: 'A' },
+            },
+        });
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
+            return createElement('li', { id: data.label }, data.label);
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: obs.items, item: Item }),
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+
+        act(() => {
+            obs.items.m2.delete();
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(1);
+        expect(items[0].id).toEqual('A');
+    });
 });
 describe('Show', () => {
     test('Show works correctly', async () => {
