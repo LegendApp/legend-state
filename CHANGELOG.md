@@ -1,4 +1,8 @@
-## 3.0.0-alpha
+## 3.0.0-alpha.1
+- Fix: The new undoRedo helper was not exported correctly, moved it to `/helpers`
+- Fix: IndexedDB plugin was not saving primitives properly when combined with `itemID` option
+
+## 3.0.0-alpha.0
 See https://www.legendapp.com/open-source/state/v3/other/migrating/ for details
 - Types: Rewritten from scratch to be much better
 - Feat: computed/proxy are now just functions
