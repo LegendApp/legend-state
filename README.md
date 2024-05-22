@@ -42,7 +42,7 @@ Legend-State beats every other state library on just about every metric and is s
     <img src="https://www.legendapp.com/img/dev/state/times.png" />
 </p>
 
-See [Fast 🔥](https://www.legendapp.com/open-source/state/fast) for more details of why Legend-State is so fast.
+See [Fast 🔥](https://www.legendapp.com/open-source/state/v3/intro/fast/) for more details of why Legend-State is so fast.
 
 ### 3. 🔥 Fine-grained reactivity for minimal renders
 
@@ -116,7 +116,7 @@ me$.name.set('Annyong')
 - ✨ Persistence plugins for automatically saving/loading from storage
 - ✨ State can be global or within components
 
-[Read more](https://www.legendapp.com/open-source/state/why/) about why Legend-State might be right for you.
+[Read more](https://www.legendapp.com/open-source/state/v3/intro/why/) about why Legend-State might be right for you.
 
 ## Documentation
 
