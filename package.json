@@ -67,11 +67,6 @@
       "require": "./trace.js",
       "types": "./trace.d.ts"
     },
-    "./history": {
-      "import": "./history.mjs",
-      "require": "./history.js",
-      "types": "./history.d.ts"
-    },
     "./config/*": {
       "import": "./config/*.mjs",
       "require": "./config/*.js",
