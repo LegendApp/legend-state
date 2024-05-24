@@ -67,6 +67,11 @@
       "require": "./trace.js",
       "types": "./trace.d.ts"
     },
+    "./as/*": {
+      "import": "./as/*.mjs",
+      "require": "./as/*.js",
+      "types": "./as/*.d.ts"
+    },
     "./config/*": {
       "import": "./config/*.mjs",
       "require": "./config/*.js",
