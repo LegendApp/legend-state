@@ -965,6 +965,7 @@ export function syncObservable<T>(
                         unsubscribe = syncOptions.subscribe({
                             node,
                             value$: obs$,
+                            lastSync,
                             update: (params: ObservableOnChangeParams) => {
                                 when(node.state!.isLoaded, () => {
                                     params.mode ||= syncOptions.mode || 'merge';

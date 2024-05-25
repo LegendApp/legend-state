@@ -54,6 +54,7 @@ export interface SyncedSetParams<T> extends SetParams<T> {
 export interface SyncedSubscribeParams<T = any> {
     node: NodeValue;
     value$: ObservableParam<T>;
+    lastSync: number | undefined;
     update: UpdateFn;
     refresh: () => void;
 }
