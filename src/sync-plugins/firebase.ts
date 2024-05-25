@@ -1,5 +1,5 @@
 import { Observable, UpdateFn, isNullOrUndefined, isNumber, observable, symbolDelete, when } from '@legendapp/state';
-import { SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
+import { FieldTransforms, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
 import {
     CrudAsOption,
     SyncedCrudPropsBase,
@@ -26,6 +26,7 @@ import {
     serverTimestamp,
     startAt,
 } from 'firebase/database';
+import { invertFieldMap, transformObjectFields } from '../sync/transformObjectFields';
 
 export interface SyncedFirebaseProps<
     TRemote extends { id: string | number },
@@ -36,6 +37,7 @@ export interface SyncedFirebaseProps<
     refPath: (uid: string | undefined) => string;
     query?: (ref: DatabaseReference) => DatabaseReference | Query;
     fieldId?: string;
+    fieldTransforms?: FieldTransforms<TRemote>;
     // Also in global config
     realtime?: boolean;
     requireAuth?: boolean;
@@ -116,14 +118,24 @@ const fns: FirebaseFns = {
 export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote, TAs extends CrudAsOption = 'object'>(
     props: SyncedFirebaseProps<TRemote, TLocal, TAs>,
 ): SyncedCrudReturnType<TLocal, TAs> {
-    // TODO Field transforms
     props = { ...firebaseConfig, ...props } as any;
     const saving$ = observable<Record<string, boolean>>({});
     const pendingOutgoing$ = observable<Record<string, any>>({});
     const pendingIncoming$ = observable<Record<string, any>>({});
     let updateFn: UpdateFn | undefined = undefined;
+    let didList = false;
 
-    const { refPath, query, as: asType, fieldId: fieldIdProp, realtime, requireAuth, ...rest } = props;
+    const {
+        refPath,
+        query,
+        as: asType,
+        fieldId: fieldIdProp,
+        realtime,
+        requireAuth,
+        transform: transformProp,
+        fieldTransforms,
+        ...rest
+    } = props;
     const { fieldCreatedAt, fieldUpdatedAt } = props;
     const fieldId = fieldIdProp || 'id';
 
@@ -164,6 +176,7 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
                                       return value;
                                   });
 
+                        didList = true;
                         resolve(values);
                     }
                 },
@@ -176,6 +189,8 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
         ? ({ lastSync, update }: SyncedSubscribeParams<TRemote>) => {
               const ref = computeRef(lastSync!);
               const onChildChange = (snap: DataSnapshot) => {
+                  if (!didList) return;
+
                   const key = snap.key!;
                   const val = snap.val();
                   if (!saving$[key].get()) {
@@ -189,6 +204,8 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
                   }
               };
               const onChildDelete = (snap: DataSnapshot) => {
+                  if (!didList) return;
+
                   const key = snap.key!;
                   update({
                       value: { [key]: symbolDelete },
@@ -276,11 +293,26 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
     if (requireAuth) {
         if (fns.isInitialized()) {
             isAuthedIfRequired$ = observable(false);
-            // const unsubscribe =
+            // TODO if needed: const unsubscribe =
             fns.onAuthStateChanged((user) => {
                 isAuthedIfRequired$!.set(!!user);
             });
         }
+    }
+
+    let transform = transformProp;
+    if (fieldTransforms) {
+        const inverted = invertFieldMap(fieldTransforms);
+        transform = {
+            load(value, method) {
+                const fieldTransformed = transformObjectFields(value, inverted);
+                return transformProp?.load ? transformProp.load(fieldTransformed, method) : fieldTransformed;
+            },
+            save(value) {
+                const transformed = transformProp?.save ? transformProp.save(value) : value;
+                return transformObjectFields(transformed as any, fieldTransforms);
+            },
+        };
     }
 
     return syncedCrud<TRemote, TLocal, TAs>({
@@ -292,5 +324,6 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
         delete: deleteFn,
         waitFor: isAuthedIfRequired$,
         generateId: fns.generateId,
+        transform,
     }) as SyncedCrudReturnType<TLocal, TAs>;
 }
