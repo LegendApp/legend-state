@@ -7,32 +7,33 @@ export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 
 export type CrudResult<T> = T;
 
-export interface SyncedCrudPropsSingle<TRemote, TLocal> {
+export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
     get?: (params: SyncedGetParams) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
     initial?: InitialValue<TLocal, 'value'>;
     as?: never | 'value';
 }
-export interface SyncedCrudPropsMany<TRemote, TLocal, TAsOption extends CrudAsOption> {
+export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
     list?: (params: SyncedGetParams) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
 }
-export interface SyncedCrudOnSavedParams<TRemote extends { id: string | number }, TLocal> {
+export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     saved: TLocal;
     input: TRemote;
     currentValue: TLocal;
     isCreate: boolean;
     props: SyncedCrudPropsBase<TRemote, TLocal>;
 }
-export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TLocal = TRemote>
+export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
     update?(
         input: Partial<TRemote>,
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
-    delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
+    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
+    fieldId?: string;
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     fieldDeleted?: string;
@@ -70,21 +71,13 @@ function ensureId(obj: { id: string | number }, generateId: () => string | numbe
     return obj.id;
 }
 
-export function syncedCrud<TRemote extends { id: string | number }, TLocal = TRemote>(
+export function syncedCrud<TRemote extends object, TLocal = TRemote>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'value'>;
-export function syncedCrud<
-    TRemote extends { id: string | number },
-    TLocal = TRemote,
-    TAsOption extends CrudAsOption = 'object',
->(
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>,
 ): SyncedCrudReturnType<TLocal, Exclude<TAsOption, 'value'>>;
-export function syncedCrud<
-    TRemote extends { id: string | number },
-    TLocal = TRemote,
-    TAsOption extends CrudAsOption = 'object',
->(
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
     props: SyncedCrudPropsBase<TRemote, TLocal> &
         (SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>),
 ): SyncedCrudReturnType<TLocal, TAsOption> {
@@ -95,6 +88,7 @@ export function syncedCrud<
         update: updateFn,
         delete: deleteFn,
         transform,
+        fieldId: fieldIdProp,
         fieldCreatedAt,
         fieldUpdatedAt,
         fieldDeleted,
@@ -105,6 +99,8 @@ export function syncedCrud<
         generateId,
         ...rest
     } = props;
+
+    const fieldId = fieldIdProp || 'id';
 
     let asType = props.as as TAsOption;
 
@@ -190,7 +186,7 @@ export function syncedCrud<
                   const { value, changes, update, retryAsCreate, valuePrevious, node } = params;
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
-                  const deletes = new Set<string>();
+                  const deletes = new Set<TRemote>();
 
                   changes.forEach(({ path, prevAtPath, valueAtPath }) => {
                       if (asType === 'value') {
@@ -216,10 +212,7 @@ export function syncedCrud<
                                   console.error('[legend-state]: added synced item without an id');
                               }
                           } else if (path.length === 0) {
-                              const id = prevAtPath?.id;
-                              if (id) {
-                                  deletes.add(id);
-                              }
+                              deletes.add(prevAtPath);
                           }
                       } else {
                           let itemsChanged: [string, any][] | undefined = undefined;
@@ -240,7 +233,7 @@ export function syncedCrud<
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
-                                      deletes.add(itemKey);
+                                      deletes.add(valuePrevious);
                                   }
                               } else {
                                   itemsChanged = [[itemKey, itemValue]];
@@ -248,7 +241,10 @@ export function syncedCrud<
                           }
                           itemsChanged?.forEach(([itemKey, item]) => {
                               if (isNullOrUndefined(item)) {
-                                  deletes.add(itemKey);
+                                  const prev = valuePrevious[itemKey];
+                                  if (prev) {
+                                      deletes.add(prev);
+                                  }
                               } else {
                                   const prev = asMap ? valuePrevious.get(itemKey) : valuePrevious[itemKey];
 
@@ -343,7 +339,7 @@ export function syncedCrud<
 
                   return Promise.all([
                       ...Array.from(creates).map(([itemKey, itemValue]) => {
-                          const createObj = transformOut(itemValue, transform?.save) as TRemote;
+                          const createObj = transformOut(itemValue as any, transform?.save) as TRemote;
                           return createFn!(createObj, params).then((result) =>
                               saveResult(itemKey, createObj, result as any, true),
                           );
@@ -352,10 +348,10 @@ export function syncedCrud<
                           const toSave = updatePartial
                               ? Object.assign(
                                     diffObjects(asType === 'value' ? valuePrevious : valuePrevious[itemKey], itemValue),
-                                    { id: (itemValue as any).id },
+                                    (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
                                 )
                               : itemValue;
-                          const changed = transformOut(toSave as TLocal, transform?.save) as TRemote;
+                          const changed = transformOut(toSave as TLocal, transform?.save) as TRemote & {};
 
                           if (Object.keys(changed).length > 0) {
                               return updateFn!(changed, params).then(
@@ -363,11 +359,15 @@ export function syncedCrud<
                               );
                           }
                       }),
-                      ...Array.from(deletes).map((id) => {
+                      ...Array.from(deletes).map((valuePrevious) => {
                           if (deleteFn) {
-                              deleteFn({ id }, params);
+                              deleteFn(valuePrevious, params);
                           } else if (fieldDeleted && updateFn) {
-                              updateFn({ id, [fieldDeleted]: true } as any, params);
+                              const valueId = (valuePrevious as any)[fieldId];
+                              updateFn(
+                                  { ...(valueId ? { [fieldId]: valueId } : {}), [fieldDeleted]: true } as any,
+                                  params,
+                              );
                           } else {
                               console.log('[legend-state] missing delete function');
                           }

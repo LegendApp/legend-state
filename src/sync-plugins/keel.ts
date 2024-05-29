@@ -98,13 +98,17 @@ interface PageInfo {
     totalCount: number;
 }
 
-interface SyncedKeelPropsManyBase<TRemote, TLocal, AOption extends CrudAsOption>
+interface SyncedKeelPropsManyBase<TRemote extends { id: string }, TLocal, AOption extends CrudAsOption>
     extends Omit<SyncedCrudPropsMany<TRemote, TLocal, AOption>, 'list'> {
     first?: number;
     get?: never;
 }
-interface SyncedKeelPropsManyWhere<TRemote, TLocal, AOption extends CrudAsOption, Where extends Record<string, any>>
-    extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
+interface SyncedKeelPropsManyWhere<
+    TRemote extends { id: string },
+    TLocal,
+    AOption extends CrudAsOption,
+    Where extends Record<string, any>,
+> extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
     list?: (params: KeelListParams<NoInfer<Where>>) => Promise<
         CrudResult<
             APIResult<{
@@ -115,7 +119,7 @@ interface SyncedKeelPropsManyWhere<TRemote, TLocal, AOption extends CrudAsOption
     >;
     where?: Where | (() => Where);
 }
-interface SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption extends CrudAsOption>
+interface SyncedKeelPropsManyNoWhere<TRemote extends { id: string }, TLocal, AOption extends CrudAsOption>
     extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
     list?: (params: KeelListParams<{}>) => Promise<
         CrudResult<
@@ -129,12 +133,18 @@ interface SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption extends CrudAsOpti
 }
 type HasAnyKeys<T> = keyof T extends never ? false : true;
 
-type SyncedKeelPropsMany<TRemote, TLocal, AOption extends CrudAsOption, Where extends Record<string, any>> =
+type SyncedKeelPropsMany<
+    TRemote extends { id: string },
+    TLocal,
+    AOption extends CrudAsOption,
+    Where extends Record<string, any>,
+> =
     HasAnyKeys<Where> extends true
         ? SyncedKeelPropsManyWhere<TRemote, TLocal, AOption, Where>
         : SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption>;
 
-interface SyncedKeelPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
+interface SyncedKeelPropsSingle<TRemote extends { id: string }, TLocal>
+    extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
     get?: (params: KeelGetParams) => Promise<APIResult<TRemote>>;
 
     first?: never;
@@ -150,7 +160,7 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     > {
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
-    delete?: (params: { id: string }) => Promise<APIResult<string>>;
+    delete?: (params: TRemote) => Promise<APIResult<string>>;
 }
 
 const keelConfig: SyncedKeelConfiguration = {} as SyncedKeelConfiguration;
@@ -447,8 +457,8 @@ export function syncedKeel<
           }
         : undefined;
     const deleteFn = deleteParam
-        ? async ({ id }: { id: string }, params: SyncedSetParams<TRemote>) => {
-              const { data, error } = await deleteParam({ id });
+        ? async (value: TRemote, params: SyncedSetParams<TRemote>) => {
+              const { data, error } = await deleteParam(value);
 
               if (error) {
                   handleSetError(error, params, false);

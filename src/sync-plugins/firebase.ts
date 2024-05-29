@@ -28,11 +28,8 @@ import {
 } from 'firebase/database';
 import { invertFieldMap, transformObjectFields } from './_transformObjectFields';
 
-export interface SyncedFirebaseProps<
-    TRemote extends { id: string | number },
-    TLocal,
-    TAs extends CrudAsOption = 'value',
-> extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list'>,
+export interface SyncedFirebaseProps<TRemote extends object, TLocal, TAs extends CrudAsOption = 'value'>
+    extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list'>,
         SyncedCrudPropsBase<TRemote, TLocal> {
     refPath: (uid: string | undefined) => string;
     query?: (ref: DatabaseReference) => DatabaseReference | Query;
@@ -41,11 +38,13 @@ export interface SyncedFirebaseProps<
     // Also in global config
     realtime?: boolean;
     requireAuth?: boolean;
+    readonly?: boolean;
 }
 
 interface SyncedFirebaseConfiguration {
     realtime?: boolean;
     requireAuth?: boolean;
+    readonly?: boolean;
 }
 
 const firebaseConfig: SyncedFirebaseConfiguration = {} as SyncedFirebaseConfiguration;
@@ -115,7 +114,7 @@ const fns: FirebaseFns = {
     generateId: () => firebasePush(firebaseRef(getDatabase())).key!,
 };
 
-export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote, TAs extends CrudAsOption = 'object'>(
+export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs extends CrudAsOption = 'object'>(
     props: SyncedFirebaseProps<TRemote, TLocal, TAs>,
 ): SyncedCrudReturnType<TLocal, TAs> {
     props = { ...firebaseConfig, ...props } as any;
@@ -132,11 +131,13 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
         fieldId: fieldIdProp,
         realtime,
         requireAuth,
+        readonly,
         transform: transformProp,
         fieldTransforms,
         ...rest
     } = props;
-    const { fieldCreatedAt, fieldUpdatedAt } = props;
+    const { fieldCreatedAt } = props;
+    const fieldUpdatedAt = props.fieldUpdatedAt || '@';
     const fieldId = fieldIdProp || 'id';
 
     const computeRef = (lastSync: number) => {
@@ -275,19 +276,25 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
         pendingOutgoing$.set({});
     };
 
-    const create = (input: TRemote) => {
-        addCreatedAt(input);
-        return upsert(input);
-    };
-    const update = (input: TRemote) => {
-        addUpdatedAt(input);
-        return upsert(input);
-    };
-    const deleteFn = (input: TRemote) => {
-        const id = (input as any)[fieldId];
-        const path = refPath(fns.getCurrentUser()) + '/' + id;
-        return fns.remove(fns.ref(path));
-    };
+    const create = readonly
+        ? undefined
+        : (input: TRemote) => {
+              addCreatedAt(input);
+              return upsert(input);
+          };
+    const update = readonly
+        ? undefined
+        : (input: TRemote) => {
+              addUpdatedAt(input);
+              return upsert(input);
+          };
+    const deleteFn = readonly
+        ? undefined
+        : (input: TRemote) => {
+              const id = (input as any)[fieldId];
+              const path = refPath(fns.getCurrentUser()) + '/' + id;
+              return fns.remove(fns.ref(path));
+          };
 
     let isAuthedIfRequired$: Observable<boolean> | undefined;
     if (requireAuth) {
