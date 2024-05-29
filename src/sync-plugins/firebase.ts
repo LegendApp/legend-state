@@ -26,7 +26,7 @@ import {
     serverTimestamp,
     startAt,
 } from 'firebase/database';
-import { invertFieldMap, transformObjectFields } from '../sync/transformObjectFields';
+import { invertFieldMap, transformObjectFields } from './_transformObjectFields';
 
 export interface SyncedFirebaseProps<
     TRemote extends { id: string | number },
@@ -327,3 +327,5 @@ export function syncedFirebase<TRemote extends { id: string }, TLocal = TRemote,
         transform,
     }) as SyncedCrudReturnType<TLocal, TAs>;
 }
+export { invertFieldMap, transformObjectFields };
+export type { FieldTransforms };
