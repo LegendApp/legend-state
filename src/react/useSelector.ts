@@ -11,7 +11,7 @@ import {
     when,
 } from '@legendapp/state';
 import React, { useContext, useMemo } from 'react';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js';
 import { reactGlobals } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
 import { getPauseContext } from './usePauseProvider';
