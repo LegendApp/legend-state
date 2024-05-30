@@ -45,6 +45,20 @@
     "buntest": "bun test --timeout 50",
     "buntestsilent": "bun test --timeout 50 > /dev/null 2>&1"
   },
+  "lsexports": [
+    ".",
+    "sync",
+    "react",
+    "trace",
+    "babel",
+    "types/babel.d.ts",
+    "as/*",
+    "config/*",
+    "helpers/*",
+    "persist-plugins/*",
+    "sync-plugins/*",
+    "react-hooks/*"
+  ],
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -150,6 +164,7 @@
     "rollup": "^3.2.5",
     "ts-jest": "^29.1.1",
     "tslib": "^2.4.1",
+    "tsup": "^8.0.2",
     "typescript": "^5.4.5"
   },
   "dependencies": {
