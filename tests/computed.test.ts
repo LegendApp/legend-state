@@ -2537,7 +2537,7 @@ describe('Deactivation', () => {
         expect(getNode(comp$).numListenersRecursive).toEqual(0);
     });
     test('Computed subscribe does not refresh when not observed', async () => {
-        let interval: NodeJS.Timer | undefined = undefined;
+        let interval: NodeJS.Timer | Timer | undefined = undefined;
         let numComputes = 0;
         const comp$ = observable(
             synced({
