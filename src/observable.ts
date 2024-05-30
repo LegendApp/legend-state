@@ -1,9 +1,9 @@
+import type { ObservableSyncState } from './observableInterfaces';
 import { extractPromise, getProxy, peekInternal } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
 import { getNode } from './globals';
 import type { Observable, ObservableParam, ObservablePrimitive, RecursiveValueOrFunction } from './observableTypes';
-import type { ObservableSyncState } from './sync/syncTypes';
 
 export function observable<T>(): Observable<T | undefined>;
 export function observable<T>(

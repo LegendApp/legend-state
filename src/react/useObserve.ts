@@ -6,9 +6,9 @@ import {
     ObserveEvent,
     ObserveEventCallback,
     Selector,
+    ObserveOptions,
 } from '@legendapp/state';
 import { useRef } from 'react';
-import type { ObserveOptions } from '../observe';
 import { useUnmountOnce } from './useUnmount';
 
 export function useObserve<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;

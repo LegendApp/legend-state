@@ -146,11 +146,6 @@ type ObservableFunctionChildren<T> = {
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
 
-export interface ObservableState {
-    isLoaded: boolean;
-    error?: Error;
-}
-
 type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObservableProps<T>> &
     ObservableChildren<ObservableProps<T>> &
     ObservableFunctionChildren<NonObservableProps<T>>;
@@ -226,7 +221,7 @@ export type {
     Observable,
     ObservableBoolean,
     ObservableObject,
-    ObservablePrimitive,
     ObservableParam,
+    ObservablePrimitive,
     RecursiveValueOrFunction,
 };
