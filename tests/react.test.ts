@@ -16,10 +16,10 @@ import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
 import { Memo } from '../src/react/Memo';
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
+import { useComputed } from '../src/react/useComputed';
 
 type TestObject = { id: string; label: string };
-
-import { GlobalRegistrator } from '@happy-dom/global-registrator';
 
 GlobalRegistrator.register();
 
@@ -1138,6 +1138,54 @@ describe('useObservable', () => {
 
         expect(num).toEqual(2);
         expect(value).toEqual(1);
+    });
+    test('useObservable with a deps array', () => {
+        let num = 0;
+        let numInner = 0;
+        const obs$: Observable = observable(0);
+        let value: string = '';
+        let deps = ['hi'];
+        const Test = observer(function Test() {
+            obs$.get();
+            const obsLocal$ = useObservable(() => {
+                numInner++;
+                return deps[0];
+            }, deps);
+            num++;
+
+            value = obsLocal$.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(numInner).toEqual(1);
+        expect(value).toEqual('hi');
+
+        // If deps array changes it should refresh observable
+
+        act(() => {
+            deps = ['hello'];
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(numInner).toEqual(2);
+        expect(value).toEqual('hello');
+
+        // If deps array doesn't change it should not refresh
+        act(() => {
+            deps = ['hello'];
+            obs$.set(2);
+        });
+
+        expect(num).toEqual(3);
+        expect(numInner).toEqual(2);
+        expect(value).toEqual('hello');
     });
 });
 describe('useObservableState', () => {
