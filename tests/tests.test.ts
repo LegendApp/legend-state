@@ -2274,7 +2274,7 @@ describe('when', () => {
             () => (didResolve = true),
         );
         expect(didResolve).toEqual(false);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(didResolve).toEqual(true);
     });
     test('whenReady with function returning promise', async () => {
@@ -2288,7 +2288,7 @@ describe('when', () => {
             () => (didResolve = true),
         );
         expect(didResolve).toEqual(false);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(didResolve).toEqual(true);
     });
     test('whenReady with function returning promise', async () => {
@@ -3312,7 +3312,7 @@ describe('new computed', () => {
             },
         });
         expect(obs.child.test.get()).toEqual(undefined);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.child.test.get()).toEqual('hello');
     });
     test('new computed as a computed', () => {

@@ -67,7 +67,7 @@ describe('keel', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id1: {
@@ -87,7 +87,7 @@ describe('keel', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
