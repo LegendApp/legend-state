@@ -237,6 +237,7 @@ describe('Crud object get', () => {
 
             expect(deleted).toEqual({
                 id: 'id1',
+                test: 'hi',
             });
             expect(obs.get()).toEqual(undefined);
         },
@@ -524,6 +525,7 @@ describe('Crud as Object list', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
+            test: 'hi',
         });
         expect(obs.get()).toEqual({});
     });
@@ -549,6 +551,7 @@ describe('Crud as Object list', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
+            test: 'hi',
         });
         expect(obs.get()).toEqual({});
     });
@@ -615,6 +618,7 @@ describe('Crud as Object list', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
+            test: 'hi',
         });
         expect(obs.get()).toEqual({ id1: null });
     });
@@ -807,6 +811,7 @@ describe('Crud as Map', () => {
 
         expect(deleted).toEqual({
             id: 'id1',
+            test: 'hi',
         });
         expect(obs.get()).toEqual(new Map());
     });

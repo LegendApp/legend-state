@@ -233,7 +233,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
-                                      deletes.add(valuePrevious);
+                                      deletes.add(prevAtPath);
                                   }
                               } else {
                                   itemsChanged = [[itemKey, itemValue]];
