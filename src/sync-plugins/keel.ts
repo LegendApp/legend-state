@@ -129,12 +129,7 @@ interface SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption extends CrudAsOpti
 }
 type HasAnyKeys<T> = keyof T extends never ? false : true;
 
-type SyncedKeelPropsMany<
-    TRemote,
-    TLocal,
-    AOption extends CrudAsOption,
-    Where extends Record<string, any>,
-> =
+type SyncedKeelPropsMany<TRemote, TLocal, AOption extends CrudAsOption, Where extends Record<string, any>> =
     HasAnyKeys<Where> extends true
         ? SyncedKeelPropsManyWhere<TRemote, TLocal, AOption, Where>
         : SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption>;
