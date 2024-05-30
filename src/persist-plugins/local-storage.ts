@@ -66,9 +66,9 @@ export class ObservablePersistLocalStorage extends ObservablePersistLocalStorage
             typeof localStorage !== 'undefined'
                 ? localStorage
                 : process.env.NODE_ENV === 'test'
-                ? // @ts-expect-error This is ok to do in jest
-                  globalThis._testlocalStorage
-                : undefined,
+                  ? // @ts-expect-error This is ok to do in jest
+                    globalThis._testlocalStorage
+                  : undefined,
         );
     }
 }
@@ -78,9 +78,9 @@ export class ObservablePersistSessionStorage extends ObservablePersistLocalStora
             typeof sessionStorage !== 'undefined'
                 ? sessionStorage
                 : process.env.NODE_ENV === 'test'
-                ? // @ts-expect-error This is ok to do in jest
-                  globalThis._testlocalStorage
-                : undefined,
+                  ? // @ts-expect-error This is ok to do in jest
+                    globalThis._testlocalStorage
+                  : undefined,
         );
     }
 }

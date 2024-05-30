@@ -197,16 +197,16 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
     let idKey: string | ((value: any) => string) | undefined = isObservable(obj)
         ? undefined
         : isObject(obj)
-        ? 'id' in obj
-            ? 'id'
-            : 'key' in obj
-            ? 'key'
-            : '_id' in obj
-            ? '_id'
-            : '__id' in obj
-            ? '__id'
-            : undefined
-        : undefined;
+          ? 'id' in obj
+              ? 'id'
+              : 'key' in obj
+                ? 'key'
+                : '_id' in obj
+                  ? '_id'
+                  : '__id' in obj
+                    ? '__id'
+                    : undefined
+          : undefined;
 
     if (!idKey && node.parent) {
         const k = node.key + '_keyExtractor';
