@@ -154,22 +154,18 @@ async function updateMetadataImmediate<T>(
     // Save metadata
     const oldMetadata: PersistMetadata | undefined = metadatas.get(value$);
 
-    const { lastSync, pending } = newMetadata;
+    const { lastSync } = newMetadata;
 
-    const needsUpdate = pending || (lastSync && (!oldMetadata || lastSync !== oldMetadata.lastSync));
+    const metadata = Object.assign({}, oldMetadata, newMetadata);
+    metadatas.set(value$, metadata);
+    if (pluginPersist) {
+        await pluginPersist!.setMetadata(table, metadata, config);
+    }
 
-    if (needsUpdate) {
-        const metadata = Object.assign({}, oldMetadata, newMetadata);
-        metadatas.set(value$, metadata);
-        if (pluginPersist) {
-            await pluginPersist!.setMetadata(table, metadata, config);
-        }
-
-        if (lastSync) {
-            syncState.assign({
-                lastSync: lastSync,
-            });
-        }
+    if (lastSync) {
+        syncState.assign({
+            lastSync: lastSync,
+        });
     }
 }
 
