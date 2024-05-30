@@ -24,15 +24,16 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 //     ? SchemaName
 //     : never;
 
-export type SupabaseSchemaOf<Client extends SupabaseClient> = Client extends SupabaseClient<
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    infer _,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    infer __,
-    infer Schema
->
-    ? Schema
-    : never;
+export type SupabaseSchemaOf<Client extends SupabaseClient> =
+    Client extends SupabaseClient<
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer _,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer __,
+        infer Schema
+    >
+        ? Schema
+        : never;
 export type SupabaseTableOf<Client extends SupabaseClient> = SupabaseSchemaOf<Client>['Tables'];
 export type SupabaseCollectionOf<Client extends SupabaseClient> = keyof SupabaseTableOf<Client>;
 export type SupabaseRowOf<

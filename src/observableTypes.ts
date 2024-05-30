@@ -22,19 +22,20 @@ type IsUserDefinedObject<T> =
     // Only objects that are not function or arrays or instances of BuiltIns.
     T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
 
-export type RemoveObservables<T> = T extends ImmutableObservableBase<infer t>
-    ? t
-    : IsUserDefinedObject<T> extends true
-    ? {
-          [K in keyof T]: RemoveObservables<T[K]>;
-      }
-    : T extends ImmutableObservableBase<infer TObs>
-    ? TObs
-    : T extends () => infer TRet
-    ? RemoveObservables<TRet> & T
-    : T extends (key: string) => infer TRet
-    ? Record<string, RemoveObservables<TRet>> & T
-    : T;
+export type RemoveObservables<T> =
+    T extends ImmutableObservableBase<infer t>
+        ? t
+        : IsUserDefinedObject<T> extends true
+          ? {
+                [K in keyof T]: RemoveObservables<T[K]>;
+            }
+          : T extends ImmutableObservableBase<infer TObs>
+            ? TObs
+            : T extends () => infer TRet
+              ? RemoveObservables<TRet> & T
+              : T extends (key: string) => infer TRet
+                ? Record<string, RemoveObservables<TRet>> & T
+                : T;
 
 interface ObservableArray<T, U>
     extends ObservablePrimitive<T>,
@@ -106,14 +107,15 @@ type NonObservableKeys<T> = {
     [K in keyof T]-?: IsStrictAny<T[K]> extends true
         ? never
         : T[K] extends undefined | null
-        ? never
-        : NonNullable<T[K]> extends NonObservable
-        ? K
-        : never;
+          ? never
+          : NonNullable<T[K]> extends NonObservable
+            ? K
+            : never;
 }[keyof T];
-type ObservableProps<T> = NonObservableKeys<NonNullable<T>> extends never
-    ? T
-    : RestoreNullability<T, Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>;
+type ObservableProps<T> =
+    NonObservableKeys<NonNullable<T>> extends never
+        ? T
+        : RestoreNullability<T, Omit<NonNullable<T>, NonObservableKeys<NonNullable<T>>>>;
 
 type NonObservableProps<T> = RestoreNullability<
     T,
@@ -123,9 +125,8 @@ type NullablePropsIf<T, U> = {
     [K in keyof T]: UndefinedIf<T[K], U>;
 };
 
-type RestoreNullability<Source, Target> = IsNullable<Source> extends true
-    ? Target | Extract<Source, null | undefined>
-    : Target;
+type RestoreNullability<Source, Target> =
+    IsNullable<Source> extends true ? Target | Extract<Source, null | undefined> : Target;
 
 type ObservableChildren<T, Nullable = IsNullable<T>> = {
     [K in keyof T]-?: Observable<UndefinedIf<T[K], Nullable>>;
@@ -134,22 +135,17 @@ type ObservableFunctionChildren<T> = {
     [K in keyof T]-?: T[K] extends Observable
         ? T[K]
         : T[K] extends (key: infer Key extends string) => Promise<infer t> | infer t
-        ? HasOneStringParam<T[K]> extends true
-            ? Observable<Record<Key, t>> & T[K]
-            : t extends void
-            ? T[K]
-            : t extends Observable
-            ? t
-            : Observable<t> & (() => t)
-        : T[K] & Observable<T[K]>;
+          ? HasOneStringParam<T[K]> extends true
+              ? Observable<Record<Key, t>> & T[K]
+              : t extends void
+                ? T[K]
+                : t extends Observable
+                  ? t
+                  : Observable<t> & (() => t)
+          : T[K] & Observable<T[K]>;
 };
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
-
-export interface ObservableState {
-    isLoaded: boolean;
-    error?: Error;
-}
 
 type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObservableProps<T>> &
     ObservableChildren<ObservableProps<T>> &
@@ -171,32 +167,32 @@ type HasOneStringParam<T> = T extends (...args: infer P) => any
 type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that T is ONLY undefined or null
     ? ObservablePrimitive<T>
     : IsStrictAny<T> extends true
-    ? ObservableAny
-    : [T] extends [Promise<infer t>]
-    ? ObservableNode<t>
-    : [T] extends [(key: infer K extends string) => infer t]
-    ? [t] extends [ImmutableObservableBase<any>]
-        ? HasOneStringParam<T> extends true
-            ? Observable<Record<K, t>>
-            : t
-        : HasOneStringParam<T> extends true
-        ? Observable<Record<K, t>> & T
-        : Observable<ObservableFunction<t>>
-    : [NT] extends [ImmutableObservableBase<any>]
-    ? NT
-    : [NT] extends [Primitive]
-    ? [NT] extends [boolean]
-        ? ObservableBoolean
-        : ObservablePrimitive<T>
-    : NT extends Map<any, any> | WeakMap<any, any>
-    ? ObservableMap<NT>
-    : NT extends Set<infer U>
-    ? ObservableSet<Set<UndefinedIf<U, IsNullable<T>>>>
-    : NT extends WeakSet<any>
-    ? ObservableSet<NT> // TODO what to do here with nullable? WeakKey is type object | symbol
-    : NT extends Array<infer U>
-    ? ObservableArray<T, U> & ObservableChildren<T>
-    : ObservableObject<T> & {};
+      ? ObservableAny
+      : [T] extends [Promise<infer t>]
+        ? ObservableNode<t>
+        : [T] extends [(key: infer K extends string) => infer t]
+          ? [t] extends [ImmutableObservableBase<any>]
+              ? HasOneStringParam<T> extends true
+                  ? Observable<Record<K, t>>
+                  : t
+              : HasOneStringParam<T> extends true
+                ? Observable<Record<K, t>> & T
+                : Observable<ObservableFunction<t>>
+          : [NT] extends [ImmutableObservableBase<any>]
+            ? NT
+            : [NT] extends [Primitive]
+              ? [NT] extends [boolean]
+                  ? ObservableBoolean
+                  : ObservablePrimitive<T>
+              : NT extends Map<any, any> | WeakMap<any, any>
+                ? ObservableMap<NT>
+                : NT extends Set<infer U>
+                  ? ObservableSet<Set<UndefinedIf<U, IsNullable<T>>>>
+                  : NT extends WeakSet<any>
+                    ? ObservableSet<NT> // TODO what to do here with nullable? WeakKey is type object | symbol
+                    : NT extends Array<infer U>
+                      ? ObservableArray<T, U> & ObservableChildren<T>
+                      : ObservableObject<T> & {};
 
 // Note: The {} makes intellisense display observables as Observable instead of all the subtypes
 type Observable<T = any> = ObservableNode<T> & {};
@@ -212,13 +208,13 @@ type ValueOrFunctionKeys<T> = {
 type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
-    ?
-          | ((key: string) => any)
-          | Promise<ValueOrFunctionKeys<T>>
-          | ValueOrFunctionKeys<T>
-          | ImmutableObservableBase<T>
-          | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)
-    : ValueOrFunction<T>;
+      ?
+            | ((key: string) => any)
+            | Promise<ValueOrFunctionKeys<T>>
+            | ValueOrFunctionKeys<T>
+            | ImmutableObservableBase<T>
+            | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)
+      : ValueOrFunction<T>;
 
 export type {
     // TODO: how to make these internal somehow?
@@ -226,7 +222,7 @@ export type {
     Observable,
     ObservableBoolean,
     ObservableObject,
-    ObservablePrimitive,
     ObservableParam,
+    ObservablePrimitive,
     RecursiveValueOrFunction,
 };

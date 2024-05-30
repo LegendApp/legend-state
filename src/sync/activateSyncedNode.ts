@@ -1,12 +1,12 @@
-import type { NodeValue, Observable, UpdateFn } from '@legendapp/state';
+import type { NodeValue, Observable, ObservableSyncState, UpdateFn } from '@legendapp/state';
 import type {
     ObservableSyncFunctions,
     ObservableSyncGetParams,
     ObservableSyncSetParams,
     SyncedGetParams,
+    SyncedOptions,
     SyncedSetParams,
 } from './syncTypes';
-import type { ObservablePersistState } from './persistTypes';
 import { internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
 import { syncObservable } from './syncObservable';
 const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue, getNodeValue } = internal;
@@ -16,7 +16,7 @@ export function enableActivateSyncedNode() {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, set, retry } = node.activationState!;
+            const { get, initial, set, retry } = node.activationState! as SyncedOptions;
 
             let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservableSyncFunctions = {};
@@ -24,7 +24,7 @@ export function enableActivateSyncedNode() {
 
             // Not sure why this disable is needed, but it's needed to make the linter happy
             // eslint-disable-next-line prefer-const
-            let syncState: Observable<ObservablePersistState>;
+            let syncState: Observable<ObservableSyncState>;
             const refresh = () => syncState?.sync();
 
             if (get) {
@@ -98,7 +98,6 @@ export function enableActivateSyncedNode() {
             }
             setNodeValue(node, promiseReturn ? undefined : newValue);
 
-            // @ts-expect-error TODO fix these types
             syncState = syncObservable(obs$, { ...node.activationState, ...pluginRemote });
 
             return { update: onChange!, value: newValue };

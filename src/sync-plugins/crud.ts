@@ -45,18 +45,18 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
 type InitialValue<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
     ? Map<string | number, TLocal>
     : TAsOption extends 'object'
-    ? Record<string | number, TLocal>
-    : TAsOption extends 'value'
-    ? TLocal
-    : TLocal[];
+      ? Record<string | number, TLocal>
+      : TAsOption extends 'value'
+        ? TLocal
+        : TLocal[];
 
 export type SyncedCrudReturnType<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
     ? Map<TLocal extends { id: number } ? number : string, TLocal>
     : TAsOption extends 'object'
-    ? Record<TLocal extends { id: number } ? number : string, TLocal>
-    : TAsOption extends 'value'
-    ? TLocal
-    : TLocal[];
+      ? Record<TLocal extends { id: number } ? number : string, TLocal>
+      : TAsOption extends 'value'
+        ? TLocal
+        : TLocal[];
 
 let _asOption: CrudAsOption;
 
@@ -292,8 +292,8 @@ export function syncedCrud<
                                   const isCreate = fieldCreatedAt
                                       ? !item[fieldCreatedAt!]
                                       : fieldUpdatedAt
-                                      ? !item[fieldUpdatedAt]
-                                      : isNullOrUndefined(prev);
+                                        ? !item[fieldUpdatedAt]
+                                        : isNullOrUndefined(prev);
                                   if (isCreate) {
                                       if (generateId) {
                                           ensureId(item, generateId);

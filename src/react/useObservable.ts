@@ -1,4 +1,5 @@
-import { observable, Observable, RecursiveValueOrFunction } from '@legendapp/state';
+import type { Observable } from '@legendapp/state';
+import { observable, RecursiveValueOrFunction } from '@legendapp/state';
 import { useRef } from 'react';
 
 /**

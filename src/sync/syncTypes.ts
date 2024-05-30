@@ -4,17 +4,20 @@ import type { MMKVConfiguration } from 'react-native-mmkv';
 // @ts-ignore
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
-import {
+import type {
     Change,
     ClassConstructor,
     GetMode,
     LinkedOptions,
     NodeValue,
+    Observable,
+    ObservableParam,
+    ObservableSyncState,
+    RetryOptions,
     SetParams,
     UpdateFn,
     UpdateFnParams,
-} from '../observableInterfaces';
-import { Observable, ObservableParam, ObservableState } from '../observableTypes';
+} from '@legendapp/state';
 
 export interface PersistOptions<T = any> {
     name: string;
@@ -117,25 +120,6 @@ export interface SyncTransform<TLocal = any, TSaved = TLocal> {
     load?: (value: TSaved, method: SyncTransformMethod) => TLocal | Promise<TLocal>;
     save?: (value: TLocal) => TSaved | Promise<TSaved>;
 }
-export interface ObservableSyncStateBase {
-    isPersistLoaded: boolean;
-    isPersistEnabled: boolean;
-    isSyncEnabled: boolean;
-    lastSync?: number;
-    syncCount?: number;
-    clearPersist: () => Promise<void>;
-    sync: () => Promise<void>;
-    getPendingChanges: () =>
-        | Record<
-              string,
-              {
-                  p: any;
-                  v?: any;
-              }
-          >
-        | undefined;
-}
-export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
 
 export interface ObservableSyncSetParams<T> {
     syncState: Observable<ObservableSyncState>;
@@ -170,14 +154,6 @@ export interface ObservableSyncFunctions<T = any> {
     set?(
         params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;
-}
-
-export interface RetryOptions {
-    infinite?: boolean;
-    times?: number;
-    delay?: number;
-    backoff?: 'constant' | 'exponential';
-    maxDelay?: number;
 }
 
 export interface SubscribeOptions {

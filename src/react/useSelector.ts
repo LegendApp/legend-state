@@ -11,7 +11,7 @@ import {
     when,
 } from '@legendapp/state';
 import React, { useContext, useMemo } from 'react';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js';
 import { reactGlobals } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
 import { getPauseContext } from './usePauseProvider';
@@ -142,8 +142,8 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
                 isPromise(value) ||
                 (!value && isObservable(selector) && syncState(selector).isLoaded.get() === false)
             ) {
-                if (React.use) {
-                    React.use(value);
+                if ((React as any).use) {
+                    (React as any).use(value);
                 } else {
                     throw value;
                 }

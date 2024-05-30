@@ -6,6 +6,7 @@ import type {
     Observable,
     ObservableObject,
     ObservableParam,
+    ObservableSyncState,
     TypeAtPath,
     UpdateFnParams,
 } from '@legendapp/state';
@@ -34,7 +35,6 @@ import { syncObservableAdapter } from './syncObservableAdapter';
 import type {
     ObservablePersistPlugin,
     ObservableSyncClass,
-    ObservableSyncState,
     PersistMetadata,
     PersistOptions,
     SyncTransform,

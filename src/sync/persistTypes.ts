@@ -12,12 +12,15 @@ import type {
     ClassConstructor,
     GetMode,
     LinkedOptions,
+    ObservableState,
     RecordValue,
     Selector,
     TypeAtPath,
-} from '../observableInterfaces';
-import type { Observable, ObservableParam, ObservableState } from '../observableTypes';
-import type { ObservablePersistPlugin, RetryOptions } from './syncTypes';
+    Observable,
+    ObservableParam,
+    RetryOptions,
+} from '@legendapp/state';
+import type { ObservablePersistPlugin } from './syncTypes';
 
 export interface PersistTransform<TOrig = any, TSaved = TOrig> {
     load?: (value: TSaved) => TOrig | Promise<TOrig>;

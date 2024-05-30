@@ -1,6 +1,5 @@
 import type { symbolOpaque } from './globals';
 import type { Observable, ObservableParam } from './observableTypes';
-import type { ObservableSyncState, SyncedOptions } from './sync/syncTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
 
@@ -86,7 +85,7 @@ interface BaseNodeValue {
     numListenersRecursive: number;
     state?: Observable<ObservableSyncState>;
     activated?: boolean;
-    activationState?: SyncedOptions & { onError?: () => void; persistedRetry?: boolean };
+    activationState?: LinkedOptions & { onError?: () => void; persistedRetry?: boolean };
     dirtyFn?: () => void;
     dirtyChildren?: Set<NodeValue>;
 }
@@ -149,3 +148,39 @@ export interface UpdateFnParams {
 }
 export type UpdateFn = (params: UpdateFnParams) => void;
 export type Linked<T> = T;
+
+export interface ObserveOptions {
+    immediate?: boolean; // Ignore batching and run immediately
+    /* @internal */
+    fromComputed?: boolean;
+}
+export interface ObservableSyncStateBase {
+    isPersistLoaded: boolean;
+    isPersistEnabled: boolean;
+    isSyncEnabled: boolean;
+    lastSync?: number;
+    syncCount?: number;
+    clearPersist: () => Promise<void>;
+    sync: () => Promise<void>;
+    getPendingChanges: () =>
+        | Record<
+              string,
+              {
+                  p: any;
+                  v?: any;
+              }
+          >
+        | undefined;
+}
+export interface ObservableState {
+    isLoaded: boolean;
+    error?: Error;
+}
+export type ObservableSyncState = ObservableState & ObservableSyncStateBase;
+export interface RetryOptions {
+    infinite?: boolean;
+    times?: number;
+    delay?: number;
+    backoff?: 'constant' | 'exponential';
+    maxDelay?: number;
+}

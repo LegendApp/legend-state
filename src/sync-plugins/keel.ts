@@ -129,14 +129,10 @@ interface SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption extends CrudAsOpti
 }
 type HasAnyKeys<T> = keyof T extends never ? false : true;
 
-type SyncedKeelPropsMany<
-    TRemote,
-    TLocal,
-    AOption extends CrudAsOption,
-    Where extends Record<string, any>,
-> = HasAnyKeys<Where> extends true
-    ? SyncedKeelPropsManyWhere<TRemote, TLocal, AOption, Where>
-    : SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption>;
+type SyncedKeelPropsMany<TRemote, TLocal, AOption extends CrudAsOption, Where extends Record<string, any>> =
+    HasAnyKeys<Where> extends true
+        ? SyncedKeelPropsManyWhere<TRemote, TLocal, AOption, Where>
+        : SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption>;
 
 interface SyncedKeelPropsSingle<TRemote, TLocal> extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
     get?: (params: KeelGetParams) => Promise<APIResult<TRemote>>;

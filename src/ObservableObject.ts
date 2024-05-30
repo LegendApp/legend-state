@@ -38,10 +38,11 @@ import type {
     LinkedOptions,
     ListenerParams,
     NodeValue,
+    ObservableState,
     TrackingType,
     UpdateFn,
 } from './observableInterfaces';
-import { Observable, ObservableState } from './observableTypes';
+import { Observable } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
 import { updateTracking } from './tracking';

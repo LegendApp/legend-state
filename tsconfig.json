@@ -13,6 +13,7 @@
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
         "incremental": true,
+        "tsBuildInfoFile": "./tsconfig.tsbuildinfo", // Specify the build info file
         "esModuleInterop": true,
         "moduleResolution": "node",
         "isolatedModules": true,
@@ -23,6 +24,7 @@
             "./src",
         ],
         "declaration": true,
+        "declarationMap": false,
         "sourceMap": true,
         "paths": {
             "react": [

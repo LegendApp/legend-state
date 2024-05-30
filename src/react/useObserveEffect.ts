@@ -1,6 +1,13 @@
-import { isFunction, ObservableParam, observe, ObserveEvent, ObserveEventCallback, Selector } from '@legendapp/state';
+import {
+    ObserveOptions,
+    isFunction,
+    ObservableParam,
+    observe,
+    ObserveEvent,
+    ObserveEventCallback,
+    Selector,
+} from '@legendapp/state';
 import { useRef } from 'react';
-import type { ObserveOptions } from '../observe';
 import { useMountOnce } from './useMount';
 
 export function useObserveEffect<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): void;
