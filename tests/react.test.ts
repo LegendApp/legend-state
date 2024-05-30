@@ -1187,6 +1187,58 @@ describe('useObservable', () => {
         expect(numInner).toEqual(2);
         expect(value).toEqual('hello');
     });
+    test('useComputed with a deps array', () => {
+        let num = 0;
+        const obs$: Observable = observable(0);
+        let value: string = '';
+        let deps = ['hi'];
+        let setTo: any = undefined;
+        let obsLocal$: Observable<string> | undefined = undefined;
+        const Test = observer(function Test() {
+            obs$.get();
+            obsLocal$ = useComputed(
+                () => {
+                    return deps[0];
+                },
+                (value) => {
+                    setTo = value;
+                },
+                deps,
+            );
+            num++;
+
+            value = obsLocal$.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(value).toEqual('hi');
+
+        act(() => {
+            deps = ['hello'];
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(value).toEqual('hello');
+
+        act(() => {
+            deps = ['hello2'];
+            obs$.set(2);
+        });
+
+        expect(num).toEqual(3);
+        expect(value).toEqual('hello2');
+
+        obsLocal$!.set('test');
+
+        expect(setTo).toEqual('test');
+    });
 });
 describe('useObservableState', () => {
     test('useObservableState does not select if value not accessed', () => {
