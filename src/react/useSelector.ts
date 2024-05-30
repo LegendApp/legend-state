@@ -142,8 +142,8 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
                 isPromise(value) ||
                 (!value && isObservable(selector) && syncState(selector).isLoaded.get() === false)
             ) {
-                if (React.use) {
-                    React.use(value);
+                if ((React as any).use) {
+                    (React as any).use(value);
                 } else {
                     throw value;
                 }
