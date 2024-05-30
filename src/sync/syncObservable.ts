@@ -839,11 +839,13 @@ export function syncObservable<T>(
         throw new Error('[legend-state] syncObservable called with undefined observable');
     }
     // Merge remote sync options with global options
-    syncOptions = {
-        syncMode: 'auto',
-        ...observableSyncConfiguration,
-        ...removeNullUndefined(syncOptions || {}),
-    } as any;
+    syncOptions = mergeIntoObservable(
+        {
+            syncMode: 'auto',
+        },
+        observableSyncConfiguration,
+        removeNullUndefined(syncOptions || {}),
+    );
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 

@@ -3,7 +3,7 @@ import { observable, syncState } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
-import { synced } from '../sync';
+import { configureObservableSync, synced } from '../sync';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 import type { Observable } from '../src/observableTypes';
 
@@ -142,7 +142,7 @@ describe('Adjusting data', () => {
         expect(await when(setValue$)).toEqual('hello2');
     });
     test('transform in persist', async () => {
-        const persistName = 'load1';
+        const persistName = getPersistName();
         localStorage.setItem(persistName, JSON.stringify({ test: 'hi' }));
         const value = observable(
             synced({
@@ -542,5 +542,47 @@ describe('get mode', () => {
         expect(obs$.get()).toEqual({ key0: 'hello', obj: { a: false, b: true } });
         await promiseTimeout(1);
         expect(obs$.get()).toEqual({ key0: 'hello', key1: 'hi', key2: 'hi', obj: { a: true, b: true, c: true } });
+    });
+});
+describe('global config', () => {
+    test('takes global config persist changes', async () => {
+        let setTo: any = undefined;
+        configureObservableSync({
+            persist: {
+                retrySync: true,
+                plugin: ObservablePersistLocalStorage,
+            },
+        });
+
+        const persistName = getPersistName();
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(0);
+                    return { test: false };
+                },
+                set: async ({ value }) => {
+                    setTo = value;
+                    return Promise.reject();
+                },
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
+
+        await when(syncState(obs$).isLoaded);
+
+        obs$.set({ test: true });
+
+        await promiseTimeout(20);
+
+        expect(setTo).toEqual({ test: true });
+
+        expect(localStorage.getItem(persistName)).toEqual('{"test":true}');
+        // Ensure pending to check retrySync worked
+        expect(localStorage.getItem(persistName + '__m')).toEqual(
+            '{"pending":{"":{"p":{"test":false},"t":[],"v":{"test":true}}}}',
+        );
     });
 });

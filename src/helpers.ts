@@ -125,13 +125,17 @@ export function mergeIntoObservable<T extends ObservableParam<Record<string, any
     beginBatch();
     globalState.isMerging = true;
     for (let i = 0; i < sources.length; i++) {
-        target = _mergeIntoObservable(target, sources[i]);
+        target = _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1);
     }
     globalState.isMerging = false;
     endBatch();
     return target;
 }
-function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(target: T, source: any): T {
+function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(
+    target: T,
+    source: any,
+    assign?: boolean,
+): T {
     if (isObservable(source)) {
         source = source.peek();
     }
@@ -157,19 +161,32 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
                 const targetChild = (target as Record<string, any>)[key];
                 if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
                     if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
-                        (target as Record<string, any>)[key] = sourceValue;
+                        (target as Record<string, any>)[key] = assign
+                            ? isArr
+                                ? [...sourceValue]
+                                : { ...sourceValue }
+                            : sourceValue;
                     } else {
                         _mergeIntoObservable(targetChild, sourceValue);
                     }
                 } else {
-                    needsSet
-                        ? targetChild.set(sourceValue)
-                        : (((target as Record<string, any>)[key] as any) = sourceValue);
+                    if (needsSet) {
+                        targetChild.set(sourceValue);
+                    } else {
+                        const toSet = isObject(sourceValue)
+                            ? { ...sourceValue }
+                            : isArray(sourceValue)
+                              ? [...sourceValue]
+                              : sourceValue;
+                        ((target as Record<string, any>)[key] as any) = toSet;
+                    }
                 }
             }
         }
     } else if (source !== undefined) {
-        needsSet ? target.set(source) : ((target as any) = source);
+        needsSet
+            ? target.set(source)
+            : ((target as any) = assign ? (isArray(source) ? [...source] : { ...source }) : source);
     }
 
     return target;
