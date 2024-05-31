@@ -52,3 +52,17 @@ export class ObservablePersistLocalStorage extends ObservablePersistLocalStorage
         super(localStorage);
     }
 }
+
+export function supressActWarning(fn: () => void) {
+    const originalError = console.error;
+    console.error = (...args) => {
+        if (/act/.test(args[0])) {
+            return;
+        }
+        originalError.call(console, ...args);
+    };
+
+    fn();
+
+    console.error = originalError;
+}

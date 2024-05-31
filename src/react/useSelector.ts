@@ -6,7 +6,6 @@ import {
     isObservable,
     isPrimitive,
     isPromise,
-    syncState,
     trackSelector,
     when,
 } from '@legendapp/state';
@@ -133,22 +132,6 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
         value = run(selector) as any;
 
         useSyncExternalStore(subscribe, getVersion, getVersion);
-
-        // Suspense support
-        if (options?.suspense) {
-            // Note: Although it's not possible for an observable to be a promise, the selector may be a
-            // function that returns a Promise, so we handle that case too.
-            if (
-                isPromise(value) ||
-                (!value && isObservable(selector) && syncState(selector).isLoaded.get() === false)
-            ) {
-                if ((React as any).use) {
-                    (React as any).use(value);
-                } else {
-                    throw value;
-                }
-            }
-        }
     } catch (err: unknown) {
         if (
             (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
@@ -161,6 +144,21 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
             );
         }
         throw err;
+    }
+
+    // Suspense support
+    if (options?.suspense) {
+        // Note: Although it's not possible for an observable to be a promise, the selector may be a
+        // function that returns a Promise, so we handle that case too.
+        const isProm = isPromise(value);
+        if (isPromise(value) || (!value && isObservable(selector))) {
+            const vProm = isProm ? value : when(selector);
+            if ((React as any).use) {
+                (React as any).use(vProm);
+            } else {
+                throw vProm;
+            }
+        }
     }
 
     return value;

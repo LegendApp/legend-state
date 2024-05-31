@@ -1,5 +1,5 @@
 import { act, render, renderHook } from '@testing-library/react';
-import { StrictMode, createElement, useReducer, useState } from 'react';
+import { StrictMode, Suspense, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableTypes';
@@ -18,6 +18,8 @@ import { getNode } from '../src/globals';
 import { Memo } from '../src/react/Memo';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { useComputed } from '../src/react/useComputed';
+import { when } from '../src/when';
+import { supressActWarning } from './testglobals';
 
 type TestObject = { id: string; label: string };
 
@@ -474,6 +476,70 @@ describe('useSelector', () => {
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(4);
+    });
+    test('suspense without observer', () => {
+        supressActWarning(async () => {
+            const obs$ = observable(
+                new Promise<string>((resolve) =>
+                    setTimeout(() => {
+                        resolve('hi');
+                    }, 10),
+                ),
+            );
+            const isDone$ = observable(undefined as string | undefined);
+            const Test = function Test() {
+                const value = useSelector(obs$, { suspense: true });
+                isDone$.set(value);
+
+                return createElement('div', undefined, value);
+            };
+            function App() {
+                return createElement(
+                    Suspense,
+                    { fallback: createElement('div', undefined, 'fallback') },
+                    createElement(Test),
+                );
+            }
+            const { container } = render(createElement(App));
+            let items = container.querySelectorAll('div');
+            expect(items[0].textContent).toEqual('fallback');
+
+            expect(await when(isDone$)).toEqual('hi');
+            items = container.querySelectorAll('div');
+            expect(items[0].textContent).toEqual('hi');
+        });
+    });
+    test('suspense with observer', () => {
+        supressActWarning(async () => {
+            const obs$ = observable(
+                new Promise<string>((resolve) =>
+                    setTimeout(() => {
+                        resolve('hi');
+                    }, 10),
+                ),
+            );
+            const isDone$ = observable(undefined as string | undefined);
+            const Test = observer(function Test() {
+                const value = useSelector(obs$, { suspense: true });
+                isDone$.set(value);
+
+                return createElement('div', undefined, value);
+            });
+            function App() {
+                return createElement(
+                    Suspense,
+                    { fallback: createElement('div', undefined, 'fallback') },
+                    createElement(Test),
+                );
+            }
+            const { container } = render(createElement(App));
+            let items = container.querySelectorAll('div');
+            expect(items[0].textContent).toEqual('fallback');
+
+            expect(await when(isDone$)).toEqual('hi');
+            items = container.querySelectorAll('div');
+            expect(items[0].textContent).toEqual('hi');
+        });
     });
 });
 
@@ -1235,7 +1301,9 @@ describe('useObservable', () => {
         expect(num).toEqual(3);
         expect(value).toEqual('hello2');
 
-        obsLocal$!.set('test');
+        act(() => {
+            obsLocal$!.set('test');
+        });
 
         expect(setTo).toEqual('test');
     });
