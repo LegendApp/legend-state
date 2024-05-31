@@ -1253,6 +1253,48 @@ describe('useObservable', () => {
         expect(numInner).toEqual(2);
         expect(value).toEqual('hello');
     });
+    test('useObservable with a lookup table and empty deps array', () => {
+        let num = 0;
+        let numInner = 0;
+        const obs$: Observable = observable(0);
+        let value: string = '';
+        const deps: string[] = [];
+        const Test = observer(function Test() {
+            const obsLocal$ = useObservable((p: string) => {
+                numInner++;
+                return p + obs$.get();
+            }, deps);
+            num++;
+
+            value = obsLocal$.a.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(numInner).toEqual(1);
+        expect(value).toEqual('a0');
+
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(numInner).toEqual(2);
+        expect(value).toEqual('a1');
+
+        act(() => {
+            obs$.set(2);
+        });
+
+        expect(num).toEqual(3);
+        expect(numInner).toEqual(3);
+        expect(value).toEqual('a2');
+    });
     test('useComputed with a deps array', () => {
         let num = 0;
         const obs$: Observable = observable(0);

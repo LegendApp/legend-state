@@ -1,5 +1,5 @@
 import type { Observable } from '@legendapp/state';
-import { computeSelector, observable, RecursiveValueOrFunction } from '@legendapp/state';
+import { computeSelector, isFunction, observable, RecursiveValueOrFunction } from '@legendapp/state';
 import { DependencyList, useRef } from 'react';
 
 /**
@@ -27,12 +27,18 @@ export function useObservable<T>(
     // Create a deps observable to be watched by the created observable
     const depsObs$ = deps ? useObservable(deps) : undefined;
     if (!ref.current?.obs$) {
-        // Create the observable from the default value
+        // Create the observable from the default value. If the selector function is a lookup table
+        // then it needs to be a function taking a string to pass it through.
         const value = depsObs$
-            ? () => {
-                  depsObs$.get();
-                  return computeSelector(ref.current.value);
-              }
+            ? isFunction(initialValue) && initialValue.length === 1
+                ? (p: string) => {
+                      depsObs$.get();
+                      return (ref.current.value as (p: string) => any)(p);
+                  }
+                : () => {
+                      depsObs$.get();
+                      return computeSelector(ref.current.value);
+                  }
             : initialValue;
 
         ref.current.obs$ = observable<T>(value as T);
