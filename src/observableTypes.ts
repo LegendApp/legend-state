@@ -3,6 +3,7 @@ import type { GetOptions, ListenerFn, TrackingType } from './observableInterface
 type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
 type ArrayOverrideFnNames =
     | 'find'
+    | 'findIndex'
     | 'every'
     | 'some'
     | 'filter'
