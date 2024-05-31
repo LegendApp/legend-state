@@ -43,7 +43,7 @@ interface ObservableArray<T, U>
         Pick<Array<Observable<U>>, ArrayOverrideFnNames>,
         Omit<RemoveIndex<Array<U>>, ArrayOverrideFnNames> {}
 
-interface ObservableObjectFns<T> {
+export interface ObservableObjectFns<T> {
     assign(value: Partial<T>): Observable<T>;
 }
 
@@ -64,11 +64,11 @@ type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' 
 type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
     Omit<ObservablePrimitive<T>, 'size'> & { size: ImmutableObservableBase<number> };
 
-interface ObservableBoolean extends ObservablePrimitive<boolean> {
+export interface ObservableBoolean extends ObservablePrimitive<boolean> {
     toggle(): void;
 }
 
-interface ObservablePrimitive<T> extends ImmutableObservableBase<T>, MutableObservableBase<T> {}
+export interface ObservablePrimitive<T> extends ImmutableObservableBase<T>, MutableObservableBase<T> {}
 type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any> & Record<string, any>;
 
 interface ImmutableObservableSimple<T> {
@@ -76,7 +76,7 @@ interface ImmutableObservableSimple<T> {
     get(trackingType?: any): any;
     onChange(cb: ListenerFn<any>, options?: any): () => void;
 }
-interface ImmutableObservableBase<T> extends ImmutableObservableSimple<T> {
+export interface ImmutableObservableBase<T> extends ImmutableObservableSimple<T> {
     peek(): RemoveObservables<T>;
     peek(): T; // This is just to match the Simple base type
     get(trackingType?: TrackingType | GetOptions): RemoveObservables<T>;
@@ -148,7 +148,7 @@ type ObservableFunctionChildren<T> = {
 
 type IsStrictAny<T> = 0 extends 1 & T ? true : false;
 
-type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObservableProps<T>> &
+export type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> & NonObservableProps<T>> &
     ObservableChildren<ObservableProps<T>> &
     ObservableFunctionChildren<NonObservableProps<T>>;
 
@@ -196,9 +196,9 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
                       : ObservableObject<T> & {};
 
 // Note: The {} makes intellisense display observables as Observable instead of all the subtypes
-type Observable<T = any> = ObservableNode<T> & {};
+export type Observable<T = any> = ObservableNode<T> & {};
 
-type ObservableParam<T = any> = ImmutableObservableSimple<T> & MutableObservableSimple;
+export type ObservableParam<T = any> = ImmutableObservableSimple<T> & MutableObservableSimple;
 
 // Allow input types to have functions in them
 type ValueOrFunction<T> = T extends Function ? T : T | ImmutableObservableBase<T> | Promise<T> | (() => T | Promise<T>);
@@ -206,7 +206,7 @@ type ValueOrFunctionKeys<T> = {
     [K in keyof T]: RecursiveValueOrFunction<T[K]>;
 };
 
-type RecursiveValueOrFunction<T> = T extends Function
+export type RecursiveValueOrFunction<T> = T extends Function
     ? T
     : T extends object
       ?
@@ -216,14 +216,3 @@ type RecursiveValueOrFunction<T> = T extends Function
             | ImmutableObservableBase<T>
             | (() => T | Promise<T> | ValueOrFunctionKeys<T> | Promise<ValueOrFunctionKeys<T>> | Observable<T>)
       : ValueOrFunction<T>;
-
-export type {
-    // TODO: how to make these internal somehow?
-    ImmutableObservableBase,
-    Observable,
-    ObservableBoolean,
-    ObservableObject,
-    ObservableParam,
-    ObservablePrimitive,
-    RecursiveValueOrFunction,
-};
