@@ -200,8 +200,17 @@ export type Observable<T = any> = ObservableNode<T> & {};
 
 export type ObservableParam<T = any> = ImmutableObservableSimple<T> & MutableObservableSimple;
 
+type FixExpanded<T> = [T] extends [boolean] ? boolean : T;
+
 // Allow input types to have functions in them
-type ValueOrFunction<T> = T extends Function ? T : T | ImmutableObservableBase<T> | Promise<T> | (() => T | Promise<T>);
+type ValueOrFunction<T> = [T] extends [Function]
+    ? T
+    :
+          | T
+          | ImmutableObservableBase<FixExpanded<T> | T>
+          | Promise<FixExpanded<T> | T>
+          | (() => FixExpanded<T> | T | Promise<FixExpanded<T> | T> | ImmutableObservableBase<FixExpanded<T> | T>);
+
 type ValueOrFunctionKeys<T> = {
     [K in keyof T]: RecursiveValueOrFunction<T[K]>;
 };

@@ -47,6 +47,84 @@ describe('observable', () => {
         expectTypeOf<ObservableFn['nullable']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
         expectTypeOf<ObservableFn['optional']['foo']['get']>().returns.toEqualTypeOf<string | undefined>();
     });
+
+    it('specfiying boolean in object type', () => {
+        const bool: boolean = true;
+        function withTypedComputed() {
+            return observable<{ bool: boolean }>({
+                bool: () => false,
+            });
+        }
+
+        type ObservableFn = ReturnType<typeof withTypedComputed>;
+        expectTypeOf<ObservableFn['bool']['get']>().returns.toEqualTypeOf<boolean>();
+
+        function withTypedComputed2() {
+            return observable<{ bool: boolean }>({
+                bool: (): boolean => bool,
+            });
+        }
+
+        type ObservableFn2 = ReturnType<typeof withTypedComputed2>;
+        expectTypeOf<ObservableFn2['bool']['get']>().returns.toEqualTypeOf<boolean>();
+
+        function withTypedComputed3() {
+            return observable<{ bool: boolean }>({
+                bool: bool,
+            });
+        }
+
+        type ObservableFn3 = ReturnType<typeof withTypedComputed3>;
+        expectTypeOf<ObservableFn3['bool']['get']>().returns.toEqualTypeOf<boolean>();
+
+        function withTypedComputed4() {
+            return observable<{ bool: boolean }>({
+                bool: new Promise<boolean>((resolve) => resolve(false)),
+            });
+        }
+
+        type ObservableFn4 = ReturnType<typeof withTypedComputed4>;
+        expectTypeOf<ObservableFn4['bool']['get']>().returns.toEqualTypeOf<boolean>();
+
+        function withTypedComputed5() {
+            return observable<{ bool: boolean }>({
+                bool: () => new Promise<boolean>((resolve) => resolve(false)),
+            });
+        }
+
+        type ObservableFn5 = ReturnType<typeof withTypedComputed5>;
+        expectTypeOf<ObservableFn5['bool']['get']>().returns.toEqualTypeOf<boolean>();
+
+        function withTypedComputed6() {
+            return observable<{ bool: boolean }>({
+                bool: () => observable<boolean>(false),
+            });
+        }
+
+        type ObservableFn6 = ReturnType<typeof withTypedComputed6>;
+        expectTypeOf<ObservableFn6['bool']['get']>().returns.toEqualTypeOf<boolean>();
+    });
+
+    it('specfiying number in object type', () => {
+        const bbbb: number = 0;
+        function withTypedComputed() {
+            return observable<{ bool: number }>({
+                bool: () => 0,
+            });
+        }
+
+        type ObservableFn = ReturnType<typeof withTypedComputed>;
+        expectTypeOf<ObservableFn['bool']['get']>().returns.toEqualTypeOf<number>();
+
+        function withTypedComputed2() {
+            return observable<{ bool: number }>({
+                bool: (): number => bbbb,
+            });
+        }
+
+        type ObservableFn2 = ReturnType<typeof withTypedComputed2>;
+        expectTypeOf<ObservableFn2['bool']['get']>().returns.toEqualTypeOf<number>();
+    });
 });
 
 describe('Observable', () => {
