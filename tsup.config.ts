@@ -44,14 +44,11 @@ const keys = pkg['lsexports']
             return exp + '.ts';
         }
     }) as string[];
-console.log(keys);
 
 const entry: Record<string, string> = {};
 keys.forEach((key) => {
     entry[key.replace('src/', '').replace('.ts', '')] = key;
 });
-
-console.log(entry);
 
 export default defineConfig({
     entry,
