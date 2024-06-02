@@ -22,7 +22,6 @@ export default function () {
                             const s = specifiers[i].imported.name;
                             if (!hasLegendImport && (s === 'Computed' || s === 'Memo' || s === 'Show')) {
                                 hasLegendImport = true;
-                                path.skip();
                                 break;
                             }
                         }
@@ -37,7 +36,6 @@ export default function () {
                     traverse: (path: any) => any;
                 }) {
                     if (!hasLegendImport) {
-                        path.skip();
                         return;
                     }
 
