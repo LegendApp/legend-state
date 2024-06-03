@@ -944,7 +944,7 @@ export function syncObservable<T>(
                         value$: obs$,
                         options: syncOptions,
                         lastSync,
-                        dateModified: lastSync,
+                        updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
                         onError: (error: Error) => {
                             syncOptions.onGetError?.(error);
                         },
