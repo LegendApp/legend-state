@@ -669,10 +669,10 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         updateMetadata(obs, localState, syncState, syncOptions, metadata);
                     }
                 }
-
-                onAfterSet?.();
             }
         }
+
+        onAfterSet?.();
     }
 }
 
