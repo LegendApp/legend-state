@@ -128,7 +128,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         refPath,
         query,
         as: asType,
-        fieldId: fieldIdProp,
+        fieldId,
         realtime,
         requireAuth,
         readonly,
@@ -138,7 +138,6 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     } = props;
     const { fieldCreatedAt } = props;
     const fieldUpdatedAt = props.fieldUpdatedAt || '@';
-    const fieldId = fieldIdProp || 'id';
 
     const computeRef = (lastSync: number) => {
         const pathFirebase = refPath(fns.getCurrentUser());
@@ -168,7 +167,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                     const val = snap.val();
                     if (!isNullOrUndefined(val)) {
                         const values =
-                            asType === 'value'
+                            asType === 'value' || !fieldId
                                 ? [val]
                                 : Object.entries(val).map(([key, value]: [string, any]) => {
                                       if (!value[fieldId]) {
@@ -239,7 +238,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     };
 
     const upsert = async (input: TRemote) => {
-        const id: string = (input as any)[fieldId];
+        const id: string = fieldId ? (input as any)[fieldId] : '';
 
         if (saving$[id].get()) {
             pendingOutgoing$[id].set(input);
@@ -253,7 +252,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         } else {
             saving$[id].set(true);
 
-            const path = refPath(fns.getCurrentUser()) + '/' + id;
+            const path = refPath(fns.getCurrentUser()) + (fieldId ? '/' + id : '');
             await fns.update(fns.ref(path), input);
 
             saving$[id].set(false);
@@ -264,9 +263,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
     const flushAfterSave = () => {
         const incoming = pendingIncoming$.get();
-        Object.values(incoming).forEach((value) => {
-            updateFn!({ value: { [value[fieldId]]: value }, mode: 'merge' });
-        });
+        if (fieldId) {
+            Object.values(incoming).forEach((value) => {
+                updateFn!({ value: { [value[fieldId]]: value }, mode: 'merge' });
+            });
+        } else {
+            updateFn!({ value: incoming, mode: 'merge' });
+        }
         pendingIncoming$.set({});
 
         const outgoing = pendingOutgoing$.get();
@@ -291,8 +294,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const deleteFn = readonly
         ? undefined
         : (input: TRemote) => {
-              const id = (input as any)[fieldId];
-              const path = refPath(fns.getCurrentUser()) + '/' + id;
+              const path = refPath(fns.getCurrentUser()) + (fieldId ? '/' + (input as any)[fieldId] : '');
               return fns.remove(fns.ref(path));
           };
 
