@@ -1,6 +1,5 @@
-import { whenReady } from './when';
-import type { NodeValue, RetryOptions } from './observableInterfaces';
 import { isPromise } from './is';
+import type { NodeValue, RetryOptions } from './observableInterfaces';
 
 function calculateRetryDelay(retryOptions: RetryOptions, attemptNum: number): number | null {
     const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
@@ -23,19 +22,9 @@ export function runWithRetry<T>(
     state: { attemptNum: number; retry: RetryOptions | undefined },
     fn: (e: { cancel?: boolean }) => T | Promise<T>,
 ): T | Promise<T> {
-    const { waitFor } = node.activationState!;
     const { retry } = state;
-
     const e = { cancel: false };
-    let value: any = undefined;
-    if (waitFor) {
-        value = whenReady(waitFor, () => {
-            node.activationState!.waitFor = undefined;
-            return fn(e);
-        });
-    } else {
-        value = fn(e);
-    }
+    let value = fn(e);
 
     if (isPromise(value) && retry) {
         let timeoutRetry: any;

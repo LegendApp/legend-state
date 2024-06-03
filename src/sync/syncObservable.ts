@@ -27,6 +27,7 @@ import {
     setAtPath,
     shouldIgnoreUnobserved,
     when,
+    whenReady,
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
 import type { ObservableOnChangeParams } from './persistTypes';
@@ -588,11 +589,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         await when(() => syncState.isLoaded.get() || (allowSetIfGetError && syncState.error.get()));
 
         if (waitForSet) {
-            const waitFor = isFunction(waitForSet)
+            const waitFn = isFunction(waitForSet)
                 ? waitForSet({ changes: changesRemote, value: obs.peek() })
                 : waitForSet;
-            if (waitFor) {
-                await when(waitFor);
+            if (waitFn) {
+                await when(waitFn);
             }
         }
 
@@ -976,7 +977,16 @@ export function syncObservable<T>(
                         });
                     }
                 };
-                runGet();
+
+                const { waitFor } = syncOptions;
+                if (waitFor) {
+                    if (node.activationState) {
+                        node.activationState.waitFor = undefined;
+                    }
+                    whenReady(waitFor, runGet);
+                } else {
+                    runGet();
+                }
             } else {
                 node.state!.assign({
                     isLoaded: true,
