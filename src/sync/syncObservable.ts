@@ -32,7 +32,6 @@ import {
 import { observableSyncConfiguration } from './configureObservableSync';
 import type { ObservableOnChangeParams } from './persistTypes';
 import { removeNullUndefined } from './syncHelpers';
-import { syncObservableAdapter } from './syncObservableAdapter';
 import type {
     ObservablePersistPlugin,
     ObservableSyncClass,
@@ -59,7 +58,6 @@ const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
     pluginPersist?: ObservablePersistPlugin;
-    pluginSync?: ObservableSyncClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
@@ -316,16 +314,15 @@ async function processQueuedRemoteChanges(syncOptions: SyncedOptions) {
 }
 
 async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {
-    const { syncState, changes, localState, syncOptions, inRemoteChange, isApplyingPending } = queuedChange;
+    const { syncState, changes, syncOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
     const persist = syncOptions.persist;
-    const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(persist);
     const configRemote = syncOptions;
     const saveLocal = persist?.name && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
     const saveRemote = !!(
         !inRemoteChange &&
-        pluginSync?.set &&
+        syncOptions?.set &&
         configRemote?.enableSync !== false &&
         syncState.isSyncEnabled.peek()
     );
@@ -411,12 +408,11 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
     } = queuedChange;
 
     const persist = syncOptions.persist;
-    const { pluginSync } = localState;
     const { config: configLocal } = parseLocalConfig(persist!);
     const configRemote = syncOptions;
     const saveLocal = persist && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
     const saveRemote =
-        !inRemoteChange && pluginSync?.set && configRemote?.enableSync !== false && syncState.isSyncEnabled.peek();
+        !inRemoteChange && syncOptions?.set && configRemote?.enableSync !== false && syncState.isSyncEnabled.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isPersistLoaded.peek()) {
@@ -575,7 +571,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const { queuedChange, changesRemote } = changeInfo;
     const { value$: obs, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
-    const { pluginPersist, pluginSync } = localState;
+    const { pluginPersist } = localState;
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
@@ -606,14 +602,15 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         onBeforeSet?.();
 
-        let savedPromise = pluginSync!.set!({
+        let savedPromise = syncOptions!.set!({
             value$: obs,
             syncState: syncState,
             options: syncOptions,
             changes: changesRemote,
             value,
             valuePrevious: previous,
-        });
+            // TODO Fix type
+        } as any);
         if (isPromise(savedPromise)) {
             savedPromise = savedPromise.catch((err) => onSetError?.(err));
         }
@@ -847,8 +844,6 @@ export function syncObservable<T>(
 
     loadLocal(obs$, syncOptions, syncState, localState);
 
-    localState.pluginSync = syncObservableAdapter(syncOptions);
-
     if (syncOptions.get) {
         let isSynced = false;
         let isSubscribed = false;
@@ -864,7 +859,7 @@ export function syncObservable<T>(
             }
             const lastSync = metadatas.get(obs$)?.lastSync;
             const pending = localState.pendingChanges;
-            const get = localState.pluginSync!.get?.bind(localState.pluginSync);
+            const get = syncOptions.get;
 
             if (get) {
                 const runGet = () => {
@@ -944,7 +939,7 @@ export function syncObservable<T>(
                             });
                         }
                     };
-                    get({
+                    const getParams = {
                         state: syncState,
                         value$: obs$,
                         options: syncOptions,
@@ -953,14 +948,27 @@ export function syncObservable<T>(
                         onError: (error: Error) => {
                             syncOptions.onGetError?.(error);
                         },
-                        onGet: () => {
-                            node.state!.assign({
-                                isLoaded: true,
-                                error: undefined,
-                            });
-                        },
                         onChange,
-                    });
+                        // TODO Fix type
+                    } as any;
+                    const got = get(getParams);
+                    const handle = (value: any) => {
+                        onChange({
+                            value,
+                            lastSync: getParams.lastSync,
+                            mode: getParams.mode!,
+                        });
+                        node.state!.assign({
+                            isLoaded: true,
+                            error: undefined,
+                        });
+                    };
+                    if (isPromise(got)) {
+                        got.then(handle);
+                    } else {
+                        handle(got);
+                    }
+
                     if (!isSubscribed && syncOptions.subscribe) {
                         isSubscribed = true;
                         unsubscribe = syncOptions.subscribe({
