@@ -178,11 +178,13 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
                     if (needsSet) {
                         targetChild.set(sourceValue);
                     } else {
-                        const toSet = isObject(sourceValue)
-                            ? { ...sourceValue }
-                            : isArray(sourceValue)
-                              ? [...sourceValue]
-                              : sourceValue;
+                        const toSet = isObservable(sourceValue)
+                            ? sourceValue
+                            : isObject(sourceValue)
+                              ? { ...sourceValue }
+                              : isArray(sourceValue)
+                                ? [...sourceValue]
+                                : sourceValue;
                         ((target as Record<string, any>)[key] as any) = toSet;
                     }
                 }
