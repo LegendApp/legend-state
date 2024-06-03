@@ -1,4 +1,5 @@
 import { ArrayValue, RecordValue, isArray, isObject, isString, symbolDelete } from '@legendapp/state';
+import type { SyncTransform } from '@legendapp/state/sync';
 
 let validateMap: (map: Record<string, any>) => void;
 export function transformObjectFields(dataIn: Record<string, any>, map: Record<string, any>) {
@@ -87,6 +88,15 @@ export function invertFieldMap(obj: Record<string, any>) {
 
     return target;
 }
+export const fieldTransformToTransform = <T extends object>(fieldTransform: FieldTransforms<T>): SyncTransform<T> => ({
+    load(value) {
+        const inverted = invertFieldMap(fieldTransform);
+        return transformObjectFields(value, inverted);
+    },
+    save(value) {
+        return transformObjectFields(value, fieldTransform);
+    },
+});
 if (process.env.NODE_ENV === 'development') {
     validateMap = function (record: Record<string, any>) {
         const values = Object.values(record).filter((value) => {
