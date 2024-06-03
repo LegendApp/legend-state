@@ -15,11 +15,13 @@ import {
     constructObjectWithPath,
     deconstructObjectWithPath,
     endBatch,
+    hasOwnProperty,
     internal,
     isArray,
     isEmpty,
     isFunction,
     isObject,
+    isObservable,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -802,6 +804,28 @@ async function loadLocal<T>(
     syncState.isPersistLoaded.set(true);
 }
 
+function deepMerge<T extends object>(target: T, ...sources: any[]): T {
+    const result: T = { ...target } as T;
+
+    for (let i = 0; i < sources.length; i++) {
+        const obj2 = sources[i];
+        for (const key in obj2) {
+            if (hasOwnProperty.call(obj2, key)) {
+                if (obj2[key] instanceof Object && !isObservable(obj2[key]) && Object.keys(obj2[key]).length > 0) {
+                    (result as any)[key] = deepMerge(
+                        (result as any)[key] || (isArray((obj2 as any)[key]) ? [] : {}),
+                        (obj2 as any)[key],
+                    );
+                } else {
+                    (result as any)[key] = obj2[key];
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 export function syncObservable<T>(
     obs$: ObservableParam<T>,
     syncOptions: SyncedOptions<T>,
@@ -822,7 +846,7 @@ export function syncObservable<T>(
         throw new Error('[legend-state] syncObservable called with undefined observable');
     }
     // Merge remote sync options with global options
-    syncOptions = mergeIntoObservable(
+    syncOptions = deepMerge(
         {
             syncMode: 'auto',
         },
