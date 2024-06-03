@@ -217,4 +217,89 @@ describe('Persist IDB', () => {
 
         expect(obs2.get()).toEqual('hi');
     });
+    test('Persist IDB with prefixId setting individual', async () => {
+        const persistName = getLocalName();
+        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+
+        const obs = observable<Record<string, any>>({});
+
+        const state = syncObservable(obs, {
+            persist: {
+                name: persistName,
+                indexedDB: {
+                    prefixID: 'u',
+                },
+            },
+        });
+
+        await when(state.isPersistLoaded);
+
+        obs.id1.set({ id: 'id1', text: 'hi' });
+        obs.id2.set({ id: 'id2', text: 'hi' });
+
+        await promiseTimeout(0);
+
+        expectIDB(persistName, [
+            { id: 'u/id1', text: 'hi' },
+            { id: 'u/id2', text: 'hi' },
+        ]);
+
+        await persist.initialize!(persistOptions);
+
+        const obs2 = observable<Record<string, any>>({});
+        const state2 = syncObservable(obs2, {
+            persist: {
+                name: persistName,
+                indexedDB: {
+                    prefixID: 'u',
+                },
+            },
+        });
+
+        await when(state2.isPersistLoaded);
+
+        expect(obs2.get()).toEqual({ id1: { id: 'id1', text: 'hi' }, id2: { id: 'id2', text: 'hi' } });
+    });
+    test('Persist IDB with prefixId', async () => {
+        const persistName = getLocalName();
+        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+
+        const obs = observable<Record<string, any>>({});
+
+        const state = syncObservable(obs, {
+            persist: {
+                name: persistName,
+                indexedDB: {
+                    prefixID: 'u',
+                },
+            },
+        });
+
+        await when(state.isPersistLoaded);
+
+        obs.set({ id1: { id: 'id1', text: 'hi' }, id2: { id: 'id2', text: 'hi' } });
+
+        await promiseTimeout(0);
+
+        expectIDB(persistName, [
+            { id: 'u/id1', text: 'hi' },
+            { id: 'u/id2', text: 'hi' },
+        ]);
+
+        await persist.initialize!(persistOptions);
+
+        const obs2 = observable<Record<string, any>>({});
+        const state2 = syncObservable(obs2, {
+            persist: {
+                name: persistName,
+                indexedDB: {
+                    prefixID: 'u',
+                },
+            },
+        });
+
+        await when(state2.isPersistLoaded);
+
+        expect(obs2.get()).toEqual({ id1: { id: 'id1', text: 'hi' }, id2: { id: 'id2', text: 'hi' } });
+    });
 });
