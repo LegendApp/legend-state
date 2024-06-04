@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import pkg from './package.json';
 
 async function copy(...files: string[]) {
-    return files.map((file) => Bun.write('dist/' + file.replace('src/', ''), file, { createPath: true }));
+    return files.map((file) => Bun.write('dist/' + file.replace('src/', ''), Bun.file(file), { createPath: true }));
 }
 
 copy('LICENSE', 'CHANGELOG.md', 'README.md', 'src/types/babel.d.ts');
@@ -50,3 +50,11 @@ delete pkgOut.scripts;
 delete pkgOut.engines;
 
 Bun.write('dist/package.json', JSON.stringify(pkg, undefined, 2));
+
+async function fix_To$(path: string) {
+    const pathOld = path.replace('$', '_');
+    await Bun.write(path, Bun.file(pathOld));
+    fs.unlinkSync(pathOld);
+}
+fix_To$('dist/config/enable$GetSet.d.ts');
+fix_To$('dist/config/enable$GetSet.d.mts');
