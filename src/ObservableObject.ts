@@ -1300,7 +1300,7 @@ function setToObservable(node: NodeValue, value: any) {
 }
 
 function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
-    if (isObject(obj) || isArray(obj)) {
+    if ((isObject(obj) || isArray(obj)) && !obj[symbolOpaque as any]) {
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
             let childNode = node;
@@ -1322,29 +1322,31 @@ function recursivelyAutoActivateInner(
     pathStack: { key: string; value: any }[],
     getNodeAtPath: () => NodeValue,
 ) {
-    for (const key in obj) {
-        if (hasOwnProperty.call(obj, key)) {
-            const value = obj[key];
+    if ((isObject(obj) || isArray(obj)) && !obj[symbolOpaque as any]) {
+        for (const key in obj) {
+            if (hasOwnProperty.call(obj, key)) {
+                const value = obj[key];
 
-            if (isObservable(value)) {
-                const childNode = getNodeAtPath();
-                extractFunctionOrComputed(childNode, key, value);
-                delete childNode.lazy;
-            } else {
-                const linkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
-                if (linkedOptions) {
-                    const activate = linkedOptions.activate;
-                    if (!activate || activate === 'auto') {
-                        const childNode = getNodeAtPath();
-                        peek(getChildNode(childNode, key, value));
+                if (isObservable(value)) {
+                    const childNode = getNodeAtPath();
+                    extractFunctionOrComputed(childNode, key, value);
+                    delete childNode.lazy;
+                } else {
+                    const linkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
+                    if (linkedOptions) {
+                        const activate = linkedOptions.activate;
+                        if (!activate || activate === 'auto') {
+                            const childNode = getNodeAtPath();
+                            peek(getChildNode(childNode, key, value));
+                        }
                     }
                 }
-            }
 
-            if (typeof value === 'object') {
-                pathStack.push({ key, value });
-                recursivelyAutoActivateInner(value, pathStack, getNodeAtPath); // Recursively traverse
-                pathStack.pop();
+                if (typeof value === 'object') {
+                    pathStack.push({ key, value });
+                    recursivelyAutoActivateInner(value, pathStack, getNodeAtPath); // Recursively traverse
+                    pathStack.pop();
+                }
             }
         }
     }
