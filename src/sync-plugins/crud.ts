@@ -26,11 +26,11 @@ export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
 }
 export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial'> {
-    create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
+    create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,
         params: SyncedSetParams<TRemote>,
-    ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
+    ): Promise<CrudResult<Partial<TRemote> | null | undefined | void>>;
     delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
     fieldId?: string;
@@ -284,7 +284,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       isCreate: boolean,
                   ) => {
                       if (data) {
-                          const saved: TLocal = (transform?.load ? transform.load(data as any, 'set') : data) as any;
+                          const saved: TLocal = (
+                              transform?.load ? await transform.load(data as any, 'set') : data
+                          ) as any;
 
                           const isChild = itemKey !== 'undefined' && asType !== 'value';
                           const currentPeeked = getNodeValue(node);
@@ -338,20 +340,20 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   };
 
                   return Promise.all([
-                      ...Array.from(creates).map(([itemKey, itemValue]) => {
-                          const createObj = transformOut(itemValue as any, transform?.save) as TRemote;
+                      ...Array.from(creates).map(async ([itemKey, itemValue]) => {
+                          const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
                           return createFn!(createObj, params).then((result) =>
                               saveResult(itemKey, createObj, result as any, true),
                           );
                       }),
-                      ...Array.from(updates).map(([itemKey, itemValue]) => {
+                      ...Array.from(updates).map(async ([itemKey, itemValue]) => {
                           const toSave = updatePartial
                               ? Object.assign(
                                     diffObjects(asType === 'value' ? valuePrevious : valuePrevious[itemKey], itemValue),
                                     (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
                                 )
                               : itemValue;
-                          const changed = transformOut(toSave as TLocal, transform?.save) as TRemote & {};
+                          const changed = (await transformOut(toSave as TLocal, transform?.save)) as TRemote & {};
 
                           if (Object.keys(changed).length > 0) {
                               return updateFn!(changed, params).then(
