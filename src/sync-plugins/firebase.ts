@@ -1,4 +1,13 @@
-import { Observable, UpdateFn, isNullOrUndefined, isNumber, observable, symbolDelete, when } from '@legendapp/state';
+import {
+    Observable,
+    UpdateFn,
+    computeSelector,
+    isNullOrUndefined,
+    isNumber,
+    isPromise,
+    observable,
+    symbolDelete,
+} from '@legendapp/state';
 import { FieldTransforms, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
 import {
     CrudAsOption,
@@ -27,6 +36,10 @@ import {
     startAt,
 } from 'firebase/database';
 import { invertFieldMap, transformObjectFields } from './_transformObjectFields';
+
+// TODO: fieldId should be required if Many, not if as: value
+// as should default to value?
+// Should it have mode merge by default?
 
 export interface SyncedFirebaseProps<TRemote extends object, TLocal, TAs extends CrudAsOption = 'value'>
     extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list'>,
@@ -134,6 +147,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         readonly,
         transform: transformProp,
         fieldTransforms,
+        waitFor,
         ...rest
     } = props;
     const { fieldCreatedAt } = props;
@@ -167,11 +181,11 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                     const val = snap.val();
                     if (!isNullOrUndefined(val)) {
                         const values =
-                            asType === 'value' || !fieldId
+                            asType === 'value'
                                 ? [val]
                                 : Object.entries(val).map(([key, value]: [string, any]) => {
-                                      if (!value[fieldId]) {
-                                          value[fieldId] = key;
+                                      if (fieldId && !value[fieldId!]) {
+                                          value[fieldId!] = key;
                                       }
                                       return value;
                                   });
@@ -224,7 +238,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         : undefined;
 
     const addUpdatedAt = (input: TRemote) => {
-        if (fieldUpdatedAt && !(input as any)[fieldUpdatedAt]) {
+        if (fieldUpdatedAt) {
             (input as any)[fieldUpdatedAt] = serverTimestamp();
         }
     };
@@ -294,7 +308,8 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const deleteFn = readonly
         ? undefined
         : (input: TRemote) => {
-              const path = refPath(fns.getCurrentUser()) + (fieldId ? '/' + (input as any)[fieldId] : '');
+              const path =
+                  refPath(fns.getCurrentUser()) + (fieldId && asType !== 'value' ? '/' + (input as any)[fieldId] : '');
               return fns.remove(fns.ref(path));
           };
 
@@ -319,7 +334,14 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
             },
             save(value) {
                 const transformed = transformProp?.save ? transformProp.save(value) : value;
+                // TODO: Clean this repetition up
+                if (isPromise(transformed)) {
+                    return transformed.then((transformedValue) => {
+                        return transformObjectFields(transformedValue as any, fieldTransforms);
+                    });
+                } else {
                 return transformObjectFields(transformed as any, fieldTransforms);
+                }
             },
         };
     }
@@ -331,9 +353,11 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         create,
         update,
         delete: deleteFn,
-        waitFor: isAuthedIfRequired$,
+        waitFor: () =>
+            (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) && (waitFor ? computeSelector(waitFor) : true),
         generateId: fns.generateId,
         transform,
+        as: asType,
     }) as SyncedCrudReturnType<TLocal, TAs>;
 }
 export { invertFieldMap, transformObjectFields };
