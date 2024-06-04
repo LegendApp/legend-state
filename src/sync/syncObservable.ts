@@ -540,30 +540,34 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
     const { pluginPersist } = localState;
 
     const persist = syncOptions.persist;
-    const { table, config: configLocal } = parseLocalConfig(persist!);
-    const shouldSaveMetadata = persist?.retrySync;
+    const saveLocal = !!persist?.name;
 
-    if (saveRemote && shouldSaveMetadata) {
-        // First save pending changes before saving local or remote
-        await updateMetadataImmediate(obs, localState, syncState, syncOptions, {
-            pending: localState.pendingChanges,
-        });
-    }
+    if (saveLocal) {
+        const { table, config: configLocal } = parseLocalConfig(persist!);
+        const shouldSaveMetadata = persist?.retrySync;
 
-    if (changesLocal.length > 0) {
-        // Save the changes to local cache before saving to remote. They are already marked as pending so
-        // if remote sync fails or the app is closed before remote sync, it will attempt to sync them on the next load.
-        let promiseSet = pluginPersist!.set(table, changesLocal, configLocal);
-
-        if (promiseSet) {
-            promiseSet = promiseSet.then(() => {
-                promisesLocalSaves.delete(promiseSet as Promise<any>);
+        if (saveRemote && shouldSaveMetadata) {
+            // First save pending changes before saving local or remote
+            await updateMetadataImmediate(obs, localState, syncState, syncOptions, {
+                pending: localState.pendingChanges,
             });
-            // Keep track of local save promises so that updateMetadata runs only after everything is saved
-            promisesLocalSaves.add(promiseSet);
+        }
 
-            // await the local save before proceeding to save remotely
-            await promiseSet;
+        if (changesLocal.length > 0) {
+            // Save the changes to local cache before saving to remote. They are already marked as pending so
+            // if remote sync fails or the app is closed before remote sync, it will attempt to sync them on the next load.
+            let promiseSet = pluginPersist!.set(table, changesLocal, configLocal);
+
+            if (promiseSet) {
+                promiseSet = promiseSet.then(() => {
+                    promisesLocalSaves.delete(promiseSet as Promise<any>);
+                });
+                // Keep track of local save promises so that updateMetadata runs only after everything is saved
+                promisesLocalSaves.add(promiseSet);
+
+                // await the local save before proceeding to save remotely
+                await promiseSet;
+            }
         }
     }
 }
@@ -579,6 +583,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const { allowSetIfGetError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
         syncOptions || ({} as SyncedOptions);
     const shouldSaveMetadata = persist?.retrySync;
+    const saveLocal = !!persist?.name;
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
@@ -629,7 +634,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             if (pathStrs.length > 0) {
                 let transformedChanges: object | undefined = undefined;
                 const metadata: PersistMetadata = {};
-                if (persist) {
+                if (saveLocal) {
                     const pendingMetadata = pluginPersist!.getMetadata(table, configLocal)?.pending;
                     const pending = localState.pendingChanges;
 
@@ -678,7 +683,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         onChangeRemote(() => mergeIntoObservable(obs, ...allChanges));
                     }
 
-                    if (persist) {
+                    if (saveLocal) {
                         if (shouldSaveMetadata && !isEmpty(metadata)) {
                             updateMetadata(obs, localState, syncState, syncOptions, metadata);
                         }
@@ -726,12 +731,13 @@ async function loadLocal<T>(
     localState: LocalState,
 ) {
     const { persist } = syncOptions;
+    const node = getNode(value$);
+    const nodeValue = getNodeValue(getNode(node.state!));
 
-    if (persist) {
+    if (persist?.name) {
         const PersistPlugin: ClassConstructor<ObservablePersistPlugin> =
             persist.plugin! || observableSyncConfiguration.persist?.plugin;
         const { table, config } = parseLocalConfig(persist);
-        const node = getNode(value$);
 
         if (!PersistPlugin) {
             throw new Error('Local persist is not configured');
@@ -806,11 +812,13 @@ async function loadLocal<T>(
             internal.globalState.isLoadingLocal = false;
         }
 
-        getNodeValue(getNode(node.state!)).clearPersist = () =>
+        nodeValue.clearPersist = () =>
             Promise.all([
                 persistPlugin.deleteTable(table, config),
                 persistPlugin.deleteMetadata(table, config),
             ]) as unknown as Promise<void>;
+    } else {
+        nodeValue.clearPersist = () => {};
     }
     syncState.isPersistLoaded.set(true);
 }
