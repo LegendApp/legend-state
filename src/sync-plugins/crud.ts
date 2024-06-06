@@ -33,7 +33,6 @@ export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TL
     ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
     delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
-    onSavedUpdate?: 'createdUpdatedAt';
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     fieldDeleted?: string;
@@ -71,41 +70,6 @@ function ensureId(obj: { id: string | number }, generateId: () => string | numbe
     return obj.id;
 }
 
-function onSavedCreatedUpdatedAt<TRemote extends { id: string | number }, TLocal>(
-    mode: SyncedCrudPropsBase<TRemote>['onSavedUpdate'],
-    { saved, currentValue, isCreate, props }: SyncedCrudOnSavedParams<TRemote, TLocal>,
-): Partial<TLocal> {
-    const savedOut: Partial<TLocal> = {};
-
-    if (isCreate) {
-        // Update with any fields that are currently undefined
-        Object.keys(saved!).forEach((key) => {
-            if (isNullOrUndefined(currentValue[key as keyof TLocal])) {
-                savedOut[key as keyof TLocal] = saved[key as keyof TLocal];
-            }
-        });
-    } else if (mode === 'createdUpdatedAt') {
-        // Update with any fields ending in createdAt or updatedAt
-        Object.keys(saved!).forEach((key) => {
-            const k = key as keyof TLocal;
-            const keyLower = key.toLowerCase();
-            if (
-                (key === props.fieldCreatedAt ||
-                    key === props.fieldUpdatedAt ||
-                    keyLower.endsWith('createdat') ||
-                    keyLower.endsWith('updatedat') ||
-                    keyLower.endsWith('created_at') ||
-                    keyLower.endsWith('updated_at')) &&
-                saved[k] instanceof Date
-            ) {
-                savedOut[k] = saved[k];
-            }
-        });
-    }
-
-    return savedOut;
-}
-
 export function syncedCrud<TRemote extends { id: string | number }, TLocal = TRemote>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'value'>;
@@ -136,7 +100,6 @@ export function syncedCrud<
         fieldDeleted,
         updatePartial,
         onSaved,
-        onSavedUpdate,
         mode: modeParam,
         changesSince,
         generateId,
@@ -324,7 +287,7 @@ export function syncedCrud<
                       data: CrudResult<TRemote>,
                       isCreate: boolean,
                   ) => {
-                      if (data && (onSaved || onSavedUpdate)) {
+                      if (data) {
                           const saved: TLocal = (transform?.load ? transform.load(data as any, 'set') : data) as any;
 
                           const isChild = itemKey !== 'undefined' && asType !== 'value';
@@ -339,20 +302,30 @@ export function syncedCrud<
                               isCreate,
                               props,
                           };
-                          let savedOut: Partial<TLocal> | undefined = undefined;
-
-                          if (onSavedUpdate) {
-                              savedOut = onSavedCreatedUpdatedAt(onSavedUpdate, dataOnSaved);
-                          }
-
-                          if (onSaved) {
-                              const ret = onSaved(dataOnSaved);
-                              if (ret) {
-                                  savedOut = ret;
-                              }
-                          }
+                          let savedOut: Partial<TLocal> | undefined = saved;
 
                           if (savedOut) {
+                              // Remove keys from savedOut that have been modified locally since saving
+                              savedOut = clone(savedOut) as TLocal;
+                              Object.keys(savedOut).forEach((key) => {
+                                  const i = (input as any)[key];
+                                  const c = currentValue[key];
+                                  if (
+                                      // value is already the new value, can ignore
+                                      (savedOut as any)[key] === c ||
+                                      // user has changed local value
+                                      (key !== 'id' && i !== c)
+                                  ) {
+                                      delete (savedOut as any)[key];
+                                  }
+                              });
+
+                              if (onSaved) {
+                                  const ret = onSaved(dataOnSaved);
+                                  if (ret) {
+                                      savedOut = ret;
+                                  }
+                              }
                               const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TLocal] : undefined;
                               const updatedAt = fieldUpdatedAt ? savedOut[fieldUpdatedAt as keyof TLocal] : undefined;
 

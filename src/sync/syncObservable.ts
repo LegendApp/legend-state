@@ -60,8 +60,6 @@ interface LocalState {
     pluginPersist?: ObservablePersistPlugin;
     pluginSync?: ObservableSyncClass;
     pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
-    numSavesOutstanding?: number;
-    pendingSaveResults?: object[];
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -598,16 +596,14 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             }
         }
 
-        let value = obs.peek();
+        // Clone value to ensure it doesn't change observable value
+        let value = clone(obs.peek());
         const transformSave = syncOptions?.transform?.save;
         if (transformSave) {
-            // Clone value before transforming to ensure it doesn't change observable value
-            value = transformSave(clone(value));
+            value = transformSave(value);
         }
 
         onBeforeSet?.();
-
-        localState.numSavesOutstanding = (localState.numSavesOutstanding || 0) + 1;
 
         let savedPromise = pluginSync!.set!({
             value$: obs,
@@ -622,8 +618,6 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         }
 
         const saved = await savedPromise;
-
-        localState.numSavesOutstanding--;
 
         // If this remote save changed anything then update cache and metadata
         // Because save happens after a timeout and they're batched together, some calls to save will
@@ -665,32 +659,19 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     transformedChanges = transformLoadData(changes, syncOptions, false, 'set');
                 }
 
-                if (localState.numSavesOutstanding > 0) {
-                    if (transformedChanges) {
-                        if (!localState.pendingSaveResults) {
-                            localState.pendingSaveResults = [];
-                        }
-                        localState.pendingSaveResults.push(transformedChanges);
+                if (transformedChanges !== undefined) {
+                    if (isPromise(transformedChanges)) {
+                        transformedChanges = (await transformedChanges) as object;
                     }
-                } else {
-                    let allChanges = [...(localState.pendingSaveResults || []), transformedChanges].filter(
-                        (v) => v !== undefined,
-                    );
-                    if (allChanges.length > 0) {
-                        if (allChanges.some((change) => isPromise(change))) {
-                            allChanges = await Promise.all(allChanges);
-                        }
-                        onChangeRemote(() => mergeIntoObservable(obs, ...allChanges));
-                    }
-
-                    if (saveLocal) {
-                        if (shouldSaveMetadata && !isEmpty(metadata)) {
-                            updateMetadata(obs, localState, syncState, syncOptions, metadata);
-                        }
-                    }
-
-                    localState.pendingSaveResults = [];
+                    onChangeRemote(() => mergeIntoObservable(obs, transformedChanges));
                 }
+
+                if (saveLocal) {
+                    if (shouldSaveMetadata && !isEmpty(metadata)) {
+                        updateMetadata(obs, localState, syncState, syncOptions, metadata);
+                    }
+                }
+
                 onAfterSet?.();
             }
         }

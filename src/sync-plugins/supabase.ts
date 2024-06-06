@@ -241,7 +241,6 @@ export function syncedSupabase<
         fieldUpdatedAt,
         fieldDeleted,
         updatePartial: false,
-        onSavedUpdate: 'createdUpdatedAt',
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),

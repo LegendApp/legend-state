@@ -62,10 +62,10 @@ function reviver(key: string, value: any) {
 }
 
 export function safeStringify(value: any) {
-    return JSON.stringify(value, replacer);
+    return value ? JSON.stringify(value, replacer) : value;
 }
 export function safeParse(value: any) {
-    return JSON.parse(value, reviver);
+    return value ? JSON.parse(value, reviver) : value;
 }
 export function clone<T>(value: T) {
     return safeParse(safeStringify(value));

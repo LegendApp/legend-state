@@ -2,6 +2,7 @@ import { observable, observe, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import { clone } from '../src/globals';
 
 interface BasicValue {
     id: string;
@@ -96,11 +97,11 @@ describe('Crud object get', () => {
                 syncedCrud({
                     ...params,
                     create: async (input) => {
-                        created = input;
+                        created = clone(input);
                         return input;
                     },
                     update: async (input) => {
-                        updated = input;
+                        updated = clone(input);
                         return input;
                     },
                 }),
@@ -136,11 +137,11 @@ describe('Crud object get', () => {
                 syncedCrud({
                     ...params,
                     create: async (input) => {
-                        created = input;
+                        created = clone(input);
                         return input;
                     },
                     update: async (input) => {
-                        updated = input;
+                        updated = clone(input);
                         return input;
                     },
                 }),
@@ -172,7 +173,7 @@ describe('Crud object get', () => {
                 syncedCrud({
                     ...params,
                     create: async (input) => {
-                        saved = input;
+                        saved = clone(input);
                         return input;
                     },
                 }),
@@ -349,11 +350,11 @@ describe('Crud as Object list', () => {
                 list: () => [ItemBasicValue()],
                 as: 'object',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -387,11 +388,11 @@ describe('Crud as Object list', () => {
                 list: () => [ItemBasicValue()],
                 as: 'object',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -425,11 +426,11 @@ describe('Crud as Object list', () => {
                 list: () => [ItemBasicValue()],
                 as: 'object',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -461,11 +462,11 @@ describe('Crud as Object list', () => {
                 list: () => [ItemBasicValue()],
                 as: 'object',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -653,11 +654,11 @@ describe('Crud as Map', () => {
                 list: () => [ItemBasicValue()],
                 as: 'Map',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -696,11 +697,11 @@ describe('Crud as Map', () => {
                 list: () => [ItemBasicValue()],
                 as: 'Map',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -739,11 +740,11 @@ describe('Crud as Map', () => {
                 list: () => [ItemBasicValue()],
                 as: 'Map',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -863,11 +864,11 @@ describe('Crud as Array', () => {
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -901,11 +902,11 @@ describe('Crud as Array', () => {
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -939,11 +940,11 @@ describe('Crud as Array', () => {
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -978,11 +979,11 @@ describe('Crud as Array', () => {
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -1017,11 +1018,11 @@ describe('Crud as Array', () => {
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -1053,11 +1054,11 @@ describe('Crud as Array', () => {
                 list: () => [ItemBasicValue()],
                 as: 'array',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -1166,11 +1167,11 @@ describe('Crud record transform', () => {
             syncedCrud({
                 get: () => null,
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
                 transform: {
@@ -1215,11 +1216,11 @@ describe('Crud record transform', () => {
             syncedCrud({
                 get: ItemBasicValue,
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
                 transform: {
@@ -1271,11 +1272,11 @@ describe('fieldUpdatedAt', () => {
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -1302,11 +1303,11 @@ describe('fieldUpdatedAt', () => {
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     return input;
                 },
             }),
@@ -1342,11 +1343,11 @@ describe('fieldUpdatedAt', () => {
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
+                    updated = clone(input);
                     // Check this here because it will be updated in place by onSaved before
                     // the next expects can get to it
                     expect(input).toEqual({
@@ -1372,7 +1373,7 @@ describe('fieldUpdatedAt', () => {
         expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
-            updatedAt: 'now',
+            updatedAt: 'before',
         });
 
         expect(obs.get()).toEqual({
@@ -1729,79 +1730,141 @@ describe('subscribe', () => {
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
     });
 });
-describe('lastSync', () => {
-    test('generateId as string', async () => {
-        const generateId = () => 'id1';
+describe('onSaved', () => {
+    test('without onSaved updates with id', async () => {
         let created = undefined;
-        let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [],
-                as: 'array',
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
-                update: async (input) => {
-                    updated = input;
-                    return input;
-                },
-                generateId,
+                generateId: () => 'id1',
             }),
         );
 
-        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+
+        obs.id1.set({ test: 'hello', id: undefined as unknown as string });
 
         await promiseTimeout(0);
 
-        obs.push({ id: undefined as any, test: 'test1' });
+        expect(created).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
 
-        await promiseTimeout(0);
-
-        expect(updated).toEqual(undefined);
-        expect(created).toEqual({ id: 'id1', test: 'test1' });
-        expect(obs.get()).toEqual([
-            {
+        expect(obs.get()).toEqual({
+            id1: {
                 id: 'id1',
-                test: 'test1',
+                test: 'hello',
             },
-        ]);
+        });
     });
-    test('generateId as number', async () => {
-        const generateId = () => 1001;
+    test('without onSaved updates with saved values', async () => {
         let created = undefined;
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [],
-                as: 'array',
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } as BasicValue },
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
-                    created = input;
+                    created = clone(input);
                     return input;
                 },
                 update: async (input) => {
-                    updated = input;
-                    return input;
+                    updated = clone(input);
+                    // Check this here because it will be updated in place by onSaved before
+                    // the next expects can get to it
+                    expect(input).toEqual({
+                        id: 'id1',
+                        test: 'hello',
+                        updatedAt: 'before',
+                    });
+                    return { ...input, updatedAt: 'now' };
                 },
-                generateId,
             }),
         );
 
-        expect(obs.get()).toEqual(undefined);
+        await promiseTimeout(0);
+
+        obs.id1.test.set('hello');
 
         await promiseTimeout(0);
 
-        obs.push({ id: undefined as any, test: 'test1' });
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+            updatedAt: 'before',
+        });
 
-        await promiseTimeout(0);
-
-        expect(updated).toEqual(undefined);
-        expect(created).toEqual({ id: 1001, test: 'test1' });
-        expect(obs.get()).toEqual([
-            {
-                id: 1001,
-                test: 'test1',
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                updatedAt: 'now',
             },
-        ]);
+        });
+    });
+    test('without onSaved updates with saved values ignores values changed locally', async () => {
+        let created = undefined;
+        let updated = undefined;
+        const canSave$ = observable(false);
+        const isSaving$ = observable(false);
+        const obs = observable(
+            syncedCrud({
+                initial: {
+                    id1: { ...ItemBasicValue(), updatedAt: 'before', changing: '0' } as BasicValue & {
+                        changing: string;
+                    },
+                },
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    created = clone(input);
+                    return input;
+                },
+                update: async (input) => {
+                    isSaving$.set(true);
+                    await when(canSave$);
+                    updated = clone(input);
+                    canSave$.set(false);
+                    return { ...input, updatedAt: 'now' };
+                },
+            }),
+        );
+
+        await promiseTimeout(0);
+
+        obs.id1.test.set('hello');
+
+        await when(isSaving$);
+
+        obs.id1.changing.set('1');
+
+        canSave$.set(true);
+
+        await promiseTimeout(0);
+
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello',
+            updatedAt: 'before',
+            changing: '0',
+        });
+
+        expect(obs.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                updatedAt: 'now',
+                changing: '1',
+            },
+        });
     });
 });

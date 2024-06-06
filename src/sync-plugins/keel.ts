@@ -477,7 +477,6 @@ export function syncedKeel<
         delete: deleteFn,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
         onSaved,
-        onSavedUpdate: 'createdUpdatedAt',
         fieldCreatedAt,
         fieldUpdatedAt,
         fieldDeleted: fieldDeleted || 'deleted',
