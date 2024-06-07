@@ -9,13 +9,13 @@ import {
     getNodeValue,
     globalState,
     isObservable,
+    isOpaqueObject,
     optimized,
     setNodeValue,
     symbolDelete,
     symbolGetNode,
     symbolIterator,
     symbolLinked,
-    symbolOpaque,
     symbolToPrimitive,
 } from './globals';
 import {
@@ -136,10 +136,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
         }
         __devUpdateNodes.add(obj);
     }
-    if (
-        (isObject(obj) && (obj as Record<any, any>)[symbolOpaque as any]) ||
-        (isObject(prevValue) && prevValue[symbolOpaque as any])
-    ) {
+    if ((isObject(obj) && isOpaqueObject(obj)) || (isObject(prevValue) && isOpaqueObject(prevValue))) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners || parent.listenersImmediate) {
@@ -467,7 +464,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let vProp = value?.[p];
 
-        if (isObject(value) && value[symbolOpaque as any]) {
+        if (isObject(value) && isOpaqueObject(value)) {
             return vProp;
         }
 
@@ -1312,7 +1309,7 @@ function setToObservable(node: NodeValue, value: any) {
 }
 
 function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
-    if ((isObject(obj) || isArray(obj)) && !obj[symbolOpaque as any]) {
+    if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
             let childNode = node;
@@ -1334,7 +1331,7 @@ function recursivelyAutoActivateInner(
     pathStack: { key: string; value: any }[],
     getNodeAtPath: () => NodeValue,
 ) {
-    if ((isObject(obj) || isArray(obj)) && !obj[symbolOpaque as any]) {
+    if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
         for (const key in obj) {
             if (hasOwnProperty.call(obj, key)) {
                 const value = obj[key];

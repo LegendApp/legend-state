@@ -21,6 +21,11 @@ export const globalState = {
     reviver: undefined as undefined | ((this: any, key: string, value: any) => any),
 };
 
+export function isOpaqueObject(value: any) {
+    // React elements have $$typeof and should be treated as opaque
+    return value && (value[symbolOpaque] || value['$$typeof']);
+}
+
 export function getPathType(value: any): TypeAtPath {
     return isArray(value) ? 'array' : isMap(value) ? 'map' : value instanceof Set ? 'set' : 'object';
 }
