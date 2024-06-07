@@ -1078,7 +1078,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                 value = setToObservable(node, value);
             }
 
-            if (isFunction(value)) {
+            if (isFunction(value) && value.length === 0) {
                 value = value();
             }
             const activated = !isObservable(value)
@@ -1159,7 +1159,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                             set(node, value);
                             node.isComputing = false;
                         } else {
+                            if (!isFunction(value)) {
                             setNodeValue(node, value);
+                            }
                             node.state!.assign({
                                 isLoaded: true,
                                 error: undefined,
@@ -1297,7 +1299,9 @@ function setToObservable(node: NodeValue, value: any) {
             linkedNode,
             () => {
                 value = peekInternal(linkedNode);
+                if (!isFunction(value)) {
                 set(node, value);
+                }
             },
             { initial: true },
             new Set([node]),

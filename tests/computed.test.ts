@@ -1302,6 +1302,16 @@ describe('lookup', () => {
         const obs = observable((key: string) => 'proxied_' + key);
         expect(obs.test.get()).toEqual('proxied_test');
     });
+    test('lookup is not called with undefined key', async () => {
+        const obs = observable({
+            items: { test1: { text: 'hi' }, test2: { text: 'hello' } } as Record<string, { text: string }>,
+            itemText: (key: string): Observable<string> => {
+                expect(typeof key).toEqual('string');
+                return obs.items[key].text;
+            },
+        });
+        expect(obs.itemText['test1'].get()).toEqual('hi');
+    });
     test('lookup basic as child', async () => {
         const obs = observable<{ child: Record<string, string> }>({
             child: (key: string) => 'proxied_' + key,
