@@ -1,5 +1,5 @@
 import { act, render, renderHook } from '@testing-library/react';
-import { StrictMode, Suspense, createElement, useReducer, useState } from 'react';
+import React, { StrictMode, Suspense, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
 import { Observable } from '../src/observableTypes';
@@ -1457,11 +1457,7 @@ describe('Memo', () => {
 
             obs$ = obsLocal$;
 
-            return createElement(
-                'div',
-                undefined,
-                createElement(Memo, undefined, (() => (obsLocal$.get() ? A : B)) as any),
-            );
+            return createElement('div', undefined, <Memo>{(() => (obsLocal$.get() ? A : B)) as any}</Memo>);
         };
 
         const { container } = render(createElement(Test));
@@ -1480,5 +1476,66 @@ describe('Memo', () => {
 
         items = container.querySelectorAll('div');
         expect(items[0].textContent).toEqual('BB');
+    });
+    test('Memo works with a string', () => {
+        const obs$ = observable({ test: 'hi' });
+        const Test = function Test() {
+            return (
+                <div>
+                    <Memo>{obs$.test}</Memo>
+                </div>
+            );
+        };
+
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('div');
+
+        expect(items[0].textContent).toEqual('hi');
+
+        act(() => {
+            obs$.test.set('hello');
+        });
+
+        expect(items[0].textContent).toEqual('hello');
+    });
+});
+describe('react validation', () => {
+    test('react validation', () => {
+        // A subset of React's dev validation to make sure nothing breaks in there
+        function getIteratorFn(maybeIterable: any) {
+            const MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+            const FAUX_ITERATOR_SYMBOL = '@@iterator';
+            if (maybeIterable === null || typeof maybeIterable !== 'object') {
+                return null;
+            }
+
+            const maybeIterator =
+                (MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL]) || maybeIterable[FAUX_ITERATOR_SYMBOL];
+
+            if (typeof maybeIterator === 'function') {
+                return maybeIterator;
+            }
+
+            return null;
+        }
+
+        function validateChildKeys(node: any) {
+            if (node) {
+                const iteratorFn = getIteratorFn(node);
+
+                if (typeof iteratorFn === 'function') {
+                    // Entry iterators used to provide implicit keys,
+                    // but now we print a separate warning for them later.
+                    if (iteratorFn !== node.entries) {
+                        const iterator = iteratorFn.call(node);
+                        expect(iterator).not.toBe(undefined);
+                    }
+                }
+            }
+        }
+
+        const obs$ = observable({ test: 'hello' });
+        validateChildKeys(obs$.test);
     });
 });

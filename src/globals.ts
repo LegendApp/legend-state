@@ -3,6 +3,7 @@ import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observa
 import type { Observable, ObservableParam } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
+export const symbolIterator = Symbol.iterator;
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');

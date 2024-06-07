@@ -13,6 +13,7 @@ import {
     setNodeValue,
     symbolDelete,
     symbolGetNode,
+    symbolIterator,
     symbolLinked,
     symbolOpaque,
     symbolToPrimitive,
@@ -404,14 +405,20 @@ const proxyHandler: ProxyHandler<any> = {
             return node;
         }
 
-        if (p === 'apply') {
+        if (p === 'apply' || p === 'call') {
             const nodeValue = getNodeValue(node);
             if (isFunction(nodeValue)) {
-                return nodeValue.apply;
+                return nodeValue[p];
             }
         }
 
         let value = peekInternal(node, /*activateRecursive*/ p === 'get' || p === 'peek');
+
+        // Trying to get an iterator if the raw value is a primitive should return undefined.
+        // React dev validation does this for example, and crashes if it gets an actual iterator.
+        if (p === symbolIterator) {
+            return !value || isPrimitive(value) ? undefined : value[p];
+        }
 
         // If this node is linked to another observable then forward to the target's handler.
         // The exception is onChange because it needs to listen to this node for changes.
