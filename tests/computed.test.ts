@@ -1818,11 +1818,29 @@ describe('Link directly', () => {
         const obs2 = observable(obs);
         expect(obs2.get()).toEqual('hi');
     });
+    test('Set a child of an object of direct links', () => {
+        const obs$ = observable({ key1: 'hi', key2: 'hi2' });
+        const obs2$ = observable(() => ({ key1: obs$.key1 }));
+        obs2$.key1.set('hi1');
+        expect(obs$.get()).toEqual({ key1: 'hi1', key2: 'hi2' });
+    });
     test('Delete child of a direct link', () => {
         const obs = observable({ key1: 'hi', key2: 'hi2' });
         const obs2 = observable(obs);
         obs2.key1.delete();
         expect(obs.get()).toEqual({ key2: 'hi2' });
+    });
+    test('Delete a direct link', () => {
+        const obs = observable({ key1: 'hi', key2: 'hi2' });
+        const obs2 = observable(() => obs.key1);
+        obs2.delete();
+        expect(obs.get()).toEqual({ key2: 'hi2' });
+    });
+    test('Delete a child of an object of direct links', () => {
+        const obs$ = observable({ key1: 'hi', key2: 'hi2' });
+        const obs2$ = observable(() => ({ key1: obs$.key1 }));
+        obs2$.key1.delete();
+        expect(obs$.get()).toEqual({ key2: 'hi2' });
     });
 });
 describe('Complex computeds', () => {

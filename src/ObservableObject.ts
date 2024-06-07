@@ -895,6 +895,7 @@ function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
         const targetNode = getNode(v);
         // Set node to target's value if activating or it's already activated
         const initialValue = peek(targetNode);
+        setToObservable(childNode, v);
         setNodeValue(childNode, initialValue);
         return getNodeValue(childNode);
     } else if (typeof v === 'function') {
@@ -1160,7 +1161,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                             node.isComputing = false;
                         } else {
                             if (!isFunction(value)) {
-                            setNodeValue(node, value);
+                                setNodeValue(node, value);
                             }
                             node.state!.assign({
                                 isLoaded: true,
@@ -1300,7 +1301,7 @@ function setToObservable(node: NodeValue, value: any) {
             () => {
                 value = peekInternal(linkedNode);
                 if (!isFunction(value)) {
-                set(node, value);
+                    set(node, value);
                 }
             },
             { initial: true },
