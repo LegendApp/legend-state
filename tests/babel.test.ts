@@ -2,6 +2,10 @@ import { pluginTester } from 'babel-plugin-tester';
 
 import plugin from '../src/babel';
 
+// Fix babel-plugin-tester errors running in bun test
+globalThis.describe = describe;
+globalThis.it = it;
+
 describe('babel tests', () => {
     pluginTester({
         plugin,
