@@ -7,6 +7,7 @@ import {
     isPromise,
     observable,
     symbolDelete,
+    when,
 } from '@legendapp/state';
 import { FieldTransforms, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
 import {
@@ -340,7 +341,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                         return transformObjectFields(transformedValue as any, fieldTransforms);
                     });
                 } else {
-                return transformObjectFields(transformed as any, fieldTransforms);
+                    return transformObjectFields(transformed as any, fieldTransforms);
                 }
             },
         };
