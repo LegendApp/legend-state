@@ -85,6 +85,7 @@ interface BaseNodeValue {
     numListenersRecursive: number;
     state?: Observable<ObservableSyncState>;
     activated?: boolean;
+    recursivelyAutoActivated?: boolean;
     activationState?: LinkedOptions & { onError?: () => void; persistedRetry?: boolean };
     dirtyFn?: () => void;
     dirtyChildren?: Set<NodeValue>;

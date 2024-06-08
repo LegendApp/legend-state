@@ -1309,7 +1309,8 @@ function setToObservable(node: NodeValue, value: any) {
 }
 
 function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
-    if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
+    if (!node.recursivelyAutoActivated && (isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
+        node.recursivelyAutoActivated = true;
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
             let childNode = node;
@@ -1341,7 +1342,7 @@ function recursivelyAutoActivateInner(
                     extractFunctionOrComputed(childNode, key, value);
                     delete childNode.lazy;
                 } else {
-                    const linkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
+                    const linkedOptions: LinkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
                     if (linkedOptions) {
                         const activate = linkedOptions.activate;
                         if (!activate || activate === 'auto') {
