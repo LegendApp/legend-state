@@ -180,8 +180,9 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                 ref,
                 async (snap) => {
                     const val = snap.val();
+                    let values: any[] = [];
                     if (!isNullOrUndefined(val)) {
-                        const values =
+                        values =
                             asType === 'value'
                                 ? [val]
                                 : Object.entries(val).map(([key, value]: [string, any]) => {
@@ -190,10 +191,9 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                                       }
                                       return value;
                                   });
-
-                        didList = true;
-                        resolve(values);
                     }
+                    didList = true;
+                    resolve(values);
                 },
                 onError,
             );
