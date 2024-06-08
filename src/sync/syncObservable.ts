@@ -963,6 +963,22 @@ export function syncObservable<T>(
                             });
                         }
                     };
+                    // Subscribe before getting to ensure we don't miss updates between now and the get returning
+                    if (!isSubscribed && syncOptions.subscribe) {
+                        isSubscribed = true;
+                        unsubscribe = syncOptions.subscribe({
+                            node,
+                            value$: obs$,
+                            lastSync,
+                            update: (params: ObservableOnChangeParams) => {
+                                when(node.state!.isLoaded, () => {
+                                    params.mode ||= syncOptions.mode || 'merge';
+                                    onChange(params);
+                                });
+                            },
+                            refresh: () => when(node.state!.isLoaded, sync),
+                        });
+                    }
                     const getParams = {
                         state: syncState,
                         value$: obs$,
@@ -991,22 +1007,6 @@ export function syncObservable<T>(
                         got.then(handle);
                     } else {
                         handle(got);
-                    }
-
-                    if (!isSubscribed && syncOptions.subscribe) {
-                        isSubscribed = true;
-                        unsubscribe = syncOptions.subscribe({
-                            node,
-                            value$: obs$,
-                            lastSync,
-                            update: (params: ObservableOnChangeParams) => {
-                                when(node.state!.isLoaded, () => {
-                                    params.mode ||= syncOptions.mode || 'merge';
-                                    onChange(params);
-                                });
-                            },
-                            refresh: () => when(node.state!.isLoaded, sync),
-                        });
                     }
                 };
 
