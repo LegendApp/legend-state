@@ -205,7 +205,7 @@ export function syncedSupabase<
                               if (valueDateStr && (!curDateStr || valueDate > +new Date(curDateStr))) {
                                   // Update local with the new value
                                   update({
-                                      value: { [value.id]: value },
+                                      value: [value],
                                       lastSync: valueDate,
                                       mode: 'merge',
                                   });
@@ -213,7 +213,7 @@ export function syncedSupabase<
                           } else if (eventType === 'DELETE') {
                               const { id } = old;
                               update({
-                                  value: { [id]: symbolDelete },
+                                  value: [{ [id]: symbolDelete }],
                               });
                           }
                       },

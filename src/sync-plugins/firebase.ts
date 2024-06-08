@@ -210,8 +210,8 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                   const val = snap.val();
                   if (!saving$[key].get()) {
                       update({
-                          value: { [key]: val },
-                          mode: 'merge',
+                          value: [val],
+                          mode: 'assign',
                       });
                   } else {
                       updateFn = update;
@@ -223,8 +223,8 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
                   const key = snap.key!;
                   update({
-                      value: { [key]: symbolDelete },
-                      mode: 'merge',
+                      value: [{ [key]: symbolDelete }],
+                      mode: 'assign',
                   });
               };
               const unsubscribes = [

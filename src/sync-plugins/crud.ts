@@ -1,5 +1,14 @@
+/* eslint-disable no-debugger */
 import { getNodeValue, internal, isNullOrUndefined } from '@legendapp/state';
-import { SyncedGetParams, SyncedOptions, SyncedSetParams, deepEqual, diffObjects, synced } from '@legendapp/state/sync';
+import {
+    SyncedGetParams,
+    SyncedOptions,
+    SyncedSetParams,
+    SyncedSubscribeParams,
+    deepEqual,
+    diffObjects,
+    synced,
+} from '@legendapp/state/sync';
 
 const { clone } = internal;
 
@@ -93,6 +102,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         fieldUpdatedAt,
         fieldDeleted,
         updatePartial,
+        subscribe: subscribeProp,
         onSaved,
         mode: modeParam,
         changesSince,
@@ -110,6 +120,22 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
     const asMap = asType === 'Map';
     const asArray = asType === 'array';
+
+    const resultsToOutType = (results: any[]) => {
+        const out = asType === 'array' ? [] : asMap ? new Map() : {};
+        for (let i = 0; i < results.length; i++) {
+            let result = results[i];
+            result = result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
+            if (asArray) {
+                (out as any[]).push(result);
+            } else if (asMap) {
+                (out as Map<string, any>).set(result.id, result);
+            } else {
+                (out as Record<string, any>)[result.id] = result;
+            }
+        }
+        return out;
+    };
 
     const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
         getFn || listFn
@@ -146,19 +172,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           const results = transformed.map((result: any) =>
                               result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result,
                           );
-                          const out = asType === 'array' ? [] : asMap ? new Map() : {};
-                          for (let i = 0; i < results.length; i++) {
-                              let result = results[i];
-                              result = result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
-                              if (asArray) {
-                                  (out as any[]).push(result);
-                              } else if (asMap) {
-                                  (out as Map<string, any>).set(result.id, result);
-                              } else {
-                                  (out as Record<string, any>)[result.id] = result;
-                              }
-                          }
-                          return out;
+                          return resultsToOutType(results);
                       }
                   } else if (getFn) {
                       const data = await getFn(getParams);
@@ -378,9 +392,35 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
               }
             : undefined;
 
+    const subscribe: typeof subscribeProp = subscribeProp
+        ? transform
+            ? (params: SyncedSubscribeParams<TRemote>) =>
+                  subscribeProp({
+                      ...params,
+                      update: async (paramsUpdate) => {
+                          if (getFn) {
+                              paramsUpdate.value = transform.load
+                                  ? transform.load!(paramsUpdate.value as any, 'get')
+                                  : paramsUpdate.value;
+                          } else if (listFn) {
+                              // TODO: Fix type of subscribe for crud
+                              const rows = paramsUpdate.value as any[];
+                              const rowsTransformed = transform.load
+                                  ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
+                                  : rows;
+
+                              paramsUpdate.value = resultsToOutType(rowsTransformed);
+                          }
+                          params.update(paramsUpdate);
+                      },
+                  })
+            : subscribeProp
+        : undefined;
+
     return synced<any>({
         set,
         get,
+        subscribe,
         mode: modeParam,
         ...rest,
     });
