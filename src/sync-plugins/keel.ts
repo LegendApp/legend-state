@@ -407,7 +407,7 @@ export function syncedKeel<
             }
             // This has already been saved but didn't update pending changes, so just update with {} to clear the pending state
             update({
-                value: {},
+                value: {} as TRemote,
                 mode: 'assign',
             });
         } else if (error.type === 'bad_request') {
@@ -468,7 +468,7 @@ export function syncedKeel<
           }
         : undefined;
 
-    const subscribe = (params: SyncedSubscribeParams<TRemote>) => {
+    const subscribe = (params: SyncedSubscribeParams<TRemote[]>) => {
         let unsubscribe: undefined | (() => void) = undefined;
         when(subscribeFnKey$, () => {
             unsubscribe = subscribeFn!(params);

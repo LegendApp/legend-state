@@ -1,5 +1,4 @@
-/* eslint-disable no-debugger */
-import { getNodeValue, internal, isNullOrUndefined } from '@legendapp/state';
+import { UpdateFnParams, getNodeValue, internal, isNullOrUndefined } from '@legendapp/state';
 import {
     SyncedGetParams,
     SyncedOptions,
@@ -20,11 +19,13 @@ export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
     get?: (params: SyncedGetParams) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
     initial?: InitialValue<TLocal, 'value'>;
     as?: never | 'value';
+    subscribe?: (params: SyncedSubscribeParams<TRemote>) => (() => void) | void;
 }
 export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
     list?: (params: SyncedGetParams) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
+    subscribe?: (params: SyncedSubscribeParams<TRemote[]>) => (() => void) | void;
 }
 export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     saved: TLocal;
@@ -33,8 +34,9 @@ export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     isCreate: boolean;
     props: SyncedCrudPropsBase<TRemote, TLocal>;
 }
+
 export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
-    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial'> {
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,
@@ -392,29 +394,29 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
               }
             : undefined;
 
-    const subscribe: typeof subscribeProp = subscribeProp
-        ? transform
-            ? (params: SyncedSubscribeParams<TRemote>) =>
-                  subscribeProp({
-                      ...params,
-                      update: async (paramsUpdate) => {
-                          if (getFn) {
-                              paramsUpdate.value = transform.load
-                                  ? transform.load!(paramsUpdate.value as any, 'get')
-                                  : paramsUpdate.value;
-                          } else if (listFn) {
-                              // TODO: Fix type of subscribe for crud
-                              const rows = paramsUpdate.value as any[];
-                              const rowsTransformed = transform.load
-                                  ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
-                                  : rows;
+    const subscribe: SyncedOptions['subscribe'] = subscribeProp
+        ? (params: SyncedSubscribeParams<TRemote>) =>
+              subscribeProp({
+                  ...params,
+                  update: async (paramsUpdate) => {
+                      const paramsForUpdate: UpdateFnParams<any> = paramsUpdate as any;
 
-                              paramsUpdate.value = resultsToOutType(rowsTransformed);
-                          }
-                          params.update(paramsUpdate);
-                      },
-                  })
-            : subscribeProp
+                      if (getFn) {
+                          paramsForUpdate.value = transform?.load
+                              ? await transform.load!(paramsUpdate.value as any, 'get')
+                              : paramsUpdate.value;
+                      } else if (listFn) {
+                          // TODO: Fix type of subscribe for crud
+                          const rows = paramsUpdate.value as any[];
+                          const rowsTransformed = transform?.load
+                              ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
+                              : rows;
+
+                          paramsForUpdate.value = resultsToOutType(rowsTransformed);
+                      }
+                      params.update(paramsForUpdate);
+                  },
+              })
         : undefined;
 
     return synced<any>({

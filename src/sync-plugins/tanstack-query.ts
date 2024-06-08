@@ -80,7 +80,7 @@ export function syncedQuery<
         return result.data!;
     };
 
-    const subscribe = ({ update }: SyncedSubscribeParams<TData>) => {
+    const subscribe = ({ update }: SyncedSubscribeParams<any>) => {
         // Subscribe to Query's observer and update the observable
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result) => {
@@ -97,7 +97,7 @@ export function syncedQuery<
         return unsubscribe;
     };
 
-    let set: undefined | (({ value }: SyncedSetParams<TData>) => Promise<TData>) = undefined;
+    let set: undefined | (({ value }: SyncedSetParams<any>) => Promise<TData>) = undefined;
     if (mutationOptions) {
         const mutator = new MutationObserver(queryClient!, mutationOptions);
         set = ({ value }: SyncedSetParams<TData>) => {

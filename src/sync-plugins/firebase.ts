@@ -43,7 +43,7 @@ import { invertFieldMap, transformObjectFields } from './_transformObjectFields'
 // Should it have mode merge by default?
 
 export interface SyncedFirebaseProps<TRemote extends object, TLocal, TAs extends CrudAsOption = 'value'>
-    extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list'>,
+    extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list' | 'retry'>,
         SyncedCrudPropsBase<TRemote, TLocal> {
     refPath: (uid: string | undefined) => string;
     query?: (ref: DatabaseReference) => DatabaseReference | Query;
@@ -135,7 +135,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const saving$ = observable<Record<string, boolean>>({});
     const pendingOutgoing$ = observable<Record<string, any>>({});
     const pendingIncoming$ = observable<Record<string, any>>({});
-    let updateFn: UpdateFn | undefined = undefined;
+    let updateFn: UpdateFn<any> | undefined = undefined;
     let didList = false;
 
     const {
@@ -201,7 +201,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     };
 
     const subscribe = realtime
-        ? ({ lastSync, update }: SyncedSubscribeParams<TRemote>) => {
+        ? ({ lastSync, update }: SyncedSubscribeParams<TRemote[]>) => {
               const ref = computeRef(lastSync!);
               const onChildChange = (snap: DataSnapshot) => {
                   if (!didList) return;
@@ -223,7 +223,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
                   const key = snap.key!;
                   update({
-                      value: [{ [key]: symbolDelete }],
+                      value: [{ [key]: symbolDelete } as TRemote],
                       mode: 'assign',
                   });
               };
