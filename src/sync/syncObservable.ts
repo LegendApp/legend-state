@@ -19,6 +19,7 @@ import {
     isArray,
     isEmpty,
     isFunction,
+    isMap,
     isObject,
     isObservable,
     isPromise,
@@ -949,7 +950,7 @@ export function syncObservable<T>(
                             }
 
                             onChangeRemote(() => {
-                                if (mode === 'assign' && isObject(value)) {
+                                if (mode === 'assign' && (isObject(value) || isMap(value))) {
                                     (obs$ as unknown as Observable<object>).assign(value);
                                 } else if (mode === 'append' && isArray(value)) {
                                     (obs$ as unknown as Observable<any[]>).push(...value);
