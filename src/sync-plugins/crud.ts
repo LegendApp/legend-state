@@ -1,4 +1,4 @@
-import { UpdateFnParams, getNodeValue, internal, isNullOrUndefined } from '@legendapp/state';
+import { UpdateFnParams, getNodeValue, internal, isArray, isNullOrUndefined } from '@legendapp/state';
 import {
     SyncedGetParams,
     SyncedOptions,
@@ -19,13 +19,11 @@ export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
     get?: (params: SyncedGetParams) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
     initial?: InitialValue<TLocal, 'value'>;
     as?: never | 'value';
-    subscribe?: (params: SyncedSubscribeParams<TRemote>) => (() => void) | void;
 }
 export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
     list?: (params: SyncedGetParams) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
-    subscribe?: (params: SyncedSubscribeParams<TRemote[]>) => (() => void) | void;
 }
 export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     saved: TLocal;
@@ -51,6 +49,7 @@ export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     updatePartial?: boolean;
     changesSince?: 'all' | 'last-sync';
     generateId?: () => string | number;
+    subscribe?: (params: SyncedSubscribeParams<TRemote[]>) => (() => void) | void;
 }
 
 type InitialValue<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
@@ -124,6 +123,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     const asArray = asType === 'array';
 
     const resultsToOutType = (results: any[]) => {
+        if (asType === 'value') {
+            return results[0];
+        }
         const out = asType === 'array' ? [] : asMap ? new Map() : {};
         for (let i = 0; i < results.length; i++) {
             let result = results[i];
@@ -395,25 +397,24 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
             : undefined;
 
     const subscribe: SyncedOptions['subscribe'] = subscribeProp
-        ? (params: SyncedSubscribeParams<TRemote>) =>
+        ? (params: SyncedSubscribeParams) =>
               subscribeProp({
                   ...params,
                   update: async (paramsUpdate) => {
                       const paramsForUpdate: UpdateFnParams<any> = paramsUpdate as any;
 
-                      if (getFn) {
-                          paramsForUpdate.value = transform?.load
-                              ? await transform.load!(paramsUpdate.value as any, 'get')
-                              : paramsUpdate.value;
-                      } else if (listFn) {
-                          // TODO: Fix type of subscribe for crud
-                          const rows = paramsUpdate.value as any[];
-                          const rowsTransformed = transform?.load
-                              ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
-                              : rows;
+                      const rows = paramsUpdate.value as any[];
 
-                          paramsForUpdate.value = resultsToOutType(rowsTransformed);
+                      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                          if (!isArray(rows)) {
+                              console.error('[legend-state] subscribe:update expects an array of changed items');
+                          }
                       }
+                      const rowsTransformed = transform?.load
+                          ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
+                          : rows;
+
+                      paramsForUpdate.value = resultsToOutType(rowsTransformed);
                       params.update(paramsForUpdate);
                   },
               })

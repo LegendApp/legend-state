@@ -1734,6 +1734,80 @@ describe('subscribe', () => {
         await promiseTimeout(0);
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
     });
+    test('subscribe with update as Map', async () => {
+        const set1$ = observable(false);
+        const set2$ = observable(false);
+        const obs = observable(
+            syncedCrud({
+                list: () => [{ id: 1 }],
+                as: 'Map',
+                mode: 'assign',
+                subscribe: ({ update }) => {
+                    when(set1$, () => {
+                        update({ value: [{ id: 2 }] });
+                    });
+                    when(set2$, () => {
+                        update({ value: [{ id: 3 }] });
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual(new Map([[1, { id: 1 }]]));
+
+        set1$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual(
+            new Map([
+                [1, { id: 1 }],
+                [2, { id: 2 }],
+            ]),
+        );
+
+        set2$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual(
+            new Map([
+                [1, { id: 1 }],
+                [2, { id: 2 }],
+                [3, { id: 3 }],
+            ]),
+        );
+    });
+    test('subscribe with update as value', async () => {
+        const set1$ = observable(false);
+        const set2$ = observable(false);
+        const obs = observable(
+            syncedCrud<{ id: number }, { id: number }, 'value'>({
+                list: () => [{ id: 1 }],
+                as: 'value',
+                subscribe: ({ update }) => {
+                    when(set1$, () => {
+                        update({ value: [{ id: 2 }] });
+                    });
+                    when(set2$, () => {
+                        update({ value: [{ id: 3 }] });
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(obs.get()).toEqual({ id: 1 });
+
+        set1$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual({ id: 2 });
+
+        set2$.set(true);
+        await promiseTimeout(0);
+        expect(obs.get()).toEqual({ id: 3 });
+    });
 });
 describe('onSaved', () => {
     test('without onSaved updates with id', async () => {
