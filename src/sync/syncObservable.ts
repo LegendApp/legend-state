@@ -13,7 +13,6 @@ import type {
 import {
     beginBatch,
     constructObjectWithPath,
-    deconstructObjectWithPath,
     endBatch,
     hasOwnProperty,
     internal,
@@ -107,19 +106,25 @@ export function onChangeRemote(cb: () => void) {
     endBatch(true);
 }
 
-export function transformSaveData(
+export async function transformSaveData(
     value: any,
     path: string[],
     pathTypes: TypeAtPath[],
     { transform }: { transform?: SyncTransform },
-): Promise<any> | any {
+): Promise<{ value: any; path: any }> {
     if (transform?.save) {
         const constructed = constructObjectWithPath(path, pathTypes, value);
-        const saved = transform.save(constructed);
-        value = deconstructObjectWithPath(path, pathTypes, saved);
+        const saved = await transform.save(constructed);
+        value = saved;
+        const outPath = [];
+        for (let i = 0; i < path.length; i++) {
+            outPath[i] = Object.keys(value)[0];
+            value = value[outPath[i]];
+        }
+        path = outPath;
     }
 
-    return value;
+    return { value, path };
 }
 
 export function transformLoadData(
@@ -374,14 +379,14 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
                     );
 
                     promisesTransform.push(
-                        doInOrder(promiseTransformLocal, (valueTransformed) => {
+                        doInOrder(promiseTransformLocal, ({ value: valueTransformed, path: pathTransformed }) => {
                             // Prepare the local change with the transformed path/value
                             changesLocal.push({
-                                path,
+                                path: pathTransformed,
                                 pathTypes,
                                 prevAtPath,
                                 valueAtPath: valueTransformed,
-                                pathStr,
+                                pathStr: path === pathTransformed ? pathStr : pathTransformed.join('/'),
                             });
                         }),
                     );
@@ -462,7 +467,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                     );
 
                     promisesTransform.push(
-                        doInOrder(promiseTransformRemote, (valueTransformed) => {
+                        doInOrder(promiseTransformRemote, ({ value: valueTransformed, path: pathTransformed }) => {
                             // Prepare pending changes
                             if (!localState.pendingChanges) {
                                 localState.pendingChanges = {};
@@ -471,11 +476,11 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                             // First look for existing pending changes at a higher level than this change
                             // If they exist then merge this change into it
                             let found = false;
-                            for (let i = 0; !found && i < path.length - 1; i++) {
-                                const pathParent = path.slice(0, i + 1).join('/');
+                            for (let i = 0; !found && i < pathTransformed.length - 1; i++) {
+                                const pathParent = pathTransformed.slice(0, i + 1).join('/');
                                 if (localState.pendingChanges[pathParent]?.v) {
                                     found = true;
-                                    const pathChild = path.slice(i + 1);
+                                    const pathChild = pathTransformed.slice(i + 1);
                                     const pathTypesChild = pathTypes.slice(i + 1);
                                     setAtPath(
                                         localState.pendingChanges[pathParent].v,
@@ -506,7 +511,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
 
                             // Prepare the remote change with the transformed path/value
                             changesRemote.push({
-                                path,
+                                path: pathTransformed,
                                 pathTypes,
                                 prevAtPath,
                                 valueAtPath: valueTransformed,

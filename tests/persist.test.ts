@@ -85,8 +85,8 @@ describe('Creating', () => {
 });
 
 describe('Adjusting data', () => {
-    test('transformOutData with transform', () => {
-        const adjusted = transformSaveData({ id: 'id', text: 'a' }, [], [], {
+    test('transformOutData with transform', async () => {
+        const { value } = await transformSaveData({ id: 'id', text: 'a' }, [], [], {
             transform: {
                 save: (value) => {
                     value.text = 'b';
@@ -95,7 +95,7 @@ describe('Adjusting data', () => {
             },
         });
 
-        expect(adjusted).toEqual({ id: 'id', text: 'b' });
+        expect(value).toEqual({ id: 'id', text: 'b' });
     });
     test('transform load in synced', () => {
         const value = observable(
