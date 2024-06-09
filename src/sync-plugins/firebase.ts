@@ -87,6 +87,11 @@ interface FirebaseFns {
         callback: (snapshot: DataSnapshot) => unknown,
         cancelCallback?: (error: Error) => unknown,
     ) => () => void;
+    onValue: (
+        query: any,
+        callback: (snapshot: DataSnapshot) => unknown,
+        cancelCallback?: (error: Error) => unknown,
+    ) => () => void;
     serverTimestamp: () => any;
     update: (ref: DatabaseReference, object: object) => Promise<void>;
     remove(ref: DatabaseReference): Promise<void>;
@@ -122,6 +127,7 @@ const fns: FirebaseFns = {
     onChildAdded,
     onChildChanged,
     onChildRemoved,
+    onValue,
     serverTimestamp,
     remove: firebaseRemove,
     onAuthStateChanged: (cb) => getAuth().onAuthStateChanged(cb),
@@ -151,7 +157,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         waitFor,
         ...rest
     } = props;
-    const { fieldCreatedAt } = props;
+    const { fieldCreatedAt, changesSince } = props;
     const fieldUpdatedAt = props.fieldUpdatedAt || '@';
 
     const computeRef = (lastSync: number) => {
@@ -161,7 +167,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         if (query) {
             ref = query(ref) as DatabaseReference;
         }
-        if (lastSync && fieldUpdatedAt && isNumber(lastSync)) {
+        if (changesSince === 'last-sync' && lastSync && fieldUpdatedAt && isNumber(lastSync)) {
             ref = fns.orderByChild(ref, fieldUpdatedAt, lastSync + 1) as DatabaseReference;
         }
 
@@ -203,35 +209,61 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const subscribe = realtime
         ? ({ lastSync, update }: SyncedSubscribeParams<TRemote[]>) => {
               const ref = computeRef(lastSync!);
-              const onChildChange = (snap: DataSnapshot) => {
-                  if (!didList) return;
+              let unsubscribes: (() => void)[];
+              updateFn = update;
 
-                  const key = snap.key!;
-                  const val = snap.val();
-                  if (!saving$[key].get()) {
+              if (asType === 'value') {
+                  const onValue = (snap: DataSnapshot) => {
+                      if (!didList) return;
+
+                      const val = snap.val();
+                      if (!saving$[''].get()) {
+                          if (lastSync && isNullOrUndefined(val)) {
+                              update({
+                                  value: [{} as any],
+                                  mode: 'assign',
+                              });
+                          } else {
+                              update({
+                                  value: [val],
+                                  mode: 'set',
+                              });
+                          }
+                      } else {
+                          pendingIncoming$[''].set(val);
+                      }
+                  };
+                  unsubscribes = [fns.onValue(ref, onValue)];
+              } else {
+                  const onChildChange = (snap: DataSnapshot) => {
+                      if (!didList) return;
+
+                      const key = snap.key!;
+                      const val = snap.val();
+                      if (!saving$[key].get()) {
+                          update({
+                              value: [val],
+                              mode: 'assign',
+                          });
+                      } else {
+                          pendingIncoming$[key].set(val);
+                      }
+                  };
+                  const onChildDelete = (snap: DataSnapshot) => {
+                      if (!didList) return;
+
+                      const key = snap.key!;
                       update({
-                          value: [val],
+                          value: [{ [key]: symbolDelete } as TRemote],
                           mode: 'assign',
                       });
-                  } else {
-                      updateFn = update;
-                      pendingIncoming$[key].set(val);
-                  }
-              };
-              const onChildDelete = (snap: DataSnapshot) => {
-                  if (!didList) return;
-
-                  const key = snap.key!;
-                  update({
-                      value: [{ [key]: symbolDelete } as TRemote],
-                      mode: 'assign',
-                  });
-              };
-              const unsubscribes = [
-                  fns.onChildAdded(ref, onChildChange),
-                  fns.onChildChanged(ref, onChildChange),
-                  fns.onChildRemoved(ref, onChildDelete),
-              ];
+                  };
+                  unsubscribes = [
+                      fns.onChildAdded(ref, onChildChange),
+                      fns.onChildChanged(ref, onChildChange),
+                      fns.onChildRemoved(ref, onChildDelete),
+                  ];
+              }
               return () => {
                   unsubscribes.forEach((fn) => fn());
               };
@@ -278,13 +310,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
     const flushAfterSave = () => {
         const incoming = pendingIncoming$.get();
-        if (fieldId) {
-            Object.values(incoming).forEach((value) => {
-                updateFn!({ value: { [value[fieldId]]: value }, mode: 'merge' });
-            });
-        } else {
-            updateFn!({ value: incoming, mode: 'merge' });
-        }
+        updateFn!({ value: asType === 'value' ? incoming[''] : Object.values(incoming), mode: 'merge' });
         pendingIncoming$.set({});
 
         const outgoing = pendingOutgoing$.get();
