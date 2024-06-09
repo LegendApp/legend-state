@@ -75,11 +75,11 @@ function transformOut<T1, T2>(data: T1, transform: undefined | ((value: T1) => T
     return transform ? transform(clone(data)) : data;
 }
 
-function ensureId(obj: { id: string | number }, generateId: () => string | number) {
-    if (!obj.id) {
-        obj.id = generateId();
+function ensureId(obj: any, fieldId: string, generateId: () => string | number) {
+    if (!obj[fieldId]) {
+        obj[fieldId] = generateId();
     }
-    return obj.id;
+    return obj[fieldId];
 }
 
 export function syncedCrud<TRemote extends object, TLocal = TRemote>(
@@ -131,9 +131,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
             if (asArray) {
                 (out as any[]).push(result);
             } else if (asMap) {
-                (out as Map<string, any>).set(result.id, result);
+                (out as Map<string, any>).set(result[fieldId], result);
             } else {
-                (out as Record<string, any>)[result.id] = result;
+                (out as Record<string, any>)[result[fieldId]] = result;
             }
         }
         return out;
@@ -207,10 +207,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   changes.forEach(({ path, prevAtPath, valueAtPath }) => {
                       if (asType === 'value') {
                           if (value) {
-                              let id = value?.id;
+                              let id = value?.[fieldId];
                               const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
                               if (!id && generateId) {
-                                  id = ensureId(value, generateId);
+                                  id = ensureId(value, fieldId, generateId);
                               }
                               if (id) {
                                   if (isCreate || retryAsCreate) {
@@ -271,7 +271,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                         : isNullOrUndefined(prev);
                                   if (isCreate) {
                                       if (generateId) {
-                                          ensureId(item, generateId);
+                                          ensureId(item, fieldId, generateId);
                                       }
                                       if (!item.id) {
                                           console.error('[legend-state]: added item without an id');
