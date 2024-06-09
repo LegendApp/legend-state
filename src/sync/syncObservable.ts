@@ -19,7 +19,6 @@ import {
     isArray,
     isEmpty,
     isFunction,
-    isMap,
     isObject,
     isObservable,
     isPromise,
@@ -950,11 +949,23 @@ export function syncObservable<T>(
                             }
 
                             onChangeRemote(() => {
-                                if (mode === 'assign' && (isObject(value) || isMap(value))) {
+                                if (mode === 'assign') {
                                     (obs$ as unknown as Observable<object>).assign(value);
-                                } else if (mode === 'append' && isArray(value)) {
+                                } else if (mode === 'append') {
+                                    if (
+                                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                                        !isArray(value)
+                                    ) {
+                                        console.error('[legend-state] mode:append expects the value to be an array');
+                                    }
                                     (obs$ as unknown as Observable<any[]>).push(...value);
-                                } else if (mode === 'prepend' && isArray(value)) {
+                                } else if (mode === 'prepend') {
+                                    if (
+                                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                                        !isArray(value)
+                                    ) {
+                                        console.error('[legend-state] mode:prepend expects the value to be an array');
+                                    }
                                     (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
                                 } else if (mode === 'merge') {
                                     mergeIntoObservable(obs$, value);
