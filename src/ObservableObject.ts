@@ -700,6 +700,8 @@ function assign(node: NodeValue, value: any) {
         const currentValue = getNodeValue(node);
         if (isMap(currentValue)) {
             value.forEach((value, key) => currentValue.set(key, value));
+        } else {
+            set(node, value);
         }
     } else {
         // Set inAssign to allow setting on safe observables
