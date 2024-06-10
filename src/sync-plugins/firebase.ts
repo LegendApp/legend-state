@@ -174,11 +174,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         return ref;
     };
 
-    const onError = () => {
-        // TODO
-    };
-
-    const list = async ({ lastSync }: SyncedGetParams): Promise<TRemote[]> => {
+    const list = async ({ lastSync, onError }: SyncedGetParams): Promise<TRemote[]> => {
         const ref = computeRef(lastSync!);
 
         return new Promise((resolve) => {
@@ -207,7 +203,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     };
 
     const subscribe = realtime
-        ? ({ lastSync, update }: SyncedSubscribeParams<TRemote[]>) => {
+        ? ({ lastSync, update, onError }: SyncedSubscribeParams<TRemote[]>) => {
               const ref = computeRef(lastSync!);
               let unsubscribes: (() => void)[];
               updateFn = update;
@@ -233,7 +229,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                           pendingIncoming$[''].set(val);
                       }
                   };
-                  unsubscribes = [fns.onValue(ref, onValue)];
+                  unsubscribes = [fns.onValue(ref, onValue, onError)];
               } else {
                   const onChildChange = (snap: DataSnapshot) => {
                       if (!didList) return;
@@ -259,9 +255,9 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       });
                   };
                   unsubscribes = [
-                      fns.onChildAdded(ref, onChildChange),
-                      fns.onChildChanged(ref, onChildChange),
-                      fns.onChildRemoved(ref, onChildDelete),
+                      fns.onChildAdded(ref, onChildChange, onError),
+                      fns.onChildChanged(ref, onChildChange, onError),
+                      fns.onChildRemoved(ref, onChildDelete, onError),
                   ];
               }
               return () => {

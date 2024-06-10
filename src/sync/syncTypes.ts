@@ -39,6 +39,7 @@ export interface SyncedGetParams {
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
     refresh: () => void;
+    onError: (error: Error) => void;
 }
 
 export interface SyncedSetParams<T> extends SetParams<T> {
@@ -49,6 +50,7 @@ export interface SyncedSetParams<T> extends SetParams<T> {
     cancelRetry: () => void;
     retryNum: number;
     fromSubscribe: boolean | undefined;
+    onError: (error: Error) => void;
 }
 
 export interface SyncedSubscribeParams<T = any> {
@@ -57,6 +59,7 @@ export interface SyncedSubscribeParams<T = any> {
     lastSync: number | undefined;
     update: UpdateFn<T>;
     refresh: () => void;
+    onError: (error: Error) => void;
 }
 
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {

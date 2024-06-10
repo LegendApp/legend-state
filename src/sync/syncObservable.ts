@@ -41,6 +41,7 @@ import type {
     SyncTransform,
     SyncTransformMethod,
     Synced,
+    SyncedGetParams,
     SyncedOptions,
 } from './syncTypes';
 
@@ -577,7 +578,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     if (!changeInfo) return;
 
     const { queuedChange, changesRemote } = changeInfo;
-    const { value$: obs, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
+    const { value$: obs$, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
     const { pluginPersist } = localState;
 
     const persist = syncOptions.persist;
@@ -593,7 +594,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         if (waitForSet) {
             const waitFn = isFunction(waitForSet)
-                ? waitForSet({ changes: changesRemote, value: obs.peek() })
+                ? waitForSet({ changes: changesRemote, value: obs$.peek() })
                 : waitForSet;
             if (waitFn) {
                 await when(waitFn);
@@ -601,7 +602,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         }
 
         // Clone value to ensure it doesn't change observable value
-        let value = clone(obs.peek());
+        let value = clone(obs$.peek());
         const transformSave = syncOptions?.transform?.save;
         if (transformSave) {
             value = transformSave(value);
@@ -610,12 +611,17 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         onBeforeSet?.();
 
         let savedPromise = syncOptions!.set!({
-            value$: obs,
+            value$: obs$,
             syncState: syncState,
             options: syncOptions,
             changes: changesRemote,
             value,
             valuePrevious: previous,
+            onError: (error: Error) => {
+                const node = getNode(obs$);
+                node.state!.error.set(error);
+                syncOptions.onSetError?.(error);
+            },
             // TODO Fix type
         } as any);
         if (isPromise(savedPromise)) {
@@ -668,12 +674,12 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     if (isPromise(transformedChanges)) {
                         transformedChanges = (await transformedChanges) as object;
                     }
-                    onChangeRemote(() => mergeIntoObservable(obs, transformedChanges));
+                    onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
                 }
 
                 if (saveLocal) {
                     if (shouldSaveMetadata && !isEmpty(metadata)) {
-                        updateMetadata(obs, localState, syncState, syncOptions, metadata);
+                        updateMetadata(obs$, localState, syncState, syncOptions, metadata);
                     }
                 }
             }
@@ -871,6 +877,11 @@ export function syncObservable<T>(
         getPendingChanges: () => localState.pendingChanges,
     }));
 
+    const onError = (error: Error) => {
+        node.state!.error.set(error);
+        syncOptions.onGetError?.(error);
+    };
+
     loadLocal(obs$, syncOptions, syncState, localState);
 
     if (syncOptions.get) {
@@ -989,23 +1000,22 @@ export function syncObservable<T>(
                             lastSync,
                             update: (params: ObservableOnChangeParams) => {
                                 when(node.state!.isLoaded, () => {
-                                    params.mode ||= syncOptions.mode || 'merge';
-                                    onChange(params);
-                                });
+                                        params.mode ||= syncOptions.mode || 'merge';
+                                        onChange(params);
+                                    });
                             },
                             refresh: () => when(node.state!.isLoaded, sync),
+                            onError,
                         });
                     }
-                    const getParams = {
+                    const getParams: SyncedGetParams = {
                         state: syncState,
                         value$: obs$,
                         options: syncOptions,
                         lastSync,
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                        onError: (error: Error) => {
-                            syncOptions.onGetError?.(error);
-                        },
                         onChange,
+                        onError,
                         // TODO Fix type
                     } as any;
                     const got = get(getParams);

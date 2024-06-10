@@ -41,6 +41,7 @@ export function enableActivateSyncedNode() {
                             updateLastSync,
                             mode: params.mode!,
                             refresh,
+                            onError: params.onError,
                         };
 
                         const ret = get!(paramsToGet);
