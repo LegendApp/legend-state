@@ -59,11 +59,18 @@ interface SyncedFirebaseConfiguration {
     realtime?: boolean;
     requireAuth?: boolean;
     readonly?: boolean;
+    enabled?: boolean;
 }
+
+const isEnabled$ = observable(true);
 
 const firebaseConfig: SyncedFirebaseConfiguration = {} as SyncedFirebaseConfiguration;
 export function configureSyncedFirebase(config: SyncedFirebaseConfiguration) {
-    Object.assign(firebaseConfig, config);
+    const { enabled, ...rest } = config;
+    Object.assign(firebaseConfig, rest);
+    if (enabled !== undefined) {
+        isEnabled$.set(enabled);
+    }
 }
 
 interface FirebaseFns {
@@ -155,6 +162,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         transform: transformProp,
         fieldTransforms,
         waitFor,
+        waitForSet,
         ...rest
     } = props;
     const { fieldCreatedAt, changesSince } = props;
@@ -377,7 +385,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         update,
         delete: deleteFn,
         waitFor: () =>
-            (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) && (waitFor ? computeSelector(waitFor) : true),
+            isEnabled$.get() &&
+            (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) &&
+            (waitFor ? computeSelector(waitFor) : true),
+        waitForSet: () =>
+            isEnabled$.get() &&
+            (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) &&
+            (waitForSet ? computeSelector(waitForSet) : true),
         generateId: fns.generateId,
         transform,
         as: asType,
