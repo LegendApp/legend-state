@@ -244,6 +244,6 @@ export function syncedSupabase<
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet,
+        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
     });
 }

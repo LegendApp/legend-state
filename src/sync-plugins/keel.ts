@@ -327,6 +327,7 @@ export function syncedKeel<
         first,
         where: whereParam,
         waitFor,
+        waitForSet,
         fieldDeleted,
         ...rest
     } = props;
@@ -486,6 +487,7 @@ export function syncedKeel<
         update,
         delete: deleteFn,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
+        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
