@@ -86,7 +86,11 @@ interface BaseNodeValue {
     state?: Observable<ObservableSyncState>;
     activated?: boolean;
     recursivelyAutoActivated?: boolean;
-    activationState?: LinkedOptions & { onError?: () => void; persistedRetry?: boolean };
+    activationState?: LinkedOptions & {
+        onError?: () => void;
+        persistedRetry?: boolean;
+        onChange: (params: UpdateFnParams) => void | Promise<void>;
+    };
     dirtyFn?: () => void;
     dirtyChildren?: Set<NodeValue>;
 }

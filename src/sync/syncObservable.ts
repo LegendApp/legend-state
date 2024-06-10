@@ -36,7 +36,6 @@ import type { ObservableOnChangeParams } from './persistTypes';
 import { removeNullUndefined } from './syncHelpers';
 import type {
     ObservablePersistPlugin,
-    ObservableSyncClass,
     PersistMetadata,
     PersistOptions,
     SyncTransform,
@@ -46,12 +45,13 @@ import type {
     SyncedOptions,
 } from './syncTypes';
 
-const { createPreviousHandler, clone, getValueAtPath, globalState, symbolLinked, getNode, getNodeValue } = internal;
+const { clone, getNode, getNodeValue, getValueAtPath, globalState, runWithRetry, symbolLinked, createPreviousHandler } =
+    internal;
 
 export const mapSyncPlugins: WeakMap<
-    ClassConstructor<ObservablePersistPlugin | ObservableSyncClass>,
+    ClassConstructor<ObservablePersistPlugin>,
     {
-        plugin: ObservablePersistPlugin | ObservableSyncClass;
+        plugin: ObservablePersistPlugin;
         initialized: Observable<boolean>;
     }
 > = new WeakMap();
@@ -1014,6 +1014,9 @@ export function syncObservable<T>(
                             });
                         }
                     };
+                    if (node.activationState) {
+                        node.activationState!.onChange = onChange;
+                    }
                     // Subscribe before getting to ensure we don't miss updates between now and the get returning
                     if (!isSubscribed && syncOptions.subscribe) {
                         isSubscribed = true;
@@ -1033,17 +1036,20 @@ export function syncObservable<T>(
                             onError,
                         });
                     }
+                    const existingValue = getNodeValue(node);
+
                     const getParams: SyncedGetParams = {
-                        state: syncState,
-                        value$: obs$,
+                        value: isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
+                        mode: syncOptions.mode!,
+                        refresh: sync,
                         options: syncOptions,
                         lastSync,
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                        onChange,
                         onError,
-                        // TODO Fix type
-                    } as any;
-                    const got = get(getParams);
+                    };
+                    const got = runWithRetry(node, { attemptNum: 0, retry: syncOptions.retry }, () => {
+                        return get(getParams);
+                    });
                     const handle = (value: any) => {
                         onChange({
                             value,

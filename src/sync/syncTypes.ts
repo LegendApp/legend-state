@@ -40,6 +40,7 @@ export interface SyncedGetParams {
     mode: GetMode;
     refresh: () => void;
     onError: (error: Error) => void;
+    options: SyncedOptions;
 }
 
 export interface SyncedSetParams<T> extends SetParams<T> {
@@ -133,28 +134,9 @@ export interface ObservableSyncSetParams<T> {
     value: T;
     valuePrevious: T;
 }
-export interface ObservableSyncGetParams<T> {
-    state: Observable<ObservableSyncState>;
-    value$: ObservableParam<T>;
-    options: SyncedOptions<T>;
-    dateModified?: number;
-    lastSync?: number;
-    mode?: GetMode;
-    onGet: () => void;
-    onError: (error: Error) => void;
-    onChange: (params: UpdateFnParams) => void | Promise<void>;
-}
-export type ObservableSyncRemoteGetFnParams<T> = Omit<ObservableSyncGetParams<T>, 'onGet'>;
-
-export interface ObservableSyncClass {
-    get?<T>(params: ObservableSyncGetParams<T>): void;
-    set?<T>(
-        params: ObservableSyncSetParams<T>,
-    ): void | Promise<void | { changes?: object; dateModified?: number; lastSync?: number; pathStrs?: string[] }>;
-}
 
 export interface ObservableSyncFunctions<T = any> {
-    get?(params: ObservableSyncRemoteGetFnParams<T>): T | Promise<T>;
+    get?(params: SyncedGetParams): T | Promise<T>;
     set?(
         params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;

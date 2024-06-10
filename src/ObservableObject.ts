@@ -1081,9 +1081,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isFunction(value) && value.length === 0) {
                 value = value();
             }
-            const activated = !isObservable(value)
-                ? (value?.[symbolLinked] as LinkedOptions & { synced: boolean })
-                : undefined;
+            const activated = !isObservable(value) ? (value?.[symbolLinked] as any) : undefined;
             if (activated) {
                 node.activationState = activated;
                 value = undefined;

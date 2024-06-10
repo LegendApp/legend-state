@@ -3,22 +3,26 @@ import { internal, isFunction, isPromise, whenReady } from '@legendapp/state';
 import { syncObservable } from './syncObservable';
 import type {
     ObservableSyncFunctions,
-    ObservableSyncGetParams,
     ObservableSyncSetParams,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
 } from './syncTypes';
-const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue, getNodeValue } = internal;
+const { getProxy, globalState, runWithRetry, setNodeValue, getNodeValue } = internal;
 
 export function enableActivateSyncedNode() {
     globalState.activateSyncedNode = function activateSyncedNode(node: NodeValue, newValue: any) {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
-            const { get, initial, set, retry } = node.activationState! as SyncedOptions;
+            const {
+                get: getOrig,
+                initial,
+                set,
+                retry,
+                onChange,
+            } = node.activationState! as NodeValue['activationState'] & SyncedOptions;
 
-            let onChange: UpdateFn | undefined = undefined;
             const pluginRemote: ObservableSyncFunctions = {};
             let promiseReturn: any = undefined;
 
@@ -27,33 +31,11 @@ export function enableActivateSyncedNode() {
             let syncState: Observable<ObservableSyncState>;
             const refresh = () => syncState?.sync();
 
-            if (get) {
-                pluginRemote.get = (params: ObservableSyncGetParams<any>) => {
-                    onChange = params.onChange;
-                    const updateLastSync = (lastSync: number) => (params.lastSync = lastSync);
-
-                    const existingValue = getNodeValue(node);
-                    const value = runWithRetry(node, { attemptNum: 0, retry: retry || params.options?.retry }, () => {
-                        const paramsToGet = {
-                            value:
-                                isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
-                            lastSync: params.lastSync!,
-                            updateLastSync,
-                            mode: params.mode!,
-                            refresh,
-                            onError: params.onError,
-                        };
-
-                        const ret = get!(paramsToGet);
-                        params.mode = paramsToGet.mode;
-                        return ret;
-                    });
-
-                    promiseReturn = value;
-
-                    return value;
-                };
-            }
+            const get = getOrig
+                ? (((params: SyncedGetParams) => {
+                      return (promiseReturn = getOrig!(params as any));
+                  }) as typeof getOrig)
+                : undefined;
             if (set) {
                 // TODO: Work out these types better
                 pluginRemote.set = async (params: ObservableSyncSetParams<any>) => {
@@ -91,7 +73,7 @@ export function enableActivateSyncedNode() {
             }
             setNodeValue(node, promiseReturn ? undefined : newValue);
 
-            syncState = syncObservable(obs$, { ...node.activationState, ...pluginRemote });
+            syncState = syncObservable(obs$, { ...node.activationState, get, ...pluginRemote });
 
             return { update: onChange!, value: newValue };
         } else {
