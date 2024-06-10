@@ -1,6 +1,5 @@
 import {
     Observable,
-    UpdateFn,
     computeSelector,
     isNullOrUndefined,
     isNumber,
@@ -148,7 +147,6 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const saving$ = observable<Record<string, boolean>>({});
     const pendingOutgoing$ = observable<Record<string, any>>({});
     const pendingIncoming$ = observable<Record<string, any>>({});
-    let updateFn: UpdateFn<any> | undefined = undefined;
     let didList = false;
 
     const {
@@ -214,27 +212,19 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         ? ({ lastSync, update, onError }: SyncedSubscribeParams<TRemote[]>) => {
               const ref = computeRef(lastSync!);
               let unsubscribes: (() => void)[];
-              updateFn = update;
 
               if (asType === 'value') {
                   const onValue = (snap: DataSnapshot) => {
                       if (!didList) return;
 
                       const val = snap.val();
-                      if (!saving$[''].get()) {
-                          if (lastSync && isNullOrUndefined(val)) {
-                              update({
-                                  value: [{} as any],
-                                  mode: 'assign',
-                              });
-                          } else {
-                              update({
-                                  value: [val],
-                                  mode: 'set',
-                              });
-                          }
-                      } else {
+                      if (saving$[''].get()) {
                           pendingIncoming$[''].set(val);
+                      } else {
+                          update({
+                              value: [val],
+                              mode: 'set',
+                          });
                       }
                   };
                   unsubscribes = [fns.onValue(ref, onValue, onError)];
@@ -244,13 +234,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
                       const key = snap.key!;
                       const val = snap.val();
-                      if (!saving$[key].get()) {
+                      if (saving$[key].get()) {
+                          pendingIncoming$[key].set(val);
+                      } else {
                           update({
                               value: [val],
                               mode: 'assign',
                           });
-                      } else {
-                          pendingIncoming$[key].set(val);
                       }
                   };
                   const onChildDelete = (snap: DataSnapshot) => {
@@ -293,13 +283,6 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
         if (saving$[id].get()) {
             pendingOutgoing$[id].set(input);
-
-            // Wait for save to finish but return undefined so it doesn't process the return value
-            // because firebase update returns void so we need tog et the saved value from the change handlers.
-            return when(
-                () => !pendingOutgoing$[id].get(),
-                () => undefined,
-            );
         } else {
             saving$[id].set(true);
 
@@ -310,13 +293,24 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
             flushAfterSave();
         }
+
+        // Wait for save to finish and return the latest incoming value
+        return when(
+            () => !pendingOutgoing$[id].get(),
+            () => {
+                // Return the latest value that came into subscribe while saving
+                const value = pendingIncoming$[id].get();
+                if (value) {
+                    // Deleting it will make any subsequent pending saves return undefined and do nothing
+                    // because we only need to apply it back once
+                    pendingIncoming$[id].delete();
+                    return value;
+                }
+            },
+        );
     };
 
     const flushAfterSave = () => {
-        const incoming = pendingIncoming$.get();
-        updateFn!({ value: asType === 'value' ? incoming[''] : Object.values(incoming), mode: 'merge' });
-        pendingIncoming$.set({});
-
         const outgoing = pendingOutgoing$.get();
         Object.values(outgoing).forEach((value) => {
             upsert(value);
