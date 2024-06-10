@@ -1,6 +1,7 @@
 import type {
     Change,
     ClassConstructor,
+    GetMode,
     ListenerParams,
     NodeValue,
     Observable,
@@ -580,11 +581,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const { queuedChange, changesRemote } = changeInfo;
     const { value$: obs$, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
     const { pluginPersist } = localState;
+    const node = getNode(obs$);
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
-    const { allowSetIfGetError, onBeforeSet, onSetError, waitForSet, onAfterSet } =
-        syncOptions || ({} as SyncedOptions);
+    const { allowSetIfGetError, onBeforeSet, waitForSet, onAfterSet } = syncOptions || ({} as SyncedOptions);
     const shouldSaveMetadata = persist?.retrySync;
     const saveLocal = !!persist?.name;
 
@@ -610,32 +611,54 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         onBeforeSet?.();
 
+        let updateResult:
+            | {
+                  value?: any;
+                  mode?: GetMode;
+                  lastSync?: number | undefined;
+              }
+            | undefined = undefined;
+
+        const onError = (error: Error) => {
+            node.state!.error.set(error);
+            syncOptions.onSetError?.(error);
+        };
+
         let savedPromise = syncOptions!.set!({
+            node,
             value$: obs$,
             syncState: syncState,
             options: syncOptions,
             changes: changesRemote,
             value,
             valuePrevious: previous,
-            onError: (error: Error) => {
-                const node = getNode(obs$);
-                node.state!.error.set(error);
-                syncOptions.onSetError?.(error);
+            onError,
+            update: (params: UpdateFnParams) => {
+                if (updateResult) {
+                    const { value, lastSync, mode } = params;
+                    updateResult = {
+                        lastSync: Math.max(updateResult.lastSync || 0, lastSync || 0),
+                        value: mergeIntoObservable(updateResult.value, value),
+                        mode: mode,
+                    };
+                } else {
+                    updateResult = params;
+                }
             },
             // TODO Fix type
         } as any);
         if (isPromise(savedPromise)) {
-            savedPromise = savedPromise.catch((err) => onSetError?.(err));
+            savedPromise = savedPromise.catch(onError);
         }
 
-        const saved = await savedPromise;
+        await savedPromise;
 
-        // If this remote save changed anything then update cache and metadata
-        // Because save happens after a timeout and they're batched together, some calls to save will
-        // return saved data and others won't, so those can be ignored.
-        if (saved !== undefined) {
+        if (!node.state!.error.peek()) {
+            // If this remote save changed anything then update cache and metadata
+            // Because save happens after a timeout and they're batched together, some calls to save will
+            // return saved data and others won't, so those can be ignored.
             const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
-            const { changes, lastSync } = saved;
+            const { value: changes, lastSync } = updateResult! || {};
             if (pathStrs.length > 0) {
                 let transformedChanges: object | undefined = undefined;
                 const metadata: PersistMetadata = {};
@@ -683,9 +706,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     }
                 }
             }
-        }
 
-        onAfterSet?.();
+            onAfterSet?.();
+        }
     }
 }
 

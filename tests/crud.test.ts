@@ -1304,7 +1304,7 @@ describe('fieldUpdatedAt', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } },
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 10 } },
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
@@ -1328,14 +1328,14 @@ describe('fieldUpdatedAt', () => {
         expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
-            updatedAt: 'before',
+            updatedAt: 10,
         });
 
         expect(obs.get()).toEqual({
             id1: {
                 id: 'id1',
                 test: 'hello',
-                updatedAt: 'before',
+                updatedAt: 10,
             },
         });
     });
@@ -1344,7 +1344,7 @@ describe('fieldUpdatedAt', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } as BasicValue },
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 10 } as BasicValue },
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
@@ -1358,12 +1358,12 @@ describe('fieldUpdatedAt', () => {
                     expect(input).toEqual({
                         id: 'id1',
                         test: 'hello',
-                        updatedAt: 'before',
+                        updatedAt: 10,
                     });
                     return input;
                 },
                 onSaved: ({ saved }) => {
-                    return { ...saved, updatedAt: 'now' };
+                    return { ...saved, updatedAt: 100 };
                 },
             }),
         );
@@ -1378,14 +1378,14 @@ describe('fieldUpdatedAt', () => {
         expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
-            updatedAt: 'before',
+            updatedAt: 10,
         });
 
         expect(obs.get()).toEqual({
             id1: {
                 id: 'id1',
                 test: 'hello',
-                updatedAt: 'now',
+                updatedAt: 100,
             },
         });
     });
@@ -1847,7 +1847,7 @@ describe('onSaved', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                initial: { id1: { ...ItemBasicValue(), updatedAt: 'before' } as BasicValue },
+                initial: { id1: { ...ItemBasicValue(), updatedAt: 10 } as BasicValue },
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 create: async (input: BasicValue) => {
@@ -1861,9 +1861,9 @@ describe('onSaved', () => {
                     expect(input).toEqual({
                         id: 'id1',
                         test: 'hello',
-                        updatedAt: 'before',
+                        updatedAt: 10,
                     });
-                    return { ...input, updatedAt: 'now' };
+                    return { ...input, updatedAt: 100 };
                 },
             }),
         );
@@ -1878,14 +1878,14 @@ describe('onSaved', () => {
         expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
-            updatedAt: 'before',
+            updatedAt: 10,
         });
 
         expect(obs.get()).toEqual({
             id1: {
                 id: 'id1',
                 test: 'hello',
-                updatedAt: 'now',
+                updatedAt: 100,
             },
         });
     });
@@ -1897,7 +1897,7 @@ describe('onSaved', () => {
         const obs = observable(
             syncedCrud({
                 initial: {
-                    id1: { ...ItemBasicValue(), updatedAt: 'before', changing: '0' } as BasicValue & {
+                    id1: { ...ItemBasicValue(), updatedAt: 10, changing: '0' } as BasicValue & {
                         changing: string;
                     },
                 },
@@ -1912,7 +1912,7 @@ describe('onSaved', () => {
                     await when(canSave$);
                     updated = clone(input);
                     canSave$.set(false);
-                    return { ...input, updatedAt: 'now' };
+                    return { ...input, updatedAt: 100 };
                 },
             }),
         );
@@ -1933,7 +1933,7 @@ describe('onSaved', () => {
         expect(updated).toEqual({
             id: 'id1',
             test: 'hello',
-            updatedAt: 'before',
+            updatedAt: 10,
             changing: '0',
         });
 
@@ -1941,7 +1941,7 @@ describe('onSaved', () => {
             id1: {
                 id: 'id1',
                 test: 'hello',
-                updatedAt: 'now',
+                updatedAt: 100,
                 changing: '1',
             },
         });

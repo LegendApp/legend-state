@@ -563,7 +563,9 @@ describe('global config', () => {
                 },
                 set: async ({ value }) => {
                     setTo = value;
-                    return Promise.reject();
+                    // TODO Should this work instead of throwing?
+                    // return Promise.reject();
+                    throw new Error();
                 },
                 persist: {
                     name: persistName,

@@ -1,4 +1,6 @@
 import type { NodeValue, Observable, ObservableSyncState, UpdateFn } from '@legendapp/state';
+import { internal, isFunction, isPromise, whenReady } from '@legendapp/state';
+import { syncObservable } from './syncObservable';
 import type {
     ObservableSyncFunctions,
     ObservableSyncGetParams,
@@ -7,8 +9,6 @@ import type {
     SyncedOptions,
     SyncedSetParams,
 } from './syncTypes';
-import { internal, isFunction, isPromise, mergeIntoObservable, whenReady } from '@legendapp/state';
-import { syncObservable } from './syncObservable';
 const { getProxy, globalState, runWithRetry, symbolLinked, setNodeValue, getNodeValue } = internal;
 
 export function enableActivateSyncedNode() {
@@ -60,8 +60,6 @@ export function enableActivateSyncedNode() {
                     if (node.state?.isLoaded.get()) {
                         const retryAttempts = { attemptNum: 0, retry: retry || params.options?.retry };
                         return runWithRetry(node, retryAttempts, async (retryEvent) => {
-                            let changes = {};
-                            let maxModified = 0;
                             if (!node.state!.isLoaded.peek()) {
                                 await whenReady(node.state!.isLoaded);
                             }
@@ -70,20 +68,14 @@ export function enableActivateSyncedNode() {
                                 retryEvent.cancel = true;
                             };
 
-                            await set({
+                            return set({
                                 ...(params as unknown as SyncedSetParams<any>),
                                 node,
-                                update: (params) => {
-                                    const { value, lastSync } = params;
-                                    maxModified = Math.max(lastSync || 0, maxModified);
-                                    changes = mergeIntoObservable(changes, value);
-                                },
                                 retryNum: retryAttempts.attemptNum,
                                 cancelRetry,
                                 refresh,
                                 fromSubscribe: false,
                             });
-                            return { changes, lastSync: maxModified || undefined };
                         });
                     }
                 };
