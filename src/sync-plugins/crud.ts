@@ -81,6 +81,19 @@ function ensureId(obj: any, fieldId: string, generateId: () => string | number) 
     return obj[fieldId];
 }
 
+function computeLastSync(data: any[], fieldUpdatedAt: string | undefined, fieldCreatedAt: string | undefined) {
+    let newLastSync = 0;
+    for (let i = 0; i < data.length; i++) {
+        const updated =
+            (fieldUpdatedAt ? (data[i] as any)[fieldUpdatedAt as any] : 0) ||
+            (fieldCreatedAt ? (data[i] as any)[fieldCreatedAt as any] : 0);
+        if (updated) {
+            newLastSync = Math.max(newLastSync, +new Date(updated));
+        }
+    }
+    return newLastSync;
+}
+
 export function syncedCrud<TRemote extends object, TLocal = TRemote>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'value'>;
@@ -153,16 +166,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       }
 
                       const data = (await listFn(getParams)) || [];
-                      let newLastSync = 0;
-                      for (let i = 0; i < data.length; i++) {
-                          const updated =
-                              (data[i] as any)[fieldUpdatedAt as any] || (data[i] as any)[fieldCreatedAt as any];
-                          if (updated) {
-                              newLastSync = Math.max(newLastSync, +new Date(updated));
+                      if (fieldUpdatedAt) {
+                          const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
+
+                          if (newLastSync && newLastSync !== lastSync) {
+                              updateLastSync(newLastSync);
                           }
-                      }
-                      if (newLastSync && newLastSync !== lastSync) {
-                          updateLastSync(newLastSync);
                       }
                       let transformed = data as unknown as TLocal[];
                       if (transform?.load) {
@@ -410,6 +419,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               console.error('[legend-state] subscribe:update expects an array of changed items');
                           }
                       }
+
+                      const newLastSync = computeLastSync(rows, fieldUpdatedAt, fieldCreatedAt);
+                      if (newLastSync) {
+                          paramsForUpdate.lastSync = newLastSync;
+                      }
+
                       const rowsTransformed = transform?.load
                           ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
                           : rows;
