@@ -43,6 +43,7 @@ import type {
     Synced,
     SyncedGetParams,
     SyncedOptions,
+    SyncedSetParams,
 } from './syncTypes';
 
 const { clone, getNode, getNodeValue, getValueAtPath, globalState, runWithRetry, symbolLinked, createPreviousHandler } =
@@ -624,11 +625,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             syncOptions.onSetError?.(error);
         };
 
-        let savedPromise = syncOptions!.set!({
+        const setParams: Omit<SyncedSetParams<any>, 'cancelRetry' | 'retryNum'> = {
             node,
-            value$: obs$,
-            syncState: syncState,
-            options: syncOptions,
             changes: changesRemote,
             value,
             valuePrevious: previous,
@@ -645,8 +643,16 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     updateResult = params;
                 }
             },
-            // TODO Fix type
-        } as any);
+            refresh: syncState.sync,
+        };
+
+        let savedPromise = runWithRetry(node, { retryNum: 0, retry: syncOptions.retry }, async (retryEvent) => {
+            const params = setParams as SyncedSetParams<any>;
+            params.cancelRetry = retryEvent.cancelRetry;
+            params.retryNum = retryEvent.retryNum;
+
+            return syncOptions!.set!(params);
+        });
         if (isPromise(savedPromise)) {
             savedPromise = savedPromise.catch(onError);
         }
@@ -1038,7 +1044,7 @@ export function syncObservable<T>(
                     }
                     const existingValue = getNodeValue(node);
 
-                    const getParams: SyncedGetParams = {
+                    const getParams: Omit<SyncedGetParams, 'cancelRetry' | 'retryNum'> = {
                         value: isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
                         mode: syncOptions.mode!,
                         refresh: sync,
@@ -1047,8 +1053,11 @@ export function syncObservable<T>(
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
                         onError,
                     };
-                    const got = runWithRetry(node, { attemptNum: 0, retry: syncOptions.retry }, () => {
-                        return get(getParams);
+                    const got = runWithRetry(node, { retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
+                        const params = getParams as SyncedGetParams;
+                        params.cancelRetry = retryEvent.cancelRetry;
+                        params.retryNum = retryEvent.retryNum;
+                        return get(params);
                     });
                     const handle = (value: any) => {
                         onChange({

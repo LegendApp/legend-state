@@ -1,17 +1,17 @@
 import { isPromise } from './is';
 import type { NodeValue, RetryOptions } from './observableInterfaces';
 
-function calculateRetryDelay(retryOptions: RetryOptions, attemptNum: number): number | null {
+function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): number | null {
     const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
-    if (infinite || attemptNum < times) {
-        const delayTime = Math.min(delay * (backoff === 'constant' ? 1 : 2 ** attemptNum), maxDelay);
+    if (infinite || retryNum < times) {
+        const delayTime = Math.min(delay * (backoff === 'constant' ? 1 : 2 ** retryNum), maxDelay);
         return delayTime;
     }
     return null;
 }
 
-function createRetryTimeout(retryOptions: RetryOptions, attemptNum: number, fn: () => void) {
-    const delayTime = calculateRetryDelay(retryOptions, attemptNum);
+function createRetryTimeout(retryOptions: RetryOptions, retryNum: number, fn: () => void) {
+    const delayTime = calculateRetryDelay(retryOptions, retryNum);
     if (delayTime) {
         return setTimeout(fn, delayTime);
     }
@@ -19,11 +19,11 @@ function createRetryTimeout(retryOptions: RetryOptions, attemptNum: number, fn: 
 
 export function runWithRetry<T>(
     node: NodeValue,
-    state: { attemptNum: number; retry: RetryOptions | undefined },
-    fn: (e: { cancel?: boolean }) => T | Promise<T>,
+    state: { retryNum: number; retry: RetryOptions | undefined },
+    fn: (e: { retryNum: number; cancelRetry: () => void }) => T | Promise<T>,
 ): T | Promise<T> {
     const { retry } = state;
-    const e = { cancel: false };
+    const e = Object.assign(state, { cancel: false, cancelRetry: () => (e.cancel = false) });
     let value = fn(e);
 
     if (isPromise(value) && retry) {
@@ -36,12 +36,12 @@ export function runWithRetry<T>(
                         resolve(val);
                     })
                     .catch(() => {
-                        state.attemptNum++;
+                        state.retryNum++;
                         if (timeoutRetry) {
                             clearTimeout(timeoutRetry);
                         }
                         if (!e.cancel) {
-                            timeoutRetry = createRetryTimeout(retry, state.attemptNum, () => {
+                            timeoutRetry = createRetryTimeout(retry, state.retryNum, () => {
                                 value = fn(e);
                                 run();
                             });

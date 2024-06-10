@@ -16,7 +16,6 @@ import type {
     RetryOptions,
     SetParams,
     UpdateFn,
-    UpdateFnParams,
 } from '@legendapp/state';
 
 export interface PersistOptions<T = any> {
@@ -39,18 +38,19 @@ export interface SyncedGetParams {
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
     refresh: () => void;
+    retryNum: number;
+    cancelRetry: () => void;
     onError: (error: Error) => void;
     options: SyncedOptions;
 }
 
-export interface SyncedSetParams<T> extends SetParams<T> {
+export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'> {
     node: NodeValue;
     valuePrevious: T;
     update: UpdateFn<T>;
     refresh: () => void;
     cancelRetry: () => void;
     retryNum: number;
-    fromSubscribe: boolean | undefined;
     onError: (error: Error) => void;
 }
 
