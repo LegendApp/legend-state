@@ -18,7 +18,7 @@ export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey e
 }
 
 export interface SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
-    extends SyncedOptions<TData> {
+    extends Omit<SyncedOptions<TData>, 'get' | 'set'> {
     queryClient: QueryClient;
     query: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey>;
     mutation?: MutationObserverOptions<TData, TError, void>;
@@ -30,7 +30,7 @@ export function syncedQuery<
     TData = TQueryFnData,
     TQueryKey extends QueryKey = QueryKey,
 >(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>) {
-    const { query: options, mutation: mutationOptions, queryClient } = params;
+    const { query: options, mutation: mutationOptions, queryClient, ...rest } = params;
 
     const Observer = QueryObserver;
     const defaultedOptions = queryClient!.defaultQueryOptions(
@@ -109,5 +109,6 @@ export function syncedQuery<
         get,
         set,
         subscribe,
+        ...rest,
     });
 }
