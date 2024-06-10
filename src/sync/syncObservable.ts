@@ -1000,9 +1000,11 @@ export function syncObservable<T>(
                             lastSync,
                             update: (params: ObservableOnChangeParams) => {
                                 when(node.state!.isLoaded, () => {
+                                    when(waitFor || true, () => {
                                         params.mode ||= syncOptions.mode || 'merge';
                                         onChange(params);
                                     });
+                                });
                             },
                             refresh: () => when(node.state!.isLoaded, sync),
                             onError,
