@@ -459,7 +459,7 @@ export function syncedKeel<
         : undefined;
     const deleteFn = deleteParam
         ? async (value: TRemote, params: SyncedSetParams<TRemote>) => {
-              const { data, error } = await deleteParam(value);
+              const { data, error } = await deleteParam({ id: value.id });
 
               if (error) {
                   handleSetError(error, params, false);
