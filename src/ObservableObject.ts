@@ -675,12 +675,16 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
 
         const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
 
-        if (!equals(savedValue, prevValue)) {
-            updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
+        if (!isPrim) {
+            let parent = childNode;
+            do {
+                parent.needsExtract = true;
+                parent.recursivelyAutoActivated = false;
+            } while ((parent = parent.parent!));
         }
 
-        if (!isPrim) {
-            childNode.needsExtract = true;
+        if (!equals(savedValue, prevValue)) {
+            updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
         }
 
         extractFunctionOrComputed(node, key, savedValue);

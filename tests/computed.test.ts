@@ -2197,6 +2197,29 @@ describe('Activation', () => {
         expect(isObservable(value.test)).toBe(false);
         expect(value.test.text === 'hi!').toBe(true);
     });
+    test('Computed in array of observables gets activated by accessing root', () => {
+        const obs = observable({
+            text: 'hi',
+            test: [
+                observable((): { text: string } => {
+                    return { text: obs.text.get() + '!' };
+                }),
+            ],
+        });
+        let value = obs.get();
+        expect(isObservable(value.test[0])).toBe(false);
+        expect(value.test[0].text === 'hi!').toBe(true);
+
+        obs.test.set([
+            observable((): { text: string } => {
+                return { text: obs.text.get() + '!!!!' };
+            }),
+        ]);
+
+        value = obs.get();
+        expect(isObservable(value.test[0])).toBe(false);
+        expect(value.test[0].text === 'hi!!!!').toBe(true);
+    });
     test('Computed in observable with linked gets activated by accessing root', () => {
         let didCall = false;
         const obs = observable({
