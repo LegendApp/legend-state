@@ -1,6 +1,6 @@
+export { isObserved, shouldIgnoreUnobserved } from './src/ObservableObject';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
-export { linked } from './src/linked';
 export { configureLegendState } from './src/config';
 export { event } from './src/event';
 export { isObservable } from './src/globals';
@@ -34,14 +34,15 @@ export {
     isString,
     isSymbol,
 } from './src/is';
-export { observable, observablePrimitive, syncState } from './src/observable';
+export { linked } from './src/linked';
+export { observable, observablePrimitive } from './src/observable';
 export * from './src/observableInterfaces';
 export * from './src/observableTypes';
 export { observe } from './src/observe';
 export { proxy } from './src/proxy';
+export { syncState } from './src/syncState';
 export { trackSelector } from './src/trackSelector';
 export { when, whenReady } from './src/when';
-export { isObserved, shouldIgnoreUnobserved } from './src/ObservableObject';
 
 /** @internal */
 export { beginTracking, endTracking, tracking, updateTracking } from './src/tracking';
@@ -67,8 +68,8 @@ import {
     safeParse,
     safeStringify,
     setNodeValue,
-    symbolLinked,
     symbolDelete,
+    symbolLinked,
 } from './src/globals';
 import { getValueAtPath, initializePathType, setAtPath } from './src/helpers';
 import { runWithRetry } from './src/retry';

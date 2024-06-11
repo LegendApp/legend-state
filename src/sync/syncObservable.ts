@@ -28,6 +28,7 @@ import {
     observable,
     setAtPath,
     shouldIgnoreUnobserved,
+    syncState,
     when,
     whenReady,
 } from '@legendapp/state';
@@ -583,6 +584,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const { value$: obs$, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
     const { pluginPersist } = localState;
     const node = getNode(obs$);
+    const state$ = node.state!;
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
@@ -610,6 +612,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             value = transformSave(value);
         }
 
+        state$.numPendingSets.set((v) => (v || 0) + 1);
+        state$.isSetting.set(true);
         onBeforeSet?.();
 
         let updateResult:
@@ -621,7 +625,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             | undefined = undefined;
 
         const onError = (error: Error) => {
-            node.state!.error.set(error);
+            state$.error.set(error);
             syncOptions.onSetError?.(error);
         };
 
@@ -659,7 +663,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         await savedPromise;
 
-        if (!node.state!.error.peek()) {
+        if (!state$.error.peek()) {
             // If this remote save changed anything then update cache and metadata
             // Because save happens after a timeout and they're batched together, some calls to save will
             // return saved data and others won't, so those can be ignored.
@@ -713,6 +717,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 }
             }
 
+            state$.numPendingSets.set((v) => v! - 1);
+            state$.isSetting.set(state$.numPendingSets.peek()! > 0);
             onAfterSet?.();
         }
     }
@@ -895,23 +901,20 @@ export function syncObservable<T>(
     );
     const localState: LocalState = {};
     let sync: () => Promise<void>;
+    let numOutstandingGets = 0;
 
-    const syncState = (node.state = observable<ObservableSyncState>({
-        isPersistLoaded: false,
+    const syncState$ = syncState(obs$);
+    syncState$.assign({
         isLoaded: !syncOptions.get,
-        isPersistEnabled: true,
-        isSyncEnabled: true,
-        clearPersist: undefined as unknown as () => Promise<void>,
-        sync: () => Promise.resolve(),
         getPendingChanges: () => localState.pendingChanges,
-    }));
+    });
 
     const onError = (error: Error) => {
         node.state!.error.set(error);
         syncOptions.onGetError?.(error);
     };
 
-    loadLocal(obs$, syncOptions, syncState, localState);
+    loadLocal(obs$, syncOptions, syncState$, localState);
 
     if (syncOptions.get) {
         let isSynced = false;
@@ -982,7 +985,7 @@ export function syncObservable<T>(
                                 });
 
                                 if (didChangeMetadata) {
-                                    updateMetadata(obs$, localState, syncState, syncOptions, {
+                                    updateMetadata(obs$, localState, syncState$, syncOptions, {
                                         pending,
                                     });
                                 }
@@ -1015,7 +1018,7 @@ export function syncObservable<T>(
                             });
                         }
                         if (lastSync && syncOptions.persist) {
-                            updateMetadata(obs$, localState, syncState, syncOptions, {
+                            updateMetadata(obs$, localState, syncState$, syncOptions, {
                                 lastSync,
                             });
                         }
@@ -1053,6 +1056,8 @@ export function syncObservable<T>(
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
                         onError,
                     };
+                    numOutstandingGets++;
+                    node.state!.isGetting.set(true);
                     const got = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
                         const params = getParams as SyncedGetParams;
                         params.cancelRetry = retryEvent.cancelRetry;
@@ -1065,9 +1070,11 @@ export function syncObservable<T>(
                             lastSync: getParams.lastSync,
                             mode: getParams.mode!,
                         });
+                        numOutstandingGets--;
                         node.state!.assign({
                             isLoaded: true,
                             error: undefined,
+                            isGetting: numOutstandingGets > 0,
                         });
                     };
                     if (isPromise(got)) {
@@ -1095,7 +1102,7 @@ export function syncObservable<T>(
             if (!isSynced) {
                 isSynced = true;
                 // Wait for remote to be ready before saving pending
-                await when(syncState.isLoaded);
+                await when(syncState$.isLoaded);
 
                 if (pending && !isEmpty(pending)) {
                     localState.isApplyingPending = true;
@@ -1112,7 +1119,7 @@ export function syncObservable<T>(
 
                     // Send the changes into onObsChange so that they get synced remotely
                     const value = getNodeValue(node);
-                    onObsChange(obs$, syncState, localState, syncOptions, {
+                    onObsChange(obs$, syncState$, localState, syncOptions, {
                         value,
                         loading: false,
                         remote: false,
@@ -1124,7 +1131,7 @@ export function syncObservable<T>(
             }
         };
 
-        syncState.assign({ sync });
+        syncState$.assign({ sync });
     }
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
@@ -1147,10 +1154,10 @@ export function syncObservable<T>(
 
         if (syncOptions?.set || syncOptions?.persist) {
             obs$.onChange(
-                onObsChange.bind(this, obs$ as any, syncState, localState, syncOptions as SyncedOptions<any>),
+                onObsChange.bind(this, obs$ as any, syncState$, localState, syncOptions as SyncedOptions<any>),
             );
         }
     });
 
-    return syncState;
+    return syncState$;
 }

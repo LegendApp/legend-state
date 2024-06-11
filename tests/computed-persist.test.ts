@@ -26,11 +26,11 @@ describe('caching with new computed', () => {
             }),
         );
 
+        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
         const state = syncState(nodes);
 
         expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
-        expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
 
         await when(state.isLoaded);
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
@@ -85,11 +85,11 @@ describe('caching with new computed', () => {
             }),
         );
 
+        expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
         const state = syncState(nodes);
 
         expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
-        expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
 
         await when(state.isLoaded);
 
@@ -108,11 +108,11 @@ describe('caching with new computed', () => {
             }),
         );
 
+        expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
         const state = syncState(nodes);
 
         expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(true);
-        expect(nodes.get()).toEqual({ key0: 'key0', key1: 'key1' });
     });
     test('persist with initial and no get and set', async () => {
         const nodes = observable(
@@ -191,11 +191,11 @@ describe('caching with new computed', () => {
             }),
         );
 
+        expect(nodes.get()).toEqual('persistd');
         const state = syncState(nodes);
 
         expect(state.isPersistLoaded.get()).toEqual(true);
         expect(state.isLoaded.get()).toEqual(false);
-        expect(nodes.get()).toEqual('persistd');
 
         await when(state.isLoaded);
         expect(nodes.get()).toEqual('persistd1');

@@ -1,9 +1,7 @@
-import type { ObservableSyncState } from './observableInterfaces';
-import { extractPromise, getProxy, peekInternal } from './ObservableObject';
+import { extractPromise, getProxy } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
 import { createObservable } from './createObservable';
-import { getNode } from './globals';
-import type { Observable, ObservableParam, ObservablePrimitive, RecursiveValueOrFunction } from './observableTypes';
+import type { Observable, ObservablePrimitive, RecursiveValueOrFunction } from './observableTypes';
 
 export function observable<T>(): Observable<T | undefined>;
 export function observable<T>(
@@ -18,15 +16,4 @@ export function observablePrimitive<T>(value: Promise<T>): ObservablePrimitive<T
 export function observablePrimitive<T>(value?: T): ObservablePrimitive<T>;
 export function observablePrimitive<T>(value?: T | Promise<T>): ObservablePrimitive<T> {
     return createObservable(value, true, extractPromise, getProxy, ObservablePrimitiveClass) as any;
-}
-
-export function syncState(obs: ObservableParam) {
-    const node = getNode(obs);
-    if (!node.state) {
-        peekInternal(node);
-    }
-    if (!node.state) {
-        node.state = observable({} as ObservableSyncState);
-    }
-    return node.state!;
 }

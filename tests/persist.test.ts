@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
-import { observable, syncState } from '../src/observable';
+import { observable } from '../src/observable';
+import { syncState } from '../src/syncState';
 import { Change } from '../src/observableInterfaces';
 import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
@@ -420,6 +421,34 @@ describe('Pending', () => {
         expect(didSave).toEqual(false);
     });
 });
+describe('sync state', () => {
+    test('isGetting and isSetting', async () => {
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    return promiseTimeout(1, 'hi');
+                },
+                set: () => {
+                    return promiseTimeout(1);
+                },
+            }),
+        );
+        const state$ = syncState(obs$);
+
+        expect(state$.isGetting.get()).toEqual(false);
+        expect(obs$.get()).toEqual(undefined);
+        expect(state$.isGetting.get()).toEqual(true);
+        await promiseTimeout(1);
+        expect(state$.isGetting.get()).toEqual(false);
+        expect(obs$.get()).toEqual('hi');
+
+        obs$.set('hello');
+        await promiseTimeout(1);
+        expect(state$.isSetting.get()).toEqual(true);
+        await promiseTimeout(1);
+        expect(state$.isSetting.get()).toEqual(false);
+    });
+});
 describe('persist objects', () => {
     test('persist object with functions', async () => {
         const persistName = getPersistName();
@@ -572,6 +601,8 @@ describe('global config', () => {
                 },
             }),
         );
+
+        obs$.get();
 
         await when(syncState(obs$).isLoaded);
 

@@ -1607,6 +1607,7 @@ describe('loading', () => {
                 setTimeout(() => resolve('hi there'), 0);
             });
         });
+        expect(obs.get()).toEqual(undefined);
         const state = syncState(obs);
         expect(state.isLoaded.get()).toEqual(false);
         await promiseTimeout(0);
@@ -1624,6 +1625,7 @@ describe('loading', () => {
                 initial: 'initial',
             }),
         );
+        expect(obs.get()).toEqual(undefined);
         const state = syncState(obs);
         expect(state.isLoaded.get()).toEqual(false);
         await promiseTimeout(0);
@@ -1645,6 +1647,7 @@ describe('loading', () => {
                 },
             ),
         );
+        expect(obs.get()).toEqual(undefined);
         const state = syncState(obs);
         expect(state.isLoaded.get()).toEqual(false);
         await promiseTimeout(0);

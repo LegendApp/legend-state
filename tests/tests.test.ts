@@ -1,4 +1,3 @@
-import { expectChangeHandler, promiseTimeout } from './testglobals';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { configureLegendState } from '../src/config';
 import { enable$GetSet } from '../src/config/enable$GetSet';
@@ -7,10 +6,12 @@ import { event } from '../src/event';
 import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
-import { observable, observablePrimitive, syncState } from '../src/observable';
+import { observable, observablePrimitive } from '../src/observable';
 import { NodeValue } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
+import { syncState } from '../src/syncState';
 import { when, whenReady } from '../src/when';
+import { expectChangeHandler, promiseTimeout } from './testglobals';
 
 enable$GetSet();
 enable_PeekAssign();
