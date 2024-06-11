@@ -26,17 +26,19 @@ type IsUserDefinedObject<T> =
 export type RemoveObservables<T> =
     T extends ImmutableObservableBase<infer t>
         ? t
-        : IsUserDefinedObject<T> extends true
-          ? {
-                [K in keyof T]: RemoveObservables<T[K]>;
-            }
-          : T extends ImmutableObservableBase<infer TObs>
-            ? TObs
-            : T extends () => infer TRet
-              ? RemoveObservables<TRet> & T
-              : T extends (key: string) => infer TRet
-                ? Record<string, RemoveObservables<TRet>> & T
-                : T;
+        : T extends ImmutableObservableBase<infer t>[]
+          ? t[]
+          : IsUserDefinedObject<T> extends true
+            ? {
+                  [K in keyof T]: RemoveObservables<T[K]>;
+              }
+            : T extends ImmutableObservableBase<infer TObs>
+              ? TObs
+              : T extends () => infer TRet
+                ? RemoveObservables<TRet> & T
+                : T extends (key: string) => infer TRet
+                  ? Record<string, RemoveObservables<TRet>> & T
+                  : T;
 
 interface ObservableArray<T, U>
     extends ObservablePrimitive<T>,
