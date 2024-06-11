@@ -108,10 +108,11 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     newValue = !parentNode.isAssigning && isFunc && !isFunction(prevValue) ? newValue(prevValue) : newValue;
 
     if (
-        !globalState.isMerging ||
-        isNullOrUndefined(prevValue) ||
-        isFunction(prevValue) ||
-        !node.parent?.functions?.get(key)
+        newValue !== prevValue &&
+        (!globalState.isMerging ||
+            isNullOrUndefined(prevValue) ||
+            isFunction(prevValue) ||
+            !node.parent?.functions?.get(key))
     ) {
         try {
             parentNode.isSetting = (parentNode.isSetting || 0) + 1;
