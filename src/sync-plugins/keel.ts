@@ -160,7 +160,7 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     > {
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
-    delete?: (params: TRemote) => Promise<APIResult<string>>;
+    delete?: (params: { id: string }) => Promise<APIResult<string>>;
 }
 
 const keelConfig: SyncedKeelConfiguration = {} as SyncedKeelConfiguration;
