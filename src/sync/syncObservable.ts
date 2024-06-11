@@ -586,13 +586,13 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
-    const { allowSetIfGetError, onBeforeSet, waitForSet, onAfterSet } = syncOptions || ({} as SyncedOptions);
+    const { onBeforeSet, waitForSet, onAfterSet } = syncOptions || ({} as SyncedOptions);
     const shouldSaveMetadata = persist?.retrySync;
     const saveLocal = !!persist?.name;
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
-        await when(() => syncState.isLoaded.get() || (allowSetIfGetError && syncState.error.get()));
+        await when(syncState.isLoaded);
 
         if (waitForSet) {
             const waitFn = isFunction(waitForSet)
@@ -1095,7 +1095,7 @@ export function syncObservable<T>(
             if (!isSynced) {
                 isSynced = true;
                 // Wait for remote to be ready before saving pending
-                await when(() => syncState.isLoaded.get() || (syncOptions.allowSetIfGetError && syncState.error.get()));
+                await when(syncState.isLoaded);
 
                 if (pending && !isEmpty(pending)) {
                     localState.isApplyingPending = true;

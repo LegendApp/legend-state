@@ -80,7 +80,6 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     log?: (message?: any, ...optionalParams: any[]) => void;
     onBeforeSet?: () => void;
     onAfterSet?: () => void;
-    allowSetIfGetError?: boolean;
 }
 
 export interface SyncedOptionsGlobal<T = any>
