@@ -1,6 +1,8 @@
 import {
     Observable,
+    WaitForSetFnParams,
     computeSelector,
+    isFunction,
     isNullOrUndefined,
     isNumber,
     isPromise,
@@ -382,10 +384,10 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
             isEnabled$.get() &&
             (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) &&
             (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: () =>
+        waitForSet: (params: WaitForSetFnParams<any>) =>
             isEnabled$.get() &&
             (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) &&
-            (waitForSet ? computeSelector(waitForSet) : true),
+            (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
         generateId: fns.generateId,
         transform,
         as: asType,

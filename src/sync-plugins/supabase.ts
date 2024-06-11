@@ -1,4 +1,12 @@
-import { Observable, computeSelector, isObject, observable, symbolDelete } from '@legendapp/state';
+import {
+    Observable,
+    WaitForSetFnParams,
+    computeSelector,
+    isFunction,
+    isObject,
+    observable,
+    symbolDelete,
+} from '@legendapp/state';
 import {
     SyncTransform,
     SyncedOptions,
@@ -244,6 +252,7 @@ export function syncedSupabase<
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
+        waitForSet: (params: WaitForSetFnParams<any>) =>
+            isEnabled$.get() && (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
     });
 }

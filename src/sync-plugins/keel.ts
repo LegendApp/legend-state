@@ -1,5 +1,5 @@
 import ksuid from 'ksuid';
-import { computeSelector, internal, isEmpty, isFunction, observable, when } from '@legendapp/state';
+import { WaitForSetFnParams, computeSelector, internal, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
     SyncedOptions,
     removeNullUndefined,
@@ -487,7 +487,8 @@ export function syncedKeel<
         update,
         delete: deleteFn,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
+        waitForSet: (params: WaitForSetFnParams<any>) =>
+            isEnabled$.get() && (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
