@@ -1,5 +1,5 @@
 import { isPromise } from './is';
-import type { NodeValue, RetryOptions } from './observableInterfaces';
+import type { RetryOptions } from './observableInterfaces';
 
 function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): number | null {
     const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
@@ -18,7 +18,6 @@ function createRetryTimeout(retryOptions: RetryOptions, retryNum: number, fn: ()
 }
 
 export function runWithRetry<T>(
-    node: NodeValue,
     state: { retryNum: number; retry: RetryOptions | undefined },
     fn: (e: { retryNum: number; cancelRetry: () => void }) => T | Promise<T>,
 ): T | Promise<T> {
@@ -32,7 +31,6 @@ export function runWithRetry<T>(
             const run = () => {
                 (value as Promise<any>)
                     .then((val: any) => {
-                        node.activationState!.persistedRetry = false;
                         resolve(val);
                     })
                     .catch(() => {
@@ -46,9 +44,6 @@ export function runWithRetry<T>(
                                 run();
                             });
                         }
-                    })
-                    .finally(() => {
-                        node.activationState!.persistedRetry = false;
                     });
             };
             run();

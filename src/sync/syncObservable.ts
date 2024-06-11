@@ -646,7 +646,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             refresh: syncState.sync,
         };
 
-        let savedPromise = runWithRetry(node, { retryNum: 0, retry: syncOptions.retry }, async (retryEvent) => {
+        let savedPromise = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, async (retryEvent) => {
             const params = setParams as SyncedSetParams<any>;
             params.cancelRetry = retryEvent.cancelRetry;
             params.retryNum = retryEvent.retryNum;
@@ -1053,7 +1053,7 @@ export function syncObservable<T>(
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
                         onError,
                     };
-                    const got = runWithRetry(node, { retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
+                    const got = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
                         const params = getParams as SyncedGetParams;
                         params.cancelRetry = retryEvent.cancelRetry;
                         params.retryNum = retryEvent.retryNum;

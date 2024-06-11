@@ -88,7 +88,6 @@ interface BaseNodeValue {
     recursivelyAutoActivated?: boolean;
     activationState?: LinkedOptions & {
         onError?: () => void;
-        persistedRetry?: boolean;
         onChange: (params: UpdateFnParams) => void | Promise<void>;
     };
     dirtyFn?: () => void;
