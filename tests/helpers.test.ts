@@ -127,6 +127,119 @@ describe('mergeIntoObservable', () => {
         mergeIntoObservable(obs.test, { test2: { test3: 'hi' } });
         expect(obs.test.test2.test3.get()).toEqual('hi');
     });
+    test('merge multiple should not override intermediate', () => {
+        const target = { syncMode: 'get' };
+        const source1 = {
+            persist: {
+                indexedDB: {
+                    databaseName: 'LegendTest',
+                    version: 20,
+                    tableNames: [
+                        'documents',
+                        'items',
+                        'settings',
+                        'boards',
+                        'localStorage',
+                        'contacts',
+                        'plugins',
+                        'Drive',
+                        'GCalendar',
+                        'Gmail',
+                        'pluginsNew',
+                        'GmailMessages',
+                        'Boards',
+                    ],
+                },
+            },
+            debounceSet: 1000,
+            retry: {
+                infinite: true,
+            },
+        };
+        const source2 = {
+            persist: {
+                name: 'documents',
+                indexedDB: {
+                    prefixID: 'u',
+                },
+                transform: {},
+            },
+            synced: true,
+        };
+        const source1Str = JSON.stringify(source1);
+        const source2Str = JSON.stringify(source2);
+        const merged = mergeIntoObservable(target, source1, source2);
+        expect(JSON.stringify(source1) === source1Str);
+        expect(JSON.stringify(source2) === source2Str);
+        expect(merged).toEqual({
+            debounceSet: 1000,
+            persist: {
+                indexedDB: {
+                    databaseName: 'LegendTest',
+                    prefixID: 'u',
+                    tableNames: [
+                        'documents',
+                        'items',
+                        'settings',
+                        'boards',
+                        'localStorage',
+                        'contacts',
+                        'plugins',
+                        'Drive',
+                        'GCalendar',
+                        'Gmail',
+                        'pluginsNew',
+                        'GmailMessages',
+                        'Boards',
+                    ],
+                    version: 20,
+                },
+                name: 'documents',
+                transform: {},
+            },
+            retry: {
+                infinite: true,
+            },
+            syncMode: 'get',
+            synced: true,
+        });
+
+        const merged2 = mergeIntoObservable({ syncMode: 'get' }, source1, source2);
+        expect(JSON.stringify(source1) === source1Str);
+        expect(JSON.stringify(source2) === source2Str);
+        expect(merged2).toEqual({
+            debounceSet: 1000,
+            persist: {
+                indexedDB: {
+                    databaseName: 'LegendTest',
+                    prefixID: 'u',
+                    tableNames: [
+                        'documents',
+                        'items',
+                        'settings',
+                        'boards',
+                        'localStorage',
+                        'contacts',
+                        'plugins',
+                        'Drive',
+                        'GCalendar',
+                        'Gmail',
+                        'pluginsNew',
+                        'GmailMessages',
+                        'Boards',
+                    ],
+                    version: 20,
+                },
+                name: 'documents',
+                transform: {},
+            },
+            retry: {
+                infinite: true,
+            },
+            syncMode: 'get',
+            synced: true,
+        });
+    });
 });
 
 describe('isObservableValueReady', () => {

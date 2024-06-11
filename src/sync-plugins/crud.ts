@@ -1,5 +1,13 @@
-import { getNodeValue, internal, isNullOrUndefined } from '@legendapp/state';
-import { SyncedGetParams, SyncedOptions, SyncedSetParams, deepEqual, diffObjects, synced } from '@legendapp/state/sync';
+import { UpdateFnParams, getNodeValue, internal, isArray, isNullOrUndefined } from '@legendapp/state';
+import {
+    SyncedGetParams,
+    SyncedOptions,
+    SyncedSetParams,
+    SyncedSubscribeParams,
+    deepEqual,
+    diffObjects,
+    synced,
+} from '@legendapp/state/sync';
 
 const { clone } = internal;
 
@@ -7,38 +15,41 @@ export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 
 export type CrudResult<T> = T;
 
-export interface SyncedCrudPropsSingle<TRemote, TLocal> {
+export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
     get?: (params: SyncedGetParams) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
     initial?: InitialValue<TLocal, 'value'>;
     as?: never | 'value';
 }
-export interface SyncedCrudPropsMany<TRemote, TLocal, TAsOption extends CrudAsOption> {
+export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
     list?: (params: SyncedGetParams) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
 }
-export interface SyncedCrudOnSavedParams<TRemote extends { id: string | number }, TLocal> {
+export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     saved: TLocal;
     input: TRemote;
     currentValue: TLocal;
     isCreate: boolean;
     props: SyncedCrudPropsBase<TRemote, TLocal>;
 }
-export interface SyncedCrudPropsBase<TRemote extends { id: string | number }, TLocal = TRemote>
-    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial'> {
-    create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined>;
+
+export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe'> {
+    create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,
         params: SyncedSetParams<TRemote>,
-    ): Promise<CrudResult<Partial<TRemote> | null | undefined>>;
-    delete?(input: { id: TRemote['id'] }, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
+    ): Promise<CrudResult<Partial<TRemote> | null | undefined | void>>;
+    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
+    fieldId?: string;
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     fieldDeleted?: string;
     updatePartial?: boolean;
     changesSince?: 'all' | 'last-sync';
     generateId?: () => string | number;
+    subscribe?: (params: SyncedSubscribeParams<TRemote[]>) => (() => void) | void;
 }
 
 type InitialValue<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
@@ -63,28 +74,33 @@ function transformOut<T1, T2>(data: T1, transform: undefined | ((value: T1) => T
     return transform ? transform(clone(data)) : data;
 }
 
-function ensureId(obj: { id: string | number }, generateId: () => string | number) {
-    if (!obj.id) {
-        obj.id = generateId();
+function ensureId(obj: any, fieldId: string, generateId: () => string | number) {
+    if (!obj[fieldId]) {
+        obj[fieldId] = generateId();
     }
-    return obj.id;
+    return obj[fieldId];
 }
 
-export function syncedCrud<TRemote extends { id: string | number }, TLocal = TRemote>(
+function computeLastSync(data: any[], fieldUpdatedAt: string | undefined, fieldCreatedAt: string | undefined) {
+    let newLastSync = 0;
+    for (let i = 0; i < data.length; i++) {
+        const updated =
+            (fieldUpdatedAt ? (data[i] as any)[fieldUpdatedAt as any] : 0) ||
+            (fieldCreatedAt ? (data[i] as any)[fieldCreatedAt as any] : 0);
+        if (updated) {
+            newLastSync = Math.max(newLastSync, +new Date(updated));
+        }
+    }
+    return newLastSync;
+}
+
+export function syncedCrud<TRemote extends object, TLocal = TRemote>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'value'>;
-export function syncedCrud<
-    TRemote extends { id: string | number },
-    TLocal = TRemote,
-    TAsOption extends CrudAsOption = 'object',
->(
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
     props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>,
 ): SyncedCrudReturnType<TLocal, Exclude<TAsOption, 'value'>>;
-export function syncedCrud<
-    TRemote extends { id: string | number },
-    TLocal = TRemote,
-    TAsOption extends CrudAsOption = 'object',
->(
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
     props: SyncedCrudPropsBase<TRemote, TLocal> &
         (SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>),
 ): SyncedCrudReturnType<TLocal, TAsOption> {
@@ -95,16 +111,20 @@ export function syncedCrud<
         update: updateFn,
         delete: deleteFn,
         transform,
+        fieldId: fieldIdProp,
         fieldCreatedAt,
         fieldUpdatedAt,
         fieldDeleted,
         updatePartial,
+        subscribe: subscribeProp,
         onSaved,
         mode: modeParam,
         changesSince,
         generateId,
         ...rest
     } = props;
+
+    const fieldId = fieldIdProp || 'id';
 
     let asType = props.as as TAsOption;
 
@@ -114,6 +134,25 @@ export function syncedCrud<
 
     const asMap = asType === 'Map';
     const asArray = asType === 'array';
+
+    const resultsToOutType = (results: any[]) => {
+        if (asType === 'value') {
+            return results[0];
+        }
+        const out = asType === 'array' ? [] : asMap ? new Map() : {};
+        for (let i = 0; i < results.length; i++) {
+            let result = results[i];
+            result = result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
+            if (asArray) {
+                (out as any[]).push(result);
+            } else if (asMap) {
+                (out as Map<string, any>).set(result[fieldId], result);
+            } else {
+                (out as Record<string, any>)[result[fieldId]] = result;
+            }
+        }
+        return out;
+    };
 
     const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
         getFn || listFn
@@ -127,16 +166,12 @@ export function syncedCrud<
                       }
 
                       const data = (await listFn(getParams)) || [];
-                      let newLastSync = 0;
-                      for (let i = 0; i < data.length; i++) {
-                          const updated =
-                              (data[i] as any)[fieldUpdatedAt as any] || (data[i] as any)[fieldCreatedAt as any];
-                          if (updated) {
-                              newLastSync = Math.max(newLastSync, +new Date(updated));
+                      if (fieldUpdatedAt) {
+                          const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
+
+                          if (newLastSync && newLastSync !== lastSync) {
+                              updateLastSync(newLastSync);
                           }
-                      }
-                      if (newLastSync && newLastSync !== lastSync) {
-                          updateLastSync(newLastSync);
                       }
                       let transformed = data as unknown as TLocal[];
                       if (transform?.load) {
@@ -145,24 +180,12 @@ export function syncedCrud<
                       if (asType === 'value') {
                           return transformed.length > 0
                               ? transformed[0]
-                              : (isLastSyncMode && lastSync && value) || null;
+                              : (((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null;
                       } else {
                           const results = transformed.map((result: any) =>
                               result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result,
                           );
-                          const out = asType === 'array' ? [] : asMap ? new Map() : {};
-                          for (let i = 0; i < results.length; i++) {
-                              let result = results[i];
-                              result = result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
-                              if (asArray) {
-                                  (out as any[]).push(result);
-                              } else if (asMap) {
-                                  (out as Map<string, any>).set(result.id, result);
-                              } else {
-                                  (out as Record<string, any>)[result.id] = result;
-                              }
-                          }
-                          return out;
+                          return resultsToOutType(results);
                       }
                   } else if (getFn) {
                       const data = await getFn(getParams);
@@ -190,15 +213,15 @@ export function syncedCrud<
                   const { value, changes, update, retryAsCreate, valuePrevious, node } = params;
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
-                  const deletes = new Set<string>();
+                  const deletes = new Set<TRemote>();
 
                   changes.forEach(({ path, prevAtPath, valueAtPath }) => {
                       if (asType === 'value') {
                           if (value) {
-                              let id = value?.id;
+                              let id = value?.[fieldId];
                               const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
                               if (!id && generateId) {
-                                  id = ensureId(value, generateId);
+                                  id = ensureId(value, fieldId, generateId);
                               }
                               if (id) {
                                   if (isCreate || retryAsCreate) {
@@ -216,10 +239,7 @@ export function syncedCrud<
                                   console.error('[legend-state]: added synced item without an id');
                               }
                           } else if (path.length === 0) {
-                              const id = prevAtPath?.id;
-                              if (id) {
-                                  deletes.add(id);
-                              }
+                              deletes.add(prevAtPath);
                           }
                       } else {
                           let itemsChanged: [string, any][] | undefined = undefined;
@@ -240,7 +260,7 @@ export function syncedCrud<
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
-                                      deletes.add(itemKey);
+                                      deletes.add(prevAtPath);
                                   }
                               } else {
                                   itemsChanged = [[itemKey, itemValue]];
@@ -248,7 +268,10 @@ export function syncedCrud<
                           }
                           itemsChanged?.forEach(([itemKey, item]) => {
                               if (isNullOrUndefined(item)) {
-                                  deletes.add(itemKey);
+                                  const prev = valuePrevious[itemKey];
+                                  if (prev) {
+                                      deletes.add(prev);
+                                  }
                               } else {
                                   const prev = asMap ? valuePrevious.get(itemKey) : valuePrevious[itemKey];
 
@@ -259,7 +282,7 @@ export function syncedCrud<
                                         : isNullOrUndefined(prev);
                                   if (isCreate) {
                                       if (generateId) {
-                                          ensureId(item, generateId);
+                                          ensureId(item, fieldId, generateId);
                                       }
                                       if (!item.id) {
                                           console.error('[legend-state]: added item without an id');
@@ -288,7 +311,9 @@ export function syncedCrud<
                       isCreate: boolean,
                   ) => {
                       if (data) {
-                          const saved: TLocal = (transform?.load ? transform.load(data as any, 'set') : data) as any;
+                          const saved: TLocal = (
+                              transform?.load ? await transform.load(data as any, 'set') : data
+                          ) as any;
 
                           const isChild = itemKey !== 'undefined' && asType !== 'value';
                           const currentPeeked = getNodeValue(node);
@@ -342,20 +367,20 @@ export function syncedCrud<
                   };
 
                   return Promise.all([
-                      ...Array.from(creates).map(([itemKey, itemValue]) => {
-                          const createObj = transformOut(itemValue, transform?.save) as TRemote;
+                      ...Array.from(creates).map(async ([itemKey, itemValue]) => {
+                          const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
                           return createFn!(createObj, params).then((result) =>
                               saveResult(itemKey, createObj, result as any, true),
                           );
                       }),
-                      ...Array.from(updates).map(([itemKey, itemValue]) => {
+                      ...Array.from(updates).map(async ([itemKey, itemValue]) => {
                           const toSave = updatePartial
                               ? Object.assign(
                                     diffObjects(asType === 'value' ? valuePrevious : valuePrevious[itemKey], itemValue),
-                                    { id: (itemValue as any).id },
+                                    (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
                                 )
                               : itemValue;
-                          const changed = transformOut(toSave as TLocal, transform?.save) as TRemote;
+                          const changed = (await transformOut(toSave as TLocal, transform?.save)) as TRemote & {};
 
                           if (Object.keys(changed).length > 0) {
                               return updateFn!(changed, params).then(
@@ -363,11 +388,15 @@ export function syncedCrud<
                               );
                           }
                       }),
-                      ...Array.from(deletes).map((id) => {
+                      ...Array.from(deletes).map((valuePrevious) => {
                           if (deleteFn) {
-                              deleteFn({ id }, params);
+                              deleteFn(valuePrevious, params);
                           } else if (fieldDeleted && updateFn) {
-                              updateFn({ id, [fieldDeleted]: true } as any, params);
+                              const valueId = (valuePrevious as any)[fieldId];
+                              updateFn(
+                                  { ...(valueId ? { [fieldId]: valueId } : {}), [fieldDeleted]: true } as any,
+                                  params,
+                              );
                           } else {
                               console.log('[legend-state] missing delete function');
                           }
@@ -376,9 +405,40 @@ export function syncedCrud<
               }
             : undefined;
 
+    const subscribe: SyncedOptions['subscribe'] = subscribeProp
+        ? (params: SyncedSubscribeParams) =>
+              subscribeProp({
+                  ...params,
+                  update: async (paramsUpdate) => {
+                      const paramsForUpdate: UpdateFnParams<any> = paramsUpdate as any;
+
+                      const rows = paramsUpdate.value as any[];
+
+                      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                          if (!isArray(rows)) {
+                              console.error('[legend-state] subscribe:update expects an array of changed items');
+                          }
+                      }
+
+                      const newLastSync = computeLastSync(rows, fieldUpdatedAt, fieldCreatedAt);
+                      if (newLastSync) {
+                          paramsForUpdate.lastSync = newLastSync;
+                      }
+
+                      const rowsTransformed = transform?.load
+                          ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
+                          : rows;
+
+                      paramsForUpdate.value = resultsToOutType(rowsTransformed);
+                      params.update(paramsForUpdate);
+                  },
+              })
+        : undefined;
+
     return synced<any>({
         set,
         get,
+        subscribe,
         mode: modeParam,
         ...rest,
     });

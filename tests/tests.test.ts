@@ -3452,3 +3452,43 @@ describe('Dates', () => {
         expect(handler2).not.toHaveBeenCalled();
     });
 });
+describe('Middleware', () => {
+    test('use onChange immediate to revert', () => {
+        const obs$ = observable({ text: 'hi' });
+        obs$.onChange(
+            ({ value, getPrevious }) => {
+                if (value.text === 'bad') {
+                    obs$.text.set(getPrevious().text);
+                }
+            },
+            { immediate: true },
+        );
+
+        const handler = expectChangeHandler(obs$);
+
+        obs$.text.set('bad');
+
+        expect(handler).not.toHaveBeenCalled();
+        expect(obs$.text.get()).toEqual('hi');
+    });
+    test('use onChange immediate to change', () => {
+        const obs$ = observable({ text: 'hi' });
+        obs$.onChange(
+            ({ value }) => {
+                if (value.text === 'bad') {
+                    obs$.text.set('good');
+                }
+            },
+            { immediate: true },
+        );
+
+        const handler = expectChangeHandler(obs$);
+
+        obs$.text.set('bad');
+
+        expect(handler).toHaveBeenCalledWith({ text: 'good' }, { text: 'hi' }, [
+            { path: ['text'], pathTypes: ['object'], prevAtPath: 'hi', valueAtPath: 'good' },
+        ]);
+        expect(obs$.text.get()).toEqual('good');
+    });
+});

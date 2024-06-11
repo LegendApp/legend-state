@@ -176,7 +176,7 @@ export function syncedSupabase<
               }
             : undefined;
     const subscribe = realtime
-        ? ({ node, value$, update }: SyncedSubscribeParams) => {
+        ? ({ node, value$, update }: SyncedSubscribeParams<TRemote[]>) => {
               const { filter, schema } = (isObject(realtime) ? realtime : {}) as { schema?: string; filter?: string };
               const channel = client
                   .channel(`LS_${node.key || ''}${channelNum++}`)
@@ -205,7 +205,7 @@ export function syncedSupabase<
                               if (valueDateStr && (!curDateStr || valueDate > +new Date(curDateStr))) {
                                   // Update local with the new value
                                   update({
-                                      value: { [value.id]: value },
+                                      value: [value as TRemote],
                                       lastSync: valueDate,
                                       mode: 'merge',
                                   });
@@ -213,7 +213,7 @@ export function syncedSupabase<
                           } else if (eventType === 'DELETE') {
                               const { id } = old;
                               update({
-                                  value: { [id]: symbolDelete },
+                                  value: [{ [id]: symbolDelete } as TRemote],
                               });
                           }
                       },
@@ -244,6 +244,6 @@ export function syncedSupabase<
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet,
+        waitForSet: () => isEnabled$.get() && (waitForSet ? computeSelector(waitForSet) : true),
     });
 }

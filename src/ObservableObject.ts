@@ -700,6 +700,8 @@ function assign(node: NodeValue, value: any) {
         const currentValue = getNodeValue(node);
         if (isMap(currentValue)) {
             value.forEach((value, key) => currentValue.set(key, value));
+        } else {
+            set(node, value);
         }
     } else {
         // Set inAssign to allow setting on safe observables
@@ -1079,9 +1081,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             if (isFunction(value) && value.length === 0) {
                 value = value();
             }
-            const activated = !isObservable(value)
-                ? (value?.[symbolLinked] as LinkedOptions & { synced: boolean })
-                : undefined;
+            const activated = !isObservable(value) ? (value?.[symbolLinked] as any) : undefined;
             if (activated) {
                 node.activationState = activated;
                 value = undefined;
@@ -1309,7 +1309,8 @@ function setToObservable(node: NodeValue, value: any) {
 }
 
 function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
-    if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
+    if (!node.recursivelyAutoActivated && (isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
+        node.recursivelyAutoActivated = true;
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
             let childNode = node;
@@ -1341,7 +1342,7 @@ function recursivelyAutoActivateInner(
                     extractFunctionOrComputed(childNode, key, value);
                     delete childNode.lazy;
                 } else {
-                    const linkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
+                    const linkedOptions: LinkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
                     if (linkedOptions) {
                         const activate = linkedOptions.activate;
                         if (!activate || activate === 'auto') {

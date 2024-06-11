@@ -16,7 +16,6 @@ import type {
     RetryOptions,
     SetParams,
     UpdateFn,
-    UpdateFnParams,
 } from '@legendapp/state';
 
 export interface PersistOptions<T = any> {
@@ -39,23 +38,29 @@ export interface SyncedGetParams {
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
     refresh: () => void;
+    retryNum: number;
+    cancelRetry: () => void;
+    onError: (error: Error) => void;
+    options: SyncedOptions;
 }
 
-export interface SyncedSetParams<T> extends SetParams<T> {
+export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'> {
     node: NodeValue;
     valuePrevious: T;
-    update: UpdateFn;
+    update: UpdateFn<T>;
     refresh: () => void;
     cancelRetry: () => void;
     retryNum: number;
-    fromSubscribe: boolean | undefined;
+    onError: (error: Error) => void;
 }
 
 export interface SyncedSubscribeParams<T = any> {
     node: NodeValue;
     value$: ObservableParam<T>;
-    update: UpdateFn;
+    lastSync: number | undefined;
+    update: UpdateFn<T>;
     refresh: () => void;
+    onError: (error: Error) => void;
 }
 
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {
@@ -75,7 +80,6 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     log?: (message?: any, ...optionalParams: any[]) => void;
     onBeforeSet?: () => void;
     onAfterSet?: () => void;
-    allowSetIfGetError?: boolean;
 }
 
 export interface SyncedOptionsGlobal<T = any>
@@ -129,28 +133,9 @@ export interface ObservableSyncSetParams<T> {
     value: T;
     valuePrevious: T;
 }
-export interface ObservableSyncGetParams<T> {
-    state: Observable<ObservableSyncState>;
-    value$: ObservableParam<T>;
-    options: SyncedOptions<T>;
-    dateModified?: number;
-    lastSync?: number;
-    mode?: GetMode;
-    onGet: () => void;
-    onError: (error: Error) => void;
-    onChange: (params: UpdateFnParams) => void | Promise<void>;
-}
-export type ObservableSyncRemoteGetFnParams<T> = Omit<ObservableSyncGetParams<T>, 'onGet'>;
-
-export interface ObservableSyncClass {
-    get?<T>(params: ObservableSyncGetParams<T>): void;
-    set?<T>(
-        params: ObservableSyncSetParams<T>,
-    ): void | Promise<void | { changes?: object; dateModified?: number; lastSync?: number; pathStrs?: string[] }>;
-}
 
 export interface ObservableSyncFunctions<T = any> {
-    get?(params: ObservableSyncRemoteGetFnParams<T>): T | Promise<T>;
+    get?(params: SyncedGetParams): T | Promise<T>;
     set?(
         params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;

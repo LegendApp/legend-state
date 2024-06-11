@@ -195,7 +195,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
             } else {
                 // Set the whole table
                 this.tableData[table] = valueAtPath;
-                pendingTable.tablePrev = prev;
+                pendingTable.tablePrev = prev || {};
                 break;
             }
         }

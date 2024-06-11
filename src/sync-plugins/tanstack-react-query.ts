@@ -9,6 +9,6 @@ export function useObservableSyncedQuery<
     TError = DefaultError,
     TData = TQueryFnData,
     TQueryKey extends QueryKey = QueryKey,
->(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>): Observable<NonNullable<Synced<TData>>> {
+>(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>): Observable<Synced<TData>> {
     return useObservable(syncedQuery(params));
 }

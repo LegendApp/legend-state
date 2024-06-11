@@ -18,7 +18,7 @@ export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey e
 }
 
 export interface SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
-    extends SyncedOptions<TData> {
+    extends Omit<SyncedOptions<TData>, 'get' | 'set'> {
     queryClient: QueryClient;
     query: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey>;
     mutation?: MutationObserverOptions<TData, TError, void>;
@@ -30,7 +30,7 @@ export function syncedQuery<
     TData = TQueryFnData,
     TQueryKey extends QueryKey = QueryKey,
 >(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>) {
-    const { query: options, mutation: mutationOptions, queryClient } = params;
+    const { query: options, mutation: mutationOptions, queryClient, ...rest } = params;
 
     const Observer = QueryObserver;
     const defaultedOptions = queryClient!.defaultQueryOptions(
@@ -80,7 +80,7 @@ export function syncedQuery<
         return result.data!;
     };
 
-    const subscribe = ({ update }: SyncedSubscribeParams<TData>) => {
+    const subscribe = ({ update }: SyncedSubscribeParams<any>) => {
         // Subscribe to Query's observer and update the observable
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result) => {
@@ -97,7 +97,7 @@ export function syncedQuery<
         return unsubscribe;
     };
 
-    let set: undefined | (({ value }: SyncedSetParams<TData>) => Promise<TData>) = undefined;
+    let set: undefined | (({ value }: SyncedSetParams<any>) => Promise<TData>) = undefined;
     if (mutationOptions) {
         const mutator = new MutationObserver(queryClient!, mutationOptions);
         set = ({ value }: SyncedSetParams<TData>) => {
@@ -109,5 +109,6 @@ export function syncedQuery<
         get,
         set,
         subscribe,
+        ...rest,
     });
 }

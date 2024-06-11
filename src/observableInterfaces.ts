@@ -85,7 +85,11 @@ interface BaseNodeValue {
     numListenersRecursive: number;
     state?: Observable<ObservableSyncState>;
     activated?: boolean;
-    activationState?: LinkedOptions & { onError?: () => void; persistedRetry?: boolean };
+    recursivelyAutoActivated?: boolean;
+    activationState?: LinkedOptions & {
+        onError?: () => void;
+        onChange: (params: UpdateFnParams) => void | Promise<void>;
+    };
     dirtyFn?: () => void;
     dirtyChildren?: Set<NodeValue>;
 }
@@ -141,12 +145,12 @@ export interface WaitForSetFnParams<T = any> {
 }
 
 export type GetMode = 'set' | 'assign' | 'merge' | 'append' | 'prepend';
-export interface UpdateFnParams {
-    value: unknown;
+export interface UpdateFnParams<T = any> {
+    value: T;
     mode?: GetMode;
     lastSync?: number | undefined;
 }
-export type UpdateFn = (params: UpdateFnParams) => void;
+export type UpdateFn<T = any> = (params: UpdateFnParams<T>) => void;
 export type Linked<T> = T;
 
 export interface ObserveOptions {

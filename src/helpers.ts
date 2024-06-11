@@ -57,10 +57,15 @@ export function setAtPath<T extends object>(
                 // If setting undefined and the key is undefined, no need to initialize or set it
                 return obj;
             } else if (o[p] === undefined || o[p] === null) {
-                o[p] = initializePathType(pathTypes[i]);
+                const child = initializePathType(pathTypes[i]);
+                if (isMap(o)) {
+                    o.set(p, child);
+                } else {
+                    o[p] = child;
+                }
             }
             if (i < path.length - 1) {
-                o = o[p];
+                o = isMap(o) ? o.get(p) : o[p];
                 if (oFull) {
                     oFull = oFull[p];
                 }
@@ -173,11 +178,13 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
                     if (needsSet) {
                         targetChild.set(sourceValue);
                     } else {
-                        const toSet = isObject(sourceValue)
-                            ? { ...sourceValue }
-                            : isArray(sourceValue)
-                              ? [...sourceValue]
-                              : sourceValue;
+                        const toSet = isObservable(sourceValue)
+                            ? sourceValue
+                            : isObject(sourceValue)
+                              ? { ...sourceValue }
+                              : isArray(sourceValue)
+                                ? [...sourceValue]
+                                : sourceValue;
                         ((target as Record<string, any>)[key] as any) = toSet;
                     }
                 }

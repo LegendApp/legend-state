@@ -80,14 +80,17 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
         level,
         whenOptimizedOnlyIf,
     );
-    if (changesInBatch.size) {
-        batchNotifyChanges(changesInBatch, /*immediate*/ true);
-    }
 
     // Update the current batch
     const existing = _batchMap.get(node);
     if (existing) {
-        existing.value = value;
+        // Check that value is still different from prev as it could have been reverted during the batch,
+        // then don't need to notify for it
+        if (existing.prev === value) {
+            _batchMap.delete(node);
+        } else {
+            existing.value = value;
+        }
         // TODO: level, whenOptimizedOnlyIf
     } else {
         _batchMap.set(node, {
@@ -98,6 +101,10 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
             remote: globalState.isLoadingRemote,
             loading: globalState.isLoadingLocal,
         });
+    }
+
+    if (changesInBatch.size) {
+        batchNotifyChanges(changesInBatch, /*immediate*/ true);
     }
 
     // If not in a batch run it immediately
