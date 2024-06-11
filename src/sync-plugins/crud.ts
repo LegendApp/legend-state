@@ -180,7 +180,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       if (asType === 'value') {
                           return transformed.length > 0
                               ? transformed[0]
-                              : (isLastSyncMode && lastSync && value) || null;
+                              : (((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null;
                       } else {
                           const results = transformed.map((result: any) =>
                               result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result,
