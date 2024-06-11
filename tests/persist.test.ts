@@ -423,13 +423,14 @@ describe('Pending', () => {
 });
 describe('sync state', () => {
     test('isGetting and isSetting', async () => {
+        const canSet$ = observable(false);
         const obs$ = observable(
             synced({
                 get: () => {
                     return promiseTimeout(1, 'hi');
                 },
-                set: () => {
-                    return promiseTimeout(1);
+                set: async () => {
+                    await when(canSet$);
                 },
             }),
         );
@@ -443,8 +444,12 @@ describe('sync state', () => {
         expect(obs$.get()).toEqual('hi');
 
         obs$.set('hello');
-        await promiseTimeout(1);
+
+        await when(state$.isSetting);
+
+        expect(state$.numPendingSets.get()).toEqual(1);
         expect(state$.isSetting.get()).toEqual(true);
+        canSet$.set(true);
         await promiseTimeout(1);
         expect(state$.isSetting.get()).toEqual(false);
     });

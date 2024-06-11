@@ -614,6 +614,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         state$.numPendingSets.set((v) => (v || 0) + 1);
         state$.isSetting.set(true);
+
         onBeforeSet?.();
 
         let updateResult:
@@ -719,6 +720,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
             state$.numPendingSets.set((v) => v! - 1);
             state$.isSetting.set(state$.numPendingSets.peek()! > 0);
+
             onAfterSet?.();
         }
     }
