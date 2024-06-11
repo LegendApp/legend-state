@@ -33,7 +33,6 @@ import {
     whenReady,
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
-import type { ObservableOnChangeParams } from './persistTypes';
 import { removeNullUndefined } from './syncHelpers';
 import type {
     ObservablePersistPlugin,
@@ -1035,7 +1034,7 @@ export function syncObservable<T>(
                             node,
                             value$: obs$,
                             lastSync,
-                            update: (params: ObservableOnChangeParams) => {
+                            update: (params: UpdateFnParams) => {
                                 when(node.state!.isLoaded, () => {
                                     when(waitFor || true, () => {
                                         params.mode ||= syncOptions.mode || 'merge';

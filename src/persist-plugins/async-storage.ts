@@ -1,10 +1,6 @@
 import type { Change } from '@legendapp/state';
 import { applyChanges, internal, isArray } from '@legendapp/state';
-import type {
-    ObservablePersistPlugin,
-    ObservablePersistenceConfigLocalGlobalOptions,
-    PersistMetadata,
-} from '@legendapp/state/sync';
+import type { ObservablePersistPlugin, ObservablePersistPluginOptions, PersistMetadata } from '@legendapp/state/sync';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
 const MetadataSuffix = '__m';
@@ -17,7 +13,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
 
     // Init
-    public async initialize(config: ObservablePersistenceConfigLocalGlobalOptions) {
+    public async initialize(config: ObservablePersistPluginOptions) {
         let tables: readonly string[] = [];
         const storageConfig = config.asyncStorage;
         if (storageConfig) {
