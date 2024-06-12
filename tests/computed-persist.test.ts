@@ -1,7 +1,7 @@
 import { event, observable, observe, syncState, when, whenReady } from '@legendapp/state';
 import { configureObservableSync, syncObservable, synced } from '@legendapp/state/sync';
 import { onChangeRemote } from '../src/sync/syncObservable';
-import { ObservablePersistLocalStorage, localStorage, promiseTimeout } from './testglobals';
+import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 jest?.setTimeout?.(1000);
 
@@ -295,7 +295,8 @@ describe('caching with new computed', () => {
         expect(setCalledTimes).toEqual(1);
     });
     test('get not called until all ancestors loaded', async () => {
-        localStorage.setItem('getnotcalled', JSON.stringify({ child: 'key0' }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ child: 'key0' }));
 
         let getCalled = false;
         const ev = event();
@@ -310,7 +311,7 @@ describe('caching with new computed', () => {
             }),
         });
 
-        syncObservable(nodes, { persist: { plugin: ObservablePersistLocalStorage, name: 'getnotcalled' } });
+        syncObservable(nodes, { persist: { plugin: ObservablePersistLocalStorage, name: persistName } });
         expect(nodes.child.get()).toEqual('key0');
         expect(nodes.get()).toEqual({ child: 'key0' });
 

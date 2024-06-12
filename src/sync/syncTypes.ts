@@ -73,13 +73,12 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     syncMode?: 'auto' | 'manual';
     mode?: GetMode;
     transform?: SyncTransform<TLocal, TRemote>;
-    // Not implemented yet
-    enableSync?: boolean;
     onGetError?: (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => void;
     onSetError?: (error: Error, setParams: SyncedSetParams<TRemote>) => void;
-    log?: (message?: any, ...optionalParams: any[]) => void;
     onBeforeSet?: () => void;
     onAfterSet?: () => void;
+    // Not implemented yet
+    log?: (message?: any, ...optionalParams: any[]) => void;
 }
 
 export interface SyncedOptionsGlobal<T = any>

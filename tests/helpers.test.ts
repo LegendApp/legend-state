@@ -34,6 +34,14 @@ describe('mergeIntoObservable', () => {
         expect(merged.get()).toEqual({ a: { b: { c: { d: 5 } } } });
         expect(isObservable(merged)).toBe(true);
     });
+    test('merge onto empty observable activated object', () => {
+        const target = observable({ child: () => ({}) });
+        target.child.get();
+        const source = { a: { b: { c: { d: 5 } } } };
+        const merged = mergeIntoObservable(target.child, source);
+        expect(merged.get()).toEqual({ a: { b: { c: { d: 5 } } } });
+        expect(isObservable(merged)).toBe(true);
+    });
     test('should merge two plain objects', () => {
         const target = { a: 1, b: 2 };
         const source = { b: 3, c: 4 };

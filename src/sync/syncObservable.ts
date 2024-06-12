@@ -329,14 +329,8 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
 
     const persist = syncOptions.persist;
     const { config: configLocal } = parseLocalConfig(persist);
-    const configRemote = syncOptions;
     const saveLocal = persist?.name && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
-    const saveRemote = !!(
-        !inRemoteChange &&
-        syncOptions?.set &&
-        configRemote?.enableSync !== false &&
-        syncState.isSyncEnabled.peek()
-    );
+    const saveRemote = !!(!inRemoteChange && syncOptions?.set && syncState.isSyncEnabled.peek());
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isPersistLoaded.peek()) {
@@ -420,10 +414,8 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
 
     const persist = syncOptions.persist;
     const { config: configLocal } = parseLocalConfig(persist!);
-    const configRemote = syncOptions;
     const saveLocal = persist && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
-    const saveRemote =
-        !inRemoteChange && syncOptions?.set && configRemote?.enableSync !== false && syncState.isSyncEnabled.peek();
+    const saveRemote = !inRemoteChange && syncOptions?.set && syncState.isSyncEnabled.peek();
 
     if (saveLocal || saveRemote) {
         if (saveLocal && !syncState.isPersistLoaded.peek()) {
@@ -467,7 +459,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                         valueAtPath,
                         path as string[],
                         pathTypes,
-                        configRemote || {},
+                        syncOptions || {},
                     );
 
                     promisesTransform.push(

@@ -1,4 +1,4 @@
-import { isArray, isChildNodeValue, isDate, isFunction, isMap, isNullOrUndefined, isObject } from './is';
+import { isArray, isChildNodeValue, isDate, isFunction, isMap, isObject } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -12,7 +12,6 @@ export const symbolLinked = Symbol('linked');
 
 export const globalState = {
     isLoadingLocal: false,
-    isMerging: false,
     isLoadingRemote: false,
     activateSyncedNode: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
     pendingNodes: new Map<NodeValue, () => void>(),
@@ -107,13 +106,7 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     // Compute newValue if newValue is a function or an observable
     newValue = !parentNode.isAssigning && isFunc && !isFunction(prevValue) ? newValue(prevValue) : newValue;
 
-    if (
-        newValue !== prevValue &&
-        (!globalState.isMerging ||
-            isNullOrUndefined(prevValue) ||
-            isFunction(prevValue) ||
-            !node.parent?.functions?.get(key))
-    ) {
+    if (newValue !== prevValue) {
         try {
             parentNode.isSetting = (parentNode.isSetting || 0) + 1;
 

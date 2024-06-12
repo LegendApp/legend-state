@@ -248,10 +248,8 @@ describe('Persist computed', () => {
             },
         });
 
-        expect(obs2$.sub.get()).toEqual(2);
-
         syncObservable(obs2$, {
-            persist: { name: 'Persist computed' },
+            persist: { name: persistName },
         });
 
         expect(obs2$.sub.get()).toEqual(2);
@@ -297,7 +295,7 @@ describe('Persist computed', () => {
         });
 
         syncObservable(obs2$, {
-            persist: { name: 'Persist computed' },
+            persist: { name: persistName },
         });
 
         expect(obs2$.sub.get()).toEqual(2);

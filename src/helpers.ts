@@ -1,5 +1,5 @@
 import { beginBatch, endBatch } from './batching';
-import { getNode, globalState, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
+import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
 import { isArray, isEmpty, isFunction, isMap, isNumber, isObject } from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
@@ -128,11 +128,9 @@ export function mergeIntoObservable<T extends ObservableParam<Record<string, any
     ...sources: any[]
 ): T {
     beginBatch();
-    globalState.isMerging = true;
     for (let i = 0; i < sources.length; i++) {
         target = _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1);
     }
-    globalState.isMerging = false;
     endBatch();
     return target;
 }

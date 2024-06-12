@@ -939,7 +939,11 @@ export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
     isFlushing = false;
 
     let value = getNodeValue(node);
-    value = checkLazy(node, value, !!activateRecursive);
+
+    // Don't want to check lazy while loading because we don't want to activate anything
+    if (!globalState.isLoadingLocal) {
+        value = checkLazy(node, value, !!activateRecursive);
+    }
 
     return value;
 }
@@ -958,10 +962,12 @@ function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
             } else {
                 if (node.parent) {
                     const parentValue = getNodeValue(node.parent);
-                    if (parentValue) {
-                        delete parentValue[node.key];
-                    } else {
-                        node.root._ = undefined;
+                    if (isFunction(value)) {
+                        if (parentValue) {
+                            delete parentValue[node.key];
+                        } else {
+                            node.root._ = undefined;
+                        }
                     }
                 }
 
@@ -1065,7 +1071,9 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
             // if it peeks itself
             if (isFirst) {
                 isFirst = false;
-                setNodeValue(node, undefined);
+                if (isFunction(getNodeValue(node))) {
+                    setNodeValue(node, undefined);
+                }
             } else if (!isFlushing && refreshFn) {
                 if (shouldIgnoreUnobserved(node, refreshFn)) {
                     ignoreThisUpdate = true;
