@@ -154,7 +154,6 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const {
         refPath,
         query,
-        as: asType,
         fieldId,
         realtime,
         requireAuth,
@@ -166,6 +165,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         ...rest
     } = props;
     const { fieldCreatedAt, changesSince } = props;
+    const asType = props.as || ('value' as TAs);
     const fieldUpdatedAt = props.fieldUpdatedAt || '@';
 
     const computeRef = (lastSync: number) => {
