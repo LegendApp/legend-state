@@ -626,7 +626,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         const onError = (error: Error) => {
             state$.error.set(error);
-            syncOptions.onSetError?.(error);
+            syncOptions.onSetError?.(error, setParams as SyncedSetParams<any>);
         };
 
         const setParams: Omit<SyncedSetParams<any>, 'cancelRetry' | 'retryNum'> = {
@@ -910,9 +910,9 @@ export function syncObservable<T>(
         getPendingChanges: () => localState.pendingChanges,
     });
 
-    const onError = (error: Error) => {
+    const onError = (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => {
         node.state!.error.set(error);
-        syncOptions.onGetError?.(error);
+        syncOptions.onGetError?.(error, getParams, source);
     };
 
     loadLocal(obs$, syncOptions, syncState$, localState);
@@ -1043,7 +1043,7 @@ export function syncObservable<T>(
                                 });
                             },
                             refresh: () => when(node.state!.isLoaded, sync),
-                            onError,
+                            onError: (error) => onError(error, undefined, 'subscribe'),
                         });
                     }
                     const existingValue = getNodeValue(node);
@@ -1055,7 +1055,7 @@ export function syncObservable<T>(
                         options: syncOptions,
                         lastSync,
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                        onError,
+                        onError: (error) => onError(error, getParams as SyncedGetParams, 'get'),
                     };
                     numOutstandingGets++;
                     node.state!.isGetting.set(true);
