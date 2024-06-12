@@ -1,4 +1,4 @@
-import { ObservableSyncState } from 'src/observableInterfaces';
+import type { ObservableSyncState } from './observableInterfaces';
 import { getNode } from './globals';
 import { observable } from './observable';
 import type { ObservableParam } from './observableTypes';

@@ -57,6 +57,7 @@ export const mapSyncPlugins: WeakMap<
     }
 > = new WeakMap();
 
+const allSyncStates = new Map<Observable<ObservableSyncState>, NodeValue>();
 const metadatas = new WeakMap<ObservableParam<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
@@ -905,6 +906,7 @@ export function syncObservable<T>(
     let numOutstandingGets = 0;
 
     const syncState$ = syncState(obs$);
+    allSyncStates.set(syncState$, node);
     syncState$.assign({
         isLoaded: !syncOptions.get,
         getPendingChanges: () => localState.pendingChanges,
@@ -1161,4 +1163,8 @@ export function syncObservable<T>(
     });
 
     return syncState$;
+}
+
+export function getAllSyncStates(): readonly [Observable<ObservableSyncState>, NodeValue][] {
+    return Array.from(allSyncStates.entries());
 }

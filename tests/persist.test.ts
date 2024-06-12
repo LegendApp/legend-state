@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import { syncState } from '../src/syncState';
 import { Change } from '../src/observableInterfaces';
-import { syncObservable, transformSaveData } from '../src/sync/syncObservable';
+import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { when } from '../src/when';
 import { configureObservableSync, synced } from '../sync';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
@@ -613,7 +613,7 @@ describe('global config', () => {
 
         obs$.set({ test: true });
 
-        await promiseTimeout(20);
+        await promiseTimeout(1);
 
         expect(setTo).toEqual({ test: true });
 
@@ -622,5 +622,62 @@ describe('global config', () => {
         expect(localStorage.getItem(persistName + '__m')).toEqual(
             '{"pending":{"":{"p":{"test":false},"t":[],"v":{"test":true}}}}',
         );
+    });
+});
+
+describe('clear persist', () => {
+    test('clear individual persist', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(0);
+                    return { test: false };
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await when(syncState(obs$).isLoaded);
+        await promiseTimeout(1);
+
+        expect(localStorage.getItem(persistName)).toEqual('{"test":false}');
+
+        const state$ = syncState(obs$);
+        state$.clearPersist();
+
+        expect(localStorage.getItem(persistName)).toEqual(null);
+    });
+    test('clear all persists', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(0);
+                    return { test: false };
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await when(syncState(obs$).isLoaded);
+        await promiseTimeout(1);
+
+        expect(localStorage.getItem(persistName)).toEqual('{"test":false}');
+
+        const states$ = getAllSyncStates();
+        states$.forEach(([state$]) => state$.clearPersist());
+
+        expect(localStorage.getItem(persistName)).toEqual(null);
     });
 });
