@@ -581,6 +581,7 @@ describe('get mode', () => {
 describe('global config', () => {
     test('takes global config persist changes', async () => {
         let setTo: any = undefined;
+        const didSet$ = observable(false);
         configureObservableSync({
             persist: {
                 retrySync: true,
@@ -597,6 +598,7 @@ describe('global config', () => {
                 },
                 set: async ({ value }) => {
                     setTo = value;
+                    didSet$.set(true);
                     // TODO Should this work instead of throwing?
                     // return Promise.reject();
                     throw new Error();
@@ -613,7 +615,7 @@ describe('global config', () => {
 
         obs$.set({ test: true });
 
-        await promiseTimeout(1);
+        await when(didSet$);
 
         expect(setTo).toEqual({ test: true });
 
