@@ -859,6 +859,8 @@ function updateNodesAndNotify(
 }
 
 export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (params: { value: any }) => void) {
+    const numGets = (node.numGets = (node.numGets || 0) + 1);
+
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -872,11 +874,16 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
 
     value
         .then((value) => {
-            setter ? setter({ value }) : set(node, value);
-            node.state!.assign({
-                isLoaded: true,
-                error: undefined,
-            });
+            // If this is from an older Promise than one that resolved already,
+            // ignore it as the newer one wins
+            if (numGets >= (node.getNumResolved || 0)) {
+                node.getNumResolved = node.numGets;
+                setter ? setter({ value }) : set(node, value);
+                node.state!.assign({
+                    isLoaded: true,
+                    error: undefined,
+                });
+            }
         })
         .catch((error) => {
             node.state!.error.set(error);

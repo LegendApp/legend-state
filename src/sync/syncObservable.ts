@@ -1059,18 +1059,25 @@ export function syncObservable<T>(
                         params.retryNum = retryEvent.retryNum;
                         return get(params);
                     });
+                    const numGets = (node.numGets = (node.numGets || 0) + 1);
                     const handle = (value: any) => {
-                        onChange({
-                            value,
-                            lastSync: getParams.lastSync,
-                            mode: getParams.mode!,
-                        });
                         numOutstandingGets--;
-                        node.state!.assign({
-                            isLoaded: true,
-                            error: undefined,
-                            isGetting: numOutstandingGets > 0,
-                        });
+                        // If this is from an older Promise than one that resolved already,
+                        // ignore it as the newer one wins
+                        if (numGets >= (node.getNumResolved || 0)) {
+                            node.getNumResolved = node.numGets;
+
+                            onChange({
+                                value,
+                                lastSync: getParams.lastSync,
+                                mode: getParams.mode!,
+                            });
+                            node.state!.assign({
+                                isLoaded: true,
+                                error: undefined,
+                                isGetting: numOutstandingGets > 0,
+                            });
+                        }
                     };
                     if (isPromise(got)) {
                         got.then(handle);

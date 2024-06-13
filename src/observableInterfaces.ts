@@ -92,6 +92,8 @@ interface BaseNodeValue {
     };
     dirtyFn?: () => void;
     dirtyChildren?: Set<NodeValue>;
+    numGets?: number;
+    getNumResolved?: number;
 }
 
 export interface RootNodeValue extends BaseNodeValue {

@@ -1706,6 +1706,77 @@ describe('async', () => {
         ]);
     });
 });
+describe('Order of get/set', () => {
+    test('set after get', async () => {
+        const num$ = observable(0);
+        const obs$ = observable(
+            linked({
+                get: async (): Promise<string> => {
+                    const num = num$.get();
+                    return promiseTimeout(0, 'hi' + num);
+                },
+            }),
+        );
+        let lastObserved;
+        observe(() => {
+            lastObserved = obs$.get();
+        });
+        expect(lastObserved).toEqual(undefined);
+        obs$.set('hello');
+        expect(lastObserved).toEqual('hello');
+        await promiseTimeout(0);
+        expect(lastObserved).toEqual('hi0');
+        num$.set(1);
+        await promiseTimeout(0);
+        expect(lastObserved).toEqual('hi1');
+    });
+    test('get runs twice and second finishes first', async () => {
+        const delay$ = observable(5);
+        const obs$ = observable(
+            linked({
+                get: async (): Promise<string> => {
+                    const delay = delay$.get();
+                    const val = await promiseTimeout(delay, 'hi' + delay);
+                    return val;
+                },
+            }),
+        );
+        let lastObserved;
+        observe(() => {
+            lastObserved = obs$.get();
+        });
+        delay$.set(0);
+        expect(lastObserved).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(lastObserved).toEqual('hi0');
+        await promiseTimeout(10);
+        // Should keep the value from the second run and ignore the first
+        expect(lastObserved).toEqual('hi0');
+    });
+    test('synced get runs twice and second finishes first', async () => {
+        const delay$ = observable(5);
+        const obs$ = observable(
+            synced({
+                get: async (): Promise<string> => {
+                    const delay = delay$.get();
+                    const val = await promiseTimeout(delay, 'hi' + delay);
+                    return val;
+                },
+            }),
+        );
+        let lastObserved;
+        observe(() => {
+            lastObserved = obs$.get();
+        });
+        delay$.set(0);
+        expect(lastObserved).toEqual(undefined);
+        await promiseTimeout(0);
+        expect(lastObserved).toEqual('hi0');
+        await promiseTimeout(10);
+        // Should keep the value from the second run and ignore the first
+        expect(lastObserved).toEqual('hi0');
+    });
+});
 describe('Set after', () => {
     test('Basic computed set after', () => {
         const obs = observable({ test: 10, test2: 20 });
