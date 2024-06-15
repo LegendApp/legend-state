@@ -1,12 +1,12 @@
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
-import { syncState } from '../src/syncState';
 import { Change } from '../src/observableInterfaces';
-import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
-import { when } from '../src/when';
-import { configureObservableSync, synced } from '../sync';
-import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 import type { Observable } from '../src/observableTypes';
+import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
+import { syncState } from '../src/syncState';
+import { when } from '../src/when';
+import { SyncedOptions, configureObservableSync, synced } from '../sync';
+import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -681,5 +681,56 @@ describe('clear persist', () => {
         states$.forEach(([state$]) => state$.clearPersist());
 
         expect(localStorage.getItem(persistName)).toEqual(null);
+    });
+});
+
+describe('multiple persists', () => {
+    test('saves to multiple persists with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        const obs$ = observable({});
+        syncObservable(obs$, {
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        obs$.set({ test: 'hi' });
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName1)).toEqual('{"test":"hi"}');
+        expect(localStorage.getItem(persistName2)).toEqual('{"test":"hi"}');
+    });
+    test('saves to multiple persists with synced and syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        const obs$ = observable(
+            synced({
+                initial: {},
+                persist: {
+                    name: persistName1,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+        syncObservable(obs$, {
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        obs$.set({ test: 'hi' });
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName1)).toEqual('{"test":"hi"}');
+        expect(localStorage.getItem(persistName2)).toEqual('{"test":"hi"}');
     });
 });

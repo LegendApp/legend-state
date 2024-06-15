@@ -234,27 +234,27 @@ function mergeChanges(changes: Change[]) {
 }
 
 function mergeQueuedChanges(allChanges: QueuedChange[]) {
-    const changesByObsRemote = new Map<Observable, Change[]>();
-    const changesByObsLocal = new Map<Observable, Change[]>();
-    const previousByObs = new Map<Observable, any>();
-    const outRemote: Map<Observable, QueuedChange> = new Map();
-    const outLocal: Map<Observable, QueuedChange> = new Map();
+    const changesByOptionsRemote = new Map<SyncedOptions, Change[]>();
+    const changesByOptionsLocal = new Map<SyncedOptions, Change[]>();
+    const previousByOptions = new Map<SyncedOptions, any>();
+    const outRemote: Map<SyncedOptions, QueuedChange> = new Map();
+    const outLocal: Map<SyncedOptions, QueuedChange> = new Map();
 
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
-        const { value$: obs, changes, inRemoteChange, getPrevious } = value;
+        const { changes, inRemoteChange, getPrevious, syncOptions } = value;
         const targetMap = inRemoteChange ? outRemote : outLocal;
-        const changesMap = inRemoteChange ? changesByObsRemote : changesByObsLocal;
-        const existing = changesMap.get(obs);
+        const changesMap = inRemoteChange ? changesByOptionsRemote : changesByOptionsLocal;
+        const existing = changesMap.get(syncOptions);
         const newChanges = existing ? [...existing, ...changes] : changes;
         const merged = mergeChanges(newChanges);
-        changesMap.set(obs, merged);
+        changesMap.set(syncOptions, merged);
         value.changes = merged;
-        if (!previousByObs.has(obs)) {
-            previousByObs.set(obs, getPrevious());
+        if (!previousByOptions.has(syncOptions)) {
+            previousByOptions.set(syncOptions, getPrevious());
         }
-        value.valuePrevious = previousByObs.get(obs);
-        targetMap.set(obs, value);
+        value.valuePrevious = previousByOptions.get(syncOptions);
+        targetMap.set(syncOptions, value);
     }
     return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
 }
