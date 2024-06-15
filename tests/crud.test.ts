@@ -1,4 +1,4 @@
-import { observable, observe, when } from '@legendapp/state';
+import { observable, observe, syncState, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
@@ -1945,5 +1945,120 @@ describe('onSaved', () => {
                 changing: '1',
             },
         });
+    });
+});
+describe('Order of get/create', () => {
+    test('create with no get', async () => {
+        let created: BasicValue | undefined = undefined;
+        const value = { id: '1', test: 'hi' };
+        const obs$ = observable<BasicValue>(
+            syncedCrud({
+                create: (input: BasicValue) => {
+                    created = input;
+                    return promiseTimeout(0, input);
+                },
+                as: 'value',
+            }),
+        );
+
+        obs$.set(value);
+        expect(obs$.get()).toEqual(value);
+        await promiseTimeout(1);
+        await when(syncState(obs$).isLoaded);
+        expect(obs$.get()).toEqual(value);
+        expect(created).toEqual(value);
+    });
+    test('create before get returns null', async () => {
+        let created: BasicValue | undefined = undefined;
+        const value = { id: '1', test: 'hi' };
+        let didGet = false;
+        const obs$ = observable<BasicValue>(
+            syncedCrud({
+                get: () => {
+                    didGet = true;
+                    return promiseTimeout(0, null);
+                },
+                create: (input: BasicValue) => {
+                    expect(didGet).toEqual(true);
+                    created = input;
+                    return promiseTimeout(0, input);
+                },
+                as: 'value',
+            }),
+        );
+
+        obs$.set(value);
+        expect(obs$.get()).toEqual(value);
+        await promiseTimeout(1);
+        await when(syncState(obs$).isLoaded);
+        expect(obs$.get()).toEqual(value);
+        expect(created).toEqual(value);
+        expect(didGet).toEqual(true);
+    });
+    test('update before get returns a value', async () => {
+        let created: BasicValue | undefined = undefined;
+        let updated: BasicValue | undefined = undefined;
+        const value = { id: '1', test: 'hi' };
+        let didGet = false;
+        const obs$ = observable<BasicValue>(
+            syncedCrud({
+                get: () => {
+                    didGet = true;
+                    return promiseTimeout(0, { id: '1', test: 'hello' });
+                },
+                create: (input: BasicValue) => {
+                    created = input;
+                    return promiseTimeout(0, input);
+                },
+                update: (input: BasicValue) => {
+                    expect(didGet).toEqual(true);
+                    updated = input;
+                    return promiseTimeout(0, input);
+                },
+                as: 'value',
+            }),
+        );
+
+        obs$.set(value);
+        expect(obs$.get()).toEqual(value);
+        await promiseTimeout(1);
+        await when(syncState(obs$).isLoaded);
+        expect(obs$.get()).toEqual(value);
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual(value);
+        expect(didGet).toEqual(true);
+    });
+    test('update before list returns a value', async () => {
+        let created: BasicValue | undefined = undefined;
+        let updated: BasicValue | undefined = undefined;
+        const value = { id: '1', test: 'hi' };
+        let didGet = false;
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    didGet = true;
+                    return promiseTimeout(0, [{ id: '1', test: 'hello' }]);
+                },
+                create: (input: BasicValue) => {
+                    created = input;
+                    return promiseTimeout(0, input);
+                },
+                update: (input: BasicValue) => {
+                    expect(didGet).toEqual(true);
+                    updated = input;
+                    return promiseTimeout(0, input);
+                },
+                as: 'object',
+            }),
+        );
+
+        obs$['1'].set(value);
+        expect(obs$.get()).toEqual({ '1': value });
+        await promiseTimeout(1);
+        await when(syncState(obs$).isLoaded);
+        expect(obs$.get()).toEqual({ '1': value });
+        expect(created).toEqual(undefined);
+        expect(updated).toEqual(value);
+        expect(didGet).toEqual(true);
     });
 });

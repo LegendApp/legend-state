@@ -20,6 +20,7 @@ import {
     isArray,
     isEmpty,
     isFunction,
+    isNullOrUndefined,
     isObject,
     isObservable,
     isPromise,
@@ -76,7 +77,7 @@ interface PreppedChangeLocal {
 
 interface PreppedChangeRemote {
     queuedChange: QueuedChange;
-    changesRemote: ChangeWithPathStr[];
+    changesRemote: ChangeWithPathStrAndPrevious[];
 }
 
 type ChangeWithPathStr = Change & { pathStr: string };
@@ -586,7 +587,29 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     if (changesRemote.length > 0) {
         // Wait for remote to be ready before saving
-        await when(syncState.isLoaded);
+        if (!syncState.isLoaded.peek()) {
+            await when(syncState.isLoaded);
+
+            // If this was not already loaded that means that the value was set before it was loaded from remote
+            // so we need to adjust the changes to have the remote value as the previous value so that any sync
+            // plugins can compare the new value to the remote value, like crud's detection of create/update
+            const pending = localState.pendingChanges;
+            if (pending) {
+                changesRemote.forEach((change) => {
+                    const key = change.pathStr;
+                    const pendingAtPath = pending[key];
+                    if (!isNullOrUndefined(pendingAtPath)) {
+                        const { p } = pendingAtPath;
+                        change.prevAtPath = p;
+                        if (key) {
+                            setAtPath(change.valuePrevious, change.path, change.pathTypes, p, 'set');
+                        } else {
+                            change.valuePrevious = p;
+                        }
+                    }
+                });
+            }
+        }
 
         if (waitForSet) {
             const waitFn = isFunction(waitForSet)
@@ -942,11 +965,16 @@ export function syncObservable<T>(
                             const currentValue = obs$.peek();
                             if (pending) {
                                 let didChangeMetadata = false;
+                                // Merge pending values onto remote changes
                                 Object.keys(pending).forEach((key) => {
-                                    const p = key.split('/').filter((p) => p !== '');
+                                    const p = key.split('/').filter((k) => k !== '');
                                     const { v, t } = pending[key];
 
                                     if (t.length === 0 || !value) {
+                                        // Update pending previous value with result
+                                        const oldValue = clone(value);
+                                        pending[key].p = oldValue;
+
                                         if (isObject(value) && isObject(v)) {
                                             Object.assign(value, v);
                                         } else {
@@ -959,6 +987,10 @@ export function syncObservable<T>(
                                             delete pending[key];
                                             didChangeMetadata = true;
                                         } else {
+                                            // Update pending previous value with result
+                                            const oldValue = clone(value);
+                                            pending[key].p = getValueAtPath(oldValue, p);
+
                                             (value as any) = setAtPath(
                                                 value as any,
                                                 p,
