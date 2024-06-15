@@ -733,4 +733,44 @@ describe('multiple persists', () => {
         expect(localStorage.getItem(persistName1)).toEqual('{"test":"hi"}');
         expect(localStorage.getItem(persistName2)).toEqual('{"test":"hi"}');
     });
+    test('loads from multiple persists with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName1, '{"test":"hi"}');
+        const obs$ = observable({});
+        syncObservable(obs$, {
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+    });
+    test('loads from multiple persists with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName2, '{"test":"hi"}');
+        const obs$ = observable({});
+        syncObservable(obs$, {
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+    });
 });
