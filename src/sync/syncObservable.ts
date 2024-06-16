@@ -934,8 +934,36 @@ export function syncObservable<T>(
 
     loadLocal(obs$, syncOptions, syncState$, localState);
 
+    let isSynced = false;
+
+    const applyPending = (pending: LocalState['pendingChanges']) => {
+        if (pending && !isEmpty(pending)) {
+            localState.isApplyingPending = true;
+            const keys = Object.keys(pending);
+
+            // Bundle up all the changes from pending
+            const changes: Change[] = [];
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const path = key.split('/').filter((p) => p !== '');
+                const { p, v, t } = pending[key];
+                changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
+            }
+
+            // Send the changes into onObsChange so that they get synced remotely
+            const value = getNodeValue(node);
+            onObsChange(obs$, syncState$, localState, syncOptions, {
+                value,
+                loading: false,
+                remote: false,
+                getPrevious: createPreviousHandler(value, changes),
+                changes,
+            });
+            localState.isApplyingPending = false;
+        }
+    };
+
     if (syncOptions.get) {
-        let isSynced = false;
         let isSubscribed = false;
         let unsubscribe: void | (() => void) = undefined;
         sync = async () => {
@@ -1140,34 +1168,15 @@ export function syncObservable<T>(
                 // Wait for remote to be ready before saving pending
                 await when(syncState$.isLoaded);
 
-                if (pending && !isEmpty(pending)) {
-                    localState.isApplyingPending = true;
-                    const keys = Object.keys(pending);
-
-                    // Bundle up all the changes from pending
-                    const changes: Change[] = [];
-                    for (let i = 0; i < keys.length; i++) {
-                        const key = keys[i];
-                        const path = key.split('/').filter((p) => p !== '');
-                        const { p, v, t } = pending[key];
-                        changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
-                    }
-
-                    // Send the changes into onObsChange so that they get synced remotely
-                    const value = getNodeValue(node);
-                    onObsChange(obs$, syncState$, localState, syncOptions, {
-                        value,
-                        loading: false,
-                        remote: false,
-                        getPrevious: createPreviousHandler(value, changes),
-                        changes,
-                    });
-                    localState.isApplyingPending = false;
-                }
+                applyPending(pending);
             }
         };
 
-        syncState$.assign({ sync });
+        syncStateValue.sync = sync;
+    } else {
+        if (!isSynced) {
+            applyPending(localState.pendingChanges);
+        }
     }
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded

@@ -420,6 +420,29 @@ describe('Pending', () => {
 
         expect(didSave).toEqual(false);
     });
+    test('pending without a get', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, '{"test":"hi"}');
+        localStorage.setItem(persistName + '__m', '{"pending":{"":{"p":{"test":"hello"},"t":[],"v":{"test":"hi"}}}}');
+        const obs$ = observable({});
+        const saved$ = observable(undefined);
+        syncObservable(obs$, {
+            set: ({ value }) => {
+                saved$.set(value);
+            },
+            persist: {
+                name: persistName,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+        expect(syncState(obs$).isLoaded.get()).toEqual(true);
+
+        await promiseTimeout(0);
+
+        expect(await when(saved$)).toEqual({ test: 'hi' });
+    });
 });
 describe('sync state', () => {
     test('isGetting and isSetting', async () => {
@@ -773,6 +796,27 @@ describe('multiple persists', () => {
 
         expect(obs$.get()).toEqual({ test: 'hi' });
     });
+    test('loads from multiple persists with two syncObservable with diff data', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName1, '{"test":"hello"}');
+        localStorage.setItem(persistName2, '{"test":"hi"}');
+        const obs$ = observable({});
+        syncObservable(obs$, {
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+    });
     test('loads from one remote with two syncObservable', async () => {
         const persistName1 = getPersistName();
         const persistName2 = getPersistName();
@@ -905,5 +949,79 @@ describe('multiple persists', () => {
 
         expect(await when(saved1$)).toEqual({ test: 'hello' });
         expect(await when(saved2$)).toEqual({ test: 'hello' });
+    });
+    test('loads from multiple persists with two syncObservable with no data in second /1', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName1, '{"test":"hi"}');
+        localStorage.setItem(persistName2, '{}');
+        localStorage.setItem(persistName1 + '__m', '{"pending":{"":{"p":{"test":"hello"},"t":[],"v":{"test":"hi"}}}}');
+        const obs$ = observable({});
+        const saved1$ = observable(undefined);
+        const saved2$ = observable(undefined);
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hi' }),
+            set: ({ value }) => {
+                saved1$.set(value);
+            },
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            set: ({ value }) => {
+                saved2$.set(value);
+            },
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(0);
+
+        expect(await when(saved1$)).toEqual({ test: 'hi' });
+        expect(saved2$.peek()).toEqual(undefined);
+    });
+    test('loads from multiple persists with two syncObservable with no data in second /2', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName1, '{"test":"hi"}');
+        localStorage.setItem(persistName2, '{"test":"hi"}');
+        localStorage.setItem(persistName2 + '__m', '{"pending":{"":{"p":{"test":"hello"},"t":[],"v":{"test":"hi"}}}}');
+        const obs$ = observable({});
+        const saved1$ = observable(undefined);
+        const saved2$ = observable(undefined);
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hi' }),
+            set: ({ value }) => {
+                saved1$.set(value);
+            },
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            set: ({ value }) => {
+                saved2$.set(value);
+            },
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(0);
+
+        expect(await when(saved2$)).toEqual({ test: 'hi' });
+        expect(saved1$.peek()).toEqual(undefined);
     });
 });
