@@ -7,12 +7,13 @@ jest?.setTimeout?.(1000);
 
 describe('caching with new computed', () => {
     test('persist basic', async () => {
-        localStorage.setItem('nodesbasic', JSON.stringify({ key0: { key: 'key0' } }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodesbasic',
+                    name: persistName,
                 },
                 get: async () => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -36,12 +37,13 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key1: { key: 'key1' } });
     });
     test('persist with no delay', async () => {
-        localStorage.setItem('nodesdelay', JSON.stringify({ key0: { key: 'key0' } }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodesdelay',
+                    name: persistName,
                 },
                 get: () => {
                     const nodes = [{ key: 'key1' }];
@@ -68,12 +70,13 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key00: { key: 'key00' } });
     });
     test('persist with get and initial', async () => {
-        localStorage.setItem('nodesgetinitial', JSON.stringify({ key0: 'key0' }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ key0: 'key0' }));
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodesgetinitial',
+                    name: persistName,
                 },
                 get: async () => {
                     const nodes = await new Promise<Record<string, string>>((resolve) =>
@@ -97,12 +100,13 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual({ key2: 'key2', key3: 'key3' });
     });
     test('persist with initial and no get', async () => {
-        localStorage.setItem('persist with initial and no get', JSON.stringify({ key0: 'key0' }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ key0: 'key0' }));
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'persist with initial and no get',
+                    name: persistName,
                 },
                 initial: { key1: 'key1' },
             }),
@@ -115,11 +119,12 @@ describe('caching with new computed', () => {
         expect(state.isLoaded.get()).toEqual(true);
     });
     test('persist with initial and no get and set', async () => {
+        const persistName = getPersistName();
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'persist with initial and no get and set',
+                    name: persistName,
                 },
                 initial: { key00: { key: 'key00', value: 'hi' } },
             }),
@@ -136,7 +141,7 @@ describe('caching with new computed', () => {
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'persist with initial and no get and set',
+                    name: persistName,
                 },
             }),
         );
@@ -148,7 +153,7 @@ describe('caching with new computed', () => {
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'persist with initial and no get and set',
+                    name: persistName,
                 },
                 initial: { key00: { key: 'key00', value: 'hi' } },
             }),
@@ -157,12 +162,13 @@ describe('caching with new computed', () => {
         expect(nodes3.get()).toEqual({ key00: { key: 'key00', value: 'hello' } });
     });
     test('persist with ownKeys', async () => {
-        localStorage.setItem('nodesinitialownkeys', JSON.stringify({ key0: { key: 'key0' } }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ key0: { key: 'key0' } }));
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodesinitialownkeys',
+                    name: persistName,
                 },
                 get: async () => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -178,12 +184,13 @@ describe('caching with new computed', () => {
         expect(Object.keys(nodes)).toEqual(['key0']);
     });
     test('persist makes get receive params', async () => {
-        localStorage.setItem('persistdprops', JSON.stringify('persistd'));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify('persistd'));
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'persistdprops',
+                    name: persistName,
                 },
                 get: async ({ value }) => {
                     return value + '1';
@@ -201,14 +208,15 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual('persistd1');
     });
     test('persist async', async () => {
-        localStorage.setItem('nodes', JSON.stringify({ key0: { key: 'key0' } }));
-        localStorage.setItem('nodes__m', JSON.stringify({ lastSync: 1000 }));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ key0: { key: 'key0' } }));
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
 
         const nodes = observable(
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodes',
+                    name: persistName,
                 },
                 get: async ({ lastSync, value }) => {
                     expect(lastSync).toEqual(1000);
@@ -230,7 +238,8 @@ describe('caching with new computed', () => {
         await promiseTimeout(50);
     });
     test('set not called until loaded first', async () => {
-        localStorage.setItem('setNot', JSON.stringify('key0'));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify('key0'));
 
         let getCalled = false;
         let setCalled = false;
@@ -239,7 +248,7 @@ describe('caching with new computed', () => {
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'setNot',
+                    name: persistName,
                 },
                 get: async () => {
                     await promiseTimeout(2);
@@ -262,7 +271,8 @@ describe('caching with new computed', () => {
         expect(nodes.get()).toEqual('key2');
     });
     test('set not called until loaded first (2)', async () => {
-        localStorage.setItem('setNot2', JSON.stringify('key0'));
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify('key0'));
 
         let getCalled = false;
         let setCalledTimes = 0;
@@ -271,7 +281,7 @@ describe('caching with new computed', () => {
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'setNot2',
+                    name: persistName,
                 },
                 get: async () => {
                     await promiseTimeout(2);
