@@ -918,17 +918,17 @@ export function syncObservable<T>(
     );
     const localState: LocalState = {};
     let sync: () => Promise<void>;
-    let numOutstandingGets = 0;
 
     const syncState$ = syncState(obs$);
+    const syncStateValue = getNodeValue(getNode(syncState$)) as ObservableSyncState;
     allSyncStates.set(syncState$, node);
-    syncState$.assign({
-        isLoaded: !syncOptions.get,
-        getPendingChanges: () => localState.pendingChanges,
-    });
+    syncStateValue.getPendingChanges = () => localState.pendingChanges;
+    // This node may already be loading from a previous syncObservable call so only set it to loaded
+    // if not already loading and nothing to load here
+    syncState$.isLoaded.set(!syncState$.numPendingGets.peek() && !syncOptions.get);
 
     const onError = (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => {
-        node.state!.error.set(error);
+        syncState$.error.set(error);
         syncOptions.onGetError?.(error, getParams, source);
     };
 
@@ -1061,14 +1061,14 @@ export function syncObservable<T>(
                             value$: obs$,
                             lastSync,
                             update: (params: UpdateFnParams) => {
-                                when(node.state!.isLoaded, () => {
+                                when(syncState$.isLoaded, () => {
                                     when(waitFor || true, () => {
                                         params.mode ||= syncOptions.mode || 'merge';
                                         onChange(params);
                                     });
                                 });
                             },
-                            refresh: () => when(node.state!.isLoaded, sync),
+                            refresh: () => when(syncState$.isLoaded, sync),
                             onError: (error) => onError(error, undefined, 'subscribe'),
                         });
                     }
@@ -1083,8 +1083,10 @@ export function syncObservable<T>(
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
                         onError: (error) => onError(error, getParams as SyncedGetParams, 'get'),
                     };
-                    numOutstandingGets++;
-                    node.state!.isGetting.set(true);
+                    syncState$.assign({
+                        numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
+                        isGetting: true,
+                    });
                     const got = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
                         const params = getParams as SyncedGetParams;
                         params.cancelRetry = retryEvent.cancelRetry;
@@ -1093,7 +1095,7 @@ export function syncObservable<T>(
                     });
                     const numGets = (node.numGets = (node.numGets || 0) + 1);
                     const handle = (value: any) => {
-                        numOutstandingGets--;
+                        syncState$.numPendingGets.set((v) => v! - 1);
                         // If this is from an older Promise than one that resolved already,
                         // ignore it as the newer one wins
                         if (numGets >= (node.getNumResolved || 0)) {
@@ -1104,12 +1106,12 @@ export function syncObservable<T>(
                                 lastSync: getParams.lastSync,
                                 mode: getParams.mode!,
                             });
-                            node.state!.assign({
-                                isLoaded: true,
-                                error: undefined,
-                                isGetting: numOutstandingGets > 0,
-                            });
                         }
+                        syncState$.assign({
+                            isLoaded: syncStateValue.numPendingGets! === 0,
+                            error: undefined,
+                            isGetting: syncStateValue.numPendingGets! > 0,
+                        });
                     };
                     if (isPromise(got)) {
                         got.then(handle);
@@ -1128,7 +1130,7 @@ export function syncObservable<T>(
                     runGet();
                 }
             } else {
-                node.state!.assign({
+                syncState$.assign({
                     isLoaded: true,
                     error: undefined,
                 });

@@ -167,6 +167,7 @@ export interface ObservableSyncStateBase {
     lastSync?: number;
     syncCount?: number;
     isGetting?: boolean;
+    numPendingGets?: number;
     numPendingSets?: number;
     isSetting?: boolean;
     clearPersist: () => Promise<void>;

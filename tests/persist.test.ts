@@ -6,7 +6,7 @@ import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync
 import { syncState } from '../src/syncState';
 import { when } from '../src/when';
 import { SyncedOptions, configureObservableSync, synced } from '../sync';
-import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -733,7 +733,7 @@ describe('multiple persists', () => {
         expect(localStorage.getItem(persistName1)).toEqual('{"test":"hi"}');
         expect(localStorage.getItem(persistName2)).toEqual('{"test":"hi"}');
     });
-    test('loads from multiple persists with two syncObservable', async () => {
+    test('loads from multiple persists with two syncObservable /1', async () => {
         const persistName1 = getPersistName();
         const persistName2 = getPersistName();
         localStorage.setItem(persistName1, '{"test":"hi"}');
@@ -753,7 +753,7 @@ describe('multiple persists', () => {
 
         expect(obs$.get()).toEqual({ test: 'hi' });
     });
-    test('loads from multiple persists with two syncObservable', async () => {
+    test('loads from multiple persists with two syncObservable /2', async () => {
         const persistName1 = getPersistName();
         const persistName2 = getPersistName();
         localStorage.setItem(persistName2, '{"test":"hi"}');
@@ -772,5 +772,138 @@ describe('multiple persists', () => {
         } as SyncedOptions);
 
         expect(obs$.get()).toEqual({ test: 'hi' });
+    });
+    test('loads from one remote with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        const obs$ = observable();
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hi' }),
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual(undefined);
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(0);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+    });
+    test('gets from two remotes with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        const obs$ = observable<BasicValue>();
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hi' }),
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            get: () => promiseTimeout(10, { test: 'hello' }),
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual(undefined);
+        const state$ = syncState(obs$);
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(0);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(10);
+
+        expect(obs$.get()).toEqual({ test: 'hello' });
+        expect(state$.isLoaded.get()).toEqual(true);
+    });
+    test('saves to second remote with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        const obs$ = observable<BasicValue>();
+        const saved$ = observable(undefined);
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hi' }),
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            set: ({ value }) => {
+                saved$.set(value);
+            },
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual(undefined);
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(0);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+
+        obs$.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(await when(saved$)).toEqual({ test: 'hello' });
+    });
+    test('saves to two remotes with two syncObservable', async () => {
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        const obs$ = observable<BasicValue>();
+        const saved1$ = observable(undefined);
+        const saved2$ = observable(undefined);
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hi' }),
+            set: ({ value }) => {
+                saved1$.set(value);
+            },
+            persist: {
+                name: persistName1,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+        syncObservable(obs$, {
+            set: ({ value }) => {
+                saved2$.set(value);
+            },
+            persist: {
+                name: persistName2,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual(undefined);
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+
+        await promiseTimeout(0);
+
+        expect(obs$.get()).toEqual({ test: 'hi' });
+
+        obs$.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(await when(saved1$)).toEqual({ test: 'hello' });
+        expect(await when(saved2$)).toEqual({ test: 'hello' });
     });
 });

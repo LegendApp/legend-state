@@ -1,24 +1,15 @@
 import { observable, observe, syncState, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import {
+    BasicValue,
+    BasicValue2,
+    ObservablePersistLocalStorage,
+    getPersistName,
+    localStorage,
+    promiseTimeout,
+} from './testglobals';
 import { clone } from '../src/globals';
-
-interface BasicValue {
-    id: string;
-    test: string;
-    updatedAt?: string | number | null;
-    parent?: {
-        child: {
-            baby: string;
-        };
-    };
-}
-interface BasicValue2 {
-    id: string;
-    test2: string;
-    updatedAt?: string | number | null;
-}
 
 const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',

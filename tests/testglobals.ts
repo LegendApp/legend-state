@@ -3,6 +3,22 @@ import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-
 import type { Change, TrackingType } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
 
+export interface BasicValue {
+    id: string;
+    test: string;
+    updatedAt?: string | number | null;
+    parent?: {
+        child: {
+            baby: string;
+        };
+    };
+}
+export interface BasicValue2 {
+    id: string;
+    test2: string;
+    updatedAt?: string | number | null;
+}
+
 export function mockLocalStorage() {
     class LocalStorageMock {
         store: Record<any, any>;
