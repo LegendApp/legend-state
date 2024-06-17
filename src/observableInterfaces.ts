@@ -14,7 +14,6 @@ export interface ListenerParams<T = any> {
     getPrevious: () => T;
     changes: Change[];
     remote: boolean;
-    /** @internal */
     loading: boolean;
 }
 

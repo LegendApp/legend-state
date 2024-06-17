@@ -15,6 +15,7 @@ import type {
     ObservableSyncState,
     RetryOptions,
     SetParams,
+    TypeAtPath,
     UpdateFn,
 } from '@legendapp/state';
 
@@ -75,6 +76,13 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     transform?: SyncTransform<TLocal, TRemote>;
     onGetError?: (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => void;
     onSetError?: (error: Error, setParams: SyncedSetParams<TRemote>) => void;
+    onBeforeGet?: (params: {
+        value: TRemote;
+        lastSync: number | undefined;
+        pendingChanges: PendingChanges | undefined;
+        clearPendingChanges: () => Promise<void>;
+        resetCache: () => Promise<void>;
+    }) => void;
     onBeforeSet?: () => void;
     onAfterSet?: () => void;
     // Not implemented yet
@@ -147,3 +155,4 @@ export interface SubscribeOptions {
 }
 
 export type Synced<T> = T;
+export type PendingChanges = Record<string, { p: any; v?: any; t: TypeAtPath[] }>;

@@ -37,6 +37,7 @@ import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import type {
     ObservablePersistPlugin,
+    PendingChanges,
     PersistMetadata,
     PersistOptions,
     SyncTransform,
@@ -64,7 +65,7 @@ const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
     pluginPersist?: ObservablePersistPlugin;
-    pendingChanges?: Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
+    pendingChanges?: PendingChanges;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -951,7 +952,7 @@ export function syncObservable<T>(
 
     let isSynced = false;
 
-    const applyPending = (pending: LocalState['pendingChanges']) => {
+    const applyPending = (pending: PendingChanges | undefined) => {
         if (pending && !isEmpty(pending)) {
             localState.isApplyingPending = true;
             const keys = Object.keys(pending);
@@ -1126,6 +1127,26 @@ export function syncObservable<T>(
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
                         onError: (error) => onError(error, getParams as SyncedGetParams, 'get'),
                     };
+
+                    let modeBeforeReset: GetMode | undefined = undefined;
+
+                    syncOptions.onBeforeGet?.({
+                        value: getParams.value,
+                        lastSync,
+                        pendingChanges: pending && !isEmpty(pending) ? pending : undefined,
+                        clearPendingChanges: async () => {
+                            localState.pendingChanges = {};
+                            await updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
+                                pending: localState.pendingChanges,
+                            });
+                        },
+                        resetCache: () => {
+                            modeBeforeReset = getParams.mode;
+                            getParams.mode = 'set';
+                            return syncStateValue.clearPersist?.();
+                        },
+                    });
+
                     syncState$.assign({
                         numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
                         isGetting: true,
@@ -1153,6 +1174,11 @@ export function syncObservable<T>(
                                 lastSync: getParams.lastSync,
                                 mode: getParams.mode!,
                             });
+                        }
+
+                        if (modeBeforeReset) {
+                            getParams.mode = modeBeforeReset;
+                            modeBeforeReset = undefined;
                         }
 
                         syncState$.assign({

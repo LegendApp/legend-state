@@ -10,12 +10,13 @@ import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
+        const persistName = getPersistName();
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
         const state = syncObservable(nodes, {
             persist: {
                 plugin: ObservablePersistLocalStorage,
-                name: 'nodes',
+                name: persistName,
             },
             get: async () => {
                 const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -40,6 +41,7 @@ describe('Creating', () => {
         expect(nodes.get()).toEqual({ key0: { key: 'key0' } });
     });
     test('syncObservable with synced as options', async () => {
+        const persistName = getPersistName();
         const nodes = observable<Record<string, { key: string }>>({});
         let lastSet;
         const state = syncObservable(
@@ -47,7 +49,7 @@ describe('Creating', () => {
             synced({
                 persist: {
                     plugin: ObservablePersistLocalStorage,
-                    name: 'nodes',
+                    name: persistName,
                 },
                 get: async () => {
                     const nodes = await new Promise<{ key: string }[]>((resolve) =>
@@ -85,7 +87,7 @@ describe('Creating', () => {
     });
 });
 
-describe('Adjusting data', () => {
+describe('Transforming data', () => {
     test('transformOutData with transform', async () => {
         const { value } = await transformSaveData({ id: 'id', text: 'a' }, [], [], {
             transform: {
@@ -1070,5 +1072,34 @@ describe('multiple persists', () => {
 
         expect(syncState(obs$).isLoaded.get()).toEqual(true);
         expect(obs$.get()).toEqual({ test: 'hello' });
+    });
+});
+
+describe('onBeforeGet', () => {
+    test('reset cache in onBeforeGet', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, '{"id1":{"id":"id1","test":"hi"},"id2":{"id":"id2","test":"hello"}}');
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const obs$ = observable();
+        syncObservable(obs$, {
+            get: () => ({
+                id3: {
+                    id: 'id3',
+                    test: 'yo',
+                },
+            }),
+            mode: 'merge',
+            onBeforeGet: ({ lastSync, resetCache }) => {
+                if (lastSync! > 0) {
+                    resetCache();
+                }
+            },
+            persist: {
+                name: persistName,
+                plugin: ObservablePersistLocalStorage,
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({ id3: { id: 'id3', test: 'yo' } });
     });
 });
