@@ -329,7 +329,8 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           };
                           let savedOut: Partial<TLocal> | undefined = saved;
 
-                          if (savedOut) {
+                          // If this value has been deleted locally before this finished saving then ignore the result
+                          if (savedOut && !isNullOrUndefined(currentValue)) {
                               // Remove keys from savedOut that have been modified locally since saving
                               savedOut = clone(savedOut) as TLocal;
                               Object.keys(savedOut).forEach((key) => {
