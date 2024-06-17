@@ -395,22 +395,34 @@ export function syncedKeel<
         }
     };
 
-    const handleSetError = async (error: APIError, params: SyncedSetParams<TRemote>, isCreate: boolean) => {
+    const handleSetError = async (
+        error: APIError,
+        params: SyncedSetParams<TRemote>,
+        from: 'create' | 'update' | 'delete',
+    ) => {
         const { retryNum, cancelRetry, update } = params;
 
         if (
-            isCreate &&
+            from === 'create' &&
             (error.message as string)?.includes('for the unique') &&
             (error.message as string)?.includes('must be unique')
         ) {
             if (__DEV__) {
                 console.log('Creating duplicate data already saved, just ignore.');
             }
+            cancelRetry();
             // This has already been saved but didn't update pending changes, so just update with {} to clear the pending state
             update({
                 value: {} as TRemote,
                 mode: 'assign',
             });
+        } else if (from === 'delete') {
+            if (error.message === 'record not found') {
+                if (__DEV__) {
+                    console.log('Deleting non-existing data, just ignore.');
+                }
+                cancelRetry();
+            }
         } else if (error.type === 'bad_request') {
             keelConfig.onError?.(error);
 
@@ -431,7 +443,7 @@ export function syncedKeel<
               const { data, error } = await createParam(convertObjectToCreate(input));
 
               if (error) {
-                  handleSetError(error, params, true);
+                  handleSetError(error, params, 'create');
               }
 
               return data;
@@ -450,7 +462,7 @@ export function syncedKeel<
                   const { data, error } = await updateParam({ where: { id }, values });
 
                   if (error) {
-                      handleSetError(error, params, false);
+                      handleSetError(error, params, 'update');
                   }
 
                   return data;
@@ -462,7 +474,7 @@ export function syncedKeel<
               const { data, error } = await deleteParam({ id: value.id });
 
               if (error) {
-                  handleSetError(error, params, false);
+                  handleSetError(error, params, 'delete');
               }
 
               return data;
