@@ -181,6 +181,9 @@ export interface ObservableSyncStateBase {
               }
           >
         | undefined;
+    /* @internal */
+    numPendingLocalLoads?: number;
+    numPendingRemoteLoads?: number;
 }
 export interface ObservableState {
     isLoaded: boolean;

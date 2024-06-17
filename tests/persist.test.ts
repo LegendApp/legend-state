@@ -5,7 +5,7 @@ import type { Observable } from '../src/observableTypes';
 import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { syncState } from '../src/syncState';
 import { when } from '../src/when';
-import { SyncedOptions, configureObservableSync, synced } from '../sync';
+import { ObservablePersistPlugin, SyncedOptions, configureObservableSync, synced } from '../sync';
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 describe('Creating', () => {
@@ -1023,5 +1023,52 @@ describe('multiple persists', () => {
 
         expect(await when(saved2$)).toEqual({ test: 'hi' });
         expect(saved1$.peek()).toEqual(undefined);
+    });
+    test('loads from multiple persists with async initialize', async () => {
+        class StorageWithAsync extends ObservablePersistLocalStorage implements ObservablePersistPlugin {
+            public initialize(): Promise<void> {
+                return promiseTimeout(0);
+            }
+        }
+        const persistName1 = getPersistName();
+        const persistName2 = getPersistName();
+        localStorage.setItem(persistName1, '{"test":"hi"}');
+        localStorage.setItem(persistName2, '{"test":"hi"}');
+        localStorage.setItem(persistName2 + '__m', '{"pending":{"":{"p":{"test":"hello"},"t":[],"v":{"test":"hi"}}}}');
+        const obs$ = observable({});
+        const saved1$ = observable(undefined);
+        const saved2$ = observable(undefined);
+
+        syncObservable(obs$, {
+            get: () => promiseTimeout(0, { test: 'hello' }),
+            set: ({ value }) => {
+                saved1$.set(value);
+            },
+            persist: {
+                name: persistName1,
+                plugin: StorageWithAsync,
+            },
+        } as SyncedOptions);
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+        syncObservable(obs$, {
+            set: ({ value }) => {
+                saved2$.set(value);
+            },
+            persist: {
+                name: persistName2,
+                plugin: StorageWithAsync,
+            },
+        } as SyncedOptions);
+
+        await when(syncState(obs$).isPersistLoaded);
+
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+        expect(obs$.get()).toEqual({ test: 'hi' });
+        expect(syncState(obs$).isLoaded.get()).toEqual(false);
+
+        await when(syncState(obs$).isLoaded);
+
+        expect(syncState(obs$).isLoaded.get()).toEqual(true);
+        expect(obs$.get()).toEqual({ test: 'hello' });
     });
 });

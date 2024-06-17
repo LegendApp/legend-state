@@ -771,17 +771,22 @@ function onObsChange<T>(
 async function loadLocal<T>(
     value$: ObservableParam<T>,
     syncOptions: SyncedOptions<any>,
-    syncState: ObservableObject<ObservableSyncState>,
+    syncState$: ObservableObject<ObservableSyncState>,
     localState: LocalState,
 ) {
     const { persist } = syncOptions;
     const node = getNode(value$);
     const nodeValue = getNodeValue(getNode(node.state!));
+    const syncStateValue = syncState$.peek();
+
+    const prevClearPersist = nodeValue.clearPersist;
 
     if (persist?.name) {
         const PersistPlugin: ClassConstructor<ObservablePersistPlugin> =
             persist.plugin! || observableSyncConfiguration.persist?.plugin;
         const { table, config } = parseLocalConfig(persist);
+
+        syncStateValue.numPendingLocalLoads = (syncStateValue.numPendingLocalLoads || 0) + 1;
 
         if (!PersistPlugin) {
             throw new Error('Local persist is not configured');
@@ -827,7 +832,7 @@ async function loadLocal<T>(
         if (metadata) {
             metadatas.set(value$, metadata);
             localState.pendingChanges = metadata.pending;
-            syncState.assign({
+            syncState$.assign({
                 lastSync: metadata.lastSync,
             });
         }
@@ -856,15 +861,20 @@ async function loadLocal<T>(
             internal.globalState.isLoadingLocal = false;
         }
 
+        syncStateValue.numPendingLocalLoads--;
+
         nodeValue.clearPersist = () =>
-            Promise.all([
-                persistPlugin.deleteTable(table, config),
-                persistPlugin.deleteMetadata(table, config),
-            ]) as unknown as Promise<void>;
+            Promise.all(
+                [
+                    prevClearPersist,
+                    persistPlugin.deleteTable(table, config),
+                    persistPlugin.deleteMetadata(table, config),
+                ].filter(Boolean),
+            ) as unknown as Promise<void>;
     } else {
-        nodeValue.clearPersist = () => {};
+        nodeValue.clearPersist = () => prevClearPersist?.();
     }
-    syncState.isPersistLoaded.set(true);
+    syncState$.isPersistLoaded.set(!(syncStateValue.numPendingLocalLoads! > 0));
 }
 
 function deepMerge<T extends object>(target: T, ...sources: any[]): T {
@@ -923,9 +933,6 @@ export function syncObservable<T>(
     const syncStateValue = getNodeValue(getNode(syncState$)) as ObservableSyncState;
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
-    // This node may already be loading from a previous syncObservable call so only set it to loaded
-    // if not already loading and nothing to load here
-    syncState$.isLoaded.set(!syncState$.numPendingGets.peek() && !syncOptions.get);
 
     const onError = (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => {
         syncState$.error.set(error);
@@ -933,6 +940,14 @@ export function syncObservable<T>(
     };
 
     loadLocal(obs$, syncOptions, syncState$, localState);
+
+    let isWaitingForLoad = !!syncOptions.get;
+    if (isWaitingForLoad) {
+        syncStateValue.numPendingRemoteLoads = (syncStateValue.numPendingRemoteLoads || 0) + 1;
+    }
+    // This node may already be loading from a previous syncObservable call so only set it to loaded
+    // if not already loading and nothing to load here
+    syncState$.isLoaded.set(!syncState$.numPendingRemoteLoads.peek());
 
     let isSynced = false;
 
@@ -1039,7 +1054,7 @@ export function syncObservable<T>(
                                     }
                                 });
 
-                                if (didChangeMetadata) {
+                                if (didChangeMetadata && syncOptions.persist) {
                                     updateMetadata(obs$, localState, syncState$, syncOptions, {
                                         pending,
                                     });
@@ -1124,6 +1139,10 @@ export function syncObservable<T>(
                     const numGets = (node.numGets = (node.numGets || 0) + 1);
                     const handle = (value: any) => {
                         syncState$.numPendingGets.set((v) => v! - 1);
+                        if (isWaitingForLoad) {
+                            isWaitingForLoad = false;
+                            syncStateValue.numPendingRemoteLoads!--;
+                        }
                         // If this is from an older Promise than one that resolved already,
                         // ignore it as the newer one wins
                         if (numGets >= (node.getNumResolved || 0)) {
@@ -1135,8 +1154,9 @@ export function syncObservable<T>(
                                 mode: getParams.mode!,
                             });
                         }
+
                         syncState$.assign({
-                            isLoaded: syncStateValue.numPendingGets! === 0,
+                            isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
                             error: undefined,
                             isGetting: syncStateValue.numPendingGets! > 0,
                         });
