@@ -74,6 +74,10 @@ export function configureSyncedFirebase(config: SyncedFirebaseConfiguration) {
     }
 }
 
+function joinPaths(str1: string, str2: string) {
+    return str2 ? [str1, str2].join('/').replace(/\/\//g, '/') : str1;
+}
+
 interface FirebaseFns {
     isInitialized: () => boolean;
     getCurrentUser: () => string | undefined;
@@ -288,7 +292,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         } else {
             saving$[id].set(true);
 
-            const path = refPath(fns.getCurrentUser()) + (fieldId ? '/' + id : '');
+            const path = joinPaths(refPath(fns.getCurrentUser()), fieldId ? id : '');
             await fns.update(fns.ref(path), input);
 
             saving$[id].set(false);
@@ -335,8 +339,10 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const deleteFn = readonly
         ? undefined
         : (input: TRemote) => {
-              const path =
-                  refPath(fns.getCurrentUser()) + (fieldId && asType !== 'value' ? '/' + (input as any)[fieldId] : '');
+              const path = joinPaths(
+                  refPath(fns.getCurrentUser()),
+                  fieldId && asType !== 'value' ? (input as any)[fieldId] : '',
+              );
               return fns.remove(fns.ref(path));
           };
 
