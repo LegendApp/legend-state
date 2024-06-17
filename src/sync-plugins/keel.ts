@@ -342,6 +342,14 @@ export function syncedKeel<
     const fieldCreatedAt: KeelKey = 'createdAt';
     const fieldUpdatedAt: KeelKey = 'updatedAt';
 
+    const setupSubscribe = (doSubscribe: SubscribeFn, subscribeKey: string, lastSync?: number | undefined) => {
+        subscribeFn = doSubscribe;
+        subscribeFnKey$.set(subscribeKey);
+        if (realtimePlugin && lastSync) {
+            realtimePlugin.setLatestChange(subscribeKey, new Date(lastSync));
+        }
+    };
+
     const list = listParam
         ? async (listParams: SyncedGetParams) => {
               const { lastSync, refresh } = listParams;
@@ -356,8 +364,7 @@ export function syncedKeel<
               // TODO: Error?
               const { results, subscribe, subscribeKey } = await getAllPages(listParam, params);
               if (subscribe) {
-                  subscribeFn = () => subscribe({ refresh });
-                  subscribeFnKey$.set(subscribeKey);
+                  setupSubscribe(() => subscribe({ refresh }), subscribeKey, lastSync);
               }
 
               return results;
@@ -370,8 +377,7 @@ export function syncedKeel<
               //   @ts-expect-error TODOKEEL
               const { data, error, subscribe, subscribeKey } = await getParam({ refresh });
               if (subscribe) {
-                  subscribeFn = () => subscribe({ refresh });
-                  subscribeFnKey$.set(subscribeKey);
+                  setupSubscribe(() => subscribe({ refresh }), subscribeKey);
               }
 
               if (error) {
