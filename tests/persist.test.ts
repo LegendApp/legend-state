@@ -7,6 +7,8 @@ import { syncState } from '../src/syncState';
 import { when } from '../src/when';
 import { ObservablePersistPlugin, SyncedOptions, configureObservableSync, synced } from '../sync';
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import { observe } from '../src/observe';
+import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -86,7 +88,6 @@ describe('Creating', () => {
         }).toThrow('[legend-state] syncObservable called with undefined observable');
     });
 });
-
 describe('Transforming data', () => {
     test('transformOutData with transform', async () => {
         const { value } = await transformSaveData({ id: 'id', text: 'a' }, [], [], {
@@ -1074,7 +1075,6 @@ describe('multiple persists', () => {
         expect(obs$.get()).toEqual({ test: 'hello' });
     });
 });
-
 describe('onBeforeGet', () => {
     test('reset cache in onBeforeGet', async () => {
         const persistName = getPersistName();
@@ -1101,5 +1101,91 @@ describe('onBeforeGet', () => {
         } as SyncedOptions);
 
         expect(obs$.get()).toEqual({ id3: { id: 'id3', test: 'yo' } });
+    });
+});
+describe('synced is observer', () => {
+    test('synced runs once when not calling get', () => {
+        const num$ = observable(0);
+        let runs = 0;
+        const obs$ = observable(() =>
+            synced({
+                get: () => {
+                    runs++;
+                    return runs;
+                },
+            }),
+        );
+        expect(obs$.get()).toEqual(1);
+        expect(runs).toEqual(1);
+        num$.set(1);
+        expect(obs$.get()).toEqual(1);
+        expect(runs).toEqual(1);
+    });
+    test('synced is observer', () => {
+        const num$ = observable(0);
+        let runs = 0;
+        const obs$ = observable(() =>
+            synced({
+                get: () => {
+                    runs++;
+                    return num$.get();
+                },
+            }),
+        );
+        expect(obs$.get()).toEqual(0);
+        expect(runs).toEqual(1);
+        num$.set(1);
+        expect(obs$.get()).toEqual(1);
+        expect(runs).toEqual(2);
+    });
+    test('synced is observer (2)', () => {
+        const num$ = observable(0);
+        let runs = 0;
+        const obs$ = observable(() =>
+            synced({
+                get: () => {
+                    runs++;
+                    return num$.get();
+                },
+            }),
+        );
+        let latestValue = 0;
+        observe(() => {
+            latestValue = obs$.get();
+        });
+        expect(obs$.get()).toEqual(0);
+        expect(latestValue).toEqual(0);
+        expect(runs).toEqual(1);
+        num$.set(1);
+        expect(obs$.get()).toEqual(1);
+        expect(latestValue).toEqual(1);
+        expect(runs).toEqual(2);
+    });
+    test('syncedCrud is observer', async () => {
+        const num$ = observable(0);
+        let runs = 0;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => {
+                    runs++;
+                    return [{ id: 'id1', num: num$.get() }];
+                },
+                as: 'object',
+            }),
+        );
+        let latestValue = 0;
+        observe(() => {
+            latestValue = obs$.id1.num.get();
+        });
+
+        await promiseTimeout(0);
+        expect(obs$.id1.num.get()).toEqual(0);
+        expect(latestValue).toEqual(0);
+        expect(runs).toEqual(1);
+        num$.set(1);
+        expect(runs).toEqual(2);
+        await promiseTimeout(0);
+        expect(obs$.id1.num.get()).toEqual(1);
+        expect(latestValue).toEqual(1);
     });
 });

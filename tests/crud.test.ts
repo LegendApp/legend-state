@@ -1,6 +1,7 @@
 import { observable, observe, syncState, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
+import { clone } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
@@ -9,7 +10,6 @@ import {
     localStorage,
     promiseTimeout,
 } from './testglobals';
-import { clone } from '../src/globals';
 
 const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',
@@ -17,8 +17,8 @@ const ItemBasicValue: () => BasicValue = () => ({
 });
 
 type GetOrListTestParams =
-    | { get: () => BasicValue | null; list?: never; as?: never }
-    | { list: () => BasicValue[]; as: 'value'; get?: never };
+    | { get: () => Promise<BasicValue | null>; list?: never; as?: never }
+    | { list: () => Promise<BasicValue[]>; as: 'value'; get?: never };
 
 beforeAll(() => {
     configureObservableSync({
@@ -233,62 +233,70 @@ describe('Crud object get', () => {
             expect(obs.get()).toEqual(undefined);
         },
     };
+    test('crud with no promise runs immediately', () => {
+        const obs = observable(syncedCrud({ get: ItemBasicValue }));
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+    });
     test('get', () =>
         getTests.get({
-            get: ItemBasicValue,
+            get: () => promiseTimeout(0, ItemBasicValue()),
         }));
     test('get with initial', () =>
         getTests.getWithInitial({
-            get: ItemBasicValue,
+            get: () => promiseTimeout(0, ItemBasicValue()),
         }));
     test('get with waitFor', () =>
         getTests.getWithWaitFor({
-            get: ItemBasicValue,
+            get: () => promiseTimeout(0, ItemBasicValue()),
         }));
     test('get with set', () =>
         getTests.getWithSet({
-            get: ItemBasicValue,
+            get: () => promiseTimeout(0, ItemBasicValue()),
         }));
     test('get with set no initial', () =>
         getTests.getWithSetNoInitial({
-            get: () => null,
+            get: () => promiseTimeout(0, null),
         }));
     test('get with set deep child', () =>
         getTests.getWithSetDeepChild({
-            get: ItemBasicValue,
+            get: () => promiseTimeout(0, ItemBasicValue()),
         }));
     test('get with delete', () =>
         getTests.getWithDelete({
-            get: ItemBasicValue,
+            get: () => promiseTimeout(0, ItemBasicValue()),
         }));
     test('list first', () =>
         getTests.get({
-            list: () => [ItemBasicValue()],
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));
     test('list first with initial', () =>
         getTests.getWithInitial({
-            list: () => [ItemBasicValue()],
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));
     test('list first with waitFor', () =>
         getTests.getWithWaitFor({
-            list: () => [ItemBasicValue()],
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));
     test('list first with set', () =>
         getTests.getWithSet({
-            list: () => [ItemBasicValue()],
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));
     test('list first with set deep child', () =>
         getTests.getWithSetDeepChild({
-            list: () => [ItemBasicValue()],
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));
     test('list first with delete', () =>
         getTests.getWithDelete({
-            list: () => [ItemBasicValue()],
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));
 });
@@ -296,7 +304,7 @@ describe('Crud as Object list', () => {
     test('defaults to object', async () => {
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
             }),
         );
 
@@ -316,7 +324,7 @@ describe('Crud as Object list', () => {
     test('as Object list', async () => {
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
             }),
         );
@@ -339,7 +347,7 @@ describe('Crud as Object list', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -377,7 +385,7 @@ describe('Crud as Object list', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -415,7 +423,7 @@ describe('Crud as Object list', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -451,7 +459,7 @@ describe('Crud as Object list', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -498,7 +506,7 @@ describe('Crud as Object list', () => {
         let deleted = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 delete: async (input) => {
                     deleted = input;
@@ -524,7 +532,7 @@ describe('Crud as Object list', () => {
         let deleted = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 delete: async (input) => {
                     deleted = input;
@@ -550,7 +558,7 @@ describe('Crud as Object list', () => {
         const page$ = observable(1);
         const obs = observable(
             syncedCrud({
-                list: () => (page$.get() === 1 ? [ItemBasicValue()] : [{ id: 'id2', test: 'hi2' }]),
+                list: () => promiseTimeout(0, page$.get() === 1 ? [ItemBasicValue()] : [{ id: 'id2', test: 'hi2' }]),
                 as: 'object',
                 mode: 'assign',
             }),
@@ -591,7 +599,7 @@ describe('Crud as Object list', () => {
         let deleted = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'object',
                 delete: async (input) => {
                     deleted = input;
@@ -618,7 +626,7 @@ describe('Crud as Map', () => {
     test('as Map list', async () => {
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'Map',
             }),
         );
@@ -646,7 +654,7 @@ describe('Crud as Map', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'Map',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -689,7 +697,7 @@ describe('Crud as Map', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'Map',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -732,7 +740,7 @@ describe('Crud as Map', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'Map',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -784,7 +792,7 @@ describe('Crud as Map', () => {
         let deleted = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'Map',
                 delete: async (input) => {
                     deleted = input;
@@ -810,7 +818,7 @@ describe('Crud as Map', () => {
         let deleted = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'Map',
                 delete: async (input) => {
                     deleted = input;
@@ -834,7 +842,7 @@ describe('Crud as Array', () => {
     test('as Array list', async () => {
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
             }),
         );
@@ -857,7 +865,7 @@ describe('Crud as Array', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -895,7 +903,7 @@ describe('Crud as Array', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -933,7 +941,7 @@ describe('Crud as Array', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -972,7 +980,7 @@ describe('Crud as Array', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -1011,7 +1019,7 @@ describe('Crud as Array', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -1047,7 +1055,7 @@ describe('Crud as Array', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                list: () => [ItemBasicValue()],
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
                 as: 'array',
                 create: async (input: BasicValue) => {
                     created = clone(input);
@@ -1094,7 +1102,7 @@ describe('Crud as Array', () => {
         const page$ = observable(1);
         const obs = observable(
             syncedCrud({
-                list: () => (page$.get() === 1 ? [ItemBasicValue()] : [{ id: 'id2', test: 'hi2' }]),
+                list: () => promiseTimeout(0, page$.get() === 1 ? [ItemBasicValue()] : [{ id: 'id2', test: 'hi2' }]),
                 as: 'array',
                 mode: 'append',
             }),
@@ -1136,7 +1144,7 @@ describe('Crud record transform', () => {
     test('get transformed', async () => {
         const obs = observable(
             syncedCrud({
-                get: ItemBasicValue,
+                get: () => promiseTimeout(0, ItemBasicValue()),
                 transform: {
                     load: (value: BasicValue) =>
                         ({
@@ -1161,7 +1169,7 @@ describe('Crud record transform', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                get: () => null,
+                get: () => promiseTimeout(0, null),
                 create: async (input: BasicValue) => {
                     created = clone(input);
                     return input;
@@ -1210,7 +1218,7 @@ describe('Crud record transform', () => {
         let updated = undefined;
         const obs = observable(
             syncedCrud({
-                get: ItemBasicValue,
+                get: () => promiseTimeout(0, ItemBasicValue()),
                 create: async (input: BasicValue) => {
                     created = clone(input);
                     return input;
@@ -1388,7 +1396,7 @@ describe('lastSync', () => {
         localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
         const obs = observable<Record<string, BasicValue>>(
             syncedCrud({
-                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
+                list: () => promiseTimeout(0, [{ ...ItemBasicValue(), updatedAt: 2 }]),
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
@@ -1414,7 +1422,7 @@ describe('lastSync', () => {
         localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
         const obs = observable<Record<string, BasicValue>>(
             syncedCrud({
-                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }],
+                list: () => promiseTimeout(0, [{ ...ItemBasicValue(), updatedAt: 2 }]),
                 as: 'value',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
@@ -1464,7 +1472,7 @@ describe('lastSync', () => {
         localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
         const obs = observable(
             syncedCrud({
-                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
+                list: () => promiseTimeout(0, [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[]),
                 as: 'array',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
@@ -1493,7 +1501,7 @@ describe('lastSync', () => {
         localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
         const obs = observable(
             syncedCrud({
-                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
+                list: () => promiseTimeout(0, [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[]),
                 as: 'array',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
@@ -1527,7 +1535,7 @@ describe('lastSync', () => {
         localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
         const obs = observable(
             syncedCrud({
-                list: () => [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[],
+                list: () => promiseTimeout(0, [{ ...ItemBasicValue(), updatedAt: 2 }] as BasicValue[]),
                 as: 'Map',
                 fieldUpdatedAt: 'updatedAt',
                 changesSince: 'last-sync',
@@ -1667,7 +1675,7 @@ describe('subscribe', () => {
 
         const obs = observable(
             syncedCrud({
-                list: () => [{ id: retValue++ }],
+                list: () => promiseTimeout(0, [{ id: retValue++ }]),
                 as: 'array',
                 mode: 'append',
                 subscribe: ({ refresh }) => {
@@ -1698,7 +1706,7 @@ describe('subscribe', () => {
         const set2$ = observable(false);
         const obs = observable(
             syncedCrud({
-                list: () => [{ id: 1 }],
+                list: () => promiseTimeout(0, [{ id: 1 }]),
                 as: 'array',
                 mode: 'append',
                 subscribe: ({ update }) => {
@@ -1730,7 +1738,7 @@ describe('subscribe', () => {
         const set2$ = observable(false);
         const obs = observable(
             syncedCrud({
-                list: () => [{ id: 1 }],
+                list: () => promiseTimeout(0, [{ id: 1 }]),
                 as: 'Map',
                 mode: 'assign',
                 subscribe: ({ update }) => {
@@ -1773,7 +1781,7 @@ describe('subscribe', () => {
         const set2$ = observable(false);
         const obs = observable(
             syncedCrud<{ id: number }, { id: number }, 'value'>({
-                list: () => [{ id: 1 }],
+                list: () => promiseTimeout(0, [{ id: 1 }]),
                 as: 'value',
                 subscribe: ({ update }) => {
                     when(set1$, () => {

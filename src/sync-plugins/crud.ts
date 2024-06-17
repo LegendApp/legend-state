@@ -1,4 +1,12 @@
-import { UpdateFnParams, getNodeValue, internal, isArray, isNullOrUndefined } from '@legendapp/state';
+import {
+    UpdateFnParams,
+    getNodeValue,
+    internal,
+    isArray,
+    isNullOrUndefined,
+    isObservable,
+    isPromise,
+} from '@legendapp/state';
 import {
     SyncedGetParams,
     SyncedOptions,
@@ -142,21 +150,25 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         const out = asType === 'array' ? [] : asMap ? new Map() : {};
         for (let i = 0; i < results.length; i++) {
             let result = results[i];
-            result = result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result;
-            if (asArray) {
-                (out as any[]).push(result);
-            } else if (asMap) {
-                (out as Map<string, any>).set(result[fieldId], result);
-            } else {
-                (out as Record<string, any>)[result[fieldId]] = result;
+            const isObs = isObservable(result);
+            const value = isObs ? result.peek() : result;
+            if (value) {
+                result = !isObs && (result[fieldDeleted as any] || result.__deleted) ? internal.symbolDelete : result;
+                if (asArray) {
+                    (out as any[]).push(result);
+                } else if (asMap) {
+                    (out as Map<string, any>).set(value[fieldId], result);
+                } else {
+                    (out as Record<string, any>)[value[fieldId]] = result;
+                }
             }
         }
         return out;
     };
 
-    const get: undefined | ((params: SyncedGetParams) => Promise<TLocal>) =
+    const get: undefined | ((params: SyncedGetParams) => TLocal | Promise<TLocal>) =
         getFn || listFn
-            ? async (getParams: SyncedGetParams) => {
+            ? (getParams: SyncedGetParams) => {
                   const { updateLastSync, lastSync, value } = getParams;
                   if (listFn) {
                       const isLastSyncMode = changesSince === 'last-sync';
@@ -165,44 +177,63 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               modeParam || (asType === 'array' ? 'append' : asType === 'value' ? 'set' : 'assign');
                       }
 
-                      const data = (await listFn(getParams)) || [];
-                      if (fieldUpdatedAt) {
-                          const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
+                      const listPromise = listFn(getParams);
 
-                          if (newLastSync && newLastSync !== lastSync) {
-                              updateLastSync(newLastSync);
+                      // Note: We don't want this function to be async so we return these functions
+                      // as Promise only if listFn returned a promise
+                      const toOut = (transformed: TLocal[]) => {
+                          if (asType === 'value') {
+                              return transformed.length > 0
+                                  ? transformed[0]
+                                  : (((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null;
+                          } else {
+                              return resultsToOutType(transformed);
                           }
-                      }
-                      let transformed = data as unknown as TLocal[];
-                      if (transform?.load) {
-                          transformed = await Promise.all(data.map((value) => transform.load!(value, 'get')));
-                      }
-                      if (asType === 'value') {
-                          return transformed.length > 0
-                              ? transformed[0]
-                              : (((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null;
-                      } else {
-                          const results = transformed.map((result: any) =>
-                              result[fieldDeleted as any] || result.__deleted ? internal.symbolDelete : result,
-                          );
-                          return resultsToOutType(results);
-                      }
-                  } else if (getFn) {
-                      const data = await getFn(getParams);
+                      };
 
-                      let transformed = data as unknown as TLocal;
-                      if (data) {
-                          const newLastSync =
-                              (data as any)[fieldUpdatedAt as any] || (data as any)[fieldCreatedAt as any];
-                          if (newLastSync && newLastSync !== lastSync) {
-                              updateLastSync(newLastSync);
+                      const processTransformed = (data: TRemote[] | null) => {
+                          data ||= [];
+                          if (fieldUpdatedAt) {
+                              const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
+
+                              if (newLastSync && newLastSync !== lastSync) {
+                                  updateLastSync(newLastSync);
+                              }
                           }
+                          let transformed = data as unknown as TLocal[] | Promise<TLocal[]>;
+
                           if (transform?.load) {
-                              transformed = await transform.load(data, 'get');
+                              transformed = Promise.all(data.map((value) => transform.load!(value, 'get')));
                           }
-                      }
 
-                      return transformed as any;
+                          return isPromise(transformed) ? transformed.then(toOut) : toOut(transformed);
+                      };
+
+                      return isPromise(listPromise)
+                          ? listPromise.then(processTransformed)
+                          : processTransformed(listPromise);
+                  } else if (getFn) {
+                      const dataPromise = getFn(getParams);
+
+                      // Note: We don't want this function to be async so we return these functions
+                      // as Promise only if getFn returned a promise
+                      const processData = (data: TRemote | null) => {
+                          let transformed = data as unknown as TLocal | Promise<TLocal>;
+                          if (data) {
+                              const newLastSync =
+                                  (data as any)[fieldUpdatedAt as any] || (data as any)[fieldCreatedAt as any];
+                              if (newLastSync && newLastSync !== lastSync) {
+                                  updateLastSync(newLastSync);
+                              }
+                              if (transform?.load) {
+                                  transformed = transform.load(data, 'get');
+                              }
+                          }
+
+                          return transformed as any;
+                      };
+
+                      return isPromise(dataPromise) ? dataPromise.then(processData) : processData(dataPromise);
                   }
               }
             : undefined;
