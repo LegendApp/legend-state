@@ -1,7 +1,6 @@
 import { observable, observe, syncState, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { clone } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
@@ -10,6 +9,7 @@ import {
     localStorage,
     promiseTimeout,
 } from './testglobals';
+import { clone, getNode } from '../src/globals';
 
 const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',
@@ -2060,4 +2060,160 @@ describe('Order of get/create', () => {
         expect(updated).toEqual(value);
         expect(didGet).toEqual(true);
     });
+});
+describe('Hierarchical sync', () => {
+    test('list can return observables', async () => {
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    return [
+                        { id: 'id1', test: 'hello' },
+                        { id: 'id2', test: 'hi' },
+                        { id: 'id3', test: 'hey' },
+                    ];
+                },
+                as: 'object',
+            }),
+        );
+
+        const odds$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    return [obs$.id1, obs$.id3];
+                },
+                as: 'object',
+            }),
+        );
+
+        let latestValue = '';
+        observe(() => {
+            latestValue = odds$.id1.test.get();
+        });
+
+        expect(latestValue).toEqual('hello');
+
+        expect(odds$.get()).toEqual({
+            id1: { id: 'id1', test: 'hello' },
+            id3: { id: 'id3', test: 'hey' },
+        });
+    });
+    test('list can return observables with target as Promise with initial', async () => {
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: async () => {
+                    await promiseTimeout(0);
+                    return [
+                        { id: 'id1', test: 'hello' },
+                        { id: 'id2', test: 'hi' },
+                        { id: 'id3', test: 'hey' },
+                    ];
+                },
+                as: 'object',
+            }),
+        );
+
+        const odds$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                initial: () => ({
+                    id1: obs$['id1'],
+                    id3: obs$['id3'],
+                }),
+            }),
+        );
+
+        let latestValue = '';
+        observe(() => {
+            latestValue = odds$.id1.test.get();
+        });
+
+        expect(latestValue).toEqual(undefined);
+
+        await promiseTimeout(0);
+
+        expect(latestValue).toEqual('hello');
+
+        expect(odds$.get()).toEqual({
+            id1: { id: 'id1', test: 'hello' },
+            id3: { id: 'id3', test: 'hey' },
+        });
+    });
+    // TODO: Would be good to get this working with list
+    // test('list can return observables with target as Promise with list', async () => {
+    //     const obs$ = observable<Record<string, BasicValue>>(
+    //         syncedCrud({
+    //             list: async () => {
+    //                 await promiseTimeout(0);
+    //                 return [
+    //                     { id: 'id1', test: 'hello' },
+    //                     { id: 'id2', test: 'hi' },
+    //                     { id: 'id3', test: 'hey' },
+    //                 ];
+    //             },
+    //             as: 'object',
+    //         }),
+    //     );
+
+    //     const odds$ = observable<Record<string, BasicValue>>(
+    //         syncedCrud({
+    //             list: () => {
+    //                 return [obs$.id1, obs$.id3];
+    //             },
+    //             as: 'object',
+    //         }),
+    //     );
+
+    //     // @ts-expect-error asdf
+    //     getNode(odds$).___test = true;
+
+    //     let latestValue = '';
+    //     observe(() => {
+    //         latestValue = odds$.id1.test.get();
+    //         console.log(latestValue);
+    //     });
+
+    //     expect(latestValue).toEqual(undefined);
+
+    //     await promiseTimeout(0);
+
+    //     expect(latestValue).toEqual('hello');
+
+    //     expect(odds$.get()).toEqual({
+    //         id1: { id: 'id1', test: 'hello' },
+    //         id3: { id: 'id3', test: 'hey' },
+    //     });
+    // });
+    // test('child of a list has create', async () => {
+    // // TODO: The purpose of this one is to have obs$ contain the list and odds$ to locally filter a subset and have the create/update on it
+    //     const obs$ = observable<Record<string, BasicValue>>(
+    //         syncedCrud({
+    //             list: () => {
+    //                 return promiseTimeout(0, [
+    //                     { id: 'id1', test: 'hello' },
+    //                     { id: 'id2', test: 'hi' },
+    //                     { id: 'id3', test: 'hey' },
+    //                 ]);
+    //             },
+    //             as: 'object',
+    //         }),
+    //     );
+
+    //     const odds$ = observable<Record<string, BasicValue>>(
+    //         syncedCrud({
+    //             list: () => {
+    //                 obs$.get();
+    //                 return [obs$.id1, obs$.id3];
+    //             },
+    //             as: 'object',
+    //         }),
+    //     );
+
+    //     odds$.get();
+
+    //     await promiseTimeout(10);
+
+    //     expect(odds$.get()).toEqual({
+    //         id1: { id: 'id1', test: 'hello' },
+    //         id3: { id: 'id3', test: 'hey' },
+    //     });
+    // });
 });
