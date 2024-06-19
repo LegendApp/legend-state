@@ -1,6 +1,7 @@
 import { observable, observe, syncState, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
+import { clone } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
@@ -9,7 +10,6 @@ import {
     localStorage,
     promiseTimeout,
 } from './testglobals';
-import { clone, getNode } from '../src/globals';
 
 const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',
@@ -33,7 +33,7 @@ describe('Crud object get', () => {
             const obs = observable(syncedCrud(params));
             expect(obs.get()).toEqual(undefined);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual({
                 id: 'id1',
@@ -55,7 +55,7 @@ describe('Crud object get', () => {
                 test: 'unknown',
             });
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual({
                 id: 'id1',
@@ -68,13 +68,13 @@ describe('Crud object get', () => {
 
             expect(obs.get()).toEqual(undefined);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual(undefined);
 
             obsWait$.set(true);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual({
                 id: 'id1',
@@ -100,7 +100,7 @@ describe('Crud object get', () => {
 
             expect(obs.get()).toEqual(undefined);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual({
                 id: 'id1',
@@ -109,7 +109,7 @@ describe('Crud object get', () => {
 
             obs.test.set('hello');
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(created).toEqual(undefined);
             expect(updated).toEqual({
@@ -140,13 +140,13 @@ describe('Crud object get', () => {
 
             expect(obs.get()).toEqual(undefined);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual(null);
 
             obs.set({ id: 'id1', test: 'hello' });
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(created).toEqual({
                 id: 'id1',
@@ -172,7 +172,7 @@ describe('Crud object get', () => {
 
             expect(obs.get()).toEqual(undefined);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual({
                 id: 'id1',
@@ -181,7 +181,7 @@ describe('Crud object get', () => {
 
             obs.parent.child.baby.set('test');
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(saved).toEqual({
                 id: 'id1',
@@ -215,7 +215,7 @@ describe('Crud object get', () => {
 
             expect(obs.get()).toEqual(undefined);
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(obs.get()).toEqual({
                 id: 'id1',
@@ -224,7 +224,7 @@ describe('Crud object get', () => {
 
             obs.delete();
 
-            await promiseTimeout(0);
+            await promiseTimeout(1);
 
             expect(deleted).toEqual({
                 id: 'id1',
@@ -310,7 +310,7 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id1: {
@@ -331,7 +331,7 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id1: {
@@ -362,11 +362,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -400,11 +400,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set({ id1: { id: 'id1', test: 'hello' } });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -438,11 +438,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set({ id1: { id: 'id1', test: 'hi' }, id2: { id: 'id2', test: 'hi2' } });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual(undefined);
@@ -474,11 +474,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.parent.child.baby.set('test');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -516,11 +516,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.delete();
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(deleted).toEqual({
             id: 'id1',
@@ -542,11 +542,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.delete();
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(deleted).toEqual({
             id: 'id1',
@@ -569,7 +569,7 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id1: {
@@ -580,7 +580,7 @@ describe('Crud as Object list', () => {
 
         page$.set(2);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id1: {
@@ -609,11 +609,11 @@ describe('Crud as Object list', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set({ id1: null as any });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(deleted).toEqual({
             id: 'id1',
@@ -633,7 +633,7 @@ describe('Crud as Map', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual(
             new Map([
@@ -669,11 +669,11 @@ describe('Crud as Map', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.get('id1').test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -712,11 +712,11 @@ describe('Crud as Map', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set(new Map([['id1', { id: 'id1', test: 'hello' }]]));
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -755,11 +755,11 @@ describe('Crud as Map', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.get('id1').parent.child.baby.set('test');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -802,11 +802,11 @@ describe('Crud as Map', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.delete('id1');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(deleted).toEqual({
             id: 'id1',
@@ -828,11 +828,11 @@ describe('Crud as Map', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.clear();
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(deleted).toEqual(undefined);
         expect(obs.get()).toEqual(new Map());
@@ -849,7 +849,7 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([
             {
@@ -880,11 +880,11 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs[0].test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -918,11 +918,11 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set([{ id: 'id1', test: 'hello' }]);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -956,14 +956,14 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set([
             { id: 'id1', test: 'hi' },
             { id: 'id2', test: 'hi2' },
         ]);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual(undefined);
@@ -995,14 +995,14 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.set([
             { id: 'id1', test: 'hello' },
             { id: 'id2', test: 'hi2' },
         ]);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual({ id: 'id1', test: 'hello' });
@@ -1034,11 +1034,11 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.push({ id: 'id2', test: 'hi2' });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual(undefined);
@@ -1070,11 +1070,11 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs[0].parent.child.baby.set('test');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -1113,7 +1113,7 @@ describe('Crud as Array', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([
             {
@@ -1124,7 +1124,7 @@ describe('Crud as Array', () => {
 
         page$.set(2);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([
             {
@@ -1157,7 +1157,7 @@ describe('Crud record transform', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
@@ -1195,13 +1195,13 @@ describe('Crud record transform', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual(null);
 
         obs.set({ id: 'id1', test2: 'hello' });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(updated).toEqual(undefined);
         expect(created).toEqual({
@@ -1244,7 +1244,7 @@ describe('Crud record transform', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
@@ -1253,7 +1253,7 @@ describe('Crud record transform', () => {
 
         obs.test2.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -1286,11 +1286,11 @@ describe('fieldUpdatedAt', () => {
             }),
         );
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(updated).toEqual(undefined);
         expect(created).toEqual({
@@ -1317,11 +1317,11 @@ describe('fieldUpdatedAt', () => {
             }),
         );
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -1367,11 +1367,11 @@ describe('fieldUpdatedAt', () => {
             }),
         );
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -1409,7 +1409,7 @@ describe('lastSync', () => {
 
         expect(obs.get()).toEqual({ id2: { id: 'id2', test: 'hi2', updatedAt: 1 } });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id1: { id: 'id1', test: 'hi', updatedAt: 2 },
@@ -1435,7 +1435,7 @@ describe('lastSync', () => {
 
         expect(obs.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 1 });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
@@ -1462,7 +1462,7 @@ describe('lastSync', () => {
 
         expect(obs.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 1 });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 1 });
     });
@@ -1484,7 +1484,7 @@ describe('lastSync', () => {
         );
         expect(obs.get()).toEqual([{ id: 'id2', test: 'hi2', updatedAt: 1 }]);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([
             { id: 'id2', test: 'hi2', updatedAt: 1 },
@@ -1514,7 +1514,7 @@ describe('lastSync', () => {
         );
         expect(obs.get()).toEqual([{ id: 'id2', test: 'hi2', updatedAt: 1 }]);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([
             {
@@ -1548,7 +1548,7 @@ describe('lastSync', () => {
 
         expect(obs.get()).toEqual(new Map([['id2', { id: 'id2', test: 'hi2', updatedAt: 1 }]]));
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual(
             new Map([
@@ -1573,7 +1573,7 @@ describe('update partial', () => {
 
         obs.get();
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
@@ -1584,7 +1584,7 @@ describe('update partial', () => {
 
         obs.other.set(4);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(updated).toEqual({ id: 'id1', test: 'hi', other: 4, another: 3 });
         expect(obs.get()).toEqual({
@@ -1609,7 +1609,7 @@ describe('update partial', () => {
 
         obs.get();
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
@@ -1620,7 +1620,7 @@ describe('update partial', () => {
 
         obs.other.set(4);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(updated).toEqual({ id: 'id1', other: 4 });
         expect(obs.get()).toEqual({
@@ -1645,7 +1645,7 @@ describe('update partial', () => {
 
         obs.get();
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({
             id: 'id1',
@@ -1656,7 +1656,7 @@ describe('update partial', () => {
 
         obs.set({ ...obs.get(), other: 4 });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(updated).toEqual({ id: 'id1', other: 4 });
         expect(obs.get()).toEqual({
@@ -1687,16 +1687,16 @@ describe('subscribe', () => {
         const dispose = observe(() => obs.get());
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([{ id: 1 }]);
 
         set1$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }]);
 
         set2$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
 
         dispose();
@@ -1721,16 +1721,16 @@ describe('subscribe', () => {
         );
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual([{ id: 1 }]);
 
         set1$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }]);
 
         set2$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
     });
     test('subscribe with update as Map', async () => {
@@ -1753,12 +1753,12 @@ describe('subscribe', () => {
         );
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual(new Map([[1, { id: 1 }]]));
 
         set1$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual(
             new Map([
                 [1, { id: 1 }],
@@ -1767,7 +1767,7 @@ describe('subscribe', () => {
         );
 
         set2$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual(
             new Map([
                 [1, { id: 1 }],
@@ -1795,16 +1795,16 @@ describe('subscribe', () => {
         );
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(obs.get()).toEqual({ id: 1 });
 
         set1$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual({ id: 2 });
 
         set2$.set(true);
-        await promiseTimeout(0);
+        await promiseTimeout(1);
         expect(obs.get()).toEqual({ id: 3 });
     });
 });
@@ -1823,11 +1823,11 @@ describe('onSaved', () => {
             }),
         );
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.set({ test: 'hello', id: undefined as unknown as string });
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual({
             id: 'id1',
@@ -1867,11 +1867,11 @@ describe('onSaved', () => {
             }),
         );
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.test.set('hello');
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -1916,7 +1916,7 @@ describe('onSaved', () => {
             }),
         );
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         obs.id1.test.set('hello');
 
@@ -1926,7 +1926,7 @@ describe('onSaved', () => {
 
         canSave$.set(true);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(created).toEqual(undefined);
         expect(updated).toEqual({
@@ -2101,7 +2101,7 @@ describe('Hierarchical sync', () => {
         const obs$ = observable<Record<string, BasicValue>>(
             syncedCrud({
                 list: async () => {
-                    await promiseTimeout(0);
+                    await promiseTimeout(1);
                     return [
                         { id: 'id1', test: 'hello' },
                         { id: 'id2', test: 'hi' },
@@ -2128,7 +2128,7 @@ describe('Hierarchical sync', () => {
 
         expect(latestValue).toEqual(undefined);
 
-        await promiseTimeout(0);
+        await promiseTimeout(1);
 
         expect(latestValue).toEqual('hello');
 
@@ -2142,7 +2142,7 @@ describe('Hierarchical sync', () => {
     //     const obs$ = observable<Record<string, BasicValue>>(
     //         syncedCrud({
     //             list: async () => {
-    //                 await promiseTimeout(0);
+    //                 await promiseTimeout(1);
     //                 return [
     //                     { id: 'id1', test: 'hello' },
     //                     { id: 'id2', test: 'hi' },
@@ -2173,7 +2173,7 @@ describe('Hierarchical sync', () => {
 
     //     expect(latestValue).toEqual(undefined);
 
-    //     await promiseTimeout(0);
+    //     await promiseTimeout(1);
 
     //     expect(latestValue).toEqual('hello');
 
