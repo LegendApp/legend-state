@@ -1229,14 +1229,14 @@ function activateNodeBase(node: NodeValue, value: any) {
                 if (allChanges.length > 0) {
                     let changes: Change[];
                     let value: any;
-                    let loading = false;
-                    let remote = false;
+                    let isFromPersist = false;
+                    let isFromSync = false;
                     let getPrevious: () => any;
                     if (listenerParams) {
                         changes = listenerParams.changes;
                         value = listenerParams.value;
-                        loading = listenerParams.loading;
-                        remote = listenerParams.remote;
+                        isFromPersist = listenerParams.isFromPersist;
+                        isFromSync = listenerParams.isFromSync;
                         getPrevious = listenerParams.getPrevious;
                     } else {
                         // If this is called by flushPending then get the change array
@@ -1262,8 +1262,8 @@ function activateNodeBase(node: NodeValue, value: any) {
                         setFn({
                             value,
                             changes,
-                            loading,
-                            remote,
+                            isFromPersist: isFromPersist,
+                            isFromSync: isFromSync,
                             getPrevious,
                         });
                         node.isComputing = false;

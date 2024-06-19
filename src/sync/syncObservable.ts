@@ -747,10 +747,10 @@ function onObsChange<T>(
     syncState: ObservableObject<ObservableSyncState>,
     localState: LocalState,
     syncOptions: SyncedOptions<T>,
-    { changes, loading, remote, getPrevious }: ListenerParams,
+    { changes, isFromPersist, isFromSync, getPrevious }: ListenerParams,
 ) {
-    if (!loading) {
-        const inRemoteChange = remote;
+    if (!isFromPersist) {
+        const inRemoteChange = isFromSync;
         const isApplyingPending = localState.isApplyingPending;
         // Queue changes in a microtask so that multiple changes within a frame get run together
         _queuedChanges.push({
@@ -970,8 +970,8 @@ export function syncObservable<T>(
             const value = getNodeValue(node);
             onObsChange(obs$, syncState$, localState, syncOptions, {
                 value,
-                loading: false,
-                remote: false,
+                isFromPersist: false,
+                isFromSync: false,
                 getPrevious: createPreviousHandler(value, changes),
                 changes,
             });

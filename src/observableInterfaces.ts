@@ -13,8 +13,8 @@ export interface ListenerParams<T = any> {
     value: T;
     getPrevious: () => T;
     changes: Change[];
-    remote: boolean;
-    loading: boolean;
+    isFromSync: boolean;
+    isFromPersist: boolean;
 }
 
 export type ListenerFn<T = any> = (params: ListenerParams<T>) => void;

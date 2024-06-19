@@ -706,8 +706,8 @@ describe('Remote changes', () => {
             target$.set(obs$.get());
         });
 
-        target$.onChange(({ remote, value }) => {
-            expect(remote).toEqual(false);
+        target$.onChange(({ isFromSync, value }) => {
+            expect(isFromSync).toEqual(false);
             expect(value).toEqual(obs$.get());
         });
 

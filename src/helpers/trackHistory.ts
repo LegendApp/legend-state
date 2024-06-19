@@ -9,10 +9,10 @@ export function trackHistory<T>(
 ): ObservableParam<Record<TimestampAsString, any>> {
     const history = targetObservable ?? observable<Record<TimestampAsString, Partial<T>>>();
 
-    value$.onChange(({ loading, remote, changes }) => {
+    value$.onChange(({ isFromPersist, isFromSync, changes }) => {
         // Don't save history if this is a remote change.
         // History will be saved remotely by the client making the local change.
-        if (!loading && !remote) {
+        if (!isFromPersist && !isFromSync) {
             const time: TimestampAsString = Date.now().toString();
 
             // Save to history observable by date, with the previous value

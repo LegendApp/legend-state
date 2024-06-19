@@ -33,8 +33,8 @@ export function onChange(
         const value = getNodeValue(node);
         callback({
             value,
-            loading: true,
-            remote: false,
+            isFromPersist: true,
+            isFromSync: false,
             changes: [
                 {
                     path: [],
@@ -108,13 +108,13 @@ function createCb(linkedFromNode: NodeValue, path: string[], callback: ListenerF
     // Create a callback for a path that calls it with the current value at the path
     let { valueAtPath: prevAtPath } = getValueAtPath(getNodeValue(linkedFromNode), path);
 
-    return function ({ value: valueA, loading, remote }: ListenerParams<any>) {
+    return function ({ value: valueA, isFromPersist, isFromSync }: ListenerParams<any>) {
         const { valueAtPath } = getValueAtPath(valueA, path);
         if (valueAtPath !== prevAtPath) {
             callback({
                 value: valueAtPath,
-                loading,
-                remote,
+                isFromPersist,
+                isFromSync,
                 changes: [
                     {
                         path: [],
