@@ -453,7 +453,7 @@ export function syncedKeel<
               const { data, error } = await createParam(convertObjectToCreate(input));
 
               if (error) {
-                  handleSetError(error, params, 'create');
+                  await handleSetError(error, params, 'create');
               }
 
               return data;
@@ -472,7 +472,7 @@ export function syncedKeel<
                   const { data, error } = await updateParam({ where: { id }, values });
 
                   if (error) {
-                      handleSetError(error, params, 'update');
+                      await handleSetError(error, params, 'update');
                   }
 
                   return data;
@@ -484,7 +484,7 @@ export function syncedKeel<
               const { data, error } = await deleteParam({ id: value.id });
 
               if (error) {
-                  handleSetError(error, params, 'delete');
+                  await handleSetError(error, params, 'delete');
               }
 
               return data;
