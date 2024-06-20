@@ -19,7 +19,7 @@ export function enableActivateSyncedNode() {
             let promiseReturn: any = undefined;
 
             const get = getOrig
-                ? (((params: SyncedGetParams) => {
+                ? (((params: SyncedGetParams<any>) => {
                       return (promiseReturn = getOrig!(params as any));
                   }) as typeof getOrig)
                 : undefined;
@@ -41,7 +41,7 @@ export function enableActivateSyncedNode() {
             // If it is not a Synced
 
             let update: UpdateFn | undefined = undefined;
-            const get = async (params: SyncedGetParams) => {
+            const get = async (params: SyncedGetParams<any>) => {
                 update = params.refresh;
                 if (isPromise(newValue)) {
                     try {
