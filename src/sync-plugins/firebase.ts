@@ -186,7 +186,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         return ref;
     };
 
-    const list = async ({ lastSync, onError }: SyncedGetParams): Promise<TRemote[]> => {
+    const list = async ({ lastSync, onError }: SyncedGetParams<TRemote>): Promise<TRemote[]> => {
         const ref = computeRef(lastSync!);
 
         return new Promise((resolve) => {

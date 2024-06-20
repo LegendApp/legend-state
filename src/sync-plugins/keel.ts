@@ -1,6 +1,7 @@
 import ksuid from 'ksuid';
 import { WaitForSetFnParams, computeSelector, internal, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
+    SyncedGetSetSubscribeBaseParams,
     SyncedOptions,
     removeNullUndefined,
     type SyncedGetParams,
@@ -46,7 +47,7 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 
 // Keel plugin types
 
-type SubscribeFn = (params: { refresh: () => void }) => () => void;
+type SubscribeFn = (params: SyncedGetSetSubscribeBaseParams) => () => void;
 
 export function generateKeelId() {
     return ksuid.randomSync().string;
@@ -63,7 +64,7 @@ export interface KeelListParams<Where = {}> {
 }
 
 export interface KeelRealtimePlugin {
-    subscribe: (realtimeKey: string, refresh: () => void) => void;
+    subscribe: (realtimeKey: string, params: SyncedGetSetSubscribeBaseParams) => void;
     setLatestChange: (realtimeKey: string, time: Date) => void;
 }
 
@@ -225,9 +226,9 @@ export function configureSyncedKeel(config: SyncedKeelConfiguration) {
                             .filter((value) => value && typeof value !== 'object')
                             .join('/');
 
-                        const subscribe = ({ refresh }: SyncedSubscribeParams) => {
+                        const subscribe = (params: SyncedSubscribeParams) => {
                             if (realtimeKey) {
-                                return realtimePlugin.subscribe(realtimeKey, refresh);
+                                return realtimePlugin.subscribe(realtimeKey, params);
                             }
                         };
                         return oldFn(i).then((ret) => {
@@ -352,8 +353,8 @@ export function syncedKeel<
     };
 
     const list = listParam
-        ? async (listParams: SyncedGetParams) => {
-              const { lastSync, refresh } = listParams;
+        ? async (listParams: SyncedGetParams<TRemote>) => {
+              const { lastSync } = listParams;
               const queryBySync = !!lastSync && changesSince === 'last-sync';
               // If querying with lastSync pass it to the "where" parameters
               const where = Object.assign(
@@ -365,7 +366,7 @@ export function syncedKeel<
               // TODO: Error?
               const { results, subscribe, subscribeKey } = await getAllPages(listParam, params);
               if (subscribe) {
-                  setupSubscribe(() => subscribe({ refresh }), subscribeKey, lastSync);
+                  setupSubscribe(() => subscribe(listParams), subscribeKey, lastSync);
               }
 
               return results;
@@ -373,12 +374,14 @@ export function syncedKeel<
         : undefined;
 
     const get = getParam
-        ? async (getParams: SyncedGetParams) => {
+        ? async (getParams: SyncedGetParams<TRemote>) => {
               const { refresh } = getParams;
-              //   @ts-expect-error TODOKEEL
-              const { data, error, subscribe, subscribeKey } = await getParam({ refresh });
+              const { data, error, subscribe, subscribeKey } = (await getParam({ refresh })) as APIResult<TRemote> & {
+                  subscribe: SubscribeFn;
+                  subscribeKey: string;
+              };
               if (subscribe) {
-                  setupSubscribe(() => subscribe({ refresh }), subscribeKey);
+                  setupSubscribe(() => subscribe(getParams), subscribeKey);
               }
 
               if (error) {

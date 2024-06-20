@@ -79,7 +79,7 @@ interface SyncedSupabaseProps<
     ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
     filter?: (
         select: PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>,
-        params: SyncedGetParams,
+        params: SyncedGetParams<TRemote>,
     ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
     realtime?: boolean | { schema?: string; filter?: string };
@@ -136,7 +136,7 @@ export function syncedSupabase<
 
     const list =
         !actions || actions.includes('read')
-            ? async (params: SyncedGetParams) => {
+            ? async (params: SyncedGetParams<TRemote>) => {
                   const { lastSync } = params;
                   const from = client.from(collection);
                   let select = selectFn ? selectFn(from) : from.select();

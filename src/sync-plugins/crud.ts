@@ -24,12 +24,12 @@ export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 export type CrudResult<T> = T;
 
 export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
-    get?: (params: SyncedGetParams) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
+    get?: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
     initial?: InitialValue<TLocal, 'value'>;
     as?: never | 'value';
 }
 export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
-    list?: (params: SyncedGetParams) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
+    list?: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
 }
@@ -166,9 +166,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         return out;
     };
 
-    const get: undefined | ((params: SyncedGetParams) => TLocal | Promise<TLocal>) =
+    const get: undefined | ((params: SyncedGetParams<TRemote>) => TLocal | Promise<TLocal>) =
         getFn || listFn
-            ? (getParams: SyncedGetParams) => {
+            ? (getParams: SyncedGetParams<TRemote>) => {
                   const { updateLastSync, lastSync, value } = getParams;
                   if (listFn) {
                       const isLastSyncMode = changesSince === 'last-sync';

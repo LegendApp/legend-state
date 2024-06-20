@@ -648,6 +648,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         const setParams: Omit<SyncedSetParams<any>, 'cancelRetry' | 'retryNum'> = {
             node,
+            value$: obs$,
             changes: changesRemote,
             value,
             valuePrevious: previous,
@@ -935,7 +936,7 @@ export function syncObservable<T>(
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
 
-    const onError = (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => {
+    const onError = (error: Error, getParams: SyncedGetParams<T> | undefined, source: 'get' | 'subscribe') => {
         syncState$.error.set(error);
         syncOptions.onGetError?.(error, getParams, source);
     };
@@ -1118,14 +1119,16 @@ export function syncObservable<T>(
                     }
                     const existingValue = getNodeValue(node);
 
-                    const getParams: Omit<SyncedGetParams, 'cancelRetry' | 'retryNum'> = {
+                    const getParams: Omit<SyncedGetParams<T>, 'cancelRetry' | 'retryNum'> = {
+                        node,
+                        value$: obs$,
                         value: isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
                         mode: syncOptions.mode!,
                         refresh: sync,
                         options: syncOptions,
                         lastSync,
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                        onError: (error) => onError(error, getParams as SyncedGetParams, 'get'),
+                        onError: (error) => onError(error, getParams as SyncedGetParams<T>, 'get'),
                     };
 
                     let modeBeforeReset: GetMode | undefined = undefined;
@@ -1152,7 +1155,7 @@ export function syncObservable<T>(
                         isGetting: true,
                     });
                     const got = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
-                        const params = getParams as SyncedGetParams;
+                        const params = getParams as SyncedGetParams<T>;
                         params.cancelRetry = retryEvent.cancelRetry;
                         params.retryNum = retryEvent.retryNum;
                         return get(params);

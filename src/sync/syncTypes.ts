@@ -33,39 +33,41 @@ export interface PersistOptions<T = any> {
     options?: any;
 }
 
-export interface SyncedGetParams {
+export interface SyncedGetSetSubscribeBaseParams<T = any> {
+    node: NodeValue;
+    value$: ObservableParam<T>;
+    refresh: () => void;
+}
+
+export interface SyncedGetParams<T> extends SyncedGetSetSubscribeBaseParams<T> {
     value: any;
     lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
-    refresh: () => void;
     retryNum: number;
     cancelRetry: () => void;
     onError: (error: Error) => void;
     options: SyncedOptions;
 }
 
-export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'> {
-    node: NodeValue;
+export interface SyncedSetParams<T>
+    extends Pick<SetParams<T>, 'changes' | 'value'>,
+        SyncedGetSetSubscribeBaseParams<T> {
     valuePrevious: T;
     update: UpdateFn<T>;
-    refresh: () => void;
     cancelRetry: () => void;
     retryNum: number;
     onError: (error: Error) => void;
 }
 
-export interface SyncedSubscribeParams<T = any> {
-    node: NodeValue;
-    value$: ObservableParam<T>;
+export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBaseParams<T> {
     lastSync: number | undefined;
     update: UpdateFn<T>;
-    refresh: () => void;
     onError: (error: Error) => void;
 }
 
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {
-    get?: (params: SyncedGetParams) => Promise<TRemote> | TRemote;
+    get?: (params: SyncedGetParams<TRemote>) => Promise<TRemote> | TRemote;
     set?: (params: SyncedSetParams<TRemote>) => void | Promise<any>;
     subscribe?: (params: SyncedSubscribeParams<TRemote>) => (() => void) | void;
     retry?: RetryOptions;
@@ -74,7 +76,7 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     syncMode?: 'auto' | 'manual';
     mode?: GetMode;
     transform?: SyncTransform<TLocal, TRemote>;
-    onGetError?: (error: Error, getParams: SyncedGetParams | undefined, source: 'get' | 'subscribe') => void;
+    onGetError?: (error: Error, getParams: SyncedGetParams<TRemote> | undefined, source: 'get' | 'subscribe') => void;
     onSetError?: (error: Error, setParams: SyncedSetParams<TRemote>) => void;
     onBeforeGet?: (params: {
         value: TRemote;
@@ -142,7 +144,7 @@ export interface ObservableSyncSetParams<T> {
 }
 
 export interface ObservableSyncFunctions<T = any> {
-    get?(params: SyncedGetParams): T | Promise<T>;
+    get?(params: SyncedGetParams<T>): T | Promise<T>;
     set?(
         params: ObservableSyncSetParams<T>,
     ): void | Promise<void | { changes?: object | undefined; dateModified?: number; lastSync?: number }>;
