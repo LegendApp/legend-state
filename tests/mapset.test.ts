@@ -68,6 +68,58 @@ describe('Map default behavior', () => {
             ]),
         );
     });
+    test('Map set works correctly', () => {
+        interface TableState {
+            columnFilters: any;
+            sorting: any;
+            pagination: any;
+            search: string;
+        }
+
+        const tablesState$ = observable({
+            tables: new Map<string, TableState>([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: ['hi2'],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+
+        expect(tablesState$.get()).toEqual({
+            tables: new Map([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: ['hi2'],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+
+        tablesState$.tables.get('XX').sorting.set([]);
+
+        expect(tablesState$.get()).toEqual({
+            tables: new Map([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: [],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+    });
 });
 
 describe('Map is observable', () => {
