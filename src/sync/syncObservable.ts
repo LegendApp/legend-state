@@ -15,14 +15,12 @@ import {
     beginBatch,
     constructObjectWithPath,
     endBatch,
-    hasOwnProperty,
     internal,
     isArray,
     isEmpty,
     isFunction,
     isNullOrUndefined,
     isObject,
-    isObservable,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -48,8 +46,17 @@ import type {
     SyncedSetParams,
 } from './syncTypes';
 
-const { clone, getNode, getNodeValue, getValueAtPath, globalState, runWithRetry, symbolLinked, createPreviousHandler } =
-    internal;
+const {
+    clone,
+    deepMerge,
+    getNode,
+    getNodeValue,
+    getValueAtPath,
+    globalState,
+    runWithRetry,
+    symbolLinked,
+    createPreviousHandler,
+} = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin>,
@@ -658,7 +665,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     const { value, lastSync, mode } = params;
                     updateResult = {
                         lastSync: Math.max(updateResult.lastSync || 0, lastSync || 0),
-                        value: mergeIntoObservable(updateResult.value, value),
+                        value: deepMerge(updateResult.value, value),
                         mode: mode,
                     };
                 } else {
@@ -877,28 +884,6 @@ async function loadLocal<T>(
         nodeValue.clearPersist = () => prevClearPersist?.();
     }
     syncState$.isPersistLoaded.set(!(syncStateValue.numPendingLocalLoads! > 0));
-}
-
-function deepMerge<T extends object>(target: T, ...sources: any[]): T {
-    const result: T = { ...target } as T;
-
-    for (let i = 0; i < sources.length; i++) {
-        const obj2 = sources[i];
-        for (const key in obj2) {
-            if (hasOwnProperty.call(obj2, key)) {
-                if (obj2[key] instanceof Object && !isObservable(obj2[key]) && Object.keys(obj2[key]).length > 0) {
-                    (result as any)[key] = deepMerge(
-                        (result as any)[key] || (isArray((obj2 as any)[key]) ? [] : {}),
-                        (obj2 as any)[key],
-                    );
-                } else {
-                    (result as any)[key] = obj2[key];
-                }
-            }
-        }
-    }
-
-    return result;
 }
 
 export function syncObservable<T>(

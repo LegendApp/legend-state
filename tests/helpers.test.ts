@@ -5,27 +5,26 @@ import { observable } from '../src/observable';
 
 describe('mergeIntoObservable', () => {
     test('merge onto empty object', () => {
-        const target = {};
+        const target = observable({});
         const source = { a: { b: { c: { d: 5 } } } };
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual({ a: { b: { c: { d: 5 } } } });
-        expect(isObservable(merged)).toBe(false);
+        expect(merged.peek()).toEqual({ a: { b: { c: { d: 5 } } } });
     });
     test('merge undefined should do nothing', () => {
-        const target = { a: { b: { c: { d: 5 } } } };
+        const target = observable({ a: { b: { c: { d: 5 } } } });
         const merged = mergeIntoObservable(target, undefined);
-        expect(merged).toEqual(target);
+        expect(merged.peek()).toEqual(target.peek());
     });
     test('merge null should delete', () => {
-        const target = { a: { b: { c: { d: 5 } } } };
+        const target = observable({ a: { b: { c: { d: 5 } } } });
         const merged = mergeIntoObservable(target, null);
-        expect(merged).toEqual(null);
+        expect(merged.peek()).toEqual(null);
     });
     test('merge null should delete (2)', () => {
-        const target = { a: { b: { c: { d: 5 } } } };
+        const target = observable({ a: { b: { c: { d: 5 } } } });
         const source = { a: { b: { c: { d: null } } } };
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual(source);
+        expect(merged.peek()).toEqual(source);
     });
     test('merge onto empty observable', () => {
         const target = observable();
@@ -43,35 +42,31 @@ describe('mergeIntoObservable', () => {
         expect(isObservable(merged)).toBe(true);
     });
     test('should merge two plain objects', () => {
-        const target = { a: 1, b: 2 };
+        const target = observable({ a: 1, b: 2 });
         const source = { b: 3, c: 4 };
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual({ a: 1, b: 3, c: 4 });
-        expect(isObservable(merged)).toBe(false);
+        expect(merged.peek()).toEqual({ a: 1, b: 3, c: 4 });
     });
     test('should merge two observable objects', () => {
         const target = observable({ a: 1, b: 2 });
         const source = observable({ b: 3, c: 4 });
         const merged = mergeIntoObservable(target, source);
         expect(merged.get()).toEqual({ a: 1, b: 3, c: 4 });
-        expect(isObservable(merged)).toBe(true);
     });
     test('should merge a plain object and an observable object', () => {
         const target = observable({ a: 1, b: 2 });
         const source = { b: 3, c: 4 };
         const merged = mergeIntoObservable(target, source);
         expect(merged.get()).toEqual({ a: 1, b: 3, c: 4 });
-        expect(isObservable(merged)).toBe(true);
     });
     test('should delete a key marked with symbolDelete', () => {
-        const target = { a: 1, b: 2 };
+        const target = observable({ a: 1, b: 2 });
         const source = { b: symbolDelete };
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual({ a: 1 });
-        expect(isObservable(merged)).toBe(false);
+        expect(merged.peek()).toEqual({ a: 1 });
     });
     test('should not merge undefined with sparse array', () => {
-        const target = {
+        const target = observable({
             id: {
                 panes: [
                     {
@@ -85,7 +80,7 @@ describe('mergeIntoObservable', () => {
                     },
                 ],
             },
-        };
+        });
         const panes = [];
         panes[1] = {
             item: 'B',
@@ -97,7 +92,7 @@ describe('mergeIntoObservable', () => {
         };
 
         mergeIntoObservable(target, source);
-        expect(target).toEqual({
+        expect(target.peek()).toEqual({
             id: {
                 panes: [
                     {
@@ -114,11 +109,10 @@ describe('mergeIntoObservable', () => {
         });
     });
     test('merge indexed object into array', () => {
-        const target = [{ key: '0' }];
+        const target = observable([{ key: '0' }]);
         const source = { 1: { key: '1' } };
         const merged = mergeIntoObservable(target, source);
-        expect(merged).toEqual([{ key: '0' }, { key: '1' }]);
-        expect(isObservable(merged)).toBe(false);
+        expect(merged.peek()).toEqual([{ key: '0' }, { key: '1' }]);
     });
     test('Can merge if parent null', () => {
         interface Data {
@@ -136,7 +130,7 @@ describe('mergeIntoObservable', () => {
         expect(obs.test.test2.test3.get()).toEqual('hi');
     });
     test('merge multiple should not override intermediate', () => {
-        const target = { syncMode: 'get' };
+        const target = observable({ syncMode: 'get' });
         const source1 = {
             persist: {
                 indexedDB: {
@@ -179,7 +173,7 @@ describe('mergeIntoObservable', () => {
         const merged = mergeIntoObservable(target, source1, source2);
         expect(JSON.stringify(source1) === source1Str);
         expect(JSON.stringify(source2) === source2Str);
-        expect(merged).toEqual({
+        expect(merged.peek()).toEqual({
             debounceSet: 1000,
             persist: {
                 indexedDB: {
@@ -212,10 +206,10 @@ describe('mergeIntoObservable', () => {
             synced: true,
         });
 
-        const merged2 = mergeIntoObservable({ syncMode: 'get' }, source1, source2);
+        const merged2 = mergeIntoObservable(observable({ syncMode: 'get' }), source1, source2);
         expect(JSON.stringify(source1) === source1Str);
         expect(JSON.stringify(source2) === source2Str);
-        expect(merged2).toEqual({
+        expect(merged2.peek()).toEqual({
             debounceSet: 1000,
             persist: {
                 indexedDB: {

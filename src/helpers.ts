@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { isArray, isEmpty, isFunction, isMap, isNumber, isObject, isSet } from './is';
+import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isSet } from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -77,13 +77,13 @@ export function setAtPath<T extends object>(
     // when setting undefined on an object without this key
     if (p === undefined) {
         if (mode === 'merge') {
-            obj = _mergeIntoObservable(obj, value, false, 0);
+            obj = deepMerge(obj, value, false, 0);
         } else {
             obj = value;
         }
     } else {
         if (mode === 'merge') {
-            o[p] = _mergeIntoObservable(o[p], value, false, 0);
+            o[p] = deepMerge(o[p], value, false, 0);
         } else if (isMap(o)) {
             o.set(p, value);
         } else {
@@ -100,7 +100,7 @@ export function setInObservableAtPath(
     value: any,
     mode: 'assign' | 'set' | 'merge',
 ) {
-    let o: Record<string, any> = value$;
+    let o: any = value$;
     let v = value;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
@@ -123,18 +123,20 @@ export function setInObservableAtPath(
         o.set(v);
     }
 }
-export function mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(
-    target: T,
-    ...sources: any[]
-): T {
+export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, ...sources: any[]): T {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        if (!isObservable(target)) {
+            console.error('[legend-state] should only use mergeIntoObservable with observables');
+        }
+    }
     beginBatch();
     for (let i = 0; i < sources.length; i++) {
-        target = _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1, 0);
+        _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1, 0);
     }
     endBatch();
     return target;
 }
-function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(
+function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
     target: T,
     source: any,
     assign: boolean,
@@ -143,8 +145,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
     if (isObservable(source)) {
         source = source.peek();
     }
-    const needsSet = isObservable(target);
-    const targetValue = needsSet ? target.peek() : target;
+    const targetValue = target.peek();
 
     const isTargetArr = isArray(targetValue);
     const isTargetObj = !isTargetArr && isObject(targetValue);
@@ -152,7 +153,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
     const isSourceMap = isMap(source);
     const isSourceSet = isSet(source);
 
-    if (needsSet && isSourceSet && isSet(targetValue)) {
+    if (isSourceSet && isSet(targetValue)) {
         target.set(new Set([...source, ...targetValue]));
     } else if ((isTargetObj && isObject(source) && !isEmpty(targetValue)) || (isTargetArr && targetValue.length > 0)) {
         const keys: string[] = isSourceMap || isSourceSet ? Array.from(source.keys()) : Object.keys(source);
@@ -165,51 +166,24 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
                   ? (source as Map<any, any>).get(key)
                   : (source as Record<string, any>)[key];
             if (sourceValue === symbolDelete) {
-                needsSet && (target as any)[key]?.delete
-                    ? (target as any)[key].delete()
-                    : delete (target as Record<string, any>)[key];
+                (target as any)[key].delete();
             } else {
                 const isObj = isObject(sourceValue);
                 const isArr = !isObj && isArray(sourceValue);
                 const targetChild = (target as Record<string, any>)[key];
 
-                if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
-                    if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
-                        (target as Record<string, any>)[key] = assign
-                            ? isArr
-                                ? [...sourceValue]
-                                : { ...sourceValue }
-                            : sourceValue;
-                    } else {
-                        if (levelsDeep > 0 && isEmpty(sourceValue)) {
-                            if (needsSet) {
-                                targetChild.set(sourceValue);
-                            } else {
-                                ((target as Record<string, any>)[key] as any) = sourceValue;
-                            }
-                        }
-                        _mergeIntoObservable(targetChild, sourceValue, false, levelsDeep + 1);
-                    }
-                } else {
-                    if (needsSet) {
+                if ((isObj || isArr) && targetChild) {
+                    if (levelsDeep > 0 && isEmpty(sourceValue)) {
                         targetChild.set(sourceValue);
-                    } else {
-                        const toSet = isObservable(sourceValue)
-                            ? sourceValue
-                            : isObject(sourceValue)
-                              ? { ...sourceValue }
-                              : isArray(sourceValue)
-                                ? [...sourceValue]
-                                : sourceValue;
-                        ((target as Record<string, any>)[key] as any) = toSet;
                     }
+                    _mergeIntoObservable(targetChild, sourceValue, false, levelsDeep + 1);
+                } else {
+                    targetChild.set(sourceValue);
                 }
             }
         }
     } else if (source !== undefined) {
-        needsSet
-            ? target.set(source)
-            : ((target as any) = assign ? (isArray(source) ? [...source] : { ...source }) : source);
+        target.set(source);
     }
 
     return target;
@@ -268,4 +242,25 @@ export function applyChanges<T extends object>(value: T, changes: Change[], appl
         value = applyChange(value, changes[i], applyPrevious);
     }
     return value;
+}
+export function deepMerge<T extends object>(target: T, ...sources: any[]): T {
+    const result: T = { ...target } as T;
+
+    for (let i = 0; i < sources.length; i++) {
+        const obj2 = sources[i];
+        for (const key in obj2) {
+            if (hasOwnProperty.call(obj2, key)) {
+                if (obj2[key] instanceof Object && !isObservable(obj2[key]) && Object.keys(obj2[key]).length > 0) {
+                    (result as any)[key] = deepMerge(
+                        (result as any)[key] || (isArray((obj2 as any)[key]) ? [] : {}),
+                        (obj2 as any)[key],
+                    );
+                } else {
+                    (result as any)[key] = obj2[key];
+                }
+            }
+        }
+    }
+
+    return result;
 }

@@ -71,13 +71,14 @@ import {
     symbolDelete,
     symbolLinked,
 } from './src/globals';
-import { getValueAtPath, initializePathType, setAtPath } from './src/helpers';
+import { deepMerge, getValueAtPath, initializePathType, setAtPath } from './src/helpers';
 import { runWithRetry } from './src/retry';
 import { tracking } from './src/tracking';
 
 export const internal = {
     createPreviousHandler,
     clone,
+    deepMerge,
     ensureNodeValue,
     findIDKey,
     get,
