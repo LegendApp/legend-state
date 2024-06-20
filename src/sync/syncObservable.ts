@@ -85,11 +85,10 @@ interface PreppedChangeLocal {
 
 interface PreppedChangeRemote {
     queuedChange: QueuedChange;
-    changesRemote: ChangeWithPathStrAndPrevious[];
+    changesRemote: ChangeWithPathStr[];
 }
 
 type ChangeWithPathStr = Change & { pathStr: string };
-type ChangeWithPathStrAndPrevious = ChangeWithPathStr & { valuePrevious: any };
 
 function parseLocalConfig(config: string | PersistOptions | undefined): {
     table: string;
@@ -210,7 +209,6 @@ interface QueuedChange<T = any> {
     localState: LocalState;
     syncOptions: SyncedOptions<T>;
     changes: ListenerParams['changes'];
-    valuePrevious?: T;
     getPrevious: () => T;
 }
 
@@ -261,7 +259,6 @@ function mergeQueuedChanges(allChanges: QueuedChange[]) {
         if (!previousByOptions.has(syncOptions)) {
             previousByOptions.set(syncOptions, getPrevious());
         }
-        value.valuePrevious = previousByOptions.get(syncOptions);
         targetMap.set(syncOptions, value);
     }
     return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
@@ -418,7 +415,6 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
         syncOptions: syncOptions,
         inRemoteChange,
         isApplyingPending,
-        valuePrevious,
     } = queuedChange;
 
     const persist = syncOptions.persist;
@@ -434,7 +430,7 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
             );
             return undefined;
         }
-        const changesRemote: ChangeWithPathStrAndPrevious[] = [];
+        const changesRemote: ChangeWithPathStr[] = [];
         const changesPaths = new Set<string>();
         let promisesTransform: (void | Promise<any>)[] = [];
 
@@ -521,7 +517,6 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                                 prevAtPath,
                                 valueAtPath: valueTransformed,
                                 pathStr,
-                                valuePrevious,
                             });
                         }),
                     );
@@ -582,7 +577,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     if (!changeInfo) return;
 
     const { queuedChange, changesRemote } = changeInfo;
-    const { value$: obs$, syncState, localState, syncOptions, valuePrevious: previous } = queuedChange;
+    const { value$: obs$, syncState, localState, syncOptions } = queuedChange;
     const { pluginPersist } = localState;
     const node = getNode(obs$);
     const state$ = node.state!;
@@ -609,11 +604,6 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     if (!isNullOrUndefined(pendingAtPath)) {
                         const { p } = pendingAtPath;
                         change.prevAtPath = p;
-                        if (key) {
-                            setAtPath(change.valuePrevious, change.path, change.pathTypes, p, 'set');
-                        } else {
-                            change.valuePrevious = p;
-                        }
                     }
                 });
             }
@@ -658,7 +648,6 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             value$: obs$,
             changes: changesRemote,
             value,
-            valuePrevious: previous,
             onError,
             update: (params: UpdateFnParams) => {
                 if (updateResult) {

@@ -1,11 +1,13 @@
 import {
     UpdateFnParams,
+    applyChanges,
     getNodeValue,
     internal,
     isArray,
     isNullOrUndefined,
     isObservable,
     isPromise,
+    setAtPath,
 } from '@legendapp/state';
 import {
     SyncedGetParams,
@@ -241,12 +243,22 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     const set =
         createFn || updateFn || deleteFn
             ? async (params: SyncedSetParams<any> & { retryAsCreate?: boolean }) => {
-                  const { value, changes, update, retryAsCreate, valuePrevious, node } = params;
+                  const { value, changes, update, retryAsCreate, node } = params;
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
                   const deletes = new Set<TRemote>();
 
-                  changes.forEach(({ path, prevAtPath, valueAtPath }) => {
+                  const getUpdateValue = (itemValue: object, prev: object) => {
+                      return updatePartial
+                          ? Object.assign(
+                                diffObjects(prev, itemValue),
+                                (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
+                            )
+                          : itemValue;
+                  };
+
+                  changes.forEach((change) => {
+                      const { path, prevAtPath, valueAtPath, pathTypes } = change;
                       if (asType === 'value') {
                           if (value) {
                               let id = value?.[fieldId];
@@ -259,12 +271,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       creates.set(id, value);
                                   } else if (path.length === 0) {
                                       if (valueAtPath) {
-                                          updates.set(id, valueAtPath);
+                                          updates.set(id, getUpdateValue(valueAtPath, prevAtPath));
                                       } else if (prevAtPath) {
                                           deletes.add(prevAtPath?.id);
                                       }
-                                  } else {
-                                      updates.set(id, Object.assign(updates.get(id) || { id }, value));
+                                  } else if (!updates.has(id)) {
+                                      const previous = applyChanges(clone(value), changes, /*applyPrevious*/ true);
+                                      updates.set(id, getUpdateValue(value, previous));
                                   }
                               } else {
                                   console.error('[legend-state]: added synced item without an id');
@@ -273,19 +286,28 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               deletes.add(prevAtPath);
                           }
                       } else {
-                          let itemsChanged: [string, any][] | undefined = undefined;
+                          // key, value, previous
+                          let itemsChanged: [any, any][] | undefined = [];
                           if (path.length === 0) {
                               // Do a deep equal of each element vs its previous element to see which have changed
-                              itemsChanged = (
-                                  asMap
-                                      ? Array.from((valueAtPath as Map<any, any>).entries())
-                                      : Object.entries(valueAtPath)
-                              ).filter(([key, value]) => {
-                                  const prev = asMap ? prevAtPath.get(key) : prevAtPath[key];
-                                  const isDiff = !prevAtPath || !deepEqual(value, prev);
+                              const changed = asMap
+                                  ? Array.from((valueAtPath as Map<any, any>).entries())
+                                  : Object.entries(valueAtPath);
 
-                                  return isDiff;
-                              });
+                              for (let i = 0; i < changed.length; i++) {
+                                  const [key, value] = changed[i];
+                                  const prev = asMap ? prevAtPath.get(key) : prevAtPath[key];
+                                  if (isNullOrUndefined(value) && !isNullOrUndefined(prev)) {
+                                      deletes.add(prev);
+                                      return false;
+                                  } else {
+                                      const isDiff = !prevAtPath || !deepEqual(value, prev);
+
+                                      if (isDiff) {
+                                          itemsChanged.push([getUpdateValue(value, prev), prev]);
+                                      }
+                                  }
+                              }
                           } else {
                               const itemKey = path[0];
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
@@ -294,41 +316,39 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       deletes.add(prevAtPath);
                                   }
                               } else {
-                                  itemsChanged = [[itemKey, itemValue]];
+                                  const previous = setAtPath(
+                                      clone(itemValue),
+                                      path.slice(1),
+                                      pathTypes.slice(1),
+                                      prevAtPath,
+                                  );
+
+                                  itemsChanged = [[getUpdateValue(itemValue, previous), previous]];
                               }
                           }
-                          itemsChanged?.forEach(([itemKey, item]) => {
-                              if (isNullOrUndefined(item)) {
-                                  const prev = valuePrevious[itemKey];
-                                  if (prev) {
-                                      deletes.add(prev);
+                          itemsChanged?.forEach(([item, prev]) => {
+                              const isCreate = fieldCreatedAt
+                                  ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
+                                  : fieldUpdatedAt
+                                    ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
+                                    : isNullOrUndefined(prev);
+                              if (isCreate) {
+                                  if (generateId) {
+                                      ensureId(item, fieldId, generateId);
+                                  }
+                                  if (!item.id) {
+                                      console.error('[legend-state]: added item without an id');
+                                  }
+                                  if (createFn) {
+                                      creates.set(item.id, item);
+                                  } else {
+                                      console.log('[legend-state] missing create function');
                                   }
                               } else {
-                                  const prev = asMap ? valuePrevious.get(itemKey) : valuePrevious[itemKey];
-
-                                  const isCreate = fieldCreatedAt
-                                      ? !item[fieldCreatedAt!]
-                                      : fieldUpdatedAt
-                                        ? !item[fieldUpdatedAt]
-                                        : isNullOrUndefined(prev);
-                                  if (isCreate) {
-                                      if (generateId) {
-                                          ensureId(item, fieldId, generateId);
-                                      }
-                                      if (!item.id) {
-                                          console.error('[legend-state]: added item without an id');
-                                      }
-                                      if (createFn) {
-                                          creates.set(item.id, item);
-                                      } else {
-                                          console.log('[legend-state] missing create function');
-                                      }
+                                  if (updateFn) {
+                                      updates.set(item.id, item);
                                   } else {
-                                      if (updateFn) {
-                                          updates.set(item.id, item);
-                                      } else {
-                                          console.log('[legend-state] missing update function');
-                                      }
+                                      console.log('[legend-state] missing update function');
                                   }
                               }
                           });
@@ -406,12 +426,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           );
                       }),
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
-                          const toSave = updatePartial
-                              ? Object.assign(
-                                    diffObjects(asType === 'value' ? valuePrevious : valuePrevious[itemKey], itemValue),
-                                    (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
-                                )
-                              : itemValue;
+                          const toSave = itemValue;
                           const changed = (await transformOut(toSave as TLocal, transform?.save)) as TRemote & {};
 
                           if (Object.keys(changed).length > 0) {

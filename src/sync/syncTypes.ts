@@ -53,7 +53,6 @@ export interface SyncedGetParams<T> extends SyncedGetSetSubscribeBaseParams<T> {
 export interface SyncedSetParams<T>
     extends Pick<SetParams<T>, 'changes' | 'value'>,
         SyncedGetSetSubscribeBaseParams<T> {
-    valuePrevious: T;
     update: UpdateFn<T>;
     cancelRetry: () => void;
     retryNum: number;
@@ -140,7 +139,6 @@ export interface ObservableSyncSetParams<T> {
     options: SyncedOptions<T>;
     changes: Change[];
     value: T;
-    valuePrevious: T;
 }
 
 export interface ObservableSyncFunctions<T = any> {
