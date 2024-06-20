@@ -531,6 +531,111 @@ describe('persist objects', () => {
 
         expect(JSON.stringify(draftBom2$.get())).toEqual(JSON.stringify({ addItem, deleteItem, items: ['hi'] }));
     });
+    test('Map set works correctly', async () => {
+        interface TableState {
+            columnFilters: any;
+            sorting: any;
+            pagination: any;
+            search: string;
+        }
+
+        const tablesState$ = observable({
+            tables: new Map<string, TableState>([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: ['hi2'],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+
+        configureObservableSync({
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+            },
+        });
+
+        const persistName = getPersistName();
+
+        syncObservable(tablesState$, {
+            persist: {
+                name: persistName,
+            },
+        });
+
+        expect(tablesState$.get()).toEqual({
+            tables: new Map([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: ['hi2'],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+
+        tablesState$.tables.get('XX').sorting.set([]);
+
+        expect(tablesState$.get()).toEqual({
+            tables: new Map([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: [],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName)).toEqual(
+            '{"tables":{"__LSType":"Map","value":[["XX",{"sorting":[]}]]}}',
+        );
+
+        const tablesState2$ = observable({
+            tables: new Map<string, TableState>([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: ['hi2'],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+        syncObservable(tablesState2$, {
+            persist: {
+                name: persistName,
+            },
+        });
+
+        expect(tablesState2$.get()).toEqual({
+            tables: new Map([
+                [
+                    'XX',
+                    {
+                        columnFilters: 'hi1',
+                        sorting: [],
+                        pagination: { hi3: 'hi4' },
+                        search: 'hi5',
+                    },
+                ],
+            ]),
+        });
+    });
 });
 describe('get mode', () => {
     test('synced get sets by default', async () => {

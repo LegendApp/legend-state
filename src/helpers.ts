@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { isArray, isEmpty, isFunction, isMap, isNumber, isObject } from './is';
+import { isArray, isEmpty, isFunction, isMap, isNumber, isObject, isSet } from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -77,13 +77,13 @@ export function setAtPath<T extends object>(
     // when setting undefined on an object without this key
     if (p === undefined) {
         if (mode === 'merge') {
-            obj = _mergeIntoObservable(obj, value);
+            obj = _mergeIntoObservable(obj, value, false, 0);
         } else {
             obj = value;
         }
     } else {
         if (mode === 'merge') {
-            o[p] = _mergeIntoObservable(o[p], value);
+            o[p] = _mergeIntoObservable(o[p], value, false, 0);
         } else if (isMap(o)) {
             o.set(p, value);
         } else {
@@ -129,7 +129,7 @@ export function mergeIntoObservable<T extends ObservableParam<Record<string, any
 ): T {
     beginBatch();
     for (let i = 0; i < sources.length; i++) {
-        target = _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1);
+        target = _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1, 0);
     }
     endBatch();
     return target;
@@ -137,7 +137,8 @@ export function mergeIntoObservable<T extends ObservableParam<Record<string, any
 function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | object>(
     target: T,
     source: any,
-    assign?: boolean,
+    assign: boolean,
+    levelsDeep: number,
 ): T {
     if (isObservable(source)) {
         source = source.peek();
@@ -148,12 +149,21 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
     const isTargetArr = isArray(targetValue);
     const isTargetObj = !isTargetArr && isObject(targetValue);
 
-    if ((isTargetObj && isObject(source) && !isEmpty(targetValue)) || (isTargetArr && targetValue.length > 0)) {
-        const keys: string[] = Object.keys(source);
+    const isSourceMap = isMap(source);
+    const isSourceSet = isSet(source);
+
+    if (needsSet && isSourceSet && isSet(targetValue)) {
+        target.set(new Set([...source, ...targetValue]));
+    } else if ((isTargetObj && isObject(source) && !isEmpty(targetValue)) || (isTargetArr && targetValue.length > 0)) {
+        const keys: string[] = isSourceMap || isSourceSet ? Array.from(source.keys()) : Object.keys(source);
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            const sourceValue = (source as Record<string, any>)[key];
+            const sourceValue = isSourceSet
+                ? key
+                : isSourceMap
+                  ? (source as Map<any, any>).get(key)
+                  : (source as Record<string, any>)[key];
             if (sourceValue === symbolDelete) {
                 needsSet && (target as any)[key]?.delete
                     ? (target as any)[key].delete()
@@ -162,6 +172,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
                 const isObj = isObject(sourceValue);
                 const isArr = !isObj && isArray(sourceValue);
                 const targetChild = (target as Record<string, any>)[key];
+
                 if ((isObj || isArr) && targetChild && (needsSet || !isEmpty(targetChild))) {
                     if (!needsSet && (!targetChild || (isObj ? !isObject(targetChild) : !isArray(targetChild)))) {
                         (target as Record<string, any>)[key] = assign
@@ -170,7 +181,14 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>> | o
                                 : { ...sourceValue }
                             : sourceValue;
                     } else {
-                        _mergeIntoObservable(targetChild, sourceValue);
+                        if (levelsDeep > 0 && isEmpty(sourceValue)) {
+                            if (needsSet) {
+                                targetChild.set(sourceValue);
+                            } else {
+                                ((target as Record<string, any>)[key] as any) = sourceValue;
+                            }
+                        }
+                        _mergeIntoObservable(targetChild, sourceValue, false, levelsDeep + 1);
                     }
                 } else {
                     if (needsSet) {

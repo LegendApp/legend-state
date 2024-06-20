@@ -33,6 +33,9 @@ export function isPromise<T>(obj: unknown): obj is Promise<T> {
 export function isMap(obj: unknown): obj is Map<any, any> {
     return obj instanceof Map;
 }
+export function isSet(obj: unknown): obj is Set<any> {
+    return obj instanceof Set;
+}
 export function isNumber(obj: unknown): obj is number {
     const n = obj as number;
     return n - n < 1;
@@ -42,6 +45,7 @@ export function isEmpty(obj: object): boolean {
     // https://jsbench.me/qfkqv692c8
     if (!obj) return false;
     if (isArray(obj)) return obj.length === 0;
+    if (isMap(obj) || isSet(obj)) return obj.size === 0;
     for (const key in obj) {
         if (hasOwnProperty.call(obj, key)) {
             return false;

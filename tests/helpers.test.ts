@@ -248,6 +248,61 @@ describe('mergeIntoObservable', () => {
             synced: true,
         });
     });
+    test('should merge Maps', () => {
+        const target = observable({ a: 1, b: 2, map: new Map([['a', { arr: [0, 1] }]]) });
+        const source = { b: 3, c: 4, map: new Map([['a', { arr: [2, 3] }]]) };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.get()).toEqual({ a: 1, b: 3, c: 4, map: new Map([['a', { arr: [2, 3] }]]) });
+        expect(isObservable(merged)).toBe(true);
+    });
+    test('should merge Maps (2)', () => {
+        const target = observable({ a: 1, b: 2, map: new Map([['a', { obj: { 0: 0, 1: 1 } }]]) });
+        const source = { b: 3, c: 4, map: new Map([['a', { obj: { 2: 2, 3: 3 } }]]) };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.get()).toEqual({
+            a: 1,
+            b: 3,
+            c: 4,
+            map: new Map([['a', { obj: { 0: 0, 1: 1, 2: 2, 3: 3 } }]]),
+        });
+        expect(isObservable(merged)).toBe(true);
+    });
+    test('should merge Maps (3)', () => {
+        const target = observable({ a: 1, b: 2, map: new Map([['a', { arr: [0, 1] }]]) });
+        const source = { b: 3, c: 4, map: new Map([['a', { arr: [] }]]) };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.get()).toEqual({ a: 1, b: 3, c: 4, map: new Map([['a', { arr: [] }]]) });
+        expect(isObservable(merged)).toBe(true);
+    });
+    test('should merge Maps (4)', () => {
+        const target = observable({ a: 1, b: 2, map: new Map([['a', { arr: [0, 1] }]]) });
+        const source = {
+            b: 3,
+            c: 4,
+            map: new Map([
+                ['a', {}],
+                ['b', { arr: [] }],
+            ]),
+        };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.get()).toEqual({
+            a: 1,
+            b: 3,
+            c: 4,
+            map: new Map([
+                ['a', {}],
+                ['b', { arr: [] }],
+            ]),
+        });
+        expect(isObservable(merged)).toBe(true);
+    });
+    test('should merge Sets', () => {
+        const target = observable({ a: 1, b: 2, map: new Set([0, 1]) });
+        const source = { b: 3, c: 4, map: new Set([2, 3]) };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.get()).toEqual({ a: 1, b: 3, c: 4, map: new Set([0, 1, 2, 3]) });
+        expect(isObservable(merged)).toBe(true);
+    });
 });
 
 describe('isObservableValueReady', () => {
