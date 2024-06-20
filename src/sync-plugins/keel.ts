@@ -329,6 +329,7 @@ export function syncedKeel<
         waitFor,
         waitForSet,
         fieldDeleted,
+        mode,
         ...rest
     } = props;
 
@@ -500,6 +501,7 @@ export function syncedKeel<
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
         as: asType,
+        mode: mode || 'merge',
         list,
         create,
         update,

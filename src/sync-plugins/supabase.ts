@@ -125,6 +125,7 @@ export function syncedSupabase<
         waitFor,
         waitForSet,
         generateId,
+        mode,
         ...rest
     } = props;
 
@@ -240,6 +241,7 @@ export function syncedSupabase<
 
     return syncedCrud<SupabaseRowOf<Client, Collection>, SupabaseRowOf<Client, Collection>, AsOption>({
         ...rest,
+        mode: mode || 'merge',
         list,
         create,
         update,
