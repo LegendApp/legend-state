@@ -346,7 +346,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   }
                               } else {
                                   if (updateFn) {
-                                      updates.set(item.id, item);
+                                      updates.set(
+                                          item.id,
+                                          updates.has(item.id) ? Object.assign(updates.get(item.id)!, item) : item,
+                                      );
                                   } else {
                                       console.log('[legend-state] missing update function');
                                   }

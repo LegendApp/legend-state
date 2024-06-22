@@ -1675,6 +1675,36 @@ describe('update partial', () => {
             id4: { id: 'id4', test: 'hi' },
         });
     });
+    test('with updatePartial setting multiple properties of one item', async () => {
+        const updated: any[] = [];
+        const obs = observable(
+            syncedCrud({
+                list: () => [{ id: 'id1', test: 'hi', test2: 'hi2' }],
+                update: async (value) => {
+                    updated.push(value);
+                    return value;
+                },
+                updatePartial: true,
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', test2: 'hi2' },
+        });
+
+        obs.id1.assign({ test: 'hello', test2: 'hello2' });
+
+        await promiseTimeout(1);
+
+        expect(updated).toEqual([{ id: 'id1', test: 'hello', test2: 'hello2' }]);
+        expect(obs.get()).toEqual({
+            id1: { id: 'id1', test: 'hello', test2: 'hello2' },
+        });
+    });
     test('with updatePartial set root', async () => {
         let updated = undefined;
         const obs = observable(
