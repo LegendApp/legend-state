@@ -88,7 +88,13 @@ export interface SyncedKeelConfiguration
     realtimePlugin?: KeelRealtimePlugin;
     as?: Exclude<CrudAsOption, 'value'>;
     enabled?: boolean;
-    onError?: (params: APIResult<any>['error']) => void;
+    onError?: (params: {
+        type: 'create' | 'update' | 'delete';
+        params: SyncedSetParams<any>;
+        input: any;
+        action: string;
+        error: APIResult<any>['error'];
+    }) => void;
 }
 
 interface PageInfo {
@@ -408,6 +414,8 @@ export function syncedKeel<
     const handleSetError = async (
         error: APIError,
         params: SyncedSetParams<TRemote>,
+        input: TRemote,
+        fn: Function,
         from: 'create' | 'update' | 'delete',
     ) => {
         const { retryNum, cancelRetry, update } = params;
@@ -434,7 +442,7 @@ export function syncedKeel<
                 cancelRetry();
             }
         } else if (error.type === 'bad_request') {
-            keelConfig.onError?.(error);
+            keelConfig.onError?.({ error, params, input, type: from, action: fn.name || fn.toString() });
 
             if (retryNum > 4) {
                 cancelRetry();
@@ -450,10 +458,11 @@ export function syncedKeel<
 
     const create = createParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
+              console.log(createParam.toString());
               const { data, error } = await createParam(convertObjectToCreate(input));
 
               if (error) {
-                  await handleSetError(error, params, 'create');
+                  await handleSetError(error, params, input, createParam, 'create');
               }
 
               return data;
@@ -462,6 +471,8 @@ export function syncedKeel<
 
     const update = updateParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
+              console.log(updateParam.toString());
+
               const id = input.id;
               const values = convertObjectToCreate(input as unknown as Partial<KeelObjectBase>) as Partial<TRemote> &
                   Partial<KeelObjectBase>;
@@ -472,7 +483,7 @@ export function syncedKeel<
                   const { data, error } = await updateParam({ where: { id }, values });
 
                   if (error) {
-                      await handleSetError(error, params, 'update');
+                      await handleSetError(error, params, input, updateParam, 'update');
                   }
 
                   return data;
@@ -484,7 +495,7 @@ export function syncedKeel<
               const { data, error } = await deleteParam({ id: value.id });
 
               if (error) {
-                  await handleSetError(error, params, 'delete');
+                  await handleSetError(error, params, value, deleteParam, 'delete');
               }
 
               return data;
