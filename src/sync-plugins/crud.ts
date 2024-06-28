@@ -251,7 +251,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   const getUpdateValue = (itemValue: object, prev: object) => {
                       return updatePartial
                           ? Object.assign(
-                                diffObjects(prev, itemValue),
+                                diffObjects(prev, itemValue, /*deep*/ true),
                                 (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
                             )
                           : itemValue;

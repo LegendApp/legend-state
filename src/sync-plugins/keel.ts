@@ -458,7 +458,6 @@ export function syncedKeel<
 
     const create = createParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
-              console.log(createParam.toString());
               const { data, error } = await createParam(convertObjectToCreate(input));
 
               if (error) {
@@ -471,8 +470,6 @@ export function syncedKeel<
 
     const update = updateParam
         ? async (input: TRemote, params: SyncedSetParams<TRemote>) => {
-              console.log(updateParam.toString());
-
               const id = input.id;
               const values = convertObjectToCreate(input as unknown as Partial<KeelObjectBase>) as Partial<TRemote> &
                   Partial<KeelObjectBase>;
