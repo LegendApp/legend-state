@@ -38,7 +38,7 @@ export function isSet(obj: unknown): obj is Set<any> {
 }
 export function isNumber(obj: unknown): obj is number {
     const n = obj as number;
-    return n - n < 1;
+    return typeof n === 'number' && n - n < 1;
 }
 export function isEmpty(obj: object): boolean {
     // Looping and returning false on the first property is faster than Object.keys(obj).length === 0
