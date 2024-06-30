@@ -683,8 +683,11 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
             } while ((parent = parent.parent!));
         }
 
-        if (!equals(savedValue, prevValue)) {
-            updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level);
+        const notify = !equals(savedValue, prevValue);
+        const forceNotify = !notify && childNode.isComputing && isObject(savedValue);
+
+        if (notify || forceNotify) {
+            updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level, forceNotify);
         }
 
         extractFunctionOrComputed(node, key, savedValue);
@@ -819,6 +822,7 @@ function updateNodesAndNotify(
     isPrim?: boolean,
     isRoot?: boolean,
     level?: number,
+    forceNotify?: boolean,
 ) {
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for every property set
@@ -828,7 +832,7 @@ function updateNodesAndNotify(
         isPrim = isPrimitive(newValue);
     }
 
-    let hasADiff = isPrim;
+    let hasADiff = forceNotify || isPrim;
     let whenOptimizedOnlyIf = false;
     // If new value is an object or array update notify down the tree
     if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
@@ -838,7 +842,7 @@ function updateNodesAndNotify(
         ) {
             __devUpdateNodes.clear();
         }
-        hasADiff = updateNodes(childNode, newValue, prevValue);
+        hasADiff = hasADiff || updateNodes(childNode, newValue, prevValue);
         if (isArray(newValue)) {
             whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
         }
@@ -1171,18 +1175,19 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
                         }
                     } else {
                         activatedValue = value;
-                        if (node.state!.isLoaded.peek()) {
+
+                        const isLoaded = node.state!.isLoaded.peek();
+
+                        // Need to set to make sure that listeners are notified, but some listeners ignore with isComputing
+                        if (isLoaded || !isFunction(value)) {
                             node.isComputing = true;
                             set(node, value);
                             node.isComputing = false;
-                        } else {
-                            if (!isFunction(value)) {
-                                setNodeValue(node, value);
-                            }
-                            node.state!.assign({
-                                isLoaded: true,
-                                error: undefined,
-                            });
+                        }
+
+                        // If not already loaded set that it's loaded
+                        if (!isLoaded) {
+                            node.state!.assign({ isLoaded: true, error: undefined });
                         }
                     }
                 }

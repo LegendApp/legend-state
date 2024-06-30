@@ -22,13 +22,21 @@ export function observe<T>(
         options = reactionOrOptions;
     }
     let dispose: (() => void) | undefined;
+    let isRunning = false;
     const e: ObserveEventCallback<T> = { num: 0 } as ObserveEventCallback<T>;
     // Wrap it in a function so it doesn't pass all the arguments to run()
     const update = function () {
+        if (isRunning) {
+            // Prevent observe from triggering itself when it activates a node
+            return;
+        }
+
         if (e.onCleanup) {
             e.onCleanup();
             e.onCleanup = undefined;
         }
+
+        isRunning = true;
 
         // Run in a batch so changes don't happen until we're done tracking here
         beginBatch();
@@ -52,6 +60,8 @@ export function observe<T>(
         }
 
         endBatch();
+
+        isRunning = false;
 
         // Call the reaction if there is one and the value changed
         if (

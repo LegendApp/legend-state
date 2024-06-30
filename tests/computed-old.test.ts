@@ -572,22 +572,58 @@ describe('Computed inside observable', () => {
             ],
         );
     });
-    test('observe sub computed runs twice because of child computed', () => {
+    test('observe sub function runs twice with child computed', () => {
+        const sub$ = observable({
+            num: 0,
+            source: true,
+        });
+
+        const obs$ = observable({
+            sub: () => {
+                return sub$.get();
+            },
+        });
+
+        let num = 0;
+        let expectSub = 0;
+        observe(() => {
+            const value = obs$.sub.get();
+            expect(value).toEqual({ num: expectSub, source: true });
+            num++;
+        });
+
+        expect(num).toEqual(1);
+
+        expectSub = 1;
+        sub$.num.set(1);
+
+        expect(num).toEqual(2);
+    });
+    test('observe sub computed runs once with child computed', () => {
         const sub$ = observable({
             num: 0,
         });
 
         const obs$ = observable({
-            sub: computed(() => sub$.get()),
+            sub: computed(() => {
+                return sub$.get();
+            }),
         });
 
         let num = 0;
+        let expectSub = 0;
         observe(() => {
-            expect(obs$.sub.get()).toEqual({ num: 0 });
+            expect(obs$.sub.get()).toEqual({ num: expectSub });
             num++;
         });
 
-        expect(num).toEqual(2);
+        expect(num).toEqual(1);
+
+        expectSub = 1;
+        sub$.num.set(1);
+
+        // TODONOTIFY: It would be great if this were 2
+        expect(num).toEqual(3);
     });
     test('Setting through two-way sets values on parent', () => {
         const sub$ = observable({

@@ -669,10 +669,12 @@ describe('Two way Computed', () => {
             }),
         );
         expect(numGets).toEqual(0);
+        expect(numSets).toEqual(0);
 
         // First get activates it
         expect(comp.get()).toEqual(0);
         expect(numGets).toEqual(1);
+        expect(numSets).toEqual(0);
 
         obs1.set(1);
 
