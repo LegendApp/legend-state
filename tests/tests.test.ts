@@ -2478,6 +2478,18 @@ describe('Shallow', () => {
 
         expect(handler).toHaveBeenCalledTimes(1);
     });
+    test('Shallow not broken by child listener', () => {
+        const obs = observable<{ arr: { id: number }[] }>({ arr: [{ id: 0 }] });
+        const handler = expectChangeHandler(obs.arr, true);
+
+        // This listener on a child should not break it
+        expectChangeHandler(obs.arr[0].id);
+
+        obs.arr[0].delete();
+        expect(handler).toHaveBeenCalledTimes(1);
+        obs.arr.push({ id: 1 });
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
 });
 describe('Event', () => {
     test('Event', () => {

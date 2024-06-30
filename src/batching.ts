@@ -142,6 +142,8 @@ function computeChangesAtNode(
             const { changes } = changeInBatch;
             if (!isArraySubset(changes[0].path, change.path)) {
                 changes.push(change);
+                // This fixes shallow listeners because an earlier change may have come from setting a child
+                changeInBatch.level = Math.min(changeInBatch.level, level);
             }
         } else {
             changesInBatch.set(node, {
