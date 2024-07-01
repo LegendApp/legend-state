@@ -9,6 +9,7 @@ import { ObservablePersistPlugin, SyncedOptions, configureObservableSync, synced
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 import { observe } from '../src/observe';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
+import { event } from '../src/event';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -1208,6 +1209,65 @@ describe('onBeforeGet', () => {
         expect(obs$.get()).toEqual({ id3: { id: 'id3', test: 'yo' } });
     });
 });
+describe('isSyncEnabled', () => {
+    test('isSyncEnabled disables get and set', async () => {
+        const obs$ = observable<Record<string, { id: string; test: string }>>();
+        const ev$ = event();
+        let gets = 0;
+        let sets = 0;
+        const state$ = syncObservable(obs$, {
+            get: () => {
+                gets++;
+                ev$.get();
+                return {
+                    id1: {
+                        id: 'id1',
+                        test: 'hi',
+                    },
+                };
+            },
+            set: () => {
+                sets++;
+            },
+        } as SyncedOptions);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+            },
+        });
+        expect(gets).toEqual(1);
+        expect(sets).toEqual(0);
+
+        obs$.id1.test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(gets).toEqual(1);
+        expect(sets).toEqual(1);
+
+        ev$.fire();
+        obs$.get();
+
+        expect(gets).toEqual(2);
+        expect(sets).toEqual(1);
+
+        state$.isSyncEnabled.set(false);
+
+        obs$.id1.test.set('yo');
+
+        await promiseTimeout(0);
+
+        expect(gets).toEqual(2);
+        expect(sets).toEqual(1);
+
+        ev$.fire();
+
+        expect(gets).toEqual(2);
+        expect(sets).toEqual(1);
+    });
+});
 describe('synced is observer', () => {
     test('synced runs once when not calling get', () => {
         const num$ = observable(0);
@@ -1264,6 +1324,25 @@ describe('synced is observer', () => {
         num$.set(1);
         expect(obs$.get()).toEqual(1);
         expect(latestValue).toEqual(1);
+        expect(runs).toEqual(2);
+    });
+    test('syncObservable is observer', () => {
+        const num$ = observable(0);
+        let runs = 0;
+        const obs$ = observable();
+        syncObservable(
+            obs$,
+            synced({
+                get: () => {
+                    runs++;
+                    return num$.get();
+                },
+            }),
+        );
+        expect(obs$.get()).toEqual(0);
+        expect(runs).toEqual(1);
+        num$.set(1);
+        expect(obs$.get()).toEqual(1);
         expect(runs).toEqual(2);
     });
     test('syncedCrud is observer', async () => {

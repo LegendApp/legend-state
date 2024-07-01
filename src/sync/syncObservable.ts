@@ -959,7 +959,8 @@ export function syncObservable<T>(
         let isSubscribed = false;
         let unsubscribe: void | (() => void) = undefined;
         sync = async () => {
-            if (isSynced && shouldIgnoreUnobserved(node, sync)) {
+            // If this node is not being observed or sync is not enabled then don't sync
+            if (isSynced && (!getNodeValue(getNode(syncState$)).isSyncEnabled || shouldIgnoreUnobserved(node, sync))) {
                 if (unsubscribe) {
                     isSubscribed = false;
                     unsubscribe();
