@@ -28,6 +28,7 @@ import {
     setAtPath,
     shouldIgnoreUnobserved,
     syncState,
+    trackSelector,
     when,
     whenReady,
 } from '@legendapp/state';
@@ -1176,9 +1177,9 @@ export function syncObservable<T>(
                     if (node.activationState) {
                         node.activationState.waitFor = undefined;
                     }
-                    whenReady(waitFor, runGet);
+                    whenReady(waitFor, () => trackSelector(runGet, sync));
                 } else {
-                    runGet();
+                    trackSelector(runGet, sync);
                 }
             } else {
                 syncState$.assign({
