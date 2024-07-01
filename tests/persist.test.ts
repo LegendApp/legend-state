@@ -1214,7 +1214,7 @@ describe('isSyncEnabled', () => {
         const obs$ = observable<Record<string, { id: string; test: string }>>();
         const ev$ = event();
         let gets = 0;
-        let sets = 0;
+        const sets$ = observable(0);
         const state$ = syncObservable(obs$, {
             get: () => {
                 gets++;
@@ -1227,7 +1227,7 @@ describe('isSyncEnabled', () => {
                 };
             },
             set: () => {
-                sets++;
+                sets$.set((v) => v + 1);
             },
         } as SyncedOptions);
 
@@ -1238,20 +1238,20 @@ describe('isSyncEnabled', () => {
             },
         });
         expect(gets).toEqual(1);
-        expect(sets).toEqual(0);
+        expect(sets$.get()).toEqual(0);
 
         obs$.id1.test.set('hello');
 
-        await promiseTimeout(0);
+        await when(() => sets$.get() === 1);
 
         expect(gets).toEqual(1);
-        expect(sets).toEqual(1);
+        expect(sets$.get()).toEqual(1);
 
         ev$.fire();
         obs$.get();
 
         expect(gets).toEqual(2);
-        expect(sets).toEqual(1);
+        expect(sets$.get()).toEqual(1);
 
         state$.isSyncEnabled.set(false);
 
@@ -1260,12 +1260,12 @@ describe('isSyncEnabled', () => {
         await promiseTimeout(0);
 
         expect(gets).toEqual(2);
-        expect(sets).toEqual(1);
+        expect(sets$.get()).toEqual(1);
 
         ev$.fire();
 
         expect(gets).toEqual(2);
-        expect(sets).toEqual(1);
+        expect(sets$.get()).toEqual(1);
     });
 });
 describe('synced is observer', () => {

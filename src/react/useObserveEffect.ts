@@ -1,31 +1,34 @@
-import {
-    ObserveOptions,
-    isFunction,
-    ObservableParam,
-    observe,
-    ObserveEvent,
-    ObserveEventCallback,
-    Selector,
-} from '@legendapp/state';
+import { ObservableParam, ObserveEvent, ObserveEventCallback, Selector, isFunction, observe } from '@legendapp/state';
 import { useRef } from 'react';
 import { useMountOnce } from './useMount';
+import { useObservable } from './useObservable';
+import type { UseObserveOptions } from './useObserve';
 
-export function useObserveEffect<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): void;
+export function useObserveEffect<T>(run: (e: ObserveEvent<T>) => T | void, options?: UseObserveOptions): void;
 export function useObserveEffect<T>(
     selector: Selector<T>,
     reaction?: (e: ObserveEventCallback<T>) => any,
-    options?: ObserveOptions,
+    options?: UseObserveOptions,
 ): void;
 export function useObserveEffect<T>(
     selector: Selector<T> | ((e: ObserveEvent<T>) => any),
-    reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
-    options?: ObserveOptions,
+    reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | UseObserveOptions,
+    options?: UseObserveOptions,
 ): void {
     let reaction: ((e: ObserveEventCallback<T>) => any) | undefined;
     if (isFunction(reactionOrOptions)) {
         reaction = reactionOrOptions;
     } else {
         options = reactionOrOptions;
+    }
+
+    const deps = options?.deps;
+
+    // Create a deps observable to be watched by the created observable
+    const depsObs$ = deps ? useObservable(deps) : undefined;
+    // Update depsObs with the deps array
+    if (depsObs$) {
+        depsObs$.set(deps! as any[]);
     }
 
     const ref = useRef<{
@@ -38,6 +41,7 @@ export function useObserveEffect<T>(
         observe<T>(
             ((e: ObserveEventCallback<T>) => {
                 const { selector } = ref.current as { selector: (e: ObserveEvent<T>) => T | void };
+                depsObs$?.get();
                 return isFunction(selector) ? selector(e) : selector;
             }) as any,
             (e) => ref.current.reaction?.(e),

@@ -10,17 +10,22 @@ import {
 } from '@legendapp/state';
 import { useRef } from 'react';
 import { useUnmountOnce } from './useUnmount';
+import { useObservable } from './useObservable';
 
-export function useObserve<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
+export interface UseObserveOptions extends ObserveOptions {
+    deps?: any[];
+}
+
+export function useObserve<T>(run: (e: ObserveEvent<T>) => T | void, options?: UseObserveOptions): () => void;
 export function useObserve<T>(
     selector: Selector<T>,
     reaction?: (e: ObserveEventCallback<T>) => any,
-    options?: ObserveOptions,
+    options?: UseObserveOptions,
 ): () => void;
 export function useObserve<T>(
     selector: Selector<T> | ((e: ObserveEvent<T>) => any),
-    reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | ObserveOptions,
-    options?: ObserveOptions,
+    reactionOrOptions?: ((e: ObserveEventCallback<T>) => any) | UseObserveOptions,
+    options?: UseObserveOptions,
 ): () => void {
     let reaction: ((e: ObserveEventCallback<T>) => any) | undefined;
     if (isFunction(reactionOrOptions)) {
@@ -29,13 +34,27 @@ export function useObserve<T>(
         options = reactionOrOptions;
     }
 
+    const deps = options?.deps;
+
+    // Create a deps observable to be watched by the created observable
+    const depsObs$ = deps ? useObservable(deps) : undefined;
+    // Update depsObs with the deps array
+    if (depsObs$) {
+        depsObs$.set(deps! as any[]);
+    }
+
     const ref = useRef<{
         selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
     }>({});
 
-    ref.current.selector = selector;
+    ref.current.selector = deps
+        ? () => {
+              depsObs$?.get();
+              return computeSelector(selector);
+          }
+        : selector;
     ref.current.reaction = reaction;
 
     if (!ref.current.dispose) {
