@@ -36,8 +36,8 @@ export type RemoveObservables<T> =
               ? TObs
               : T extends () => infer TRet
                 ? RemoveObservables<TRet> & T
-                : T extends (key: string) => infer TRet
-                  ? Record<string, RemoveObservables<TRet>> & T
+                : T extends (key: infer TKey extends string | number) => infer TRet
+                  ? Record<TKey, RemoveObservables<TRet>> & T
                   : T;
 
 interface ObservableArray<T, U>
@@ -137,8 +137,8 @@ type ObservableChildren<T, Nullable = IsNullable<T>> = {
 type ObservableFunctionChildren<T> = {
     [K in keyof T]-?: T[K] extends Observable
         ? T[K]
-        : T[K] extends (key: infer Key extends string) => Promise<infer t> | infer t
-          ? HasOneStringParam<T[K]> extends true
+        : T[K] extends (key: infer Key extends string | number) => Promise<infer t> | infer t
+          ? IsLookupFunction<T[K]> extends true
               ? Observable<Record<Key, t>> & T[K]
               : t extends void
                 ? T[K]
@@ -157,9 +157,9 @@ export type ObservableObject<T> = ObservableObjectFunctions<ObservableProps<T> &
 type ObservableFunction<T> = T extends () => infer t ? t | (() => t) : T;
 
 // Check if the function type T has one lookup parameter
-type HasOneStringParam<T> = T extends (...args: infer P) => any
+type IsLookupFunction<T> = T extends (...args: infer P) => any
     ? P extends { length: 1 }
-        ? P[0] extends string | ObservablePrimitive<string>
+        ? P[0] extends string | ObservablePrimitive<string> | number | ObservablePrimitive<number>
             ? true
             : false
         : false
@@ -175,10 +175,10 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
         ? ObservableNode<t>
         : [T] extends [(key: infer K extends string) => infer t]
           ? [t] extends [ImmutableObservableBase<any>]
-              ? HasOneStringParam<T> extends true
+              ? IsLookupFunction<T> extends true
                   ? Observable<Record<K, t>>
                   : t
-              : HasOneStringParam<T> extends true
+              : IsLookupFunction<T> extends true
                 ? Observable<Record<K, t>> & T
                 : Observable<ObservableFunction<t>>
           : [NT] extends [ImmutableObservableBase<any>]
