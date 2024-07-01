@@ -1253,6 +1253,54 @@ describe('useObservable', () => {
         expect(numInner).toEqual(2);
         expect(value).toEqual('hello');
     });
+    test('useObservable with a deps array of objects', () => {
+        let num = 0;
+        let numInner = 0;
+        const obs$: Observable = observable(0);
+        let value: { text: string } | undefined = undefined;
+        let deps = [{ text: 'hi' }];
+        const Test = observer(function Test() {
+            obs$.get();
+            const obsLocal$ = useObservable(() => {
+                numInner++;
+                return deps[0];
+            }, deps);
+            num++;
+
+            value = obsLocal$.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(numInner).toEqual(1);
+        expect(value).toEqual({ text: 'hi' });
+
+        // If deps array changes it should refresh observable
+
+        act(() => {
+            deps = [{ text: 'hello' }];
+            obs$.set(1);
+        });
+
+        expect(num).toEqual(2);
+        expect(numInner).toEqual(2);
+        expect(value).toEqual({ text: 'hello' });
+
+        // If deps array doesn't change it should not refresh
+        act(() => {
+            deps = [{ text: 'hello' }];
+            obs$.set(2);
+        });
+
+        expect(num).toEqual(3);
+        expect(numInner).toEqual(2);
+        expect(value).toEqual({ text: 'hello' });
+    });
     test('useObservable with a lookup table and empty deps array', () => {
         let num = 0;
         let numInner = 0;
