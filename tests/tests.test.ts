@@ -1,3 +1,4 @@
+import type { Observable } from '../src/observableTypes';
 import { batch, beginBatch, endBatch } from '../src/batching';
 import { configureLegendState } from '../src/config';
 import { enable$GetSet } from '../src/config/enable$GetSet';
@@ -1916,6 +1917,42 @@ describe('Array', () => {
         obs$[0].text.set('00');
 
         expect(comp$.get()).toEqual(['0', '1']);
+    });
+    test('observe all children', () => {
+        function observeArrayElements(arr$: Observable<any[]>, handleEntry: (value: any, index: number) => void) {
+            let numWatching = 0;
+            arr$.onChange(
+                ({ value }) => {
+                    const num = value.length;
+                    for (let i = numWatching; i < num; i++) {
+                        const index = i;
+                        arr$[i].onChange(({ value }) => handleEntry(value, index), { initial: true });
+                    }
+                    numWatching = num;
+                },
+                { initial: true },
+            );
+        }
+
+        const state$ = observable([
+            { id: 'a', key: 'a', value: 'a' },
+            { id: 'b', key: 'b', value: 'b' },
+            { id: 'c', key: 'c', value: 'c' },
+        ]);
+
+        const forEach = jest.fn();
+
+        observeArrayElements(state$, forEach);
+
+        expect(forEach).toHaveBeenCalledTimes(3);
+
+        state$[0].value.set('test');
+
+        expect(forEach).toHaveBeenCalledTimes(4);
+
+        state$.push({ id: 'd', key: 'd', value: 'd' });
+
+        expect(forEach).toHaveBeenCalledTimes(5);
     });
 });
 describe('Deep changes keep listeners', () => {
