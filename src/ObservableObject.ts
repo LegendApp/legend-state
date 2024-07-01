@@ -684,7 +684,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
         }
 
         const notify = !equals(savedValue, prevValue);
-        const forceNotify = !notify && childNode.isComputing && isObject(savedValue);
+        const forceNotify = !notify && childNode.isComputing && !isPrim;
 
         if (notify || forceNotify) {
             updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level, forceNotify);

@@ -1349,6 +1349,60 @@ describe('useObservable', () => {
 
         expect(setTo).toEqual('test');
     });
+    test('useComputed vs observable deep object set', () => {
+        // From: https://github.com/LegendApp/legend-state/issues/305
+        const o$ = observable([{ hotspot: { position: { x: 0 } } }]);
+        let numRenders = 0;
+        let lastValue:
+            | undefined
+            | {
+                  hotspot: {
+                      position: {
+                          x: number;
+                      };
+                  };
+              }[] = undefined;
+        const Test = observer(function Test() {
+            const c$ = useComputed(() => {
+                return o$;
+            }, []);
+            if (numRenders === 0) {
+                lastValue = o$.get();
+            } else {
+                lastValue = c$.get();
+            }
+            numRenders++;
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(lastValue).toEqual([{ hotspot: { position: { x: 0 } } }]);
+
+        act(() => {
+            o$[0].hotspot.position.x.set(2);
+        });
+
+        expect(numRenders).toEqual(2);
+        expect(lastValue).toEqual([{ hotspot: { position: { x: 2 } } }]);
+
+        act(() => {
+            o$.set([{ hotspot: { position: { x: 1 } } }]);
+        });
+
+        expect(numRenders).toEqual(3);
+        expect(lastValue).toEqual([{ hotspot: { position: { x: 1 } } }]);
+
+        act(() => {
+            o$[0].hotspot.position.x.set(3);
+        });
+
+        expect(numRenders).toEqual(4);
+        expect(lastValue).toEqual([{ hotspot: { position: { x: 3 } } }]);
+    });
 });
 describe('useObservableState', () => {
     test('useObservableState does not select if value not accessed', () => {

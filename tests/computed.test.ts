@@ -47,7 +47,6 @@ describe('Functions', () => {
         expect(comp.fn()).toEqual(30);
         expect(num).toEqual(1);
     });
-
     test('Function with string typed as function or observable', () => {
         const comp = observable({
             fn: (text: string) => {
