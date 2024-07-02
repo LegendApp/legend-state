@@ -8,6 +8,7 @@ import {
     isObservable,
     isPromise,
     setAtPath,
+    symbolDelete,
 } from '@legendapp/state';
 import {
     SyncedGetParams,
@@ -273,7 +274,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       if (valueAtPath) {
                                           updates.set(id, getUpdateValue(valueAtPath, prevAtPath));
                                       } else if (prevAtPath) {
-                                          deletes.add(prevAtPath?.id);
+                                          deletes.add(prevAtPath);
                                       }
                                   } else if (!updates.has(id)) {
                                       const previous = applyChanges(clone(value), changes, /*applyPrevious*/ true);
@@ -439,16 +440,23 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           }
                       }),
                       ...Array.from(deletes).map((valuePrevious) => {
-                          if (deleteFn) {
-                              deleteFn(valuePrevious, params);
-                          } else if (fieldDeleted && updateFn) {
-                              const valueId = (valuePrevious as any)[fieldId];
-                              updateFn(
-                                  { ...(valueId ? { [fieldId]: valueId } : {}), [fieldDeleted]: true } as any,
-                                  params,
-                              );
-                          } else {
-                              console.log('[legend-state] missing delete function');
+                          // Dont' delete if already deleted
+                          if (valuePrevious !== (symbolDelete as any)) {
+                              if (deleteFn) {
+                                  deleteFn(valuePrevious, params);
+                              } else if (fieldDeleted && updateFn) {
+                                  const valueId = (valuePrevious as any)[fieldId];
+                                  if (valueId) {
+                                      updateFn(
+                                          { ...(valueId ? { [fieldId]: valueId } : {}), [fieldDeleted]: true } as any,
+                                          params,
+                                      );
+                                  } else {
+                                      console.error('[legend-state]: deleting item without an id');
+                                  }
+                              } else {
+                                  console.log('[legend-state] missing delete function');
+                              }
                           }
                       }),
                   ]);
