@@ -53,18 +53,21 @@ interface ObservableObjectFunctions<T = Record<string, any>> extends ObservableP
 
 type MapKey<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['has']>[0];
 type MapValue<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['get']>[0];
-type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size'> &
+type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size' | 'set'> &
     Omit<ObservablePrimitive<T>, 'get' | 'size'> & {
         get(key: Parameters<T['get']>[0]): Observable<Parameters<T['set']>[1]>;
         get(): T;
-        size: ImmutableObservableBase<number>;
+        size: number;
+        set(key: MapKey<T>, value: MapValue<T>): Observable<T>;
         assign(
             value: Record<MapKey<T>, MapValue<T>> | Map<MapKey<T>, MapValue<T>> | WeakMap<MapKey<T>, MapValue<T>>,
         ): Observable<T>;
     };
 
-type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size'> &
-    Omit<ObservablePrimitive<T>, 'size'> & { size: ImmutableObservableBase<number> };
+type SetValue<T extends Set<any> | WeakSet<any>> = Parameters<T['has']>[0];
+
+type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size' | 'add'> &
+    Omit<ObservablePrimitive<T>, 'size'> & { size: number; add: (value: SetValue<T>) => Observable<T> };
 
 export interface ObservableBoolean extends ObservablePrimitive<boolean> {
     toggle(): void;

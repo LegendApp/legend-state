@@ -1954,6 +1954,18 @@ describe('Array', () => {
 
         expect(forEach).toHaveBeenCalledTimes(5);
     });
+    test('Array observe length', () => {
+        const obs$ = observable<number[]>([0]);
+        let lastValue: number | undefined = undefined;
+        observe(() => {
+            lastValue = obs$.length;
+        });
+        expect(lastValue).toEqual(1);
+        obs$.push(1);
+        expect(lastValue).toEqual(2);
+        obs$.splice(0, 1);
+        expect(lastValue).toEqual(1);
+    });
 });
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {

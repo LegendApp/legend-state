@@ -1,3 +1,4 @@
+import { observe } from '../src/observe';
 import { isObservable } from '../src/globals';
 import { mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
@@ -72,16 +73,17 @@ describe('Map default behavior', () => {
 
 describe('Map is observable', () => {
     test('Map set is observable', () => {
-        const obs = observable({ test: new Map([['key', 'value']]) });
-        const handler = expectChangeHandler(obs.test.get('key'));
-        const handler2 = expectChangeHandler(obs.test);
-        obs.test.set('key', 'value2');
+        const obs$ = observable({ test: new Map([['key', 'value']]) });
+        const handler = expectChangeHandler(obs$.test.get('key'));
+        const handler2 = expectChangeHandler(obs$.test);
+        const setRet = obs$.test.set('key', 'value2');
         expect(handler).toHaveBeenCalledWith('value2', 'value', [
             { path: [], pathTypes: [], prevAtPath: 'value', valueAtPath: 'value2' },
         ]);
-        expect(handler2).toHaveBeenCalledWith(obs.test.peek(), new Map([['key', 'value']]), [
+        expect(handler2).toHaveBeenCalledWith(obs$.test.peek(), new Map([['key', 'value']]), [
             { path: ['key'], pathTypes: ['object'], prevAtPath: 'value', valueAtPath: 'value2' },
         ]);
+        expect(setRet === obs$.test).toEqual(true);
     });
     test('Map clear is observable at children', () => {
         const obs = observable({
@@ -141,9 +143,22 @@ describe('Map is observable', () => {
             ]),
         );
 
-        const size = obs.size.get();
+        const size = obs.size;
 
         expect(size).toEqual(2);
+    });
+    test('Map observe size', () => {
+        let lastValue: number | undefined = undefined;
+        const obs$ = observable(new Map([['key', 'value']]));
+
+        observe(() => {
+            lastValue = obs$.size;
+        });
+        expect(lastValue).toEqual(1);
+        obs$.set('key2', 'value2');
+        expect(lastValue).toEqual(2);
+        obs$.delete('key');
+        expect(lastValue).toEqual(1);
     });
 });
 
@@ -159,14 +174,26 @@ describe('Set default behavior', () => {
     test('Set add is observable', () => {
         const obs = observable({ test: new Set(['key']) });
         const handler = expectChangeHandler(obs.test);
-        obs.test.add('key2');
+        const added = obs.test.add('key2');
         expect(handler).toHaveBeenCalledWith(new Set(['key', 'key2']), new Set(['key']), [
             { path: [], pathTypes: [], prevAtPath: new Set(['key']), valueAtPath: new Set(['key', 'key2']) },
         ]);
+        expect(added === obs.test).toEqual(true);
     });
     test('Set size is observable', () => {
-        const obs = observable({ test: new Set(['key']) });
-        expect(obs.test.size.get()).toEqual(1);
+        const obs$ = observable({ test: new Set(['key']) });
+        expect(obs$.test.size).toEqual(1);
+
+        let lastValue: number | undefined = undefined;
+
+        observe(() => {
+            lastValue = obs$.test.size;
+        });
+        expect(lastValue).toEqual(1);
+        obs$.test.add('key2');
+        expect(lastValue).toEqual(2);
+        obs$.test.delete('key');
+        expect(lastValue).toEqual(1);
     });
 });
 

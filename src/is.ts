@@ -31,10 +31,10 @@ export function isPromise<T>(obj: unknown): obj is Promise<T> {
     return obj instanceof Promise;
 }
 export function isMap(obj: unknown): obj is Map<any, any> {
-    return obj instanceof Map;
+    return obj instanceof Map || obj instanceof WeakMap;
 }
 export function isSet(obj: unknown): obj is Set<any> {
-    return obj instanceof Set;
+    return obj instanceof Set || obj instanceof WeakSet;
 }
 export function isNumber(obj: unknown): obj is number {
     const n = obj as number;

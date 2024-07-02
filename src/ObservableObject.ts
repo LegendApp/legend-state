@@ -30,6 +30,7 @@ import {
     isObject,
     isPrimitive,
     isPromise,
+    isSet,
 } from './is';
 import { linked } from './linked';
 import type {
@@ -425,7 +426,7 @@ const proxyHandler: ProxyHandler<any> = {
             return proxyHandler.get!(targetNode, p, receiver);
         }
 
-        if (isMap(value) || value instanceof WeakMap || value instanceof Set || value instanceof WeakSet) {
+        if (isMap(value) || isSet(value)) {
             const ret = handlerMapSet(node, p, value);
             if (ret !== undefined) {
                 return ret;
@@ -547,7 +548,7 @@ const proxyHandler: ProxyHandler<any> = {
         // Accessing primitive returns the raw value
         if (isPrimitive(vProp)) {
             // Update that this primitive node was accessed for observers
-            if (isArray(value) && p === 'length') {
+            if (p === 'length' && isArray(value)) {
                 updateTracking(node, true);
                 return vProp;
             }
@@ -743,7 +744,8 @@ function deleteFn(node: NodeValue, key?: string) {
 function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {
     const vProp = (value as any)?.[p];
     if (p === 'size') {
-        return getProxy(node, p);
+        updateTracking(node, true);
+        return (value as any)[p];
     } else if (isFunction(vProp)) {
         return function (a: any, b: any, c: any) {
             const l = arguments.length;
@@ -755,24 +757,19 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<a
                 }
             } else if (p === 'set') {
                 if (l === 2) {
-                    const prev = valueMap.get(a);
-                    const ret = valueMap.set(a, b);
-                    if (prev !== b) {
-                        updateNodesAndNotify(getChildNode(node, a), b, prev);
-                    }
-                    return ret;
+                    set(getChildNode(node, a), b);
                 } else if (l === 1 && isMap(value)) {
                     set(node, a);
                 }
+                return getProxy(node);
             } else if (p === 'delete') {
                 if (l > 0) {
                     // Support Set by just returning a if it doesn't have get, meaning it's not a Map
                     const prev = (value as Map<any, any>).get ? valueMap.get(a) : a;
-                    const ret = value.delete(a);
-                    if (ret) {
-                        updateNodesAndNotify(getChildNode(node, a), undefined, prev);
-                    }
-                    return ret;
+                    deleteFn(node, a);
+
+                    // Return whether it was deleted
+                    return prev !== undefined;
                 }
             } else if (p === 'clear') {
                 const prev = new Map(valueMap);
@@ -788,7 +785,7 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<a
                 if (!(value as unknown as Set<any>).has(p)) {
                     notify(node, ret, prev, 0);
                 }
-                return ret;
+                return getProxy(node);
             }
 
             // TODO: This is duplicated from proxy handler, how to dedupe with best performance?

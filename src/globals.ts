@@ -1,4 +1,4 @@
-import { isArray, isChildNodeValue, isDate, isFunction, isMap, isObject } from './is';
+import { isArray, isChildNodeValue, isDate, isFunction, isMap, isObject, isSet } from './is';
 import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -98,8 +98,11 @@ export function setNodeValue(node: NodeValue, newValue: any) {
     // Get the value of the parent
     const parentValue = node.parent ? ensureNodeValue(parentNode) : parentNode.root;
 
+    const useSetFn = isSet(parentValue);
+    const useMapFn = isMap(parentValue);
+
     // Save the previous value first
-    const prevValue = parentValue[key];
+    const prevValue = useSetFn ? key : useMapFn ? parentValue.get(key) : parentValue[key];
 
     const isFunc = isFunction(newValue);
 
@@ -110,17 +113,17 @@ export function setNodeValue(node: NodeValue, newValue: any) {
         try {
             parentNode.isSetting = (parentNode.isSetting || 0) + 1;
 
-            const useMapFn = isMap(parentValue);
             // Save the new value
             if (isDelete) {
-                if (useMapFn) {
+                if (useMapFn || useSetFn) {
                     parentValue.delete(key);
                 } else {
                     delete parentValue[key];
                 }
             } else {
-                const useMapFn = isMap(parentValue);
-                if (useMapFn) {
+                if (useSetFn) {
+                    parentValue.add(newValue);
+                } else if (useMapFn) {
                     parentValue.set(key, newValue);
                 } else {
                     parentValue[key] = newValue;
