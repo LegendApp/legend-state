@@ -240,6 +240,10 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
                       const key = snap.key!;
                       const val = snap.val();
+
+                      if (fieldId && !val[fieldId!]) {
+                          val[fieldId!] = key;
+                      }
                       if (saving$[key].get()) {
                           pendingIncoming$[key].set(val);
                       } else {
