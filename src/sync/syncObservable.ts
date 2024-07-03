@@ -973,6 +973,8 @@ export function syncObservable<T>(
             const get = syncOptions.get;
 
             if (get) {
+                const { waitFor } = syncOptions;
+
                 const runGet = () => {
                     const onChange = async ({ value, mode, lastSync }: UpdateFnParams) => {
                         mode = mode || syncOptions.mode || 'set';
@@ -1076,22 +1078,31 @@ export function syncObservable<T>(
                     }
                     // Subscribe before getting to ensure we don't miss updates between now and the get returning
                     if (!isSubscribed && syncOptions.subscribe) {
+                        const subscribe = syncOptions.subscribe;
                         isSubscribed = true;
-                        unsubscribe = syncOptions.subscribe({
-                            node,
-                            value$: obs$,
-                            lastSync,
-                            update: (params: UpdateFnParams) => {
-                                when(syncState$.isLoaded, () => {
-                                    when(waitFor || true, () => {
-                                        params.mode ||= syncOptions.mode || 'merge';
-                                        onChange(params);
+                        const doSubscribe = () => {
+                            unsubscribe = subscribe({
+                                node,
+                                value$: obs$,
+                                lastSync,
+                                update: (params: UpdateFnParams) => {
+                                    when(syncState$.isLoaded, () => {
+                                        when(waitFor || true, () => {
+                                            params.mode ||= syncOptions.mode || 'merge';
+                                            onChange(params);
+                                        });
                                     });
-                                });
-                            },
-                            refresh: () => when(syncState$.isLoaded, sync),
-                            onError: (error) => onError(error, undefined, 'subscribe'),
-                        });
+                                },
+                                refresh: () => when(syncState$.isLoaded, sync),
+                                onError: (error) => onError(error, undefined, 'subscribe'),
+                            });
+                        };
+
+                        if (waitFor) {
+                            whenReady(waitFor, doSubscribe);
+                        } else {
+                            doSubscribe();
+                        }
                     }
                     const existingValue = getNodeValue(node);
 
@@ -1173,7 +1184,6 @@ export function syncObservable<T>(
                     }
                 };
 
-                const { waitFor } = syncOptions;
                 if (waitFor) {
                     if (node.activationState) {
                         node.activationState.waitFor = undefined;
