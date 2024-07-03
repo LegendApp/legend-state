@@ -1,6 +1,6 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isSet } from './is';
+import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isPrimitive, isSet } from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -77,13 +77,13 @@ export function setAtPath<T extends object>(
     // when setting undefined on an object without this key
     if (p === undefined) {
         if (mode === 'merge') {
-            obj = deepMerge(obj, value, false, 0);
+            obj = deepMerge(obj, value);
         } else {
             obj = value;
         }
     } else {
         if (mode === 'merge') {
-            o[p] = deepMerge(o[p], value, false, 0);
+            o[p] = deepMerge(o[p], value);
         } else if (isMap(o)) {
             o.set(p, value);
         } else {
@@ -243,8 +243,12 @@ export function applyChanges<T extends object>(value: T, changes: Change[], appl
     }
     return value;
 }
-export function deepMerge<T extends object>(target: T, ...sources: any[]): T {
-    const result: T = { ...target } as T;
+export function deepMerge<T>(target: T, ...sources: any[]): T {
+    if (isPrimitive(target)) {
+        return sources[sources.length - 1];
+    }
+
+    const result: T = (isArray(target) ? [...target] : { ...target }) as T;
 
     for (let i = 0; i < sources.length; i++) {
         const obj2 = sources[i];

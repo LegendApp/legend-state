@@ -1,6 +1,6 @@
 import { symbolDelete } from '@legendapp/state';
 import { isObservable } from '../src/globals';
-import { isObservableValueReady, mergeIntoObservable } from '../src/helpers';
+import { deepMerge, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 
 describe('mergeIntoObservable', () => {
@@ -344,5 +344,198 @@ describe('isObservableValueReady', () => {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         const myFunc = () => {};
         expect(isObservableValueReady(myFunc)).toBe(true);
+    });
+});
+describe('deepMerge', () => {
+    test('should return the last source if the target is a primitive', () => {
+        expect(deepMerge(0, { a: 1 })).toEqual({ a: 1 });
+    });
+
+    test('should merge objects with nested properties', () => {
+        const target = { a: { b: 1 } };
+        const source = { a: { c: 2 }, d: 3 };
+        const expected = { a: { b: 1, c: 2 }, d: 3 };
+        expect(deepMerge(target, source)).toEqual(expected);
+    });
+
+    test('should not merge arrays', () => {
+        const target = [1, 2];
+        const source = [3, 4];
+        const expected = [3, 4];
+        expect(deepMerge(target, source)).toEqual(expected);
+    });
+
+    // Test 1: Merging two simple objects
+    test('merges two simple objects', () => {
+        const obj1 = { a: 1, b: 2 };
+        const obj2 = { b: 3, c: 4 };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: 1, b: 3, c: 4 });
+    });
+
+    // Test 2: Merging objects with nested objects
+    test('merges objects with nested objects', () => {
+        const obj1 = { a: { x: 1 }, b: 2 };
+        const obj2 = { a: { y: 2 }, c: 3 };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: { x: 1, y: 2 }, b: 2, c: 3 });
+    });
+
+    // Test 4: Merging objects with arrays
+    test('merges objects with arrays', () => {
+        const obj1 = { a: [1, 2], b: 2 };
+        const obj2 = { a: [3, 4], c: 3 };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: [3, 4], b: 2, c: 3 });
+    });
+
+    // Test 5: Merging primitives
+    test('returns the last primitive when merging primitives', () => {
+        expect(deepMerge(1, 2, 3)).toBe(3);
+        expect(deepMerge('a', 'b', 'c')).toBe('c');
+        expect(deepMerge(true, false)).toBe(false);
+    });
+
+    // Test 6: Merging objects with null values
+    test('handles null values', () => {
+        const obj1 = { a: 1, b: null };
+        const obj2 = { b: 2, c: null };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: 1, b: 2, c: null });
+    });
+
+    // Test 7: Merging objects with undefined values
+    test('handles undefined values', () => {
+        const obj1 = { a: 1, b: undefined };
+        const obj2 = { b: 2, c: undefined };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: 1, b: 2, c: undefined });
+    });
+
+    // Test 8: Merging multiple objects
+    test('merges multiple objects', () => {
+        const obj1 = { a: 1 };
+        const obj2 = { b: 2 };
+        const obj3 = { c: 3 };
+        expect(deepMerge(obj1, obj2, obj3)).toEqual({ a: 1, b: 2, c: 3 });
+    });
+
+    // Test 9: Merging objects with functions
+    test('merges objects with functions', () => {
+        const obj1: Record<string, any> = { a: () => 1 };
+        const obj2 = { b: () => 2 };
+        const result = deepMerge(obj1, obj2);
+        expect(typeof result.a).toBe('function');
+        expect(typeof result.b).toBe('function');
+        expect(result.a()).toBe(1);
+        expect(result.b()).toBe(2);
+    });
+
+    // Test 11: Merging objects with date objects
+    test('merges objects with date objects', () => {
+        const date1 = new Date('2023-01-01');
+        const date2 = new Date('2023-12-31');
+        const obj1 = { date: date1 };
+        const obj2 = { date: date2 };
+        expect(deepMerge(obj1, obj2)).toEqual({ date: date2 });
+    });
+
+    // Test 12: Merging objects with regular expressions
+    test('merges objects with regular expressions', () => {
+        const obj1 = { regex: /test1/ };
+        const obj2 = { regex: /test2/ };
+        expect(deepMerge(obj1, obj2)).toEqual({ regex: /test2/ });
+    });
+
+    // Test 13: Merging deeply nested objects
+    test('merges deeply nested objects', () => {
+        const obj1 = { a: { b: { c: 1 } } };
+        const obj2 = { a: { b: { d: 2 } } };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: { b: { c: 1, d: 2 } } });
+    });
+
+    // Test 15: Merging arrays with objects
+    test('merges arrays with objects', () => {
+        const arr = [1, 2, 3];
+        const obj = { 1: 'two', 3: 'four' };
+        expect(deepMerge(arr, obj)).toEqual([1, 'two', 3, 'four']);
+    });
+
+    // Test 16: Merging objects with different types for the same key
+    test('handles different types for the same key', () => {
+        const obj1 = { a: { b: 1 } };
+        const obj2 = { a: [1, 2, 3] };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: { 0: 1, 1: 2, 2: 3, b: 1 } });
+    });
+
+    // Test 17: Merging empty objects and arrays
+    test('handles empty objects and arrays', () => {
+        const obj1 = {};
+        const obj2: any[] = [];
+        expect(deepMerge(obj1, obj2)).toEqual({});
+    });
+
+    // Test 18: Merging objects with prototype properties
+    test('ignores prototype properties', () => {
+        const obj1 = Object.create({ a: 1 });
+        const obj2 = { b: 2 };
+        expect(deepMerge(obj1, obj2)).toEqual({ b: 2 });
+    });
+
+    // Test 19: Merging typed objects (preserving type)
+    test('preserves types of merged objects', () => {
+        interface TestObject {
+            a: number;
+            b?: string;
+        }
+        const obj1: TestObject = { a: 1 };
+        const obj2 = { b: 'test' };
+        const result: TestObject = deepMerge(obj1, obj2);
+        expect(result).toEqual({ a: 1, b: 'test' });
+    });
+
+    // Test 20: Merging objects with undefined target
+    test('handles undefined target', () => {
+        const obj = { a: 1 };
+        expect(deepMerge(undefined, obj)).toEqual({ a: 1 });
+    });
+
+    // Test 21: Merging objects with arrays of objects
+    test('merges objects with arrays of objects', () => {
+        const obj1 = { arr: [{ a: 1 }, { b: 2 }] };
+        const obj2 = { arr: [{ c: 3 }] };
+        expect(deepMerge(obj1, obj2)).toEqual({ arr: [{ a: 1, c: 3 }, { b: 2 }] });
+    });
+
+    // Test 23: Merging objects with arrays of different lengths
+    test('merges objects with arrays of different lengths', () => {
+        const obj1 = { arr: [1, 2, 3] };
+        const obj2 = { arr: [4, 5] };
+        expect(deepMerge(obj1, obj2)).toEqual({ arr: [4, 5, 3] });
+    });
+
+    // Test 24: Merging objects with special object types (e.g., Map, Set)
+    test('handles special object types', () => {
+        const map1 = new Map([
+            ['a', 1],
+            ['b', 2],
+        ]);
+        const set1 = new Set([1, 2, 3]);
+        const obj1 = { map: map1, set: set1 };
+        const obj2 = { map: new Map([['c', 3]]), set: new Set([4, 5]) };
+        const result = deepMerge(obj1, obj2);
+        expect(result.map).toBeInstanceOf(Map);
+        expect(result.set).toBeInstanceOf(Set);
+        expect(Array.from(result.map.entries())).toEqual([['c', 3]]);
+        expect(Array.from(result.set)).toEqual([4, 5]);
+    });
+
+    // Test 27: Merging objects with properties that have different types
+    test('handles properties with different types', () => {
+        const obj1 = { prop: { nested: 'string' } };
+        const obj2 = { prop: 42 };
+        expect(deepMerge(obj1, obj2)).toEqual({ prop: 42 });
+    });
+
+    // Test 28: Merging very deeply nested objects
+    test('handles very deeply nested objects', () => {
+        const obj1 = { a: { b: { c: { d: { e: 1 } } } } };
+        const obj2 = { a: { b: { c: { d: { f: 2 } } } } };
+        expect(deepMerge(obj1, obj2)).toEqual({ a: { b: { c: { d: { e: 1, f: 2 } } } } });
     });
 });
