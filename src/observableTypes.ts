@@ -52,7 +52,7 @@ export interface ObservableObjectFns<T> {
 interface ObservableObjectFunctions<T = Record<string, any>> extends ObservablePrimitive<T>, ObservableObjectFns<T> {}
 
 type MapKey<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['has']>[0];
-type MapValue<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['get']>[0];
+type MapValue<T extends Map<any, any> | WeakMap<any, any>> = ReturnType<T['get']>;
 type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size' | 'set'> &
     Omit<ObservablePrimitive<T>, 'get' | 'size'> & {
         get(key: Parameters<T['get']>[0]): Observable<Parameters<T['set']>[1]>;

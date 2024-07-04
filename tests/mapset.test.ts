@@ -69,6 +69,16 @@ describe('Map default behavior', () => {
             ]),
         );
     });
+    test('Map with object value', () => {
+        const obs = observable({ test: new Map([['key', { a: 0 }]]) });
+        obs.test.set('key2', { a: 1 });
+        expect(obs.test.get()).toEqual(
+            new Map([
+                ['key', { a: 0 }],
+                ['key2', { a: 1 }],
+            ]),
+        );
+    });
 });
 
 describe('Map is observable', () => {
