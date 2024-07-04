@@ -532,7 +532,7 @@ describe('persist objects', () => {
 
         expect(JSON.stringify(draftBom2$.get())).toEqual(JSON.stringify({ addItem, deleteItem, items: ['hi'] }));
     });
-    test('Map set works correctly', async () => {
+    test('Map merges from persistence correctly', async () => {
         interface TableState {
             columnFilters: any;
             sorting: any;
@@ -634,6 +634,70 @@ describe('persist objects', () => {
                         search: 'hi5',
                     },
                 ],
+            ]),
+        });
+    });
+    test('Map merges from persistence correctly', async () => {
+        const obs$ = observable({
+            m: new Map([
+                ['v1', { h1: 'h1', h2: [] }],
+                ['v2', { h1: 'h3', h2: [1] }],
+            ]),
+        });
+
+        configureObservableSync({
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+            },
+        });
+
+        const persistName = getPersistName();
+
+        syncObservable(obs$, {
+            persist: {
+                name: persistName,
+            },
+        });
+
+        expect(obs$.get()).toEqual({
+            m: new Map([
+                ['v1', { h1: 'h1', h2: [] }],
+                ['v2', { h1: 'h3', h2: [1] }],
+            ]),
+        });
+
+        // Set h2 on v2
+        obs$.m.get('v2').h2.set([]);
+
+        expect(obs$.get()).toEqual({
+            m: new Map([
+                ['v1', { h1: 'h1', h2: [] }],
+                ['v2', { h1: 'h3', h2: [] }],
+            ]),
+        });
+
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName)).toEqual(
+            '{"m":{"__LSType":"Map","value":[["v1",{"h1":"h1","h2":[]}],["v2",{"h2":[]}]]}}',
+        );
+
+        const obs2$ = observable({
+            m: new Map([
+                ['v1', { h1: 'h1', h2: [] }],
+                ['v2', { h1: 'h3', h2: [1] }],
+            ]),
+        });
+        syncObservable(obs2$, {
+            persist: {
+                name: persistName,
+            },
+        });
+
+        expect(obs2$.get()).toEqual({
+            m: new Map([
+                ['v1', { h1: 'h1', h2: [] }],
+                ['v2', { h1: 'h3', h2: [] }],
             ]),
         });
     });
