@@ -170,8 +170,10 @@ export function syncedSupabase<
     };
     const create = !actions || actions.includes('create') ? upsert : undefined;
     const update = !actions || actions.includes('update') ? upsert : undefined;
+
+    const preferHardDelete = !fieldDeleted;
     const deleteFn =
-        !fieldDeleted && (!actions || actions.includes('delete'))
+        preferHardDelete && (!actions || actions.includes('delete'))
             ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
                   const id = input.id;
                   const res = await client.from(collection).delete().eq('id', id).select();
@@ -185,7 +187,7 @@ export function syncedSupabase<
               }
             : undefined;
     const subscribe = realtime
-        ? ({ node, value$, update }: SyncedSubscribeParams<TRemote[]>) => {
+        ? ({ node, value$, update, deleteFn }: SyncedSubscribeParams<TRemote[]>) => {
               const { filter, schema } = (isObject(realtime) ? realtime : {}) as { schema?: string; filter?: string };
               const channel = client
                   .channel(`LS_${node.key || ''}${channelNum++}`)
@@ -199,31 +201,41 @@ export function syncedSupabase<
                       },
                       (payload) => {
                           const { eventType, new: value, old } = payload;
-                          if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                              const cur = value$.peek()?.[value.id];
-                              const curDateStr =
-                                  cur &&
-                                  ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||
-                                      fieldCreatedAt ||
-                                      cur[fieldCreatedAt as any]);
-                              const valueDateStr =
-                                  (fieldUpdatedAt && value[fieldUpdatedAt]) ||
-                                  (fieldCreatedAt && value[fieldCreatedAt]);
-                              const valueDate = +new Date(valueDateStr);
-                              // Check if new or newer than last seen locally
-                              if (valueDateStr && (!curDateStr || valueDate > +new Date(curDateStr))) {
-                                  // Update local with the new value
-                                  update({
-                                      value: [value as TRemote],
-                                      lastSync: valueDate,
-                                      mode: 'merge',
-                                  });
+                          switch (eventType) {
+                              case 'INSERT':
+                              case 'UPDATE': {
+                                  const cur = value$.peek()?.[value.id];
+                                  const curDateStr =
+                                      cur &&
+                                      ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||
+                                          fieldCreatedAt ||
+                                          cur[fieldCreatedAt as any]);
+                                  const valueDateStr =
+                                      (fieldUpdatedAt && value[fieldUpdatedAt]) ||
+                                      (fieldCreatedAt && value[fieldCreatedAt]);
+                                  const valueDate = +new Date(valueDateStr);
+                                  // Check if new or newer than last seen locally
+                                  if (valueDateStr && (!curDateStr || valueDate > +new Date(curDateStr))) {
+                                      // Update local with the new value
+                                      update({
+                                          value: [value as TRemote],
+                                          lastSync: valueDate,
+                                          mode: 'merge',
+                                      });
+                                  }
+                                  break;
                               }
-                          } else if (eventType === 'DELETE') {
-                              const { id } = old;
-                              update({
-                                  value: [{ [id]: symbolDelete } as TRemote],
-                              });
+                              case 'DELETE': {
+                                  const { id } = old;
+                                  if (preferHardDelete) {
+                                      deleteFn(id);
+                                  } else {
+                                      update({
+                                          value: [{ [id]: symbolDelete } as TRemote],
+                                      });
+                                  }
+                                  break;
+                              }
                           }
                       },
                   )

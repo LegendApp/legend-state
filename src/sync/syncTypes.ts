@@ -62,6 +62,7 @@ export interface SyncedSetParams<T>
 export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBaseParams<T> {
     lastSync: number | undefined;
     update: UpdateFn<T>;
+    deleteFn: (id: string | number) => void;
     onError: (error: Error) => void;
 }
 
