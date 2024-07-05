@@ -158,18 +158,34 @@ export function syncedSupabase<
               }
             : undefined;
 
-    const upsert = async (input: SupabaseRowOf<Client, Collection>) => {
-        const res = await client.from(collection).upsert(input).select();
-        const { data, error } = res;
-        if (data) {
-            const created = data[0];
-            return created;
-        } else {
-            throw new Error(error?.message);
-        }
-    };
-    const create = !actions || actions.includes('create') ? upsert : undefined;
-    const update = !actions || actions.includes('update') ? upsert : undefined;
+    const create =
+        !actions || actions.includes('create')
+            ? async (input: SupabaseRowOf<Client, Collection>) => {
+                  const res = await client.from(collection).insert(input).select();
+                  const { data, error } = res;
+                  if (data) {
+                      const created = data[0];
+                      return created;
+                  } else {
+                      throw new Error(error?.message);
+                  }
+              }
+            : undefined;
+
+    const update =
+        !actions || actions.includes('update')
+            ? async (input: SupabaseRowOf<Client, Collection>) => {
+                  const res = await client.from(collection).update(input).eq('id', input.id).select();
+                  const { data, error } = res;
+                  if (data) {
+                      const created = data[0];
+                      return created;
+                  } else {
+                      throw new Error(error?.message);
+                  }
+              }
+            : undefined;
+
     const deleteFn =
         !fieldDeleted && (!actions || actions.includes('delete'))
             ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
@@ -184,6 +200,7 @@ export function syncedSupabase<
                   }
               }
             : undefined;
+
     const subscribe = realtime
         ? ({ node, value$, update }: SyncedSubscribeParams<TRemote[]>) => {
               const { filter, schema } = (isObject(realtime) ? realtime : {}) as { schema?: string; filter?: string };
