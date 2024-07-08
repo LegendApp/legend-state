@@ -523,7 +523,7 @@ export function syncedKeel<
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
-        fieldDeleted: fieldDeleted || 'deleted',
+        fieldDeleted,
         changesSince,
         updatePartial: true,
         subscribe,

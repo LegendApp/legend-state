@@ -156,7 +156,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
             const isObs = isObservable(result);
             const value = isObs ? result.peek() : result;
             if (value) {
-                result = !isObs && (result[fieldDeleted as any] || result.__deleted) ? internal.symbolDelete : result;
+                // Replace any children with symbolDelete or fieldDeleted with symbolDelete
+                result =
+                    !isObs && (result[fieldDeleted as any] || result[symbolDelete]) ? internal.symbolDelete : result;
                 if (asArray) {
                     (out as any[]).push(result);
                 } else if (asMap) {
@@ -167,6 +169,15 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
             }
         }
         return out;
+    };
+
+    const transformRows = (data: TRemote[]) => {
+        return Promise.all(
+            data.map((value: any) =>
+                // Skip transforming any children with symbolDelete or fieldDeleted because they'll get deleted by resultsToOutType
+                value[symbolDelete] || (fieldDeleted && value[fieldDeleted]) ? value : transform!.load!(value, 'get'),
+            ),
+        );
     };
 
     const get: undefined | ((params: SyncedGetParams<TRemote>) => TLocal | Promise<TLocal>) =
@@ -194,7 +205,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           }
                       };
 
-                      const processTransformed = (data: TRemote[] | null) => {
+                      const processResults = (data: TRemote[] | null) => {
                           data ||= [];
                           if (fieldUpdatedAt) {
                               const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
@@ -206,15 +217,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           let transformed = data as unknown as TLocal[] | Promise<TLocal[]>;
 
                           if (transform?.load) {
-                              transformed = Promise.all(data.map((value) => transform.load!(value, 'get')));
+                              transformed = transformRows(data);
                           }
 
                           return isPromise(transformed) ? transformed.then(toOut) : toOut(transformed);
                       };
 
-                      return isPromise(listPromise)
-                          ? listPromise.then(processTransformed)
-                          : processTransformed(listPromise);
+                      return isPromise(listPromise) ? listPromise.then(processResults) : processResults(listPromise);
                   } else if (getFn) {
                       const dataPromise = getFn(getParams);
 
@@ -447,10 +456,8 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               } else if (fieldDeleted && updateFn) {
                                   const valueId = (valuePrevious as any)[fieldId];
                                   if (valueId) {
-                                      updateFn(
-                                          { ...(valueId ? { [fieldId]: valueId } : {}), [fieldDeleted]: true } as any,
-                                          params,
-                                      );
+                                      // Update with fieldDeleted set to true
+                                      updateFn({ ...{ [fieldId]: valueId }, [fieldDeleted]: true } as any, params);
                                   } else {
                                       console.error('[legend-state]: deleting item without an id');
                                   }
@@ -483,9 +490,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           paramsForUpdate.lastSync = newLastSync;
                       }
 
-                      const rowsTransformed = transform?.load
-                          ? await Promise.all(rows.map((row) => transform.load!(row as any, 'get')))
-                          : rows;
+                      const rowsTransformed = transform?.load ? await transformRows(rows) : rows;
 
                       paramsForUpdate.value = resultsToOutType(rowsTransformed);
                       params.update(paramsForUpdate);

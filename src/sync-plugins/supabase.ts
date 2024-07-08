@@ -237,9 +237,9 @@ export function syncedSupabase<
                                   });
                               }
                           } else if (eventType === 'DELETE') {
-                              const { id } = old;
+                              old[symbolDelete as any] = true;
                               update({
-                                  value: [{ [id]: symbolDelete } as TRemote],
+                                  value: [old as TRemote],
                               });
                           }
                       },

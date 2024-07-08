@@ -257,8 +257,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       if (!didList) return;
 
                       const key = snap.key!;
+                      const val = snap.val();
+                      if (fieldId && !val[fieldId!]) {
+                          val[fieldId!] = key;
+                      }
+                      val[symbolDelete] = true;
                       update({
-                          value: [{ [key]: symbolDelete } as TRemote],
+                          value: [val],
                           mode: 'assign',
                       });
                   };

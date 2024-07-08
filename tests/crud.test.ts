@@ -1,7 +1,7 @@
 import { observable, observe, syncState, when } from '@legendapp/state';
 import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { clone } from '../src/globals';
+import { clone, symbolDelete } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
@@ -1881,6 +1881,52 @@ describe('subscribe', () => {
         set2$.set(true);
         await promiseTimeout(1);
         expect(obs.get()).toEqual({ id: 3 });
+    });
+    test('subscribe with deleted as array', async () => {
+        const set1$ = observable(false);
+        const obs = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [{ id: 1 }, { id: 2 }]),
+                as: 'array',
+                subscribe: ({ update }) => {
+                    when(set1$, () => {
+                        update({ value: [{ id: 1, [symbolDelete as any]: true }] });
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual([{ id: 1 }, { id: 2 }]);
+
+        set1$.set(true);
+        await promiseTimeout(1);
+        expect(obs.get()).toEqual([{ id: 2 }]);
+    });
+    test('subscribe with deleted as object', async () => {
+        const set1$ = observable(false);
+        const obs = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [{ id: 1 }, { id: 2 }]),
+                as: 'object',
+                subscribe: ({ update }) => {
+                    when(set1$, () => {
+                        update({ value: [{ id: 1, [symbolDelete as any]: true }] });
+                    });
+                },
+            }),
+        );
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual({ 1: { id: 1 }, 2: { id: 2 } });
+
+        set1$.set(true);
+        await promiseTimeout(1);
+        expect(obs.get()).toEqual({ 2: { id: 2 } });
     });
 });
 describe('onSaved', () => {
