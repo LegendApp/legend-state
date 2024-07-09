@@ -243,13 +243,12 @@ function mergeChanges(changes: Change[]) {
 function mergeQueuedChanges(allChanges: QueuedChange[]) {
     const changesByOptionsRemote = new Map<SyncedOptions, Change[]>();
     const changesByOptionsLocal = new Map<SyncedOptions, Change[]>();
-    const previousByOptions = new Map<SyncedOptions, any>();
     const outRemote: Map<SyncedOptions, QueuedChange> = new Map();
     const outLocal: Map<SyncedOptions, QueuedChange> = new Map();
 
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
-        const { changes, inRemoteChange, getPrevious, syncOptions } = value;
+        const { changes, inRemoteChange, syncOptions } = value;
         const targetMap = inRemoteChange ? outRemote : outLocal;
         const changesMap = inRemoteChange ? changesByOptionsRemote : changesByOptionsLocal;
         const existing = changesMap.get(syncOptions);
@@ -257,9 +256,6 @@ function mergeQueuedChanges(allChanges: QueuedChange[]) {
         const merged = mergeChanges(newChanges);
         changesMap.set(syncOptions, merged);
         value.changes = merged;
-        if (!previousByOptions.has(syncOptions)) {
-            previousByOptions.set(syncOptions, getPrevious());
-        }
         targetMap.set(syncOptions, value);
     }
     return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
