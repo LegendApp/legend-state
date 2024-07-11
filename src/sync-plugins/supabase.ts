@@ -27,10 +27,13 @@ import {
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 // Unused types but maybe useful in the future so keeping them for now
-// type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
-// type SchemaNameOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer _, infer SchemaName>
-//     ? SchemaName
-//     : never;
+type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
+
+type SchemaNameOf<Client extends SupabaseClient> = keyof DatabaseOf<Client>;
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+
+type IsUnionOfStrings<T> = [T] extends [string] ? ([T] extends [UnionToIntersection<T>] ? false : true) : false;
 
 export type SupabaseSchemaOf<Client extends SupabaseClient> =
     Client extends SupabaseClient<
@@ -42,12 +45,21 @@ export type SupabaseSchemaOf<Client extends SupabaseClient> =
     >
         ? Schema
         : never;
-export type SupabaseTableOf<Client extends SupabaseClient> = SupabaseSchemaOf<Client>['Tables'];
-export type SupabaseCollectionOf<Client extends SupabaseClient> = keyof SupabaseTableOf<Client>;
+export type SupabaseTableOf<
+    Client extends SupabaseClient,
+    SchemaName extends SchemaNameOf<Client>,
+> = DatabaseOf<Client>[SchemaName]['Tables'];
+
+export type SupabaseCollectionOf<
+    Client extends SupabaseClient,
+    SchemaName extends SchemaNameOf<Client>,
+> = keyof SupabaseTableOf<Client, IsUnionOfStrings<SchemaName> extends true ? 'public' : SchemaName>;
+
 export type SupabaseRowOf<
     Client extends SupabaseClient,
-    Collection extends SupabaseCollectionOf<Client>,
-> = SupabaseTableOf<Client>[Collection]['Row'];
+    Collection extends SupabaseCollectionOf<Client, SchemaName>,
+    SchemaName extends SchemaNameOf<Client>,
+> = SupabaseTableOf<Client, SchemaName>[Collection]['Row'];
 
 export type SyncedSupabaseConfig<TRemote extends { id: string | number }, TLocal> = Omit<
     SyncedCrudPropsBase<TRemote, TLocal>,
@@ -65,17 +77,23 @@ export interface SyncedSupabaseConfiguration
 }
 
 interface SyncedSupabaseProps<
-    Client extends SupabaseClient,
-    Collection extends SupabaseCollectionOf<Client>,
+    Client extends SupabaseClient<any, any>,
+    Collection extends SupabaseCollectionOf<Client, SchemaName>,
+    SchemaName extends SchemaNameOf<Client>,
     TOption extends CrudAsOption = 'object',
-    TRemote extends SupabaseRowOf<Client, Collection> = SupabaseRowOf<Client, Collection>,
+    TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
 > extends SyncedSupabaseConfig<TRemote, TLocal>,
         SyncedCrudPropsMany<TRemote, TRemote, TOption> {
     supabase: Client;
     collection: Collection;
+    schema?: SchemaName;
     select?: (
-        query: PostgrestQueryBuilder<SupabaseSchemaOf<Client>, SupabaseTableOf<Client>[Collection], Collection>,
+        query: PostgrestQueryBuilder<
+            SupabaseSchemaOf<Client>,
+            SupabaseTableOf<Client, SchemaName>[Collection],
+            Collection
+        >,
     ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
     filter?: (
         select: PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>,
@@ -102,17 +120,21 @@ export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
 }
 
 export function syncedSupabase<
-    Client extends SupabaseClient,
-    Collection extends SupabaseCollectionOf<Client> & string,
+    Client extends SupabaseClient<any, any>,
+    Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
+    SchemaName extends SchemaNameOf<Client>,
     AsOption extends CrudAsOption = 'object',
-    TRemote extends SupabaseRowOf<Client, Collection> = SupabaseRowOf<Client, Collection>,
+    TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
->(props: SyncedSupabaseProps<Client, Collection, AsOption, TRemote, TLocal>): SyncedCrudReturnType<TLocal, AsOption> {
+>(
+    props: SyncedSupabaseProps<Client, Collection, SchemaName, AsOption, TRemote, TLocal>,
+): SyncedCrudReturnType<TLocal, AsOption> {
     props = { ...supabaseConfig, ...props } as any;
     const {
         supabase: client,
         collection,
         select: selectFn,
+        schema,
         filter,
         actions,
         fieldCreatedAt: fieldCreatedAtParam,
@@ -138,7 +160,8 @@ export function syncedSupabase<
         !actions || actions.includes('read')
             ? async (params: SyncedGetParams<TRemote>) => {
                   const { lastSync } = params;
-                  const from = client.from(collection);
+                  const clientSchema = schema ? client.schema(schema as string) : client;
+                  const from = clientSchema.from(collection);
                   let select = selectFn ? selectFn(from) : from.select();
 
                   // in last-sync mode, filter for rows updated more recently than the last sync
@@ -154,13 +177,13 @@ export function syncedSupabase<
                   if (error) {
                       throw new Error(error?.message);
                   }
-                  return (data! || []) as SupabaseRowOf<Client, Collection>[];
+                  return (data! || []) as SupabaseRowOf<Client, Collection, SchemaName>[];
               }
             : undefined;
 
     const create =
         !actions || actions.includes('create')
-            ? async (input: SupabaseRowOf<Client, Collection>) => {
+            ? async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
                   const res = await client.from(collection).insert(input).select();
                   const { data, error } = res;
                   if (data) {
@@ -174,7 +197,7 @@ export function syncedSupabase<
 
     const update =
         !actions || actions.includes('update')
-            ? async (input: SupabaseRowOf<Client, Collection>) => {
+            ? async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
                   const res = await client.from(collection).update(input).eq('id', input.id).select();
                   const { data, error } = res;
                   if (data) {
@@ -188,7 +211,7 @@ export function syncedSupabase<
 
     const deleteFn =
         !fieldDeleted && (!actions || actions.includes('delete'))
-            ? async (input: { id: SupabaseRowOf<Client, Collection>['id'] }) => {
+            ? async (input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] }) => {
                   const id = input.id;
                   const res = await client.from(collection).delete().eq('id', id).select();
                   const { data, error } = res;
@@ -256,7 +279,11 @@ export function syncedSupabase<
         transform = transform ? combineTransforms(stringifier, transform) : stringifier;
     }
 
-    return syncedCrud<SupabaseRowOf<Client, Collection>, SupabaseRowOf<Client, Collection>, AsOption>({
+    return syncedCrud<
+        SupabaseRowOf<Client, Collection, SchemaName>,
+        SupabaseRowOf<Client, Collection, SchemaName>,
+        AsOption
+    >({
         ...rest,
         mode: mode || 'merge',
         list,
