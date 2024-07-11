@@ -191,6 +191,10 @@ describe('Computed', () => {
         stateTest$.id.set('3');
 
         expect(latestValue!).toEqual({ id: '3' });
+
+        stateTest$.id.set('');
+
+        expect(latestValue!).toEqual(undefined);
     });
     test('Operating on observable array ', () => {
         const stateTest$ = observable({
@@ -1916,6 +1920,65 @@ describe('Link directly', () => {
         const obs2$ = observable(() => ({ key1: obs$.key1 }));
         obs2$.key1.delete();
         expect(obs$.get()).toEqual({ key2: 'hi2' });
+    });
+    test('link in array', () => {
+        interface Estimation {
+            id: string;
+            name: string;
+        }
+
+        interface AppState {
+            estimations: Estimation[];
+            estimationIdSelected: string;
+            estimationSelected: Estimation;
+        }
+        const appState$ = observable<AppState>({
+            estimations: [],
+            estimationIdSelected: '',
+            estimationSelected: () => {
+                return appState$.estimations.find((e) => {
+                    return e.id.get() === appState$.estimationIdSelected.get();
+                });
+            },
+        });
+
+        let nextId = 0;
+        const addEstimation = () => {
+            const id = nextId++ + '';
+            appState$.estimations.push({ id, name: id });
+        };
+
+        const deleteEstimation = (estimationId: string) => {
+            const index = appState$.estimations.findIndex((e) => e.id.peek() === estimationId);
+            batch(() => {
+                appState$.estimations[index].delete();
+                appState$.estimationIdSelected.set('');
+            });
+        };
+
+        let lastSelected: string | undefined = undefined;
+        observe(() => {
+            const val = appState$.estimationSelected.name.get();
+            lastSelected = val;
+        });
+
+        expect(lastSelected).toEqual(undefined);
+
+        addEstimation();
+        addEstimation();
+
+        expect(lastSelected).toEqual(undefined);
+
+        appState$.estimationIdSelected.set('0');
+
+        expect(lastSelected).toEqual('0');
+
+        batch(() => {
+            deleteEstimation('0');
+            appState$.estimationIdSelected.set('');
+        });
+
+        expect(lastSelected).toEqual(undefined);
     });
 });
 describe('Complex computeds', () => {

@@ -1093,15 +1093,16 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
 
             let didSetToObs = false;
             // If target is an observable, make this node a link to it
-            if (isObservable(value)) {
-                didSetToObs = true;
+            const isObs = isObservable(value);
+            if (isObs || node.linkedToNode) {
+                didSetToObs = isObs;
                 value = setToObservable(node, value);
             }
 
             if (isFunction(value) && value.length === 0) {
                 value = value();
             }
-            const activated = !isObservable(value) ? (value?.[symbolLinked] as any) : undefined;
+            const activated = !isObs ? (value?.[symbolLinked] as any) : undefined;
             if (activated) {
                 node.activationState = activated;
                 value = undefined;
@@ -1308,23 +1309,26 @@ function activateNodeBase(node: NodeValue, value: any) {
 function setToObservable(node: NodeValue, value: any) {
     // If the computed is a proxy to another observable
     // link it to the target observable
-    const linkedNode = getNode(value);
+    const linkedNode = value ? getNode(value) : undefined;
     if (linkedNode !== node && linkedNode?.linkedToNode !== node) {
         node.linkedToNode = linkedNode;
-        linkedNode.linkedFromNodes ||= new Set();
-        linkedNode.linkedFromNodes.add(node);
         node.linkedToNodeDispose?.();
-        node.linkedToNodeDispose = onChange(
-            linkedNode,
-            () => {
-                value = peekInternal(linkedNode);
-                if (!isFunction(value)) {
-                    set(node, value);
-                }
-            },
-            { initial: true },
-            new Set([node]),
-        );
+
+        if (linkedNode) {
+            linkedNode.linkedFromNodes ||= new Set();
+            linkedNode.linkedFromNodes.add(node);
+            node.linkedToNodeDispose = onChange(
+                linkedNode,
+                () => {
+                    value = peekInternal(linkedNode);
+                    if (!isFunction(value)) {
+                        set(node, value);
+                    }
+                },
+                { initial: true },
+                new Set([node]),
+            );
+        }
     }
     return value;
 }
