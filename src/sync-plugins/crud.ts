@@ -57,6 +57,7 @@ export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     fieldUpdatedAt?: string;
     fieldCreatedAt?: string;
     fieldDeleted?: string;
+    fieldDeletedList?: string;
     updatePartial?: boolean;
     changesSince?: 'all' | 'last-sync';
     generateId?: () => string | number;
@@ -126,6 +127,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         fieldCreatedAt,
         fieldUpdatedAt,
         fieldDeleted,
+        fieldDeletedList,
         updatePartial,
         subscribe: subscribeProp,
         onSaved,
@@ -158,7 +160,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
             if (value) {
                 // Replace any children with symbolDelete or fieldDeleted with symbolDelete
                 result =
-                    !isObs && (result[fieldDeleted as any] || result[symbolDelete]) ? internal.symbolDelete : result;
+                    !isObs &&
+                    ((fieldDeleted && result[fieldDeleted as any]) ||
+                        (fieldDeletedList && result[fieldDeletedList]) ||
+                        result[symbolDelete])
+                        ? internal.symbolDelete
+                        : result;
                 if (asArray) {
                     (out as any[]).push(result);
                 } else if (asMap) {
@@ -175,7 +182,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         return Promise.all(
             data.map((value: any) =>
                 // Skip transforming any children with symbolDelete or fieldDeleted because they'll get deleted by resultsToOutType
-                value[symbolDelete] || (fieldDeleted && value[fieldDeleted]) ? value : transform!.load!(value, 'get'),
+                value[symbolDelete] ||
+                (fieldDeleted && value[fieldDeleted]) ||
+                (fieldDeletedList && value[fieldDeletedList])
+                    ? value
+                    : transform!.load!(value, 'get'),
             ),
         );
     };
@@ -449,7 +460,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           }
                       }),
                       ...Array.from(deletes).map((valuePrevious) => {
-                          // Dont' delete if already deleted
+                          // Don't delete if already deleted
                           if (valuePrevious !== (symbolDelete as any)) {
                               if (deleteFn) {
                                   deleteFn(valuePrevious, params);
