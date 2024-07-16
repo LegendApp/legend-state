@@ -10,6 +10,7 @@ import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage
 import { observe } from '../src/observe';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { event } from '../src/event';
+import { configuredSyncObservable, configuredSynced } from '../src/sync/createConfigured';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -554,7 +555,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        configureObservableSync({
+        const mySyncObservable = configuredSyncObservable({
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -562,7 +563,7 @@ describe('persist objects', () => {
 
         const persistName = getPersistName();
 
-        syncObservable(tablesState$, {
+        mySyncObservable(tablesState$, {
             persist: {
                 name: persistName,
             },
@@ -617,7 +618,7 @@ describe('persist objects', () => {
                 ],
             ]),
         });
-        syncObservable(tablesState2$, {
+        mySyncObservable(tablesState2$, {
             persist: {
                 name: persistName,
             },
@@ -645,7 +646,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        configureObservableSync({
+        const mySyncObservable = configuredSyncObservable({
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -653,7 +654,7 @@ describe('persist objects', () => {
 
         const persistName = getPersistName();
 
-        syncObservable(obs$, {
+        mySyncObservable(obs$, {
             persist: {
                 name: persistName,
             },
@@ -688,7 +689,7 @@ describe('persist objects', () => {
                 ['v2', { h1: 'h3', h2: [1] }],
             ]),
         });
-        syncObservable(obs2$, {
+        mySyncObservable(obs2$, {
             persist: {
                 name: persistName,
             },
@@ -778,7 +779,7 @@ describe('global config', () => {
     test('takes global config persist changes', async () => {
         let setTo: any = undefined;
         const didSet$ = observable(false);
-        configureObservableSync({
+        const mySynced = configuredSynced(synced, {
             persist: {
                 retrySync: true,
                 plugin: ObservablePersistLocalStorage,
@@ -787,7 +788,7 @@ describe('global config', () => {
 
         const persistName = getPersistName();
         const obs$ = observable(
-            synced({
+            mySynced({
                 get: async () => {
                     await promiseTimeout(0);
                     return { test: false };

@@ -35,13 +35,6 @@ const ItemBasicValue: () => BasicValue = () => ({
     test: 'hi',
 });
 
-beforeAll(() => {
-    configureObservableSync({
-        debounceSet: null,
-        persist: null,
-    } as any);
-});
-
 async function fakeKeelList<T>(results: T[]): Promise<APIResult<{ results: T[]; pageInfo: any }>> {
     await promiseTimeout(0);
     return {

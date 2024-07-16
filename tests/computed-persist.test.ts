@@ -1,5 +1,5 @@
 import { event, observable, observe, syncState, when, whenReady } from '@legendapp/state';
-import { configureObservableSync, syncObservable, synced } from '@legendapp/state/sync';
+import { configuredSynced, syncObservable, synced } from '@legendapp/state/sync';
 import { onChangeRemote } from '../src/sync/syncObservable';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
@@ -763,11 +763,9 @@ describe('Debouncing', () => {
     test('Remote changes debounce with global config', async () => {
         let startTime = 0;
         const didSet$ = observable<string>();
-        configureObservableSync({
-            debounceSet: 20,
-        });
+        const mySynced = configuredSynced(synced, { debounceSet: 20, persist: { plugin: undefined } });
         const obs = observable(
-            synced({
+            mySynced({
                 get: () => {
                     return 'hi';
                 },
@@ -787,11 +785,9 @@ describe('Debouncing', () => {
         let startTime = 0;
         const didSet1$ = observable<string>();
         const didSet2$ = observable<string>();
-        configureObservableSync({
-            debounceSet: 10,
-        });
+        const mySynced = configuredSynced(synced, { debounceSet: 10 });
         const obs = observable(
-            synced({
+            mySynced({
                 get: () => {
                     return 'hi';
                 },
@@ -801,7 +797,7 @@ describe('Debouncing', () => {
             }),
         );
         const obs2 = observable(
-            synced({
+            mySynced({
                 get: () => {
                     return 'hi';
                 },
