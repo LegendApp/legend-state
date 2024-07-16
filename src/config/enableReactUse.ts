@@ -1,4 +1,4 @@
-import { configureLegendState, internal, NodeValue } from '@legendapp/state';
+import { configureLegendState, internal, NodeInfo } from '@legendapp/state';
 import { useSelector, UseSelectorOptions } from '@legendapp/state/react';
 
 // TODO: Deprecated, remove in v4
@@ -7,7 +7,7 @@ let didWarn = false;
 export function enableReactUse() {
     configureLegendState({
         observableFunctions: {
-            use: (node: NodeValue, options?: UseSelectorOptions) => {
+            use: (node: NodeInfo, options?: UseSelectorOptions) => {
                 if (process.env.NODE_ENV === 'development' && !didWarn) {
                     didWarn = true;
                     console.warn(

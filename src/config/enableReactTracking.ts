@@ -4,7 +4,7 @@ import {
     internal,
     isObject,
     tracking,
-    type NodeValue,
+    type NodeInfo,
     type TrackingType,
 } from '@legendapp/state';
 import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
@@ -44,7 +44,7 @@ export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptio
 
         configureLegendState({
             observableFunctions: {
-                get: (node: NodeValue, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
+                get: (node: NodeInfo, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
                     if (needsSelector()) {
                         if (auto) {
                             return useSelector(() => get(node, options), isObject(options) ? options : undefined);

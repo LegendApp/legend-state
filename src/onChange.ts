@@ -1,12 +1,12 @@
 import { getNodeValue } from './globals';
 import { isArray } from './is';
-import type { ListenerFn, ListenerParams, NodeValue, NodeValueListener, TrackingType } from './observableInterfaces';
+import type { ListenerFn, ListenerParams, NodeInfo, NodeListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
-    node: NodeValue,
+    node: NodeInfo,
     callback: ListenerFn,
     options: { trackingType?: TrackingType; initial?: boolean; immediate?: boolean; noArgs?: boolean } = {},
-    fromLinks?: Set<NodeValue>,
+    fromLinks?: Set<NodeInfo>,
 ): () => void {
     const { initial, immediate, noArgs } = options;
     const { trackingType } = options;
@@ -21,7 +21,7 @@ export function onChange(
         }
     }
 
-    const listener: NodeValueListener = {
+    const listener: NodeListener = {
         listener: callback,
         track: trackingType,
         noArgs,
@@ -49,7 +49,7 @@ export function onChange(
 
     let extraDisposes: (() => void)[];
 
-    function addLinkedNodeListeners(childNode: NodeValue, cb: ListenerFn = callback, from?: NodeValue) {
+    function addLinkedNodeListeners(childNode: NodeInfo, cb: ListenerFn = callback, from?: NodeInfo) {
         // Don't add listeners for the same node more than once
         if (!fromLinks?.has(childNode)) {
             fromLinks ||= new Set();
@@ -104,7 +104,7 @@ export function onChange(
     };
 }
 
-function createCb(linkedFromNode: NodeValue, path: string[], callback: ListenerFn) {
+function createCb(linkedFromNode: NodeInfo, path: string[], callback: ListenerFn) {
     // Create a callback for a path that calls it with the current value at the path
     let { valueAtPath: prevAtPath } = getValueAtPath(getNodeValue(linkedFromNode), path);
 

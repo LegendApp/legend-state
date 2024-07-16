@@ -1,4 +1,4 @@
-import type { NodeValue, TrackingState, TrackingType } from './observableInterfaces';
+import type { NodeInfo, TrackingState, TrackingType } from './observableInterfaces';
 
 let trackCount = 0;
 const trackingQueue: (TrackingState | undefined)[] = [];
@@ -23,7 +23,7 @@ export function endTracking() {
     tracking.current = trackingQueue.pop();
 }
 
-export function updateTracking(node: NodeValue, track?: TrackingType) {
+export function updateTracking(node: NodeInfo, track?: TrackingType) {
     if (trackCount) {
         const tracker = tracking.current;
         if (tracker) {

@@ -9,7 +9,7 @@ import type {
     ClassConstructor,
     GetMode,
     LinkedOptions,
-    NodeValue,
+    NodeInfo,
     Observable,
     ObservableParam,
     ObservableSyncState,
@@ -34,7 +34,7 @@ export interface PersistOptions<T = any> {
 }
 
 export interface SyncedGetSetSubscribeBaseParams<T = any> {
-    node: NodeValue;
+    node: NodeInfo;
     value$: ObservableParam<T>;
     refresh: () => void;
 }
@@ -149,7 +149,7 @@ export interface ObservableSyncFunctions<T = any> {
 }
 
 export interface SubscribeOptions {
-    node: NodeValue;
+    node: NodeInfo;
     update: UpdateFn;
     refresh: () => void;
 }

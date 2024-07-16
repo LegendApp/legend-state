@@ -1,11 +1,11 @@
-import type { NodeValue, UpdateFn } from '@legendapp/state';
+import type { NodeInfo, UpdateFn } from '@legendapp/state';
 import { internal, isFunction, isPromise } from '@legendapp/state';
 import { syncObservable } from './syncObservable';
 import type { SyncedGetParams, SyncedOptions } from './syncTypes';
 const { getProxy, globalState, setNodeValue, getNodeValue } = internal;
 
 export function enableActivateSyncedNode() {
-    globalState.activateSyncedNode = function activateSyncedNode(node: NodeValue, newValue: any) {
+    globalState.activateSyncedNode = function activateSyncedNode(node: NodeInfo, newValue: any) {
         const obs$ = getProxy(node);
         if (node.activationState) {
             // If it is a Synced
@@ -14,7 +14,7 @@ export function enableActivateSyncedNode() {
                 initial,
                 set,
                 onChange,
-            } = node.activationState! as NodeValue['activationState'] & SyncedOptions;
+            } = node.activationState! as NodeInfo['activationState'] & SyncedOptions;
 
             let promiseReturn: any = undefined;
 

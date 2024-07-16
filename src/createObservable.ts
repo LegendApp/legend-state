@@ -1,7 +1,7 @@
 import { isObservable, setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
 import type { ClassConstructor, ObservableRoot } from './observableInterfaces';
-import { NodeValue } from './observableInterfaces';
+import { NodeInfo } from './observableInterfaces';
 import { Observable, ObservablePrimitive } from './observableTypes';
 
 export function createObservable<T>(
@@ -21,7 +21,7 @@ export function createObservable<T>(
         _: value,
     };
 
-    let node: NodeValue = {
+    let node: NodeInfo = {
         root,
         lazy: true,
         numListenersRecursive: 0,

@@ -51,32 +51,32 @@ export interface ObservableRoot {
 export type Primitive = boolean | string | number | Date;
 export type NotPrimitive<T> = T extends Primitive ? never : T;
 
-export interface NodeValueListener {
+export interface NodeListener {
     track: TrackingType;
     noArgs?: boolean;
     listener: ListenerFn;
 }
 export interface TrackingState {
-    nodes?: Map<NodeValue, TrackingNode>;
-    traceListeners?: (nodes: Map<NodeValue, TrackingNode>) => void;
+    nodes?: Map<NodeInfo, TrackingNode>;
+    traceListeners?: (nodes: Map<NodeInfo, TrackingNode>) => void;
     traceUpdates?: (fn: Function) => Function;
 }
 
-interface BaseNodeValue {
-    children?: Map<string, ChildNodeValue>;
+interface BaseNodeInfo {
+    children?: Map<string, ChildNodeInfo>;
     proxy?: object;
     root: ObservableRoot;
-    listeners?: Set<NodeValueListener>;
-    listenersImmediate?: Set<NodeValueListener>;
+    listeners?: Set<NodeListener>;
+    listenersImmediate?: Set<NodeListener>;
     isEvent?: boolean;
-    linkedToNode?: NodeValue;
+    linkedToNode?: NodeInfo;
     linkedToNodeDispose?: () => void;
     activatedObserveDispose?: () => void;
-    linkedFromNodes?: Set<NodeValue>;
+    linkedFromNodes?: Set<NodeInfo>;
     isSetting?: number;
     isAssigning?: number;
     isComputing?: boolean;
-    parentOther?: NodeValue;
+    parentOther?: NodeInfo;
     functions?: Map<string, Function | Observable<any>>;
     lazy?: boolean;
     lazyFn?: Function;
@@ -90,25 +90,25 @@ interface BaseNodeValue {
         onChange: (params: UpdateFnParams) => void | Promise<void>;
     };
     dirtyFn?: () => void;
-    dirtyChildren?: Set<NodeValue>;
+    dirtyChildren?: Set<NodeInfo>;
     numGets?: number;
     getNumResolved?: number;
 }
 
-export interface RootNodeValue extends BaseNodeValue {
+export interface RootNodeInfo extends BaseNodeInfo {
     parent?: undefined;
     key?: undefined;
 }
 
-export interface ChildNodeValue extends BaseNodeValue {
-    parent: NodeValue;
+export interface ChildNodeInfo extends BaseNodeInfo {
+    parent: NodeInfo;
     key: string;
 }
 
-export type NodeValue = RootNodeValue | ChildNodeValue;
+export type NodeInfo = RootNodeInfo | ChildNodeInfo;
 
 export interface TrackingNode {
-    node: NodeValue;
+    node: NodeInfo;
     track: TrackingType;
     num: number;
 }
@@ -123,7 +123,7 @@ export interface ObserveEventCallback<T> {
     previous?: T | undefined;
     value?: T;
     cancel: boolean;
-    nodes: Map<NodeValue, TrackingNode> | undefined;
+    nodes: Map<NodeInfo, TrackingNode> | undefined;
     refresh: () => void;
     onCleanup?: () => void;
     onCleanupReaction?: () => void;

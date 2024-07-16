@@ -1,4 +1,4 @@
-import { internal, NodeValue, TrackingNode } from '@legendapp/state';
+import { internal, NodeInfo, TrackingNode } from '@legendapp/state';
 import { getNodePath } from './traceHelpers';
 const { optimized, tracking } = internal;
 
@@ -8,7 +8,7 @@ export function useVerifyNotTracking(this: any, name?: string) {
     }
 }
 
-function traceNodes(name: string | undefined, nodes: Map<NodeValue, TrackingNode>) {
+function traceNodes(name: string | undefined, nodes: Map<NodeInfo, TrackingNode>) {
     if (process.env.NODE_ENV === 'development') {
         tracking.current!.traceListeners = undefined;
         const arr: string[] = [];

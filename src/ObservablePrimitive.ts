@@ -1,18 +1,18 @@
 import { set, get, peek, flushPending } from './ObservableObject';
 import { symbolGetNode } from './globals';
 import { isBoolean } from './is';
-import type { NodeValue, TrackingType } from './observableInterfaces';
+import type { NodeInfo, TrackingType } from './observableInterfaces';
 import type { ObservablePrimitive, ObservableBoolean } from './observableTypes';
 import { onChange } from './onChange';
 
 interface ObservablePrimitiveState {
-    _node: NodeValue;
+    _node: NodeInfo;
     toggle: () => void;
 }
 
 const fns: (keyof ObservableBoolean)[] = ['get', 'set', 'peek', 'onChange', 'toggle'];
 
-export function ObservablePrimitiveClass<T>(this: ObservablePrimitive<T> & ObservablePrimitiveState, node: NodeValue) {
+export function ObservablePrimitiveClass<T>(this: ObservablePrimitive<T> & ObservablePrimitiveState, node: NodeInfo) {
     this._node = node;
 
     // Bind to this
@@ -28,11 +28,11 @@ function proto(key: string, fn: Function) {
         return fn.call(this, this._node, ...args);
     };
 }
-proto('peek', (node: NodeValue) => {
+proto('peek', (node: NodeInfo) => {
     flushPending();
     return peek(node);
 });
-proto('get', (node: NodeValue, options?: TrackingType) => {
+proto('get', (node: NodeInfo, options?: TrackingType) => {
     flushPending();
     return get(node, options);
 });

@@ -1,4 +1,4 @@
-import type { ChildNodeValue, NodeValue } from './observableInterfaces';
+import type { ChildNodeInfo, NodeInfo } from './observableInterfaces';
 
 export const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -62,6 +62,6 @@ export function isActualPrimitive(arg: unknown): arg is boolean | string | numbe
     return setPrimitives.has(typeof arg);
 }
 /** @internal */
-export function isChildNodeValue(node: NodeValue): node is ChildNodeValue {
+export function isChildNode(node: NodeInfo): node is ChildNodeInfo {
     return !!node.parent;
 }

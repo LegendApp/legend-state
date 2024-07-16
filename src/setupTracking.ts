@@ -1,8 +1,8 @@
-import type { ListenerFn, NodeValue, TrackingNode } from './observableInterfaces';
+import type { ListenerFn, NodeInfo, TrackingNode } from './observableInterfaces';
 import { onChange } from './onChange';
 
 export function setupTracking(
-    nodes: Map<NodeValue, TrackingNode> | undefined,
+    nodes: Map<NodeInfo, TrackingNode> | undefined,
     update: ListenerFn,
     noArgs?: boolean,
     immediate?: boolean,

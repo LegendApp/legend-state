@@ -8,7 +8,7 @@ import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } 
 import { setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive } from '../src/observable';
-import { NodeValue } from '../src/observableInterfaces';
+import { NodeInfo } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { syncState } from '../src/syncState';
 import { when, whenReady } from '../src/when';
@@ -3223,7 +3223,7 @@ describe('Extend observableFunctions', () => {
     test('Extend observableFunctions works', () => {
         configureLegendState({
             observableFunctions: {
-                testfn: (node: NodeValue, arg1, arg2) => getNodeValue(node) + arg2,
+                testfn: (node: NodeInfo, arg1, arg2) => getNodeValue(node) + arg2,
             },
         });
 

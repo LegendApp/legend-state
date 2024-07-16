@@ -3,7 +3,7 @@ import type {
     ClassConstructor,
     GetMode,
     ListenerParams,
-    NodeValue,
+    NodeInfo,
     Observable,
     ObservableObject,
     ObservableParam,
@@ -67,7 +67,7 @@ export const mapSyncPlugins: WeakMap<
     }
 > = new WeakMap();
 
-const allSyncStates = new Map<Observable<ObservableSyncState>, NodeValue>();
+const allSyncStates = new Map<Observable<ObservableSyncState>, NodeInfo>();
 const metadatas = new WeakMap<ObservableParam<any>, PersistMetadata>();
 const promisesLocalSaves = new Set<Promise<void>>();
 
@@ -1212,7 +1212,7 @@ export function syncObservable<T>(
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
     const onAllPersistLoaded = () => {
-        let parentNode: NodeValue | undefined = node;
+        let parentNode: NodeInfo | undefined = node;
         while (parentNode) {
             if (parentNode.state?.isPersistLoaded?.get() === false) {
                 return false;
@@ -1238,6 +1238,6 @@ export function syncObservable<T>(
     return syncState$;
 }
 
-export function getAllSyncStates(): readonly [Observable<ObservableSyncState>, NodeValue][] {
+export function getAllSyncStates(): readonly [Observable<ObservableSyncState>, NodeInfo][] {
     return Array.from(allSyncStates.entries());
 }

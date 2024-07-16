@@ -22,7 +22,7 @@ import {
     hasOwnProperty,
     isArray,
     isBoolean,
-    isChildNodeValue,
+    isChildNode,
     isEmpty,
     isFunction,
     isMap,
@@ -35,11 +35,11 @@ import {
 import { linked } from './linked';
 import type {
     Change,
-    ChildNodeValue,
+    ChildNodeInfo,
     GetOptions,
     LinkedOptions,
     ListenerParams,
-    NodeValue,
+    NodeInfo,
     ObservableState,
     TrackingType,
     UpdateFn,
@@ -76,9 +76,9 @@ const ArrayLoopers = new Set<keyof Array<any>>([
 const ArrayLoopersReturn = new Set<keyof Array<any>>(['filter', 'find']);
 export const observableProperties = new Map<
     string,
-    { get: (node: NodeValue, ...args: any[]) => any; set: (node: NodeValue, value: any) => any }
+    { get: (node: NodeInfo, ...args: any[]) => any; set: (node: NodeInfo, value: any) => any }
 >();
-export const observableFns = new Map<string, (node: NodeValue, ...args: any[]) => any>([
+export const observableFns = new Map<string, (node: NodeInfo, ...args: any[]) => any>([
     ['get', get],
     ['set', set],
     ['peek', peek],
@@ -92,7 +92,7 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     // eslint-disable-next-line no-var
     var __devUpdateNodes = new Set();
 }
-function collectionSetter(node: NodeValue, target: any[], prop: keyof Array<any>, ...args: any[]) {
+function collectionSetter(node: NodeInfo, target: any[], prop: keyof Array<any>, ...args: any[]) {
     if (prop === 'push' && args.length === 1) {
         // Fast path for push to just append to the end
         setKey(node, target.length + '', args[0]);
@@ -102,7 +102,7 @@ function collectionSetter(node: NodeValue, target: any[], prop: keyof Array<any>
         const ret = (target[prop] as Function).apply(target, args);
 
         if (node) {
-            const hasParent = isChildNodeValue(node);
+            const hasParent = isChildNode(node);
             const key: string = hasParent ? node.key : '_';
             const parentValue = hasParent ? getNodeValue(node.parent) : node.root;
 
@@ -122,7 +122,7 @@ function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean,
     return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
 }
 
-function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
+function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
     if (
         (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         typeof __devUpdateNodes !== 'undefined' &&
@@ -156,8 +156,8 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
 
     const isArr = isArray(obj);
 
-    let prevChildrenById: Map<string, ChildNodeValue> | undefined;
-    let moved: [string, ChildNodeValue][] | undefined;
+    let prevChildrenById: Map<string, ChildNodeInfo> | undefined;
+    let moved: [string, ChildNodeInfo][] | undefined;
 
     const isCurMap = isMap(obj);
     const isPrevMap = isMap(prevValue);
@@ -357,7 +357,7 @@ function updateNodes(parent: NodeValue, obj: Record<any, any> | Array<any> | und
     return retValue ?? false;
 }
 
-function handleDeletedChild(child: NodeValue, p: any) {
+function handleDeletedChild(child: NodeInfo, p: any) {
     // If the previous value is not in the new array and it
     // is an activated, disable its listeners
     child.linkedToNodeDispose?.();
@@ -372,12 +372,12 @@ function handleDeletedChild(child: NodeValue, p: any) {
     }
 }
 
-export function getProxy(node: NodeValue, p?: string, asFunction?: Function): Observable {
+export function getProxy(node: NodeInfo, p?: string, asFunction?: Function): Observable {
     // Get the child node if p prop
     if (p !== undefined) node = getChildNode(node, p, asFunction);
 
     // Create a proxy if not already cached and return it
-    return (node.proxy || (node.proxy = new Proxy<NodeValue>(node, proxyHandler))) as Observable<any>;
+    return (node.proxy || (node.proxy = new Proxy<NodeInfo>(node, proxyHandler))) as Observable<any>;
 }
 
 export function flushPending() {
@@ -391,7 +391,7 @@ export function flushPending() {
 }
 
 const proxyHandler: ProxyHandler<any> = {
-    get(node: NodeValue, p: any, receiver: any) {
+    get(node: NodeInfo, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
             throw new Error(
                 process.env.NODE_ENV === 'development'
@@ -558,11 +558,11 @@ const proxyHandler: ProxyHandler<any> = {
         return getProxy(node, p);
     },
     // Forward all proxy properties to the target's value
-    getPrototypeOf(node: NodeValue) {
+    getPrototypeOf(node: NodeInfo) {
         const value = getNodeValue(node);
         return value !== null && typeof value === 'object' ? Reflect.getPrototypeOf(value) : null;
     },
-    ownKeys(node: NodeValue) {
+    ownKeys(node: NodeInfo) {
         // TODO: Temporary workaround to fix a bug - the first peek may not return the correct value
         // if the value is a cached. This fixes the test "cache with initial ownKeys"
         peekInternal(node);
@@ -584,14 +584,14 @@ const proxyHandler: ProxyHandler<any> = {
         }
         return keys;
     },
-    getOwnPropertyDescriptor(node: NodeValue, prop: string) {
+    getOwnPropertyDescriptor(node: NodeInfo, prop: string) {
         if (prop === 'caller' || prop === 'arguments' || prop === 'prototype') {
             return { configurable: false, enumerable: false };
         }
         const value = getNodeValue(node);
         return isPrimitive(value) ? undefined : Reflect.getOwnPropertyDescriptor(value, prop);
     },
-    set(node: NodeValue, prop: string, value: any) {
+    set(node: NodeInfo, prop: string, value: any) {
         // If this assignment comes from within an observable function it's allowed
         if (node.isSetting) {
             return Reflect.set(node, prop, value);
@@ -612,7 +612,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
         return false;
     },
-    deleteProperty(node: NodeValue, prop: string) {
+    deleteProperty(node: NodeInfo, prop: string) {
         // If this delete comes from within an observable function it's allowed
         if (node.isSetting) {
             return Reflect.deleteProperty(node, prop);
@@ -623,7 +623,7 @@ const proxyHandler: ProxyHandler<any> = {
             return false;
         }
     },
-    has(node: NodeValue, prop: string) {
+    has(node: NodeInfo, prop: string) {
         const value = getNodeValue(node);
         return Reflect.has(value, prop);
     },
@@ -636,14 +636,14 @@ const proxyHandler: ProxyHandler<any> = {
     },
 };
 
-export function set(node: NodeValue, newValue?: any) {
+export function set(node: NodeInfo, newValue?: any) {
     if (node.parent) {
         setKey(node.parent, node.key, newValue);
     } else {
         setKey(node, '_', newValue);
     }
 }
-function toggle(node: NodeValue) {
+function toggle(node: NodeInfo) {
     const value = getNodeValue(node);
     if (value === undefined || value === null || isBoolean(value)) {
         set(node, !value);
@@ -652,7 +652,7 @@ function toggle(node: NodeValue) {
     }
 }
 
-function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
+function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
@@ -666,7 +666,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     }
 
     // Get the child node for updating and notifying
-    const childNode: NodeValue = isRoot ? node : getChildNode(node, key, newValue);
+    const childNode: NodeInfo = isRoot ? node : getChildNode(node, key, newValue);
 
     if (isObservable(newValue)) {
         setToObservable(childNode, newValue);
@@ -695,7 +695,7 @@ function setKey(node: NodeValue, key: string, newValue?: any, level?: number) {
     }
 }
 
-function assign(node: NodeValue, value: any) {
+function assign(node: NodeInfo, value: any) {
     const proxy = getProxy(node);
 
     beginBatch();
@@ -727,9 +727,9 @@ function assign(node: NodeValue, value: any) {
     return proxy;
 }
 
-function deleteFn(node: NodeValue, key?: string) {
+function deleteFn(node: NodeInfo, key?: string) {
     // If called without a key, delete by key from the parent node
-    if (key === undefined && isChildNodeValue(node)) {
+    if (key === undefined && isChildNode(node)) {
         key = node.key;
         node = node.parent;
     }
@@ -741,7 +741,7 @@ function deleteFn(node: NodeValue, key?: string) {
     }
 }
 
-function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {
+function handlerMapSet(node: NodeInfo, p: any, value: Map<any, any> | WeakMap<any, any> | Set<any> | WeakSet<any>) {
     const vProp = (value as any)?.[p];
     if (p === 'size') {
         updateTracking(node, true);
@@ -812,10 +812,10 @@ function handlerMapSet(node: NodeValue, p: any, value: Map<any, any> | WeakMap<a
 }
 
 function updateNodesAndNotify(
-    node: NodeValue,
+    node: NodeInfo,
     newValue: any,
     prevValue: any,
-    childNode?: NodeValue,
+    childNode?: NodeInfo,
     isPrim?: boolean,
     isRoot?: boolean,
     level?: number,
@@ -859,7 +859,7 @@ function updateNodesAndNotify(
     endBatch();
 }
 
-export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (params: { value: any }) => void) {
+export function extractPromise(node: NodeInfo, value: Promise<any>, setter?: (params: { value: any }) => void) {
     const numGets = (node.numGets = (node.numGets || 0) + 1);
 
     if (!node.state) {
@@ -891,7 +891,7 @@ export function extractPromise(node: NodeValue, value: Promise<any>, setter?: (p
         });
 }
 
-function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
+function extractFunctionOrComputed(node: NodeInfo, k: string, v: any) {
     // We want to extract these types of values from the observable's raw value so that
     // the raw value does not contain Promises, Observables or functions
     if (isPromise(v)) {
@@ -915,7 +915,7 @@ function extractFunctionOrComputed(node: NodeValue, k: string, v: any) {
     }
 }
 
-export function get(node: NodeValue, options?: TrackingType | GetOptions) {
+export function get(node: NodeInfo, options?: TrackingType | GetOptions) {
     const track = options ? (isObject(options) ? (options.shallow as TrackingType) : options) : undefined;
     // Track by default
     updateTracking(node, track);
@@ -923,13 +923,13 @@ export function get(node: NodeValue, options?: TrackingType | GetOptions) {
     return peek(node);
 }
 
-export function peek(node: NodeValue) {
+export function peek(node: NodeInfo) {
     return peekInternal(node, true);
 }
 
 let isFlushing = false;
 
-export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
+export function peekInternal(node: NodeInfo, activateRecursive?: boolean) {
     isFlushing = true;
     // Need to refresh all dirty children when getting
     if (activateRecursive && node.dirtyChildren?.size) {
@@ -956,7 +956,7 @@ export function peekInternal(node: NodeValue, activateRecursive?: boolean) {
     return value;
 }
 
-function checkLazy(node: NodeValue, value: any, activateRecursive: boolean) {
+function checkLazy(node: NodeInfo, value: any, activateRecursive: boolean) {
     const origValue = value;
     // If node is not yet lazily computed go do that
     const lazy = node.lazy;
@@ -1016,7 +1016,7 @@ function checkProperty(value: any, key: string) {
     }
 }
 
-function reactivateNode(node: NodeValue, lazyFn: Function) {
+function reactivateNode(node: NodeInfo, lazyFn: Function) {
     node.activatedObserveDispose?.();
     node.linkedToNodeDispose?.();
     node.activatedObserveDispose = node.linkedToNodeDispose = node.linkedToNode = undefined;
@@ -1024,7 +1024,7 @@ function reactivateNode(node: NodeValue, lazyFn: Function) {
     node.lazy = true;
 }
 
-export function isObserved(node: NodeValue) {
+export function isObserved(node: NodeInfo) {
     let parent = node;
     let hasListeners = node.numListenersRecursive > 0;
     while (parent && !hasListeners) {
@@ -1036,7 +1036,7 @@ export function isObserved(node: NodeValue) {
     return hasListeners;
 }
 
-export function shouldIgnoreUnobserved(node: NodeValue, refreshFn: () => void) {
+export function shouldIgnoreUnobserved(node: NodeInfo, refreshFn: () => void) {
     if (!isFlushing) {
         const hasListeners = isObserved(node);
         if (!hasListeners) {
@@ -1057,7 +1057,7 @@ export function shouldIgnoreUnobserved(node: NodeValue, refreshFn: () => void) {
     }
 }
 
-function activateNodeFunction(node: NodeValue, lazyFn: Function) {
+function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
     // let prevTarget$: Observable<any>;
     // let curTarget$: Observable<any>;
     let update: UpdateFn;
@@ -1203,7 +1203,7 @@ function activateNodeFunction(node: NodeValue, lazyFn: Function) {
     return activatedValue;
 }
 
-function activateNodeBase(node: NodeValue, value: any) {
+function activateNodeBase(node: NodeInfo, value: any) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -1306,7 +1306,7 @@ function activateNodeBase(node: NodeValue, value: any) {
     return { update, value };
 }
 
-function setToObservable(node: NodeValue, value: any) {
+function setToObservable(node: NodeInfo, value: any) {
     // If the computed is a proxy to another observable
     // link it to the target observable
     const linkedNode = value ? getNode(value) : undefined;
@@ -1333,7 +1333,7 @@ function setToObservable(node: NodeValue, value: any) {
     return value;
 }
 
-function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
+function recursivelyAutoActivate(obj: Record<string, any>, node: NodeInfo) {
     if (!node.recursivelyAutoActivated && (isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
         node.recursivelyAutoActivated = true;
         const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
@@ -1355,7 +1355,7 @@ function recursivelyAutoActivate(obj: Record<string, any>, node: NodeValue) {
 function recursivelyAutoActivateInner(
     obj: Record<string, any>,
     pathStack: { key: string; value: any }[],
-    getNodeAtPath: () => NodeValue,
+    getNodeAtPath: () => NodeInfo,
 ) {
     if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
         for (const key in obj) {

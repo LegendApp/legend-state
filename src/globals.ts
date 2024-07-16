@@ -1,5 +1,5 @@
-import { isArray, isChildNodeValue, isDate, isFunction, isMap, isObject, isSet } from './is';
-import type { NodeValue, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
+import { isArray, isChildNode, isDate, isFunction, isMap, isObject, isSet } from './is';
+import type { NodeInfo, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
 export const symbolToPrimitive = Symbol.toPrimitive;
@@ -13,9 +13,9 @@ export const symbolLinked = Symbol('linked');
 export const globalState = {
     isLoadingLocal: false,
     isLoadingRemote: false,
-    activateSyncedNode: undefined as unknown as (node: NodeValue, newValue: any) => { update: UpdateFn; value: any },
-    pendingNodes: new Map<NodeValue, () => void>(),
-    dirtyNodes: new Set<NodeValue>(),
+    activateSyncedNode: undefined as unknown as (node: NodeInfo, newValue: any) => { update: UpdateFn; value: any },
+    pendingNodes: new Map<NodeInfo, () => void>(),
+    dirtyNodes: new Set<NodeInfo>(),
     replacer: undefined as undefined | ((this: any, key: string, value: any) => any),
     reviver: undefined as undefined | ((this: any, key: string, value: any) => any),
 };
@@ -80,15 +80,15 @@ export function isObservable(value$: any): value$ is Observable {
     return !!value$ && !!value$[symbolGetNode as any];
 }
 
-export function getNode(value$: ObservableParam): NodeValue {
+export function getNode(value$: ObservableParam): NodeInfo {
     return value$ && (value$ as any)[symbolGetNode];
 }
 
 export function isEvent(value$: any): value$ is ObservableEvent {
-    return value$ && (value$[symbolGetNode as any] as NodeValue)?.isEvent;
+    return value$ && (value$[symbolGetNode as any] as NodeInfo)?.isEvent;
 }
 
-export function setNodeValue(node: NodeValue, newValue: any) {
+export function setNodeValue(node: NodeInfo, newValue: any) {
     const parentNode = node.parent ?? node;
     const key = node.parent ? node.key : '_';
 
@@ -138,10 +138,10 @@ export function setNodeValue(node: NodeValue, newValue: any) {
 }
 
 const arrNodeKeys: string[] = [];
-export function getNodeValue(node: NodeValue): any {
+export function getNodeValue(node: NodeInfo): any {
     let count = 0;
-    let n: NodeValue = node;
-    while (isChildNodeValue(n)) {
+    let n: NodeInfo = node;
+    while (isChildNode(n)) {
         arrNodeKeys[count++] = n.key;
         n = n.parent;
     }
@@ -153,7 +153,7 @@ export function getNodeValue(node: NodeValue): any {
     return child;
 }
 
-export function getChildNode(node: NodeValue, key: string, asFunction?: Function): NodeValue {
+export function getChildNode(node: NodeInfo, key: string, asFunction?: Function): NodeInfo {
     // Get the child by key
     let child = node.children?.get(key);
 
@@ -183,10 +183,10 @@ export function getChildNode(node: NodeValue, key: string, asFunction?: Function
     return child;
 }
 
-export function ensureNodeValue(node: NodeValue) {
+export function ensureNodeValue(node: NodeInfo) {
     let value = getNodeValue(node);
     if (!value || isFunction(value)) {
-        if (isChildNodeValue(node)) {
+        if (isChildNode(node)) {
             const parent = ensureNodeValue(node.parent);
             value = parent[node.key] = {};
         } else {
@@ -196,7 +196,7 @@ export function ensureNodeValue(node: NodeValue) {
     return value;
 }
 
-export function findIDKey(obj: unknown | undefined, node: NodeValue): string | ((value: any) => string) | undefined {
+export function findIDKey(obj: unknown | undefined, node: NodeInfo): string | ((value: any) => string) | undefined {
     let idKey: string | ((value: any) => string) | undefined = isObservable(obj)
         ? undefined
         : isObject(obj)
@@ -224,9 +224,9 @@ export function findIDKey(obj: unknown | undefined, node: NodeValue): string | (
     return idKey;
 }
 
-export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function): void;
-export function extractFunction(node: NodeValue, key: string, fnOrComputed: Observable): void;
-export function extractFunction(node: NodeValue, key: string, fnOrComputed: Function | Observable): void {
+export function extractFunction(node: NodeInfo, key: string, fnOrComputed: Function): void;
+export function extractFunction(node: NodeInfo, key: string, fnOrComputed: Observable): void;
+export function extractFunction(node: NodeInfo, key: string, fnOrComputed: Function | Observable): void {
     if (!node.functions) {
         node.functions = new Map();
     }

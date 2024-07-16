@@ -1,6 +1,6 @@
 import { clone, getChildNode, getNodeValue, getPathType, globalState, optimized } from './globals';
 import { applyChanges } from './helpers';
-import type { Change, ListenerFn, ListenerParams, NodeValue, TypeAtPath } from './observableInterfaces';
+import type { Change, ListenerFn, ListenerParams, NodeInfo, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {
     value: any;
@@ -22,7 +22,7 @@ let timeout: ReturnType<typeof setTimeout> | undefined;
 let numInBatch = 0;
 let isRunningBatch = false;
 let didDelayEndBatch = false;
-let _batchMap = new Map<NodeValue, BatchItem>();
+let _batchMap = new Map<NodeInfo, BatchItem>();
 
 function onActionTimeout() {
     if (_batchMap.size > 0) {
@@ -63,9 +63,9 @@ export function createPreviousHandler(value: any, changes: Change[]) {
     };
 }
 
-export function notify(node: NodeValue, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
+export function notify(node: NodeInfo, value: any, prev: any, level: number, whenOptimizedOnlyIf?: boolean) {
     // Run immediate listeners if there are any
-    const changesInBatch = new Map<NodeValue, ChangeInBatch>();
+    const changesInBatch = new Map<NodeInfo, ChangeInBatch>();
     computeChangesRecursive(
         changesInBatch,
         node,
@@ -114,8 +114,8 @@ export function notify(node: NodeValue, value: any, prev: any, level: number, wh
 }
 
 function computeChangesAtNode(
-    changesInBatch: Map<NodeValue, ChangeInBatch>,
-    node: NodeValue,
+    changesInBatch: Map<NodeInfo, ChangeInBatch>,
+    node: NodeInfo,
     isFromPersist: boolean,
     isFromSync: boolean,
     value: any,
@@ -159,8 +159,8 @@ function computeChangesAtNode(
 }
 
 function computeChangesRecursive(
-    changesInBatch: Map<NodeValue, ChangeInBatch>,
-    node: NodeValue,
+    changesInBatch: Map<NodeInfo, ChangeInBatch>,
+    node: NodeInfo,
     loading: boolean,
     remote: boolean,
     value: any,
@@ -229,7 +229,7 @@ function computeChangesRecursive(
     }
 }
 
-function batchNotifyChanges(changesInBatch: Map<NodeValue, ChangeInBatch>, immediate: boolean) {
+function batchNotifyChanges(changesInBatch: Map<NodeInfo, ChangeInBatch>, immediate: boolean) {
     const listenersNotified = new Set<ListenerFn>();
     // For each change in the batch, notify all of the listeners
     changesInBatch.forEach(({ changes, level, value, isFromPersist, isFromSync, whenOptimizedOnlyIf }, node) => {
@@ -284,7 +284,7 @@ export function runBatch() {
     // This can happen with computeds for example.
     const map = _batchMap;
     _batchMap = new Map();
-    const changesInBatch = new Map<NodeValue, ChangeInBatch>();
+    const changesInBatch = new Map<NodeInfo, ChangeInBatch>();
     // First compute all of the changes at each node. It's important to do this first before
     // running all the notifications because createPreviousHandler depends on knowing
     // all of the changes happening at the node.
@@ -355,8 +355,8 @@ export function endBatch(force?: boolean) {
     }
 }
 
-function getNodeAtPath(obj: NodeValue, path: string[]): NodeValue {
-    let o: NodeValue = obj;
+function getNodeAtPath(obj: NodeInfo, path: string[]): NodeInfo {
+    let o: NodeInfo = obj;
     for (let i = 0; i < path.length; i++) {
         const p = path[i];
         o = getChildNode(o, p);
