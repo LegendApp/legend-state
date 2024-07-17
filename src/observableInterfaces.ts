@@ -44,6 +44,7 @@ export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args
 export type ObservableListenerDispose = () => void;
 
 export interface ObservableRoot {
+    // Observable root value is set on a child of the object so the reference to the root never changes
     _: any;
     set?: (value: any) => void;
 }
