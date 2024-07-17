@@ -1,16 +1,16 @@
+import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import 'fake-indexeddb/auto';
+import { event } from '../src/event';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
+import { observe } from '../src/observe';
+import { configuredSyncObservable, configuredSynced } from '../src/sync/createConfigured';
 import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { syncState } from '../src/syncState';
 import { when } from '../src/when';
-import { ObservablePersistPlugin, SyncedOptions, configureObservableSync, synced } from '../sync';
+import { ObservablePersistPlugin, SyncedOptions, synced } from '../sync';
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
-import { observe } from '../src/observe';
-import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { event } from '../src/event';
-import { configuredSyncObservable, configuredSynced } from '../src/sync/createConfigured';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {

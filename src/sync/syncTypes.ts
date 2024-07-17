@@ -98,18 +98,21 @@ export interface SyncedOptionsGlobal<T = any>
     persist?: ObservablePersistPluginOptions & Omit<PersistOptions, 'name' | 'transform' | 'options'>;
 }
 
+export interface ObservablePersistIndexedDBPluginOptions {
+    databaseName: string;
+    version: number;
+    tableNames: string[];
+}
+export interface ObservablePersistAsyncStoragePluginOptions {
+    AsyncStorage: AsyncStorageStatic;
+    preload?: boolean | string[];
+}
+
 export interface ObservablePersistPluginOptions {
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
-    indexedDB?: {
-        databaseName: string;
-        version: number;
-        tableNames: string[];
-    };
-    asyncStorage?: {
-        AsyncStorage: AsyncStorageStatic;
-        preload?: boolean | string[];
-    };
+    indexedDB?: ObservablePersistIndexedDBPluginOptions;
+    asyncStorage?: ObservablePersistAsyncStoragePluginOptions;
 }
 export interface ObservablePersistPlugin {
     initialize?(config: ObservablePersistPluginOptions): void | Promise<void>;

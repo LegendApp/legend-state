@@ -1,7 +1,7 @@
 import type { Change } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state/sync';
-import { MMKV } from 'react-native-mmkv';
+import { MMKV, MMKVConfiguration } from 'react-native-mmkv';
 
 const symbolDefault = Symbol();
 const MetadataSuffix = '__m';
@@ -18,6 +18,11 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
             }),
         ],
     ]);
+    private configuration: MMKVConfiguration;
+
+    constructor(configuration: MMKVConfiguration) {
+        this.configuration = configuration;
+    }
     // Gets
     public getTable<T = any>(table: string, init: object, config: PersistOptions): T {
         const storage = this.getStorage(config);
@@ -58,12 +63,12 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
     }
     // Private
     private getStorage(config: PersistOptions): MMKV {
-        const { mmkv } = config;
-        if (mmkv) {
-            const key = JSON.stringify(mmkv);
+        const configuration = config.mmkv || this.configuration;
+        if (configuration) {
+            const key = JSON.stringify(configuration);
             let storage = this.storages.get(key);
             if (!storage) {
-                storage = new MMKV(mmkv);
+                storage = new MMKV(configuration);
                 this.storages.set(key, storage);
             }
             return storage;
@@ -88,4 +93,12 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
             storage.delete(table);
         }
     }
+}
+
+export function configuredObservablePersistMMKV(configuration: MMKVConfiguration): typeof ObservablePersistMMKV {
+    return class ObservablePersistMMKVConfigured extends ObservablePersistMMKV {
+        constructor() {
+            super(configuration);
+        }
+    };
 }

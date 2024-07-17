@@ -1,6 +1,11 @@
 import type { Change } from '@legendapp/state';
 import { applyChanges, internal, isArray } from '@legendapp/state';
-import type { ObservablePersistPlugin, ObservablePersistPluginOptions, PersistMetadata } from '@legendapp/state/sync';
+import type {
+    ObservablePersistAsyncStoragePluginOptions,
+    ObservablePersistPlugin,
+    ObservablePersistPluginOptions,
+    PersistMetadata,
+} from '@legendapp/state/sync';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
 
 const MetadataSuffix = '__m';
@@ -11,11 +16,15 @@ const { safeParse, safeStringify } = internal;
 
 export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
+    private configuration: ObservablePersistAsyncStoragePluginOptions;
 
-    // Init
-    public async initialize(config: ObservablePersistPluginOptions) {
+    constructor(configuration: ObservablePersistAsyncStoragePluginOptions) {
+        this.configuration = configuration;
+    }
+    public async initialize(configOptions: ObservablePersistPluginOptions) {
+        const storageConfig = this.configuration || configOptions.asyncStorage;
+
         let tables: readonly string[] = [];
-        const storageConfig = config.asyncStorage;
         if (storageConfig) {
             AsyncStorage = storageConfig.AsyncStorage;
             const { preload } = storageConfig;
@@ -92,4 +101,14 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
             return AsyncStorage.removeItem(table);
         }
     }
+}
+
+export function configuredObservablePersistAsyncStorage(
+    configuration: ObservablePersistAsyncStoragePluginOptions,
+): typeof ObservablePersistAsyncStorage {
+    return class ObservablePersistAsyncStorageConfigured extends ObservablePersistAsyncStorage {
+        constructor() {
+            super(configuration);
+        }
+    };
 }
