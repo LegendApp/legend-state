@@ -5,7 +5,7 @@ import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
 import { observe } from '../src/observe';
-import { configuredSyncObservable, configuredSynced } from '../src/sync/createConfigured';
+import { createSyncObservable, createSynced } from '../src/sync/createConfigured';
 import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { syncState } from '../src/syncState';
 import { when } from '../src/when';
@@ -555,7 +555,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        const mySyncObservable = configuredSyncObservable({
+        const mySyncObservable = createSyncObservable({
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -646,7 +646,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        const mySyncObservable = configuredSyncObservable({
+        const mySyncObservable = createSyncObservable({
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -779,7 +779,7 @@ describe('global config', () => {
     test('takes global config persist changes', async () => {
         let setTo: any = undefined;
         const didSet$ = observable(false);
-        const mySynced = configuredSynced(synced, {
+        const mySynced = createSynced(synced, {
             persist: {
                 retrySync: true,
                 plugin: ObservablePersistLocalStorage,

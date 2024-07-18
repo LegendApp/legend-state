@@ -9,10 +9,10 @@ interface SyncedOptionsConfigure extends Omit<SyncedOptions, 'persist'> {
     persist?: Partial<PersistOptions<any>>;
 }
 
-export function configuredSyncObservable(origOptions: SyncedOptionsConfigure): typeof syncObservable {
+export function createSyncObservable(origOptions: SyncedOptionsConfigure): typeof syncObservable {
     return (obs$: ObservableParam, options: SyncedOptionsConfigure) =>
         syncObservable(obs$, deepMerge(origOptions, options));
 }
-export function configuredSynced<T extends typeof synced>(fn: T, origOptions: SyncedOptionsConfigure): T {
+export function createSynced<T extends typeof synced>(fn: T, origOptions: SyncedOptionsConfigure): T {
     return ((options) => fn(deepMerge(origOptions as any, options))) as T;
 }

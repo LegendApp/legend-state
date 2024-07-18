@@ -1,5 +1,4 @@
 import { observable } from '@legendapp/state';
-import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedKeel } from '../src/sync-plugins/keel';
 import { promiseTimeout } from './testglobals';
 
