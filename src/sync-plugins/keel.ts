@@ -95,6 +95,7 @@ export interface SyncedKeelConfiguration
         action: string;
         error: APIResult<any>['error'];
     }) => void;
+    refreshAuth?: () => void | Promise<void>;
 }
 
 interface PageInfo {
@@ -176,6 +177,11 @@ const isEnabled$ = observable(true);
 
 async function ensureAuthToken() {
     await when(isEnabled$.get());
+
+    if (keelConfig.refreshAuth) {
+        await keelConfig.refreshAuth();
+    }
+
     let isAuthed = await keelConfig.client.auth.isAuthenticated();
     if (!isAuthed) {
         isAuthed = await keelConfig.client.auth.refresh();
