@@ -79,7 +79,7 @@ type ObservableAny = Partial<ObservableObjectFns<any>> & ObservablePrimitive<any
 interface ImmutableObservableSimple<T> {
     peek(): T;
     get(trackingType?: any): any;
-    onChange(cb: ListenerFn<any>, options?: any): () => void;
+    onChange(cb: ListenerFn<T>, options?: any): () => void;
 }
 export interface ImmutableObservableBase<T> extends ImmutableObservableSimple<T> {
     peek(): RemoveObservables<T>;

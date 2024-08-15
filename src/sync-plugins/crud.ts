@@ -51,7 +51,7 @@ export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
         input: Partial<TRemote>,
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined | void>>;
-    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<any>>;
+    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<any>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
     fieldId?: string;
     fieldUpdatedAt?: string;
