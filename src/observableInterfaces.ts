@@ -181,6 +181,7 @@ export interface ObservableSyncStateBase {
               }
           >
         | undefined;
+    reset: () => Promise<void>;
     /* @internal */
     numPendingLocalLoads?: number;
     numPendingRemoteLoads?: number;

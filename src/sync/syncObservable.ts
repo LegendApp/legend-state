@@ -923,6 +923,8 @@ export function syncObservable<T>(
     syncState$.isLoaded.set(!syncState$.numPendingRemoteLoads.peek());
 
     let isSynced = false;
+    let isSubscribed = false;
+    let unsubscribe: void | (() => void) = undefined;
 
     const applyPending = (pending: PendingChanges | undefined) => {
         if (pending && !isEmpty(pending)) {
@@ -952,8 +954,6 @@ export function syncObservable<T>(
     };
 
     if (syncOptions.get) {
-        let isSubscribed = false;
-        let unsubscribe: void | (() => void) = undefined;
         sync = async () => {
             // If this node is not being observed or sync is not enabled then don't sync
             if (isSynced && (!getNodeValue(getNode(syncState$)).isSyncEnabled || shouldIgnoreUnobserved(node, sync))) {
@@ -1181,9 +1181,6 @@ export function syncObservable<T>(
                 };
 
                 if (waitFor) {
-                    if (node.activationState) {
-                        node.activationState.waitFor = undefined;
-                    }
                     whenReady(waitFor, () => trackSelector(runGet, sync));
                 } else {
                     trackSelector(runGet, sync);
@@ -1209,6 +1206,26 @@ export function syncObservable<T>(
             applyPending(localState.pendingChanges);
         }
     }
+
+    syncStateValue.reset = async () => {
+        // Reset all the state back to initial and clear persistence
+        const wasPersistEnabled = syncStateValue.isPersistEnabled;
+        const wasSyncEnabled = syncStateValue.isSyncEnabled;
+        syncStateValue.isPersistEnabled = false;
+        syncStateValue.isSyncEnabled = false;
+        syncStateValue.syncCount = 0;
+        isSynced = false;
+        isSubscribed = false;
+        unsubscribe?.();
+        unsubscribe = undefined;
+        const promise = syncStateValue.clearPersist();
+        obs$.set(syncOptions.initial ?? undefined);
+        syncState$.isLoaded.set(false);
+        syncStateValue.isPersistEnabled = wasPersistEnabled;
+        syncStateValue.isSyncEnabled = wasSyncEnabled;
+        node.dirtyFn = sync;
+        await promise;
+    };
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
     const onAllPersistLoaded = () => {

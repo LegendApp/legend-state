@@ -881,6 +881,50 @@ describe('clear persist', () => {
     });
 });
 
+describe('reset sync state', () => {
+    test('reset individual sync state', async () => {
+        const persistName = getPersistName();
+        let numGets = 0;
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    numGets++;
+                    await promiseTimeout(0);
+                    return { test: numGets };
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: { test: 0 },
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(1);
+        expect(localStorage.getItem(persistName)).toEqual('{"test":1}');
+
+        state$.reset();
+
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({ test: 0 });
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        obs$.get();
+
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(2);
+        expect(localStorage.getItem(persistName)).toEqual('{"test":2}');
+    });
+});
+
 describe('multiple persists', () => {
     test('saves to multiple persists with two syncObservable', async () => {
         const persistName1 = getPersistName();
