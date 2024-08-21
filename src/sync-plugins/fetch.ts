@@ -1,5 +1,5 @@
-import { Selector, computeSelector, getNodeValue } from '@legendapp/state';
-import { Synced, SyncedOptions, SyncedSetParams, synced } from '@legendapp/state/sync';
+import { Selector, computeSelector, getNodeValue, isString } from '@legendapp/state';
+import { type Synced, type SyncedOptions, type SyncedSetParams, synced } from '@legendapp/state/sync';
 
 export interface SyncedFetchOnSavedParams<TRemote, TLocal = TRemote> {
     saved: TLocal;
@@ -33,19 +33,23 @@ export function syncedFetch<TRemote, TLocal = TRemote>(props: SyncedFetchProps<T
     } = props;
     const get = async () => {
         const url = computeSelector(getParam);
-        const response = await fetch(url, getInit);
+        if (url && isString(url)) {
+            const response = await fetch(url, getInit);
 
-        if (!response.ok) {
-            throw new Error(response.statusText);
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+
+            let value = await response[valueType || 'json']();
+
+            if (transform?.load) {
+                value = transform?.load(value, 'get');
+            }
+
+            return value;
+        } else {
+            return null;
         }
-
-        let value = await response[valueType || 'json']();
-
-        if (transform?.load) {
-            value = transform?.load(value, 'get');
-        }
-
-        return value;
     };
 
     let set: ((params: SyncedSetParams<TRemote>) => void | Promise<any>) | undefined = undefined;
