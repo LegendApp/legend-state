@@ -103,7 +103,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
     }
 }
 
-export function createObservablePersistAsyncStorage(
+export function configureObservablePersistAsyncStorage(
     configuration: ObservablePersistAsyncStoragePluginOptions,
 ): typeof ObservablePersistAsyncStorage {
     return class ObservablePersistAsyncStorageConfigured extends ObservablePersistAsyncStorage {

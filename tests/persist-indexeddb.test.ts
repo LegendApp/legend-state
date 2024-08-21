@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
-import { createObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
+import { configureObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureSynced } from '../src/sync/configureSynced';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
@@ -17,7 +17,7 @@ const persistOptions: ObservablePersistPluginOptions = {
         tableNames,
     },
 };
-const myIndexedDBPlugin = createObservablePersistIndexedDB(persistOptions.indexedDB!);
+const myIndexedDBPlugin = configureObservablePersistIndexedDB(persistOptions.indexedDB!);
 const mySyncOptions = configureSynced({
     persist: {
         plugin: myIndexedDBPlugin,

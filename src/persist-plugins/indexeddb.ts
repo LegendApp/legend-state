@@ -441,7 +441,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     }
 }
 
-export function createObservablePersistIndexedDB(
+export function configureObservablePersistIndexedDB(
     configuration: ObservablePersistIndexedDBPluginOptions,
 ): typeof ObservablePersistIndexedDB {
     return class ObservablePersistIndexedDBConfigured extends ObservablePersistIndexedDB {

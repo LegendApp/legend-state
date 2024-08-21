@@ -95,7 +95,7 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
     }
 }
 
-export function createObservablePersistMMKV(configuration: MMKVConfiguration): typeof ObservablePersistMMKV {
+export function configureObservablePersistMMKV(configuration: MMKVConfiguration): typeof ObservablePersistMMKV {
     return class ObservablePersistMMKVConfigured extends ObservablePersistMMKV {
         constructor() {
             super(configuration);
