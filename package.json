@@ -47,6 +47,7 @@
         ".",
         "sync",
         "react",
+        "config",
         "trace",
         "babel",
         "as/*",

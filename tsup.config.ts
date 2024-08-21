@@ -17,6 +17,7 @@ const external = [
     '@tanstack/react-query',
     '@tanstack/query-core',
     '@legendapp/state',
+    '@legendapp/state/config',
     '@legendapp/state/persist',
     '@legendapp/state/sync',
     '@legendapp/state/sync-plugins/crud',

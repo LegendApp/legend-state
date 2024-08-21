@@ -1,7 +1,6 @@
 export { isObserved, shouldIgnoreUnobserved } from './src/ObservableObject';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
-export { configureLegendState } from './src/config';
 export { event } from './src/event';
 export { isObservable } from './src/globals';
 export {
