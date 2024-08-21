@@ -1,6 +1,7 @@
+import { syncObservable } from '../src/sync/syncObservable';
 import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
-import { createSyncObservable } from '../src/sync/createConfigured';
+import { configureSynced } from '../src/sync/configureSynced';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
 
 export async function recursiveReplaceStrings<T extends string | object | number | boolean>(
@@ -32,7 +33,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
     return value;
 }
 
-const mySyncObservable = createSyncObservable({
+const mySynced = configureSynced({
     persist: {
         plugin: ObservablePersistLocalStorage,
     },
@@ -43,9 +44,12 @@ describe('Persist local localStorage', () => {
         const persistName = getPersistName();
         const obs = observable({ test: '' });
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs.set({ test: 'hello' });
 
@@ -58,9 +62,12 @@ describe('Persist local localStorage', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        mySyncObservable(obs2, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2.get()).toEqual({ test: 'hello' });
     });
@@ -68,9 +75,12 @@ describe('Persist local localStorage', () => {
         const persistName = getPersistName();
         const obs = observable('');
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs.set('hello');
 
@@ -83,9 +93,12 @@ describe('Persist local localStorage', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable();
-        mySyncObservable(obs2, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2.get()).toEqual('hello');
     });
@@ -93,9 +106,12 @@ describe('Persist local localStorage', () => {
         const persistName = getPersistName();
         const obs = observable({ test: { text: 'hi' } } as { test: Record<string, any> });
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs.test.set({});
 
@@ -108,9 +124,12 @@ describe('Persist local localStorage', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        mySyncObservable(obs2, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2.get()).toEqual({ test: {} });
     });
@@ -119,9 +138,12 @@ describe('Persist local localStorage', () => {
         const persistName = getPersistName();
         localStorage.setItem(persistName, '{"test2":{"text":"hello"}}');
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs.get()).toEqual({
             test: {
@@ -136,9 +158,12 @@ describe('Persist local localStorage', () => {
         const persistName = getPersistName();
         const obs = observable({ test: 'hello' } as Record<string, any>);
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs.set({});
 
@@ -151,9 +176,12 @@ describe('Persist local localStorage', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable({});
-        mySyncObservable(obs2, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2.get()).toEqual({});
     });
@@ -161,9 +189,12 @@ describe('Persist local localStorage', () => {
         const persistName = getPersistName();
         const obs = observable();
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs.set({ key: 'value' });
 
@@ -176,9 +207,12 @@ describe('Persist local localStorage', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable();
-        mySyncObservable(obs2, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2.get()).toEqual({ key: 'value' });
     });
@@ -189,9 +223,12 @@ describe('Persist primitives', () => {
         const persistName = getPersistName();
         const obs = observable('');
 
-        mySyncObservable(obs, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs.set('hello');
 
@@ -204,9 +241,12 @@ describe('Persist primitives', () => {
 
         // obs2 should load with the same value it was just saved as
         const obs2 = observable('');
-        mySyncObservable(obs2, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2.get()).toEqual('hello');
     });
@@ -223,9 +263,12 @@ describe('Persist computed', () => {
             sub: () => sub$.num.get(),
         });
 
-        mySyncObservable(obs$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs$.sub.get();
         sub$.num.set(1);
@@ -247,9 +290,12 @@ describe('Persist computed', () => {
             },
         });
 
-        mySyncObservable(obs2$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2$.sub.get()).toEqual(2);
 
@@ -269,9 +315,12 @@ describe('Persist computed', () => {
             sub: () => sub$.num.get(),
         });
 
-        mySyncObservable(obs$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         obs$.sub.get();
         sub$.num.set(1);
@@ -293,9 +342,12 @@ describe('Persist computed', () => {
             },
         });
 
-        mySyncObservable(obs2$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2$.sub.get()).toEqual(2);
 
@@ -309,9 +361,12 @@ describe('Persist computed', () => {
         const persistName = getPersistName();
         const obs$ = observable(new Map<string, string>());
 
-        mySyncObservable(obs$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
         obs$.set('key', 'val');
 
         await promiseTimeout(0);
@@ -323,9 +378,12 @@ describe('Persist computed', () => {
 
         const obs2$ = observable(new Map<string, string>());
 
-        mySyncObservable(obs2$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2$.get()).toEqual(new Map([['key', 'val']]));
     });
@@ -333,9 +391,12 @@ describe('Persist computed', () => {
         const persistName = getPersistName();
         const obs$ = observable(new Set<string>());
 
-        mySyncObservable(obs$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
         obs$.add('key');
 
         await promiseTimeout(0);
@@ -347,9 +408,12 @@ describe('Persist computed', () => {
 
         const obs2$ = observable(new Set<string>());
 
-        mySyncObservable(obs2$, {
-            persist: { name: persistName },
-        });
+        syncObservable(
+            obs2$,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
 
         expect(obs2$.get()).toEqual(new Set(['key']));
     });

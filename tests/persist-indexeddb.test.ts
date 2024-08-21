@@ -2,8 +2,8 @@ import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import { createObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
-import { createSyncObservable } from '../src/sync/createConfigured';
-import { mapSyncPlugins } from '../src/sync/syncObservable';
+import { configureSynced } from '../src/sync/configureSynced';
+import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
 import { when } from '../src/when';
 import { promiseTimeout } from './testglobals';
@@ -18,7 +18,7 @@ const persistOptions: ObservablePersistPluginOptions = {
     },
 };
 const myIndexedDBPlugin = createObservablePersistIndexedDB(persistOptions.indexedDB!);
-const mySyncObservable = createSyncObservable({
+const mySyncOptions = configureSynced({
     persist: {
         plugin: myIndexedDBPlugin,
     },
@@ -60,11 +60,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -76,11 +79,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -92,11 +98,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -107,11 +116,14 @@ describe('Persist IDB', () => {
 
         const obs2 = observable<Record<string, any>>({});
 
-        const state2 = mySyncObservable(obs2, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -121,11 +133,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -137,11 +152,14 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = mySyncObservable(obs2, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -153,11 +171,14 @@ describe('Persist IDB', () => {
 
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -168,11 +189,14 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = mySyncObservable(obs2, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -184,14 +208,17 @@ describe('Persist IDB', () => {
 
         const obs = observable('text');
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    itemID: 'testItemId',
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        itemID: 'testItemId',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -204,14 +231,17 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = mySyncObservable(obs2, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    itemID: 'testItemId',
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        itemID: 'testItemId',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -223,14 +253,17 @@ describe('Persist IDB', () => {
 
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -247,14 +280,17 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = mySyncObservable(obs2, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -266,14 +302,17 @@ describe('Persist IDB', () => {
 
         const obs = observable<Record<string, any>>({});
 
-        const state = mySyncObservable(obs, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -289,14 +328,17 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = mySyncObservable(obs2, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 

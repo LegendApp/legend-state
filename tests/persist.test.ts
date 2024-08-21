@@ -5,7 +5,7 @@ import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
 import { observe } from '../src/observe';
-import { createSyncObservable, createSynced } from '../src/sync/createConfigured';
+import { configureSynced } from '../src/sync/configureSynced';
 import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { syncState } from '../src/syncState';
 import { when } from '../src/when';
@@ -555,7 +555,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        const mySyncObservable = createSyncObservable({
+        const myPersist = configureSynced({
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -563,11 +563,14 @@ describe('persist objects', () => {
 
         const persistName = getPersistName();
 
-        mySyncObservable(tablesState$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            tablesState$,
+            myPersist({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(tablesState$.get()).toEqual({
             tables: new Map([
@@ -618,11 +621,14 @@ describe('persist objects', () => {
                 ],
             ]),
         });
-        mySyncObservable(tablesState2$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            tablesState2$,
+            myPersist({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(tablesState2$.get()).toEqual({
             tables: new Map([
@@ -646,7 +652,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        const mySyncObservable = createSyncObservable({
+        const mySynced = configureSynced(synced, {
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -654,11 +660,14 @@ describe('persist objects', () => {
 
         const persistName = getPersistName();
 
-        mySyncObservable(obs$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            obs$,
+            mySynced({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(obs$.get()).toEqual({
             m: new Map([
@@ -689,11 +698,14 @@ describe('persist objects', () => {
                 ['v2', { h1: 'h3', h2: [1] }],
             ]),
         });
-        mySyncObservable(obs2$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            obs2$,
+            mySynced({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(obs2$.get()).toEqual({
             m: new Map([
@@ -779,7 +791,7 @@ describe('global config', () => {
     test('takes global config persist changes', async () => {
         let setTo: any = undefined;
         const didSet$ = observable(false);
-        const mySynced = createSynced(synced, {
+        const mySynced = configureSynced(synced, {
             persist: {
                 retrySync: true,
                 plugin: ObservablePersistLocalStorage,
