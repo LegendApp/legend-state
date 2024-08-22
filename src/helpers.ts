@@ -2,7 +2,7 @@ import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
 import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isPrimitive, isSet } from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
-import type { Observable, ObservableParam } from './observableTypes';
+import type { ObservableParam } from './observableTypes';
 
 export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean): T {
     let c = selector as any;
@@ -195,12 +195,13 @@ export function initializePathType(pathType: TypeAtPath): any {
     switch (pathType) {
         case 'array':
             return [];
-        case 'object':
-            return {};
         case 'map':
             return new Map();
         case 'set':
             return new Set();
+        case 'object':
+        default:
+            return {};
     }
 }
 export function applyChange<T extends object>(value: T, change: Change, applyPrevious?: boolean): T {
