@@ -14,7 +14,6 @@ export {
     mergeIntoObservable,
     opaqueObject,
     setAtPath,
-    setInObservableAtPath,
     setSilently,
 } from './src/helpers';
 export {

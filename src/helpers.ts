@@ -93,36 +93,6 @@ export function setAtPath<T extends object>(
 
     return obj;
 }
-export function setInObservableAtPath(
-    value$: ObservableParam,
-    path: string[],
-    pathTypes: TypeAtPath[],
-    value: any,
-    mode: 'assign' | 'set' | 'merge',
-) {
-    let o: any = value$;
-    let v = value;
-    for (let i = 0; i < path.length; i++) {
-        const p = path[i];
-        if (!o.peek()[p]) {
-            o[p].set(initializePathType(pathTypes[i]));
-        }
-        o = o[p];
-        v = v[p];
-    }
-
-    if (v === symbolDelete) {
-        (o as Observable).delete();
-    }
-    // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as Observable).assign && isObject(o.peek())) {
-        (o as Observable<{}>).assign(v);
-    } else if (mode === 'merge') {
-        mergeIntoObservable(o, v);
-    } else {
-        o.set(v);
-    }
-}
 export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, ...sources: any[]): T {
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
         if (!isObservable(target)) {
