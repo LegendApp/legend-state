@@ -1,6 +1,6 @@
-import { isPromise } from './is';
-import type { NodeInfo, RetryOptions } from './observableInterfaces';
-import type { OnErrorRetryParams, SyncedGetSetBaseParams } from './sync/syncTypes';
+import { isPromise } from '../is';
+import type { NodeInfo, RetryOptions } from '../observableInterfaces';
+import type { OnErrorRetryParams, SyncedGetSetBaseParams } from './syncTypes';
 
 function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): number | null {
     const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;

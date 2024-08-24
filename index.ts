@@ -70,7 +70,6 @@ import {
     symbolLinked,
 } from './src/globals';
 import { deepMerge, getValueAtPath, initializePathType, setAtPath } from './src/helpers';
-import { runWithRetry } from './src/retry';
 import { tracking } from './src/tracking';
 
 export const internal = {
@@ -90,7 +89,6 @@ export const internal = {
     observableFns,
     optimized,
     peek,
-    runWithRetry,
     safeParse,
     safeStringify,
     set,

@@ -46,18 +46,10 @@ import type {
     SyncedOptions,
     SyncedSetParams,
 } from './syncTypes';
+import { runWithRetry } from './retry';
 
-const {
-    clone,
-    deepMerge,
-    getNode,
-    getNodeValue,
-    getValueAtPath,
-    globalState,
-    runWithRetry,
-    symbolLinked,
-    createPreviousHandler,
-} = internal;
+const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, symbolLinked, createPreviousHandler } =
+    internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin>,
