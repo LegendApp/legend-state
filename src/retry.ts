@@ -1,5 +1,6 @@
 import { isPromise } from './is';
-import type { RetryOptions } from './observableInterfaces';
+import type { NodeInfo, RetryOptions } from './observableInterfaces';
+import type { OnErrorRetryParams, SyncedGetSetBaseParams } from './sync/syncTypes';
 
 function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): number | null {
     const { backoff, delay = 1000, infinite, times = 3, maxDelay = 30000 } = retryOptions;
@@ -10,39 +11,57 @@ function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): numb
     return null;
 }
 
-function createRetryTimeout(retryOptions: RetryOptions, retryNum: number, fn: () => void) {
+function createRetryTimeout(retryOptions: RetryOptions, retryNum: number, fn: () => void): number | false {
     const delayTime = calculateRetryDelay(retryOptions, retryNum);
     if (delayTime) {
-        return setTimeout(fn, delayTime);
+        return setTimeout(fn, delayTime) as unknown as number;
+    } else {
+        return false;
     }
 }
 
-export function runWithRetry<T>(
-    state: { retryNum: number; retry: RetryOptions | undefined },
-    fn: (e: { retryNum: number; cancelRetry: () => void }) => T | Promise<T>,
-): T | Promise<T> {
-    const { retry } = state;
-    const e = Object.assign(state, { cancel: false, cancelRetry: () => (e.cancel = false) });
-    let value = fn(e);
+const mapRetryTimeouts = new Map<NodeInfo, number>();
 
-    if (isPromise(value) && retry) {
-        let timeoutRetry: any;
-        return new Promise<any>((resolve) => {
+export function runWithRetry<T>(
+    state: SyncedGetSetBaseParams<any>,
+    retryOptions: RetryOptions | undefined,
+    fn: (params: OnErrorRetryParams) => T | Promise<T>,
+    onError: (error: Error) => void,
+): T | Promise<T> {
+    let value = fn(state);
+
+    if (isPromise(value) && retryOptions) {
+        let timeoutRetry: number;
+        if (mapRetryTimeouts.has(state.node)) {
+            clearTimeout(mapRetryTimeouts.get(state.node));
+        }
+        return new Promise<any>((resolve, reject) => {
             const run = () => {
                 (value as Promise<any>)
                     .then((val: any) => {
                         resolve(val);
                     })
-                    .catch(() => {
+                    .catch((error: Error) => {
                         state.retryNum++;
                         if (timeoutRetry) {
                             clearTimeout(timeoutRetry);
                         }
-                        if (!e.cancel) {
-                            timeoutRetry = createRetryTimeout(retry, state.retryNum, () => {
-                                value = fn(e);
+                        if (onError) {
+                            onError(error);
+                        }
+                        if (!state.cancelRetry) {
+                            const timeout = createRetryTimeout(retryOptions, state.retryNum, () => {
+                                value = fn(state);
                                 run();
                             });
+
+                            if (timeout === false) {
+                                state.cancelRetry = true;
+                                reject();
+                            } else {
+                                mapRetryTimeouts.set(state.node, timeout);
+                                timeoutRetry = timeout;
+                            }
                         }
                     });
             };

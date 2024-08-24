@@ -640,7 +640,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             syncOptions.onSetError?.(error, setParams as SyncedSetParams<any>);
         };
 
-        const setParams: Omit<SyncedSetParams<any>, 'cancelRetry' | 'retryNum'> = {
+        const setParams: SyncedSetParams<any> = {
             node,
             value$: obs$,
             changes: changesRemote,
@@ -659,22 +659,29 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 }
             },
             refresh: syncState.sync,
+            retryNum: 0,
+            cancelRetry: false,
         };
 
-        let savedPromise = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, async (retryEvent) => {
-            const params = setParams as SyncedSetParams<any>;
-            params.cancelRetry = retryEvent.cancelRetry;
-            params.retryNum = retryEvent.retryNum;
+        let savedPromise = runWithRetry(
+            setParams,
+            syncOptions.retry,
+            async () => {
+                return syncOptions!.set!(setParams);
+            },
+            onError,
+        );
+        let didError = false;
 
-            return syncOptions!.set!(params);
-        });
         if (isPromise(savedPromise)) {
-            savedPromise = savedPromise.catch(onError);
+            savedPromise = savedPromise.catch((error) => {
+                didError = true;
+                onError(error);
+            });
+            await savedPromise;
         }
 
-        await savedPromise;
-
-        if (!state$.error.peek()) {
+        if (!didError) {
             // If this remote save changed anything then update cache and metadata
             // Because save happens after a timeout and they're batched together, some calls to save will
             // return saved data and others won't, so those can be ignored.
@@ -907,7 +914,7 @@ export function syncObservable<T>(
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
 
-    const onError = (error: Error, getParams: SyncedGetParams<T> | undefined, source: 'get' | 'subscribe') => {
+    const onGetError = (error: Error, getParams: SyncedGetParams<T> | undefined, source: 'get' | 'subscribe') => {
         syncState$.error.set(error);
         syncOptions.onGetError?.(error, getParams, source);
     };
@@ -1090,7 +1097,7 @@ export function syncObservable<T>(
                                     });
                                 },
                                 refresh: () => when(syncState$.isLoaded, sync),
-                                onError: (error) => onError(error, undefined, 'subscribe'),
+                                onError: (error) => onGetError(error, undefined, 'subscribe'),
                             });
                         };
 
@@ -1102,7 +1109,9 @@ export function syncObservable<T>(
                     }
                     const existingValue = getNodeValue(node);
 
-                    const getParams: Omit<SyncedGetParams<T>, 'cancelRetry' | 'retryNum'> = {
+                    const onError = (error: Error) => onGetError(error, getParams as SyncedGetParams<T>, 'get');
+
+                    const getParams: SyncedGetParams<T> = {
                         node,
                         value$: obs$,
                         value: isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
@@ -1111,7 +1120,9 @@ export function syncObservable<T>(
                         options: syncOptions,
                         lastSync,
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                        onError: (error) => onError(error, getParams as SyncedGetParams<T>, 'get'),
+                        onError,
+                        retryNum: 0,
+                        cancelRetry: false,
                     };
 
                     let modeBeforeReset: GetMode | undefined = undefined;
@@ -1137,12 +1148,17 @@ export function syncObservable<T>(
                         numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
                         isGetting: true,
                     });
-                    const got = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
-                        const params = getParams as SyncedGetParams<T>;
-                        params.cancelRetry = retryEvent.cancelRetry;
-                        params.retryNum = retryEvent.retryNum;
-                        return get(params);
-                    });
+                    const got = runWithRetry(
+                        getParams,
+                        syncOptions.retry,
+                        (retryEvent) => {
+                            const params = getParams as SyncedGetParams<T>;
+                            params.cancelRetry = retryEvent.cancelRetry;
+                            params.retryNum = retryEvent.retryNum;
+                            return get(params);
+                        },
+                        onError,
+                    );
                     const numGets = (node.numGets = (node.numGets || 0) + 1);
                     const handle = (value: any) => {
                         syncState$.numPendingGets.set((v) => v! - 1);

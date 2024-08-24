@@ -39,24 +39,25 @@ export interface SyncedGetSetSubscribeBaseParams<T = any> {
     refresh: () => void;
 }
 
-export interface SyncedGetParams<T> extends SyncedGetSetSubscribeBaseParams<T> {
+export interface SyncedGetSetBaseParams<T = any> extends SyncedGetSetSubscribeBaseParams<T>, OnErrorRetryParams {}
+
+export interface OnErrorRetryParams {
+    retryNum: number;
+    cancelRetry: boolean;
+}
+
+export interface SyncedGetParams<T> extends SyncedGetSetBaseParams<T> {
     value: any;
     lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
-    retryNum: number;
-    cancelRetry: () => void;
     onError: (error: Error) => void;
     options: SyncedOptions;
 }
 
-export interface SyncedSetParams<T>
-    extends Pick<SetParams<T>, 'changes' | 'value'>,
-        SyncedGetSetSubscribeBaseParams<T> {
+export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'>, SyncedGetSetBaseParams<T> {
     update: UpdateFn<T>;
-    cancelRetry: () => void;
-    retryNum: number;
-    onError: (error: Error) => void;
+    onError: (error: Error, retryParams: OnErrorRetryParams) => void;
 }
 
 export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBaseParams<T> {

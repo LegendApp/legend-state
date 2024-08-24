@@ -213,12 +213,15 @@ describe('Pending', () => {
     test('Pending created and updated', async () => {
         const persistName = getPersistName();
         let isOk = false;
+        let didSetWrongValue = false;
         const obs$ = observable(
             synced({
                 get: () => {
                     return { test: 'hi' };
                 },
                 set: ({ value }) => {
+                    didSetWrongValue = value.test !== obs$.get().test;
+                    expect(value.test).toEqual(obs$.get().test);
                     if (!isOk) {
                         throw new Error('Did not save' + value);
                     }
@@ -246,6 +249,8 @@ describe('Pending', () => {
         // Updates pending
         obs$.test.set('hello2');
         await promiseTimeout(0);
+        expect(didSetWrongValue).toEqual(false);
+
         pending = state$.getPendingChanges();
         expect(pending).toEqual({ test: { p: 'hi', t: ['object'], v: 'hello2' } });
 
@@ -280,6 +285,7 @@ describe('Pending', () => {
 
         pending = state$.getPendingChanges();
         expect(pending).toEqual({});
+        expect(didSetWrongValue).toEqual(false);
     });
     test('Pending applied if changed', async () => {
         const persistName = getPersistName();

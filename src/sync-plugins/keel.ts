@@ -424,7 +424,7 @@ export function syncedKeel<
         fn: Function,
         from: 'create' | 'update' | 'delete',
     ) => {
-        const { retryNum, cancelRetry, update } = params;
+        const { retryNum, update } = params;
 
         if (
             from === 'create' &&
@@ -434,7 +434,7 @@ export function syncedKeel<
             if (__DEV__) {
                 console.log('Creating duplicate data already saved, just ignore.');
             }
-            cancelRetry();
+            params.cancelRetry = true;
             // This has already been saved but didn't update pending changes, so just update with {} to clear the pending state
             update({
                 value: {} as TRemote,
@@ -445,13 +445,13 @@ export function syncedKeel<
                 if (__DEV__) {
                     console.log('Deleting non-existing data, just ignore.');
                 }
-                cancelRetry();
+                params.cancelRetry = true;
             }
         } else if (error.type === 'bad_request') {
             keelConfig.onError?.({ error, params, input, type: from, action: fn.name || fn.toString() });
 
             if (retryNum > 4) {
-                cancelRetry();
+                params.cancelRetry = true;
             }
 
             throw new Error(error.message);
