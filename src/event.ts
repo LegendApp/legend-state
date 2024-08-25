@@ -8,6 +8,7 @@ export function event(): ObservableEvent {
     const obs = observable(0);
     const node = getNode(obs);
     node.isEvent = true;
+
     return {
         fire: function () {
             // Notify increments the value so that the observable changes

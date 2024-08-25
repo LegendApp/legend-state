@@ -5,9 +5,10 @@
     "moduleNameMapper": {
         "@legendapp/state/sync-plugins/crud": "<rootDir>/src/sync-plugins/crud",
         "@legendapp/state/sync": "<rootDir>/sync",
+        "@legendapp/state/config": "<rootDir>/config",
         "@legendapp/state": "<rootDir>/index"
     },
     "transform": {
-        "^.+\\.tsx?$": ["ts-jest", {"tsconfig": { "jsx": "react"}}]
+        "^.+\\.tsx?$": ["ts-jest", { "tsconfig": { "jsx": "react" } }]
     }
 }

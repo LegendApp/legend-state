@@ -39,30 +39,39 @@ export interface SyncedGetSetSubscribeBaseParams<T = any> {
     refresh: () => void;
 }
 
-export interface SyncedGetParams<T> extends SyncedGetSetSubscribeBaseParams<T> {
+export interface SyncedGetSetBaseParams<T = any> extends SyncedGetSetSubscribeBaseParams<T>, OnErrorRetryParams {}
+
+export interface OnErrorRetryParams {
+    retryNum: number;
+    cancelRetry: boolean;
+}
+
+export interface SyncedGetParams<T> extends SyncedGetSetBaseParams<T> {
     value: any;
     lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
-    retryNum: number;
-    cancelRetry: () => void;
     onError: (error: Error) => void;
     options: SyncedOptions;
 }
 
-export interface SyncedSetParams<T>
-    extends Pick<SetParams<T>, 'changes' | 'value'>,
-        SyncedGetSetSubscribeBaseParams<T> {
+export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'>, SyncedGetSetBaseParams<T> {
     update: UpdateFn<T>;
-    cancelRetry: () => void;
-    retryNum: number;
-    onError: (error: Error) => void;
+    onError: (error: Error, retryParams: OnErrorRetryParams) => void;
 }
 
 export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBaseParams<T> {
     lastSync: number | undefined;
     update: UpdateFn<T>;
     onError: (error: Error) => void;
+}
+
+export interface SyncedErrorParams {
+    getParams?: SyncedGetParams<any>;
+    setParams?: SyncedSetParams<any>;
+    subscribeParams?: SyncedSubscribeParams<any>;
+    source: 'get' | 'set' | 'subscribe';
+    value$: ObservableParam<any>;
 }
 
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {
@@ -75,8 +84,8 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     syncMode?: 'auto' | 'manual';
     mode?: GetMode;
     transform?: SyncTransform<TLocal, TRemote>;
-    onGetError?: (error: Error, getParams: SyncedGetParams<TRemote> | undefined, source: 'get' | 'subscribe') => void;
-    onSetError?: (error: Error, setParams: SyncedSetParams<TRemote>) => void;
+    onGetError?: (error: Error, params: SyncedErrorParams) => void;
+    onSetError?: (error: Error, params: SyncedErrorParams) => void;
     onBeforeGet?: (params: {
         value: TRemote;
         lastSync: number | undefined;
@@ -98,18 +107,21 @@ export interface SyncedOptionsGlobal<T = any>
     persist?: ObservablePersistPluginOptions & Omit<PersistOptions, 'name' | 'transform' | 'options'>;
 }
 
+export interface ObservablePersistIndexedDBPluginOptions {
+    databaseName: string;
+    version: number;
+    tableNames: string[];
+}
+export interface ObservablePersistAsyncStoragePluginOptions {
+    AsyncStorage: AsyncStorageStatic;
+    preload?: boolean | string[];
+}
+
 export interface ObservablePersistPluginOptions {
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
-    indexedDB?: {
-        databaseName: string;
-        version: number;
-        tableNames: string[];
-    };
-    asyncStorage?: {
-        AsyncStorage: AsyncStorageStatic;
-        preload?: boolean | string[];
-    };
+    indexedDB?: ObservablePersistIndexedDBPluginOptions;
+    asyncStorage?: ObservablePersistAsyncStoragePluginOptions;
 }
 export interface ObservablePersistPlugin {
     initialize?(config: ObservablePersistPluginOptions): void | Promise<void>;

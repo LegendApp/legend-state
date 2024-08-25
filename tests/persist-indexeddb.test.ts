@@ -1,10 +1,10 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
-import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
-import { ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
-import { configureObservableSync } from '../src/sync/configureObservableSync';
+import { configureObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
+import { configureSynced } from '../src/sync/configureSynced';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
+import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
 import { when } from '../src/when';
 import { promiseTimeout } from './testglobals';
 
@@ -17,10 +17,10 @@ const persistOptions: ObservablePersistPluginOptions = {
         tableNames,
     },
 };
-configureObservableSync({
+const myIndexedDBPlugin = configureObservablePersistIndexedDB(persistOptions.indexedDB!);
+const mySyncOptions = configureSynced({
     persist: {
-        plugin: ObservablePersistIndexedDB,
-        ...persistOptions,
+        plugin: myIndexedDBPlugin,
     },
 });
 jest.setTimeout?.(150);
@@ -29,7 +29,7 @@ async function reset() {
     // eslint-disable-next-line no-global-assign
     indexedDB = new IDBFactory();
 
-    const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+    const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
 
     if (persist) {
         await persist.initialize!(persistOptions);
@@ -60,11 +60,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -76,11 +79,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -92,26 +98,32 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
         obs['test'].set({ id: 'test', text: 'hi' });
 
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
 
-        const state2 = syncObservable(obs2, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -121,11 +133,14 @@ describe('Persist IDB', () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -133,15 +148,18 @@ describe('Persist IDB', () => {
 
         expectIDB(persistName, [{ id: 'test', text: 'hi' }]);
 
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = syncObservable(obs2, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -149,15 +167,18 @@ describe('Persist IDB', () => {
     });
     test('Persist IDB with no id', async () => {
         const persistName = getLocalName();
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
 
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -168,11 +189,14 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = syncObservable(obs2, {
-            persist: {
-                name: persistName,
-            },
-        });
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -180,18 +204,21 @@ describe('Persist IDB', () => {
     });
     test('Persist IDB with itemID and primitive', async () => {
         const persistName = getLocalName();
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
 
         const obs = observable('text');
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    itemID: 'testItemId',
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        itemID: 'testItemId',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -204,14 +231,17 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = syncObservable(obs2, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    itemID: 'testItemId',
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        itemID: 'testItemId',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -219,18 +249,21 @@ describe('Persist IDB', () => {
     });
     test('Persist IDB with prefixId setting individual', async () => {
         const persistName = getLocalName();
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
 
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -247,14 +280,17 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = syncObservable(obs2, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 
@@ -262,18 +298,21 @@ describe('Persist IDB', () => {
     });
     test('Persist IDB with prefixId', async () => {
         const persistName = getLocalName();
-        const persist = mapSyncPlugins.get(ObservablePersistIndexedDB)?.plugin as ObservablePersistPlugin;
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
 
         const obs = observable<Record<string, any>>({});
 
-        const state = syncObservable(obs, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state.isPersistLoaded);
 
@@ -289,14 +328,17 @@ describe('Persist IDB', () => {
         await persist.initialize!(persistOptions);
 
         const obs2 = observable<Record<string, any>>({});
-        const state2 = syncObservable(obs2, {
-            persist: {
-                name: persistName,
-                indexedDB: {
-                    prefixID: 'u',
+        const state2 = syncObservable(
+            obs2,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                    indexedDB: {
+                        prefixID: 'u',
+                    },
                 },
-            },
-        });
+            }),
+        );
 
         await when(state2.isPersistLoaded);
 

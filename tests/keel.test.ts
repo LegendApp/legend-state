@@ -1,5 +1,4 @@
 import { observable } from '@legendapp/state';
-import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedKeel } from '../src/sync-plugins/keel';
 import { promiseTimeout } from './testglobals';
 
@@ -33,13 +32,6 @@ interface BasicValue {
 const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',
     test: 'hi',
-});
-
-beforeAll(() => {
-    configureObservableSync({
-        debounceSet: null,
-        persist: null,
-    } as any);
 });
 
 async function fakeKeelList<T>(results: T[]): Promise<APIResult<{ results: T[]; pageInfo: any }>> {

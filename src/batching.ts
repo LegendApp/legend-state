@@ -69,8 +69,8 @@ export function notify(node: NodeInfo, value: any, prev: any, level: number, whe
     computeChangesRecursive(
         changesInBatch,
         node,
-        /*loading*/ globalState.isLoadingLocal,
-        /*remote*/ globalState.isLoadingRemote,
+        /*loading*/ !!globalState.isLoadingLocal,
+        /*remote*/ !!globalState.isLoadingRemote,
         value,
         [],
         [],
@@ -98,8 +98,8 @@ export function notify(node: NodeInfo, value: any, prev: any, level: number, whe
             prev,
             level,
             whenOptimizedOnlyIf,
-            isFromSync: globalState.isLoadingRemote,
-            isFromPersist: globalState.isLoadingLocal,
+            isFromSync: !!globalState.isLoadingRemote,
+            isFromPersist: !!globalState.isLoadingLocal,
         });
     }
 

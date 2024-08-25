@@ -42,22 +42,16 @@ import type {
     SyncTransform,
     SyncTransformMethod,
     Synced,
+    SyncedErrorParams,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
+    SyncedSubscribeParams,
 } from './syncTypes';
+import { runWithRetry } from './retry';
 
-const {
-    clone,
-    deepMerge,
-    getNode,
-    getNodeValue,
-    getValueAtPath,
-    globalState,
-    runWithRetry,
-    symbolLinked,
-    createPreviousHandler,
-} = internal;
+const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, symbolLinked, createPreviousHandler } =
+    internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin>,
@@ -637,10 +631,14 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         const onError = (error: Error) => {
             state$.error.set(error);
-            syncOptions.onSetError?.(error, setParams as SyncedSetParams<any>);
+            syncOptions.onSetError?.(error, {
+                setParams: setParams as SyncedSetParams<any>,
+                source: 'set',
+                value$: obs$,
+            });
         };
 
-        const setParams: Omit<SyncedSetParams<any>, 'cancelRetry' | 'retryNum'> = {
+        const setParams: SyncedSetParams<any> = {
             node,
             value$: obs$,
             changes: changesRemote,
@@ -659,22 +657,29 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 }
             },
             refresh: syncState.sync,
+            retryNum: 0,
+            cancelRetry: false,
         };
 
-        let savedPromise = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, async (retryEvent) => {
-            const params = setParams as SyncedSetParams<any>;
-            params.cancelRetry = retryEvent.cancelRetry;
-            params.retryNum = retryEvent.retryNum;
+        let savedPromise = runWithRetry(
+            setParams,
+            syncOptions.retry,
+            async () => {
+                return syncOptions!.set!(setParams);
+            },
+            onError,
+        );
+        let didError = false;
 
-            return syncOptions!.set!(params);
-        });
         if (isPromise(savedPromise)) {
-            savedPromise = savedPromise.catch(onError);
+            savedPromise = savedPromise.catch((error) => {
+                didError = true;
+                onError(error);
+            });
+            await savedPromise;
         }
 
-        await savedPromise;
-
-        if (!state$.error.peek()) {
+        if (!didError) {
             // If this remote save changed anything then update cache and metadata
             // Because save happens after a timeout and they're batched together, some calls to save will
             // return saved data and others won't, so those can be ignored.
@@ -907,9 +912,9 @@ export function syncObservable<T>(
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
 
-    const onError = (error: Error, getParams: SyncedGetParams<T> | undefined, source: 'get' | 'subscribe') => {
+    const onGetError = (error: Error, params: Omit<SyncedErrorParams, 'value$'>) => {
         syncState$.error.set(error);
-        syncOptions.onGetError?.(error, getParams, source);
+        syncOptions.onGetError?.(error, { ...params, value$: obs$ });
     };
 
     loadLocal(obs$, syncOptions, syncState$, localState);
@@ -923,6 +928,8 @@ export function syncObservable<T>(
     syncState$.isLoaded.set(!syncState$.numPendingRemoteLoads.peek());
 
     let isSynced = false;
+    let isSubscribed = false;
+    let unsubscribe: void | (() => void) = undefined;
 
     const applyPending = (pending: PendingChanges | undefined) => {
         if (pending && !isEmpty(pending)) {
@@ -952,8 +959,6 @@ export function syncObservable<T>(
     };
 
     if (syncOptions.get) {
-        let isSubscribed = false;
-        let unsubscribe: void | (() => void) = undefined;
         sync = async () => {
             // If this node is not being observed or sync is not enabled then don't sync
             if (isSynced && (!getNodeValue(getNode(syncState$)).isSyncEnabled || shouldIgnoreUnobserved(node, sync))) {
@@ -1077,7 +1082,7 @@ export function syncObservable<T>(
                         const subscribe = syncOptions.subscribe;
                         isSubscribed = true;
                         const doSubscribe = () => {
-                            unsubscribe = subscribe({
+                            const subscribeParams: SyncedSubscribeParams<T> = {
                                 node,
                                 value$: obs$,
                                 lastSync,
@@ -1090,8 +1095,9 @@ export function syncObservable<T>(
                                     });
                                 },
                                 refresh: () => when(syncState$.isLoaded, sync),
-                                onError: (error) => onError(error, undefined, 'subscribe'),
-                            });
+                                onError: (error: Error) => onGetError(error, { source: 'subscribe', subscribeParams }),
+                            };
+                            unsubscribe = subscribe(subscribeParams);
                         };
 
                         if (waitFor) {
@@ -1102,7 +1108,9 @@ export function syncObservable<T>(
                     }
                     const existingValue = getNodeValue(node);
 
-                    const getParams: Omit<SyncedGetParams<T>, 'cancelRetry' | 'retryNum'> = {
+                    const onError = (error: Error) => onGetError(error, { getParams, source: 'get' });
+
+                    const getParams: SyncedGetParams<T> = {
                         node,
                         value$: obs$,
                         value: isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
@@ -1111,7 +1119,9 @@ export function syncObservable<T>(
                         options: syncOptions,
                         lastSync,
                         updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                        onError: (error) => onError(error, getParams as SyncedGetParams<T>, 'get'),
+                        onError,
+                        retryNum: 0,
+                        cancelRetry: false,
                     };
 
                     let modeBeforeReset: GetMode | undefined = undefined;
@@ -1137,12 +1147,17 @@ export function syncObservable<T>(
                         numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
                         isGetting: true,
                     });
-                    const got = runWithRetry({ retryNum: 0, retry: syncOptions.retry }, (retryEvent) => {
-                        const params = getParams as SyncedGetParams<T>;
-                        params.cancelRetry = retryEvent.cancelRetry;
-                        params.retryNum = retryEvent.retryNum;
-                        return get(params);
-                    });
+                    const got = runWithRetry(
+                        getParams,
+                        syncOptions.retry,
+                        (retryEvent) => {
+                            const params = getParams as SyncedGetParams<T>;
+                            params.cancelRetry = retryEvent.cancelRetry;
+                            params.retryNum = retryEvent.retryNum;
+                            return get(params);
+                        },
+                        onError,
+                    );
                     const numGets = (node.numGets = (node.numGets || 0) + 1);
                     const handle = (value: any) => {
                         syncState$.numPendingGets.set((v) => v! - 1);
@@ -1181,9 +1196,6 @@ export function syncObservable<T>(
                 };
 
                 if (waitFor) {
-                    if (node.activationState) {
-                        node.activationState.waitFor = undefined;
-                    }
                     whenReady(waitFor, () => trackSelector(runGet, sync));
                 } else {
                     trackSelector(runGet, sync);
@@ -1209,6 +1221,26 @@ export function syncObservable<T>(
             applyPending(localState.pendingChanges);
         }
     }
+
+    syncStateValue.reset = async () => {
+        // Reset all the state back to initial and clear persistence
+        const wasPersistEnabled = syncStateValue.isPersistEnabled;
+        const wasSyncEnabled = syncStateValue.isSyncEnabled;
+        syncStateValue.isPersistEnabled = false;
+        syncStateValue.isSyncEnabled = false;
+        syncStateValue.syncCount = 0;
+        isSynced = false;
+        isSubscribed = false;
+        unsubscribe?.();
+        unsubscribe = undefined;
+        const promise = syncStateValue.clearPersist();
+        obs$.set(syncOptions.initial ?? undefined);
+        syncState$.isLoaded.set(false);
+        syncStateValue.isPersistEnabled = wasPersistEnabled;
+        syncStateValue.isSyncEnabled = wasSyncEnabled;
+        node.dirtyFn = sync;
+        await promise;
+    };
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
     const onAllPersistLoaded = () => {

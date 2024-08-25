@@ -1,6 +1,6 @@
 import type { Observable } from '../src/observableTypes';
 import { batch, beginBatch, endBatch } from '../src/batching';
-import { configureLegendState } from '../src/config';
+import { configureLegendState } from '../src/configureLegendState';
 import { enable$GetSet } from '../src/config/enable$GetSet';
 import { enable_PeekAssign } from '../src/config/enable_PeekAssign';
 import { event } from '../src/event';
@@ -3350,6 +3350,51 @@ describe('setAtPath', () => {
         const res = setAtPath(value, ['test'], ['object'], undefined);
         expect(Object.keys(res)).toEqual([]);
         expect(res).toEqual({});
+    });
+    test('Set on empty object', () => {
+        const value = {};
+
+        const res = setAtPath(value, ['key', 'status'], ['object', 'object'], 'Completed');
+
+        expect(res).toEqual({ key: { status: 'Completed' } });
+    });
+    test('Set with merge on empty object', () => {
+        const value = {};
+
+        const res = setAtPath(value, ['key', 'status'], ['object', 'object'], 'Completed', 'merge');
+
+        expect(res).toEqual({ key: { status: 'Completed' } });
+    });
+    test('Set with merge on array', () => {
+        const value = {
+            arr: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        };
+
+        const res = setAtPath(value, ['arr', '1', 'id'], ['object', 'object', 'object'], 22, 'merge');
+
+        expect(res).toEqual({ arr: [{ id: 1 }, { id: 22 }, { id: 3 }] });
+    });
+    test('Set on object with existing key', () => {
+        const value = {
+            key: {
+                sessionId: 'zz',
+            },
+        };
+
+        const res = setAtPath(value, ['key', 'status'], ['object', 'object'], 'Completed');
+
+        expect(res).toEqual({ key: { sessionId: 'zz', status: 'Completed' } });
+    });
+    test('Set with merge on object with existing key', () => {
+        const value = {
+            key: {
+                sessionId: 'zz',
+            },
+        };
+
+        const res = setAtPath(value, ['key', 'status'], ['object', 'object'], 'Completed', 'merge');
+
+        expect(res).toEqual({ key: { sessionId: 'zz', status: 'Completed' } });
     });
 });
 describe('new computed', () => {

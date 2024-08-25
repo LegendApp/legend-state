@@ -2,6 +2,16 @@ import { isArray, isChildNode, isDate, isFunction, isMap, isObject, isSet } from
 import type { NodeInfo, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
+type GlobalState = {
+    isLoadingLocal: boolean;
+    isLoadingRemote: boolean;
+    activateSyncedNode: (node: NodeInfo, newValue: any) => { update: UpdateFn; value: any };
+    pendingNodes: Map<NodeInfo, () => void>;
+    dirtyNodes: Set<NodeInfo>;
+    replacer: ((this: any, key: string, value: any) => any) | undefined;
+    reviver: ((this: any, key: string, value: any) => any) | undefined;
+};
+
 export const symbolToPrimitive = Symbol.toPrimitive;
 export const symbolIterator = Symbol.iterator;
 export const symbolGetNode = Symbol('getNode');
@@ -10,15 +20,10 @@ export const symbolOpaque = Symbol('opaque');
 export const optimized = Symbol('optimized');
 export const symbolLinked = Symbol('linked');
 
-export const globalState = {
-    isLoadingLocal: false,
-    isLoadingRemote: false,
-    activateSyncedNode: undefined as unknown as (node: NodeInfo, newValue: any) => { update: UpdateFn; value: any },
+export const globalState: GlobalState = {
     pendingNodes: new Map<NodeInfo, () => void>(),
     dirtyNodes: new Set<NodeInfo>(),
-    replacer: undefined as undefined | ((this: any, key: string, value: any) => any),
-    reviver: undefined as undefined | ((this: any, key: string, value: any) => any),
-};
+} as GlobalState;
 
 export function isOpaqueObject(value: any) {
     // React elements have $$typeof and should be treated as opaque

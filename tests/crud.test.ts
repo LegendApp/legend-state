@@ -1,5 +1,4 @@
 import { observable, observe, syncState, when } from '@legendapp/state';
-import { configureObservableSync } from '@legendapp/state/sync';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import { clone, symbolDelete } from '../src/globals';
 import {
@@ -19,13 +18,6 @@ const ItemBasicValue: () => BasicValue = () => ({
 type GetOrListTestParams =
     | { get: () => Promise<BasicValue | null>; list?: never; as?: never }
     | { list: () => Promise<BasicValue[]>; as: 'value'; get?: never };
-
-beforeAll(() => {
-    configureObservableSync({
-        debounceSet: null,
-        persist: null,
-    } as any);
-});
 
 describe('Crud object get', () => {
     const getTests = {

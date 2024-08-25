@@ -1,4 +1,5 @@
-import { configureLegendState, internal, NodeInfo } from '@legendapp/state';
+import { internal, NodeInfo } from '@legendapp/state';
+import { configureLegendState } from '@legendapp/state/config';
 import { useSelector, UseSelectorOptions } from '@legendapp/state/react';
 
 // TODO: Deprecated, remove in v4

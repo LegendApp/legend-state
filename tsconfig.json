@@ -57,6 +57,9 @@
             "@legendapp/state": [
                 "index"
             ],
+            "@legendapp/state/config": [
+                "config"
+            ],
             "@legendapp/state/persist": [
                 "persist"
             ],

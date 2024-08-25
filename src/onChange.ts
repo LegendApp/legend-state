@@ -1,5 +1,5 @@
 import { getNodeValue } from './globals';
-import { isArray } from './is';
+import { deconstructObjectWithPath } from './helpers';
 import type { ListenerFn, ListenerParams, NodeInfo, NodeListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -106,10 +106,10 @@ export function onChange(
 
 function createCb(linkedFromNode: NodeInfo, path: string[], callback: ListenerFn) {
     // Create a callback for a path that calls it with the current value at the path
-    let { valueAtPath: prevAtPath } = getValueAtPath(getNodeValue(linkedFromNode), path);
+    let prevAtPath = deconstructObjectWithPath(path, [], getNodeValue(linkedFromNode));
 
     return function ({ value: valueA, isFromPersist, isFromSync }: ListenerParams<any>) {
-        const { valueAtPath } = getValueAtPath(valueA, path);
+        const valueAtPath = deconstructObjectWithPath(path, [], valueA);
         if (valueAtPath !== prevAtPath) {
             callback({
                 value: valueAtPath,
@@ -128,19 +128,4 @@ function createCb(linkedFromNode: NodeInfo, path: string[], callback: ListenerFn
         }
         prevAtPath = valueAtPath;
     };
-}
-
-function getValueAtPath(
-    obj: Record<string, any>,
-    path: string[],
-): { valueAtPath: any; pathTypes: ('object' | 'array')[] } {
-    let o: Record<string, any> = obj;
-    const pathTypes: ('object' | 'array')[] = [];
-    for (let i = 0; o && i < path.length; i++) {
-        pathTypes.push(isArray(o) ? 'array' : 'object');
-        const p = path[i];
-        o = (o as any)[p];
-    }
-
-    return { valueAtPath: o, pathTypes };
 }

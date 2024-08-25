@@ -16,6 +16,7 @@ export function syncState(obs: ObservableParam) {
             numPendingSets: 0,
             syncCount: 0,
             clearPersist: undefined as unknown as () => Promise<void>,
+            reset: () => Promise.resolve(),
             sync: () => Promise.resolve(),
             getPendingChanges: () => ({}),
         });

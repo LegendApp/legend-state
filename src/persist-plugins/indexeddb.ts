@@ -4,6 +4,7 @@ import type {
     ObservablePersistPlugin,
     PersistMetadata,
     PersistOptions,
+    ObservablePersistIndexedDBPluginOptions,
 } from '@legendapp/state/sync';
 import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
 
@@ -25,18 +26,20 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         Record<string, { tableName: string; tablePrev?: any; items: Set<string> }>
     >();
     private promisesQueued: (() => void)[] = [];
+    private configuration: ObservablePersistIndexedDBPluginOptions;
 
-    constructor() {
+    constructor(configuration: ObservablePersistIndexedDBPluginOptions) {
+        this.configuration = configuration;
         this.doSave = this.doSave.bind(this);
     }
-
-    public async initialize(config: ObservablePersistPluginOptions) {
+    public async initialize(configOptions: ObservablePersistPluginOptions) {
+        const config = this.configuration || configOptions.indexedDB;
         if (typeof indexedDB === 'undefined') return;
-        if (process.env.NODE_ENV === 'development' && !config?.indexedDB) {
+        if (process.env.NODE_ENV === 'development' && !config) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
 
-        const { databaseName, version, tableNames } = config!.indexedDB!;
+        const { databaseName, version, tableNames } = config;
         const openRequest = indexedDB.open(databaseName, version);
 
         openRequest.onerror = () => {
@@ -45,7 +48,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
 
         openRequest.onupgradeneeded = () => {
             const db = openRequest.result;
-            const { tableNames } = config!.indexedDB!;
+            const { tableNames } = config!;
             // Create a table for each name with "id" as the key
             tableNames.forEach((table) => {
                 if (!db.objectStoreNames.contains(table)) {
@@ -436,4 +439,14 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         }
         return lastSet!;
     }
+}
+
+export function configureObservablePersistIndexedDB(
+    configuration: ObservablePersistIndexedDBPluginOptions,
+): typeof ObservablePersistIndexedDB {
+    return class ObservablePersistIndexedDBConfigured extends ObservablePersistIndexedDB {
+        constructor() {
+            super(configuration);
+        }
+    };
 }

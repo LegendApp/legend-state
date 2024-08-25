@@ -1,7 +1,6 @@
 export { isObserved, shouldIgnoreUnobserved } from './src/ObservableObject';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
-export { configureLegendState } from './src/config';
 export { event } from './src/event';
 export { isObservable } from './src/globals';
 export {
@@ -15,7 +14,6 @@ export {
     mergeIntoObservable,
     opaqueObject,
     setAtPath,
-    setInObservableAtPath,
     setSilently,
 } from './src/helpers';
 export {
@@ -72,7 +70,6 @@ import {
     symbolLinked,
 } from './src/globals';
 import { deepMerge, getValueAtPath, initializePathType, setAtPath } from './src/helpers';
-import { runWithRetry } from './src/retry';
 import { tracking } from './src/tracking';
 
 export const internal = {
@@ -92,7 +89,6 @@ export const internal = {
     observableFns,
     optimized,
     peek,
-    runWithRetry,
     safeParse,
     safeStringify,
     set,

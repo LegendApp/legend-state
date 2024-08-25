@@ -2,7 +2,7 @@ import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
 import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isPrimitive, isSet } from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
-import type { Observable, ObservableParam } from './observableTypes';
+import type { ObservableParam } from './observableTypes';
 
 export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean): T {
     let c = selector as any;
@@ -56,7 +56,7 @@ export function setAtPath<T extends object>(
             } else if (o[p] === undefined && value === undefined && i === path.length - 1) {
                 // If setting undefined and the key is undefined, no need to initialize or set it
                 return obj;
-            } else if (o[p] === undefined || o[p] === null) {
+            } else if (i < path.length - 1 && (o[p] === undefined || o[p] === null)) {
                 const child = initializePathType(pathTypes[i]);
                 if (isMap(o)) {
                     o.set(p, child);
@@ -92,36 +92,6 @@ export function setAtPath<T extends object>(
     }
 
     return obj;
-}
-export function setInObservableAtPath(
-    value$: ObservableParam,
-    path: string[],
-    pathTypes: TypeAtPath[],
-    value: any,
-    mode: 'assign' | 'set' | 'merge',
-) {
-    let o: any = value$;
-    let v = value;
-    for (let i = 0; i < path.length; i++) {
-        const p = path[i];
-        if (!o.peek()[p]) {
-            o[p].set(initializePathType(pathTypes[i]));
-        }
-        o = o[p];
-        v = v[p];
-    }
-
-    if (v === symbolDelete) {
-        (o as Observable).delete();
-    }
-    // Assign if possible, or set otherwise
-    else if (mode === 'assign' && (o as Observable).assign && isObject(o.peek())) {
-        (o as Observable<{}>).assign(v);
-    } else if (mode === 'merge') {
-        mergeIntoObservable(o, v);
-    } else {
-        o.set(v);
-    }
 }
 export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, ...sources: any[]): T {
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
@@ -225,12 +195,13 @@ export function initializePathType(pathType: TypeAtPath): any {
     switch (pathType) {
         case 'array':
             return [];
-        case 'object':
-            return {};
         case 'map':
             return new Map();
         case 'set':
             return new Set();
+        case 'object':
+        default:
+            return {};
     }
 }
 export function applyChange<T extends object>(value: T, change: Change, applyPrevious?: boolean): T {
@@ -248,21 +219,30 @@ export function deepMerge<T>(target: T, ...sources: any[]): T {
         return sources[sources.length - 1];
     }
 
-    const result: T = (isArray(target) ? [...target] : { ...target }) as T;
+    let result: T = (isArray(target) ? [...target] : { ...target }) as T;
 
     for (let i = 0; i < sources.length; i++) {
         const obj2 = sources[i];
-        for (const key in obj2) {
-            if (hasOwnProperty.call(obj2, key)) {
-                if (obj2[key] instanceof Object && !isObservable(obj2[key]) && Object.keys(obj2[key]).length > 0) {
-                    (result as any)[key] = deepMerge(
-                        (result as any)[key] || (isArray((obj2 as any)[key]) ? [] : {}),
-                        (obj2 as any)[key],
-                    );
-                } else {
-                    (result as any)[key] = obj2[key];
+        if (isObject(obj2) || isArray(obj2)) {
+            const objTarget = obj2 as Record<string, any>;
+            for (const key in objTarget) {
+                if (hasOwnProperty.call(objTarget, key)) {
+                    if (
+                        objTarget[key] instanceof Object &&
+                        !isObservable(objTarget[key]) &&
+                        Object.keys(objTarget[key]).length > 0
+                    ) {
+                        (result as any)[key] = deepMerge(
+                            (result as any)[key] || (isArray((objTarget as any)[key]) ? [] : {}),
+                            (objTarget as any)[key],
+                        );
+                    } else {
+                        (result as any)[key] = objTarget[key];
+                    }
                 }
             }
+        } else {
+            result = obj2;
         }
     }
 

@@ -1,15 +1,16 @@
+import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import 'fake-indexeddb/auto';
+import { event } from '../src/event';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
+import { observe } from '../src/observe';
+import { configureSynced } from '../src/sync/configureSynced';
 import { getAllSyncStates, syncObservable, transformSaveData } from '../src/sync/syncObservable';
 import { syncState } from '../src/syncState';
 import { when } from '../src/when';
-import { ObservablePersistPlugin, SyncedOptions, configureObservableSync, synced } from '../sync';
+import { ObservablePersistPlugin, SyncedOptions, synced } from '../sync';
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
-import { observe } from '../src/observe';
-import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { event } from '../src/event';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -212,12 +213,15 @@ describe('Pending', () => {
     test('Pending created and updated', async () => {
         const persistName = getPersistName();
         let isOk = false;
+        let didSetWrongValue = false;
         const obs$ = observable(
             synced({
                 get: () => {
                     return { test: 'hi' };
                 },
                 set: ({ value }) => {
+                    didSetWrongValue = value.test !== obs$.get().test;
+                    expect(value.test).toEqual(obs$.get().test);
                     if (!isOk) {
                         throw new Error('Did not save' + value);
                     }
@@ -245,6 +249,8 @@ describe('Pending', () => {
         // Updates pending
         obs$.test.set('hello2');
         await promiseTimeout(0);
+        expect(didSetWrongValue).toEqual(false);
+
         pending = state$.getPendingChanges();
         expect(pending).toEqual({ test: { p: 'hi', t: ['object'], v: 'hello2' } });
 
@@ -279,6 +285,7 @@ describe('Pending', () => {
 
         pending = state$.getPendingChanges();
         expect(pending).toEqual({});
+        expect(didSetWrongValue).toEqual(false);
     });
     test('Pending applied if changed', async () => {
         const persistName = getPersistName();
@@ -554,7 +561,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        configureObservableSync({
+        const myPersist = configureSynced({
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -562,11 +569,14 @@ describe('persist objects', () => {
 
         const persistName = getPersistName();
 
-        syncObservable(tablesState$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            tablesState$,
+            myPersist({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(tablesState$.get()).toEqual({
             tables: new Map([
@@ -617,11 +627,14 @@ describe('persist objects', () => {
                 ],
             ]),
         });
-        syncObservable(tablesState2$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            tablesState2$,
+            myPersist({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(tablesState2$.get()).toEqual({
             tables: new Map([
@@ -645,7 +658,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        configureObservableSync({
+        const mySynced = configureSynced(synced, {
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -653,11 +666,14 @@ describe('persist objects', () => {
 
         const persistName = getPersistName();
 
-        syncObservable(obs$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            obs$,
+            mySynced({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(obs$.get()).toEqual({
             m: new Map([
@@ -688,11 +704,14 @@ describe('persist objects', () => {
                 ['v2', { h1: 'h3', h2: [1] }],
             ]),
         });
-        syncObservable(obs2$, {
-            persist: {
-                name: persistName,
-            },
-        });
+        syncObservable(
+            obs2$,
+            mySynced({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
 
         expect(obs2$.get()).toEqual({
             m: new Map([
@@ -778,7 +797,7 @@ describe('global config', () => {
     test('takes global config persist changes', async () => {
         let setTo: any = undefined;
         const didSet$ = observable(false);
-        configureObservableSync({
+        const mySynced = configureSynced(synced, {
             persist: {
                 retrySync: true,
                 plugin: ObservablePersistLocalStorage,
@@ -787,7 +806,7 @@ describe('global config', () => {
 
         const persistName = getPersistName();
         const obs$ = observable(
-            synced({
+            mySynced({
                 get: async () => {
                     await promiseTimeout(0);
                     return { test: false };
@@ -877,6 +896,50 @@ describe('clear persist', () => {
         states$.forEach(([state$]) => state$.clearPersist());
 
         expect(localStorage.getItem(persistName)).toEqual(null);
+    });
+});
+
+describe('reset sync state', () => {
+    test('reset individual sync state', async () => {
+        const persistName = getPersistName();
+        let numGets = 0;
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    numGets++;
+                    await promiseTimeout(0);
+                    return { test: numGets };
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: { test: 0 },
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(1);
+        expect(localStorage.getItem(persistName)).toEqual('{"test":1}');
+
+        state$.reset();
+
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({ test: 0 });
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        obs$.get();
+
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(2);
+        expect(localStorage.getItem(persistName)).toEqual('{"test":2}');
     });
 });
 
