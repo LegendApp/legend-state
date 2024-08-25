@@ -82,7 +82,10 @@ export interface SyncedKeelConfiguration
         | 'generateId'
     > {
     client: {
-        auth: { refresh: () => Promise<boolean>; isAuthenticated: () => Promise<boolean> };
+        auth: {
+            refresh: () => Promise<APIResult<boolean>>;
+            isAuthenticated: () => Promise<APIResult<boolean>>;
+        };
         api: { queries: Record<string, (i: any) => Promise<any>> };
     };
     realtimePlugin?: KeelRealtimePlugin;
@@ -454,11 +457,11 @@ export function syncedKeel<
                 params.cancelRetry = true;
             }
 
-            throw new Error(error.message);
+            throw new Error(error.message, { cause: { input } });
         } else {
             await handleApiError(error);
 
-            throw new Error(error.message);
+            throw new Error(error.message, { cause: { input } });
         }
     };
 

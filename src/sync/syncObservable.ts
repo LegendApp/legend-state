@@ -42,9 +42,11 @@ import type {
     SyncTransform,
     SyncTransformMethod,
     Synced,
+    SyncedErrorParams,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
+    SyncedSubscribeParams,
 } from './syncTypes';
 import { runWithRetry } from './retry';
 
@@ -629,7 +631,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
         const onError = (error: Error) => {
             state$.error.set(error);
-            syncOptions.onSetError?.(error, setParams as SyncedSetParams<any>);
+            syncOptions.onSetError?.(error, {
+                setParams: setParams as SyncedSetParams<any>,
+                source: 'set',
+                value$: obs$,
+            });
         };
 
         const setParams: SyncedSetParams<any> = {
@@ -906,9 +912,9 @@ export function syncObservable<T>(
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
 
-    const onGetError = (error: Error, getParams: SyncedGetParams<T> | undefined, source: 'get' | 'subscribe') => {
+    const onGetError = (error: Error, params: Omit<SyncedErrorParams, 'value$'>) => {
         syncState$.error.set(error);
-        syncOptions.onGetError?.(error, getParams, source);
+        syncOptions.onGetError?.(error, { ...params, value$: obs$ });
     };
 
     loadLocal(obs$, syncOptions, syncState$, localState);
@@ -1076,7 +1082,7 @@ export function syncObservable<T>(
                         const subscribe = syncOptions.subscribe;
                         isSubscribed = true;
                         const doSubscribe = () => {
-                            unsubscribe = subscribe({
+                            const subscribeParams: SyncedSubscribeParams<T> = {
                                 node,
                                 value$: obs$,
                                 lastSync,
@@ -1089,8 +1095,9 @@ export function syncObservable<T>(
                                     });
                                 },
                                 refresh: () => when(syncState$.isLoaded, sync),
-                                onError: (error) => onGetError(error, undefined, 'subscribe'),
-                            });
+                                onError: (error: Error) => onGetError(error, { source: 'subscribe', subscribeParams }),
+                            };
+                            unsubscribe = subscribe(subscribeParams);
                         };
 
                         if (waitFor) {
@@ -1101,7 +1108,7 @@ export function syncObservable<T>(
                     }
                     const existingValue = getNodeValue(node);
 
-                    const onError = (error: Error) => onGetError(error, getParams as SyncedGetParams<T>, 'get');
+                    const onError = (error: Error) => onGetError(error, { getParams, source: 'get' });
 
                     const getParams: SyncedGetParams<T> = {
                         node,

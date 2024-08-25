@@ -66,6 +66,14 @@ export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBas
     onError: (error: Error) => void;
 }
 
+export interface SyncedErrorParams {
+    getParams?: SyncedGetParams<any>;
+    setParams?: SyncedSetParams<any>;
+    subscribeParams?: SyncedSubscribeParams<any>;
+    source: 'get' | 'set' | 'subscribe';
+    value$: ObservableParam<any>;
+}
+
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {
     get?: (params: SyncedGetParams<TRemote>) => Promise<TRemote> | TRemote;
     set?: (params: SyncedSetParams<TRemote>) => void | Promise<any>;
@@ -76,8 +84,8 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     syncMode?: 'auto' | 'manual';
     mode?: GetMode;
     transform?: SyncTransform<TLocal, TRemote>;
-    onGetError?: (error: Error, getParams: SyncedGetParams<TRemote> | undefined, source: 'get' | 'subscribe') => void;
-    onSetError?: (error: Error, setParams: SyncedSetParams<TRemote>) => void;
+    onGetError?: (error: Error, params: SyncedErrorParams) => void;
+    onSetError?: (error: Error, params: SyncedErrorParams) => void;
     onBeforeGet?: (params: {
         value: TRemote;
         lastSync: number | undefined;

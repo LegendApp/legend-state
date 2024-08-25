@@ -57,7 +57,7 @@ export function runWithRetry<T>(
 
                             if (timeout === false) {
                                 state.cancelRetry = true;
-                                reject();
+                                reject(error);
                             } else {
                                 mapRetryTimeouts.set(state.node, timeout);
                                 timeoutRetry = timeout;
