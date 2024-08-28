@@ -13,6 +13,7 @@ export function syncState(obs: ObservableParam) {
             isSyncEnabled: true,
             isGetting: false,
             isSetting: false,
+            numPendingGets: 0,
             numPendingSets: 0,
             syncCount: 0,
             clearPersist: undefined as unknown as () => Promise<void>,

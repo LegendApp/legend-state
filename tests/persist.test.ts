@@ -903,11 +903,14 @@ describe('reset sync state', () => {
     test('reset individual sync state', async () => {
         const persistName = getPersistName();
         let numGets = 0;
+        let lastLastSync: number | undefined = undefined;
         const obs$ = observable(
             synced({
-                get: async () => {
+                get: async ({ lastSync, updateLastSync }) => {
+                    lastLastSync = lastSync;
                     numGets++;
                     await promiseTimeout(0);
+                    updateLastSync(10);
                     return { test: numGets };
                 },
                 persist: {
@@ -924,8 +927,14 @@ describe('reset sync state', () => {
         await when(state$.isLoaded);
         await promiseTimeout(1);
 
+        expect(lastLastSync).toEqual(undefined);
         expect(numGets).toEqual(1);
         expect(localStorage.getItem(persistName)).toEqual('{"test":1}');
+
+        await state$.sync();
+
+        expect(lastLastSync).toEqual(10);
+        expect(numGets).toEqual(2);
 
         state$.reset();
 
@@ -938,8 +947,10 @@ describe('reset sync state', () => {
         await when(state$.isLoaded);
         await promiseTimeout(1);
 
-        expect(numGets).toEqual(2);
-        expect(localStorage.getItem(persistName)).toEqual('{"test":2}');
+        expect(lastLastSync).toEqual(undefined);
+
+        expect(numGets).toEqual(3);
+        expect(localStorage.getItem(persistName)).toEqual('{"test":3}');
     });
 });
 

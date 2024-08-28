@@ -1226,9 +1226,21 @@ export function syncObservable<T>(
         // Reset all the state back to initial and clear persistence
         const wasPersistEnabled = syncStateValue.isPersistEnabled;
         const wasSyncEnabled = syncStateValue.isSyncEnabled;
-        syncStateValue.isPersistEnabled = false;
-        syncStateValue.isSyncEnabled = false;
-        syncStateValue.syncCount = 0;
+        const metadata = metadatas.get(obs$);
+        if (metadata) {
+            Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
+        }
+        Object.assign(syncStateValue, {
+            isPersistEnabled: false,
+            isSyncEnabled: false,
+            lastSync: undefined,
+            numPendingGets: 0,
+            isLoaded: false,
+            isGetting: false,
+            isSetting: false,
+            numPendingSets: 0,
+            syncCount: 0,
+        } as ObservableSyncState);
         isSynced = false;
         isSubscribed = false;
         unsubscribe?.();
