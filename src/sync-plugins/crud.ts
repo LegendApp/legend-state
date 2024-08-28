@@ -138,6 +138,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     } = props;
 
     const fieldId = fieldIdProp || 'id';
+    const pendingCreates = new Set<string>();
 
     let asType = props.as as TAsOption;
 
@@ -283,11 +284,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       if (asType === 'value') {
                           if (value) {
                               let id = value?.[fieldId];
-                              const isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
+                              let isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
                               if (!id && generateId) {
                                   id = ensureId(value, fieldId, generateId);
                               }
                               if (id) {
+                                  if (pendingCreates.has(id)) {
+                                      isCreate = false;
+                                  }
                                   if (isCreate || retryAsCreate) {
                                       creates.set(id, value);
                                   } else if (path.length === 0) {
@@ -348,11 +352,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               }
                           }
                           itemsChanged?.forEach(([item, prev]) => {
-                              const isCreate = fieldCreatedAt
-                                  ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
-                                  : fieldUpdatedAt
-                                    ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
-                                    : isNullOrUndefined(prev);
+                              const isCreate =
+                                  !pendingCreates.has(item.id) &&
+                                  (fieldCreatedAt
+                                      ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
+                                      : fieldUpdatedAt
+                                        ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
+                                        : isNullOrUndefined(prev));
                               if (isCreate) {
                                   if (generateId) {
                                       ensureId(item, fieldId, generateId);
@@ -361,6 +367,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       console.error('[legend-state]: added item without an id');
                                   }
                                   if (createFn) {
+                                      pendingCreates.add(item.id);
                                       creates.set(item.id, item);
                                   } else {
                                       console.log('[legend-state] missing create function');
@@ -445,9 +452,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   return Promise.all([
                       ...Array.from(creates).map(async ([itemKey, itemValue]) => {
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          return createFn!(createObj, params).then((result) =>
-                              saveResult(itemKey, createObj, result as any, true),
-                          );
+                          return createFn!(createObj, params).then((result) => {
+                              pendingCreates.delete(itemKey);
+                              return saveResult(itemKey, createObj, result as any, true);
+                          });
                       }),
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
                           const toSave = itemValue;

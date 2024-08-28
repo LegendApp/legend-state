@@ -6,6 +6,7 @@ import type { Observable } from '../src/observableTypes';
 export interface BasicValue {
     id: string;
     test: string;
+    createdAt?: string | number | null;
     updatedAt?: string | number | null;
     parent?: {
         child: {

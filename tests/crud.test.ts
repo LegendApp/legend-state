@@ -2173,6 +2173,51 @@ describe('Order of get/create', () => {
         expect(updated).toEqual(value);
         expect(didGet).toEqual(true);
     });
+    test('update before create returns does update', async () => {
+        let created: BasicValue | undefined = undefined;
+        let numCreated = 0;
+        let numUpdated = 0;
+        let updated: BasicValue | undefined = undefined;
+        const value = { id: '1', test: 'hi' };
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    return [];
+                },
+                create: (input: BasicValue) => {
+                    created = input;
+                    numCreated++;
+                    return promiseTimeout(10, input);
+                },
+                update: (input: BasicValue) => {
+                    updated = input;
+                    numUpdated++;
+                    return promiseTimeout(0, input);
+                },
+                as: 'object',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        expect(obs$.get()).toEqual({});
+        expect(syncState(obs$).isLoaded.get()).toEqual(true);
+
+        obs$['1'].set(value);
+
+        await promiseTimeout(0);
+
+        expect(numCreated).toEqual(1);
+
+        obs$['1'].test.set('hello');
+
+        await promiseTimeout(0);
+
+        expect(numCreated).toEqual(1);
+        expect(numUpdated).toEqual(1);
+        expect(created).toEqual({ id: '1', test: 'hi' });
+        expect(updated).toEqual({ id: '1', test: 'hello' });
+    });
 });
 describe('Hierarchical sync', () => {
     test('list can return observables', async () => {
