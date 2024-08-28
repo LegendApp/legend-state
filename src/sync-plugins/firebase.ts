@@ -37,7 +37,7 @@ import {
     serverTimestamp,
     startAt,
 } from 'firebase/database';
-import { invertFieldMap, transformObjectFields } from './_transformObjectFields';
+import { invertFieldMap, transformObjectFields } from '../sync/transformObjectFields';
 
 // TODO: fieldId should be required if Many, not if as: value
 // as should default to value?
