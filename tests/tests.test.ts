@@ -2400,6 +2400,41 @@ describe('when', () => {
         const value = await promise;
         expect(value).toEqual('asdf');
     });
+    test('when with array', async () => {
+        const obs = observable({ val: false, val2: false });
+        const handler = jest.fn();
+        when([obs.val, obs.val2], handler);
+        expect(handler).not.toHaveBeenCalled();
+        obs.val.set(true);
+        expect(handler).not.toHaveBeenCalled();
+        obs.val2.set(true);
+        expect(handler).toHaveBeenCalled();
+    });
+    test('when with array with callback', async () => {
+        const obs = observable({ val: false, val2: false });
+        let values: boolean[] | undefined = undefined;
+        when([obs.val, obs.val2], (values2) => {
+            values = values2;
+        });
+        expect(values).toEqual(undefined);
+        obs.val.set(true);
+        expect(values).toEqual(undefined);
+        obs.val2.set(true);
+        expect(values).toEqual([true, true]);
+    });
+    test('when with array as promise', async () => {
+        const obs = observable({ val: false, val2: false });
+        let values: boolean[] | undefined = undefined;
+        when([obs.val, obs.val2]).then((values2) => {
+            values = values2;
+        });
+        expect(values).toEqual(undefined);
+        obs.val.set(true);
+        expect(values).toEqual(undefined);
+        obs.val2.set(true);
+        await promiseTimeout(0);
+        expect(values).toEqual([true, true]);
+    });
 });
 describe('Shallow', () => {
     test('Shallow set primitive', () => {
