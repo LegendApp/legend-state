@@ -19,7 +19,8 @@ import { Memo } from '../src/react/Memo';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { useComputed } from '../src/react/useComputed';
 import { when } from '../src/when';
-import { supressActWarning } from './testglobals';
+import { promiseTimeout, supressActWarning } from './testglobals';
+import { synced } from '../src/sync/synced';
 
 type TestObject = { id: string; label: string };
 
@@ -1560,6 +1561,51 @@ describe('useObservable', () => {
 
         expect(numRenders).toEqual(4);
         expect(lastValue).toEqual([{ hotspot: { position: { x: 3 } } }]);
+    });
+    test('useObservable with a synced does not recreate get function', async () => {
+        let num = 0;
+        let obs$: Observable<{ test: number }>;
+        const obs2$ = observable(0);
+        let value = 0;
+        let latestRand: number | undefined = undefined;
+        const Test = observer(function Test() {
+            const rand = { value: Math.random() };
+            latestRand = rand.value;
+            // @ts-expect-error TODO: Fix this
+            obs$ = useObservable(
+                synced({
+                    get: () => {
+                        obs2$.get();
+                        return { test: num + '_' + rand.value };
+                    },
+                }),
+            );
+            num++;
+
+            value = obs$.test.get();
+
+            obs2$.get();
+
+            return createElement('div', undefined);
+        });
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        const originalRand = latestRand;
+
+        expect(num).toEqual(1);
+        expect(value).toEqual(1 + '_' + originalRand);
+
+        act(() => {
+            obs2$.set(1);
+        });
+
+        await promiseTimeout(0);
+
+        expect(num).toEqual(2);
+        expect(value).toEqual(1 + '_' + originalRand);
     });
 });
 describe('useObservableState', () => {
