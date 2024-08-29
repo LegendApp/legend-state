@@ -136,7 +136,9 @@ export type WaitForSet<T> =
     | ((params: WaitForSetFnParams<T>) => any)
     | Promise<any>
     | ObservableParam<any>
-    | ObservableEvent;
+    | ObservableEvent
+    | ObservableParam<any>[]
+    | ObservableEvent[];
 
 export interface LinkedOptions<T = any> {
     get?: () => Promise<T> | T;

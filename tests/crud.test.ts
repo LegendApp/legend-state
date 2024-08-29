@@ -2411,7 +2411,7 @@ describe('Hierarchical sync', () => {
     // });
 });
 describe('waitForSet', () => {
-    test('', async () => {
+    test('crud waitForSet', async () => {
         const canSet$ = observable(false);
         let valueAtWaitForSet: BasicValue | undefined = undefined;
         let createValue: BasicValue | undefined = undefined;
@@ -2439,6 +2439,46 @@ describe('waitForSet', () => {
         expect(valueAtWaitForSet).toEqual({ id: '1', test: 'hi' });
 
         canSet$.set(true);
+
+        await promiseTimeout(1);
+
+        expect(createValue).toEqual({ id: '1', test: 'hi' });
+        expect(typeAtWaitForSet).toEqual('create');
+    });
+    test('crud waitForSet with array', async () => {
+        const canSet$ = observable({ v1: false, v2: false });
+        let valueAtWaitForSet: BasicValue | undefined = undefined;
+        let createValue: BasicValue | undefined = undefined;
+        let typeAtWaitForSet: 'create' | 'update' | 'delete' | undefined = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => [] as BasicValue[],
+                create: (value: BasicValue) => {
+                    createValue = value;
+                    return promiseTimeout(0, value);
+                },
+                as: 'object',
+                waitForSet: ({ value, type }) => {
+                    valueAtWaitForSet = value;
+                    typeAtWaitForSet = type;
+                    return [canSet$.v1, canSet$.v2];
+                },
+            }),
+        );
+
+        obs$.id1.set({ id: '1', test: 'hi' });
+
+        await promiseTimeout(1);
+
+        expect(valueAtWaitForSet).toEqual({ id: '1', test: 'hi' });
+
+        canSet$.v1.set(true);
+
+        await promiseTimeout(1);
+
+        expect(createValue).toEqual(undefined);
+
+        canSet$.v2.set(true);
 
         await promiseTimeout(1);
 
