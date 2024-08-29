@@ -202,18 +202,21 @@ async function handleApiError(error: APIError, retry?: () => any) {
     }
 }
 
-function convertObjectToCreate<TRemote>(item: TRemote): TRemote {
-    const cloned = clone(item);
-    Object.keys(cloned).forEach((key) => {
+function convertObjectToCreate<TRemote extends Record<string, any>>(item: TRemote): TRemote {
+    const cloned: Record<string, any> = {};
+    Object.keys(item).forEach((key) => {
         if (key.endsWith('Id')) {
-            if (cloned[key]) {
+            if (item[key]) {
                 cloned[key.slice(0, -2)] = { id: cloned[key] };
             }
-            delete cloned[key];
+        } else if (key !== 'createdAt' && key !== 'updatedAt') {
+            if (item[key] === undefined) {
+                cloned[key] = null;
+            } else {
+                cloned[key] = item[key];
+            }
         }
     });
-    delete cloned.createdAt;
-    delete cloned.updatedAt;
     return cloned as unknown as TRemote;
 }
 
@@ -483,8 +486,7 @@ export function syncedKeel<
               const values = convertObjectToCreate(input as unknown as Partial<KeelObjectBase>) as Partial<TRemote> &
                   Partial<KeelObjectBase>;
               delete values.id;
-              delete values.createdAt;
-              delete values.updatedAt;
+
               if (!isEmpty(values)) {
                   const { data, error } = await updateParam({ where: { id }, values });
 

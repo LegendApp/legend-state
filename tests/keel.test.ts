@@ -21,6 +21,7 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 interface BasicValue {
     id: string;
     test: string;
+    createdAt?: string | number | null;
     updatedAt?: string | number | null;
     parent?: {
         child: {
@@ -32,6 +33,8 @@ interface BasicValue {
 const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',
     test: 'hi',
+    createdAt: 1,
+    updatedAt: 1,
 });
 
 async function fakeKeelList<T>(results: T[]): Promise<APIResult<{ results: T[]; pageInfo: any }>> {
@@ -65,9 +68,11 @@ describe('keel', () => {
             id1: {
                 id: 'id1',
                 test: 'hi',
+                createdAt: 1,
+                updatedAt: 1,
             },
         });
-        expect(obs.id1.get()).toEqual({ id: 'id1', test: 'hi' });
+        expect(obs.id1.get()).toEqual({ id: 'id1', test: 'hi', createdAt: 1, updatedAt: 1 });
         expect(obs.id1.test.get()).toEqual('hi');
     });
     test('get', async () => {
@@ -84,6 +89,88 @@ describe('keel', () => {
         expect(obs.get()).toEqual({
             id: 'id1',
             test: 'hi',
+            createdAt: 1,
+            updatedAt: 1,
+        });
+    });
+    test('setting a child value', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedKeel({
+                get: () => fakeKeelGet({ ...ItemBasicValue(), other: 2, another: 3 }),
+                update: async (update) => {
+                    const { values } = update;
+                    updated = values;
+                    return { data: values! } as any;
+                },
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 2,
+            another: 3,
+            createdAt: 1,
+            updatedAt: 1,
+        });
+
+        obs.other.set(4);
+
+        await promiseTimeout(10);
+
+        expect(updated).toEqual({ other: 4 });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            another: 3,
+            other: 4,
+            createdAt: 1,
+            updatedAt: 1,
+        });
+    });
+    test('deleting a property sets it to null', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedKeel({
+                get: () => fakeKeelGet({ ...ItemBasicValue(), other: 2, another: 3 }),
+                update: async (update) => {
+                    const { values } = update;
+                    updated = values;
+                    return { data: values! } as any;
+                },
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 2,
+            another: 3,
+            createdAt: 1,
+            updatedAt: 1,
+        });
+
+        obs.other.delete();
+
+        await promiseTimeout(10);
+
+        expect(updated).toEqual({ other: null });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            another: 3,
+            createdAt: 1,
+            updatedAt: 1,
+            other: null,
         });
     });
 });

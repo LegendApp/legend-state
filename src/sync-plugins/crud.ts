@@ -293,7 +293,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       isCreate = false;
                                   }
                                   if (isCreate || retryAsCreate) {
-                                      creates.set(id, value);
+                                      if (createFn) {
+                                          creates.set(id, value);
+                                      } else {
+                                          console.log('[legend-state] missing create function');
+                                      }
                                   } else if (path.length === 0) {
                                       if (valueAtPath) {
                                           updates.set(id, getUpdateValue(valueAtPath, prevAtPath));

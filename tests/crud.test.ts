@@ -1622,6 +1622,41 @@ describe('update partial', () => {
             another: 3,
         });
     });
+    test('with updatePartial deleting a key', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                get: () => ({ ...ItemBasicValue(), other: 2, another: 3 }),
+                update: async (value) => {
+                    updated = value;
+                    return value;
+                },
+                updatePartial: true,
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            other: 2,
+            another: 3,
+        });
+
+        obs.other.delete();
+
+        await promiseTimeout(1);
+
+        expect(updated).toEqual({ id: 'id1', other: undefined });
+        expect(obs.get()).toEqual({
+            id: 'id1',
+            test: 'hi',
+            another: 3,
+        });
+    });
     test('with updatePartial setting multiple', async () => {
         const updated: any[] = [];
         const obs = observable(
