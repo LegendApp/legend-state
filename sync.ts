@@ -7,9 +7,12 @@ export * from './src/sync/syncTypes';
 export { synced } from './src/sync/synced';
 export * from './src/sync/configureSynced';
 
+import { waitForSet } from './src/sync/waitForSet';
 import { observableSyncConfiguration } from './src/sync/configureObservableSync';
 export const internal: {
     observableSyncConfiguration: SyncedOptionsGlobal;
+    waitForSet: typeof waitForSet;
 } = {
     observableSyncConfiguration,
+    waitForSet,
 };

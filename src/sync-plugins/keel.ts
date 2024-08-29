@@ -1,5 +1,4 @@
-import ksuid from 'ksuid';
-import { WaitForSetFnParams, computeSelector, internal, isEmpty, isFunction, observable, when } from '@legendapp/state';
+import { computeSelector, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
     SyncedGetSetSubscribeBaseParams,
     SyncedOptions,
@@ -16,9 +15,10 @@ import {
     SyncedCrudPropsMany,
     SyncedCrudPropsSingle,
     SyncedCrudReturnType,
+    WaitForSetCrudFnParams,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
-const { clone } = internal;
+import ksuid from 'ksuid';
 
 // Keel types
 export interface KeelObjectBase {
@@ -529,7 +529,7 @@ export function syncedKeel<
         update,
         delete: deleteFn,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: (params: WaitForSetFnParams<any>) =>
+        waitForSet: (params: WaitForSetCrudFnParams<any>) =>
             isEnabled$.get() && (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
         onSaved,
         fieldCreatedAt,

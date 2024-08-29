@@ -49,6 +49,7 @@ import type {
     SyncedSubscribeParams,
 } from './syncTypes';
 import { runWithRetry } from './retry';
+import { waitForSet } from './waitForSet';
 
 const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, symbolLinked, createPreviousHandler } =
     internal;
@@ -575,7 +576,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
     const persist = syncOptions.persist;
     const { table, config: configLocal } = parseLocalConfig(persist!);
-    const { onBeforeSet, waitForSet, onAfterSet } = syncOptions || ({} as SyncedOptions);
+    const { onBeforeSet, waitForSet: waitForSetParam, onAfterSet } = syncOptions || ({} as SyncedOptions);
     const shouldSaveMetadata = persist?.retrySync;
     const saveLocal = !!persist?.name;
 
@@ -600,13 +601,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             }
         }
 
-        if (waitForSet) {
-            const waitFn = isFunction(waitForSet)
-                ? waitForSet({ changes: changesRemote, value: obs$.peek() })
-                : waitForSet;
-            if (waitFn) {
-                await when(waitFn);
-            }
+        if (waitForSetParam) {
+            await waitForSet(waitForSetParam, changesRemote, obs$.peek());
         }
 
         // Clone value to ensure it doesn't change observable value

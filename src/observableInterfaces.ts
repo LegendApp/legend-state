@@ -132,11 +132,17 @@ export interface ObserveEventCallback<T> {
 
 export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
 
+export type WaitForSet<T> =
+    | ((params: WaitForSetFnParams<T>) => any)
+    | Promise<any>
+    | ObservableParam<any>
+    | ObservableEvent;
+
 export interface LinkedOptions<T = any> {
     get?: () => Promise<T> | T;
     set?: (params: SetParams<T>) => void | Promise<any>;
     waitFor?: Selector<any>;
-    waitForSet?: ((params: WaitForSetFnParams<T>) => any) | Promise<any> | ObservableParam<any> | ObservableEvent;
+    waitForSet?: WaitForSet<T>;
     initial?: (() => T) | T;
     activate?: 'auto' | 'lazy';
 }

@@ -1,5 +1,8 @@
 import {
+    ObservableEvent,
+    ObservableParam,
     UpdateFnParams,
+    WaitForSetFnParams,
     applyChanges,
     getNodeValue,
     internal,
@@ -18,9 +21,11 @@ import {
     deepEqual,
     diffObjects,
     synced,
+    internal as internalSync,
 } from '@legendapp/state/sync';
 
 const { clone } = internal;
+const { waitForSet } = internalSync;
 
 export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 
@@ -44,8 +49,12 @@ export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     props: SyncedCrudPropsBase<TRemote, TLocal>;
 }
 
+export interface WaitForSetCrudFnParams<T> extends WaitForSetFnParams<T> {
+    type: 'create' | 'update' | 'delete';
+}
+
 export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
-    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe'> {
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,
@@ -62,6 +71,11 @@ export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     changesSince?: 'all' | 'last-sync';
     generateId?: () => string | number;
     subscribe?: (params: SyncedSubscribeParams<TRemote[]>) => (() => void) | void;
+    waitForSet?:
+        | ((params: WaitForSetCrudFnParams<TLocal>) => any)
+        | Promise<any>
+        | ObservableParam<any>
+        | ObservableEvent;
 }
 
 type InitialValue<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
@@ -134,6 +148,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         mode: modeParam,
         changesSince,
         generateId,
+        waitForSet: waitForSetParam,
         ...rest
     } = props;
 
@@ -455,6 +470,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
                   return Promise.all([
                       ...Array.from(creates).map(async ([itemKey, itemValue]) => {
+                          if (waitForSetParam) {
+                              await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
+                          }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
                           return createFn!(createObj, params).then((result) => {
                               pendingCreates.delete(itemKey);
@@ -462,6 +480,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           });
                       }),
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
+                          if (waitForSetParam) {
+                              await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'update' });
+                          }
                           const toSave = itemValue;
                           const changed = (await transformOut(toSave as TLocal, transform?.save)) as TRemote & {};
 
@@ -471,9 +492,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               );
                           }
                       }),
-                      ...Array.from(deletes).map((valuePrevious) => {
+                      ...Array.from(deletes).map(async (valuePrevious) => {
                           // Don't delete if already deleted
                           if (valuePrevious !== (symbolDelete as any)) {
+                              if (waitForSetParam) {
+                                  await waitForSet(waitForSetParam as any, changes, valuePrevious, { type: 'delete' });
+                              }
                               if (deleteFn) {
                                   deleteFn(valuePrevious, params);
                               } else if (fieldDeleted && updateFn) {

@@ -4,9 +4,9 @@ import { clone, symbolDelete } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
-    ObservablePersistLocalStorage,
     getPersistName,
     localStorage,
+    ObservablePersistLocalStorage,
     promiseTimeout,
 } from './testglobals';
 
@@ -2409,4 +2409,40 @@ describe('Hierarchical sync', () => {
     //         id3: { id: 'id3', test: 'hey' },
     //     });
     // });
+});
+describe('waitForSet', () => {
+    test('', async () => {
+        const canSet$ = observable(false);
+        let valueAtWaitForSet: BasicValue | undefined = undefined;
+        let createValue: BasicValue | undefined = undefined;
+        let typeAtWaitForSet: 'create' | 'update' | 'delete' | undefined = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => [] as BasicValue[],
+                create: (value: BasicValue) => {
+                    createValue = value;
+                    return promiseTimeout(0, value);
+                },
+                as: 'object',
+                waitForSet: ({ value, type }) => {
+                    valueAtWaitForSet = value;
+                    typeAtWaitForSet = type;
+                    return canSet$;
+                },
+            }),
+        );
+
+        obs$.id1.set({ id: '1', test: 'hi' });
+
+        await promiseTimeout(1);
+
+        expect(valueAtWaitForSet).toEqual({ id: '1', test: 'hi' });
+
+        canSet$.set(true);
+
+        await promiseTimeout(1);
+
+        expect(createValue).toEqual({ id: '1', test: 'hi' });
+        expect(typeAtWaitForSet).toEqual('create');
+    });
 });
