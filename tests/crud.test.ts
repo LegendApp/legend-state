@@ -73,6 +73,78 @@ describe('Crud object get', () => {
                 test: 'hi',
             });
         },
+        getWithWaitForArray: async (params: GetOrListTestParams) => {
+            const obsWait$ = observable(false);
+            const obs = observable(
+                syncedCrud({
+                    ...params,
+                    waitFor: () => {
+                        return [obsWait$];
+                    },
+                }),
+            );
+
+            expect(obs.get()).toEqual(undefined);
+
+            await promiseTimeout(1);
+
+            expect(obs.get()).toEqual(undefined);
+
+            obsWait$.set(true);
+
+            await promiseTimeout(1);
+
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hi',
+            });
+        },
+        getWithWaitForArray2: async (params: GetOrListTestParams) => {
+            const obsWait1$ = observable(false);
+            const obsWait2$ = observable(false);
+            const obs = observable(
+                syncedCrud({
+                    ...params,
+                    waitFor: () => {
+                        return [obsWait1$, obsWait2$];
+                    },
+                }),
+            );
+
+            expect(obs.get()).toEqual(undefined);
+
+            await promiseTimeout(1);
+
+            expect(obs.get()).toEqual(undefined);
+
+            obsWait1$.set(true);
+
+            await promiseTimeout(1);
+
+            expect(obs.get()).toEqual(undefined);
+
+            obsWait2$.set(true);
+
+            await promiseTimeout(1);
+
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hi',
+            });
+        },
+        getWithWaitForArrayEmpty: async (params: GetOrListTestParams) => {
+            const obs = observable(syncedCrud({ ...params, waitFor: () => [] }));
+
+            expect(obs.get()).toEqual(undefined);
+
+            await promiseTimeout(1);
+            // Should not wait for anything
+
+            expect(obs.get()).toEqual({
+                id: 'id1',
+                test: 'hi',
+            });
+        },
         getWithSet: async (params: GetOrListTestParams) => {
             let created = undefined;
             let updated = undefined;
@@ -245,6 +317,18 @@ describe('Crud object get', () => {
         getTests.getWithWaitFor({
             get: () => promiseTimeout(0, ItemBasicValue()),
         }));
+    test('get with waitForArray', () =>
+        getTests.getWithWaitForArray({
+            get: () => promiseTimeout(0, ItemBasicValue()),
+        }));
+    test('get with waitForArray2', () =>
+        getTests.getWithWaitForArray2({
+            get: () => promiseTimeout(0, ItemBasicValue()),
+        }));
+    test('get with waitForArrayEmpty', () =>
+        getTests.getWithWaitForArrayEmpty({
+            get: () => promiseTimeout(0, ItemBasicValue()),
+        }));
     test('get with set', () =>
         getTests.getWithSet({
             get: () => promiseTimeout(0, ItemBasicValue()),
@@ -273,6 +357,21 @@ describe('Crud object get', () => {
         }));
     test('list first with waitFor', () =>
         getTests.getWithWaitFor({
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
+            as: 'value',
+        }));
+    test('list first with waitForArray', () =>
+        getTests.getWithWaitForArray({
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
+            as: 'value',
+        }));
+    test('list first with waitForArray2', () =>
+        getTests.getWithWaitForArray2({
+            list: () => promiseTimeout(0, [ItemBasicValue()]),
+            as: 'value',
+        }));
+    test('list first with waitForArrayEmpty', () =>
+        getTests.getWithWaitForArrayEmpty({
             list: () => promiseTimeout(0, [ItemBasicValue()]),
             as: 'value',
         }));

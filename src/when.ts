@@ -1,11 +1,8 @@
+import { isObservable } from './globals';
 import { computeSelector, isObservableValueReady } from './helpers';
 import { isArray, isPromise } from './is';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
-
-function allOk<T>(predicates: Selector<T>[], checkReady: boolean | undefined): boolean {
-    return predicates.every((p) => (checkReady ? isObservableValueReady(p) : p));
-}
 
 // Modify the _when function
 function _when<T, T2>(predicate: Selector<T> | Selector<T>[], effect?: (value: T) => T2, checkReady?: boolean): any {
@@ -15,9 +12,6 @@ function _when<T, T2>(predicate: Selector<T> | Selector<T>[], effect?: (value: T
     }
 
     const isPredicateArray = isArray(predicate);
-
-    // If predicate is an array, combine them using 'all'
-    // const combinedPredicate: Selector<T> = isArray(predicate) ? () => ) : predicate;
 
     let value: T | undefined;
     let effectValue: T2 | undefined;
@@ -31,14 +25,24 @@ function _when<T, T2>(predicate: Selector<T> | Selector<T>[], effect?: (value: T
             // We want value to be the Promise but return undefined
             // so it doesn't run the effect with the Promise as the value
             return undefined;
-        } else if (
-            !isPromise(ret) &&
-            (isPredicateArray ? allOk(ret as T[], checkReady) : checkReady ? isObservableValueReady(ret) : ret)
-        ) {
-            value = ret as T;
+        } else {
+            let isOk: any = true;
+            if (isArray(ret)) {
+                for (let i = 0; i < ret.length; i++) {
+                    if (isObservable(ret[i])) {
+                        ret[i] = computeSelector(ret[i]);
+                    }
+                    isOk = isOk && !!(checkReady ? isObservableValueReady(ret[i]) : ret[i]);
+                }
+            } else {
+                isOk = checkReady ? isObservableValueReady(ret) : ret;
+            }
+            if (isOk) {
+                value = ret as T;
 
-            // Set cancel so that observe does not track anymore
-            e.cancel = true;
+                // Set cancel so that observe does not track anymore
+                e.cancel = true;
+            }
         }
 
         return value;
