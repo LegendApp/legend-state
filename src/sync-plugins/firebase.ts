@@ -1,6 +1,5 @@
 import {
     Observable,
-    WaitForSetFnParams,
     computeSelector,
     isFunction,
     isNullOrUndefined,
@@ -16,6 +15,7 @@ import {
     SyncedCrudPropsBase,
     SyncedCrudPropsMany,
     SyncedCrudReturnType,
+    WaitForSetCrudFnParams,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
 import { Unsubscribe, User, getAuth } from 'firebase/auth';
@@ -399,7 +399,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
             isEnabled$.get() &&
             (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) &&
             (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: (params: WaitForSetFnParams<any>) =>
+        waitForSet: (params: WaitForSetCrudFnParams<any>) =>
             isEnabled$.get() &&
             (isAuthedIfRequired$ ? isAuthedIfRequired$.get() : true) &&
             (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),

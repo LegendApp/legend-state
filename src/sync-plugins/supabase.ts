@@ -1,12 +1,4 @@
-import {
-    Observable,
-    WaitForSetFnParams,
-    computeSelector,
-    isFunction,
-    isObject,
-    observable,
-    symbolDelete,
-} from '@legendapp/state';
+import { Observable, computeSelector, isFunction, isObject, observable, symbolDelete } from '@legendapp/state';
 import {
     SyncTransform,
     SyncedOptions,
@@ -22,6 +14,7 @@ import {
     SyncedCrudPropsBase,
     SyncedCrudPropsMany,
     SyncedCrudReturnType,
+    WaitForSetCrudFnParams,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
@@ -298,7 +291,7 @@ export function syncedSupabase<
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: (params: WaitForSetFnParams<any>) =>
+        waitForSet: (params: WaitForSetCrudFnParams<any>) =>
             isEnabled$.get() && (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
     });
 }
