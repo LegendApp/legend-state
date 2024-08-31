@@ -474,10 +474,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
                           }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          return createFn!(createObj, params).then((result) => {
-                              pendingCreates.delete(itemKey);
-                              return saveResult(itemKey, createObj, result as any, true);
-                          });
+                          return createFn!(createObj, params)
+                              .then((result) => {
+                                  return saveResult(itemKey, createObj, result as any, true);
+                              })
+                              .finally(() => {
+                                  pendingCreates.delete(itemKey);
+                              });
                       }),
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
                           if (waitForSetParam) {
