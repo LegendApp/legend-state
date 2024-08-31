@@ -234,21 +234,27 @@ export function syncedSupabase<
                           const { eventType, new: value, old } = payload;
                           if (eventType === 'INSERT' || eventType === 'UPDATE') {
                               const cur = value$.peek()?.[value.id];
-                              const curDateStr =
-                                  cur &&
-                                  ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||
-                                      fieldCreatedAt ||
-                                      cur[fieldCreatedAt as any]);
-                              const valueDateStr =
-                                  (fieldUpdatedAt && value[fieldUpdatedAt]) ||
-                                  (fieldCreatedAt && value[fieldCreatedAt]);
-                              const valueDate = +new Date(valueDateStr);
+                              let isOk = !fieldUpdatedAt;
+                              let lastSync = undefined;
+                              if (!isOk) {
+                                  const curDateStr =
+                                      cur &&
+                                      ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||
+                                          fieldCreatedAt ||
+                                          cur[fieldCreatedAt as any]);
+                                  const valueDateStr =
+                                      (fieldUpdatedAt && value[fieldUpdatedAt]) ||
+                                      (fieldCreatedAt && value[fieldCreatedAt]);
+                                  lastSync = +new Date(valueDateStr);
+
+                                  isOk = valueDateStr && (!curDateStr || lastSync > +new Date(curDateStr));
+                              }
                               // Check if new or newer than last seen locally
-                              if (valueDateStr && (!curDateStr || valueDate > +new Date(curDateStr))) {
+                              if (isOk) {
                                   // Update local with the new value
                                   update({
                                       value: [value as TRemote],
-                                      lastSync: valueDate,
+                                      lastSync,
                                       mode: 'merge',
                                   });
                               }
