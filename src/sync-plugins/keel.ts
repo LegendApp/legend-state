@@ -207,7 +207,7 @@ function convertObjectToCreate<TRemote extends Record<string, any>>(item: TRemot
     Object.keys(item).forEach((key) => {
         if (key.endsWith('Id')) {
             if (item[key]) {
-                cloned[key.slice(0, -2)] = { id: cloned[key] };
+                cloned[key.slice(0, -2)] = { id: item[key] };
             }
         } else if (key !== 'createdAt' && key !== 'updatedAt') {
             if (item[key] === undefined) {
