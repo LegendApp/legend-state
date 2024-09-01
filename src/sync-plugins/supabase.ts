@@ -18,7 +18,9 @@ import {
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js';
+import type { FunctionsResponse } from '@supabase/functions-js';
+
 // Unused types but maybe useful in the future so keeping them for now
 type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
 
@@ -77,7 +79,7 @@ interface SyncedSupabaseProps<
     TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
 > extends SyncedSupabaseConfig<TRemote, TLocal>,
-        SyncedCrudPropsMany<TRemote, TRemote, TOption> {
+        Omit<SyncedCrudPropsMany<TRemote, TRemote, TOption>, 'list'> {
     supabase: Client;
     collection: Collection;
     schema?: SchemaName;
@@ -95,6 +97,18 @@ interface SyncedSupabaseProps<
     actions?: ('create' | 'read' | 'update' | 'delete')[];
     realtime?: boolean | { schema?: string; filter?: string };
     stringifyDates?: boolean;
+    list?: (
+        ...params: Parameters<Required<SyncedCrudPropsMany<TRemote, TLocal, TOption>>['list']>
+    ) => PromiseLike<PostgrestSingleResponse<TRemote[]>> | Promise<FunctionsResponse<NoInfer<TRemote>[]>>;
+    create?: (
+        ...params: Parameters<Required<SyncedCrudPropsBase<TRemote>>['create']>
+    ) => PromiseLike<PostgrestSingleResponse<TRemote>> | Promise<FunctionsResponse<NoInfer<TRemote>>>;
+    update?: (
+        ...params: Parameters<Required<SyncedCrudPropsBase<TRemote>>['update']>
+    ) => PromiseLike<PostgrestSingleResponse<TRemote>> | Promise<FunctionsResponse<NoInfer<TRemote>>>;
+    delete?: (
+        ...params: Parameters<Required<SyncedCrudPropsBase<TRemote>>['delete']>
+    ) => PromiseLike<PostgrestSingleResponse<TRemote>> | Promise<FunctionsResponse<NoInfer<TRemote>>>;
 }
 
 let channelNum = 1;
@@ -110,6 +124,16 @@ export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
         isEnabled$.set(enabled);
     }
     Object.assign(supabaseConfig, removeNullUndefined(rest));
+}
+
+function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>) {
+    return async (...args: any) => {
+        const { data, error } = await fn(...args);
+        if (error) {
+            throw new Error(error.message);
+        }
+        return data;
+    };
 }
 
 export function syncedSupabase<
@@ -141,6 +165,10 @@ export function syncedSupabase<
         waitForSet,
         generateId,
         mode,
+        list: listParam,
+        create: createParam,
+        update: updateParam,
+        delete: deleteParam,
         ...rest
     } = props;
 
@@ -151,70 +179,77 @@ export function syncedSupabase<
 
     const list =
         !actions || actions.includes('read')
-            ? async (params: SyncedGetParams<TRemote>) => {
-                  const { lastSync } = params;
-                  const clientSchema = schema ? client.schema(schema as string) : client;
-                  const from = clientSchema.from(collection);
-                  let select = selectFn ? selectFn(from) : from.select();
+            ? listParam
+                ? wrapSupabaseFn(listParam)
+                : async (params: SyncedGetParams<TRemote>) => {
+                      const { lastSync } = params;
+                      const clientSchema = schema ? client.schema(schema as string) : client;
+                      const from = clientSchema.from(collection);
+                      let select = selectFn ? selectFn(from) : from.select();
 
-                  // in last-sync mode, filter for rows updated more recently than the last sync
-                  if (changesSince === 'last-sync' && lastSync) {
-                      const date = new Date(lastSync).toISOString();
-                      select = select.gt(fieldUpdatedAt!, date);
+                      // in last-sync mode, filter for rows updated more recently than the last sync
+                      if (changesSince === 'last-sync' && lastSync) {
+                          const date = new Date(lastSync).toISOString();
+                          select = select.gt(fieldUpdatedAt!, date);
+                      }
+                      // filter with filter parameter
+                      if (filter) {
+                          select = filter(select, params);
+                      }
+                      const { data, error } = await select;
+                      if (error) {
+                          throw new Error(error?.message);
+                      }
+                      return (data! || []) as SupabaseRowOf<Client, Collection, SchemaName>[];
                   }
-                  // filter with filter parameter
-                  if (filter) {
-                      select = filter(select, params);
-                  }
-                  const { data, error } = await select;
-                  if (error) {
-                      throw new Error(error?.message);
-                  }
-                  return (data! || []) as SupabaseRowOf<Client, Collection, SchemaName>[];
-              }
             : undefined;
 
-    const create =
-        !actions || actions.includes('create')
-            ? async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
-                  const res = await client.from(collection).insert(input).select();
-                  const { data, error } = res;
-                  if (data) {
-                      const created = data[0];
-                      return created;
-                  } else {
-                      throw new Error(error?.message);
-                  }
-              }
-            : undefined;
+    const create = createParam
+        ? wrapSupabaseFn(createParam)
+        : !actions || actions.includes('create')
+          ? async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
+                const res = await client.from(collection).insert(input).select();
+                const { data, error } = res;
+                if (data) {
+                    const created = data[0];
+                    return created;
+                } else {
+                    throw new Error(error?.message);
+                }
+            }
+          : undefined;
 
     const update =
         !actions || actions.includes('update')
-            ? async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
-                  const res = await client.from(collection).update(input).eq('id', input.id).select();
-                  const { data, error } = res;
-                  if (data) {
-                      const created = data[0];
-                      return created;
-                  } else {
-                      throw new Error(error?.message);
+            ? updateParam
+                ? wrapSupabaseFn(updateParam)
+                : async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
+                      const res = await client.from(collection).update(input).eq('id', input.id).select();
+                      const { data, error } = res;
+                      if (data) {
+                          const created = data[0];
+                          return created;
+                      } else {
+                          throw new Error(error?.message);
+                      }
                   }
-              }
             : undefined;
 
     const deleteFn =
         !fieldDeleted && (!actions || actions.includes('delete'))
-            ? async (input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] }) => {
-                  const id = input.id;
-                  const res = await client.from(collection).delete().eq('id', id).select();
-                  const { data, error } = res;
-                  if (data) {
-                      const created = data[0];
-                      return created;
-                  } else {
-                      throw new Error(error?.message);
+            ? deleteParam
+                ? wrapSupabaseFn(deleteParam)
+                : async (input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] }) => {
+                      const id = input.id;
+                      const res = await client.from(collection).delete().eq('id', id).select();
+                      const { data, error } = res;
+                      if (data) {
+                          const created = data[0];
+                          return created;
+                      } else {
+                          throw new Error(error?.message);
+                      }
                   }
-              }
             : undefined;
 
     const subscribe = realtime
