@@ -151,6 +151,7 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
         plugin?: KeelRealtimePlugin;
     };
     refreshAuth?: () => void | Promise<void>;
+    requireAuth?: boolean;
 }
 
 const modifiedClients = new WeakSet<Record<string, any>>();
@@ -324,6 +325,7 @@ export function syncedKeel<
         fieldDeleted,
         realtime,
         mode,
+        requireAuth = true,
         ...rest
     } = props;
 
@@ -511,7 +513,9 @@ export function syncedKeel<
               }
             : undefined);
 
-    ensureAuthToken(props);
+    if (requireAuth) {
+        ensureAuthToken(props);
+    }
 
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
@@ -521,9 +525,9 @@ export function syncedKeel<
         create,
         update,
         delete: deleteFn,
-        waitFor: () => [isAuthed$, waitFor || true],
+        waitFor: () => [requireAuth ? isAuthed$ : true, waitFor || true],
         waitForSet: (params: WaitForSetCrudFnParams<any>) => [
-            isAuthed$,
+            requireAuth ? isAuthed$ : true,
             () => (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
         ],
         onSaved,
