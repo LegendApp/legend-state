@@ -1,8 +1,6 @@
-import { computeSelector, isEmpty, isFunction, observable, when } from '@legendapp/state';
+import { batch, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
     SyncedGetSetSubscribeBaseParams,
-    SyncedOptions,
-    removeNullUndefined,
     type SyncedGetParams,
     type SyncedSetParams,
     type SyncedSubscribeParams,
@@ -76,39 +74,6 @@ export interface KeelClient {
     api: { queries: Record<string, (i: any) => Promise<any>> };
 }
 
-export interface SyncedKeelConfiguration
-    extends Omit<
-        SyncedCrudPropsBase<any>,
-        | keyof SyncedOptions
-        | 'create'
-        | 'update'
-        | 'delete'
-        | 'onSaved'
-        | 'updatePartial'
-        | 'fieldCreatedAt'
-        | 'fieldUpdatedAt'
-        | 'generateId'
-    > {
-    client: {
-        auth: {
-            refresh: () => Promise<APIResult<boolean>>;
-            isAuthenticated: () => Promise<APIResult<boolean>>;
-        };
-        api: { queries: Record<string, (i: any) => Promise<any>> };
-    };
-    realtimePlugin?: KeelRealtimePlugin;
-    as?: Exclude<CrudAsOption, 'value'>;
-    enabled?: boolean;
-    onError?: (params: {
-        type: 'create' | 'update' | 'delete';
-        params: SyncedSetParams<any>;
-        input: any;
-        action: string;
-        error: APIResult<any>['error'];
-    }) => void;
-    refreshAuth?: () => void | Promise<void>;
-}
-
 interface PageInfo {
     count: number;
     endCursor: string;
@@ -177,39 +142,59 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
         SyncedCrudPropsBase<TRemote, TLocal>,
         'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt'
     > {
+    client?: KeelClient;
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
     realtime?: {
-        client?: KeelClient;
         path?: (action: string, inputs: any) => string;
         plugin?: KeelRealtimePlugin;
     };
+    refreshAuth?: () => void | Promise<void>;
 }
 
-const keelConfig: SyncedKeelConfiguration = {} as SyncedKeelConfiguration;
 const modifiedClients = new WeakSet<Record<string, any>>();
-const isEnabled$ = observable(true);
+const isAuthed$ = observable(false);
+const isAuthing$ = observable(false);
 
-async function ensureAuthToken() {
-    await when(isEnabled$.get());
-
-    if (keelConfig.refreshAuth) {
-        await keelConfig.refreshAuth();
+async function ensureAuthToken(props: SyncedKeelPropsBase<any>, force?: boolean) {
+    const { client, refreshAuth } = props;
+    // If already authing wait for that instead of doing it again
+    if (!force && isAuthing$.get()) {
+        return when(isAuthing$, () => isAuthed$.get());
     }
 
-    let isAuthed = await keelConfig.client.auth.isAuthenticated();
+    isAuthing$.set(true);
+    // Refresh the auth using the configured method
+    if (refreshAuth) {
+        await refreshAuth();
+    }
+
+    let isAuthed = await client!.auth.isAuthenticated().then(({ data }) => data);
     if (!isAuthed) {
-        isAuthed = await keelConfig.client.auth.refresh();
+        // Try refreshing directly on keel client
+        isAuthed = await client!.auth.refresh().then(({ data }) => data);
+    }
+
+    if (isAuthed) {
+        // If successful then set authed
+        batch(() => {
+            isAuthed$.set(true);
+            isAuthing$.set(false);
+        });
+    } else {
+        // TODO: Exponential backoff this?
+        setTimeout(() => ensureAuthToken(props, /*force*/ true), 1000);
     }
 
     return isAuthed;
 }
 
-async function handleApiError(error: APIError, retry?: () => any) {
+async function handleApiError(props: SyncedKeelPropsBase<any>, error: APIError, retry?: () => any) {
     if (error.type === 'unauthorized' || error.type === 'forbidden') {
         console.warn('Keel token expired, refreshing...');
-        await ensureAuthToken();
+        isAuthed$.set(false);
+        await ensureAuthToken(props);
         // Retry
         retry?.();
     }
@@ -233,18 +218,6 @@ function convertObjectToCreate<TRemote extends Record<string, any>>(item: TRemot
     return cloned as unknown as TRemote;
 }
 
-export function getSyncedKeelConfiguration() {
-    return keelConfig;
-}
-export function configureSyncedKeel(config: SyncedKeelConfiguration) {
-    const { enabled, ...rest } = config;
-    Object.assign(keelConfig, removeNullUndefined(rest));
-
-    if (enabled !== undefined) {
-        isEnabled$.set(enabled);
-    }
-}
-
 const realtimeState: {
     current: {
         lastAction?: string;
@@ -252,8 +225,8 @@ const realtimeState: {
     };
 } = { current: {} };
 
-function setupRealtime(realtime: SyncedKeelPropsBase<any>['realtime']) {
-    const { client } = realtime!;
+function setupRealtime(props: SyncedKeelPropsBase<any>) {
+    const { client } = props;
     if (client && !modifiedClients.has(client)) {
         modifiedClients.add(client);
         const queries = client.api.queries;
@@ -275,6 +248,7 @@ function setupRealtime(realtime: SyncedKeelPropsBase<any>['realtime']) {
 
 const NumPerPage = 200;
 async function getAllPages<TRemote>(
+    props: SyncedKeelPropsBase<any>,
     listFn: (params: KeelListParams<any>) => Promise<
         APIResult<{
             results: TRemote[];
@@ -304,7 +278,7 @@ async function getAllPages<TRemote>(
             const { data, error } = ret;
 
             if (error) {
-                await handleApiError(error);
+                await handleApiError(props, error);
                 throw new Error(error.message);
             } else if (data) {
                 pageInfo = data.pageInfo as PageInfo;
@@ -336,9 +310,6 @@ export function syncedKeel<
     props: SyncedKeelPropsBase<TRemote, TLocal> &
         (SyncedKeelPropsSingle<TRemote, TLocal> | SyncedKeelPropsMany<TRemote, TLocal, TOption, Where>),
 ): SyncedCrudReturnType<TLocal, TOption> {
-    const { realtimePlugin } = keelConfig;
-    props = { ...keelConfig, ...props } as any;
-
     const {
         get: getParam,
         list: listParam,
@@ -391,7 +362,7 @@ export function syncedKeel<
 
               realtimeState.current = {};
 
-              const promise = getAllPages(listParam, params);
+              const promise = getAllPages(props, listParam, params);
 
               if (realtime) {
                   setupSubscribe!(listParams);
@@ -425,10 +396,10 @@ export function syncedKeel<
 
     const onSaved = ({ saved }: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void => {
         if (saved) {
-            if (realtimePlugin) {
+            if (realtime?.plugin) {
                 const subscribeFnKey = subscribeFnKey$.get();
                 if (subscribeFnKey) {
-                    realtimePlugin.setSaved(subscribeFnKey);
+                    realtime?.plugin.setSaved(subscribeFnKey);
                 }
             }
         }
@@ -465,7 +436,8 @@ export function syncedKeel<
                 params.cancelRetry = true;
             }
         } else if (error.type === 'bad_request') {
-            keelConfig.onError?.({ error, params, input, type: from, action: fn.name || fn.toString() });
+            // TODO
+            // onSetError?.(error, { error, params, input, type: from, action: fn.name || fn.toString() });
 
             if (retryNum > 4) {
                 params.cancelRetry = true;
@@ -473,7 +445,7 @@ export function syncedKeel<
 
             throw new Error(error.message, { cause: { input } });
         } else {
-            await handleApiError(error);
+            await handleApiError(props, error);
 
             throw new Error(error.message, { cause: { input } });
         }
@@ -522,7 +494,7 @@ export function syncedKeel<
         : undefined;
 
     if (realtime) {
-        setupRealtime(realtime);
+        setupRealtime(props);
     }
 
     const subscribe =
@@ -539,6 +511,8 @@ export function syncedKeel<
               }
             : undefined);
 
+    ensureAuthToken(props);
+
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
         as: asType,
@@ -547,9 +521,11 @@ export function syncedKeel<
         create,
         update,
         delete: deleteFn,
-        waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
-        waitForSet: (params: WaitForSetCrudFnParams<any>) =>
-            isEnabled$.get() && (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
+        waitFor: () => [isAuthed$, waitFor || true],
+        waitForSet: (params: WaitForSetCrudFnParams<any>) => [
+            isAuthed$,
+            () => (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
+        ],
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
