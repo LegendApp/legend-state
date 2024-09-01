@@ -7,6 +7,7 @@ import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
 import { when } from '../src/when';
 import { promiseTimeout } from './testglobals';
+import { synced } from '../src/sync/synced';
 
 const TableNameBase = 'jestlocal';
 const tableNames = Array.from({ length: 100 }, (_, i) => TableNameBase + i);
@@ -18,7 +19,7 @@ const persistOptions: ObservablePersistPluginOptions = {
     },
 };
 const myIndexedDBPlugin = configureObservablePersistIndexedDB(persistOptions.indexedDB!);
-const mySyncOptions = configureSynced({
+const mySyncOptions = configureSynced(synced, {
     persist: {
         plugin: myIndexedDBPlugin,
     },

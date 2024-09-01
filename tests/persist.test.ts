@@ -561,7 +561,7 @@ describe('persist objects', () => {
             ]),
         });
 
-        const myPersist = configureSynced({
+        const myPersist = configureSynced(synced, {
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
