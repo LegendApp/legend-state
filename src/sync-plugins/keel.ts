@@ -1,5 +1,6 @@
 import { batch, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
+    OnErrorRetryParams,
     SyncedGetSetSubscribeBaseParams,
     type SyncedGetParams,
     type SyncedSetParams,
@@ -137,10 +138,18 @@ interface SyncedKeelPropsSingle<TRemote extends { id: string }, TLocal>
     as?: never;
 }
 
+interface ErrorDetails {
+    type: 'create' | 'update' | 'delete';
+    params: SyncedSetParams<any>;
+    input: any;
+    action: string;
+    error: APIResult<any>['error'];
+}
+
 interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     extends Omit<
         SyncedCrudPropsBase<TRemote, TLocal>,
-        'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt'
+        'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt' | 'onError'
     > {
     client?: KeelClient;
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
@@ -152,6 +161,7 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     };
     refreshAuth?: () => void | Promise<void>;
     requireAuth?: boolean;
+    onError?: (error: Error, retryParams: OnErrorRetryParams, details: ErrorDetails) => void;
 }
 
 const modifiedClients = new WeakSet<Record<string, any>>();
@@ -325,6 +335,7 @@ export function syncedKeel<
         fieldDeleted,
         realtime,
         mode,
+        onError,
         requireAuth = true,
         ...rest
     } = props;
@@ -439,7 +450,13 @@ export function syncedKeel<
             }
         } else if (error.type === 'bad_request') {
             // TODO
-            // onSetError?.(error, { error, params, input, type: from, action: fn.name || fn.toString() });
+            onError?.(new Error(error.message), params, {
+                error,
+                params,
+                input,
+                type: from,
+                action: fn.name || fn.toString(),
+            });
 
             if (retryNum > 4) {
                 params.cancelRetry = true;

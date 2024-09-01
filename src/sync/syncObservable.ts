@@ -36,6 +36,7 @@ import { observableSyncConfiguration } from './configureObservableSync';
 import { removeNullUndefined } from './syncHelpers';
 import type {
     ObservablePersistPlugin,
+    OnErrorRetryParams,
     PendingChanges,
     PersistMetadata,
     PersistOptions,
@@ -625,13 +626,18 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
               }
             | undefined = undefined;
 
-        const onError = (error: Error) => {
+        let errorHandled = false;
+        const onError = (error: Error, retryParams: OnErrorRetryParams) => {
             state$.error.set(error);
-            syncOptions.onSetError?.(error, {
-                setParams: setParams as SyncedSetParams<any>,
-                source: 'set',
-                value$: obs$,
-            });
+            if (!errorHandled) {
+                syncOptions.onError?.(error, {
+                    setParams: setParams as SyncedSetParams<any>,
+                    source: 'set',
+                    value$: obs$,
+                    retryParams,
+                });
+            }
+            errorHandled = true;
         };
 
         const setParams: SyncedSetParams<any> = {
@@ -657,7 +663,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             cancelRetry: false,
         };
 
-        let savedPromise = runWithRetry(
+        const savedPromise = runWithRetry(
             setParams,
             syncOptions.retry,
             async () => {
@@ -668,11 +674,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         let didError = false;
 
         if (isPromise(savedPromise)) {
-            savedPromise = savedPromise.catch((error) => {
+            await savedPromise.catch(() => {
                 didError = true;
-                onError(error);
             });
-            await savedPromise;
         }
 
         if (!didError) {
@@ -908,9 +912,13 @@ export function syncObservable<T>(
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
 
+    let errorHandled = false;
     const onGetError = (error: Error, params: Omit<SyncedErrorParams, 'value$'>) => {
         syncState$.error.set(error);
-        syncOptions.onGetError?.(error, { ...params, value$: obs$ });
+        if (!errorHandled) {
+            syncOptions.onError?.(error, { ...params, value$: obs$ });
+        }
+        errorHandled = true;
     };
 
     loadLocal(obs$, syncOptions, syncState$, localState);

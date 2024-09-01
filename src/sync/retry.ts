@@ -26,7 +26,7 @@ export function runWithRetry<T>(
     state: SyncedGetSetBaseParams<any>,
     retryOptions: RetryOptions | undefined,
     fn: (params: OnErrorRetryParams) => T | Promise<T>,
-    onError: (error: Error) => void,
+    onError: (error: Error, retryParams: OnErrorRetryParams) => void,
 ): T | Promise<T> {
     let value = fn(state);
 
@@ -47,7 +47,7 @@ export function runWithRetry<T>(
                             clearTimeout(timeoutRetry);
                         }
                         if (onError) {
-                            onError(error);
+                            onError(error, state);
                         }
                         if (!state.cancelRetry) {
                             const timeout = createRetryTimeout(retryOptions, state.retryNum, () => {
