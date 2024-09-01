@@ -64,8 +64,16 @@ export interface KeelListParams<Where = {}> {
 }
 
 export interface KeelRealtimePlugin {
-    subscribe: (realtimeKey: string, params: SyncedGetSetSubscribeBaseParams) => void;
-    setLatestChange: (realtimeKey: string, time: Date) => void;
+    subscribe: (realtimeKey: string, params: SyncedGetSetSubscribeBaseParams) => () => void;
+    setSaved: (realtimeKey: string) => void;
+}
+
+export interface KeelClient {
+    auth: {
+        refresh: () => Promise<APIResult<boolean>>;
+        isAuthenticated: () => Promise<APIResult<boolean>>;
+    };
+    api: { queries: Record<string, (i: any) => Promise<any>> };
 }
 
 export interface SyncedKeelConfiguration
@@ -172,6 +180,11 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
+    realtime?: {
+        client?: KeelClient;
+        path?: (action: string, inputs: any) => string;
+        plugin?: KeelRealtimePlugin;
+    };
 }
 
 const keelConfig: SyncedKeelConfiguration = {} as SyncedKeelConfiguration;
@@ -224,42 +237,39 @@ export function getSyncedKeelConfiguration() {
     return keelConfig;
 }
 export function configureSyncedKeel(config: SyncedKeelConfiguration) {
-    const { enabled, realtimePlugin, client, ...rest } = config;
+    const { enabled, ...rest } = config;
     Object.assign(keelConfig, removeNullUndefined(rest));
 
     if (enabled !== undefined) {
         isEnabled$.set(enabled);
     }
+}
 
-    if (realtimePlugin) {
-        keelConfig.realtimePlugin = realtimePlugin;
-        if (client && !modifiedClients.has(client)) {
-            modifiedClients.add(client);
-            const queries = client.api.queries;
-            Object.keys(queries).forEach((key) => {
-                if (key.startsWith('list')) {
-                    const oldFn = queries[key];
-                    queries[key] = (i) => {
-                        const realtimeKey = [key, ...Object.values(i.where || {})]
-                            .filter((value) => value && typeof value !== 'object')
-                            .join('/');
+const realtimeState: {
+    current: {
+        lastAction?: string;
+        lastParams?: any;
+    };
+} = { current: {} };
 
-                        const subscribe = (params: SyncedSubscribeParams) => {
-                            if (realtimeKey) {
-                                return realtimePlugin.subscribe(realtimeKey, params);
-                            }
-                        };
-                        return oldFn(i).then((ret) => {
-                            if (subscribe) {
-                                ret.subscribe = subscribe;
-                                ret.subscribeKey = realtimeKey;
-                            }
-                            return ret;
-                        });
+function setupRealtime(realtime: SyncedKeelPropsBase<any>['realtime']) {
+    const { client } = realtime!;
+    if (client && !modifiedClients.has(client)) {
+        modifiedClients.add(client);
+        const queries = client.api.queries;
+        Object.keys(queries).forEach((key) => {
+            if (key.startsWith('list')) {
+                const origFn = queries[key];
+                queries[key] = (i) => {
+                    realtimeState.current = {
+                        lastAction: key,
+                        lastParams: i,
                     };
-                }
-            });
-        }
+
+                    return origFn(i);
+                };
+            }
+        });
     }
 }
 
@@ -272,11 +282,9 @@ async function getAllPages<TRemote>(
         }>
     >,
     params: KeelListParams,
-): Promise<{ results: TRemote[]; subscribe: SubscribeFn; subscribeKey: string }> {
+): Promise<TRemote[]> {
     const allData: TRemote[] = [];
     let pageInfo: PageInfo | undefined = undefined;
-    let subscribe_;
-    let subscribeKey_;
 
     const { first: firstParam } = params;
 
@@ -293,13 +301,7 @@ async function getAllPages<TRemote>(
         const ret = await listFn(paramsWithCursor);
 
         if (ret) {
-            // @ts-expect-error TODOKEEL
-            const { data, error, subscribe, subscribeKey } = ret;
-
-            if (subscribe) {
-                subscribe_ = subscribe;
-                subscribeKey_ = subscribeKey;
-            }
+            const { data, error } = ret;
 
             if (error) {
                 await handleApiError(error);
@@ -311,7 +313,7 @@ async function getAllPages<TRemote>(
         }
     } while (pageInfo?.hasNextPage);
 
-    return { results: allData, subscribe: subscribe_, subscribeKey: subscribeKey_ };
+    return allData;
 }
 
 export function syncedKeel<TRemote extends { id: string }, TLocal = TRemote>(
@@ -343,11 +345,13 @@ export function syncedKeel<
         create: createParam,
         update: updateParam,
         delete: deleteParam,
+        subscribe: subscribeParam,
         first,
         where: whereParam,
         waitFor,
         waitForSet,
         fieldDeleted,
+        realtime,
         mode,
         ...rest
     } = props;
@@ -362,13 +366,17 @@ export function syncedKeel<
     const fieldCreatedAt: KeelKey = 'createdAt';
     const fieldUpdatedAt: KeelKey = 'updatedAt';
 
-    const setupSubscribe = (doSubscribe: SubscribeFn, subscribeKey: string, lastSync?: number | undefined) => {
-        subscribeFn = doSubscribe;
-        subscribeFnKey$.set(subscribeKey);
-        if (realtimePlugin && lastSync) {
-            realtimePlugin.setLatestChange(subscribeKey, new Date(lastSync));
-        }
-    };
+    const setupSubscribe = realtime
+        ? (getParams: SyncedGetParams<TRemote>) => {
+              const { lastAction, lastParams } = realtimeState.current;
+              const { path, plugin } = realtime;
+              if (lastAction && path && plugin) {
+                  const key = path(lastAction, lastParams);
+                  subscribeFnKey$.set(key);
+                  subscribeFn = () => realtime.plugin!.subscribe(key, getParams);
+              }
+          }
+        : undefined;
 
     const list = listParam
         ? async (listParams: SyncedGetParams<TRemote>) => {
@@ -381,26 +389,31 @@ export function syncedKeel<
               );
               const params: KeelListParams = { where, first };
 
-              // TODO: Error?
-              const { results, subscribe, subscribeKey } = await getAllPages(listParam, params);
-              if (subscribe) {
-                  setupSubscribe(() => subscribe(listParams), subscribeKey, lastSync);
+              realtimeState.current = {};
+
+              const promise = getAllPages(listParam, params);
+
+              if (realtime) {
+                  setupSubscribe!(listParams);
               }
 
-              return results;
+              return promise;
           }
         : undefined;
 
     const get = getParam
         ? async (getParams: SyncedGetParams<TRemote>) => {
               const { refresh } = getParams;
-              const { data, error, subscribe, subscribeKey } = (await getParam({ refresh })) as APIResult<TRemote> & {
-                  subscribe: SubscribeFn;
-                  subscribeKey: string;
-              };
-              if (subscribe) {
-                  setupSubscribe(() => subscribe(getParams), subscribeKey);
+
+              realtimeState.current = {};
+
+              const promise = getParam({ refresh });
+
+              if (realtime) {
+                  setupSubscribe!(getParams);
               }
+
+              const { data, error } = await promise;
 
               if (error) {
                   throw new Error(error.message);
@@ -412,12 +425,10 @@ export function syncedKeel<
 
     const onSaved = ({ saved }: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void => {
         if (saved) {
-            const updatedAt = saved[fieldUpdatedAt as keyof TLocal] as Date;
-
-            if (updatedAt && realtimePlugin) {
+            if (realtimePlugin) {
                 const subscribeFnKey = subscribeFnKey$.get();
                 if (subscribeFnKey) {
-                    realtimePlugin.setLatestChange(subscribeFnKey, updatedAt);
+                    realtimePlugin.setSaved(subscribeFnKey);
                 }
             }
         }
@@ -510,15 +521,23 @@ export function syncedKeel<
           }
         : undefined;
 
-    const subscribe = (params: SyncedSubscribeParams<TRemote[]>) => {
-        let unsubscribe: undefined | (() => void) = undefined;
-        when(subscribeFnKey$, () => {
-            unsubscribe = subscribeFn!(params);
-        });
-        return () => {
-            unsubscribe?.();
-        };
-    };
+    if (realtime) {
+        setupRealtime(realtime);
+    }
+
+    const subscribe =
+        subscribeParam ||
+        (realtime
+            ? (params: SyncedSubscribeParams<TRemote[]>) => {
+                  let unsubscribe: undefined | (() => void) = undefined;
+                  when(subscribeFnKey$, () => {
+                      unsubscribe = subscribeFn!(params);
+                  });
+                  return () => {
+                      unsubscribe?.();
+                  };
+              }
+            : undefined);
 
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
