@@ -20,8 +20,8 @@ import type {
 } from '@legendapp/state';
 
 export interface PersistOptions<T = any> {
-    name: string;
-    plugin?: ClassConstructor<ObservablePersistPlugin, T[]>;
+    name?: string;
+    plugin?: ClassConstructor<ObservablePersistPlugin, T[]> | ObservablePersistPlugin;
     retrySync?: boolean;
     transform?: SyncTransform<T>;
     readonly?: boolean;

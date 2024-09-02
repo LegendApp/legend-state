@@ -23,7 +23,9 @@ const syncedKeel = configureSynced(syncedKeelOrig, {
     client: {
         auth: {
             isAuthenticated: async () => ({ data: true }),
+            refresh: async () => ({ data: true }),
         },
+        api: { queries: {} },
     },
 });
 

@@ -1,13 +1,13 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
-import { configureObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
+import { observablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureSynced } from '../src/sync/configureSynced';
+import { synced } from '../src/sync/synced';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
 import { when } from '../src/when';
 import { promiseTimeout } from './testglobals';
-import { synced } from '../src/sync/synced';
 
 const TableNameBase = 'jestlocal';
 const tableNames = Array.from({ length: 100 }, (_, i) => TableNameBase + i);
@@ -18,7 +18,7 @@ const persistOptions: ObservablePersistPluginOptions = {
         tableNames,
     },
 };
-const myIndexedDBPlugin = configureObservablePersistIndexedDB(persistOptions.indexedDB!);
+const myIndexedDBPlugin = observablePersistIndexedDB(persistOptions.indexedDB!);
 const mySyncOptions = configureSynced(synced, {
     persist: {
         plugin: myIndexedDBPlugin,

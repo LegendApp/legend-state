@@ -1,6 +1,17 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isPrimitive, isSet } from './is';
+import {
+    hasOwnProperty,
+    isArray,
+    isEmpty,
+    isFunction,
+    isMap,
+    isNumber,
+    isObject,
+    isPlainObject,
+    isPrimitive,
+    isSet,
+} from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { ObservableParam } from './observableTypes';
 
@@ -223,7 +234,7 @@ export function deepMerge<T>(target: T, ...sources: any[]): T {
 
     for (let i = 0; i < sources.length; i++) {
         const obj2 = sources[i];
-        if (isObject(obj2) || isArray(obj2)) {
+        if (isPlainObject(obj2) || isArray(obj2)) {
             const objTarget = obj2 as Record<string, any>;
             for (const key in objTarget) {
                 if (hasOwnProperty.call(objTarget, key)) {

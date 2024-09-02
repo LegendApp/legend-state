@@ -11,6 +11,9 @@ export function isString(obj: unknown): obj is string {
 export function isObject(obj: unknown): obj is Record<any, any> {
     return !!obj && typeof obj === 'object' && !(obj instanceof Date) && !isArray(obj);
 }
+export function isPlainObject(obj: unknown): obj is Record<any, any> {
+    return isObject(obj) && obj.constructor === Object;
+}
 export function isFunction(obj: unknown): obj is Function {
     return typeof obj === 'function';
 }

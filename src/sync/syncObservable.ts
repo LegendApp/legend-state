@@ -56,7 +56,7 @@ const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, sy
     internal;
 
 export const mapSyncPlugins: WeakMap<
-    ClassConstructor<ObservablePersistPlugin>,
+    ClassConstructor<ObservablePersistPlugin> | ObservablePersistPlugin,
     {
         plugin: ObservablePersistPlugin;
         initialized: Observable<boolean>;
@@ -87,14 +87,14 @@ interface PreppedChangeRemote {
 
 type ChangeWithPathStr = Change & { pathStr: string };
 
-function parseLocalConfig(config: string | PersistOptions | undefined): {
+function parseLocalConfig(config: string | PersistOptions): {
     table: string;
     config: PersistOptions;
 } {
     return config
         ? isString(config)
             ? { table: config, config: { name: config } }
-            : { table: config.name, config }
+            : { table: config.name!, config }
         : ({} as { table: string; config: PersistOptions });
 }
 
@@ -162,7 +162,7 @@ async function updateMetadataImmediate<T>(
     }
 
     const { pluginPersist } = localState;
-    const { table, config } = parseLocalConfig(syncOptions?.persist);
+    const { table, config } = parseLocalConfig(syncOptions.persist!);
 
     // Save metadata
     const oldMetadata: PersistMetadata | undefined = metadatas.get(value$);
@@ -326,7 +326,7 @@ async function processQueuedRemoteChanges(syncOptions: SyncedOptions) {
 async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {
     const { syncState, changes, syncOptions, inRemoteChange, isApplyingPending } = queuedChange;
 
-    const persist = syncOptions.persist;
+    const persist = syncOptions.persist!;
     const { config: configLocal } = parseLocalConfig(persist);
     const saveLocal = persist?.name && !configLocal.readonly && !isApplyingPending && syncState.isPersistEnabled.peek();
     const saveRemote = !!(!inRemoteChange && syncOptions?.set && syncState.isSyncEnabled.peek());
@@ -782,7 +782,7 @@ async function loadLocal<T>(
     const prevClearPersist = nodeValue.clearPersist;
 
     if (persist?.name) {
-        const PersistPlugin: ClassConstructor<ObservablePersistPlugin> =
+        const PersistPlugin: ClassConstructor<ObservablePersistPlugin> | ObservablePersistPlugin =
             persist.plugin! || observableSyncConfiguration.persist?.plugin;
         const { table, config } = parseLocalConfig(persist);
 
@@ -793,7 +793,7 @@ async function loadLocal<T>(
         }
         // Ensure there's only one instance of the cache plugin
         if (!mapSyncPlugins.has(PersistPlugin)) {
-            const persistPlugin = new PersistPlugin();
+            const persistPlugin = isFunction(PersistPlugin) ? new PersistPlugin() : PersistPlugin;
             const mapValue = { plugin: persistPlugin, initialized: observable(false) };
             mapSyncPlugins.set(PersistPlugin, mapValue);
             if (persistPlugin.initialize) {

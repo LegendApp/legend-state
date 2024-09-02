@@ -441,12 +441,6 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     }
 }
 
-export function configureObservablePersistIndexedDB(
-    configuration: ObservablePersistIndexedDBPluginOptions,
-): typeof ObservablePersistIndexedDB {
-    return class ObservablePersistIndexedDBConfigured extends ObservablePersistIndexedDB {
-        constructor() {
-            super(configuration);
-        }
-    };
+export function observablePersistIndexedDB(configuration: ObservablePersistIndexedDBPluginOptions) {
+    return new ObservablePersistIndexedDB(configuration);
 }
