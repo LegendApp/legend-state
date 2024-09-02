@@ -3,7 +3,6 @@ import 'fake-indexeddb/auto';
 import { observable } from '../src/observable';
 import { observablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureSynced } from '../src/sync/configureSynced';
-import { synced } from '../src/sync/synced';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
 import { when } from '../src/when';
@@ -19,7 +18,7 @@ const persistOptions: ObservablePersistPluginOptions = {
     },
 };
 const myIndexedDBPlugin = observablePersistIndexedDB(persistOptions.indexedDB!);
-const mySyncOptions = configureSynced(synced, {
+const mySyncOptions = configureSynced({
     persist: {
         plugin: myIndexedDBPlugin,
     },
