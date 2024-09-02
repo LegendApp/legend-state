@@ -1337,11 +1337,11 @@ function setToObservable(node: NodeInfo, value: any) {
 function recursivelyAutoActivate(obj: Record<string, any>, node: NodeInfo) {
     if (!node.recursivelyAutoActivated && (isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
         node.recursivelyAutoActivated = true;
-        const pathStack: { key: string; value: any }[] = []; // Maintain a stack for path tracking
+        const pathStack: string[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
             let childNode = node;
             for (let i = 0; i < pathStack.length; i++) {
-                const { key } = pathStack[i];
+                const key = pathStack[i];
                 const value = getNodeValue(childNode)?.[key];
                 childNode = getChildNode(childNode, key, isFunction(value) ? value : undefined);
                 peekInternal(childNode);
@@ -1353,12 +1353,8 @@ function recursivelyAutoActivate(obj: Record<string, any>, node: NodeInfo) {
     }
 }
 
-function recursivelyAutoActivateInner(
-    obj: Record<string, any>,
-    pathStack: { key: string; value: any }[],
-    getNodeAtPath: () => NodeInfo,
-) {
     if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
+function recursivelyAutoActivateInner(obj: Record<string, any>, pathStack: string[], getNodeAtPath: () => NodeInfo) {
         for (const key in obj) {
             if (hasOwnProperty.call(obj, key)) {
                 const value = obj[key];
@@ -1379,7 +1375,7 @@ function recursivelyAutoActivateInner(
                 }
 
                 if (typeof value === 'object') {
-                    pathStack.push({ key, value });
+                    pathStack.push(key);
                     recursivelyAutoActivateInner(value, pathStack, getNodeAtPath); // Recursively traverse
                     pathStack.pop();
                 }
