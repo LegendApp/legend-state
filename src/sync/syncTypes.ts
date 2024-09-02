@@ -98,7 +98,7 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     onError?: (error: Error, params: SyncedErrorParams) => void;
 
     // Not implemented yet
-    log?: (message?: any, ...optionalParams: any[]) => void;
+    // log?: (message?: any, ...optionalParams: any[]) => void;
 }
 
 export interface SyncedOptionsGlobal<T = any>

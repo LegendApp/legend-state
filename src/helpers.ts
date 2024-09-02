@@ -31,6 +31,9 @@ export function getObservableIndex(value$: ObservableParam): number {
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
+    if (process.env.NODE_ENV === 'development') {
+        console.warn('[legend-state]: In version 3.0 opaqueObject is moved to ObservableHint.opaque');
+    }
     if (value) {
         (value as OpaqueObject<T>)[symbolOpaque] = true;
     }
@@ -112,7 +115,7 @@ export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, .
     }
     beginBatch();
     for (let i = 0; i < sources.length; i++) {
-        _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1, 0);
+        _mergeIntoObservable(target, sources[i], 0);
     }
     endBatch();
     return target;
@@ -120,7 +123,6 @@ export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, .
 function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
     target: T,
     source: any,
-    assign: boolean,
     levelsDeep: number,
 ): T {
     if (isObservable(source)) {
@@ -157,7 +159,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
                     if (levelsDeep > 0 && isEmpty(sourceValue)) {
                         targetChild.set(sourceValue);
                     }
-                    _mergeIntoObservable(targetChild, sourceValue, false, levelsDeep + 1);
+                    _mergeIntoObservable(targetChild, sourceValue, levelsDeep + 1);
                 } else {
                     targetChild.set(sourceValue);
                 }
