@@ -1,4 +1,4 @@
-import type { symbolOpaque } from './globals';
+import type { symbolOpaque, symbolPlain } from './globals';
 import type { Observable, ObservableParam } from './observableTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
@@ -8,6 +8,7 @@ export interface GetOptions {
 }
 
 export type OpaqueObject<T> = T & { [symbolOpaque]: true };
+export type PlainObject<T> = T & { [symbolPlain]: true };
 
 export interface ListenerParams<T = any> {
     value: T;

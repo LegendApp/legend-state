@@ -17,6 +17,7 @@ export const symbolIterator = Symbol.iterator;
 export const symbolGetNode = Symbol('getNode');
 export const symbolDelete = /* @__PURE__ */ Symbol('delete');
 export const symbolOpaque = Symbol('opaque');
+export const symbolPlain = Symbol('plain');
 export const optimized = Symbol('optimized');
 export const symbolLinked = Symbol('linked');
 
@@ -25,9 +26,12 @@ export const globalState: GlobalState = {
     dirtyNodes: new Set<NodeInfo>(),
 } as GlobalState;
 
-export function isOpaqueObject(value: any) {
+export function isHintOpaque(value: any) {
     // React elements have $$typeof and should be treated as opaque
     return value && (value[symbolOpaque] || value['$$typeof']);
+}
+export function isHintPlain(value: any) {
+    return value && value[symbolPlain];
 }
 
 export function getPathType(value: any): TypeAtPath {

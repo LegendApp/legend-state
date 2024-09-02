@@ -9,7 +9,8 @@ import {
     getNodeValue,
     globalState,
     isObservable,
-    isOpaqueObject,
+    isHintOpaque,
+    isHintPlain,
     optimized,
     setNodeValue,
     symbolDelete,
@@ -138,7 +139,7 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
         }
         __devUpdateNodes.add(obj);
     }
-    if ((isObject(obj) && isOpaqueObject(obj)) || (isObject(prevValue) && isOpaqueObject(prevValue))) {
+    if ((isObject(obj) && isHintOpaque(obj)) || (isObject(prevValue) && isHintOpaque(prevValue))) {
         const isDiff = obj !== prevValue;
         if (isDiff) {
             if (parent.listeners || parent.listenersImmediate) {
@@ -466,7 +467,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         let vProp = value?.[p];
 
-        if (isObject(value) && isOpaqueObject(value)) {
+        if (isObject(value) && isHintOpaque(value)) {
             return vProp;
         }
 
@@ -1335,7 +1336,7 @@ function setToObservable(node: NodeInfo, value: any) {
 }
 
 function recursivelyAutoActivate(obj: Record<string, any>, node: NodeInfo) {
-    if (!node.recursivelyAutoActivated && (isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
+    if (!node.recursivelyAutoActivated && (isObject(obj) || isArray(obj)) && !isHintOpaque(obj)) {
         node.recursivelyAutoActivated = true;
         const pathStack: string[] = []; // Maintain a stack for path tracking
         const getNodeAtPath = () => {
@@ -1353,8 +1354,8 @@ function recursivelyAutoActivate(obj: Record<string, any>, node: NodeInfo) {
     }
 }
 
-    if ((isObject(obj) || isArray(obj)) && !isOpaqueObject(obj)) {
 function recursivelyAutoActivateInner(obj: Record<string, any>, pathStack: string[], getNodeAtPath: () => NodeInfo) {
+    if ((isObject(obj) || isArray(obj)) && !isHintOpaque(obj) && !isHintPlain(obj)) {
         for (const key in obj) {
             if (hasOwnProperty.call(obj, key)) {
                 const value = obj[key];
