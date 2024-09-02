@@ -169,22 +169,32 @@ const isAuthed$ = observable(false);
 const isAuthing$ = observable(false);
 
 async function ensureAuthToken(props: SyncedKeelPropsBase<any>, force?: boolean) {
+    if (!force && isAuthed$.get()) {
+        return true;
+    }
     const { client, refreshAuth } = props;
-    // If already authing wait for that instead of doing it again
-    if (!force && isAuthing$.get()) {
-        return when(isAuthing$, () => isAuthed$.get());
-    }
-
-    isAuthing$.set(true);
-    // Refresh the auth using the configured method
-    if (refreshAuth) {
-        await refreshAuth();
-    }
 
     let isAuthed = await client!.auth.isAuthenticated().then(({ data }) => data);
     if (!isAuthed) {
-        // Try refreshing directly on keel client
-        isAuthed = await client!.auth.refresh().then(({ data }) => data);
+        // If already authing wait for that instead of doing it again
+        if (!force && isAuthing$.get()) {
+            return when(
+                () => !isAuthing$.get(),
+                () => isAuthed$.get(),
+            );
+        }
+
+        isAuthing$.set(true);
+        // Refresh the auth using the configured method
+        if (refreshAuth) {
+            await refreshAuth();
+        }
+
+        isAuthed = await client!.auth.isAuthenticated().then(({ data }) => data);
+        if (!isAuthed) {
+            // Try refreshing directly on keel client
+            isAuthed = await client!.auth.refresh().then(({ data }) => data);
+        }
     }
 
     if (isAuthed) {
@@ -530,10 +540,6 @@ export function syncedKeel<
               }
             : undefined);
 
-    if (requireAuth) {
-        ensureAuthToken(props);
-    }
-
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
         as: asType,
@@ -542,11 +548,17 @@ export function syncedKeel<
         create,
         update,
         delete: deleteFn,
-        waitFor: () => [requireAuth ? isAuthed$ : true, waitFor || true],
-        waitForSet: (params: WaitForSetCrudFnParams<any>) => [
-            requireAuth ? isAuthed$ : true,
-            () => (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
-        ],
+        waitFor: () => {
+            ensureAuthToken(props);
+            return [requireAuth ? isAuthed$ : true, waitFor || true];
+        },
+        waitForSet: (params: WaitForSetCrudFnParams<any>) => {
+            ensureAuthToken(props);
+            return [
+                requireAuth ? isAuthed$ : true,
+                () => (waitForSet ? (isFunction(waitForSet) ? waitForSet(params) : waitForSet) : true),
+            ];
+        },
         onSaved,
         fieldCreatedAt,
         fieldUpdatedAt,
