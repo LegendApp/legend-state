@@ -616,127 +616,133 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         state$.numPendingSets.set((v) => (v || 0) + 1);
         state$.isSetting.set(true);
 
-        onBeforeSet?.();
+        const beforeSetParams: Parameters<Required<SyncedOptions<any>>['onBeforeSet']>[0] = {
+            cancel: false,
+        };
 
-        let updateResult:
-            | {
-                  value?: any;
-                  mode?: GetMode;
-                  lastSync?: number | undefined;
-              }
-            | undefined = undefined;
+        onBeforeSet?.(beforeSetParams);
 
-        let errorHandled = false;
-        const onError = (error: Error, retryParams: OnErrorRetryParams) => {
-            state$.error.set(error);
-            if (!errorHandled) {
-                syncOptions.onError?.(error, {
-                    setParams: setParams as SyncedSetParams<any>,
-                    source: 'set',
-                    value$: obs$,
-                    retryParams,
+        if (!beforeSetParams.cancel) {
+            let updateResult:
+                | {
+                      value?: any;
+                      mode?: GetMode;
+                      lastSync?: number | undefined;
+                  }
+                | undefined = undefined;
+
+            let errorHandled = false;
+            const onError = (error: Error, retryParams: OnErrorRetryParams) => {
+                state$.error.set(error);
+                if (!errorHandled) {
+                    syncOptions.onError?.(error, {
+                        setParams: setParams as SyncedSetParams<any>,
+                        source: 'set',
+                        value$: obs$,
+                        retryParams,
+                    });
+                }
+                errorHandled = true;
+            };
+
+            const setParams: SyncedSetParams<any> = {
+                node,
+                value$: obs$,
+                changes: changesRemote,
+                value,
+                onError,
+                update: (params: UpdateFnParams) => {
+                    if (updateResult) {
+                        const { value, lastSync, mode } = params;
+                        updateResult = {
+                            lastSync: Math.max(updateResult.lastSync || 0, lastSync || 0),
+                            value: deepMerge(updateResult.value, value),
+                            mode: mode,
+                        };
+                    } else {
+                        updateResult = params;
+                    }
+                },
+                refresh: syncState.sync,
+                retryNum: 0,
+                cancelRetry: false,
+            };
+
+            const savedPromise = runWithRetry(
+                setParams,
+                syncOptions.retry,
+                async () => {
+                    return syncOptions!.set!(setParams);
+                },
+                onError,
+            );
+            let didError = false;
+
+            if (isPromise(savedPromise)) {
+                await savedPromise.catch(() => {
+                    didError = true;
                 });
             }
-            errorHandled = true;
-        };
 
-        const setParams: SyncedSetParams<any> = {
-            node,
-            value$: obs$,
-            changes: changesRemote,
-            value,
-            onError,
-            update: (params: UpdateFnParams) => {
-                if (updateResult) {
-                    const { value, lastSync, mode } = params;
-                    updateResult = {
-                        lastSync: Math.max(updateResult.lastSync || 0, lastSync || 0),
-                        value: deepMerge(updateResult.value, value),
-                        mode: mode,
-                    };
-                } else {
-                    updateResult = params;
-                }
-            },
-            refresh: syncState.sync,
-            retryNum: 0,
-            cancelRetry: false,
-        };
+            if (!didError) {
+                // If this remote save changed anything then update cache and metadata
+                // Because save happens after a timeout and they're batched together, some calls to save will
+                // return saved data and others won't, so those can be ignored.
+                const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
+                const { value: changes, lastSync } = updateResult! || {};
+                if (pathStrs.length > 0) {
+                    let transformedChanges: object | undefined = undefined;
+                    const metadata: PersistMetadata = {};
+                    if (saveLocal) {
+                        const pendingMetadata = pluginPersist!.getMetadata(table, configLocal)?.pending;
+                        const pending = localState.pendingChanges;
 
-        const savedPromise = runWithRetry(
-            setParams,
-            syncOptions.retry,
-            async () => {
-                return syncOptions!.set!(setParams);
-            },
-            onError,
-        );
-        let didError = false;
-
-        if (isPromise(savedPromise)) {
-            await savedPromise.catch(() => {
-                didError = true;
-            });
-        }
-
-        if (!didError) {
-            // If this remote save changed anything then update cache and metadata
-            // Because save happens after a timeout and they're batched together, some calls to save will
-            // return saved data and others won't, so those can be ignored.
-            const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
-            const { value: changes, lastSync } = updateResult! || {};
-            if (pathStrs.length > 0) {
-                let transformedChanges: object | undefined = undefined;
-                const metadata: PersistMetadata = {};
-                if (saveLocal) {
-                    const pendingMetadata = pluginPersist!.getMetadata(table, configLocal)?.pending;
-                    const pending = localState.pendingChanges;
-
-                    for (let i = 0; i < pathStrs.length; i++) {
-                        const pathStr = pathStrs[i];
-                        // Clear pending for this path
-                        if (pendingMetadata?.[pathStr]) {
-                            // Remove pending from persisted medata state
-                            delete pendingMetadata[pathStr];
-                            metadata.pending = pendingMetadata;
+                        for (let i = 0; i < pathStrs.length; i++) {
+                            const pathStr = pathStrs[i];
+                            // Clear pending for this path
+                            if (pendingMetadata?.[pathStr]) {
+                                // Remove pending from persisted medata state
+                                delete pendingMetadata[pathStr];
+                                metadata.pending = pendingMetadata;
+                            }
+                            // Clear pending for this path if not already removed by above
+                            // pendingMetadata === pending sometimes
+                            if (pending?.[pathStr]) {
+                                // Remove pending from local state
+                                delete pending[pathStr];
+                            }
                         }
-                        // Clear pending for this path if not already removed by above
-                        // pendingMetadata === pending sometimes
-                        if (pending?.[pathStr]) {
-                            // Remove pending from local state
-                            delete pending[pathStr];
+
+                        if (lastSync) {
+                            metadata.lastSync = lastSync;
                         }
                     }
 
-                    if (lastSync) {
-                        metadata.lastSync = lastSync;
+                    // Remote can optionally have data that needs to be merged back into the observable,
+                    // for example Firebase may update dateModified with the server timestamp
+                    if (changes && !isEmpty(changes)) {
+                        transformedChanges = transformLoadData(changes, syncOptions, false, 'set');
+                    }
+
+                    if (transformedChanges !== undefined) {
+                        if (isPromise(transformedChanges)) {
+                            transformedChanges = (await transformedChanges) as object;
+                        }
+                        onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
+                    }
+
+                    if (saveLocal) {
+                        if (shouldSaveMetadata && !isEmpty(metadata)) {
+                            updateMetadata(obs$, localState, syncState, syncOptions, metadata);
+                        }
                     }
                 }
 
-                // Remote can optionally have data that needs to be merged back into the observable,
-                // for example Firebase may update dateModified with the server timestamp
-                if (changes && !isEmpty(changes)) {
-                    transformedChanges = transformLoadData(changes, syncOptions, false, 'set');
-                }
+                state$.numPendingSets.set((v) => v! - 1);
+                state$.isSetting.set(state$.numPendingSets.peek()! > 0);
 
-                if (transformedChanges !== undefined) {
-                    if (isPromise(transformedChanges)) {
-                        transformedChanges = (await transformedChanges) as object;
-                    }
-                    onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
-                }
-
-                if (saveLocal) {
-                    if (shouldSaveMetadata && !isEmpty(metadata)) {
-                        updateMetadata(obs$, localState, syncState, syncOptions, metadata);
-                    }
-                }
+                onAfterSet?.();
             }
-
-            state$.numPendingSets.set((v) => v! - 1);
-            state$.isSetting.set(state$.numPendingSets.peek()! > 0);
-
-            onAfterSet?.();
         }
     }
 }
@@ -1130,7 +1136,7 @@ export function syncObservable<T>(
 
                     let modeBeforeReset: GetMode | undefined = undefined;
 
-                    syncOptions.onBeforeGet?.({
+                    const beforeGetParams: Parameters<Required<SyncedOptions<any>>['onBeforeGet']>[0] = {
                         value: getParams.value,
                         lastSync,
                         pendingChanges: pending && !isEmpty(pending) ? pending : undefined,
@@ -1145,57 +1151,62 @@ export function syncObservable<T>(
                             getParams.mode = 'set';
                             return syncStateValue.clearPersist?.();
                         },
-                    });
-
-                    syncState$.assign({
-                        numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
-                        isGetting: true,
-                    });
-                    const got = runWithRetry(
-                        getParams,
-                        syncOptions.retry,
-                        (retryEvent) => {
-                            const params = getParams as SyncedGetParams<T>;
-                            params.cancelRetry = retryEvent.cancelRetry;
-                            params.retryNum = retryEvent.retryNum;
-                            return get(params);
-                        },
-                        onError,
-                    );
-                    const numGets = (node.numGets = (node.numGets || 0) + 1);
-                    const handle = (value: any) => {
-                        syncState$.numPendingGets.set((v) => v! - 1);
-                        if (isWaitingForLoad) {
-                            isWaitingForLoad = false;
-                            syncStateValue.numPendingRemoteLoads!--;
-                        }
-                        // If this is from an older Promise than one that resolved already,
-                        // ignore it as the newer one wins
-                        if (numGets >= (node.getNumResolved || 0)) {
-                            node.getNumResolved = node.numGets;
-
-                            onChange({
-                                value,
-                                lastSync: getParams.lastSync,
-                                mode: getParams.mode!,
-                            });
-                        }
-
-                        if (modeBeforeReset) {
-                            getParams.mode = modeBeforeReset;
-                            modeBeforeReset = undefined;
-                        }
-
-                        syncState$.assign({
-                            isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
-                            error: undefined,
-                            isGetting: syncStateValue.numPendingGets! > 0,
-                        });
+                        cancel: false,
                     };
-                    if (isPromise(got)) {
-                        got.then(handle);
-                    } else {
-                        handle(got);
+
+                    syncOptions.onBeforeGet?.(beforeGetParams);
+
+                    if (!beforeGetParams.cancel) {
+                        syncState$.assign({
+                            numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
+                            isGetting: true,
+                        });
+                        const got = runWithRetry(
+                            getParams,
+                            syncOptions.retry,
+                            (retryEvent) => {
+                                const params = getParams as SyncedGetParams<T>;
+                                params.cancelRetry = retryEvent.cancelRetry;
+                                params.retryNum = retryEvent.retryNum;
+                                return get(params);
+                            },
+                            onError,
+                        );
+                        const numGets = (node.numGets = (node.numGets || 0) + 1);
+                        const handle = (value: any) => {
+                            syncState$.numPendingGets.set((v) => v! - 1);
+                            if (isWaitingForLoad) {
+                                isWaitingForLoad = false;
+                                syncStateValue.numPendingRemoteLoads!--;
+                            }
+                            // If this is from an older Promise than one that resolved already,
+                            // ignore it as the newer one wins
+                            if (numGets >= (node.getNumResolved || 0)) {
+                                node.getNumResolved = node.numGets;
+
+                                onChange({
+                                    value,
+                                    lastSync: getParams.lastSync,
+                                    mode: getParams.mode!,
+                                });
+                            }
+
+                            if (modeBeforeReset) {
+                                getParams.mode = modeBeforeReset;
+                                modeBeforeReset = undefined;
+                            }
+
+                            syncState$.assign({
+                                isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
+                                error: undefined,
+                                isGetting: syncStateValue.numPendingGets! > 0,
+                            });
+                        };
+                        if (isPromise(got)) {
+                            got.then(handle);
+                        } else {
+                            handle(got);
+                        }
                     }
                 };
 

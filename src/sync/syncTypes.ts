@@ -89,10 +89,11 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
         value: TRemote;
         lastSync: number | undefined;
         pendingChanges: PendingChanges | undefined;
+        cancel: boolean;
         clearPendingChanges: () => Promise<void>;
         resetCache: () => Promise<void>;
     }) => void;
-    onBeforeSet?: () => void;
+    onBeforeSet?: (params: { cancel: boolean }) => void;
     onAfterSet?: () => void;
     onError?: (error: Error, params: SyncedErrorParams) => void;
 
