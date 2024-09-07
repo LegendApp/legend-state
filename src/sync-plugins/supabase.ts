@@ -74,7 +74,7 @@ export interface SyncedSupabaseConfiguration
 interface SyncedSupabaseProps<
     Client extends SupabaseClient<any, any>,
     Collection extends SupabaseCollectionOf<Client, SchemaName>,
-    SchemaName extends SchemaNameOf<Client>,
+    SchemaName extends SchemaNameOf<Client> = 'public',
     TOption extends CrudAsOption = 'object',
     TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
@@ -139,7 +139,7 @@ function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>) {
 export function syncedSupabase<
     Client extends SupabaseClient<any, any>,
     Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
-    SchemaName extends SchemaNameOf<Client>,
+    SchemaName extends SchemaNameOf<Client> = 'public',
     AsOption extends CrudAsOption = 'object',
     TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
