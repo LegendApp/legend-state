@@ -1,10 +1,8 @@
 import { isEmpty, isFunction } from '@legendapp/state';
-import { ComponentClass, FC, createElement, forwardRef } from 'react';
-import { BindKeys } from './reactInterfaces';
+import { enableReactive } from '@legendapp/state/react-reactive/enableReactive';
+import { FC, createElement, forwardRef } from 'react';
+import { configureReactive, ReactiveFnBinders, ReactiveFns } from './configureReactive';
 import { reactive } from './reactive-observer';
-
-const ReactiveFns = new Map<string, FC | ComponentClass>();
-const ReactiveFnBinders = new Map<string, BindKeys>();
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IReactive {}
@@ -33,21 +31,4 @@ export const Reactive: IReactive = new Proxy(
     },
 ) as unknown as IReactive;
 
-export function configureReactive({
-    components,
-    binders,
-}: {
-    components?: Record<string, FC | ComponentClass<any>>;
-    binders?: Record<string, BindKeys>;
-}) {
-    if (components) {
-        for (const key in components) {
-            ReactiveFns.set(key, components[key]);
-        }
-    }
-    if (binders) {
-        for (const key in binders) {
-            ReactiveFnBinders.set(key, binders[key]);
-        }
-    }
-}
+enableReactive(configureReactive);

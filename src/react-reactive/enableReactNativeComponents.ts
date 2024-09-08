@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { Observable } from '@legendapp/state';
-import { FCReactive, FCReactiveObject, configureReactive, useSelector } from '@legendapp/state/react';
+import type { configureReactive } from '@legendapp/state/react';
+import { FCReactive, FCReactiveObject, useSelector } from '@legendapp/state/react';
 import {
     ActivityIndicator,
     ActivityIndicatorProps,
@@ -28,8 +29,8 @@ import {
     ViewProps,
 } from 'react-native';
 
-export function enableReactNativeComponents() {
-    configureReactive({
+export function enableReactNativeComponents(configure: typeof configureReactive) {
+    configure({
         components: {
             ActivityIndicator: ActivityIndicator,
             Button: Button,

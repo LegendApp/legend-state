@@ -78,6 +78,9 @@
             "@legendapp/state/sync-plugins/tanstack-query": [
                 "src/sync-plugins/tanstack-query"
             ],
+            "@legendapp/state/react-reactive/enableReactive": [
+                "src/react-reactive/enableReactive"
+            ]
         },
         "resolveJsonModule": true,
         "noEmit": true

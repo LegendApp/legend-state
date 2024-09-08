@@ -24,6 +24,7 @@ const external = [
     '@legendapp/state/sync-plugins/tanstack-query',
     '@legendapp/state/react',
     '@legendapp/state/helpers/fetch',
+    '@legendapp/state/react-reactive/enableReactive',
     'firebase/auth',
     'firebase/database',
     'ksuid',

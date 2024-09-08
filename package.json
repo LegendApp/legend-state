@@ -50,6 +50,7 @@
         "config",
         "trace",
         "babel",
+        "react-reactive/*",
         "as/*",
         "config/*",
         "helpers/*",
