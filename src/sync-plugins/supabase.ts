@@ -80,7 +80,7 @@ interface SyncedSupabaseProps<
     TLocal = TRemote,
 > extends SyncedSupabaseConfig<TRemote, TLocal>,
         Omit<SyncedCrudPropsMany<TRemote, TRemote, TOption>, 'list'> {
-    supabase: Client;
+    supabase?: Client;
     collection: Collection;
     schema?: SchemaName;
     select?: (
@@ -148,7 +148,7 @@ export function syncedSupabase<
 ): SyncedCrudReturnType<TLocal, AsOption> {
     props = { ...supabaseConfig, ...props } as any;
     const {
-        supabase: client,
+        supabase,
         collection,
         select: selectFn,
         schema,
@@ -171,6 +171,10 @@ export function syncedSupabase<
         delete: deleteParam,
         ...rest
     } = props;
+
+    // TODO: This is optional because configureSynced may set it so individual callers don't have to
+    // but that's not ideal, maybe there's a better way
+    const client = supabase!;
 
     // If using last-sync mode then put it into soft delete mode
     const fieldCreatedAt = fieldCreatedAtParam || (changesSince === 'last-sync' ? 'created_at' : undefined);
