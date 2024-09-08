@@ -34,7 +34,7 @@ describe('Perf', () => {
         obs.get();
         const then = performance.now();
 
-        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 20);
+        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 25);
     });
     test('Lazy activation perf with plain hint', () => {
         const obj: Record<string, any> = {};

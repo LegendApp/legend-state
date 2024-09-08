@@ -12,6 +12,7 @@ import type {
     UpdateFnParams,
 } from '@legendapp/state';
 import {
+    ObservableHint,
     beginBatch,
     constructObjectWithPath,
     endBatch,
@@ -21,6 +22,7 @@ import {
     isFunction,
     isNullOrUndefined,
     isObject,
+    isPlainObject,
     isPromise,
     isString,
     mergeIntoObservable,
@@ -33,6 +35,7 @@ import {
     whenReady,
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
+import { runWithRetry } from './retry';
 import { removeNullUndefined } from './syncHelpers';
 import type {
     ObservablePersistPlugin,
@@ -49,7 +52,6 @@ import type {
     SyncedSetParams,
     SyncedSubscribeParams,
 } from './syncTypes';
-import { runWithRetry } from './retry';
 import { waitForSet } from './waitForSet';
 
 const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, symbolLinked, createPreviousHandler } =
@@ -1053,6 +1055,9 @@ export function syncObservable<T>(
                             }
 
                             onChangeRemote(() => {
+                                if (isPlainObject(value)) {
+                                    value = ObservableHint.plain(value);
+                                }
                                 if (mode === 'assign') {
                                     (obs$ as unknown as Observable<object>).assign(value);
                                 } else if (mode === 'append') {
