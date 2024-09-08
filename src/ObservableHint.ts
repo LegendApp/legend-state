@@ -3,7 +3,12 @@ import type { OpaqueObject, PlainObject } from './observableInterfaces';
 
 function addSymbol<T>(value: object, symbol: symbol) {
     if (value) {
-        (value as any)[symbol] = true;
+        Object.defineProperty(value, symbol, {
+            value: true,
+            enumerable: false,
+            writable: true,
+            configurable: true,
+        });
     }
     return value as T;
 }
