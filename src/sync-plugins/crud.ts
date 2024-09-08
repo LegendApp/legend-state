@@ -8,7 +8,6 @@ import {
     internal,
     isArray,
     isNullOrUndefined,
-    isObservable,
     isPromise,
     setAtPath,
     symbolDelete,
@@ -20,8 +19,8 @@ import {
     SyncedSubscribeParams,
     deepEqual,
     diffObjects,
-    synced,
     internal as internalSync,
+    synced,
 } from '@legendapp/state/sync';
 
 const { clone } = internal;
