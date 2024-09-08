@@ -171,15 +171,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         const out = asType === 'array' ? [] : asMap ? new Map() : {};
         for (let i = 0; i < results.length; i++) {
             let result = results[i];
-            const isObs = isObservable(result);
-            const value = isObs ? result.peek() : result;
+            const value = result;
             if (value) {
                 // Replace any children with symbolDelete or fieldDeleted with symbolDelete
                 result =
-                    !isObs &&
-                    ((fieldDeleted && result[fieldDeleted as any]) ||
-                        (fieldDeletedList && result[fieldDeletedList]) ||
-                        result[symbolDelete])
+                    (fieldDeleted && result[fieldDeleted as any]) ||
+                    (fieldDeletedList && result[fieldDeletedList]) ||
+                    result[symbolDelete]
                         ? internal.symbolDelete
                         : result;
                 if (asArray) {
