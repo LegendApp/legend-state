@@ -146,7 +146,7 @@ interface ErrorDetails {
     error: APIResult<any>['error'];
 }
 
-interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
+export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     extends Omit<
         SyncedCrudPropsBase<TRemote, TLocal>,
         'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt' | 'onError'
@@ -156,7 +156,7 @@ interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
     update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
     realtime?: {
-        path?: (action: string, inputs: any) => string;
+        path?: (action: string, inputs: any) => string | Promise<string>;
         plugin?: KeelRealtimePlugin;
     };
     refreshAuth?: () => void | Promise<void>;
@@ -361,13 +361,13 @@ export function syncedKeel<
     const fieldUpdatedAt: KeelKey = 'updatedAt';
 
     const setupSubscribe = realtime
-        ? (getParams: SyncedGetParams<TRemote>) => {
+        ? async (getParams: SyncedGetParams<TRemote>) => {
               const { lastAction, lastParams } = realtimeState.current;
               const { path, plugin } = realtime;
               if (lastAction && path && plugin) {
-                  const key = path(lastAction, lastParams);
-                  subscribeFnKey$.set(key);
+                  const key = await path(lastAction, lastParams);
                   subscribeFn = () => realtime.plugin!.subscribe(key, getParams);
+                  subscribeFnKey$.set(key);
               }
           }
         : undefined;
