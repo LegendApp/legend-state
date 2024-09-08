@@ -1469,3 +1469,15 @@ describe('synced is observer', () => {
         expect(latestValue).toEqual(1);
     });
 });
+describe('acting like query', () => {
+    test('query shape', () => {
+        const profile$ = observable({
+            data: synced({
+                get: () => ({ test: 'hi' }),
+            }),
+            state: () => syncState(profile$.data),
+        });
+        expect(profile$.data.get()).toEqual({ test: 'hi' });
+        expect(profile$.state.isLoaded.get()).toEqual(true);
+    });
+});
