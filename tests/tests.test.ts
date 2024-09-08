@@ -3431,6 +3431,56 @@ describe('setAtPath', () => {
 
         expect(res).toEqual({ key: { sessionId: 'zz', status: 'Completed' } });
     });
+    test('Set in Map with merge on object with existing key', () => {
+        const value = new Map([
+            [
+                'key',
+                {
+                    sessionId: 'zz',
+                },
+            ],
+        ]);
+
+        const res = setAtPath(value, ['key', 'status'], ['object', 'object'], 'Completed', 'merge');
+
+        expect(res).toEqual(
+            new Map([
+                [
+                    'key',
+                    {
+                        sessionId: 'zz',
+                        status: 'Completed',
+                    },
+                ],
+            ]),
+        );
+    });
+    test('Set in Map child with merge on object with existing key', () => {
+        const value = {
+            map: new Map([
+                [
+                    'key',
+                    {
+                        sessionId: 'zz',
+                    },
+                ],
+            ]),
+        };
+
+        const res = setAtPath(value, ['map', 'key', 'status'], ['object', 'object', 'object'], 'Completed', 'merge');
+
+        expect(res).toEqual({
+            map: new Map([
+                [
+                    'key',
+                    {
+                        sessionId: 'zz',
+                        status: 'Completed',
+                    },
+                ],
+            ]),
+        });
+    });
 });
 describe('new computed', () => {
     test('new computed basic', () => {
