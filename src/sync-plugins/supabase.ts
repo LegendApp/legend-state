@@ -303,7 +303,7 @@ export function syncedSupabase<
                   )
                   .subscribe();
 
-              return channel.unsubscribe;
+              return () => channel.unsubscribe();
           }
         : undefined;
 
