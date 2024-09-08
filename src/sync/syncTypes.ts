@@ -20,8 +20,8 @@ import type {
 } from '@legendapp/state';
 
 export interface PersistOptions<T = any> {
-    name: string;
-    plugin?: ClassConstructor<ObservablePersistPlugin, T[]>;
+    name?: string;
+    plugin?: ClassConstructor<ObservablePersistPlugin, T[]> | ObservablePersistPlugin;
     retrySync?: boolean;
     transform?: SyncTransform<T>;
     readonly?: boolean;
@@ -72,6 +72,7 @@ export interface SyncedErrorParams {
     subscribeParams?: SyncedSubscribeParams<any>;
     source: 'get' | 'set' | 'subscribe';
     value$: ObservableParam<any>;
+    retryParams?: OnErrorRetryParams;
 }
 
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {
@@ -84,19 +85,20 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     syncMode?: 'auto' | 'manual';
     mode?: GetMode;
     transform?: SyncTransform<TLocal, TRemote>;
-    onGetError?: (error: Error, params: SyncedErrorParams) => void;
-    onSetError?: (error: Error, params: SyncedErrorParams) => void;
     onBeforeGet?: (params: {
         value: TRemote;
         lastSync: number | undefined;
         pendingChanges: PendingChanges | undefined;
+        cancel: boolean;
         clearPendingChanges: () => Promise<void>;
         resetCache: () => Promise<void>;
     }) => void;
-    onBeforeSet?: () => void;
+    onBeforeSet?: (params: { cancel: boolean }) => void;
     onAfterSet?: () => void;
+    onError?: (error: Error, params: SyncedErrorParams) => void;
+
     // Not implemented yet
-    log?: (message?: any, ...optionalParams: any[]) => void;
+    // log?: (message?: any, ...optionalParams: any[]) => void;
 }
 
 export interface SyncedOptionsGlobal<T = any>

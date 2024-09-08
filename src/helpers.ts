@@ -1,6 +1,17 @@
 import { beginBatch, endBatch } from './batching';
 import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
-import { hasOwnProperty, isArray, isEmpty, isFunction, isMap, isNumber, isObject, isPrimitive, isSet } from './is';
+import {
+    hasOwnProperty,
+    isArray,
+    isEmpty,
+    isFunction,
+    isMap,
+    isNumber,
+    isObject,
+    isPlainObject,
+    isPrimitive,
+    isSet,
+} from './is';
 import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { ObservableParam } from './observableTypes';
 
@@ -20,6 +31,9 @@ export function getObservableIndex(value$: ObservableParam): number {
 }
 
 export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
+    if (process.env.NODE_ENV === 'development') {
+        console.warn('[legend-state]: In version 3.0 opaqueObject is moved to ObservableHint.opaque');
+    }
     if (value) {
         (value as OpaqueObject<T>)[symbolOpaque] = true;
     }
@@ -46,18 +60,25 @@ export function setAtPath<T extends object>(
         let oFull: Record<string, any> | undefined = fullObj;
         for (let i = 0; i < path.length; i++) {
             p = path[i];
-            if (o[p] === symbolDelete) {
+            const map = isMap(o);
+            let child = o ? (map ? o.get(p) : o[p]) : undefined;
+            const fullChild = oFull ? (map ? oFull.get(p) : oFull[p]) : undefined;
+            if (child === symbolDelete) {
                 // If this was previously deleted, restore it
                 if (oFull) {
-                    o[p] = oFull[p];
-                    restore?.(path.slice(0, i + 1), o[p]);
+                    if (map) {
+                        o.set(p, fullChild);
+                    } else {
+                        o[p] = fullChild;
+                    }
+                    restore?.(path.slice(0, i + 1), fullChild);
                 }
                 return obj;
-            } else if (o[p] === undefined && value === undefined && i === path.length - 1) {
+            } else if (child === undefined && value === undefined && i === path.length - 1) {
                 // If setting undefined and the key is undefined, no need to initialize or set it
                 return obj;
-            } else if (i < path.length - 1 && (o[p] === undefined || o[p] === null)) {
-                const child = initializePathType(pathTypes[i]);
+            } else if (i < path.length - 1 && (child === undefined || child === null)) {
+                child = initializePathType(pathTypes[i]);
                 if (isMap(o)) {
                     o.set(p, child);
                 } else {
@@ -65,9 +86,9 @@ export function setAtPath<T extends object>(
                 }
             }
             if (i < path.length - 1) {
-                o = isMap(o) ? o.get(p) : o[p];
+                o = child;
                 if (oFull) {
-                    oFull = oFull[p];
+                    oFull = fullChild;
                 }
             }
         }
@@ -101,7 +122,7 @@ export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, .
     }
     beginBatch();
     for (let i = 0; i < sources.length; i++) {
-        _mergeIntoObservable(target, sources[i], /*assign*/ i < sources.length - 1, 0);
+        _mergeIntoObservable(target, sources[i], 0);
     }
     endBatch();
     return target;
@@ -109,7 +130,6 @@ export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, .
 function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
     target: T,
     source: any,
-    assign: boolean,
     levelsDeep: number,
 ): T {
     if (isObservable(source)) {
@@ -146,7 +166,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
                     if (levelsDeep > 0 && isEmpty(sourceValue)) {
                         targetChild.set(sourceValue);
                     }
-                    _mergeIntoObservable(targetChild, sourceValue, false, levelsDeep + 1);
+                    _mergeIntoObservable(targetChild, sourceValue, levelsDeep + 1);
                 } else {
                     targetChild.set(sourceValue);
                 }
@@ -223,7 +243,7 @@ export function deepMerge<T>(target: T, ...sources: any[]): T {
 
     for (let i = 0; i < sources.length; i++) {
         const obj2 = sources[i];
-        if (isObject(obj2) || isArray(obj2)) {
+        if (isPlainObject(obj2) || isArray(obj2)) {
             const objTarget = obj2 as Record<string, any>;
             for (const key in objTarget) {
                 if (hasOwnProperty.call(objTarget, key)) {

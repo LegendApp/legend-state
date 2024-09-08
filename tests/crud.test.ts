@@ -2354,81 +2354,6 @@ describe('Order of get/create', () => {
     });
 });
 describe('Hierarchical sync', () => {
-    test('list can return observables', async () => {
-        const obs$ = observable<Record<string, BasicValue>>(
-            syncedCrud({
-                list: () => {
-                    return [
-                        { id: 'id1', test: 'hello' },
-                        { id: 'id2', test: 'hi' },
-                        { id: 'id3', test: 'hey' },
-                    ];
-                },
-                as: 'object',
-            }),
-        );
-
-        const odds$ = observable<Record<string, BasicValue>>(
-            syncedCrud({
-                list: () => {
-                    return [obs$.id1, obs$.id3];
-                },
-                as: 'object',
-            }),
-        );
-
-        let latestValue = '';
-        observe(() => {
-            latestValue = odds$.id1.test.get();
-        });
-
-        expect(latestValue).toEqual('hello');
-
-        expect(odds$.get()).toEqual({
-            id1: { id: 'id1', test: 'hello' },
-            id3: { id: 'id3', test: 'hey' },
-        });
-    });
-    test('list can return observables with target as Promise with initial', async () => {
-        const obs$ = observable<Record<string, BasicValue>>(
-            syncedCrud({
-                list: async () => {
-                    await promiseTimeout(1);
-                    return [
-                        { id: 'id1', test: 'hello' },
-                        { id: 'id2', test: 'hi' },
-                        { id: 'id3', test: 'hey' },
-                    ];
-                },
-                as: 'object',
-            }),
-        );
-
-        const odds$ = observable<Record<string, BasicValue>>(
-            syncedCrud({
-                initial: () => ({
-                    id1: obs$['id1'],
-                    id3: obs$['id3'],
-                }),
-            }),
-        );
-
-        let latestValue = '';
-        observe(() => {
-            latestValue = odds$.id1.test.get();
-        });
-
-        expect(latestValue).toEqual(undefined);
-
-        await promiseTimeout(1);
-
-        expect(latestValue).toEqual('hello');
-
-        expect(odds$.get()).toEqual({
-            id1: { id: 'id1', test: 'hello' },
-            id3: { id: 'id3', test: 'hey' },
-        });
-    });
     // TODO: Would be good to get this working with list
     // test('list can return observables with target as Promise with list', async () => {
     //     const obs$ = observable<Record<string, BasicValue>>(
@@ -2444,7 +2369,6 @@ describe('Hierarchical sync', () => {
     //             as: 'object',
     //         }),
     //     );
-
     //     const odds$ = observable<Record<string, BasicValue>>(
     //         syncedCrud({
     //             list: () => {
@@ -2453,22 +2377,16 @@ describe('Hierarchical sync', () => {
     //             as: 'object',
     //         }),
     //     );
-
     //     // @ts-expect-error asdf
     //     getNode(odds$).___test = true;
-
     //     let latestValue = '';
     //     observe(() => {
     //         latestValue = odds$.id1.test.get();
     //         console.log(latestValue);
     //     });
-
     //     expect(latestValue).toEqual(undefined);
-
     //     await promiseTimeout(1);
-
     //     expect(latestValue).toEqual('hello');
-
     //     expect(odds$.get()).toEqual({
     //         id1: { id: 'id1', test: 'hello' },
     //         id3: { id: 'id3', test: 'hey' },
@@ -2488,7 +2406,6 @@ describe('Hierarchical sync', () => {
     //             as: 'object',
     //         }),
     //     );
-
     //     const odds$ = observable<Record<string, BasicValue>>(
     //         syncedCrud({
     //             list: () => {
@@ -2498,11 +2415,8 @@ describe('Hierarchical sync', () => {
     //             as: 'object',
     //         }),
     //     );
-
     //     odds$.get();
-
     //     await promiseTimeout(10);
-
     //     expect(odds$.get()).toEqual({
     //         id1: { id: 'id1', test: 'hello' },
     //         id3: { id: 'id3', test: 'hey' },

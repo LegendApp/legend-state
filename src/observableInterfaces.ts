@@ -1,4 +1,4 @@
-import type { symbolOpaque } from './globals';
+import type { symbolOpaque, symbolPlain } from './globals';
 import type { Observable, ObservableParam } from './observableTypes';
 
 export type TrackingType = undefined | true | symbol; // true === shallow
@@ -8,6 +8,7 @@ export interface GetOptions {
 }
 
 export type OpaqueObject<T> = T & { [symbolOpaque]: true };
+export type PlainObject<T> = T & { [symbolPlain]: true };
 
 export interface ListenerParams<T = any> {
     value: T;
@@ -143,7 +144,7 @@ export type WaitForSet<T> =
 export interface LinkedOptions<T = any> {
     get?: () => Promise<T> | T;
     set?: (params: SetParams<T>) => void | Promise<any>;
-    waitFor?: Selector<any>;
+    waitFor?: Selector<unknown>;
     waitForSet?: WaitForSet<T>;
     initial?: (() => T) | T;
     activate?: 'auto' | 'lazy';

@@ -8,7 +8,6 @@ import {
     internal,
     isArray,
     isNullOrUndefined,
-    isObservable,
     isPromise,
     setAtPath,
     symbolDelete,
@@ -20,8 +19,8 @@ import {
     SyncedSubscribeParams,
     deepEqual,
     diffObjects,
-    synced,
     internal as internalSync,
+    synced,
 } from '@legendapp/state/sync';
 
 const { clone } = internal;
@@ -171,15 +170,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         const out = asType === 'array' ? [] : asMap ? new Map() : {};
         for (let i = 0; i < results.length; i++) {
             let result = results[i];
-            const isObs = isObservable(result);
-            const value = isObs ? result.peek() : result;
+            const value = result;
             if (value) {
                 // Replace any children with symbolDelete or fieldDeleted with symbolDelete
                 result =
-                    !isObs &&
-                    ((fieldDeleted && result[fieldDeleted as any]) ||
-                        (fieldDeletedList && result[fieldDeletedList]) ||
-                        result[symbolDelete])
+                    (fieldDeleted && result[fieldDeleted as any]) ||
+                    (fieldDeletedList && result[fieldDeletedList]) ||
+                    result[symbolDelete]
                         ? internal.symbolDelete
                         : result;
                 if (asArray) {
@@ -311,7 +308,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       if (createFn) {
                                           creates.set(id, value);
                                       } else {
-                                          console.log('[legend-state] missing create function');
+                                          console.warn('[legend-state] missing create function');
                                       }
                                   } else if (path.length === 0) {
                                       if (valueAtPath) {
@@ -389,7 +386,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       pendingCreates.add(item.id);
                                       creates.set(item.id, item);
                                   } else {
-                                      console.log('[legend-state] missing create function');
+                                      console.warn('[legend-state] missing create function');
                                   }
                               } else {
                                   if (updateFn) {
@@ -398,7 +395,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                           updates.has(item.id) ? Object.assign(updates.get(item.id)!, item) : item,
                                       );
                                   } else {
-                                      console.log('[legend-state] missing update function');
+                                      console.warn('[legend-state] missing update function');
                                   }
                               }
                           });
@@ -512,7 +509,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       console.error('[legend-state]: deleting item without an id');
                                   }
                               } else {
-                                  console.log('[legend-state] missing delete function');
+                                  console.warn('[legend-state] missing delete function');
                               }
                           }
                       }),

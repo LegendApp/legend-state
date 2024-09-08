@@ -69,6 +69,25 @@ describe('caching with new computed', () => {
 
         expect(nodes.get()).toEqual({ key00: { key: 'key00' } });
     });
+    test('synced with initial array', () => {
+        const nodes = observable(
+            synced({
+                initial: [],
+            }),
+        );
+
+        expect(nodes.get()).toEqual([]);
+    });
+    test('configured synced with initial array', () => {
+        const mySynced = configureSynced({ persist: { plugin: ObservablePersistLocalStorage } });
+        const nodes = observable(
+            mySynced({
+                initial: [],
+            }),
+        );
+
+        expect(nodes.get()).toEqual([]);
+    });
     test('persist with get and initial', async () => {
         const persistName = getPersistName();
         localStorage.setItem(persistName, JSON.stringify({ key0: 'key0' }));

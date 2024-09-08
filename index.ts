@@ -1,3 +1,4 @@
+export * from './src/ObservableHint';
 export { isObserved, shouldIgnoreUnobserved } from './src/ObservableObject';
 export { batch, beginBatch, endBatch } from './src/batching';
 export { computed } from './src/computed';
@@ -27,8 +28,10 @@ export {
     isNullOrUndefined,
     isNumber,
     isObject,
+    isPlainObject,
     isPrimitive,
     isPromise,
+    isSet,
     isString,
     isSymbol,
 } from './src/is';

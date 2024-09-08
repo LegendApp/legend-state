@@ -11,6 +11,7 @@ import { syncState } from '../src/syncState';
 import { when } from '../src/when';
 import { ObservablePersistPlugin, SyncedOptions, synced } from '../sync';
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import { clone } from '../src/globals';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -547,21 +548,18 @@ describe('persist objects', () => {
             search: string;
         }
 
+        const initial = {
+            columnFilters: 'hi1',
+            sorting: ['hi2'],
+            pagination: { hi3: 'hi4' },
+            search: 'hi5',
+        };
+
         const tablesState$ = observable({
-            tables: new Map<string, TableState>([
-                [
-                    'XX',
-                    {
-                        columnFilters: 'hi1',
-                        sorting: ['hi2'],
-                        pagination: { hi3: 'hi4' },
-                        search: 'hi5',
-                    },
-                ],
-            ]),
+            tables: new Map<string, TableState>([['XX', initial]]),
         });
 
-        const myPersist = configureSynced({
+        const myPersist = configureSynced(synced, {
             persist: {
                 plugin: ObservablePersistLocalStorage,
             },
@@ -579,53 +577,23 @@ describe('persist objects', () => {
         );
 
         expect(tablesState$.get()).toEqual({
-            tables: new Map([
-                [
-                    'XX',
-                    {
-                        columnFilters: 'hi1',
-                        sorting: ['hi2'],
-                        pagination: { hi3: 'hi4' },
-                        search: 'hi5',
-                    },
-                ],
-            ]),
+            tables: new Map([['XX', clone(initial)]]),
         });
 
         tablesState$.tables.get('XX').sorting.set([]);
 
         expect(tablesState$.get()).toEqual({
-            tables: new Map([
-                [
-                    'XX',
-                    {
-                        columnFilters: 'hi1',
-                        sorting: [],
-                        pagination: { hi3: 'hi4' },
-                        search: 'hi5',
-                    },
-                ],
-            ]),
+            tables: new Map([['XX', clone(initial)]]),
         });
 
         await promiseTimeout(0);
 
         expect(localStorage.getItem(persistName)).toEqual(
-            '{"tables":{"__LSType":"Map","value":[["XX",{"sorting":[]}]]}}',
+            '{"tables":{"__LSType":"Map","value":[["XX",{"columnFilters":"hi1","sorting":[],"pagination":{"hi3":"hi4"},"search":"hi5"}]]}}',
         );
 
         const tablesState2$ = observable({
-            tables: new Map<string, TableState>([
-                [
-                    'XX',
-                    {
-                        columnFilters: 'hi1',
-                        sorting: ['hi2'],
-                        pagination: { hi3: 'hi4' },
-                        search: 'hi5',
-                    },
-                ],
-            ]),
+            tables: new Map<string, TableState>([['XX', clone(initial)]]),
         });
         syncObservable(
             tablesState2$,
@@ -637,17 +605,7 @@ describe('persist objects', () => {
         );
 
         expect(tablesState2$.get()).toEqual({
-            tables: new Map([
-                [
-                    'XX',
-                    {
-                        columnFilters: 'hi1',
-                        sorting: [],
-                        pagination: { hi3: 'hi4' },
-                        search: 'hi5',
-                    },
-                ],
-            ]),
+            tables: new Map([['XX', clone(initial)]]),
         });
     });
     test('Map merges from persistence correctly', async () => {
@@ -695,7 +653,7 @@ describe('persist objects', () => {
         await promiseTimeout(0);
 
         expect(localStorage.getItem(persistName)).toEqual(
-            '{"m":{"__LSType":"Map","value":[["v1",{"h1":"h1","h2":[]}],["v2",{"h2":[]}]]}}',
+            '{"m":{"__LSType":"Map","value":[["v1",{"h1":"h1","h2":[]}],["v2",{"h1":"h3","h2":[]}]]}}',
         );
 
         const obs2$ = observable({
@@ -1509,5 +1467,17 @@ describe('synced is observer', () => {
         await promiseTimeout(0);
         expect(obs$.id1.num.get()).toEqual(1);
         expect(latestValue).toEqual(1);
+    });
+});
+describe('acting like query', () => {
+    test('query shape', () => {
+        const profile$ = observable({
+            data: synced({
+                get: () => ({ test: 'hi' }),
+            }),
+            state: () => syncState(profile$.data),
+        });
+        expect(profile$.data.get()).toEqual({ test: 'hi' });
+        expect(profile$.state.isLoaded.get()).toEqual(true);
     });
 });

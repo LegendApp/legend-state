@@ -1,6 +1,7 @@
 import { observable } from '@legendapp/state';
-import { syncedKeel } from '../src/sync-plugins/keel';
+import { syncedKeel as syncedKeelOrig } from '../src/sync-plugins/keel';
 import { promiseTimeout } from './testglobals';
+import { configureSynced } from '../src/sync/configureSynced';
 
 type APIError = { type: string; message: string; requestId?: string };
 
@@ -17,6 +18,16 @@ type Err<U> = {
 };
 
 type Result<T, U> = NonNullable<Data<T> | Err<U>>;
+
+const syncedKeel = configureSynced(syncedKeelOrig, {
+    client: {
+        auth: {
+            isAuthenticated: async () => ({ data: true }),
+            refresh: async () => ({ data: true }),
+        },
+        api: { queries: {} },
+    },
+});
 
 interface BasicValue {
     id: string;
@@ -62,7 +73,7 @@ describe('keel', () => {
 
         expect(obs.get()).toEqual(undefined);
 
-        await promiseTimeout(1);
+        await promiseTimeout(10);
 
         expect(obs.get()).toEqual({
             id1: {

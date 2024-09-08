@@ -3,6 +3,7 @@ import { isArray, isObject, isString } from '../src/is';
 import { observable } from '../src/observable';
 import { configureSynced } from '../src/sync/configureSynced';
 import { ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
+import { synced } from '../src/sync/synced';
 
 export async function recursiveReplaceStrings<T extends string | object | number | boolean>(
     value: T,
@@ -33,7 +34,7 @@ export async function recursiveReplaceStrings<T extends string | object | number
     return value;
 }
 
-const mySynced = configureSynced({
+const mySynced = configureSynced(synced, {
     persist: {
         plugin: ObservablePersistLocalStorage,
     },
