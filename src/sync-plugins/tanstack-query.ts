@@ -39,6 +39,7 @@ export function syncedQuery<
     let observer: QueryObserver<TQueryFnData, TError, TData, TQueryKey> | undefined = undefined;
     let latestOptions = defaultedOptions;
     let queryKeyFromFn: TQueryKey;
+    let resolveInitialPromise: undefined | ((value: TData) => void) = undefined;
 
     const origQueryKey = options.queryKey!;
 
@@ -73,9 +74,15 @@ export function syncedQuery<
     // Create the observer
     observer = new Observer!<TQueryFnData, TError, TData, TQueryKey>(queryClient!, latestOptions);
 
-    const get = () => {
+    const get = async () => {
         // Get the initial optimistic results if it's already cached
         const result = observer!.getOptimisticResult(latestOptions);
+
+        if (result.isLoading) {
+            await new Promise((resolve) => {
+                resolveInitialPromise = resolve;
+            });
+        }
 
         return result.data!;
     };
@@ -85,6 +92,10 @@ export function syncedQuery<
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result) => {
                 if (result.status === 'success') {
+                    if (resolveInitialPromise) {
+                        resolveInitialPromise(result.data);
+                        resolveInitialPromise = undefined;
+                    }
                     update({ value: result.data });
                 }
             }),
