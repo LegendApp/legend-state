@@ -1,7 +1,7 @@
 import { beginBatch, endBatch } from './batching';
 import { isEvent } from './globals';
 import { isFunction } from './is';
-import { ObserveEvent, ObserveEventCallback, ObserveOptions, Selector } from './observableInterfaces';
+import type { ObserveEvent, ObserveEventCallback, ObserveOptions, Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;

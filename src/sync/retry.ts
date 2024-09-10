@@ -1,5 +1,5 @@
 import { isPromise } from '../is';
-import type { NodeInfo, RetryOptions } from '../observableInterfaces';
+import type { NodeInfo, RetryOptions } from '@legendapp/state';
 import type { OnErrorRetryParams, SyncedGetSetBaseParams } from './syncTypes';
 
 function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): number | null {

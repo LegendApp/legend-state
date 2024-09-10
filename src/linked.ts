@@ -1,6 +1,6 @@
-import { isFunction } from './is';
 import { symbolLinked } from './globals';
-import { Linked, LinkedOptions } from './observableInterfaces';
+import { isFunction } from './is';
+import type { Linked, LinkedOptions } from './observableInterfaces';
 
 export function linked<T>(params: LinkedOptions<T> | (() => T), options?: LinkedOptions<T>): Linked<T> {
     if (isFunction(params)) {

@@ -1,7 +1,7 @@
 import { globalState } from './globals';
+import type { NodeInfo } from './observableInterfaces';
 import { observableProperties as _observableProperties, observableFns } from './ObservableObject';
 import { ObservablePrimitiveClass } from './ObservablePrimitive';
-import type { NodeInfo } from './observableInterfaces';
 
 export function configureLegendState({
     observableFunctions,

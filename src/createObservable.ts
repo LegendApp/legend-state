@@ -1,7 +1,6 @@
 import { isObservable, setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
-import type { ClassConstructor, ObservableRoot } from './observableInterfaces';
-import { NodeInfo } from './observableInterfaces';
+import type { ClassConstructor, NodeInfo, ObservableRoot } from './observableInterfaces';
 import { Observable, ObservablePrimitive } from './observableTypes';
 
 export function createObservable<T>(
