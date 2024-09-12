@@ -97,10 +97,10 @@ interface MutableObservableSimple {
 }
 interface MutableObservableBase<T> extends MutableObservableSimple {
     set(value: (prev: RemoveObservables<T>) => RemoveObservables<T>): void;
+    set(value: Observable<RemoveObservables<T>>): void;
     set(value: RecursiveValueOrFunction<T>): void;
     set(value: Promise<RemoveObservables<T>>): void;
     set(value: RemoveObservables<T>): void;
-    set(value: Observable<RemoveObservables<T>>): void;
     delete(): void;
 }
 
