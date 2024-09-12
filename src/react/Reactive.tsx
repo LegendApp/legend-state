@@ -31,4 +31,6 @@ export const Reactive: IReactive = new Proxy(
     },
 ) as unknown as IReactive;
 
-enableReactive(configureReactive);
+if (process.env.NODE_ENV !== 'test') {
+    enableReactive(configureReactive);
+}

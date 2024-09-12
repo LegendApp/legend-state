@@ -1,6 +1,6 @@
 import { linked } from './linked';
 import { observable } from './observable';
-import { LinkedOptions } from './observableInterfaces';
+import type { LinkedOptions } from './observableInterfaces';
 import { Observable, ObservableParam, RecursiveValueOrFunction } from './observableTypes';
 
 export function computed<T>(get: () => RecursiveValueOrFunction<T>): Observable<T>;

@@ -1,5 +1,5 @@
 import { internal } from '@legendapp/state';
-import { configureLegendState } from '@legendapp/state/config';
+import { configureLegendState } from '@legendapp/state/config/configureLegendState';
 
 export function enable$GetSet() {
     configureLegendState({

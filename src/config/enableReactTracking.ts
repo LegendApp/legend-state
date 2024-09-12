@@ -1,5 +1,5 @@
 import { type GetOptions, internal, isObject, tracking, type NodeInfo, type TrackingType } from '@legendapp/state';
-import { configureLegendState } from '@legendapp/state/config';
+import { configureLegendState } from '@legendapp/state/config/configureLegendState';
 import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
 import { createContext, useContext } from 'react';
 // @ts-expect-error Internals

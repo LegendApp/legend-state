@@ -55,7 +55,7 @@ export { findIDKey, getNode, getNodeValue, optimized, symbolDelete } from './src
 export { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
 // Internal:
-import { get, getProxy, observableFns, peek, set } from './src/ObservableObject';
+import { get, getProxy, observableFns, observableProperties, peek, set } from './src/ObservableObject';
 import { createPreviousHandler } from './src/batching';
 import {
     clone,
@@ -74,6 +74,7 @@ import {
 } from './src/globals';
 import { deepMerge, getValueAtPath, initializePathType, setAtPath } from './src/helpers';
 import { tracking } from './src/tracking';
+import { ObservablePrimitiveClass } from './src/ObservablePrimitive';
 
 export const internal = {
     createPreviousHandler,
@@ -89,6 +90,8 @@ export const internal = {
     getValueAtPath,
     globalState,
     initializePathType,
+    ObservablePrimitiveClass,
+    observableProperties,
     observableFns,
     optimized,
     peek,

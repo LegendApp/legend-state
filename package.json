@@ -47,7 +47,6 @@
         ".",
         "sync",
         "react",
-        "config",
         "trace",
         "babel",
         "react-reactive/*",

@@ -1,6 +1,6 @@
 import type { Observable } from '../src/observableTypes';
 import { batch, beginBatch, endBatch } from '../src/batching';
-import { configureLegendState } from '../src/configureLegendState';
+import { configureLegendState } from '../src/config/configureLegendState';
 import { enable$GetSet } from '../src/config/enable$GetSet';
 import { enable_PeekAssign } from '../src/config/enable_PeekAssign';
 import { event } from '../src/event';
