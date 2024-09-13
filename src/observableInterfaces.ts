@@ -179,7 +179,6 @@ export interface ObservableSyncStateBase {
     isSetting?: boolean;
     numPendingGets?: number;
     numPendingSets?: number;
-    clearPersist: () => Promise<void>;
     sync: () => Promise<void>;
     getPendingChanges: () =>
         | Record<
@@ -190,10 +189,13 @@ export interface ObservableSyncStateBase {
               }
           >
         | undefined;
+    resetPersistence: () => Promise<void>;
     reset: () => Promise<void>;
     /* @internal */
     numPendingLocalLoads?: number;
     numPendingRemoteLoads?: number;
+    // TODOV3 Remove
+    clearPersist: () => Promise<void>;
 }
 export interface ObservableState {
     isLoaded: boolean;

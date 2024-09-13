@@ -18,10 +18,12 @@ export function syncState(obs: ObservableParam) {
                 numPendingGets: 0,
                 numPendingSets: 0,
                 syncCount: 0,
-                clearPersist: undefined as unknown as () => Promise<void>,
+                resetPersistence: undefined as unknown as () => Promise<void>,
                 reset: () => Promise.resolve(),
                 sync: () => Promise.resolve(),
                 getPendingChanges: () => ({}),
+                // TODOV3 remove
+                clearPersist: undefined as unknown as () => Promise<void>,
             }),
         );
     }

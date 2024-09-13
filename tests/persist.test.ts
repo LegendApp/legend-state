@@ -824,7 +824,7 @@ describe('clear persist', () => {
         expect(localStorage.getItem(persistName)).toEqual('{"test":false}');
 
         const state$ = syncState(obs$);
-        state$.clearPersist();
+        state$.resetPersistence();
 
         expect(localStorage.getItem(persistName)).toEqual(null);
     });
@@ -851,7 +851,7 @@ describe('clear persist', () => {
         expect(localStorage.getItem(persistName)).toEqual('{"test":false}');
 
         const states$ = getAllSyncStates();
-        states$.forEach(([state$]) => state$.clearPersist());
+        states$.forEach(([state$]) => state$.resetPersistence());
 
         expect(localStorage.getItem(persistName)).toEqual(null);
     });

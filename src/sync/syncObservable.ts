@@ -784,10 +784,10 @@ async function loadLocal<T>(
 ) {
     const { persist } = syncOptions;
     const node = getNode(value$);
-    const nodeValue = getNodeValue(getNode(node.state!));
+    const nodeValue = getNodeValue(getNode(node.state!)) as ObservableSyncState;
     const syncStateValue = syncState$.peek();
 
-    const prevClearPersist = nodeValue.clearPersist;
+    const prevResetPersistence = nodeValue.resetPersistence;
 
     if (persist?.name) {
         const PersistPlugin: ClassConstructor<ObservablePersistPlugin> | ObservablePersistPlugin =
@@ -871,17 +871,20 @@ async function loadLocal<T>(
 
         syncStateValue.numPendingLocalLoads--;
 
-        nodeValue.clearPersist = () =>
+        nodeValue.resetPersistence = () =>
             Promise.all(
                 [
-                    prevClearPersist,
+                    prevResetPersistence,
                     persistPlugin.deleteTable(table, config),
                     persistPlugin.deleteMetadata(table, config),
                 ].filter(Boolean),
             ) as unknown as Promise<void>;
     } else {
-        nodeValue.clearPersist = () => prevClearPersist?.();
+        nodeValue.resetPersistence = () => prevResetPersistence?.();
     }
+    // TODOV3 Remove
+    nodeValue.clearPersist = nodeValue.resetPersistence;
+
     syncState$.isPersistLoaded.set(!(syncStateValue.numPendingLocalLoads! > 0));
 }
 
@@ -1154,7 +1157,7 @@ export function syncObservable<T>(
                         resetCache: () => {
                             modeBeforeReset = getParams.mode;
                             getParams.mode = 'set';
-                            return syncStateValue.clearPersist?.();
+                            return syncStateValue.resetPersistence?.();
                         },
                         cancel: false,
                     };
@@ -1265,7 +1268,7 @@ export function syncObservable<T>(
         isSubscribed = false;
         unsubscribe?.();
         unsubscribe = undefined;
-        const promise = syncStateValue.clearPersist();
+        const promise = syncStateValue.resetPersistence();
         onChangeRemote(() => {
             obs$.set(syncOptions.initial ?? undefined);
         });
