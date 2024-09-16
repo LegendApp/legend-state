@@ -53,8 +53,9 @@ interface ObservableObjectFunctions<T = Record<string, any>> extends ObservableP
 
 type MapKey<T extends Map<any, any> | WeakMap<any, any>> = Parameters<T['has']>[0];
 type MapValue<T extends Map<any, any> | WeakMap<any, any>> = ReturnType<T['get']>;
-type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size' | 'set'> &
-    Omit<ObservablePrimitive<T>, 'get' | 'size'> & {
+export type ObservableMap<T extends Map<any, any> | WeakMap<any, any>> = Omit<T, 'get' | 'size' | 'set'> &
+    Omit<ObservablePrimitive<T>, 'get' | 'size'> &
+    Record<MapKey<T>, Observable<MapValue<T>>> & {
         get(key: Parameters<T['get']>[0]): Observable<Parameters<T['set']>[1]>;
         get(): T;
         size: number;

@@ -79,6 +79,14 @@ describe('Map default behavior', () => {
             ]),
         );
     });
+    test('Map get like object', () => {
+        const obs = observable({ test: new Map([['key', 'value']]) });
+
+        expect(isObservable(obs.test)).toEqual(true);
+        expect(isObservable(obs.test['key'])).toEqual(true);
+        expect(obs.test['key'].get()).toEqual('value');
+        expect(obs.test.get()).toBeInstanceOf(Map);
+    });
 });
 
 describe('Map is observable', () => {

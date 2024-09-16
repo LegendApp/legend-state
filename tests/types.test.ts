@@ -1,5 +1,11 @@
 import { expectTypeOf } from 'expect-type';
-import { Observable, ObservableBoolean, ObservableParam, ObservablePrimitive } from '../src/observableTypes';
+import {
+    Observable,
+    ObservableBoolean,
+    ObservableMap,
+    ObservableParam,
+    ObservablePrimitive,
+} from '../src/observableTypes';
 import { observable } from '../src/observable';
 
 describe('observable', () => {
@@ -300,9 +306,19 @@ describe('with function', () => {
     });
 });
 
-it('should infer Map', () => {
-    type GetState = Observable<Map<string, number>>['get'];
-    expectTypeOf<GetState>().returns.toEqualTypeOf<Map<string, number>>();
+describe('with Map', () => {
+    it('should infer Map', () => {
+        type GetState = Observable<Map<string, number>>['get'];
+        expectTypeOf<GetState>().returns.toEqualTypeOf<Map<string, number>>();
+    });
+    it('should infer Map', () => {
+        type Type = Observable<Map<string, number>>;
+        expectTypeOf<Type>().toEqualTypeOf<ObservableMap<Map<string, number>>>();
+
+        const obs = observable({ test: new Map<string, number>() });
+        type Type2 = typeof obs.test;
+        expectTypeOf<Type2>().toEqualTypeOf<ObservableMap<Map<string, number>>>();
+    });
 });
 
 describe('with maybe undefined', () => {
