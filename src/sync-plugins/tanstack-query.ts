@@ -74,20 +74,27 @@ export function syncedQuery<
     // Create the observer
     observer = new Observer!<TQueryFnData, TError, TData, TQueryKey>(queryClient!, latestOptions);
 
-    const get = async () => {
-        // Get the initial optimistic results if it's already cached
-        const result = observer!.getOptimisticResult(latestOptions);
+    let isFirstRun = true;
+    const get = (async () => {
+        if (isFirstRun) {
+            isFirstRun = false;
 
-        if (result.isLoading) {
-            await new Promise((resolve) => {
-                resolveInitialPromise = resolve;
-            });
+            // Get the initial optimistic results if it's already cached
+            const result = observer!.getOptimisticResult(latestOptions);
+
+            if (result.isLoading) {
+                await new Promise((resolve) => {
+                    resolveInitialPromise = resolve;
+                });
+            }
+
+            return result.data!;
+        } else {
+            observer.refetch();
         }
+    }) as () => Promise<TData>;
 
-        return result.data!;
-    };
-
-    const subscribe = ({ update }: SyncedSubscribeParams<any>) => {
+    const subscribe = ({ update }: SyncedSubscribeParams<TData>) => {
         // Subscribe to Query's observer and update the observable
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result) => {
