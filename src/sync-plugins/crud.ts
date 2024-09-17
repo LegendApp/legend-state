@@ -223,7 +223,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           if (asType === 'value') {
                               return transformed.length > 0
                                   ? transformed[0]
-                                  : (((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null;
+                                  : ((((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null);
                           } else {
                               return resultsToOutType(transformed);
                           }

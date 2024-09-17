@@ -853,7 +853,7 @@ function updateNodesAndNotify(
             isPrim && isRoot ? node : childNode,
             newValue,
             prevValue,
-            level ?? prevValue === undefined ? -1 : hasADiff ? 0 : 1,
+            (level ?? prevValue === undefined) ? -1 : hasADiff ? 0 : 1,
             whenOptimizedOnlyIf,
         );
     }

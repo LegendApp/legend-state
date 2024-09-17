@@ -30,7 +30,7 @@ export function Show<T>({ if: if_, ifReady, else: else_, $value, wrap, children 
             ? isFunction(children)
                 ? () => children($value ? $value.get() : value)
                 : (children as any)
-            : else_ ?? null,
+            : (else_ ?? null),
         { skipCheck: true },
     );
 
