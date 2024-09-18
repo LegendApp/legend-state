@@ -369,7 +369,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           }
                           itemsChanged?.forEach(([item, prev]) => {
                               const isCreate =
-                                  !pendingCreates.has(item.id) &&
+                                  !pendingCreates.has(item[fieldId]) &&
                                   (fieldCreatedAt
                                       ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
                                       : fieldUpdatedAt
@@ -379,20 +379,20 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   if (generateId) {
                                       ensureId(item, fieldId, generateId);
                                   }
-                                  if (!item.id) {
+                                  if (!item[fieldId]) {
                                       console.error('[legend-state]: added item without an id');
                                   }
                                   if (createFn) {
-                                      pendingCreates.add(item.id);
-                                      creates.set(item.id, item);
+                                      pendingCreates.add(item[fieldId]);
+                                      creates.set(item[fieldId], item);
                                   } else {
                                       console.warn('[legend-state] missing create function');
                                   }
                               } else {
                                   if (updateFn) {
                                       updates.set(
-                                          item.id,
-                                          updates.has(item.id) ? Object.assign(updates.get(item.id)!, item) : item,
+                                          item[fieldId],
+                                          updates.has(item[fieldId]) ? Object.assign(updates.get(item[fieldId])!, item) : item,
                                       );
                                   } else {
                                       console.warn('[legend-state] missing update function');
