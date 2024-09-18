@@ -43,7 +43,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         const openRequest = indexedDB.open(databaseName, version);
 
         openRequest.onerror = () => {
-            console.error('Error', openRequest.error);
+            console.error('[legend-state] ObservablePersistIndexedDB load error', openRequest.error);
         };
 
         openRequest.onupgradeneeded = (event) => {
@@ -69,7 +69,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
                     }
                 });
             }
-        }
+        };
 
         return new Promise<void>((resolve) => {
             openRequest.onsuccess = async () => {
@@ -91,6 +91,12 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         });
     }
     public loadTable(table: string, config: PersistOptions): void | Promise<void> {
+        if (!this.db) {
+            throw new Error(
+                '[legend-state] ObservablePersistIndexedDB loading without being initialized. This may happen when running outside of a browser.',
+            );
+        }
+
         if (!this.tableData[table]) {
             const transaction = this.db!.transaction(table, 'readonly');
 
