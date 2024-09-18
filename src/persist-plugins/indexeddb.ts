@@ -46,18 +46,30 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
             console.error('Error', openRequest.error);
         };
 
-        openRequest.onupgradeneeded = () => {
+        openRequest.onupgradeneeded = (event) => {
             const db = openRequest.result;
-            const { tableNames } = config!;
-            // Create a table for each name with "id" as the key
-            tableNames.forEach((table) => {
-                if (!db.objectStoreNames.contains(table)) {
-                    db.createObjectStore(table, {
-                        keyPath: 'id',
-                    });
-                }
-            });
-        };
+            const { tableNames, deleteTableNames, onUpgradeNeeded } = config!;
+            // let the user take care of adding new, deleting old object stores or transforming data between versions if wanted
+            if (onUpgradeNeeded) {
+                onUpgradeNeeded(event);
+            } else {
+                // Delete all tables explicitly specified
+                deleteTableNames?.forEach((table) => {
+                    if (db.objectStoreNames.contains(table)) {
+                        db.deleteObjectStore(table);
+                    }
+                });
+
+                // Create a table for each name with "id" as the key
+                tableNames.forEach((table) => {
+                    if (!db.objectStoreNames.contains(table)) {
+                        db.createObjectStore(table, {
+                            keyPath: 'id',
+                        });
+                    }
+                });
+            }
+        }
 
         return new Promise<void>((resolve) => {
             openRequest.onsuccess = async () => {

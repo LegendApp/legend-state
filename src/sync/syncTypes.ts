@@ -113,6 +113,8 @@ export interface ObservablePersistIndexedDBPluginOptions {
     databaseName: string;
     version: number;
     tableNames: string[];
+    deleteTableNames?: string[];
+    onUpgradeNeeded?: (event: IDBVersionChangeEvent) => void;
 }
 export interface ObservablePersistAsyncStoragePluginOptions {
     AsyncStorage: AsyncStorageStatic;
