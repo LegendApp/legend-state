@@ -392,7 +392,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   if (updateFn) {
                                       updates.set(
                                           item[fieldId],
-                                          updates.has(item[fieldId]) ? Object.assign(updates.get(item[fieldId])!, item) : item,
+                                          updates.has(item[fieldId])
+                                              ? Object.assign(updates.get(item[fieldId])!, item)
+                                              : item,
                                       );
                                   } else {
                                       console.warn('[legend-state] missing update function');
@@ -416,7 +418,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           const isChild = itemKey !== 'undefined' && asType !== 'value';
                           const currentPeeked = getNodeValue(node);
 
-                          const currentValue = isChild ? currentPeeked?.[itemKey] : currentPeeked;
+                          // If this is a child then get the value from the parent
+                          // If it's an array then find the value in the array
+                          // Otherwise get the value from the object
+                          const currentValue = isChild
+                              ? ((asType === 'array' && isArray(currentPeeked)
+                                    ? currentPeeked.find((v) => v[fieldId] === itemKey)
+                                    : undefined) ?? currentPeeked[itemKey])
+                              : currentPeeked;
 
                           const dataOnSaved: SyncedCrudOnSavedParams<TRemote, TLocal> = {
                               saved,

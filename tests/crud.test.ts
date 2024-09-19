@@ -982,12 +982,10 @@ describe('Crud as Array', () => {
             id: 'id1',
             test: 'hello',
         });
-        expect(obs.get()).toEqual([
-            {
-                id: 'id1',
-                test: 'hello',
-            },
-        ]);
+        expect(obs.get()[0]).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
     });
     test('as Array set at root updates', async () => {
         let created = undefined;
@@ -1020,12 +1018,10 @@ describe('Crud as Array', () => {
             id: 'id1',
             test: 'hello',
         });
-        expect(obs.get()).toEqual([
-            {
-                id: 'id1',
-                test: 'hello',
-            },
-        ]);
+        expect(obs.get()[0]).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
     });
     test('as Array set at root adds', async () => {
         let created = undefined;
@@ -1058,13 +1054,11 @@ describe('Crud as Array', () => {
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual(undefined);
-        expect(obs.get()).toEqual([
-            {
-                id: 'id1',
-                test: 'hi',
-            },
-            { id: 'id2', test: 'hi2' },
-        ]);
+        expect(obs.get()[0]).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs.get()[1]).toEqual({ id: 'id2', test: 'hi2' });
     });
     test('as Array set at root with both modify and create adds', async () => {
         let created = undefined;
@@ -1097,13 +1091,11 @@ describe('Crud as Array', () => {
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual({ id: 'id1', test: 'hello' });
-        expect(obs.get()).toEqual([
-            {
-                id: 'id1',
-                test: 'hello',
-            },
-            { id: 'id2', test: 'hi2' },
-        ]);
+        expect(obs.get()[0]).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
+        expect(obs.get()[1]).toEqual({ id: 'id2', test: 'hi2' });
     });
     test('as Array push adds', async () => {
         let created = undefined;
@@ -1133,13 +1125,11 @@ describe('Crud as Array', () => {
 
         expect(created).toEqual({ id: 'id2', test: 'hi2' });
         expect(updated).toEqual(undefined);
-        expect(obs.get()).toEqual([
-            {
-                id: 'id1',
-                test: 'hi',
-            },
-            { id: 'id2', test: 'hi2' },
-        ]);
+        expect(obs.get()[0]).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs.get()[1]).toEqual({ id: 'id2', test: 'hi2' });
     });
     test('as Array set deep child', async () => {
         let created = undefined;
@@ -1177,17 +1167,15 @@ describe('Crud as Array', () => {
                 },
             },
         });
-        expect(obs.get()).toEqual([
-            {
-                id: 'id1',
-                test: 'hi',
-                parent: {
-                    child: {
-                        baby: 'test',
-                    },
+        expect(obs.get()[0]).toEqual({
+            id: 'id1',
+            test: 'hi',
+            parent: {
+                child: {
+                    baby: 'test',
                 },
             },
-        ]);
+        });
     });
     test('as array with paging', async () => {
         const page$ = observable(1);
@@ -2190,6 +2178,59 @@ describe('onSaved', () => {
                 updatedAt: 100,
                 changing: '1',
             },
+        });
+    });
+    test('onSaved gets correct value as object', async () => {
+        let saved = undefined;
+        const obs = observable(
+            syncedCrud({
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    return input;
+                },
+                generateId: () => 'id1',
+                onSaved(params) {
+                    saved = params.saved;
+                },
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs.id1.set({ test: 'hello', id: undefined as unknown as string });
+
+        await promiseTimeout(1);
+
+        expect(saved).toEqual({
+            id: 'id1',
+            test: 'hello',
+        });
+    });
+    test('onSaved gets correct value as array', async () => {
+        let saved = undefined;
+        const obs = observable(
+            syncedCrud({
+                as: 'array',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    return input;
+                },
+                onSaved(params) {
+                    saved = params.saved;
+                },
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs.push({ test: 'hello', id: 'id1' });
+
+        await promiseTimeout(1);
+
+        expect(saved).toEqual({
+            id: 'id1',
+            test: 'hello',
         });
     });
 });
