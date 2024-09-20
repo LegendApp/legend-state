@@ -1211,7 +1211,7 @@ export function syncObservable<T>(
                             });
                         };
                         if (isPromise(got)) {
-                            got.then(handle);
+                            got.then(handle).catch(onError);
                         } else {
                             handle(got);
                         }

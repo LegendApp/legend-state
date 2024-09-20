@@ -2540,3 +2540,37 @@ describe('waitForSet', () => {
         expect(typeAtWaitForSet).toEqual('create');
     });
 });
+describe('Error is set', () => {
+    test('error is set if get fails', async () => {
+        const obs$ = observable<BasicValue>(
+            syncedCrud({
+                get: () => {
+                    // await promiseTimeout(1);
+                    throw new Error('test');
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await promiseTimeout(1);
+
+        expect(syncState(obs$).error.get()).toEqual(new Error('test'));
+    });
+    test('error is set if get fails async', async () => {
+        const obs$ = observable<BasicValue>(
+            syncedCrud({
+                get: async () => {
+                    await promiseTimeout(1);
+                    throw new Error('test');
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await promiseTimeout(2);
+
+        expect(syncState(obs$).error.get()).toEqual(new Error('test'));
+    });
+});
