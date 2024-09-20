@@ -3097,6 +3097,18 @@ describe('Observe', () => {
         obs.set(2);
         expect(count).toEqual(2);
     });
+    test('Observe with reaction and undefined value', () => {
+        const obs = observable<number | undefined>(undefined);
+        let count = 0;
+        observe<number>(
+            () => obs.get(),
+            (e) => (count = e.value!),
+        );
+        obs.set(1);
+        expect(count).toEqual(1);
+        obs.set(2);
+        expect(count).toEqual(2);
+    });
     test('Observe with reaction previous', () => {
         const obs = observable(0);
         let count = 0;

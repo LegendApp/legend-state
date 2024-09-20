@@ -1000,6 +1000,30 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numSets).toEqual(0);
     });
+    test('useObserve with undefined observable calls reaction', () => {
+        let num = 0;
+        let numObserves = 0;
+        const obs$ = observable<number | undefined>(undefined);
+        function Test() {
+            num++;
+            useObserve(obs$, () => {
+                numObserves++;
+            });
+            return createElement('div', undefined);
+        }
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        expect(numObserves).toEqual(0);
+
+        obs$.set(1);
+
+        expect(num).toEqual(1);
+        expect(numObserves).toEqual(1);
+    });
     test('useObserve with a deps array', () => {
         let num = 0;
         let numInner = 0;
