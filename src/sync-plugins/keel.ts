@@ -526,19 +526,19 @@ export function syncedKeel<
         setupRealtime(props);
     }
 
-    const subscribe =
-        subscribeParam ||
-        (realtime
-            ? (params: SyncedSubscribeParams<TRemote[]>) => {
-                  let unsubscribe: undefined | (() => void) = undefined;
-                  when(subscribeFnKey$, () => {
-                      unsubscribe = subscribeFn!(params);
-                  });
-                  return () => {
-                      unsubscribe?.();
-                  };
-              }
-            : undefined);
+    const subscribe = realtime
+        ? (params: SyncedSubscribeParams<TRemote[]>) => {
+              let unsubscribe: undefined | (() => void) = undefined;
+              when(subscribeFnKey$, () => {
+                  unsubscribe = subscribeFn!(params);
+              });
+              const unsubscribeParam = subscribeParam?.(params);
+              return () => {
+                  unsubscribe?.();
+                  unsubscribeParam?.();
+              };
+          }
+        : subscribeParam;
 
     return syncedCrud<TRemote, TLocal, TOption>({
         ...rest,
