@@ -2573,4 +2573,71 @@ describe('Error is set', () => {
 
         expect(syncState(obs$).error.get()).toEqual(new Error('test'));
     });
+    test('error is set if create fails', async () => {
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'object',
+                create: async () => {
+                    throw new Error('test');
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        obs$.id2.set({ id: '2', test: 'hi' });
+
+        await promiseTimeout(1);
+
+        expect(syncState(obs$).error.get()).toEqual(new Error('test'));
+    });
+    test('error is set if create fails', async () => {
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'object',
+                update: async () => {
+                    throw new Error('test');
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        obs$.id1.test.set('hello');
+
+        await promiseTimeout(1);
+
+        expect(syncState(obs$).error.get()).toEqual(new Error('test'));
+    });
+    test('onError is called if create fails', async () => {
+        let errorAtOnError: Error | undefined = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'object',
+                create: async () => {
+                    throw new Error('test');
+                },
+                onError: (error) => {
+                    errorAtOnError = error;
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        obs$.id2.set({ id: '2', test: 'hi' });
+
+        await promiseTimeout(1);
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+    });
 });

@@ -634,7 +634,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 | undefined = undefined;
 
             let errorHandled = false;
-            const onError = (error: Error, retryParams: OnErrorRetryParams) => {
+            const onError = (error: Error, retryParams?: OnErrorRetryParams) => {
                 state$.error.set(error);
                 if (!errorHandled) {
                     syncOptions.onError?.(error, {
@@ -681,8 +681,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             let didError = false;
 
             if (isPromise(savedPromise)) {
-                await savedPromise.catch(() => {
+                await savedPromise.catch((error) => {
                     didError = true;
+                    if (!syncOptions.retry) {
+                        onError(error);
+                    }
                 });
             }
 
