@@ -12,6 +12,8 @@ import {
     notifyManager,
 } from '@tanstack/query-core';
 
+let nextMutationKey = 0;
+
 export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
     extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryKey>, 'queryKey'> {
     queryKey?: TQueryKey | (() => TQueryKey);
@@ -124,8 +126,19 @@ export function syncedQuery<
 
     let set: undefined | (({ value }: SyncedSetParams<any>) => Promise<TData>) = undefined;
     if (mutationOptions) {
-        const mutator = new MutationObserver(queryClient!, mutationOptions);
+        const options: MutationObserverOptions<TData, TError, void> = {
+            mutationKey: ['LS-mutation', nextMutationKey++],
+            ...mutationOptions,
+        };
+        const mutator = new MutationObserver(queryClient!, options);
         set = ({ value }: SyncedSetParams<TData>) => {
+            const mutationCache = queryClient.getMutationCache();
+
+            // Ensure only the last update is sent by clearing any previous mutations
+            mutationCache.findAll({ mutationKey: options.mutationKey }).forEach((mutation) => {
+                mutationCache.remove(mutation);
+            });
+
             return mutator.mutate(value as any);
         };
     }
