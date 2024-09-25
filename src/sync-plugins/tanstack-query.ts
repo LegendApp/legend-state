@@ -15,12 +15,12 @@ import {
 let nextMutationKey = 0;
 
 export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
-    extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryKey>, 'queryKey'> {
+    extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TData, TQueryKey>, 'queryKey'> {
     queryKey?: TQueryKey | (() => TQueryKey);
 }
 
 export interface SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
-    extends Omit<SyncedOptions<TData>, 'get' | 'set'> {
+    extends Omit<SyncedOptions<TData>, 'get' | 'set' | 'retry'> {
     queryClient: QueryClient;
     query: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey>;
     mutation?: MutationObserverOptions<TData, TError, void>;
