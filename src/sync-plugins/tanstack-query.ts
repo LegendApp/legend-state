@@ -30,7 +30,14 @@ export function syncedQuery<
     TData = TQueryFnData,
     TQueryKey extends QueryKey = QueryKey,
 >(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>) {
-    const { query: options, mutation: mutationOptions, queryClient, ...rest } = params;
+    const { query: options, mutation: mutationOptions, queryClient, initial: initialParam, ...rest } = params;
+
+    if (initialParam !== undefined) {
+        const initialValue = isFunction(initialParam) ? initialParam() : initialParam;
+        options.initialData = initialValue as any;
+    }
+
+    const initial = options.initialData as TData;
 
     const Observer = QueryObserver;
     const defaultedOptions = queryClient!.defaultQueryOptions(
@@ -127,6 +134,7 @@ export function syncedQuery<
         get,
         set,
         subscribe,
+        initial,
         ...rest,
     });
 }
