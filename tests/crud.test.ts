@@ -2042,6 +2042,36 @@ describe('subscribe', () => {
         await promiseTimeout(1);
         expect(obs.get()).toEqual({ 2: { id: 2 } });
     });
+    test('subscribe with no list', async () => {
+        const obs = observable(
+            syncedCrud({
+                as: 'object',
+                subscribe: ({ update }) => {
+                    update({ value: [{ id: 1 }] });
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual({ 1: { id: 1 } });
+    });
+    test('subscribe with no list async', async () => {
+        const obs = observable(
+            syncedCrud({
+                as: 'object',
+                subscribe: ({ update }) => {
+                    setTimeout(() => {
+                        update({ value: [{ id: 1 }] });
+                    }, 0);
+                },
+            }),
+        );
+
+        expect(obs.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs.get()).toEqual({ 1: { id: 1 } });
+    });
 });
 describe('onSaved', () => {
     test('without onSaved updates with id', async () => {
