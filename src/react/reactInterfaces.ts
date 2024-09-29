@@ -12,7 +12,7 @@ export interface BindKey<P> {
     selector?: (propsOut: Record<string, any>, p: Observable<any>) => any;
 }
 
-export type BindKeys<P = any> = Record<keyof P, BindKey<P>>;
+export type BindKeys<P = any> = Partial<Record<keyof P, BindKey<P>>>;
 
 export type FCReactiveObject<T> = {
     [K in keyof T]: FC<ShapeWithNew$<T[K]>>;
