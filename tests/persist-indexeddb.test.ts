@@ -344,4 +344,31 @@ describe('Persist IDB', () => {
 
         expect(obs2.get()).toEqual({ id1: { id: 'id1', text: 'hi' }, id2: { id: 'id2', text: 'hi' } });
     });
+    test('Persist IDB delete a row', async () => {
+        const persistName = getLocalName();
+        const obs = observable<Record<string, any>>({});
+
+        const state = syncObservable(
+            obs,
+            mySyncOptions({
+                persist: {
+                    name: persistName,
+                },
+            }),
+        );
+
+        await when(state.isPersistLoaded);
+
+        obs['test'].set({ id: 'test', text: 'hi' });
+
+        await promiseTimeout(0);
+
+        await expectIDB(persistName, [{ id: 'test', text: 'hi' }]);
+
+        obs['test'].delete();
+
+        await promiseTimeout(0);
+
+        await expectIDB(persistName, []);
+    });
 });

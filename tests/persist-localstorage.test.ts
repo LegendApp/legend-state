@@ -217,6 +217,35 @@ describe('Persist local localStorage', () => {
 
         expect(obs2.get()).toEqual({ key: 'value' });
     });
+    test('Deletes from local', async () => {
+        const persistName = getPersistName();
+        const obs = observable({ test: '' });
+
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
+
+        obs.set({ test: 'hello' });
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(persistName);
+
+        // Should have saved to local storage
+        expect(localValue).toBe(`{"test":"hello"}`);
+
+        obs.test.delete();
+
+        await promiseTimeout(0);
+
+        const localValue2 = localStorage.getItem(persistName);
+
+        // Should have saved to local storage
+        expect(localValue2).toBe(`{}`);
+    });
 });
 
 describe('Persist primitives', () => {
