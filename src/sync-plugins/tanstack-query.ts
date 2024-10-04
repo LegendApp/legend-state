@@ -1,5 +1,5 @@
 import { isFunction, observe } from '@legendapp/state';
-import { SyncedOptions, SyncedSetParams, SyncedSubscribeParams, synced } from '@legendapp/state/sync';
+import { Synced, SyncedOptions, SyncedSetParams, SyncedSubscribeParams, synced } from '@legendapp/state/sync';
 import {
     DefaultError,
     DefaultedQueryObserverOptions,
@@ -23,7 +23,7 @@ export interface SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey extend
     extends Omit<SyncedOptions<TData>, 'get' | 'set' | 'retry'> {
     queryClient: QueryClient;
     query: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey>;
-    mutation?: MutationObserverOptions<TData, TError, void>;
+    mutation?: MutationObserverOptions<TQueryFnData, TError, TData>;
 }
 
 export function syncedQuery<
@@ -31,7 +31,7 @@ export function syncedQuery<
     TError = DefaultError,
     TData = TQueryFnData,
     TQueryKey extends QueryKey = QueryKey,
->(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>) {
+>(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>): Synced<TData> {
     const { query: options, mutation: mutationOptions, queryClient, initial: initialParam, ...rest } = params;
 
     if (initialParam !== undefined) {
@@ -126,7 +126,7 @@ export function syncedQuery<
 
     let set: undefined | (({ value }: SyncedSetParams<any>) => Promise<TData>) = undefined;
     if (mutationOptions) {
-        const options: MutationObserverOptions<TData, TError, void> = {
+        const options: MutationObserverOptions<TQueryFnData, TError, TData> = {
             mutationKey: ['LS-mutation', nextMutationKey++],
             ...mutationOptions,
         };
@@ -139,7 +139,7 @@ export function syncedQuery<
                 mutationCache.remove(mutation);
             });
 
-            return mutator.mutate(value as any);
+            return mutator.mutate(value as any) as any;
         };
     }
 
