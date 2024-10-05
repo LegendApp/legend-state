@@ -34,7 +34,10 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
                     tables = await AsyncStorage.getAllKeys();
                 } else if (isArray(preload)) {
                     // If preloadKeys, preload load the tables on startup
-                    tables = preload;
+                    const metadataTables = preload.map((table) =>
+                        table.endsWith(MetadataSuffix) ? undefined : table + MetadataSuffix,
+                    );
+                    tables = [...preload, ...(metadataTables.filter(Boolean) as string[])];
                 }
                 if (tables) {
                     const values = await AsyncStorage.multiGet(tables);
@@ -54,8 +57,10 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
         if (this.data[table] === undefined) {
             try {
                 return (async () => {
-                    const value = await AsyncStorage.getItem(table);
-                    this.data[table] = value ? safeParse(value) : undefined;
+                    const values = await AsyncStorage.multiGet([table, table + MetadataSuffix]);
+                    values.forEach(([table, value]) => {
+                        this.data[table] = value ? safeParse(value) : undefined;
+                    });
                 })();
             } catch {
                 console.error('[legend-state] ObservablePersistLocalAsyncStorage failed to parse', table);
