@@ -14,6 +14,10 @@ const ItemBasicValue: () => BasicValue = () => ({
     id: 'id1',
     test: 'hi',
 });
+const ItemBasicValue2: () => BasicValue = () => ({
+    id: 'id2',
+    test: 'hi2',
+});
 
 type GetOrListTestParams =
     | { get: () => Promise<BasicValue | null>; list?: never; as?: never }
@@ -2669,5 +2673,39 @@ describe('Error is set', () => {
         await promiseTimeout(1);
 
         expect(errorAtOnError).toEqual(new Error('test'));
+    });
+});
+describe('soft delete', () => {
+    test('soft delete', async () => {
+        const persistName = getPersistName();
+
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue(), ItemBasicValue2()]),
+                as: 'object',
+                fieldDeleted: 'deleted',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        obs$.get();
+        await promiseTimeout(1);
+
+        const localValue = localStorage.getItem(persistName);
+
+        // Should have saved to local storage
+        expect(localValue).toBe('{"id1":{"id":"id1","test":"hi"},"id2":{"id":"id2","test":"hi2"}}');
+
+        obs$['id2'].delete();
+
+        await promiseTimeout(1);
+
+        const localValue2 = localStorage.getItem(persistName);
+
+        // Should have saved to local storage
+        expect(localValue2).toBe('{"id1":{"id":"id1","test":"hi"}}');
     });
 });

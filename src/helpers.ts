@@ -145,7 +145,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
 
     if (isSourceSet && isSet(targetValue)) {
         target.set(new Set([...source, ...targetValue]));
-    } else if ((isTargetObj && isObject(source) && !isEmpty(targetValue)) || (isTargetArr && targetValue.length > 0)) {
+    } else if ((isTargetObj && isObject(source)) || (isTargetArr && targetValue.length > 0)) {
         const keys: string[] = isSourceMap || isSourceSet ? Array.from(source.keys()) : Object.keys(source);
 
         for (let i = 0; i < keys.length; i++) {

@@ -297,6 +297,12 @@ describe('mergeIntoObservable', () => {
         expect(merged.get()).toEqual({ a: 1, b: 3, c: 4, map: new Set([0, 1, 2, 3]) });
         expect(isObservable(merged)).toBe(true);
     });
+    test('should delete symbolDelete', () => {
+        const target = observable({});
+        const source = { asdf: symbolDelete };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.get()).toEqual({});
+    });
 });
 
 describe('isObservableValueReady', () => {
