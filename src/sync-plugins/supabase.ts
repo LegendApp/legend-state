@@ -154,9 +154,9 @@ export function syncedSupabase<
         schema,
         filter,
         actions,
-        fieldCreatedAt: fieldCreatedAtParam,
-        fieldUpdatedAt: fieldUpdatedAtParam,
-        fieldDeleted: fieldDeletedParam,
+        fieldCreatedAt,
+        fieldUpdatedAt,
+        fieldDeleted,
         realtime,
         changesSince,
         transform: transformParam,
@@ -177,9 +177,17 @@ export function syncedSupabase<
     const client = supabase!;
 
     // If using last-sync mode then put it into soft delete mode
-    const fieldCreatedAt = fieldCreatedAtParam || (changesSince === 'last-sync' ? 'created_at' : undefined);
-    const fieldUpdatedAt = fieldUpdatedAtParam || (changesSince === 'last-sync' ? 'updated_at' : undefined);
-    const fieldDeleted = fieldDeletedParam || (changesSince === 'last-sync' ? 'deleted' : undefined);
+    if (process.env.NODE_ENV === 'development' && changesSince === 'last-sync') {
+        if (!fieldCreatedAt) {
+            console.warn('[legend-state] fieldCreatedAt is required when using last-sync mode');
+        }
+        if (!fieldUpdatedAt) {
+            console.warn('[legend-state] fieldUpdatedAt is required when using last-sync mode');
+        }
+        if (!fieldDeleted) {
+            console.warn('[legend-state] fieldDeleted is required when using last-sync mode');
+        }
+    }
 
     const list =
         !actions || actions.includes('read')
