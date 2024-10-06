@@ -411,7 +411,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       isCreate: boolean,
                   ) => {
                       if (data) {
-                          const saved: TLocal = (
+                          let saved: Partial<TLocal> = (
                               transform?.load ? await transform.load(data as any, 'set') : data
                           ) as any;
 
@@ -427,43 +427,43 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                     : undefined) ?? currentPeeked[itemKey])
                               : currentPeeked;
 
-                          const dataOnSaved: SyncedCrudOnSavedParams<TRemote, TLocal> = {
-                              saved,
-                              input,
-                              currentValue,
-                              isCreate,
-                              props,
-                          };
-                          let savedOut: Partial<TLocal> | undefined = saved;
-
                           // If this value has been deleted locally before this finished saving then ignore the result
-                          if (savedOut && !isNullOrUndefined(currentValue)) {
-                              // Remove keys from savedOut that have been modified locally since saving
-                              savedOut = clone(savedOut) as TLocal;
-                              Object.keys(savedOut).forEach((key) => {
+                          if (saved && !isNullOrUndefined(currentValue)) {
+                              if (onSaved) {
+                                  // First call onSaved the saved value before removing keys
+                                  const ret = onSaved({
+                                      saved: saved as TLocal,
+                                      input,
+                                      currentValue,
+                                      isCreate,
+                                      props,
+                                  });
+
+                                  if (ret) {
+                                      saved = ret;
+                                  }
+                              }
+
+                              // Remove keys from saved that have been modified locally since saving
+                              saved = clone(saved) as TLocal;
+                              Object.keys(saved).forEach((key) => {
                                   const i = (input as any)[key];
                                   const c = currentValue[key];
                                   if (
                                       // value is already the new value, can ignore
-                                      (savedOut as any)[key] === c ||
+                                      (saved as any)[key] === c ||
                                       // user has changed local value
-                                      (key !== 'id' && i !== c)
+                                      (key !== fieldId && i !== c)
                                   ) {
-                                      delete (savedOut as any)[key];
+                                      delete (saved as any)[key];
                                   }
                               });
 
-                              if (onSaved) {
-                                  const ret = onSaved(dataOnSaved);
-                                  if (ret) {
-                                      savedOut = ret;
-                                  }
-                              }
-                              const createdAt = fieldCreatedAt ? savedOut[fieldCreatedAt as keyof TLocal] : undefined;
-                              const updatedAt = fieldUpdatedAt ? savedOut[fieldUpdatedAt as keyof TLocal] : undefined;
+                              const createdAt = fieldCreatedAt ? saved[fieldCreatedAt as keyof TLocal] : undefined;
+                              const updatedAt = fieldUpdatedAt ? saved[fieldUpdatedAt as keyof TLocal] : undefined;
 
                               const value =
-                                  itemKey !== 'undefined' && asType !== 'value' ? { [itemKey]: savedOut } : savedOut;
+                                  itemKey !== 'undefined' && asType !== 'value' ? { [itemKey]: saved } : saved;
                               update({
                                   value,
                                   lastSync:
