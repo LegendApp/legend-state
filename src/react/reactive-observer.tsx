@@ -167,30 +167,30 @@ export function observer<P extends FC<any>>(component: P): P {
 export function reactive<T extends FC<any>>(
     component: T,
     bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T | FC<ShapeWith$<ExtractFCPropsType<T>>>;
+): T & FC<ShapeWith$<ExtractFCPropsType<T>>>;
 export function reactive<T extends FC<any>, T2 extends keyof ExtractFCPropsType<T>>(
     component: T,
     bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T | FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
+): T & FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
 export function reactive<T extends FC<any>>(
     component: T,
     bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T | FC<ShapeWith$<ExtractFCPropsType<T>>> {
+): T & FC<ShapeWith$<ExtractFCPropsType<T>>> {
     return createReactiveComponent(component, false, true, bindKeys);
 }
 
 export function reactiveObserver<T extends FC<any>>(
     component: T,
     bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T | FC<ShapeWith$<ExtractFCPropsType<T>>>;
+): T & FC<ShapeWith$<ExtractFCPropsType<T>>>;
 export function reactiveObserver<T extends FC<any>, T2 extends keyof ExtractFCPropsType<T>>(
     component: T,
     bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T | FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
+): T & FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
 export function reactiveObserver<T extends FC<any>>(
     component: T,
     bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T | FC<ShapeWith$<ExtractFCPropsType<T>>> {
+): T & FC<ShapeWith$<ExtractFCPropsType<T>>> {
     return createReactiveComponent(component, true, true, bindKeys);
 }
 
