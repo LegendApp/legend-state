@@ -21,6 +21,8 @@ import { useComputed } from '../src/react/useComputed';
 import { when } from '../src/when';
 import { promiseTimeout, supressActWarning } from './testglobals';
 import { synced } from '../src/sync/synced';
+import { useTraceListeners } from '../src/trace/useTraceListeners';
+import { useTraceUpdates } from '../src/trace/useTraceUpdates';
 
 type TestObject = { id: string; label: string };
 
@@ -1819,5 +1821,54 @@ describe('react validation', () => {
 
         const obs$ = observable({ test: 'hello' });
         validateChildKeys(obs$.test);
+    });
+});
+describe('tracing', () => {
+    beforeEach(() => {
+        // Mock console.log before each test
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        // Restore console.log after each test
+        (console.log as jest.Mock).mockRestore();
+    });
+    test('useTraceListeners', () => {
+        const obs$ = observable(0);
+        const Test = observer(function Test() {
+            useTraceListeners();
+            obs$.get();
+            return createElement('div', undefined);
+        });
+        render(createElement(Test));
+
+        expect(console.log).toHaveBeenCalledWith(`[legend-state] tracking 1 observable:
+1: `);
+
+        // If deps array changes it should refresh observable
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(console.log).toHaveBeenCalledWith(`[legend-state] tracking 1 observable:
+1: `);
+    });
+    test('useTraceUpdates', () => {
+        const obs$ = observable(0);
+        const Test = observer(function Test() {
+            useTraceUpdates();
+            obs$.get();
+            return createElement('div', undefined);
+        });
+        render(createElement(Test));
+
+        // If deps array changes it should refresh observable
+        act(() => {
+            obs$.set(1);
+        });
+
+        expect(console.log).toHaveBeenCalledWith(`[legend-state] Rendering because "" changed:
+from: 0
+to: 1`);
     });
 });
