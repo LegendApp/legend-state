@@ -1,5 +1,7 @@
 import { BindKeys, FCReactiveObject, configureReactive } from '@legendapp/state/react';
 
+// TODOV3 Remove this
+
 export function enableReactComponents() {
     const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value, defaultValue: '' } };
     const bindInfoInput: BindKeys = Object.assign(

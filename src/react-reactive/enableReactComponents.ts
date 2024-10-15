@@ -1,6 +1,13 @@
-import { BindKeys, FCReactiveObject, configureReactive } from '@legendapp/state/react';
+import { BindKeys, configureReactive } from '@legendapp/state/react';
 
-export function enableReactComponents(config: typeof configureReactive) {
+let isEnabled = false;
+
+export function enableReactComponents_(config: typeof configureReactive) {
+    if (isEnabled) {
+        return;
+    }
+    isEnabled = true;
+
     const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value, defaultValue: '' } };
     const bindInfoInput: BindKeys = Object.assign(
         { checked: { handler: 'onChange', getValue: (e: { target: { checked: boolean } }) => e.target.checked } },
@@ -15,10 +22,12 @@ export function enableReactComponents(config: typeof configureReactive) {
     });
 }
 
+// TODOV3 Remove this in favor of importing from /types/reactive-web
+
 // Types:
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { IReactive } from '@legendapp/state/react';
+import type { FCReactiveObject, IReactive } from '@legendapp/state/react';
 
 declare module '@legendapp/state/react' {
     // eslint-disable-next-line @typescript-eslint/no-empty-interface

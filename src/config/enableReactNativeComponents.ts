@@ -28,6 +28,8 @@ import {
     ViewProps,
 } from 'react-native';
 
+// TODOV3 Remove this
+
 export function enableReactNativeComponents() {
     configureReactive({
         components: {

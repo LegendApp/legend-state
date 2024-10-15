@@ -1,6 +1,6 @@
 import { configureReactive } from '@legendapp/state/react';
-import { enableReactNativeComponents } from './enableReactNativeComponents';
+import { enableReactNativeComponents_ } from './enableReactNativeComponents';
 
 export function enableReactive(configure: typeof configureReactive) {
-    enableReactNativeComponents(configure);
+    enableReactNativeComponents_(configure);
 }

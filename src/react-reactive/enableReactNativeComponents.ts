@@ -1,35 +1,30 @@
-import { useRef } from 'react';
 import type { Observable } from '@legendapp/state';
 import type { configureReactive } from '@legendapp/state/react';
-import { FCReactive, FCReactiveObject, useSelector } from '@legendapp/state/react';
+import { useSelector } from '@legendapp/state/react';
+import { useRef } from 'react';
 import {
     ActivityIndicator,
-    ActivityIndicatorProps,
     Button,
-    ButtonProps,
     FlatList,
-    FlatListProps,
     Image,
-    ImageProps,
     Pressable,
-    PressableProps,
     ScrollView,
-    ScrollViewProps,
     SectionList,
-    SectionListProps,
     Switch,
-    SwitchProps,
     Text,
     TextInput,
-    TextInputProps,
-    TextProps,
     TouchableWithoutFeedback,
-    TouchableWithoutFeedbackProps,
     View,
-    ViewProps,
 } from 'react-native';
 
-export function enableReactNativeComponents(configure: typeof configureReactive) {
+let isEnabled = false;
+
+export function enableReactNativeComponents_(configure: typeof configureReactive) {
+    if (isEnabled) {
+        return;
+    }
+    isEnabled = true;
+
     configure({
         components: {
             ActivityIndicator: ActivityIndicator,
@@ -78,26 +73,4 @@ export function enableReactNativeComponents(configure: typeof configureReactive)
             },
         },
     });
-}
-
-// Types:
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { IReactive } from '@legendapp/state/react';
-
-declare module '@legendapp/state/react' {
-    interface IReactive extends FCReactiveObject<JSX.IntrinsicElements> {
-        ActivityIndicator: FCReactive<ActivityIndicator, ActivityIndicatorProps>;
-        Button: FCReactive<Button, ButtonProps>;
-        FlatList: FCReactive<FlatList, FlatListProps<any>>;
-        Image: FCReactive<Image, ImageProps>;
-        Pressable: FCReactive<typeof Pressable, PressableProps>;
-        ScrollView: FCReactive<ScrollView, ScrollViewProps>;
-        SectionList: FCReactive<SectionList, SectionListProps<any>>;
-        Switch: FCReactive<Switch, SwitchProps>;
-        Text: FCReactive<Text, TextProps>;
-        TextInput: FCReactive<TextInput, TextInputProps>;
-        TouchableWithoutFeedback: FCReactive<TouchableWithoutFeedback, TouchableWithoutFeedbackProps>;
-        View: FCReactive<View, ViewProps>;
-    }
 }

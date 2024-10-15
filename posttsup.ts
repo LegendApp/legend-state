@@ -6,7 +6,14 @@ async function copy(...files: string[]) {
     return files.map((file) => Bun.write('dist/' + file.replace('src/', ''), Bun.file(file), { createPath: true }));
 }
 
-copy('LICENSE', 'CHANGELOG.md', 'README.md', 'src/types/babel.d.ts');
+copy(
+    'LICENSE',
+    'CHANGELOG.md',
+    'README.md',
+    'src/types/babel.d.ts',
+    'src/types/reactive-native.d.ts',
+    'src/types/reactive-web.d.ts',
+);
 
 const lsexports = pkg.lsexports;
 const exports: Record<string, string | { import?: string; require?: string; types: string }> = {
@@ -14,6 +21,12 @@ const exports: Record<string, string | { import?: string; require?: string; type
     './babel': './babel.js',
     './types/babel': {
         types: './types/babel.d.ts',
+    },
+    './types/reactive-web': {
+        types: './types/reactive-web.d.ts',
+    },
+    './types/reactive-native': {
+        types: './types/reactive-native.d.ts',
     },
 };
 function addExport(key: string, file: string) {

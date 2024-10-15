@@ -80,6 +80,12 @@
             ],
             "@legendapp/state/react-reactive/enableReactive": [
                 "src/react-reactive/enableReactive"
+            ],
+            "@legendapp/state/react-reactive/enableReactComponents": [
+                "src/react-reactive/enableReactComponents"
+            ],
+            "@legendapp/state/react-reactive/enableReactNativeComponents": [
+                "src/react-reactive/enableReactNativeComponents"
             ]
         },
         "resolveJsonModule": true,
