@@ -32,11 +32,13 @@ export type CrudResult<T> = T;
 
 export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
     get?: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
+    list?: never | undefined;
     initial?: InitialValue<TLocal, 'value'>;
     as?: never | 'value';
 }
 export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
     list?: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
+    get?: never | undefined;
     as?: TAsOption;
     initial?: InitialValue<TLocal, TAsOption>;
 }
@@ -119,15 +121,21 @@ function computeLastSync(data: any[], fieldUpdatedAt: string | undefined, fieldC
     return newLastSync;
 }
 
+// The get version
 export function syncedCrud<TRemote extends object, TLocal = TRemote>(
-    props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsSingle<TRemote, TLocal>,
+    props: SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsBase<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, 'value'>;
+// The list version
 export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
-    props: SyncedCrudPropsBase<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>,
+    props: SyncedCrudPropsMany<TRemote, TLocal, TAsOption> & SyncedCrudPropsBase<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, Exclude<TAsOption, 'value'>>;
 export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
-    props: SyncedCrudPropsBase<TRemote, TLocal> &
-        (SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsMany<TRemote, TLocal, TAsOption>),
+    props: (SyncedCrudPropsSingle<TRemote, TLocal> | SyncedCrudPropsMany<TRemote, TLocal, TAsOption>) &
+        SyncedCrudPropsBase<TRemote, TLocal>,
+): SyncedCrudReturnType<TLocal, TAsOption>;
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
+    props: (SyncedCrudPropsSingle<TRemote, TLocal> | SyncedCrudPropsMany<TRemote, TLocal, TAsOption>) &
+        SyncedCrudPropsBase<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, TAsOption> {
     const {
         get: getFn,

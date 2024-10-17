@@ -541,7 +541,7 @@ export function syncedKeel<
         : subscribeParam;
 
     return syncedCrud<TRemote, TLocal, TOption>({
-        ...rest,
+        ...(rest as any), // Workaround for type errors
         as: asType,
         mode: mode || 'merge',
         list,
@@ -567,7 +567,6 @@ export function syncedKeel<
         updatePartial: true,
         subscribe,
         generateId: generateKeelId,
-        // @ts-expect-error This errors because of the get/list union type
         get,
     }) as SyncedCrudReturnType<TLocal, TOption>;
 }
