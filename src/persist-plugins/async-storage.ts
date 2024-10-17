@@ -55,16 +55,21 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
     }
     public loadTable(table: string): void | Promise<void> {
         if (this.data[table] === undefined) {
-            try {
-                return (async () => {
-                    const values = await AsyncStorage.multiGet([table, table + MetadataSuffix]);
-                    values.forEach(([table, value]) => {
-                        this.data[table] = value ? safeParse(value) : undefined;
-                    });
-                })();
-            } catch {
-                console.error('[legend-state] ObservablePersistLocalAsyncStorage failed to parse', table);
-            }
+            return AsyncStorage.multiGet([table, table + MetadataSuffix])
+                .then((values) => {
+                    try {
+                        values.forEach(([table, value]) => {
+                            this.data[table] = value ? safeParse(value) : undefined;
+                        });
+                    } catch (err) {
+                        console.error('[legend-state] ObservablePersistLocalAsyncStorage failed to parse', table, err);
+                    }
+                })
+                .catch((err: Error) => {
+                    if (err?.message !== 'window is not defined') {
+                        console.error('[legend-state] AsyncStorage.multiGet failed', table, err);
+                    }
+                });
         }
     }
     // Gets
