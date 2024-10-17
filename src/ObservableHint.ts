@@ -20,4 +20,7 @@ export const ObservableHint = {
     plain: function plainObject<T extends object>(value: T): PlainObject<T> {
         return addSymbol(value, symbolPlain);
     },
+    function: function plainObject<T extends object>(value: T): PlainObject<T> {
+        return addSymbol(value, symbolPlain);
+    },
 };

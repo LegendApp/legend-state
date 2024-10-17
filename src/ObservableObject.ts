@@ -950,8 +950,12 @@ export function peekInternal(node: NodeInfo, activateRecursive?: boolean) {
 
     let value = getNodeValue(node);
 
+    if (node.parent?.isPlain || isHintPlain(value)) {
+        node.isPlain = true;
+    }
+
     // Don't want to check lazy while loading because we don't want to activate anything
-    if (!globalState.isLoadingLocal) {
+    if (!globalState.isLoadingLocal && !node.isPlain) {
         value = checkLazy(node, value, !!activateRecursive);
     }
 

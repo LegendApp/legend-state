@@ -86,6 +86,7 @@ interface BaseNodeInfo {
     numListenersRecursive: number;
     state?: Observable<ObservableSyncState>;
     activated?: boolean;
+    isPlain?: boolean;
     recursivelyAutoActivated?: boolean;
     activationState?: LinkedOptions & {
         onError?: () => void;

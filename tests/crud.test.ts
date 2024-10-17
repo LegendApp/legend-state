@@ -1,6 +1,6 @@
-import { observable, observe, syncState, when } from '@legendapp/state';
+import { observable, ObservableHint, observe, syncState, when } from '@legendapp/state';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { clone, symbolDelete } from '../src/globals';
+import { clone, getNode, symbolDelete } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
@@ -2707,5 +2707,50 @@ describe('soft delete', () => {
 
         // Should have saved to local storage
         expect(localValue2).toBe('{"id1":{"id":"id1","test":"hi"}}');
+    });
+});
+describe('Misc', () => {
+    test('Plain hint applies to descendants', async () => {
+        const obs$ = observable(
+            ObservableHint.plain({
+                a: {
+                    b: {
+                        c: {
+                            d: 'hi',
+                        },
+                    },
+                },
+            }),
+        );
+
+        obs$.a.b.c.d.get();
+        expect(getNode(obs$.a.b.c.d).isPlain).toEqual(true);
+    });
+    test('Logging syncState doesnt trigger list', async () => {
+        let numLists = 0;
+        let didCreateRun = false;
+        const crudStore$ = observable(
+            syncedCrud({
+                list: () => {
+                    numLists++;
+                    return [{ id: 'hi', test: 'hi' }];
+                },
+                create: async (value, params) => {
+                    didCreateRun = true;
+                    params.refresh.name;
+                },
+            }),
+        );
+
+        crudStore$.get();
+
+        await promiseTimeout(0);
+
+        expect(numLists).toEqual(1);
+        crudStore$['id1'].set({ id: 'id1', test: 'hello' });
+        await promiseTimeout(0);
+
+        expect(didCreateRun).toEqual(true);
+        expect(numLists).toEqual(1);
     });
 });
