@@ -827,9 +827,20 @@ async function loadLocal<T>(
 
         // If cache has an asynchronous load, wait for it
         if (persistPlugin.loadTable) {
-            const promise = persistPlugin.loadTable(table, config);
-            if (promise) {
-                await promise;
+            try {
+                const promise = persistPlugin.loadTable(table, config);
+                if (promise) {
+                    await promise;
+                }
+            } catch (err) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.error(
+                        '[legend-state] Error loading local cache. This would be a crashing error in production.',
+                        err,
+                    );
+                } else {
+                    throw err;
+                }
             }
         }
 
