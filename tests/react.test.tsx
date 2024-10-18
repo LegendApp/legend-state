@@ -670,6 +670,36 @@ describe('For', () => {
         expect(items[0].id).toEqual('B');
         expect(items[1].id).toEqual('A');
     });
+    test('For with Map optimized', () => {
+        const obs = observable({
+            items: new Map<string, TestObject>([['m2', { label: 'B', id: 'B' }]]),
+        });
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
+            return createElement('li', { id: data.label }, data.label);
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: obs.items, item: Item, optimized: true }),
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        const items = container.querySelectorAll('li');
+        expect(items.length).toEqual(1);
+        expect(items[0].id).toEqual('B');
+
+        act(() => {
+            obs.items.set('m1', { label: 'A', id: 'A' });
+        });
+
+        const items2 = container.querySelectorAll('li');
+        expect(items2.length).toEqual(2);
+        expect(items2[0].id).toEqual('B');
+        expect(items2[1].id).toEqual('A');
+    });
     test('For with Map sorted', () => {
         const obs = observable({
             items: new Map<string, TestObject>([

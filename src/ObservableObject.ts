@@ -674,7 +674,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
         setToObservable(childNode, newValue);
     } else {
         // Set the raw value on the parent object
-        const { newValue: savedValue, prevValue } = setNodeValue(childNode, newValue);
+        const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
 
         const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
 
@@ -690,7 +690,17 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
         const forceNotify = !notify && childNode.isComputing && !isPrim;
 
         if (notify || forceNotify) {
-            updateNodesAndNotify(node, savedValue, prevValue, childNode, isPrim, isRoot, level, forceNotify);
+            updateNodesAndNotify(
+                node,
+                savedValue,
+                prevValue,
+                childNode,
+                parentValue,
+                isPrim,
+                isRoot,
+                level,
+                forceNotify,
+            );
         }
 
         extractFunctionOrComputed(node, key, savedValue);
@@ -818,6 +828,7 @@ function updateNodesAndNotify(
     newValue: any,
     prevValue: any,
     childNode?: NodeInfo,
+    parentValue?: any,
     isPrim?: boolean,
     isRoot?: boolean,
     level?: number,
@@ -833,6 +844,8 @@ function updateNodesAndNotify(
 
     let hasADiff = forceNotify || isPrim;
     let whenOptimizedOnlyIf = false;
+    let valueAsArr: any[] | undefined;
+    let valueAsMap: Map<any, any> | undefined;
     // If new value is an object or array update notify down the tree
     if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
         if (
@@ -842,9 +855,27 @@ function updateNodesAndNotify(
             __devUpdateNodes.clear();
         }
         hasADiff = hasADiff || updateNodes(childNode, newValue, prevValue);
+
+        // Check if value is an array, Map, or Set so we can optimize the notification
         if (isArray(newValue)) {
-            whenOptimizedOnlyIf = newValue?.length !== prevValue?.length;
+            valueAsArr = newValue as any[];
+        } else if (isMap(newValue) || isSet(newValue)) {
+            valueAsMap = newValue as Map<any, any>;
         }
+    }
+
+    // Check if parent value is an array, Map, or Set so we can optimize the notification
+    if (isArray(parentValue)) {
+        valueAsArr = parentValue as any[];
+    } else if (isMap(parentValue) || isSet(parentValue)) {
+        valueAsMap = parentValue as Map<any, any>;
+    }
+
+    // If value is an array, Map, or Set and the size has changed it should notify optimized listeners
+    if (valueAsArr) {
+        whenOptimizedOnlyIf = valueAsArr?.length !== prevValue?.length;
+    } else if (valueAsMap) {
+        whenOptimizedOnlyIf = valueAsMap?.size !== prevValue?.size;
     }
 
     if (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff) {

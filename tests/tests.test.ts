@@ -1264,6 +1264,30 @@ describe('Array', () => {
         expect(obs.test.length).toEqual(1000);
         expect(obs.test[3].id.get()).toEqual(3);
     });
+    test('Array set at index', () => {
+        interface Data {
+            test: Array<{ id: number }>;
+        }
+        const obs = observable<Data>({ test: [{ id: 0 }] });
+        const handler = expectChangeHandler(obs.test);
+        const handlerOptimized = expectChangeHandler(obs.test, optimized);
+        const handler2 = expectChangeHandler(obs);
+
+        obs.test[1].set({ id: 1 });
+        expect(handler).toHaveBeenCalledWith(
+            [{ id: 0 }, { id: 1 }],
+            [{ id: 0 }],
+            [{ path: ['1'], pathTypes: ['object'], valueAtPath: { id: 1 }, prevAtPath: undefined }],
+        );
+        expect(handlerOptimized).toHaveBeenCalledWith(
+            [{ id: 0 }, { id: 1 }],
+            [{ id: 0 }],
+            [{ path: ['1'], pathTypes: ['object'], valueAtPath: { id: 1 }, prevAtPath: undefined }],
+        );
+        expect(handler2).toHaveBeenCalledWith({ test: [{ id: 0 }, { id: 1 }] }, { test: [{ id: 0 }, undefined] }, [
+            { path: ['test', '1'], pathTypes: ['array', 'object'], prevAtPath: undefined, valueAtPath: { id: 1 } },
+        ]);
+    });
     test('Array swap with objects', () => {
         const obs = observable({ test: [{ text: 1 }, { text: 2 }, { text: 3 }, { text: 4 }, { text: 5 }] });
         const arr = obs.test;

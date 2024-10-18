@@ -1,5 +1,5 @@
 import { observe } from '../src/observe';
-import { isObservable } from '../src/globals';
+import { isObservable, optimized } from '../src/globals';
 import { mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 import { expectChangeHandler } from './testglobals';
@@ -86,6 +86,58 @@ describe('Map default behavior', () => {
         expect(isObservable(obs.test['key'])).toEqual(true);
         expect(obs.test['key'].get()).toEqual('value');
         expect(obs.test.get()).toBeInstanceOf(Map);
+    });
+    test('Map get optimized', () => {
+        const obs = observable({ test: new Map([['key', 'value']]) });
+
+        // Map get
+        expect(obs.test.get(optimized as any)).toEqual(new Map([['key', 'value']]));
+    });
+    test('Map set notifies', () => {
+        const obs = observable({ test: new Map([['key', 'value']]) });
+        const handler = expectChangeHandler(obs.test);
+        const handler2 = expectChangeHandler(obs);
+        const handlerOptimized = expectChangeHandler(obs.test, optimized);
+
+        // Map get
+        obs.test.set('key2', 'value2');
+        expect(handler).toHaveBeenCalledWith(
+            new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+            new Map([
+                ['key', 'value'],
+                ['key2', undefined],
+            ]),
+            [{ path: ['key2'], pathTypes: ['object'], prevAtPath: undefined, valueAtPath: 'value2' }],
+        );
+        expect(handlerOptimized).toHaveBeenCalledWith(
+            new Map([
+                ['key', 'value'],
+                ['key2', 'value2'],
+            ]),
+            new Map([
+                ['key', 'value'],
+                ['key2', undefined],
+            ]),
+            [{ path: ['key2'], pathTypes: ['object'], prevAtPath: undefined, valueAtPath: 'value2' }],
+        );
+        expect(handler2).toHaveBeenCalledWith(
+            {
+                test: new Map([
+                    ['key', 'value'],
+                    ['key2', 'value2'],
+                ]),
+            },
+            {
+                test: new Map([
+                    ['key', 'value'],
+                    ['key2', undefined],
+                ]),
+            },
+            [{ path: ['test', 'key2'], pathTypes: ['map', 'object'], prevAtPath: undefined, valueAtPath: 'value2' }],
+        );
     });
 });
 
