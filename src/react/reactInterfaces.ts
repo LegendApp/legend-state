@@ -5,14 +5,18 @@ export type ShapeWithNew$<T> = Partial<Omit<T, 'children'>> & {
     [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
 } & { children?: Selector<ReactNode> };
 
-export interface BindKey<P> {
-    handler?: keyof P;
-    getValue?: (e: any) => any;
+export interface BindKey<P, K extends keyof P = keyof P> {
+    handler?: K;
+    getValue?: P[K] extends infer T
+        ? T extends (...args: any) => any
+            ? (params: Parameters<T>[0]) => any
+            : (e: any) => any
+        : (e: any) => any;
     defaultValue?: any;
     selector?: (propsOut: Record<string, any>, p: Observable<any>) => any;
 }
 
-export type BindKeys<P = any> = Partial<Record<keyof P, BindKey<P>>>;
+export type BindKeys<P = any, K extends keyof P = keyof P> = Partial<Record<K, BindKey<P>>>;
 
 export type FCReactiveObject<T> = {
     [K in keyof T]: FC<ShapeWithNew$<T[K]>>;

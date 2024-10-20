@@ -8,7 +8,9 @@ export function enableReactComponents_(config: typeof configureReactive) {
     }
     isEnabled = true;
 
-    const bindInfo: BindKeys = { value: { handler: 'onChange', getValue: (e) => e.target.value, defaultValue: '' } };
+    const bindInfo: BindKeys = {
+        value: { handler: 'onChange', getValue: (e: any) => e.target.value, defaultValue: '' },
+    };
     const bindInfoInput: BindKeys = Object.assign(
         { checked: { handler: 'onChange', getValue: (e: { target: { checked: boolean } }) => e.target.checked } },
         bindInfo,

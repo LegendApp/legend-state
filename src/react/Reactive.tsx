@@ -24,7 +24,7 @@ export const Reactive: IReactive = new Proxy(
                     return createElement(Component, propsOut);
                 });
 
-                target[p] = reactive(render, ReactiveFnBinders.get(p));
+                target[p] = reactive(render, [], ReactiveFnBinders.get(p));
             }
             return target[p];
         },

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { isFunction, isObservable, Selector } from '@legendapp/state';
 import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
 import { reactGlobals } from './react-globals';
@@ -15,6 +16,10 @@ export type ObjectShapeWith$<T> = {
 };
 export type ExtractFCPropsType<T> = T extends FC<infer P> ? P : never;
 
+export type ReactifyProps<T, K extends keyof T> = Omit<T, K> & {
+    [P in K]: Selector<T[P]>;
+};
+
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
@@ -25,7 +30,9 @@ function createReactiveComponent<P = object>(
     component: FC<P>,
     observe: boolean,
     reactive?: boolean,
-    bindKeys?: BindKeys<P>,
+    keysReactive?: (string | number | symbol)[] | undefined | null,
+    // TODO: I don't like this any type but not sure how to fix it. It's internal so not a big deal.
+    bindKeys?: BindKeys<any>,
 ) {
     const ReactForwardRefSymbol = hasSymbol
         ? Symbol.for('react.forward_ref')
@@ -59,6 +66,8 @@ function createReactiveComponent<P = object>(
         }
     }
 
+    const keysReactiveSet = keysReactive ? new Set(keysReactive) : undefined;
+
     const proxyHandler: ProxyHandler<any> = {
         apply(target, thisArg, argArray) {
             // If this is a reactive component, convert all props ending in $
@@ -71,12 +80,14 @@ function createReactiveComponent<P = object>(
                     const key = keys[i];
                     const p = props[key];
 
+                    const isReactiveKey = keysReactiveSet && keysReactiveSet.has(key);
+
                     // Convert children if it's a function
                     if (key === 'children' && (isFunction(p) || isObservable(p))) {
                         props[key] = useSelector(p, { skipCheck: true });
                     }
                     // Convert reactive props
-                    else if (key.startsWith('$') || key.endsWith('$')) {
+                    else if (isReactiveKey || key.startsWith('$') || key.endsWith('$')) {
                         // TODOV3 Add this warning
                         // TODOV4 Remove the deprecated endsWith option
                         if (process.env.NODE_ENV === 'development' && !didWarnProps && key.endsWith('$')) {
@@ -88,7 +99,7 @@ function createReactiveComponent<P = object>(
                                 )}. See https://legendapp.com/open-source/state/migrating for more details.`,
                             );
                         }
-                        const k = key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
+                        const k = isReactiveKey ? key : key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
                         // Return raw value and listen to the selector for changes
 
                         const bind = bindKeys?.[k as keyof P];
@@ -104,7 +115,7 @@ function createReactiveComponent<P = object>(
                             }
 
                             if (bind.handler && bind.getValue) {
-                                // Hook up the change lander
+                                // Hook up the change handler
                                 const handlerFn = (e: ChangeEvent) => {
                                     p.set(bind.getValue!(e));
                                     props[bind.handler!]?.(e);
@@ -118,8 +129,10 @@ function createReactiveComponent<P = object>(
                             }
                         }
 
-                        // Delete the reactive key
-                        delete propsOut[key];
+                        if (!isReactiveKey) {
+                            // Delete the reactive key
+                            delete propsOut[key];
+                        }
                     } else if (propsOut[key] === undefined) {
                         propsOut[key] = p;
                     }
@@ -164,34 +177,76 @@ export function observer<P extends FC<any>>(component: P): P {
     return createReactiveComponent(component, true);
 }
 
-export function reactive<T extends FC<any>>(
-    component: T,
-    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T & FC<ShapeWith$<ExtractFCPropsType<T>>>;
-export function reactive<T extends FC<any>, T2 extends keyof ExtractFCPropsType<T>>(
-    component: T,
-    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T & FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
-export function reactive<T extends FC<any>>(
-    component: T,
-    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T & FC<ShapeWith$<ExtractFCPropsType<T>>> {
-    return createReactiveComponent(component, false, true, bindKeys);
+// With empty keys
+export function reactive<T extends object>(
+    component: React.FC<T>,
+    keys: undefined | null,
+    bindKeys?: BindKeys<T>,
+): React.FC<ShapeWith$<T>>;
+export function reactive<T extends object>(
+    component: React.ForwardRefExoticComponent<T>,
+    keys: undefined | null,
+    bindKeys?: BindKeys<T>,
+): React.ForwardRefExoticComponent<ShapeWith$<T>>;
+// With keys
+export function reactive<T extends object, K extends keyof T>(
+    component: React.FC<T>,
+    keys: K[] | (keyof T)[],
+    bindKeys?: BindKeys<T, K>,
+): React.FC<ReactifyProps<T, K>>;
+export function reactive<T extends object, K extends keyof T>(
+    component: React.ForwardRefExoticComponent<T>,
+    keys: K[] | (keyof T)[],
+    bindKeys?: BindKeys<T, K>,
+): React.ForwardRefExoticComponent<ReactifyProps<T, K>>;
+// Without keys
+export function reactive<T extends object>(component: React.FC<T>): React.FC<ShapeWith$<T>>;
+export function reactive<T extends object>(
+    component: React.ForwardRefExoticComponent<T>,
+): React.ForwardRefExoticComponent<ShapeWith$<T>>;
+// Implementation
+export function reactive<T extends object, K extends keyof T>(
+    component: React.FC<T> | React.ForwardRefExoticComponent<T>,
+    keys?: K[] | undefined | null,
+    bindKeys?: BindKeys<T, K>,
+): React.FC<ReactifyProps<T, K>> | React.ForwardRefExoticComponent<ReactifyProps<T, K>> {
+    return createReactiveComponent(component, false, true, keys, bindKeys);
 }
 
-export function reactiveObserver<T extends FC<any>>(
-    component: T,
-    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T & FC<ShapeWith$<ExtractFCPropsType<T>>>;
-export function reactiveObserver<T extends FC<any>, T2 extends keyof ExtractFCPropsType<T>>(
-    component: T,
-    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T & FC<ShapeWithPick$<ExtractFCPropsType<T>, T2>>;
-export function reactiveObserver<T extends FC<any>>(
-    component: T,
-    bindKeys?: BindKeys<ExtractFCPropsType<T>>,
-): T & FC<ShapeWith$<ExtractFCPropsType<T>>> {
-    return createReactiveComponent(component, true, true, bindKeys);
+// With empty keys
+export function reactiveObserver<T extends object>(
+    component: React.FC<T>,
+    keys: undefined | null,
+    bindKeys?: BindKeys<T>,
+): React.FC<ShapeWith$<T>>;
+export function reactiveObserver<T extends object>(
+    component: React.ForwardRefExoticComponent<T>,
+    keys: undefined | null,
+    bindKeys?: BindKeys<T>,
+): React.ForwardRefExoticComponent<ShapeWith$<T>>;
+// With keys
+export function reactiveObserver<T extends object, K extends keyof T>(
+    component: React.FC<T>,
+    keys: K[] | (keyof T)[],
+    bindKeys?: BindKeys<T, K>,
+): React.FC<ReactifyProps<T, K>>;
+export function reactiveObserver<T extends object, K extends keyof T>(
+    component: React.ForwardRefExoticComponent<T>,
+    keys: K[] | (keyof T)[],
+    bindKeys?: BindKeys<T, K>,
+): React.ForwardRefExoticComponent<ReactifyProps<T, K>>;
+// Without keys
+export function reactiveObserver<T extends object>(component: React.FC<T>): React.FC<ShapeWith$<T>>;
+export function reactiveObserver<T extends object>(
+    component: React.ForwardRefExoticComponent<T>,
+): React.ForwardRefExoticComponent<ShapeWith$<T>>;
+// Implementation
+export function reactiveObserver<T extends object, K extends keyof T>(
+    component: React.FC<T> | React.ForwardRefExoticComponent<T>,
+    keys?: K[] | undefined | null,
+    bindKeys?: BindKeys<T, K>,
+): React.FC<ReactifyProps<T, K>> | React.ForwardRefExoticComponent<ReactifyProps<T, K>> {
+    return createReactiveComponent(component, true, true, keys, bindKeys);
 }
 
 export function reactiveComponents<P extends Record<string, FC>>(components: P): ObjectShapeWith$<P> {
@@ -208,3 +263,18 @@ export function reactiveComponents<P extends Record<string, FC>>(components: P):
         },
     ) as ObjectShapeWith$<P>;
 }
+
+// interface Props {
+//     required: string;
+//     optional?: string;
+// }
+
+// const Component = function Component(props: Props) {
+//     return <div>{props.required}</div>;
+// };
+
+// const ComponentReactive = reactive(Component, ['required', 'optional']);
+
+// function App() {
+//     return <ComponentReactive />;
+// }
