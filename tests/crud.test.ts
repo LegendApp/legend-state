@@ -2194,6 +2194,87 @@ describe('onSaved', () => {
             },
         });
     });
+    test('without onSaved creates with saved values in array', async () => {
+        let created = undefined;
+        const obs = observable(
+            syncedCrud({
+                initial: [{ ...ItemBasicValue(), updatedAt: 10 }] as BasicValue[],
+                as: 'array',
+                fieldUpdatedAt: 'updatedAt',
+                create: async (input: BasicValue) => {
+                    created = {
+                        ...input,
+                        updatedAt: 20,
+                    };
+                    return created;
+                },
+            }),
+        );
+
+        obs.get();
+
+        await promiseTimeout(1);
+
+        obs.push({ id: 'id2', test: 'hello2' });
+
+        await promiseTimeout(1);
+
+        expect(created).toEqual({
+            id: 'id2',
+            test: 'hello2',
+            updatedAt: 20,
+        });
+
+        expect(obs.get()).toEqual([
+            {
+                id: 'id1',
+                test: 'hi',
+                updatedAt: 10,
+            },
+            {
+                id: 'id2',
+                test: 'hello2',
+                updatedAt: 20,
+            },
+        ]);
+    });
+    test('without onSaved updates with saved values in array', async () => {
+        let updated = undefined;
+        const obs = observable(
+            syncedCrud({
+                initial: [{ ...ItemBasicValue(), updatedAt: 10 }] as BasicValue[],
+                as: 'array',
+                fieldUpdatedAt: 'updatedAt',
+                update: async (input: BasicValue) => {
+                    updated = {
+                        ...input,
+                        updatedAt: 20,
+                    };
+                    return updated;
+                },
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs[0].test.set('hello2');
+
+        await promiseTimeout(1);
+
+        expect(updated).toEqual({
+            id: 'id1',
+            test: 'hello2',
+            updatedAt: 20,
+        });
+
+        expect(obs.get()).toEqual([
+            {
+                id: 'id1',
+                test: 'hello2',
+                updatedAt: 20,
+            },
+        ]);
+    });
     test('without onSaved updates with saved values ignores values changed locally', async () => {
         let created = undefined;
         let updated = undefined;

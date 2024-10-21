@@ -470,14 +470,30 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               const createdAt = fieldCreatedAt ? saved[fieldCreatedAt as keyof TLocal] : undefined;
                               const updatedAt = fieldUpdatedAt ? saved[fieldUpdatedAt as keyof TLocal] : undefined;
 
-                              const value =
-                                  itemKey !== 'undefined' && asType !== 'value' ? { [itemKey]: saved } : saved;
-                              update({
-                                  value,
-                                  lastSync:
-                                      updatedAt || createdAt ? +new Date(updatedAt || (createdAt as any)) : undefined,
-                                  mode: 'merge',
-                              });
+                              let value: any;
+                              if (asType === 'array') {
+                                  const index = (currentPeeked as any[]).findIndex(
+                                      (cur: any) => cur[fieldId] === itemKey,
+                                  );
+                                  if (index < 0) {
+                                      console.warn('[legend-state] Item saved that does not exist in array', saved);
+                                  } else {
+                                      value = { [index < 0 ? 0 : index]: saved };
+                                  }
+                              } else {
+                                  value = itemKey !== 'undefined' && asType !== 'value' ? { [itemKey]: saved } : saved;
+                              }
+
+                              if (value !== undefined) {
+                                  update({
+                                      value,
+                                      lastSync:
+                                          updatedAt || createdAt
+                                              ? +new Date(updatedAt || (createdAt as any))
+                                              : undefined,
+                                      mode: 'merge',
+                                  });
+                              }
                           }
                       }
                   };
