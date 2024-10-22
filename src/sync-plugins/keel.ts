@@ -457,6 +457,8 @@ export function syncedKeel<
                     console.log('Deleting non-existing data, just ignore.');
                 }
                 params.cancelRetry = true;
+            } else {
+                throw new Error(error.message, { cause: { input } });
             }
         } else if (error.type === 'bad_request') {
             // TODO
