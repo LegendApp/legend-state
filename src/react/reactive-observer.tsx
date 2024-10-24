@@ -263,18 +263,3 @@ export function reactiveComponents<P extends Record<string, FC>>(components: P):
         },
     ) as ObjectShapeWith$<P>;
 }
-
-// interface Props {
-//     required: string;
-//     optional?: string;
-// }
-
-// const Component = function Component(props: Props) {
-//     return <div>{props.required}</div>;
-// };
-
-// const ComponentReactive = reactive(Component, ['required', 'optional']);
-
-// function App() {
-//     return <ComponentReactive />;
-// }
