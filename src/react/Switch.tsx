@@ -13,14 +13,14 @@ export function Switch<T extends string | number | symbol>({
     value,
     children,
 }: {
-    value?: Selector<T>;
+    value?: Selector<T | undefined | null>;
     children: Partial<Record<T | 'null' | 'undefined' | 'default', () => ReactNode>>;
 }): ReactElement | null;
 export function Switch<T extends boolean>({
     value,
     children,
 }: {
-    value?: Selector<T>;
+    value?: Selector<T | undefined | null>;
     children: Partial<Record<'false' | 'true' | 'null' | 'undefined' | 'default', () => ReactNode>>;
 }): ReactElement | null;
 export function Switch<T>({
