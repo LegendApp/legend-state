@@ -1,6 +1,6 @@
 import { batch, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
-    OnErrorRetryParams,
+    SyncedErrorParams,
     SyncedGetSetSubscribeBaseParams,
     type SyncedGetParams,
     type SyncedSetParams,
@@ -138,12 +138,9 @@ interface SyncedKeelPropsSingle<TRemote extends { id: string }, TLocal>
     as?: never;
 }
 
-interface ErrorDetails {
-    type: 'create' | 'update' | 'delete';
-    params: SyncedSetParams<any>;
-    input: any;
+export interface KeelErrorParams extends Omit<SyncedErrorParams, 'source'> {
+    source: 'list' | 'get' | 'create' | 'update' | 'delete';
     action: string;
-    error: APIResult<any>['error'];
 }
 
 export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
@@ -161,7 +158,7 @@ export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TR
     };
     refreshAuth?: () => void | Promise<void>;
     requireAuth?: boolean;
-    onError?: (error: Error, retryParams: OnErrorRetryParams, details: ErrorDetails) => void;
+    onError?: (error: Error, params: KeelErrorParams) => void;
 }
 
 const modifiedClients = new WeakSet<Record<string, any>>();
@@ -211,14 +208,14 @@ async function ensureAuthToken(props: SyncedKeelPropsBase<any>, force?: boolean)
     return isAuthed;
 }
 
-async function handleApiError(props: SyncedKeelPropsBase<any>, error: APIError, retry?: () => any) {
+async function handleApiError(props: SyncedKeelPropsBase<any>, error: APIError) {
     if (error.type === 'unauthorized' || error.type === 'forbidden') {
         console.warn('Keel token expired, refreshing...');
         isAuthed$.set(false);
         await ensureAuthToken(props);
-        // Retry
-        retry?.();
+        return true;
     }
+    return false;
 }
 
 function convertObjectToCreate<TRemote extends Record<string, any>>(item: TRemote): TRemote {
@@ -277,6 +274,8 @@ async function getAllPages<TRemote>(
         }>
     >,
     params: KeelListParams,
+    listParams: SyncedGetParams<TRemote>,
+    onError: ((error: Error, params: KeelErrorParams) => void) | undefined,
 ): Promise<TRemote[]> {
     const allData: TRemote[] = [];
     let pageInfo: PageInfo | undefined = undefined;
@@ -299,8 +298,20 @@ async function getAllPages<TRemote>(
             const { data, error } = ret;
 
             if (error) {
-                await handleApiError(props, error);
-                throw new Error(error.message);
+                const handled = await handleApiError(props, error);
+
+                if (!handled) {
+                    const err = new Error(error.message, { cause: { error } });
+                    // TODO
+                    onError?.(err, {
+                        getParams: listParams,
+                        type: 'get',
+                        source: 'list',
+                        action: listFn.name || listFn.toString(),
+                    });
+
+                    throw err;
+                }
             } else if (data) {
                 pageInfo = data.pageInfo as PageInfo;
                 allData.push(...data.results);
@@ -385,7 +396,7 @@ export function syncedKeel<
 
               realtimeState.current = {};
 
-              const promise = getAllPages(props, listParam, params);
+              const promise = getAllPages(props, listParam, params, listParams, onError);
 
               if (realtime) {
                   setupSubscribe!(listParams);
@@ -410,7 +421,20 @@ export function syncedKeel<
               const { data, error } = await promise;
 
               if (error) {
-                  throw new Error(error.message);
+                  const handled = await handleApiError(props, error);
+
+                  if (!handled) {
+                      const err = new Error(error.message, { cause: { error } });
+                      // TODO
+                      onError?.(err, {
+                          getParams,
+                          type: 'get',
+                          source: 'get',
+                          action: getParam.name || getParam.toString(),
+                      });
+
+                      throw err;
+                  }
               } else {
                   return data as TRemote;
               }
@@ -435,7 +459,7 @@ export function syncedKeel<
         fn: Function,
         from: 'create' | 'update' | 'delete',
     ) => {
-        const { retryNum, update } = params;
+        const { update } = params;
 
         if (
             from === 'create' &&
@@ -451,34 +475,26 @@ export function syncedKeel<
                 value: {} as TRemote,
                 mode: 'assign',
             });
-        } else if (from === 'delete') {
-            if (error.message === 'record not found') {
-                if (__DEV__) {
-                    console.log('Deleting non-existing data, just ignore.');
-                }
-                params.cancelRetry = true;
-            } else {
-                throw new Error(error.message, { cause: { input } });
+        } else if (from === 'delete' && error.message === 'record not found') {
+            if (__DEV__) {
+                console.log('Deleting non-existing data, just ignore.');
             }
-        } else if (error.type === 'bad_request') {
-            // TODO
-            onError?.(new Error(error.message), params, {
-                error,
-                params,
-                input,
-                type: from,
-                action: fn.name || fn.toString(),
-            });
-
-            if (retryNum > 4) {
-                params.cancelRetry = true;
-            }
-
-            throw new Error(error.message, { cause: { input } });
+            params.cancelRetry = true;
         } else {
-            await handleApiError(props, error);
+            const handled = await handleApiError(props, error);
 
-            throw new Error(error.message, { cause: { input } });
+            if (!handled) {
+                const err = new Error(error.message, { cause: { error } });
+                onError?.(err, {
+                    setParams: params,
+                    input,
+                    type: 'set',
+                    source: from,
+                    action: fn.name || fn.toString(),
+                });
+
+                throw err;
+            }
         }
     };
 
