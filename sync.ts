@@ -9,10 +9,13 @@ export * from './src/sync/configureSynced';
 
 import { waitForSet } from './src/sync/waitForSet';
 import { observableSyncConfiguration } from './src/sync/configureObservableSync';
+import { runWithRetry } from './src/sync/retry';
 export const internal: {
     observableSyncConfiguration: SyncedOptionsGlobal;
     waitForSet: typeof waitForSet;
+    runWithRetry: typeof runWithRetry;
 } = {
     observableSyncConfiguration,
     waitForSet,
+    runWithRetry,
 };

@@ -25,7 +25,7 @@ import {
 } from '@legendapp/state/sync';
 
 const { clone } = internal;
-const { waitForSet } = internalSync;
+const { waitForSet, runWithRetry } = internalSync;
 
 export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 
@@ -164,6 +164,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         changesSince,
         generateId,
         waitForSet: waitForSetParam,
+        retry,
         ...rest
     } = props;
 
@@ -225,72 +226,76 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     const get: undefined | ((params: SyncedGetParams<TRemote>) => TLocal | Promise<TLocal>) =
         getFn || listFn
             ? (getParams: SyncedGetParams<TRemote>) => {
-                  const { updateLastSync, lastSync, value } = getParams;
-                  if (listFn) {
-                      const isLastSyncMode = changesSince === 'last-sync';
-                      if (isLastSyncMode && lastSync) {
-                          getParams.mode =
-                              modeParam || (asType === 'array' ? 'append' : asType === 'value' ? 'set' : 'assign');
-                      }
-
-                      const listPromise = listFn(getParams);
-
-                      // Note: We don't want this function to be async so we return these functions
-                      // as Promise only if listFn returned a promise
-                      const toOut = (transformed: TLocal[]) => {
-                          if (asType === 'value') {
-                              return transformed.length > 0
-                                  ? transformed[0]
-                                  : getFn
-                                    ? ((((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null)
-                                    : undefined;
-                          } else {
-                              return resultsToOutType(transformed);
+                  return runWithRetry(getParams, retry, getFn || listFn, () => {
+                      const { updateLastSync, lastSync, value } = getParams;
+                      if (listFn) {
+                          const isLastSyncMode = changesSince === 'last-sync';
+                          if (isLastSyncMode && lastSync) {
+                              getParams.mode =
+                                  modeParam || (asType === 'array' ? 'append' : asType === 'value' ? 'set' : 'assign');
                           }
-                      };
 
-                      const processResults = (data: TRemote[] | null) => {
-                          data ||= [];
-                          if (fieldUpdatedAt) {
-                              const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
+                          const listPromise = listFn(getParams);
 
-                              if (newLastSync && newLastSync !== lastSync) {
-                                  updateLastSync(newLastSync);
+                          // Note: We don't want this function to be async so we return these functions
+                          // as Promise only if listFn returned a promise
+                          const toOut = (transformed: TLocal[]) => {
+                              if (asType === 'value') {
+                                  return transformed.length > 0
+                                      ? transformed[0]
+                                      : getFn
+                                        ? ((((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null)
+                                        : undefined;
+                              } else {
+                                  return resultsToOutType(transformed);
                               }
-                          }
-                          let transformed = data as unknown as TLocal[] | Promise<TLocal[]>;
+                          };
 
-                          if (transform?.load) {
-                              transformed = transformRows(data);
-                          }
+                          const processResults = (data: TRemote[] | null) => {
+                              data ||= [];
+                              if (fieldUpdatedAt) {
+                                  const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
 
-                          return isPromise(transformed) ? transformed.then(toOut) : toOut(transformed);
-                      };
-
-                      return isPromise(listPromise) ? listPromise.then(processResults) : processResults(listPromise);
-                  } else if (getFn) {
-                      const dataPromise = getFn(getParams);
-
-                      // Note: We don't want this function to be async so we return these functions
-                      // as Promise only if getFn returned a promise
-                      const processData = (data: TRemote | null) => {
-                          let transformed = data as unknown as TLocal | Promise<TLocal>;
-                          if (data) {
-                              const newLastSync =
-                                  (data as any)[fieldUpdatedAt as any] || (data as any)[fieldCreatedAt as any];
-                              if (newLastSync && newLastSync !== lastSync) {
-                                  updateLastSync(newLastSync);
+                                  if (newLastSync && newLastSync !== lastSync) {
+                                      updateLastSync(newLastSync);
+                                  }
                               }
+                              let transformed = data as unknown as TLocal[] | Promise<TLocal[]>;
+
                               if (transform?.load) {
-                                  transformed = transform.load(data, 'get');
+                                  transformed = transformRows(data);
                               }
-                          }
 
-                          return transformed as any;
-                      };
+                              return isPromise(transformed) ? transformed.then(toOut) : toOut(transformed);
+                          };
 
-                      return isPromise(dataPromise) ? dataPromise.then(processData) : processData(dataPromise);
-                  }
+                          return isPromise(listPromise)
+                              ? listPromise.then(processResults)
+                              : processResults(listPromise);
+                      } else if (getFn) {
+                          const dataPromise = getFn(getParams);
+
+                          // Note: We don't want this function to be async so we return these functions
+                          // as Promise only if getFn returned a promise
+                          const processData = (data: TRemote | null) => {
+                              let transformed = data as unknown as TLocal | Promise<TLocal>;
+                              if (data) {
+                                  const newLastSync =
+                                      (data as any)[fieldUpdatedAt as any] || (data as any)[fieldCreatedAt as any];
+                                  if (newLastSync && newLastSync !== lastSync) {
+                                      updateLastSync(newLastSync);
+                                  }
+                                  if (transform?.load) {
+                                      transformed = transform.load(data, 'get');
+                                  }
+                              }
+
+                              return transformed as any;
+                          };
+
+                          return isPromise(dataPromise) ? dataPromise.then(processData) : processData(dataPromise);
+                      }
+                  });
               }
             : undefined;
 
@@ -511,53 +516,62 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   };
 
                   return Promise.all([
+                      // Handle creates
                       ...Array.from(creates).map(async ([itemKey, itemValue]) => {
                           if (waitForSetParam) {
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
                           }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          return createFn!(createObj, params)
-                              .then((result) => {
-                                  return saveResult(itemKey, createObj, result as any, true);
-                              })
-                              .finally(() => {
-                                  pendingCreates.delete(itemKey);
-                              });
+                          return runWithRetry(params, retry, 'create_' + itemKey, () =>
+                              createFn!(createObj, params)
+                                  .then((result) => saveResult(itemKey, createObj, result as any, true))
+                                  .finally(() => pendingCreates.delete(itemKey)),
+                          );
                       }),
+
+                      // Handle updates
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
                           if (waitForSetParam) {
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'update' });
                           }
-                          const toSave = itemValue;
-                          const changed = (await transformOut(toSave as TLocal, transform?.save)) as TRemote & {};
-
+                          const changed = (await transformOut(itemValue as TLocal, transform?.save)) as TRemote;
                           if (Object.keys(changed).length > 0) {
-                              return updateFn!(changed, params).then(
-                                  (result) => result && saveResult(itemKey, changed, result as any, false),
+                              return runWithRetry(params, retry, 'update_' + itemKey, () =>
+                                  updateFn!(changed, params).then(
+                                      (result) => result && saveResult(itemKey, changed, result as any, false),
+                                  ),
                               );
                           }
                       }),
-                      ...Array.from(deletes).map(async (valuePrevious) => {
-                          // Don't delete if already deleted
-                          if (valuePrevious !== (symbolDelete as any)) {
+
+                      // Handle deletes
+                      ...Array.from(deletes)
+                          .filter((val) => val !== (symbolDelete as any))
+                          .map(async (valuePrevious) => {
                               if (waitForSetParam) {
                                   await waitForSet(waitForSetParam as any, changes, valuePrevious, { type: 'delete' });
                               }
-                              if (deleteFn) {
-                                  deleteFn(valuePrevious, params);
-                              } else if (fieldDeleted && updateFn) {
-                                  const valueId = (valuePrevious as any)[fieldId];
-                                  if (valueId) {
-                                      // Update with fieldDeleted set to true
-                                      updateFn({ ...{ [fieldId]: valueId }, [fieldDeleted]: true } as any, params);
-                                  } else {
-                                      console.error('[legend-state]: deleting item without an id');
-                                  }
-                              } else {
-                                  console.warn('[legend-state] missing delete function');
+                              const valueId = (valuePrevious as any)[fieldId];
+
+                              if (!valueId) {
+                                  console.error('[legend-state]: deleting item without an id');
+                                  return;
                               }
-                          }
-                      }),
+
+                              if (deleteFn) {
+                                  return runWithRetry(params, retry, 'delete_' + valueId, () =>
+                                      deleteFn(valuePrevious, params),
+                                  );
+                              }
+
+                              if (fieldDeleted && updateFn) {
+                                  return runWithRetry(params, retry, 'delete_' + valueId, () =>
+                                      updateFn({ [fieldId]: valueId, [fieldDeleted]: true } as any, params),
+                                  );
+                              }
+
+                              console.warn('[legend-state] missing delete function');
+                          }),
                   ]);
               }
             : undefined;

@@ -1,5 +1,5 @@
+import type { RetryOptions } from '@legendapp/state';
 import { isPromise } from '../is';
-import type { NodeInfo, RetryOptions } from '@legendapp/state';
 import type { OnErrorRetryParams, SyncedGetSetBaseParams } from './syncTypes';
 
 function calculateRetryDelay(retryOptions: RetryOptions, retryNum: number): number | null {
@@ -20,21 +20,21 @@ function createRetryTimeout(retryOptions: RetryOptions, retryNum: number, fn: ()
     }
 }
 
-const mapRetryTimeouts = new Map<NodeInfo, number>();
+const mapRetryTimeouts = new Map<any, number>();
 
 export function runWithRetry<T>(
     state: SyncedGetSetBaseParams<any>,
     retryOptions: RetryOptions | undefined,
+    retryId: any,
     fn: (params: OnErrorRetryParams) => T | Promise<T>,
-    onError: (error: Error, retryParams: OnErrorRetryParams) => void,
 ): T | Promise<T> {
     try {
         let value = fn(state);
 
         if (isPromise(value) && retryOptions) {
             let timeoutRetry: number;
-            if (mapRetryTimeouts.has(state.node)) {
-                clearTimeout(mapRetryTimeouts.get(state.node));
+            if (mapRetryTimeouts.has(retryId)) {
+                clearTimeout(mapRetryTimeouts.get(retryId));
             }
             return new Promise<any>((resolve, reject) => {
                 const run = () => {
@@ -47,9 +47,6 @@ export function runWithRetry<T>(
                             if (timeoutRetry) {
                                 clearTimeout(timeoutRetry);
                             }
-                            if (onError) {
-                                onError(error, state);
-                            }
                             if (!state.cancelRetry) {
                                 const timeout = createRetryTimeout(retryOptions, state.retryNum, () => {
                                     value = fn(state);
@@ -60,7 +57,7 @@ export function runWithRetry<T>(
                                     state.cancelRetry = true;
                                     reject(error);
                                 } else {
-                                    mapRetryTimeouts.set(state.node, timeout);
+                                    mapRetryTimeouts.set(retryId, timeout);
                                     timeoutRetry = timeout;
                                 }
                             }

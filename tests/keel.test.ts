@@ -293,7 +293,7 @@ describe('keel', () => {
 
         expect(numUpdates).toEqual(2);
     });
-    test('setting error retries', async () => {
+    test('setting error retries with onError', async () => {
         let numUpdates = 0;
         let numErrors = 0;
         let errorMessage: string | undefined;
@@ -330,5 +330,124 @@ describe('keel', () => {
         expect(numUpdates).toEqual(2);
         expect(numErrors).toEqual(2);
         expect(errorMessage).toEqual('test');
+    });
+    test('setting error retries with onError', async () => {
+        let shouldError = true;
+        const errors: Set<BasicValue> = new Set();
+        const creates: Set<BasicValue> = new Set();
+        let didUpdate = false;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([ItemBasicValue()]),
+                create: async (value) => {
+                    if (shouldError) {
+                        return { error: { message: 'test' } };
+                    } else {
+                        creates.add(value as any);
+                        return {
+                            data: value,
+                        } as any;
+                    }
+                },
+                update() {
+                    didUpdate = true;
+                    return undefined as any;
+                },
+                retry: {
+                    infinite: true,
+                    delay: 1,
+                },
+                onError(error, params) {
+                    errors.add(params.input);
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await promiseTimeout(1);
+
+        const newItem: BasicValue = { id: 'id2', test: 'hi2' };
+        const newItem2: BasicValue = { id: 'id3', test: 'hi3' };
+
+        obs$[newItem.id].set(newItem);
+        obs$[newItem2.id].set(newItem2);
+
+        expect(didUpdate).toEqual(false);
+
+        await promiseTimeout(1);
+
+        expect(didUpdate).toEqual(false);
+
+        expect(Array.from(errors)).toEqual([newItem2, newItem]);
+
+        errors.clear();
+        shouldError = false;
+
+        await promiseTimeout(5);
+
+        expect(Array.from(errors)).toEqual([]);
+        expect(Array.from(creates)).toEqual([newItem2, newItem]);
+    });
+    test('setting error retries with onError', async () => {
+        let shouldError = true;
+        const errors: Set<BasicValue> = new Set();
+        const creates: Set<BasicValue> = new Set();
+        let didUpdate = false;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([ItemBasicValue()]),
+                create: async (value) => {
+                    if (shouldError) {
+                        return { error: { message: 'test' } };
+                    } else {
+                        creates.add(value as any);
+                        return {
+                            data: value,
+                        } as any;
+                    }
+                },
+                update() {
+                    didUpdate = true;
+                    return undefined as any;
+                },
+                retry: {
+                    infinite: true,
+                    delay: 1,
+                },
+                onError(error, params) {
+                    errors.add(params.input);
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await promiseTimeout(1);
+
+        const newItem: BasicValue = { id: 'id2', test: 'hi2' };
+        const newItem2: BasicValue = { id: 'id3', test: 'hi3' };
+
+        obs$[newItem.id].set(newItem);
+
+        await promiseTimeout(1);
+
+        obs$[newItem2.id].set(newItem2);
+
+        expect(didUpdate).toEqual(false);
+
+        await promiseTimeout(1);
+
+        expect(didUpdate).toEqual(false);
+
+        expect(Array.from(errors)).toEqual([newItem, newItem2]);
+
+        errors.clear();
+        shouldError = false;
+
+        await promiseTimeout(5);
+
+        expect(Array.from(errors)).toEqual([]);
+        expect(Array.from(creates).sort((a, b) => a.id.localeCompare(b.id))).toEqual([newItem, newItem2]);
     });
 });
