@@ -162,7 +162,11 @@ export interface UpdateFnParams<T = any> {
     mode?: GetMode;
     lastSync?: number | undefined;
 }
+export interface UpdateSetFnParams<T = any> extends UpdateFnParams<T> {
+    lastSync?: never;
+}
 export type UpdateFn<T = any> = (params: UpdateFnParams<T>) => void;
+export type UpdateSetFn<T = any> = (params: UpdateSetFnParams<T>) => void;
 export type Linked<T> = T;
 
 export interface ObserveOptions {

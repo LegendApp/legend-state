@@ -17,6 +17,7 @@ import type {
     SetParams,
     TypeAtPath,
     UpdateFn,
+    UpdateSetFn,
 } from '@legendapp/state';
 
 export interface PersistOptions<T = any> {
@@ -56,7 +57,7 @@ export interface SyncedGetParams<T> extends SyncedGetSetBaseParams<T> {
 }
 
 export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'>, SyncedGetSetBaseParams<T> {
-    update: UpdateFn<T>;
+    update: UpdateSetFn<T>;
     onError: (error: Error, params: SyncedErrorParams) => void;
 }
 

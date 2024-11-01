@@ -10,6 +10,7 @@ import type {
     ObservableSyncState,
     TypeAtPath,
     UpdateFnParams,
+    UpdateSetFnParams,
 } from '@legendapp/state';
 import {
     ObservableHint,
@@ -287,7 +288,7 @@ async function processQueuedChanges() {
     // 4. Wait for remote load or error if allowed
     // 5. Save to remote
     // 6. On successful save, merge changes (if any) back into observable
-    // 7. Lastly, update metadata to clear pending and update lastSync. Doing this earlier could potentially cause
+    // 7. Lastly, update metadata to clear pending. Doing this earlier could potentially cause
     // sync inconsistences so it's very important that this is last.
 
     const preppedChangesLocal = await Promise.all(queuedChanges.map(prepChangeLocal));
@@ -625,13 +626,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         onBeforeSet?.(beforeSetParams);
 
         if (!beforeSetParams.cancel) {
-            let updateResult:
-                | {
-                      value?: any;
-                      mode?: GetMode;
-                      lastSync?: number | undefined;
-                  }
-                | undefined = undefined;
+            let updateResult: UpdateSetFnParams | undefined = undefined;
 
             let lastErrorHandled: Error | undefined;
 
@@ -661,11 +656,10 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 changes: changesRemote,
                 value,
                 onError: onSetError,
-                update: (params: UpdateFnParams) => {
+                update: (params: UpdateSetFnParams<any>) => {
                     if (updateResult) {
-                        const { value, lastSync, mode } = params;
+                        const { value, mode } = params;
                         updateResult = {
-                            lastSync: Math.max(updateResult.lastSync || 0, lastSync || 0),
                             value: deepMerge(updateResult.value, value),
                             mode: mode,
                         };
@@ -697,7 +691,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 // Because save happens after a timeout and they're batched together, some calls to save will
                 // return saved data and others won't, so those can be ignored.
                 const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
-                const { value: changes, lastSync } = updateResult! || {};
+                const { value: changes } = updateResult! || {};
                 if (pathStrs.length > 0) {
                     let transformedChanges: object | undefined = undefined;
                     const metadata: PersistMetadata = {};
@@ -719,10 +713,6 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                                 // Remove pending from local state
                                 delete pending[pathStr];
                             }
-                        }
-
-                        if (lastSync) {
-                            metadata.lastSync = lastSync;
                         }
                     }
 

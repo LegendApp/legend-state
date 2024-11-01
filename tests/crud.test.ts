@@ -1720,6 +1720,75 @@ describe('lastSync', () => {
             ]),
         );
     });
+    test('does not set lastSync from save', async () => {
+        const persistName = getPersistName();
+        let numLists = 0;
+        let serverState = [{ ...ItemBasicValue(), updatedAt: 1 }];
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    numLists++;
+                    return promiseTimeout(0, serverState);
+                },
+                create: async (input) => {
+                    return { ...input, updatedAt: 2 };
+                },
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+        expectTypeOf<(typeof obs$)['get']>().returns.toEqualTypeOf<Record<string, BasicValue>>();
+        expect(numLists).toEqual(0);
+
+        obs$.get();
+
+        await promiseTimeout(1);
+
+        expect(numLists).toEqual(1);
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', updatedAt: 1 },
+        });
+
+        obs$['id2'].set({
+            id: 'id2',
+            test: 'hi2',
+        });
+
+        await promiseTimeout(1);
+
+        expect(numLists).toEqual(1);
+
+        serverState = [
+            { id: 'id1', test: 'hi', updatedAt: 1 },
+            { id: 'id2', test: 'hi2', updatedAt: 2 },
+        ];
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', updatedAt: 1 },
+            id2: { id: 'id2', test: 'hi2', updatedAt: 2 },
+        });
+
+        expect(localStorage.getItem(persistName)!).toEqual(
+            JSON.stringify({
+                id1: { id: 'id1', test: 'hi', updatedAt: 1 },
+                id2: { id: 'id2', test: 'hi2', updatedAt: 2 },
+            }),
+        );
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 1 }));
+
+        syncState(obs$).sync();
+        expect(numLists).toEqual(2);
+
+        await promiseTimeout(10);
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 2 }));
+    });
 });
 describe('update partial', () => {
     test('without updatePartial', async () => {

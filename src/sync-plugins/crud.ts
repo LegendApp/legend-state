@@ -484,9 +484,6 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   }
                               });
 
-                              const createdAt = fieldCreatedAt ? saved[fieldCreatedAt as keyof TLocal] : undefined;
-                              const updatedAt = fieldUpdatedAt ? saved[fieldUpdatedAt as keyof TLocal] : undefined;
-
                               let value: any;
                               if (asType === 'array') {
                                   const index = (currentPeeked as any[]).findIndex(
@@ -504,10 +501,6 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               if (value !== undefined) {
                                   update({
                                       value,
-                                      lastSync:
-                                          updatedAt || createdAt
-                                              ? +new Date(updatedAt || (createdAt as any))
-                                              : undefined,
                                       mode: 'merge',
                                   });
                               }
