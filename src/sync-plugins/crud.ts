@@ -13,6 +13,7 @@ import {
     symbolDelete,
 } from '@legendapp/state';
 import {
+    SyncedErrorParams,
     SyncedGetParams,
     SyncedOptions,
     SyncedSetParams,
@@ -54,8 +55,14 @@ export interface WaitForSetCrudFnParams<T> extends WaitForSetFnParams<T> {
     type: 'create' | 'update' | 'delete';
 }
 
+export interface CrudErrorParams extends Omit<SyncedErrorParams, 'source'> {
+    source: 'list' | 'get' | 'create' | 'update' | 'delete';
+}
+
+export type CrudOnErrorFn = (error: Error, params: CrudErrorParams) => void;
+
 export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
-    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet'> {
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet' | 'onError'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,
@@ -77,6 +84,7 @@ export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
         | Promise<any>
         | ObservableParam<any>
         | ObservableEvent;
+    onError?: (error: Error, params: CrudErrorParams) => void;
 }
 
 type InitialValue<TLocal, TAsOption extends CrudAsOption> = TAsOption extends 'Map'
@@ -200,16 +208,18 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     };
 
     const transformRows = (data: TRemote[]) => {
-        return Promise.all(
-            data.map((value: any) =>
-                // Skip transforming any children with symbolDelete or fieldDeleted because they'll get deleted by resultsToOutType
-                value[symbolDelete] ||
-                (fieldDeleted && value[fieldDeleted]) ||
-                (fieldDeletedList && value[fieldDeletedList])
-                    ? value
-                    : transform!.load!(value, 'get'),
-            ),
-        );
+        return data.length
+            ? Promise.all(
+                  data.map((value: any) =>
+                      // Skip transforming any children with symbolDelete or fieldDeleted because they'll get deleted by resultsToOutType
+                      value[symbolDelete] ||
+                      (fieldDeleted && value[fieldDeleted]) ||
+                      (fieldDeletedList && value[fieldDeletedList])
+                          ? value
+                          : transform!.load!(value, 'get'),
+                  ),
+              )
+            : [];
     };
 
     const get: undefined | ((params: SyncedGetParams<TRemote>) => TLocal | Promise<TLocal>) =
@@ -231,7 +241,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           if (asType === 'value') {
                               return transformed.length > 0
                                   ? transformed[0]
-                                  : ((((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null);
+                                  : getFn
+                                    ? ((((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null)
+                                    : undefined;
                           } else {
                               return resultsToOutType(transformed);
                           }
@@ -583,6 +595,6 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         get,
         subscribe,
         mode: modeParam,
-        ...rest,
+        ...(rest as any),
     });
 }

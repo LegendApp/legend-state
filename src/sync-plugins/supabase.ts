@@ -3,6 +3,7 @@ import {
     SyncTransform,
     SyncedOptions,
     SyncedOptionsGlobal,
+    SyncedSetParams,
     combineTransforms,
     removeNullUndefined,
     transformStringifyDates,
@@ -11,15 +12,16 @@ import {
 } from '@legendapp/state/sync';
 import {
     CrudAsOption,
+    CrudOnErrorFn,
     SyncedCrudPropsBase,
     SyncedCrudPropsMany,
     SyncedCrudReturnType,
     WaitForSetCrudFnParams,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
+import type { FunctionsResponse } from '@supabase/functions-js';
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import type { PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js';
-import type { FunctionsResponse } from '@supabase/functions-js';
 
 // Unused types but maybe useful in the future so keeping them for now
 type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
@@ -127,10 +129,16 @@ export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
 }
 
 function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>) {
-    return async (...args: any) => {
-        const { data, error } = await fn(...args);
+    return async (params: SyncedGetParams<any>, ...args: any) => {
+        const { onError } = params;
+        const { data, error } = await fn(params, ...args);
         if (error) {
-            throw new Error(error.message);
+            (onError as CrudOnErrorFn)(new Error(error.message), {
+                getParams: params,
+                source: 'list',
+                type: 'get',
+                retry: params,
+            });
         }
         return data;
     };
@@ -194,7 +202,7 @@ export function syncedSupabase<
             ? listParam
                 ? wrapSupabaseFn(listParam)
                 : async (params: SyncedGetParams<TRemote>) => {
-                      const { lastSync } = params;
+                      const { lastSync, onError } = params;
                       const clientSchema = schema ? client.schema(schema as string) : client;
                       const from = clientSchema.from(collection);
                       let select = selectFn ? selectFn(from) : from.select();
@@ -209,24 +217,38 @@ export function syncedSupabase<
                           select = filter(select, params);
                       }
                       const { data, error } = await select;
-                      if (error) {
-                          throw new Error(error?.message);
+                      if (data) {
+                          return (data! || []) as SupabaseRowOf<Client, Collection, SchemaName>[];
+                      } else if (error) {
+                          (onError as CrudOnErrorFn)(new Error(error.message), {
+                              getParams: params,
+                              source: 'list',
+                              type: 'get',
+                              retry: params,
+                          });
                       }
-                      return (data! || []) as SupabaseRowOf<Client, Collection, SchemaName>[];
+                      return null;
                   }
             : undefined;
 
     const create = createParam
         ? wrapSupabaseFn(createParam)
         : !actions || actions.includes('create')
-          ? async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
+          ? async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
+                const { onError } = params;
                 const res = await client.from(collection).insert(input).select();
                 const { data, error } = res;
                 if (data) {
                     const created = data[0];
                     return created;
-                } else {
-                    throw new Error(error?.message);
+                } else if (error) {
+                    (onError as CrudOnErrorFn)(new Error(error.message), {
+                        setParams: params,
+                        source: 'create',
+                        type: 'set',
+                        retry: params,
+                        input,
+                    });
                 }
             }
           : undefined;
@@ -235,14 +257,21 @@ export function syncedSupabase<
         !actions || actions.includes('update')
             ? updateParam
                 ? wrapSupabaseFn(updateParam)
-                : async (input: SupabaseRowOf<Client, Collection, SchemaName>) => {
+                : async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
+                      const { onError } = params;
                       const res = await client.from(collection).update(input).eq('id', input.id).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
                           return created;
-                      } else {
-                          throw new Error(error?.message);
+                      } else if (error) {
+                          (onError as CrudOnErrorFn)(new Error(error.message), {
+                              setParams: params,
+                              source: 'update',
+                              type: 'set',
+                              retry: params,
+                              input,
+                          });
                       }
                   }
             : undefined;
@@ -251,15 +280,25 @@ export function syncedSupabase<
         !fieldDeleted && (!actions || actions.includes('delete'))
             ? deleteParam
                 ? wrapSupabaseFn(deleteParam)
-                : async (input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] }) => {
+                : async (
+                      input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
+                      params: SyncedSetParams<TRemote>,
+                  ) => {
+                      const { onError } = params;
                       const id = input.id;
                       const res = await client.from(collection).delete().eq('id', id).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
                           return created;
-                      } else {
-                          throw new Error(error?.message);
+                      } else if (error) {
+                          (onError as CrudOnErrorFn)(new Error(error.message), {
+                              setParams: params,
+                              source: 'delete',
+                              type: 'set',
+                              retry: params,
+                              input,
+                          });
                       }
                   }
             : undefined;

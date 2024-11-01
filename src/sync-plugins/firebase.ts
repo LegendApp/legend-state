@@ -9,7 +9,7 @@ import {
     symbolDelete,
     when,
 } from '@legendapp/state';
-import { FieldTransforms, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
+import { FieldTransforms, SyncedErrorParams, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
 import {
     CrudAsOption,
     SyncedCrudPropsBase,
@@ -45,11 +45,12 @@ import { invertFieldMap, transformObjectFields } from '../sync/transformObjectFi
 
 export interface SyncedFirebaseProps<TRemote extends object, TLocal, TAs extends CrudAsOption = 'value'>
     extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list' | 'retry'>,
-        SyncedCrudPropsBase<TRemote, TLocal> {
+        Omit<SyncedCrudPropsBase<TRemote, TLocal>, 'onError'> {
     refPath: (uid: string | undefined) => string;
     query?: (ref: DatabaseReference) => DatabaseReference | Query;
     fieldId?: string;
     fieldTransforms?: FieldTransforms<TRemote>;
+    onError?: (error: Error, params: FirebaseErrorParams) => void;
     // Also in global config
     realtime?: boolean;
     requireAuth?: boolean;
@@ -110,6 +111,12 @@ interface FirebaseFns {
     onAuthStateChanged: (cb: (user: User | null) => void) => Unsubscribe;
     generateId: () => string;
 }
+
+export interface FirebaseErrorParams extends Omit<SyncedErrorParams, 'source'> {
+    source: 'list' | 'get' | 'create' | 'update' | 'delete';
+}
+
+type OnErrorFn = (error: Error, params: FirebaseErrorParams) => void;
 
 const fns: FirebaseFns = {
     isInitialized: () => {
@@ -186,7 +193,8 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         return ref;
     };
 
-    const list = async ({ lastSync, onError }: SyncedGetParams<TRemote>): Promise<TRemote[]> => {
+    const list = async (getParams: SyncedGetParams<TRemote>): Promise<TRemote[]> => {
+        const { lastSync, onError } = getParams;
         const ref = computeRef(lastSync!);
 
         return new Promise((resolve) => {
@@ -209,7 +217,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                     didList = true;
                     resolve(values);
                 },
-                onError,
+                (error) => (onError as OnErrorFn)(error, { source: 'list', type: 'get', retry: getParams }),
             );
         });
     };
@@ -389,7 +397,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     }
 
     return syncedCrud<TRemote, TLocal, TAs>({
-        ...rest,
+        ...(rest as any), // Workaround for type errors
         list,
         subscribe,
         create,

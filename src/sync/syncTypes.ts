@@ -51,13 +51,13 @@ export interface SyncedGetParams<T> extends SyncedGetSetBaseParams<T> {
     lastSync: number | undefined;
     updateLastSync: (lastSync: number) => void;
     mode: GetMode;
-    onError: (error: Error) => void;
+    onError: (error: Error, params: SyncedErrorParams) => void;
     options: SyncedOptions;
 }
 
 export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'>, SyncedGetSetBaseParams<T> {
     update: UpdateFn<T>;
-    onError: (error: Error, retryParams: OnErrorRetryParams) => void;
+    onError: (error: Error, params: SyncedErrorParams) => void;
 }
 
 export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBaseParams<T> {
@@ -67,11 +67,12 @@ export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBas
 }
 
 export interface SyncedErrorParams {
+    source: 'get' | 'set' | 'subscribe';
+    type: 'get' | 'set';
+    retry: OnErrorRetryParams;
     getParams?: SyncedGetParams<any>;
     setParams?: SyncedSetParams<any>;
     subscribeParams?: SyncedSubscribeParams<any>;
-    source: 'get' | 'set' | 'subscribe';
-    type: 'get' | 'set';
     input?: any;
 }
 

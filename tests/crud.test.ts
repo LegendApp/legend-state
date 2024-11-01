@@ -396,6 +396,53 @@ describe('Crud object get', () => {
             as: 'value',
         }));
 });
+describe('Crud as value list', () => {
+    test('does not overwrite if returns []', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ id: 'id', test: 'hi', updatedAt: 1 }));
+        localStorage.setItem(
+            persistName + '__m',
+            JSON.stringify({ lastSync: 1000, pending: { test: { p: 'h', t: ['object'], v: 'hi' } } }),
+        );
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, []),
+                as: 'value',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ id: 'id', test: 'hi', updatedAt: 1 });
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({ id: 'id', test: 'hi', updatedAt: 1 });
+    });
+    test('sets if returns new value', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify({ id: 'id', test: 'hi', updatedAt: 1 }));
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [{ id: 'id2', test: 'hi2', updatedAt: 2 }]),
+                as: 'value',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ id: 'id', test: 'hi', updatedAt: 1 });
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({ id: 'id2', test: 'hi2', updatedAt: 2 });
+    });
+});
+
 describe('Crud as Object list', () => {
     test('defaults to object', async () => {
         const obs = observable(
@@ -2774,6 +2821,7 @@ describe('Error is set', () => {
     });
     test('onError is called if create fails', async () => {
         let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
         const obs$ = observable(
             syncedCrud({
                 list: () => promiseTimeout(0, [ItemBasicValue()]),
@@ -2782,6 +2830,7 @@ describe('Error is set', () => {
                     throw new Error('test');
                 },
                 onError: (error) => {
+                    numErrors++;
                     errorAtOnError = error;
                 },
             }),
@@ -2797,6 +2846,32 @@ describe('Error is set', () => {
         await promiseTimeout(1);
 
         expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+    });
+    test('onError is called if list fails', async () => {
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => {
+                    throw new Error('test');
+                },
+                as: 'object',
+                onError: (error) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual(undefined);
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
     });
 });
 describe('soft delete', () => {

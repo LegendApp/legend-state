@@ -633,18 +633,26 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                   }
                 | undefined = undefined;
 
-            let errorHandled = false;
-            const onError = (error: Error, retryParams?: OnErrorRetryParams) => {
-                state$.error.set(error);
-                if (!errorHandled) {
-                    syncOptions.onError?.(error, {
-                        setParams: setParams as SyncedSetParams<any>,
-                        source: 'set',
-                        value$: obs$,
-                        retryParams,
-                    });
+            let lastErrorHandled: Error | undefined;
+
+            const onSetError = (error: Error, params?: SyncedErrorParams, noThrow?: boolean) => {
+                if (lastErrorHandled !== error) {
+                    if (!params) {
+                        params = {
+                            setParams: setParams as SyncedSetParams<any>,
+                            source: 'set',
+                            type: 'set',
+                            input: value,
+                            retry: setParams,
+                        };
+                    }
+                    state$.error.set(error);
+                    syncOptions.onError?.(error, params);
+                    lastErrorHandled = error;
+                    if (!noThrow) {
+                        throw error;
+                    }
                 }
-                errorHandled = true;
             };
 
             const setParams: SyncedSetParams<any> = {
@@ -652,7 +660,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 value$: obs$,
                 changes: changesRemote,
                 value,
-                onError,
+                onError: onSetError,
                 update: (params: UpdateFnParams) => {
                     if (updateResult) {
                         const { value, lastSync, mode } = params;
@@ -676,7 +684,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 async () => {
                     return syncOptions!.set!(setParams);
                 },
-                onError,
+                (error) => onSetError(error, undefined, true),
             );
             let didError = false;
 
@@ -684,7 +692,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 await savedPromise.catch((error) => {
                     didError = true;
                     if (!syncOptions.retry) {
-                        onError(error);
+                        onSetError(error, undefined, true);
                     }
                 });
             }
@@ -937,13 +945,23 @@ export function syncObservable<T>(
     allSyncStates.set(syncState$, node);
     syncStateValue.getPendingChanges = () => localState.pendingChanges;
 
-    let errorHandled = false;
-    const onGetError = (error: Error, params: Omit<SyncedErrorParams, 'value$'>) => {
-        syncState$.error.set(error);
-        if (!errorHandled) {
-            syncOptions.onError?.(error, { ...params, value$: obs$ });
+    let lastErrorHandled: Error | undefined;
+    const onGetError = (error: Error, params: SyncedErrorParams, noThrow?: boolean) => {
+        if (lastErrorHandled !== error) {
+            if (!params) {
+                params = {
+                    source: 'get',
+                    type: 'get',
+                    retry: params,
+                };
+            }
+            syncState$.error.set(error);
+            syncOptions.onError?.(error, params);
+            lastErrorHandled = error;
+            if (!noThrow) {
+                throw error;
+            }
         }
-        errorHandled = true;
     };
 
     loadLocal(obs$, syncOptions, syncState$, localState);
@@ -1140,7 +1158,13 @@ export function syncObservable<T>(
                                     );
                                 },
                                 refresh: () => when(syncState$.isLoaded, sync),
-                                onError: (error: Error) => onGetError(error, { source: 'subscribe', subscribeParams }),
+                                onError: (error: Error) =>
+                                    onGetError(error, {
+                                        source: 'subscribe',
+                                        subscribeParams,
+                                        type: 'get',
+                                        retry: {} as OnErrorRetryParams,
+                                    }),
                             };
                             unsubscribe = subscribe(subscribeParams);
                         };
@@ -1154,7 +1178,9 @@ export function syncObservable<T>(
                     const existingValue = getNodeValue(node);
 
                     if (get) {
-                        const onError = (error: Error) => onGetError(error, { getParams, source: 'get' });
+                        const onError = (error: Error) => {
+                            onGetError(error, { getParams, source: 'get', type: 'get', retry: getParams });
+                        };
                         const getParams: SyncedGetParams<T> = {
                             node,
                             value$: obs$,
@@ -1165,7 +1191,7 @@ export function syncObservable<T>(
                             options: syncOptions,
                             lastSync,
                             updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                            onError,
+                            onError: onGetError,
                             retryNum: 0,
                             cancelRetry: false,
                         };
@@ -1239,7 +1265,13 @@ export function syncObservable<T>(
                                 });
                             };
                             if (isPromise(got)) {
-                                got.then(handle).catch(onError);
+                                got.then(handle).catch((error) => {
+                                    onGetError(
+                                        error,
+                                        { getParams, source: 'get', type: 'get', retry: getParams },
+                                        true,
+                                    );
+                                });
                             } else {
                                 handle(got);
                             }

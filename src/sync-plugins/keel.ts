@@ -161,6 +161,8 @@ export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TR
     onError?: (error: Error, params: KeelErrorParams) => void;
 }
 
+type OnErrorFn = (error: Error, params: KeelErrorParams) => void;
+
 const modifiedClients = new WeakSet<Record<string, any>>();
 const isAuthed$ = observable(false);
 const isAuthing$ = observable(false);
@@ -275,7 +277,7 @@ async function getAllPages<TRemote>(
     >,
     params: KeelListParams,
     listParams: SyncedGetParams<TRemote>,
-    onError: ((error: Error, params: KeelErrorParams) => void) | undefined,
+    onError: (error: Error, params: KeelErrorParams) => void,
 ): Promise<TRemote[]> {
     const allData: TRemote[] = [];
     let pageInfo: PageInfo | undefined = undefined;
@@ -302,15 +304,13 @@ async function getAllPages<TRemote>(
 
                 if (!handled) {
                     const err = new Error(error.message, { cause: { error } });
-                    // TODO
-                    onError?.(err, {
+                    onError(err, {
                         getParams: listParams,
                         type: 'get',
                         source: 'list',
                         action: listFn.name || listFn.toString(),
+                        retry: listParams,
                     });
-
-                    throw err;
                 }
             } else if (data) {
                 pageInfo = data.pageInfo as PageInfo;
@@ -356,7 +356,6 @@ export function syncedKeel<
         fieldDeleted,
         realtime,
         mode,
-        onError,
         requireAuth = true,
         ...rest
     } = props;
@@ -385,7 +384,7 @@ export function syncedKeel<
 
     const list = listParam
         ? async (listParams: SyncedGetParams<TRemote>) => {
-              const { lastSync } = listParams;
+              const { lastSync, onError } = listParams;
               const queryBySync = !!lastSync && changesSince === 'last-sync';
               // If querying with lastSync pass it to the "where" parameters
               const where = Object.assign(
@@ -396,7 +395,7 @@ export function syncedKeel<
 
               realtimeState.current = {};
 
-              const promise = getAllPages(props, listParam, params, listParams, onError);
+              const promise = getAllPages(props, listParam, params, listParams, onError as OnErrorFn);
 
               if (realtime) {
                   setupSubscribe!(listParams);
@@ -408,7 +407,7 @@ export function syncedKeel<
 
     const get = getParam
         ? async (getParams: SyncedGetParams<TRemote>) => {
-              const { refresh } = getParams;
+              const { refresh, onError } = getParams;
 
               realtimeState.current = {};
 
@@ -425,15 +424,13 @@ export function syncedKeel<
 
                   if (!handled) {
                       const err = new Error(error.message, { cause: { error } });
-                      // TODO
-                      onError?.(err, {
+                      (onError as OnErrorFn)(err, {
                           getParams,
                           type: 'get',
                           source: 'get',
                           action: getParam.name || getParam.toString(),
+                          retry: getParams,
                       });
-
-                      throw err;
                   }
               } else {
                   return data as TRemote;
@@ -459,7 +456,7 @@ export function syncedKeel<
         fn: Function,
         from: 'create' | 'update' | 'delete',
     ) => {
-        const { update } = params;
+        const { update, onError } = params;
 
         if (
             from === 'create' &&
@@ -485,15 +482,14 @@ export function syncedKeel<
 
             if (!handled) {
                 const err = new Error(error.message, { cause: { error } });
-                onError?.(err, {
+                (onError as OnErrorFn)(err, {
                     setParams: params,
                     input,
                     type: 'set',
                     source: from,
                     action: fn.name || fn.toString(),
+                    retry: params,
                 });
-
-                throw err;
             }
         }
     };
