@@ -120,8 +120,21 @@ function collectionSetter(node: NodeInfo, target: any[], prop: keyof Array<any>,
     }
 }
 
-function getKeys(obj: Record<any, any> | Array<any> | undefined, isArr: boolean, isMap: boolean): string[] {
-    return isArr ? (undefined as any) : obj ? (isMap ? Array.from(obj.keys()) : Object.keys(obj)) : [];
+function getKeys(
+    obj: Record<any, any> | Array<any> | undefined,
+    isArr: boolean,
+    isMap: boolean,
+    isSet: boolean,
+): string[] {
+    return isArr
+        ? (undefined as any)
+        : obj
+          ? isSet
+              ? Array.from(obj as Set<any>)
+              : isMap
+                ? Array.from(obj.keys())
+                : Object.keys(obj)
+          : [];
 }
 
 function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {
@@ -162,10 +175,12 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
     let moved: [string, ChildNodeInfo][] | undefined;
 
     const isCurMap = isMap(obj);
+    const isCurSet = isSet(obj);
     const isPrevMap = isMap(prevValue);
+    const isPrevSet = isSet(prevValue);
 
-    const keys = getKeys(obj, isArr, isCurMap);
-    const keysPrev = getKeys(prevValue, isArr, isPrevMap);
+    const keys = getKeys(obj, isArr, isCurMap, isCurSet);
+    const keysPrev = getKeys(prevValue, isArr, isPrevMap, isPrevSet);
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
 

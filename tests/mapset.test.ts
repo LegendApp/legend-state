@@ -265,6 +265,19 @@ describe('Set default behavior', () => {
         obs$.test.delete('key');
         expect(lastValue).toEqual(1);
     });
+    test('Set overwrite with new set', () => {
+        const obs = observable(new Set(['key']));
+        const handler = expectChangeHandler(obs);
+        obs.set(new Set(['key', 'key2']));
+
+        expect(handler).toHaveBeenCalledWith(new Set(['key', 'key2']), new Set(['key']), [
+            { path: [], pathTypes: [], prevAtPath: new Set(['key']), valueAtPath: new Set(['key', 'key2']) },
+        ]);
+
+        // Set has
+        expect(obs.has('key')).toEqual(true);
+        expect(obs.has('key2')).toEqual(true);
+    });
 });
 
 describe('Map/Set pathTypes', () => {
@@ -304,5 +317,31 @@ describe('Map/Set pathTypes', () => {
 
         mergeIntoObservable(obs, { test: new Map([['key', 'value']]) });
         expect(obs.test.peek()).toEqual(new Map([['key', 'value']]));
+    });
+    test('Set as computed', () => {
+        let lastSetValue: Set<string> | undefined = undefined;
+        const fileNames = observable<string[]>([]);
+
+        const fileNamesSet = observable(() => {
+            return new Set(fileNames.get());
+        });
+
+        observe(() => {
+            fileNames.get();
+        });
+
+        observe(() => {
+            lastSetValue = fileNamesSet.get();
+        });
+
+        expect(lastSetValue).toEqual(new Set());
+
+        fileNames.push('hi1');
+
+        expect(lastSetValue).toEqual(new Set(['hi1']));
+
+        fileNames.push('hi2');
+
+        expect(lastSetValue).toEqual(new Set(['hi1', 'hi2']));
     });
 });
