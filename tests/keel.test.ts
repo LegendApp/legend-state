@@ -1,9 +1,9 @@
 import { observable } from '@legendapp/state';
 import { syncedKeel as syncedKeelOrig } from '../src/sync-plugins/keel';
 import { configureSynced } from '../src/sync/configureSynced';
-import { promiseTimeout } from './testglobals';
+import { getPersistName, localStorage, ObservablePersistLocalStorage, promiseTimeout } from './testglobals';
 
-type APIError = { type: string; message: string; requestId?: string };
+type APIError = { type: string; message: string; requestId?: string; error?: Error };
 
 type APIResult<T> = Result<T, APIError>;
 
@@ -516,5 +516,115 @@ describe('keel', () => {
                 },
             },
         ]);
+    });
+    test('Error handling in crud ', async () => {
+        const persistName = getPersistName();
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([{ ...ItemBasicValue(), other: 2, another: 3 }]),
+                create: async (): Promise<any> => {
+                    return { error: { message: 'test' } };
+                },
+                update: async ({ where }): Promise<any> => {
+                    return { data: { ...obs$[where.id].peek(), updatedAt: 2 } } as any;
+                },
+                onError: (error) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                },
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', other: 2, another: 3, createdAt: 1, updatedAt: 1 },
+        });
+
+        obs$.id1.test.set('hello');
+        obs$.id2.set({ id: 'id2', test: 'hi', other: 3, another: 4 });
+
+        await promiseTimeout(1);
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                other: 2,
+                another: 3,
+                createdAt: 1,
+                updatedAt: 2,
+            },
+            id2: { id: 'id2', test: 'hi', other: 3, another: 4 },
+        });
+        await promiseTimeout(10);
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: { id2: { p: null, t: ['object'], v: { id: 'id2', test: 'hi', other: 3, another: 4 } } },
+            }),
+        );
+    });
+    test('onError reverts only one change if multiple fails', async () => {
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([{ ...ItemBasicValue(), other: 2, another: 3 }]),
+                create: async (): Promise<any> => {
+                    return { error: { message: 'test' } };
+                },
+                update: async ({ where }): Promise<any> => {
+                    return { data: { ...obs$[where.id].peek(), updatedAt: 2 } } as any;
+                },
+                onError: (error, params) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                    params.revert!();
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', other: 2, another: 3, createdAt: 1, updatedAt: 1 },
+        });
+
+        obs$.id1.test.set('hello');
+        obs$.id2.set({ id: 'id2', test: 'hi', other: 3, another: 4 });
+
+        await promiseTimeout(1);
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                other: 2,
+                another: 3,
+                createdAt: 1,
+                updatedAt: 2,
+            },
+            id2: undefined,
+        });
     });
 });

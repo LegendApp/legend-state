@@ -1,4 +1,5 @@
 import {
+    Change,
     ObservableEvent,
     ObservableParam,
     RetryOptions,
@@ -141,8 +142,9 @@ function retrySet(
     action: 'create' | 'update' | 'delete',
     itemKey: string,
     itemValue: any,
+    change: Change,
     actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
-    saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean) => void,
+    saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean, change: Change) => void,
 ) {
     // If delete then remove from create/update, and vice versa
     if (action === 'delete') {
@@ -166,10 +168,12 @@ function retrySet(
 
     queuedRetries[action].set(itemKey, itemValue);
 
-    return runWithRetry(params, retry, 'create_' + itemKey, () =>
-        actionFn!(itemValue, params).then((result) => {
+    const paramsWithChanges: SyncedSetParams<any> = { ...params, changes: [change] };
+
+    return runWithRetry(paramsWithChanges, retry, 'create_' + itemKey, () =>
+        actionFn!(itemValue, paramsWithChanges).then((result) => {
             queuedRetries[action]!.delete(itemKey);
-            return saveResult(itemKey, itemValue, result as any, true);
+            return saveResult(itemKey, itemValue, result as any, true, change);
         }),
     );
 }
@@ -353,6 +357,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
                   const deletes = new Set<TRemote>();
+                  const changesById = new Map<string, Change>();
 
                   const getUpdateValue = (itemValue: object, prev: object) => {
                       return updatePartial
@@ -373,6 +378,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   id = ensureId(value, fieldId, generateId);
                               }
                               if (id) {
+                                  changesById.set(id, change);
                                   if (pendingCreates.has(id)) {
                                       isCreate = false;
                                   }
@@ -397,6 +403,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               }
                           } else if (path.length === 0) {
                               deletes.add(prevAtPath);
+                              changesById.set(prevAtPath[fieldId], change);
                           }
                       } else {
                           // key, value, previous
@@ -427,6 +434,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       deletes.add(prevAtPath);
+                                      changesById.set(prevAtPath[fieldId], change);
                                   }
                               } else {
                                   const previous = setAtPath(
@@ -455,19 +463,18 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       console.error('[legend-state]: added item without an id');
                                   }
                                   if (createFn) {
-                                      pendingCreates.add(item[fieldId]);
-                                      creates.set(item[fieldId], item);
+                                      const id = item[fieldId];
+                                      changesById.set(id, change);
+                                      pendingCreates.add(id);
+                                      creates.set(id, item);
                                   } else {
                                       console.warn('[legend-state] missing create function');
                                   }
                               } else {
                                   if (updateFn) {
-                                      updates.set(
-                                          item[fieldId],
-                                          updates.has(item[fieldId])
-                                              ? Object.assign(updates.get(item[fieldId])!, item)
-                                              : item,
-                                      );
+                                      const id = item[fieldId];
+                                      changesById.set(id, change);
+                                      updates.set(id, updates.has(id) ? Object.assign(updates.get(id)!, item) : item);
                                   } else {
                                       console.warn('[legend-state] missing update function');
                                   }
@@ -481,6 +488,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       input: TRemote,
                       data: CrudResult<TRemote>,
                       isCreate: boolean,
+                      change: Change,
                   ) => {
                       if (data) {
                           let saved: Partial<TLocal> = (
@@ -525,7 +533,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       // value is already the new value, can ignore
                                       (saved as any)[key] === c ||
                                       // user has changed local value
-                                      (key !== fieldId && i !== c)
+                                      (key !== fieldId && i !== undefined && i !== c)
                                   ) {
                                       delete (saved as any)[key];
                                   }
@@ -549,6 +557,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   update({
                                       value,
                                       mode: 'merge',
+                                      changes: [change],
                                   });
                               }
                           }
@@ -562,11 +571,18 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
                           }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          return retrySet(params, retry, 'create', itemKey, createObj, createFn!, saveResult).then(
-                              () => {
-                                  pendingCreates.delete(itemKey);
-                              },
-                          );
+                          return retrySet(
+                              params,
+                              retry,
+                              'create',
+                              itemKey,
+                              createObj,
+                              changesById.get(itemKey)!,
+                              createFn!,
+                              saveResult,
+                          ).then(() => {
+                              pendingCreates.delete(itemKey);
+                          });
                       }),
 
                       // Handle updates
@@ -576,7 +592,16 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           }
                           const changed = (await transformOut(itemValue as TLocal, transform?.save)) as TRemote;
                           if (Object.keys(changed).length > 0) {
-                              return retrySet(params, retry, 'update', itemKey, changed, updateFn!, saveResult);
+                              return retrySet(
+                                  params,
+                                  retry,
+                                  'update',
+                                  itemKey,
+                                  changed,
+                                  changesById.get(itemKey)!,
+                                  updateFn!,
+                                  saveResult,
+                              );
                           }
                       }),
 
@@ -587,9 +612,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               if (waitForSetParam) {
                                   await waitForSet(waitForSetParam as any, changes, valuePrevious, { type: 'delete' });
                               }
-                              const valueId = (valuePrevious as any)[fieldId];
+                              const itemKey = (valuePrevious as any)[fieldId];
 
-                              if (!valueId) {
+                              if (!itemKey) {
                                   console.error('[legend-state]: deleting item without an id');
                                   return;
                               }
@@ -599,8 +624,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       params,
                                       retry,
                                       'delete',
-                                      valueId,
+                                      itemKey,
                                       valuePrevious,
+                                      changesById.get(itemKey)!,
                                       deleteFn!,
                                       saveResult,
                                   );
@@ -611,8 +637,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       params,
                                       retry,
                                       'delete',
-                                      valueId,
-                                      { [fieldId]: valueId, [fieldDeleted]: true } as any,
+                                      itemKey,
+                                      { [fieldId]: itemKey, [fieldDeleted]: true } as any,
+                                      changesById.get(itemKey)!,
                                       updateFn!,
                                       saveResult,
                                   );

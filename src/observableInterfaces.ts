@@ -161,6 +161,7 @@ export interface UpdateFnParams<T = any> {
     value: T;
     mode?: GetMode;
     lastSync?: number | undefined;
+    changes?: Change[];
 }
 export interface UpdateSetFnParams<T = any> extends UpdateFnParams<T> {
     lastSync?: never;

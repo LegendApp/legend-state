@@ -171,7 +171,7 @@ async function updateMetadataImmediate<T>(
     // Save metadata
     const oldMetadata: PersistMetadata | undefined = metadatas.get(value$);
 
-    const { lastSync } = newMetadata;
+    const { lastSync } = newMetadata!;
 
     const metadata = Object.assign({}, oldMetadata, newMetadata);
     metadatas.set(value$, metadata);
@@ -196,10 +196,10 @@ function updateMetadata<T>(
     if (localState.timeoutSaveMetadata) {
         clearTimeout(localState.timeoutSaveMetadata);
     }
-    localState.timeoutSaveMetadata = setTimeout(
-        () => updateMetadataImmediate(value$, localState, syncState, syncOptions as SyncedOptions<T>, newMetadata),
-        0,
-    );
+    metadatas.set(value$, { ...(metadatas.get(value$) || {}), ...newMetadata });
+    localState.timeoutSaveMetadata = setTimeout(() => {
+        updateMetadataImmediate(value$, localState, syncState, syncOptions as SyncedOptions<T>, metadatas.get(value$)!);
+    }, 0);
 }
 
 interface QueuedChange<T = any> {
@@ -660,10 +660,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 onError: onSetError,
                 update: (params: UpdateSetFnParams<any>) => {
                     if (updateResult) {
-                        const { value, mode } = params;
+                        const { value, mode, changes } = params;
                         updateResult = {
                             value: deepMerge(updateResult.value, value),
                             mode: mode,
+                            changes: changes ? [...(updateResult.changes || []), ...changes] : updateResult.changes,
                         };
                     } else {
                         updateResult = params;
@@ -688,12 +689,16 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 });
             }
 
-            if (!didError) {
+            // If the plugin set which changes saved successfully then use those.
+            // Or if it didn't error then use all the changes
+            if (!didError || (updateResult as unknown as UpdateSetFnParams)?.changes) {
                 // If this remote save changed anything then update cache and metadata
                 // Because save happens after a timeout and they're batched together, some calls to save will
                 // return saved data and others won't, so those can be ignored.
-                const pathStrs = Array.from(new Set(changesRemote.map((change) => change.pathStr)));
-                const { value: changes } = updateResult! || {};
+                const { value: updateValue, changes: updateChanges = changesRemote } = updateResult! || {};
+                const pathStrs = Array.from(
+                    new Set((updateChanges as ChangeWithPathStr[]).map((change) => change.pathStr)),
+                );
                 if (pathStrs.length > 0) {
                     let transformedChanges: object | undefined = undefined;
                     const metadata: PersistMetadata = {};
@@ -720,8 +725,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
 
                     // Remote can optionally have data that needs to be merged back into the observable,
                     // for example Firebase may update dateModified with the server timestamp
-                    if (changes && !isEmpty(changes)) {
-                        transformedChanges = transformLoadData(changes, syncOptions, false, 'set');
+                    if (updateValue && !isEmpty(updateValue)) {
+                        transformedChanges = transformLoadData(updateValue, syncOptions, false, 'set');
                     }
 
                     if (transformedChanges !== undefined) {
