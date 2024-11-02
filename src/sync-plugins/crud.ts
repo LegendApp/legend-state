@@ -241,11 +241,13 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           // as Promise only if listFn returned a promise
                           const toOut = (transformed: TLocal[]) => {
                               if (asType === 'value') {
-                                  return transformed.length > 0
-                                      ? transformed[0]
-                                      : getFn
-                                        ? ((((isLastSyncMode && lastSync) || fieldDeleted) && value) ?? null)
-                                        : undefined;
+                                  if (transformed.length > 0) {
+                                      // Return first value
+                                      return transformed[0];
+                                  } else {
+                                      // Return null if no cached value, otherwise undefined to not overwrite it
+                                      return value ? undefined : null;
+                                  }
                               } else {
                                   return resultsToOutType(transformed);
                               }

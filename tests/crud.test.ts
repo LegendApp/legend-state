@@ -420,6 +420,27 @@ describe('Crud as value list', () => {
         await promiseTimeout(1);
 
         expect(obs$.get()).toEqual({ id: 'id', test: 'hi', updatedAt: 1 });
+        expect(syncState(obs$).isLoaded.get()).toEqual(true);
+    });
+    test('Set to null if returns []', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, []),
+                as: 'value',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual(null);
+        expect(syncState(obs$).isLoaded.get()).toEqual(true);
     });
     test('sets if returns new value', async () => {
         const persistName = getPersistName();
