@@ -249,7 +249,7 @@ export function reactiveObserver<T extends object, K extends keyof T>(
     return createReactiveComponent(component, true, true, keys, bindKeys);
 }
 
-export function reactiveComponents<P extends Record<string, FC>>(components: P): ObjectShapeWith$<P> {
+export function reactiveComponents<P extends Record<string, any>>(components: P): ObjectShapeWith$<P> {
     return new Proxy(
         {},
         {
