@@ -1,6 +1,7 @@
 import { Observable, computeSelector, isFunction, isObject, observable, symbolDelete } from '@legendapp/state';
 import {
     SyncTransform,
+    SyncedErrorParams,
     SyncedOptions,
     SyncedOptionsGlobal,
     SyncedSetParams,
@@ -23,7 +24,7 @@ import {
 } from '@legendapp/state/sync-plugins/crud';
 import type { FunctionsResponse } from '@supabase/functions-js';
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
-import type { PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js';
+import type { PostgrestError, PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js';
 
 // Unused types but maybe useful in the future so keeping them for now
 type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
@@ -157,6 +158,19 @@ function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>, source: CrudErro
     };
 }
 
+function handleSupabaseError(
+    error: PostgrestError,
+    onError: (error: Error, params: SyncedErrorParams) => void,
+    params: CrudErrorParams,
+) {
+    if (error.message?.includes('Failed to fetch')) {
+        // Just throw to retry, don't need to report it to user
+        throw error;
+    } else {
+        (onError as CrudOnErrorFn)(new Error(error.message), params);
+    }
+}
+
 export function syncedSupabase<
     Client extends SupabaseClient<any, any>,
     Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
@@ -255,7 +269,7 @@ export function syncedSupabase<
                       if (data) {
                           return (data! || []) as SupabaseRowOf<Client, Collection, SchemaName>[];
                       } else if (error) {
-                          (onError as CrudOnErrorFn)(new Error(error.message), {
+                          handleSupabaseError(error, onError, {
                               getParams: params,
                               source: 'list',
                               type: 'get',
@@ -277,7 +291,7 @@ export function syncedSupabase<
                     const created = data[0];
                     return created;
                 } else if (error) {
-                    (onError as CrudOnErrorFn)(new Error(error.message), {
+                    handleSupabaseError(error, onError, {
                         setParams: params,
                         source: 'create',
                         type: 'set',
@@ -301,7 +315,7 @@ export function syncedSupabase<
                           const created = data[0];
                           return created;
                       } else if (error) {
-                          (onError as CrudOnErrorFn)(new Error(error.message), {
+                          handleSupabaseError(error, onError, {
                               setParams: params,
                               source: 'update',
                               type: 'set',
@@ -329,7 +343,7 @@ export function syncedSupabase<
                           const created = data[0];
                           return created;
                       } else if (error) {
-                          (onError as CrudOnErrorFn)(new Error(error.message), {
+                          handleSupabaseError(error, onError, {
                               setParams: params,
                               source: 'delete',
                               type: 'set',

@@ -29,7 +29,7 @@ export interface KeelObjectBase {
 export type KeelKey = 'createdAt' | 'updatedAt';
 export const KeelKeys: KeelKey[] = ['createdAt', 'updatedAt'];
 export type OmitKeelBuiltins<T, T2 extends string = ''> = Omit<T, KeelKey | T2>;
-type APIError = { type: string; message: string; requestId?: string };
+type APIError = { type: string; message: string; requestId?: string; error?: Error };
 
 type APIResult<T> = Result<T, APIError>;
 
@@ -216,6 +216,9 @@ async function handleApiError(props: SyncedKeelPropsBase<any>, error: APIError) 
         isAuthed$.set(false);
         await ensureAuthToken(props);
         return true;
+    } else if (error.error?.message === 'Failed to fetch') {
+        // Just throw to retry, don't need to report it to user
+        throw error.error;
     }
     return false;
 }
