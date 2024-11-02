@@ -75,6 +75,7 @@ export interface SyncedErrorParams {
     setParams?: SyncedSetParams<any>;
     subscribeParams?: SyncedSubscribeParams<any>;
     input?: any;
+    revert?: () => void;
 }
 
 export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<LinkedOptions<TRemote>, 'get' | 'set'> {

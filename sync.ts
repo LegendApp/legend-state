@@ -6,6 +6,7 @@ export { mapSyncPlugins, onChangeRemote, syncObservable } from './src/sync/syncO
 export * from './src/sync/syncTypes';
 export { synced } from './src/sync/synced';
 export * from './src/sync/configureSynced';
+export { createRevertChanges } from './src/sync/revertChanges';
 
 import { waitForSet } from './src/sync/waitForSet';
 import { observableSyncConfiguration } from './src/sync/configureObservableSync';

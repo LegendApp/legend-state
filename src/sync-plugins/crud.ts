@@ -56,7 +56,7 @@ export interface WaitForSetCrudFnParams<T> extends WaitForSetFnParams<T> {
 }
 
 export interface CrudErrorParams extends Omit<SyncedErrorParams, 'source'> {
-    source: 'list' | 'get' | 'create' | 'update' | 'delete';
+    source: 'list' | 'get' | 'create' | 'update' | 'delete' | 'unknown';
 }
 
 export type CrudOnErrorFn = (error: Error, params: CrudErrorParams) => void;

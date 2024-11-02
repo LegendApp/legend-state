@@ -5,6 +5,7 @@ import {
     SyncedOptionsGlobal,
     SyncedSetParams,
     combineTransforms,
+    createRevertChanges,
     removeNullUndefined,
     transformStringifyDates,
     type SyncedGetParams,
@@ -12,6 +13,7 @@ import {
 } from '@legendapp/state/sync';
 import {
     CrudAsOption,
+    CrudErrorParams,
     CrudOnErrorFn,
     SyncedCrudPropsBase,
     SyncedCrudPropsMany,
@@ -128,14 +130,14 @@ export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
     Object.assign(supabaseConfig, removeNullUndefined(rest));
 }
 
-function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>) {
+function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>, source: CrudErrorParams['source']) {
     return async (params: SyncedGetParams<any>, ...args: any) => {
         const { onError } = params;
         const { data, error } = await fn(params, ...args);
         if (error) {
             (onError as CrudOnErrorFn)(new Error(error.message), {
                 getParams: params,
-                source: 'list',
+                source,
                 type: 'get',
                 retry: params,
             });
@@ -200,7 +202,7 @@ export function syncedSupabase<
     const list =
         !actions || actions.includes('read')
             ? listParam
-                ? wrapSupabaseFn(listParam)
+                ? wrapSupabaseFn(listParam, 'list')
                 : async (params: SyncedGetParams<TRemote>) => {
                       const { lastSync, onError } = params;
                       const clientSchema = schema ? client.schema(schema as string) : client;
@@ -232,7 +234,7 @@ export function syncedSupabase<
             : undefined;
 
     const create = createParam
-        ? wrapSupabaseFn(createParam)
+        ? wrapSupabaseFn(createParam, 'create')
         : !actions || actions.includes('create')
           ? async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
                 const { onError } = params;
@@ -248,6 +250,7 @@ export function syncedSupabase<
                         type: 'set',
                         retry: params,
                         input,
+                        revert: createRevertChanges(params.value$, params.changes),
                     });
                 }
             }
@@ -256,7 +259,7 @@ export function syncedSupabase<
     const update =
         !actions || actions.includes('update')
             ? updateParam
-                ? wrapSupabaseFn(updateParam)
+                ? wrapSupabaseFn(updateParam, 'update')
                 : async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
                       const { onError } = params;
                       const res = await client.from(collection).update(input).eq('id', input.id).select();
@@ -271,6 +274,7 @@ export function syncedSupabase<
                               type: 'set',
                               retry: params,
                               input,
+                              revert: createRevertChanges(params.value$, params.changes),
                           });
                       }
                   }
@@ -279,7 +283,7 @@ export function syncedSupabase<
     const deleteFn =
         !fieldDeleted && (!actions || actions.includes('delete'))
             ? deleteParam
-                ? wrapSupabaseFn(deleteParam)
+                ? wrapSupabaseFn(deleteParam, 'delete')
                 : async (
                       input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
                       params: SyncedSetParams<TRemote>,
@@ -298,6 +302,7 @@ export function syncedSupabase<
                               type: 'set',
                               retry: params,
                               input,
+                              revert: createRevertChanges(params.value$, params.changes),
                           });
                       }
                   }

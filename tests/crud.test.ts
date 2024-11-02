@@ -2917,6 +2917,39 @@ describe('Error is set', () => {
         expect(errorAtOnError).toEqual(new Error('test'));
         expect(numErrors).toEqual(1);
     });
+    test('onError can revert if create fails', async () => {
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'object',
+                create: async () => {
+                    throw new Error('test');
+                },
+                onError: (error, params) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                    params.revert!();
+                },
+            }),
+        );
+        expectTypeOf<(typeof obs$)['get']>().returns.toEqualTypeOf<Record<string, BasicValue>>();
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+        obs$.id2.set({ id: 'id2', test: 'hi' });
+
+        await promiseTimeout(1);
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' }, id2: undefined });
+    });
     test('onError is called if list fails', async () => {
         let errorAtOnError: Error | undefined = undefined;
         let numErrors = 0;

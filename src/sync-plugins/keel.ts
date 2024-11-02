@@ -1,13 +1,14 @@
 import { batch, isEmpty, isFunction, observable, when } from '@legendapp/state';
 import {
-    SyncedErrorParams,
-    SyncedGetSetSubscribeBaseParams,
+    createRevertChanges,
     type SyncedGetParams,
+    type SyncedGetSetSubscribeBaseParams,
     type SyncedSetParams,
     type SyncedSubscribeParams,
 } from '@legendapp/state/sync';
 import {
     CrudAsOption,
+    CrudErrorParams,
     CrudResult,
     SyncedCrudOnSavedParams,
     SyncedCrudPropsBase,
@@ -138,8 +139,7 @@ interface SyncedKeelPropsSingle<TRemote extends { id: string }, TLocal>
     as?: never;
 }
 
-export interface KeelErrorParams extends Omit<SyncedErrorParams, 'source'> {
-    source: 'list' | 'get' | 'create' | 'update' | 'delete';
+export interface KeelErrorParams extends CrudErrorParams {
     action: string;
 }
 
@@ -489,6 +489,7 @@ export function syncedKeel<
                     source: from,
                     action: fn.name || fn.toString(),
                     retry: params,
+                    revert: createRevertChanges(params.value$, params.changes),
                 });
             }
         }

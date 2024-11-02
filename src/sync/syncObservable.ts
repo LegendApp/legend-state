@@ -54,6 +54,7 @@ import type {
     SyncedSubscribeParams,
 } from './syncTypes';
 import { waitForSet } from './waitForSet';
+import { createRevertChanges } from './revertChanges';
 
 const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, symbolLinked, createPreviousHandler } =
     internal;
@@ -639,10 +640,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                             type: 'set',
                             input: value,
                             retry: setParams,
+                            revert: createRevertChanges(setParams.value$, setParams.changes),
                         };
                     }
                     state$.error.set(error);
-                    syncOptions.onError?.(error, params);
+                    syncOptions.onError?.(error, params!);
                     lastErrorHandled = error;
                     if (!noThrow) {
                         throw error;
