@@ -87,13 +87,7 @@ interface SyncedSupabaseProps<
     supabase?: Client;
     collection: Collection;
     schema?: SchemaName;
-    select?: (
-        query: PostgrestQueryBuilder<
-            SupabaseSchemaOf<Client>,
-            SupabaseTableOf<Client, SchemaName>[Collection],
-            Collection
-        >,
-    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
+    select?: never;
     filter?: (
         select: PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>,
         params: SyncedGetParams<TRemote>,
@@ -113,6 +107,23 @@ interface SyncedSupabaseProps<
     delete?: (
         ...params: Parameters<Required<SyncedCrudPropsBase<TRemote>>['delete']>
     ) => PromiseLike<PostgrestSingleResponse<TRemote>> | Promise<FunctionsResponse<NoInfer<TRemote>>>;
+}
+
+interface SyncedSupabasePropsWithSelect<
+    Client extends SupabaseClient<any, any>,
+    Collection extends SupabaseCollectionOf<Client, SchemaName>,
+    SchemaName extends SchemaNameOf<Client> = 'public',
+    TOption extends CrudAsOption = 'object',
+    TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
+    TLocal = TRemote,
+> extends Omit<SyncedSupabaseProps<Client, Collection, SchemaName, TOption, TRemote, TLocal>, 'select'> {
+    select: (
+        query: PostgrestQueryBuilder<
+            SupabaseSchemaOf<Client>,
+            SupabaseTableOf<Client, SchemaName>[Collection],
+            Collection
+        >,
+    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
 }
 
 let channelNum = 1;
@@ -151,10 +162,32 @@ export function syncedSupabase<
     Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
     SchemaName extends SchemaNameOf<Client> = 'public',
     AsOption extends CrudAsOption = 'object',
+    TRemote = SupabaseRowOf<Client, Collection, SchemaName>,
+    TLocal = TRemote,
+>(
+    props: SyncedSupabasePropsWithSelect<Client, Collection, SchemaName, AsOption, TRemote, TLocal>,
+): SyncedCrudReturnType<TLocal, AsOption>;
+export function syncedSupabase<
+    Client extends SupabaseClient<any, any>,
+    Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
+    SchemaName extends SchemaNameOf<Client> = 'public',
+    AsOption extends CrudAsOption = 'object',
     TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
 >(
     props: SyncedSupabaseProps<Client, Collection, SchemaName, AsOption, TRemote, TLocal>,
+): SyncedCrudReturnType<TLocal, AsOption>;
+export function syncedSupabase<
+    Client extends SupabaseClient<any, any>,
+    Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
+    SchemaName extends SchemaNameOf<Client> = 'public',
+    AsOption extends CrudAsOption = 'object',
+    TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
+    TLocal = TRemote,
+>(
+    props:
+        | SyncedSupabaseProps<Client, Collection, SchemaName, AsOption, TRemote, TLocal>
+        | SyncedSupabasePropsWithSelect<Client, Collection, SchemaName, AsOption, TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, AsOption> {
     props = { ...supabaseConfig, ...props } as any;
     const {
