@@ -389,7 +389,7 @@ describe('keel', () => {
         expect(Array.from(errors)).toEqual([]);
         expect(Array.from(creates)).toEqual([newItem2, newItem]);
     });
-    test('setting error retries with onError', async () => {
+    test('setting error retries multiple creates', async () => {
         let shouldError = true;
         const errors: Set<BasicValue> = new Set();
         const creates: Set<BasicValue> = new Set();
@@ -449,5 +449,72 @@ describe('keel', () => {
 
         expect(Array.from(errors)).toEqual([]);
         expect(Array.from(creates).sort((a, b) => a.id.localeCompare(b.id))).toEqual([newItem, newItem2]);
+    });
+    test('setting error retries updates on multiple fields', async () => {
+        let shouldError = true;
+        const errors: Set<BasicValue> = new Set();
+        const updates: Set<BasicValue> = new Set();
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([{ ...ItemBasicValue(), other: 2, another: 3 }]),
+                update(value) {
+                    if (shouldError) {
+                        return { error: { message: 'test' } };
+                    } else {
+                        updates.add(value as any);
+                        return {
+                            data: value,
+                        } as any;
+                    }
+                },
+                retry: {
+                    infinite: true,
+                    delay: 1,
+                },
+                onError(error, params) {
+                    errors.add(params.input);
+                },
+            }),
+        );
+
+        obs$.get();
+
+        const item$ = obs$.id1;
+
+        await promiseTimeout(1);
+
+        item$.other.set(4);
+
+        await promiseTimeout(1);
+
+        item$.another.set(5);
+
+        await promiseTimeout(1);
+
+        expect(Array.from(errors)).toEqual([
+            {
+                id: 'id1',
+                other: 4,
+                another: 5,
+            },
+        ]);
+
+        errors.clear();
+        shouldError = false;
+
+        await promiseTimeout(5);
+
+        expect(Array.from(errors)).toEqual([]);
+        expect(Array.from(updates)).toEqual([
+            {
+                values: {
+                    other: 4,
+                    another: 5,
+                },
+                where: {
+                    id: 'id1',
+                },
+            },
+        ]);
     });
 });

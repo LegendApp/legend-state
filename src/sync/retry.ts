@@ -26,6 +26,18 @@ export function runWithRetry<T>(
     state: SyncedGetSetBaseParams<any>,
     retryOptions: RetryOptions | undefined,
     retryId: any,
+    fn: (params: OnErrorRetryParams) => Promise<T>,
+): Promise<T>;
+export function runWithRetry<T>(
+    state: SyncedGetSetBaseParams<any>,
+    retryOptions: RetryOptions | undefined,
+    retryId: any,
+    fn: (params: OnErrorRetryParams) => T,
+): T;
+export function runWithRetry<T>(
+    state: SyncedGetSetBaseParams<any>,
+    retryOptions: RetryOptions | undefined,
+    retryId: any,
     fn: (params: OnErrorRetryParams) => T | Promise<T>,
 ): T | Promise<T> {
     try {

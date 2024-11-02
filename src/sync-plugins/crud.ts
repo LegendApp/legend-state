@@ -1,6 +1,7 @@
 import {
     ObservableEvent,
     ObservableParam,
+    RetryOptions,
     UpdateFnParams,
     WaitForSetFnParams,
     applyChanges,
@@ -127,6 +128,50 @@ function computeLastSync(data: any[], fieldUpdatedAt: string | undefined, fieldC
         }
     }
     return newLastSync;
+}
+
+const queuedRetries = {
+    create: new Map<string, any>(),
+    update: new Map<string, any>(),
+    delete: new Map<string, any>(),
+};
+function retrySet(
+    params: SyncedSetParams<any>,
+    retry: RetryOptions | undefined,
+    action: 'create' | 'update' | 'delete',
+    itemKey: string,
+    itemValue: any,
+    actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
+    saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean) => void,
+) {
+    // If delete then remove from create/update, and vice versa
+    if (action === 'delete') {
+        if (queuedRetries.create.has(itemKey)) {
+            queuedRetries.create.delete(itemKey);
+        }
+        if (queuedRetries.update.has(itemKey)) {
+            queuedRetries.update.delete(itemKey);
+        }
+    } else {
+        if (queuedRetries.delete.has(itemKey)) {
+            queuedRetries.delete.delete(itemKey);
+        }
+    }
+
+    // Get the currently queued value and assigned the new changes onto it
+    const queuedRetry = queuedRetries[action]!.get(itemKey);
+    if (queuedRetry) {
+        itemValue = Object.assign(queuedRetry, itemValue);
+    }
+
+    queuedRetries[action].set(itemKey, itemValue);
+
+    return runWithRetry(params, retry, 'create_' + itemKey, () =>
+        actionFn!(itemValue, params).then((result) => {
+            queuedRetries[action]!.delete(itemKey);
+            return saveResult(itemKey, itemValue, result as any, true);
+        }),
+    );
 }
 
 // The get version
@@ -517,10 +562,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
                           }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          return runWithRetry(params, retry, 'create_' + itemKey, () =>
-                              createFn!(createObj, params)
-                                  .then((result) => saveResult(itemKey, createObj, result as any, true))
-                                  .finally(() => pendingCreates.delete(itemKey)),
+                          return retrySet(params, retry, 'create', itemKey, createObj, createFn!, saveResult).then(
+                              () => {
+                                  pendingCreates.delete(itemKey);
+                              },
                           );
                       }),
 
@@ -531,11 +576,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           }
                           const changed = (await transformOut(itemValue as TLocal, transform?.save)) as TRemote;
                           if (Object.keys(changed).length > 0) {
-                              return runWithRetry(params, retry, 'update_' + itemKey, () =>
-                                  updateFn!(changed, params).then(
-                                      (result) => result && saveResult(itemKey, changed, result as any, false),
-                                  ),
-                              );
+                              return retrySet(params, retry, 'update', itemKey, changed, updateFn!, saveResult);
                           }
                       }),
 
@@ -554,14 +595,26 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               }
 
                               if (deleteFn) {
-                                  return runWithRetry(params, retry, 'delete_' + valueId, () =>
-                                      deleteFn(valuePrevious, params),
+                                  return retrySet(
+                                      params,
+                                      retry,
+                                      'delete',
+                                      valueId,
+                                      valuePrevious,
+                                      deleteFn!,
+                                      saveResult,
                                   );
                               }
 
                               if (fieldDeleted && updateFn) {
-                                  return runWithRetry(params, retry, 'delete_' + valueId, () =>
-                                      updateFn({ [fieldId]: valueId, [fieldDeleted]: true } as any, params),
+                                  return retrySet(
+                                      params,
+                                      retry,
+                                      'delete',
+                                      valueId,
+                                      { [fieldId]: valueId, [fieldDeleted]: true } as any,
+                                      updateFn!,
+                                      saveResult,
                                   );
                               }
 
