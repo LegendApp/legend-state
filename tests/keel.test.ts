@@ -264,6 +264,8 @@ describe('keel', () => {
             other: null,
         });
     });
+});
+describe('error handling', () => {
     test('setting error retries', async () => {
         let numUpdates = 0;
         const obs = observable(
@@ -517,7 +519,7 @@ describe('keel', () => {
             },
         ]);
     });
-    test('Error handling in crud ', async () => {
+    test('Error handling in crud sets pending', async () => {
         const persistName = getPersistName();
         let errorAtOnError: Error | undefined = undefined;
         let numErrors = 0;
@@ -556,6 +558,16 @@ describe('keel', () => {
 
         await promiseTimeout(1);
 
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: {
+                    id2: { p: null, t: ['object'], v: { id: 'id2', test: 'hi', other: 3, another: 4 } },
+                    'id1/test': { p: 'hi', t: ['object', 'object'], v: 'hello' },
+                },
+            }),
+        );
+
         expect(errorAtOnError).toEqual(new Error('test'));
         expect(numErrors).toEqual(1);
 
@@ -570,12 +582,86 @@ describe('keel', () => {
             },
             id2: { id: 'id2', test: 'hi', other: 3, another: 4 },
         });
-        await promiseTimeout(10);
+        await promiseTimeout(1);
 
         expect(localStorage.getItem(persistName + '__m')!).toEqual(
             JSON.stringify({
                 lastSync: 1,
                 pending: { id2: { p: null, t: ['object'], v: { id: 'id2', test: 'hi', other: 3, another: 4 } } },
+            }),
+        );
+    });
+    test('Error handling in crud sets pending 2', async () => {
+        const persistName = getPersistName();
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([{ ...ItemBasicValue(), other: 2, another: 3 }]),
+                create: async (input): Promise<any> => {
+                    return { data: { ...input, updatedAt: 2 } } as any;
+                },
+                update: async (): Promise<any> => {
+                    return { error: { message: 'test' } };
+                },
+                onError: (error) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                },
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', other: 2, another: 3, createdAt: 1, updatedAt: 1 },
+        });
+
+        obs$.id1.test.set('hello');
+        obs$.id2.set({ id: 'id2', test: 'hi', other: 3, another: 4 });
+
+        await promiseTimeout(1);
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: {
+                    id2: { p: null, t: ['object'], v: { id: 'id2', test: 'hi', other: 3, another: 4 } },
+                    'id1/test': { p: 'hi', t: ['object', 'object'], v: 'hello' },
+                },
+            }),
+        );
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                other: 2,
+                another: 3,
+                createdAt: 1,
+                updatedAt: 1,
+            },
+            id2: { id: 'id2', test: 'hi', other: 3, another: 4, updatedAt: 2 },
+        });
+        await promiseTimeout(1);
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: {
+                    'id1/test': { p: 'hi', t: ['object', 'object'], v: 'hello' },
+                },
             }),
         );
     });
@@ -626,5 +712,136 @@ describe('keel', () => {
             },
             id2: undefined,
         });
+    });
+    test('Adding an item sets pending ', async () => {
+        const persistName = getPersistName();
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([{ ...ItemBasicValue(), other: 2, another: 3 }]),
+                create: async (): Promise<any> => {
+                    return { error: { message: 'test' } };
+                },
+                onError: (error) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                },
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', other: 2, another: 3, createdAt: 1, updatedAt: 1 },
+        });
+
+        obs$.id2.set({ id: 'id2', test: 'hi', other: 3, another: 4 });
+
+        await promiseTimeout(1);
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hi',
+                other: 2,
+                another: 3,
+                createdAt: 1,
+                updatedAt: 1,
+            },
+            id2: { id: 'id2', test: 'hi', other: 3, another: 4 },
+        });
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: { id2: { p: null, t: ['object'], v: { id: 'id2', test: 'hi', other: 3, another: 4 } } },
+            }),
+        );
+    });
+    test('Updating an item sets pending ', async () => {
+        const persistName = getPersistName();
+        let errorAtOnError: Error | undefined = undefined;
+        let numErrors = 0;
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([{ ...ItemBasicValue(), other: 2, another: 3 }]),
+                create: async (input): Promise<any> => {
+                    return { data: { ...input, updatedAt: 2 } } as any;
+                },
+                update: async (): Promise<any> => {
+                    return { error: { message: 'test' } };
+                },
+                onError: (error) => {
+                    numErrors++;
+                    errorAtOnError = error;
+                },
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({
+            id1: { id: 'id1', test: 'hi', other: 2, another: 3, createdAt: 1, updatedAt: 1 },
+        });
+
+        obs$.id1.test.set('hello');
+        obs$.id2.set({ id: 'id2', test: 'hi', other: 3, another: 4 });
+
+        await promiseTimeout(1);
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: {
+                    id2: { p: null, t: ['object'], v: { id: 'id2', test: 'hi', other: 3, another: 4 } },
+                    'id1/test': { p: 'hi', t: ['object', 'object'], v: 'hello' },
+                },
+            }),
+        );
+
+        expect(errorAtOnError).toEqual(new Error('test'));
+        expect(numErrors).toEqual(1);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'hello',
+                other: 2,
+                another: 3,
+                createdAt: 1,
+                updatedAt: 1,
+            },
+            id2: { id: 'id2', test: 'hi', other: 3, another: 4, updatedAt: 2 },
+        });
+        await promiseTimeout(10);
+
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                lastSync: 1,
+                pending: {
+                    'id1/test': { p: 'hi', t: ['object', 'object'], v: 'hello' },
+                },
+            }),
+        );
     });
 });
