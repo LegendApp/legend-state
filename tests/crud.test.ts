@@ -1,4 +1,5 @@
 import { observable, ObservableHint, observe, syncState, when } from '@legendapp/state';
+import { syncObservable } from '@legendapp/state/sync';
 import { syncedCrud, SyncedCrudPropsMany, SyncedCrudPropsSingle } from '@legendapp/state/sync-plugins/crud';
 import { expectTypeOf } from 'expect-type';
 import { clone, getNode, symbolDelete } from '../src/globals';
@@ -3082,5 +3083,346 @@ describe('Misc', () => {
 
         expect(didCreateRun).toEqual(true);
         expect(numLists).toEqual(1);
+    });
+    test('pending when a change is made before sync', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, '{"id":"id1","test":"hi"}');
+        localStorage.setItem(
+            persistName + '__m',
+            '{"pending":{"":{"p":{"id":"id1","test":"hello"},"t":[],"v":{"id":"id1","test":"hi"}}}}',
+        );
+        const obs$ = observable<{ test: string }>({ test: '' });
+        const canSync$ = observable(false);
+        const saved: { id: string; test: string }[] = [];
+        syncObservable(
+            obs$,
+            syncedCrud({
+                get: () => {
+                    if (canSync$.get()) {
+                        return { id: 'id1', test: 'test' };
+                    } else {
+                        throw new Error('test error');
+                    }
+                },
+                update: async (value: any) => {
+                    saved.push(value);
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+                retry: {
+                    delay: 1,
+                    times: 2,
+                },
+                mode: 'merge',
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ id: 'id1', test: 'hi' });
+
+        obs$.test.set('hi2');
+
+        await promiseTimeout(10);
+
+        // Setting hi2 should have cached it to pending
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                pending: {
+                    '': {
+                        p: { id: 'id1', test: 'hello' },
+                        t: [],
+                        v: { id: 'id1', test: 'hi2' },
+                    },
+                },
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        // It should not save until it's loaded
+        expect(saved.length).toEqual(0);
+
+        canSync$.set(true);
+
+        await promiseTimeout(1);
+
+        // Once loaded it should save it once
+        expect(saved).toEqual([{ id: 'id1', test: 'hi2' }]);
+    });
+    // TODO: Non-merge mode shouldn't save pending in the same way?
+    // test('pending when a create is made before sync', async () => {
+    //     const persistName = getPersistName();
+    //     localStorage.setItem(persistName, '{"id1":{"id":"id1","test":"hi"}}');
+    //     localStorage.setItem(
+    //         persistName + '__m',
+    //         JSON.stringify({
+    //             pending: {
+    //                 id1: { p: undefined, t: [], v: { id: 'id1', test: 'hi' } },
+    //             },
+    //         }),
+    //     );
+    //     const obs$ = observable<Record<string, BasicValue>>();
+    //     const canSync$ = observable(false);
+    //     const created: { id: string; test: string }[] = [];
+    //     const updated: { id: string; test: string }[] = [];
+    //     syncObservable(
+    //         obs$,
+    //         syncedCrud({
+    //             list: () => {
+    //                 if (canSync$.get()) {
+    //                     return [{ id: 'id1', test: 'test' }];
+    //                 } else {
+    //                     throw new Error('test error');
+    //                 }
+    //             },
+    //             create: async (value: any) => {
+    //                 created.push(value);
+    //             },
+    //             update: async (value: any) => {
+    //                 updated.push(value);
+    //             },
+    //             persist: {
+    //                 name: persistName,
+    //                 plugin: ObservablePersistLocalStorage,
+    //                 retrySync: true,
+    //             },
+    //             retry: {
+    //                 delay: 1,
+    //                 times: 2,
+    //             },
+    //         }),
+    //     );
+
+    //     expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+
+    //     obs$['id2'].set({ id: 'id2', test: 'hi2' });
+
+    //     await promiseTimeout(0);
+
+    //     // Setting hi2 should have cached it to pending
+    //     expect(localStorage.getItem(persistName + '__m')!).toEqual(
+    //         JSON.stringify({
+    //             pending: {
+    //                 id1: {
+    //                     t: [],
+    //                     v: {
+    //                         id: 'id1',
+    //                         test: 'hi',
+    //                     },
+    //                 },
+    //                 id2: {
+    //                     p: null,
+    //                     t: ['object'],
+    //                     v: {
+    //                         id: 'id2',
+    //                         test: 'hi2',
+    //                     },
+    //                 },
+    //             },
+    //         }),
+    //     );
+
+    //     await promiseTimeout(1);
+
+    //     // It should not save until it's loaded
+    //     expect(created.length).toEqual(0);
+    //     expect(updated.length).toEqual(0);
+
+    //     canSync$.set(true);
+
+    //     await promiseTimeout(1);
+
+    //     expect(localStorage.getItem(persistName + '__m')!).toEqual(
+    //         JSON.stringify({
+    //             pending: {
+    //                 id1: {
+    //                     t: [],
+    //                     v: {
+    //                         id: 'id1',
+    //                         test: 'hi',
+    //                     },
+    //                 },
+    //                 id2: {
+    //                     p: null,
+    //                     t: ['object'],
+    //                     v: {
+    //                         id: 'id2',
+    //                         test: 'hi2',
+    //                     },
+    //                 },
+    //             },
+    //         }),
+    //     );
+
+    //     // Once loaded it should save it once
+    //     expect(created).toEqual([]);
+    //     expect(updated).toEqual([{ id: 'id1', test: 'hi' }]);
+    // });
+    test('pending when a create is made before sync with mode merge', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, '{"id1":{"id":"id1","test":"hi"}}');
+        localStorage.setItem(
+            persistName + '__m',
+            JSON.stringify({
+                pending: {
+                    id1: { p: undefined, t: [], v: { id: 'id1', test: 'hi' } },
+                },
+            }),
+        );
+        const obs$ = observable<Record<string, BasicValue>>();
+        const canSync$ = observable(false);
+        const created: { id: string; test: string }[] = [];
+        const updated: { id: string; test: string }[] = [];
+        syncObservable(
+            obs$,
+            syncedCrud({
+                list: () => {
+                    if (canSync$.get()) {
+                        return [{ id: 'id1', test: 'test' }];
+                    } else {
+                        throw new Error('test error');
+                    }
+                },
+                create: async (value: any) => {
+                    created.push(value);
+                },
+                update: async (value: any) => {
+                    updated.push(value);
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+                retry: {
+                    delay: 1,
+                    times: 2,
+                },
+                mode: 'merge',
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+
+        obs$['id2'].set({ id: 'id2', test: 'hi2' });
+
+        await promiseTimeout(0);
+
+        // Setting hi2 should have cached it to pending
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                pending: {
+                    id1: {
+                        t: [],
+                        v: {
+                            id: 'id1',
+                            test: 'hi',
+                        },
+                    },
+                    id2: {
+                        p: null,
+                        t: ['object'],
+                        v: {
+                            id: 'id2',
+                            test: 'hi2',
+                        },
+                    },
+                },
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        // It should not save until it's loaded
+        expect(created.length).toEqual(0);
+        expect(updated.length).toEqual(0);
+
+        canSync$.set(true);
+
+        await promiseTimeout(1);
+
+        // Once loaded it should save it once
+        expect(created).toEqual([{ id: 'id2', test: 'hi2' }]);
+        expect(updated).toEqual([{ id: 'id1', test: 'hi' }]);
+    });
+    test('pending when an update is made before sync', async () => {
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, '{"id1":{"id":"id1","test":"hi"}}');
+        localStorage.setItem(
+            persistName + '__m',
+            JSON.stringify({
+                pending: {
+                    id1: { p: undefined, t: [], v: { id: 'id1', test: 'hi' } },
+                },
+            }),
+        );
+        const obs$ = observable<Record<string, BasicValue>>();
+        const canSync$ = observable(false);
+        const created: { id: string; test: string }[] = [];
+        const updated: { id: string; test: string }[] = [];
+        syncObservable(
+            obs$,
+            syncedCrud({
+                list: () => {
+                    if (canSync$.get()) {
+                        return [{ id: 'id1', test: 'test' }];
+                    } else {
+                        throw new Error('test error');
+                    }
+                },
+                create: async (value: any) => {
+                    created.push(value);
+                },
+                update: async (value: any) => {
+                    updated.push(value);
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+                retry: {
+                    delay: 1,
+                    times: 2,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+
+        obs$['id1'].test.set('hi2');
+
+        await promiseTimeout(0);
+
+        // Setting hi2 should have cached it to pending
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(
+            JSON.stringify({
+                pending: {
+                    id1: {
+                        t: [],
+                        v: {
+                            id: 'id1',
+                            test: 'hi2',
+                        },
+                    },
+                },
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        // It should not save until it's loaded
+        expect(created.length).toEqual(0);
+        expect(updated.length).toEqual(0);
+
+        canSync$.set(true);
+
+        await promiseTimeout(1);
+
+        // Once loaded it should save it once
+        expect(created.length).toEqual(0);
+        expect(updated).toEqual([{ id: 'id1', test: 'hi2' }]);
     });
 });

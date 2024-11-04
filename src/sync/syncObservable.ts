@@ -37,7 +37,7 @@ import {
 } from '@legendapp/state';
 import { observableSyncConfiguration } from './configureObservableSync';
 import { runWithRetry } from './retry';
-import { removeNullUndefined } from './syncHelpers';
+import { deepEqual, removeNullUndefined } from './syncHelpers';
 import type {
     ObservablePersistPlugin,
     OnErrorRetryParams,
@@ -233,8 +233,25 @@ function mergeChanges(changes: Change[]) {
                 existing.valueAtPath = change.valueAtPath;
             }
         } else {
-            changesByPath.set(pathStr, change);
-            changesOut.push(change);
+            let found = false;
+            for (let u = 0; u < change.path.length; u++) {
+                const path = change.path.slice(0, u).join('/');
+                if (changesByPath.has(path)) {
+                    const remaining = change.path.slice(u);
+                    setAtPath(
+                        changesByPath.get(path)!.valueAtPath,
+                        remaining,
+                        change.pathTypes.slice(u),
+                        change.valueAtPath,
+                    );
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                changesByPath.set(pathStr, change);
+                changesOut.push(change);
+            }
         }
     }
     return changesOut;
@@ -968,32 +985,38 @@ export function syncObservable<T>(
 
     let isSynced = false;
     let isSubscribed = false;
+    let isApplyingPendingAfterSync = false;
     let unsubscribe: void | (() => void) = undefined;
 
     const applyPending = (pending: PendingChanges | undefined) => {
         if (pending && !isEmpty(pending)) {
-            localState.isApplyingPending = true;
             const keys = Object.keys(pending);
+            const value = getNodeValue(node);
 
             // Bundle up all the changes from pending
             const changes: Change[] = [];
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 const path = key.split('/').filter((p) => p !== '');
-                const { p, v, t } = pending[key];
-                changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
+                const { p, t, v } = pending[key];
+                const valueAtPath = getValueAtPath(value, path);
+                if (isApplyingPendingAfterSync || !deepEqual(valueAtPath, v)) {
+                    changes.push({ path, valueAtPath: v, prevAtPath: p, pathTypes: t });
+                }
             }
 
-            // Send the changes into onObsChange so that they get synced remotely
-            const value = getNodeValue(node);
-            onObsChange(obs$, syncState$, localState, syncOptions, {
-                value,
-                isFromPersist: false,
-                isFromSync: false,
-                getPrevious: createPreviousHandler(value, changes),
-                changes,
-            });
-            localState.isApplyingPending = false;
+            if (changes.length > 0) {
+                localState.isApplyingPending = true;
+                // Send the changes into onObsChange so that they get synced remotely
+                onObsChange(obs$, syncState$, localState, syncOptions, {
+                    value,
+                    isFromPersist: false,
+                    isFromSync: false,
+                    getPrevious: createPreviousHandler(value, changes),
+                    changes,
+                });
+                localState.isApplyingPending = false;
+            }
         }
     };
 
@@ -1037,11 +1060,11 @@ export function syncObservable<T>(
                                     if (t.length === 0 || !value) {
                                         // Update pending previous value with result
                                         const oldValue = clone(value);
-                                        pending[key].p = oldValue;
+                                        pending[key].p = key ? oldValue[key] : oldValue;
 
                                         if (isObject(value) && isObject(v)) {
-                                            Object.assign(value, v);
-                                        } else {
+                                            Object.assign(value, key ? { [key]: v } : v);
+                                        } else if (!key) {
                                             value = v;
                                         }
                                     } else if ((value as any)[p[0]] !== undefined) {
@@ -1055,6 +1078,7 @@ export function syncObservable<T>(
                                             const oldValue = clone(value);
                                             pending[key].p = getValueAtPath(oldValue, p);
 
+                                            didChangeMetadata = true;
                                             (value as any) = setAtPath(
                                                 value as any,
                                                 p,
@@ -1076,7 +1100,7 @@ export function syncObservable<T>(
                                 });
 
                                 if (didChangeMetadata && syncOptions.persist) {
-                                    updateMetadata(obs$, localState, syncState$, syncOptions, {
+                                    updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
                                         pending,
                                     });
                                 }
@@ -1276,17 +1300,20 @@ export function syncObservable<T>(
             }
             if (!isSynced) {
                 isSynced = true;
-                // Wait for remote to be ready before saving pending
-                await when(syncState$.isLoaded);
+                isApplyingPendingAfterSync = true;
 
                 applyPending(pending);
+
+                isApplyingPendingAfterSync = false;
             }
         };
 
         syncStateValue.sync = sync;
     } else {
         if (!isSynced) {
+            isApplyingPendingAfterSync = true;
             applyPending(localState.pendingChanges);
+            isApplyingPendingAfterSync = false;
         }
     }
 

@@ -37,23 +37,27 @@ export function deepEqual<T extends Record<string, any> = any>(
     ignoreFields?: string[],
     nullVsUndefined?: boolean,
 ): boolean {
-    if (a === b) {
-        return true;
-    }
-    if (isNullOrUndefined(a) !== isNullOrUndefined(b)) {
-        return false;
-    }
+    if (a === b) return true;
+    if (isNullOrUndefined(a) !== isNullOrUndefined(b)) return false;
+    if (!isObject(a) || !isObject(b)) return a === b;
 
     if (nullVsUndefined) {
         a = removeNullUndefined(a, /*recursive*/ true);
         b = removeNullUndefined(b, /*recursive*/ true);
     }
 
-    const replacer = ignoreFields
-        ? (key: string, value: any) => (ignoreFields.includes(key) ? undefined : value)
-        : undefined;
+    const keysA = Object.keys(a).filter((key) => !ignoreFields?.includes(key));
+    const keysB = Object.keys(b).filter((key) => !ignoreFields?.includes(key));
 
-    return JSON.stringify(a, replacer) === JSON.stringify(b, replacer);
+    if (keysA.length !== keysB.length) return false;
+
+    return keysA.every((key) => {
+        if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+        if (isDate(a[key]) && isDate(b[key])) {
+            return a[key].getTime() === b[key].getTime();
+        }
+        return deepEqual(a[key], b[key], ignoreFields, nullVsUndefined);
+    });
 }
 
 export function combineTransforms<T, T2>(...transforms: Partial<SyncTransform<T2, T>>[]): SyncTransform<T2, T> {
