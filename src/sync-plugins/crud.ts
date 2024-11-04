@@ -131,11 +131,6 @@ function computeLastSync(data: any[], fieldUpdatedAt: string | undefined, fieldC
     return newLastSync;
 }
 
-const queuedRetries = {
-    create: new Map<string, any>(),
-    update: new Map<string, any>(),
-    delete: new Map<string, any>(),
-};
 function retrySet(
     params: SyncedSetParams<any>,
     retry: RetryOptions | undefined,
@@ -143,6 +138,11 @@ function retrySet(
     itemKey: string,
     itemValue: any,
     change: Change,
+    queuedRetries: {
+        create: Map<string, any>;
+        update: Map<string, any>;
+        delete: Map<string, any>;
+    },
     actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
     saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean, change: Change) => void,
 ) {
@@ -219,6 +219,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
     const fieldId = fieldIdProp || 'id';
     const pendingCreates = new Set<string>();
+    const queuedRetries = {
+        create: new Map<string, any>(),
+        update: new Map<string, any>(),
+        delete: new Map<string, any>(),
+    };
 
     let asType = props.as as TAsOption;
 
@@ -578,6 +583,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               itemKey,
                               createObj,
                               changesById.get(itemKey)!,
+                              queuedRetries,
                               createFn!,
                               saveResult,
                           ).then(() => {
@@ -599,6 +605,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   itemKey,
                                   changed,
                                   changesById.get(itemKey)!,
+                                  queuedRetries,
                                   updateFn!,
                                   saveResult,
                               );
@@ -627,6 +634,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       itemKey,
                                       valuePrevious,
                                       changesById.get(itemKey)!,
+                                      queuedRetries,
                                       deleteFn!,
                                       saveResult,
                                   );
@@ -640,6 +648,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       itemKey,
                                       { [fieldId]: itemKey, [fieldDeleted]: true } as any,
                                       changesById.get(itemKey)!,
+                                      queuedRetries,
                                       updateFn!,
                                       saveResult,
                                   );
