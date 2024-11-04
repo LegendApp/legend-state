@@ -16,6 +16,7 @@ import { useObserveEffect } from '../src/react/useObserveEffect';
 import { useSelector } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
 import { Memo } from '../src/react/Memo';
+import { $ } from '../src/react/$';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { useComputed } from '../src/react/useComputed';
 import { when } from '../src/when';
@@ -1796,7 +1797,7 @@ describe('Memo', () => {
         const Test = function Test() {
             return (
                 <div>
-                    <Memo>{obs$.test}</Memo>
+                    <$>{obs$.test}</$>
                 </div>
             );
         };

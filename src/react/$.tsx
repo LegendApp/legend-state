@@ -6,7 +6,7 @@ type ComputedWithMemo = (params: {
     scoped?: boolean;
 }) => ReactElement;
 
-export const Memo = memo(Computed as ComputedWithMemo, (prev, next) =>
+export const $ = memo(Computed as ComputedWithMemo, (prev, next) =>
     next.scoped ? prev.children === next.children : true,
 ) as NamedExoticComponent<{
     children: any;
