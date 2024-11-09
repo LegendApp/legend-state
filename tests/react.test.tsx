@@ -1756,6 +1756,45 @@ describe('Reactive', () => {
         // expect(items[0].id).toEqual('1');
     });
 });
+describe('$', () => {
+    test('$.div $className', () => {
+        const obs$ = observable('hi');
+        let num = 0;
+        const Test = function Test() {
+            return (
+                <$.div
+                    $className={() => {
+                        num++;
+                        return obs$.get();
+                    }}
+                />
+            );
+        };
+        function App() {
+            return createElement(Test);
+        }
+        render(createElement(App));
+
+        expect(num).toEqual(1);
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('div');
+        expect(items.length).toEqual(1);
+        expect(items[0].className).toEqual('hi');
+
+        act(() => {
+            obs$.set('hello');
+        });
+
+        items = container.querySelectorAll('div');
+
+        expect(items[0].className).toEqual('hello');
+
+        // items = container.querySelectorAll('li');
+        // expect(items.length).toEqual(2);
+        // expect(items[0].id).toEqual('1');
+    });
+});
 describe('Memo', () => {
     test('Memo works with function returning function', () => {
         let num = 0;
