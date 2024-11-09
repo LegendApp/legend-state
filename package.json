@@ -17,6 +17,7 @@
     "scripts": {
         "build": "npm run lint:check && npm run format:check && bun buntestsilent && bunx tsup && bun run posttsup.ts",
         "test": "jest",
+        "preversion": "npm run buntestsilent",
         "postversion": "npm run build && git push --follow-tags",
         "jestclear": "jest --clearCache",
         "publish:manual": "npm run build && cd dist && npm publish",
