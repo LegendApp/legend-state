@@ -3,7 +3,7 @@ import { syncedKeel as syncedKeelOrig } from '../src/sync-plugins/keel';
 import { configureSynced } from '../src/sync/configureSynced';
 import { getPersistName, localStorage, ObservablePersistLocalStorage, promiseTimeout } from './testglobals';
 
-type APIError = { type: string; message: string; requestId?: string; error?: Error };
+type APIError = { type: string; message: string; requestId?: string; error?: unknown };
 
 type APIResult<T> = Result<T, APIError>;
 
