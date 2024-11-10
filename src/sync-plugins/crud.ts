@@ -421,7 +421,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
                               for (let i = 0; i < changed.length; i++) {
                                   const [key, value] = changed[i];
-                                  const prev = asMap ? prevAtPath.get(key) : prevAtPath[key];
+                                  const prev = prevAtPath ? (asMap ? prevAtPath.get(key) : prevAtPath[key]) : undefined;
                                   if (isNullOrUndefined(value) && !isNullOrUndefined(prev)) {
                                       deletes.add(prev);
                                       return false;
