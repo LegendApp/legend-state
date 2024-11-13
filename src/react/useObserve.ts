@@ -59,7 +59,7 @@ export function useObserve<T>(
 
     if (!ref.current.dispose) {
         ref.current.dispose = observe<T>(
-            ((e: ObserveEventCallback<T>) => computeSelector(ref.current.selector, e)) as any,
+            ((e: ObserveEventCallback<T>) => computeSelector(ref.current.selector, undefined, e)) as any,
             (e) => ref.current.reaction?.(e),
             options,
         );

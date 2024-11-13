@@ -1,4 +1,4 @@
-import type { Observable, Selector } from '@legendapp/state';
+import type { GetOptions, Observable, Selector } from '@legendapp/state';
 import type { FC, LegacyRef, ReactNode } from 'react';
 
 export type ShapeWithNew$<T> = Partial<Omit<T, 'children'>> & {
@@ -29,7 +29,7 @@ export type FCReactive<P, P2> = P &
         }
     >;
 
-export interface UseSelectorOptions {
+export interface UseSelectorOptions extends GetOptions {
     suspense?: boolean;
     skipCheck?: boolean;
 }

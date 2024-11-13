@@ -4,7 +4,7 @@ import type { Observable, ObservableParam } from './observableTypes';
 export type TrackingType = undefined | true | symbol; // true === shallow
 
 export interface GetOptions {
-    shallow: boolean;
+    shallow?: boolean;
 }
 
 export type OpaqueObject<T> = T & { [symbolOpaque]: true };

@@ -42,7 +42,7 @@ function createSelectorFunctions<T>(
             value,
             dispose: _dispose,
             resubscribe: _resubscribe,
-        } = trackSelector(_selector, _update, undefined, undefined, /*createResubscribe*/ true);
+        } = trackSelector(_selector, _update, options, undefined, undefined, /*createResubscribe*/ true);
 
         dispose = _dispose;
         resubscribe = _resubscribe;
@@ -116,7 +116,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     // Short-circuit to skip creating the hook if selector is an observable
     // and running in an observer. If selector is a function it needs to run in its own context.
     if (reactGlobals.inObserver && isObservable(selector) && !options?.suspense) {
-        return computeSelector(selector);
+        return computeSelector(selector, options);
     }
 
     let value;
