@@ -18,7 +18,6 @@ import {
     WaitForSetCrudFnParams,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
-import ksuid from 'ksuid';
 
 // Keel types
 export interface KeelObjectBase {
@@ -48,10 +47,6 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 // Keel plugin types
 
 type SubscribeFn = (params: SyncedGetSetSubscribeBaseParams) => () => void;
-
-export function generateKeelId() {
-    return ksuid.randomSync().string;
-}
 
 export interface KeelGetParams {}
 
@@ -584,7 +579,6 @@ export function syncedKeel<
         changesSince,
         updatePartial: true,
         subscribe,
-        generateId: generateKeelId,
         get,
     }) as SyncedCrudReturnType<TLocal, TOption>;
 }

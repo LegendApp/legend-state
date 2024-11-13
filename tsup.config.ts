@@ -27,7 +27,6 @@ const external = [
     '@legendapp/state/react-reactive/enableReactive',
     'firebase/auth',
     'firebase/database',
-    'ksuid',
 ];
 
 const keys = pkg['lsexports']
