@@ -1,6 +1,6 @@
 import { isObservable } from './globals';
 import { computeSelector, isObservableValueReady } from './helpers';
-import { isArray, isPromise } from './is';
+import { isArray, isFunction, isPromise } from './is';
 import type { ObserveEvent, Selector } from './observableInterfaces';
 import { observe } from './observe';
 
@@ -29,10 +29,13 @@ function _when<T, T2>(predicate: Selector<T> | Selector<T>[], effect?: (value: T
             let isOk: any = true;
             if (isArray(ret)) {
                 for (let i = 0; i < ret.length; i++) {
-                    if (isObservable(ret[i])) {
-                        ret[i] = computeSelector(ret[i]);
+                    let item = ret[i];
+                    if (isObservable(item)) {
+                        item = computeSelector(item);
+                    } else if (isFunction(item)) {
+                        item = item();
                     }
-                    isOk = isOk && !!(checkReady ? isObservableValueReady(ret[i]) : ret[i]);
+                    isOk = isOk && !!(checkReady ? isObservableValueReady(item) : item);
                 }
             } else {
                 isOk = checkReady ? isObservableValueReady(ret) : ret;

@@ -47,7 +47,11 @@ export function observe<T>(
         // Dispose listeners from previous run
         dispose?.();
 
-        const { dispose: _dispose, value, nodes } = trackSelector(selectorOrRun as Selector<T>, update, e, options);
+        const {
+            dispose: _dispose,
+            value,
+            nodes,
+        } = trackSelector(selectorOrRun as Selector<T>, update, undefined, e, options);
         dispose = _dispose;
 
         e.value = value;

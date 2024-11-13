@@ -8,29 +8,36 @@ import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals } 
 interface ReactTrackingOptions {
     auto?: boolean; // Make all get() calls act as useSelector() hooks
     warnUnobserved?: boolean; // Warn if get() is used outside of an observer
+    warnGet?: boolean; // Warn if get() is used in a component
 }
 
-export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptions) {
+export function enableReactTracking({ auto, warnUnobserved, warnGet }: ReactTrackingOptions) {
     const { get } = internal;
 
-    if (auto || (process.env.NODE_ENV === 'development' && warnUnobserved)) {
+    if (auto || (process.env.NODE_ENV === 'development' && (warnUnobserved || warnGet))) {
         const ReactRenderContext = createContext(0);
+
+        const isInRender = () => {
+            // If we're already tracking then we definitely don't need useSelector
+            try {
+                // If there's no dispatcher we're definitely not in React
+                // This is an optimization to not need to run useContext. If in a future React version
+                // this works differently we can change it or just remove it.
+                const dispatcher = ReactInternals.ReactCurrentDispatcher.current;
+                if (dispatcher) {
+                    // If there's a dispatcher then we may be inside of a hook.
+                    // Attempt a useContext hook, which will throw an error if outside of render.
+                    useContext(ReactRenderContext);
+                    return true;
+                }
+            } catch {} // eslint-disable-line no-empty
+            return false;
+        };
 
         const needsSelector = () => {
             // If we're already tracking then we definitely don't need useSelector
             if (!tracking.current) {
-                try {
-                    // If there's no dispatcher we're definitely not in React
-                    // This is an optimization to not need to run useContext. If in a future React version
-                    // this works differently we can change it or just remove it.
-                    const dispatcher = ReactInternals.ReactCurrentDispatcher.current;
-                    if (dispatcher) {
-                        // If there's a dispatcher then we may be inside of a hook.
-                        // Attempt a useContext hook, which will throw an error if outside of render.
-                        useContext(ReactRenderContext);
-                        return true;
-                    }
-                } catch {} // eslint-disable-line no-empty
+                return isInRender();
             }
             return false;
         };
@@ -38,12 +45,18 @@ export function enableReactTracking({ auto, warnUnobserved }: ReactTrackingOptio
         configureLegendState({
             observableFunctions: {
                 get: (node: NodeInfo, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
-                    if (needsSelector()) {
+                    if (process.env.NODE_ENV === 'development' && warnUnobserved) {
+                        if (isInRender()) {
+                            console.warn(
+                                '[legend-state] Detected a `get()` call in a React component. It is recommended to use the `use$` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
+                            );
+                        }
+                    } else if (needsSelector()) {
                         if (auto) {
                             return useSelector(() => get(node, options), isObject(options) ? options : undefined);
                         } else if (process.env.NODE_ENV === 'development' && warnUnobserved) {
                             console.warn(
-                                '[legend-state] Detected a `get()` call in an unobserved component. You may want to wrap it in observer: https://legendapp.com/open-source/state/react-api/#observer-hoc',
+                                '[legend-state] Detected a `get()` call in an unobserved component. You may want to wrap it in observer: https://legendapp.com/open-source/state/v3/react/react-api/#observer',
                             );
                         }
                     }

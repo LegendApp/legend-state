@@ -18,7 +18,6 @@ import {
     WaitForSetCrudFnParams,
     syncedCrud,
 } from '@legendapp/state/sync-plugins/crud';
-import ksuid from 'ksuid';
 
 // Keel types
 export interface KeelObjectBase {
@@ -48,10 +47,6 @@ type Result<T, U> = NonNullable<Data<T> | Err<U>>;
 // Keel plugin types
 
 type SubscribeFn = (params: SyncedGetSetSubscribeBaseParams) => () => void;
-
-export function generateKeelId() {
-    return ksuid.randomSync().string;
-}
 
 export interface KeelGetParams {}
 
@@ -99,7 +94,7 @@ interface SyncedKeelPropsManyWhere<
         CrudResult<
             APIResult<{
                 results: TRemote[];
-                pageInfo: any;
+                pageInfo?: any;
             }>
         >
     >;
@@ -111,7 +106,7 @@ interface SyncedKeelPropsManyNoWhere<TRemote extends { id: string }, TLocal, AOp
         CrudResult<
             APIResult<{
                 results: TRemote[];
-                pageInfo: any;
+                pageInfo?: any;
             }>
         >
     >;
@@ -150,7 +145,7 @@ export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TR
     > {
     client?: KeelClient;
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
-    update?: (params: { where: any; values?: Partial<TRemote> }) => Promise<APIResult<TRemote>>;
+    update?: (params: { where: any; values?: NoInfer<Partial<TRemote>> }) => Promise<APIResult<NoInfer<TRemote>>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
     realtime?: {
         path?: (action: string, inputs: any) => string | Promise<string>;
@@ -275,7 +270,7 @@ async function getAllPages<TRemote>(
     listFn: (params: KeelListParams<any>) => Promise<
         APIResult<{
             results: TRemote[];
-            pageInfo: any;
+            pageInfo?: any;
         }>
     >,
     params: KeelListParams,
@@ -584,7 +579,6 @@ export function syncedKeel<
         changesSince,
         updatePartial: true,
         subscribe,
-        generateId: generateKeelId,
         get,
     }) as SyncedCrudReturnType<TLocal, TOption>;
 }

@@ -12,16 +12,21 @@ import {
     isPrimitive,
     isSet,
 } from './is';
-import type { Change, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
+import type { Change, GetOptions, ObserveEvent, OpaqueObject, Selector, TypeAtPath } from './observableInterfaces';
 import type { ObservableParam } from './observableTypes';
 
-export function computeSelector<T>(selector: Selector<T>, e?: ObserveEvent<T>, retainObservable?: boolean): T {
+export function computeSelector<T>(
+    selector: Selector<T>,
+    getOptions?: GetOptions,
+    e?: ObserveEvent<T>,
+    retainObservable?: boolean,
+): T {
     let c = selector as any;
     if (!isObservable(c) && isFunction(c)) {
         c = e ? c(e) : c();
     }
 
-    return isObservable(c) && !retainObservable ? c.get() : c;
+    return isObservable(c) && !retainObservable ? c.get(getOptions) : c;
 }
 
 export function getObservableIndex(value$: ObservableParam): number {

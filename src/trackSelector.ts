@@ -1,11 +1,12 @@
 import { computeSelector } from './helpers';
-import type { ObserveOptions, ListenerParams, ObserveEvent, Selector } from './observableInterfaces';
+import type { ObserveOptions, ListenerParams, ObserveEvent, Selector, GetOptions } from './observableInterfaces';
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 
 export function trackSelector<T>(
     selector: Selector<T>,
     update: (params: ListenerParams) => void,
+    getOptions?: GetOptions,
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
     createResubscribe?: boolean,
@@ -15,7 +16,9 @@ export function trackSelector<T>(
     let updateFn = update;
 
     beginTracking();
-    const value = selector ? computeSelector(selector, observeEvent, observeOptions?.fromComputed) : selector;
+    const value = selector
+        ? computeSelector(selector, getOptions, observeEvent, observeOptions?.fromComputed)
+        : selector;
     const tracker = tracking.current;
     const nodes = tracker!.nodes;
     endTracking();

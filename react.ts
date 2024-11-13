@@ -1,4 +1,5 @@
 export * from './src/react/Computed';
+export * from './src/react/$';
 export * from './src/react/For';
 export { usePauseProvider } from './src/react/usePauseProvider';
 export * from './src/react/Memo';
