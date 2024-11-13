@@ -1001,7 +1001,7 @@ export function peekInternal(node: NodeInfo, activateRecursive?: boolean) {
     }
 
     // Don't want to check lazy while loading because we don't want to activate anything
-    if (!globalState.isLoadingLocal && !node.isPlain) {
+    if (!node.root.isLoadingLocal && !node.isPlain) {
         value = checkLazy(node, value, !!activateRecursive);
     }
 

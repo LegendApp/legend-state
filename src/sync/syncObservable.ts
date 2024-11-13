@@ -888,6 +888,7 @@ async function loadLocal<T>(
 
             // isLoadingLocal prevents saving remotely when two different caches
             // are set on the same observable
+            node.root.isLoadingLocal = true;
             internal.globalState.isLoadingLocal = true;
 
             // We want to merge the local data on top of any initial state the object is created with
@@ -896,6 +897,7 @@ async function loadLocal<T>(
             } else {
                 mergeIntoObservable(value$, value);
             }
+            node.root.isLoadingLocal = false;
 
             internal.globalState.isLoadingLocal = false;
         }
