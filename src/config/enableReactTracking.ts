@@ -8,13 +8,13 @@ import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals } 
 interface ReactTrackingOptions {
     auto?: boolean; // Make all get() calls act as useSelector() hooks
     warnUnobserved?: boolean; // Warn if get() is used outside of an observer
-    warnGet?: boolean; // Warn if get() is used in a component
+    warnMissingUse?: boolean; // Warn if get() is used in a component
 }
 
-export function enableReactTracking({ auto, warnUnobserved, warnGet }: ReactTrackingOptions) {
+export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: ReactTrackingOptions) {
     const { get } = internal;
 
-    if (auto || (process.env.NODE_ENV === 'development' && (warnUnobserved || warnGet))) {
+    if (auto || (process.env.NODE_ENV === 'development' && (warnUnobserved || warnMissingUse))) {
         const ReactRenderContext = createContext(0);
 
         const isInRender = () => {
@@ -45,7 +45,7 @@ export function enableReactTracking({ auto, warnUnobserved, warnGet }: ReactTrac
         configureLegendState({
             observableFunctions: {
                 get: (node: NodeInfo, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
-                    if (process.env.NODE_ENV === 'development' && warnUnobserved) {
+                    if (process.env.NODE_ENV === 'development' && warnMissingUse) {
                         if (isInRender()) {
                             console.warn(
                                 '[legend-state] Detected a `get()` call in a React component. It is recommended to use the `use$` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
