@@ -5,7 +5,6 @@ import {
     computeSelector,
     isObservable,
     isPrimitive,
-    isPromise,
     trackSelector,
     when,
 } from '@legendapp/state';
@@ -112,14 +111,27 @@ function createSelectorFunctions<T>(
     };
 }
 
+function doSuspense(selector: Selector<any>) {
+    const vProm = when(selector);
+    if ((React as any).use) {
+        (React as any).use(vProm);
+    } else {
+        throw vProm;
+    }
+}
+
 export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptions): T {
+    let value;
+
     // Short-circuit to skip creating the hook if selector is an observable
     // and running in an observer. If selector is a function it needs to run in its own context.
     if (reactGlobals.inObserver && isObservable(selector) && !options?.suspense) {
-        return computeSelector(selector, options);
+        value = computeSelector(selector, options);
+        if (options?.suspense && value === undefined) {
+            doSuspense(selector);
+        }
+        return value;
     }
-
-    let value;
 
     try {
         const isPaused$ = useContext(getPauseContext());
@@ -147,18 +159,8 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
     }
 
     // Suspense support
-    if (options?.suspense) {
-        // Note: Although it's not possible for an observable to be a promise, the selector may be a
-        // function that returns a Promise, so we handle that case too.
-        const isProm = isPromise(value);
-        if (isPromise(value) || (!value && isObservable(selector))) {
-            const vProm = isProm ? value : when(selector);
-            if ((React as any).use) {
-                (React as any).use(vProm);
-            } else {
-                throw vProm;
-            }
-        }
+    if (options?.suspense && value === undefined) {
+        doSuspense(selector);
     }
 
     return value;
