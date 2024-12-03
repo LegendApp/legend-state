@@ -4,5 +4,8 @@
     "[markdown]": {
         "editor.defaultFormatter": "vscode.markdown-language-features"
     },
-    "typescript.tsdk": "node_modules/typescript/lib"
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
 }
