@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { isFunction, isObservable, Selector } from '@legendapp/state';
-import { ChangeEvent, FC, forwardRef, memo, useCallback } from 'react';
+import { ChangeEvent, ComponentClass, FC, forwardRef, memo, useCallback } from 'react';
 import { reactGlobals } from './react-globals';
 import type { BindKeys } from './reactInterfaces';
 import { useSelector } from './useSelector';
@@ -27,7 +27,7 @@ let didWarnProps = false;
 
 // TODOV2: Change bindKeys to an options object, where one of the options is "convertChildren" so that behavior can be optional
 function createReactiveComponent<P = object>(
-    component: FC<P>,
+    component: FC<P> | ComponentClass<P>,
     observe: boolean,
     reactive?: boolean,
     keysReactive?: (string | number | symbol)[] | undefined | null,
@@ -179,6 +179,11 @@ export function observer<P extends FC<any>>(component: P): P {
 
 // With empty keys
 export function reactive<T extends object>(
+    component: React.ComponentClass<T>,
+    keys: undefined | null,
+    bindKeys?: BindKeys<T>,
+): React.FC<ShapeWith$<T>>;
+export function reactive<T extends object>(
     component: React.FC<T>,
     keys: undefined | null,
     bindKeys?: BindKeys<T>,
@@ -200,16 +205,17 @@ export function reactive<T extends object, K extends keyof T>(
     bindKeys?: BindKeys<T, K>,
 ): React.ForwardRefExoticComponent<ReactifyProps<T, K>>;
 // Without keys
+export function reactive<T extends object>(component: React.ComponentClass<T>): React.ComponentClass<ShapeWith$<T>>;
 export function reactive<T extends object>(component: React.FC<T>): React.FC<ShapeWith$<T>>;
 export function reactive<T extends object>(
     component: React.ForwardRefExoticComponent<T>,
 ): React.ForwardRefExoticComponent<ShapeWith$<T>>;
 // Implementation
 export function reactive<T extends object, K extends keyof T>(
-    component: React.FC<T> | React.ForwardRefExoticComponent<T>,
+    component: React.FC<T> | React.ForwardRefExoticComponent<T> | React.ComponentClass<T>,
     keys?: K[] | undefined | null,
     bindKeys?: BindKeys<T, K>,
-): React.FC<ReactifyProps<T, K>> | React.ForwardRefExoticComponent<ReactifyProps<T, K>> {
+): React.FC<ReactifyProps<T, K>> | React.ForwardRefExoticComponent<ReactifyProps<T, K>> | React.ComponentClass<T> {
     return createReactiveComponent(component, false, true, keys, bindKeys);
 }
 
