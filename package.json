@@ -48,6 +48,8 @@
         ".",
         "sync",
         "react",
+        "react-native",
+        "react-web",
         "trace",
         "babel",
         "react-reactive/*",
