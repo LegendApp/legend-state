@@ -145,7 +145,7 @@ export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TR
     > {
     client?: KeelClient;
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
-    update?: (params: { where: any; values?: NoInfer<Partial<TRemote>> }) => Promise<APIResult<NoInfer<TRemote>>>;
+    update?: (params: { where: any; values?: Partial<NoInfer<TRemote>> }) => Promise<APIResult<TRemote>>;
     delete?: (params: { id: string }) => Promise<APIResult<string>>;
     realtime?: {
         path?: (action: string, inputs: any) => string | Promise<string>;
