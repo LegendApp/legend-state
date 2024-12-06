@@ -368,7 +368,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       return updatePartial
                           ? Object.assign(
                                 diffObjects(prev, itemValue, /*deep*/ true),
-                                (itemValue as any)[fieldId] ? { [fieldId]: (itemValue as any)[fieldId] } : {},
+                                !isNullOrUndefined((itemValue as any)[fieldId])
+                                    ? { [fieldId]: (itemValue as any)[fieldId] }
+                                    : {},
                             )
                           : itemValue;
                   };
@@ -379,10 +381,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           if (value) {
                               let id = value?.[fieldId];
                               let isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
-                              if (!id && generateId) {
+                              if (!isNullOrUndefined(id) && generateId) {
                                   id = ensureId(value, fieldId, generateId);
                               }
-                              if (id) {
+                              if (!isNullOrUndefined(id)) {
                                   changesById.set(id, change);
                                   if (pendingCreates.has(id)) {
                                       isCreate = false;
