@@ -33,17 +33,23 @@ export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
 
 export type CrudResult<T> = T;
 
-export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
-    get?: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
+export interface SyncedCrudPropsNoRead<TLocal, TAsOption extends CrudAsOption> {
+    get?: never | undefined;
     list?: never | undefined;
-    initial?: InitialValue<TLocal, 'value'>;
+    initial?: InitialValue<TLocal, TAsOption>;
+    as?: TAsOption;
+}
+export interface SyncedCrudPropsSingle<TRemote extends object, TLocal> {
+    get: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote | null>> | CrudResult<TRemote | null>;
+    list?: never | undefined;
+    initial?: InitialValue<Partial<NoInfer<TLocal>>, 'value'>;
     as?: never | 'value';
 }
 export interface SyncedCrudPropsMany<TRemote extends object, TLocal, TAsOption extends CrudAsOption> {
-    list?: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
+    list: (params: SyncedGetParams<TRemote>) => Promise<CrudResult<TRemote[] | null>> | CrudResult<TRemote[] | null>;
     get?: never | undefined;
     as?: TAsOption;
-    initial?: InitialValue<TLocal, TAsOption>;
+    initial?: InitialValue<Partial<NoInfer<TLocal>>, TAsOption>;
 }
 export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     saved: TLocal;
@@ -178,6 +184,10 @@ function retrySet(
     );
 }
 
+// The no read version
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
+    props: SyncedCrudPropsNoRead<TRemote, TAsOption> & SyncedCrudPropsBase<TRemote, TLocal>,
+): SyncedCrudReturnType<TLocal, TAsOption>;
 // The get version
 export function syncedCrud<TRemote extends object, TLocal = TRemote>(
     props: SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsBase<TRemote, TLocal>,
@@ -191,7 +201,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         SyncedCrudPropsBase<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, TAsOption>;
 export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
-    props: (SyncedCrudPropsSingle<TRemote, TLocal> | SyncedCrudPropsMany<TRemote, TLocal, TAsOption>) &
+    props: (
+        | SyncedCrudPropsSingle<TRemote, TLocal>
+        | SyncedCrudPropsMany<TRemote, TLocal, TAsOption>
+        | SyncedCrudPropsNoRead<TRemote, TAsOption>
+    ) &
         SyncedCrudPropsBase<TRemote, TLocal>,
 ): SyncedCrudReturnType<TLocal, TAsOption> {
     const {

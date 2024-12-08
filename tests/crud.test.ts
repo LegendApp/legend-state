@@ -1443,6 +1443,44 @@ describe('Crud record transform', () => {
         });
     });
 });
+describe('initial', () => {
+    const obsGet = observable(
+        syncedCrud({
+            get: () => ItemBasicValue(),
+            // initial: {},
+        }),
+    );
+    const valueGet = obsGet.get();
+    expectTypeOf<typeof valueGet>().toEqualTypeOf<BasicValue>();
+
+    const obsInitial = observable(
+        syncedCrud({
+            get: () => ItemBasicValue(),
+            initial: {},
+        }),
+    );
+    const valueInitial = obsInitial.get();
+    expectTypeOf<typeof valueInitial>().toEqualTypeOf<BasicValue>();
+
+    const obsInitialList = observable(
+        syncedCrud({
+            list: () => [ItemBasicValue()],
+            initial: [],
+            as: 'array',
+        }),
+    );
+    const valueInitialList = obsInitialList.get();
+    expectTypeOf<typeof valueInitialList>().toEqualTypeOf<BasicValue[]>();
+
+    const obsInitial2 = observable(
+        syncedCrud({
+            get: () => ItemBasicValue(),
+            initial: undefined,
+        }),
+    );
+    const valueInitial2 = obsInitial2.get();
+    expectTypeOf<typeof valueInitial2>().toEqualTypeOf<BasicValue>();
+});
 describe('fieldUpdatedAt', () => {
     test('fieldUpdatedAt creates if no updatedAt', async () => {
         let created = undefined;
@@ -2454,16 +2492,15 @@ describe('onSaved', () => {
         let updated = undefined;
         const canSave$ = observable(false);
         const isSaving$ = observable(false);
+        type ExtendedValue = BasicValue & { changing: string };
         const obs = observable(
             syncedCrud({
                 initial: {
-                    id1: { ...ItemBasicValue(), updatedAt: 10, changing: '0' } as BasicValue & {
-                        changing: string;
-                    },
+                    id1: { ...ItemBasicValue(), updatedAt: 10, changing: '0' } as ExtendedValue,
                 },
                 as: 'object',
                 fieldUpdatedAt: 'updatedAt',
-                create: async (input: BasicValue) => {
+                create: async (input: ExtendedValue) => {
                     created = clone(input);
                     return input;
                 },
