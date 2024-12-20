@@ -3,6 +3,8 @@
 import type { MMKVConfiguration } from 'react-native-mmkv';
 // @ts-ignore
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
+// @ts-ignore
+import type { SQLiteStorageStatic } from 'expo-sqlite/kv-store';
 
 import type {
     Change,
@@ -123,6 +125,10 @@ export interface ObservablePersistAsyncStoragePluginOptions {
     AsyncStorage: AsyncStorageStatic;
     preload?: boolean | string[];
 }
+export interface ObservablePersistSQLiteStoragePluginOptions {
+    SQLiteStorage: SQLiteStorageStatic;
+    preload?: boolean | string[];
+  }
 
 export interface ObservablePersistPluginOptions {
     onGetError?: (error: Error) => void;
