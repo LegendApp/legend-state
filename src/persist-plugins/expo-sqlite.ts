@@ -22,7 +22,7 @@ export class ObservablePersistSQLiteStorage implements ObservablePersistPlugin {
         this.configuration = configuration;
     }
     public async initialize(configOptions: ObservablePersistPluginOptions) {
-        const storageConfig = this.configuration || configOptions.sQLiteStorage;
+        const storageConfig = this.configuration || configOptions.sqliteStorage;
 
         let tables: readonly string[] = [];
         if (storageConfig) {
@@ -40,7 +40,7 @@ export class ObservablePersistSQLiteStorage implements ObservablePersistPlugin {
                     tables = [...preload, ...(metadataTables.filter(Boolean) as string[])];
                 }
                 if (tables) {
-                    const values = await SQLiteStorage.multiGet(tables);
+                    const values = await SQLiteStorage.multiGet(tables as string[]);
 
                     values.forEach(([table, value]) => {
                         this.data[table] = value ? safeParse(value) : undefined;

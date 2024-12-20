@@ -128,13 +128,14 @@ export interface ObservablePersistAsyncStoragePluginOptions {
 export interface ObservablePersistSQLiteStoragePluginOptions {
     SQLiteStorage: SQLiteStorageStatic;
     preload?: boolean | string[];
-  }
+}
 
 export interface ObservablePersistPluginOptions {
     onGetError?: (error: Error) => void;
     onSetError?: (error: Error) => void;
     indexedDB?: ObservablePersistIndexedDBPluginOptions;
     asyncStorage?: ObservablePersistAsyncStoragePluginOptions;
+    sqliteStorage?: ObservablePersistSQLiteStoragePluginOptions;
 }
 export interface ObservablePersistPlugin {
     initialize?(config: ObservablePersistPluginOptions): void | Promise<void>;
