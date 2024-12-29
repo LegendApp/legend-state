@@ -525,7 +525,8 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           const currentValue = isChild
                               ? ((asType === 'array' && isArray(currentPeeked)
                                     ? currentPeeked.find((v) => v[fieldId] === itemKey)
-                                    : undefined) ?? (asType === "Map" ? currentPeeked.get(itemKey) : currentPeeked[itemKey]))
+                                    : undefined) ??
+                                (asType === 'Map' ? currentPeeked.get(itemKey) : currentPeeked[itemKey]))
                               : currentPeeked;
 
                           // If this value has been deleted locally before this finished saving then ignore the result
