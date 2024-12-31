@@ -329,9 +329,10 @@ export function syncedSupabase<
 
     const deleteFn =
         !fieldDeleted && (!actions || actions.includes('delete'))
-            ? deleteParam
+            ? // prettier-ignore
+              deleteParam
                 ? wrapSupabaseFn(deleteParam, 'delete')
-                : async (
+                : (async (
                       input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
                       params: SyncedSetParams<TRemote>,
                   ) => {
@@ -352,7 +353,7 @@ export function syncedSupabase<
                               revert: createRevertChanges(params.value$, params.changes),
                           });
                       }
-                  }
+                  })
             : undefined;
 
     const subscribe = realtime
@@ -423,7 +424,7 @@ export function syncedSupabase<
     >({
         ...rest,
         mode: mode || 'merge',
-        list,
+        list: list as any,
         create,
         update,
         delete: deleteFn,
