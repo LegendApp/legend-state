@@ -433,7 +433,9 @@ export function syncedSupabase<
     >({
         ...rest,
         mode: mode || 'merge',
-        list: list as any,
+        list: list as (
+            params: SyncedGetParams<SupabaseRowOf<Client, Collection, SchemaName>>,
+        ) => Promise<SupabaseRowOf<Client, Collection, SchemaName>[] | null>,
         create,
         update,
         delete: deleteFn,
