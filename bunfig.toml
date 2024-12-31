@@ -1,4 +1,2 @@
-[install.lockfile]
-# whether to save a non-Bun lockfile alongside bun.lockb
-# only "yarn" is supported
-print = "yarn"
+[install]
+saveTextLockfile = true
