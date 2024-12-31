@@ -106,7 +106,7 @@
         "ts-jest": "^29.1.4",
         "tslib": "^2.6.2",
         "tsup": "^8.0.2",
-        "typescript": "^5.5.2"
+        "typescript": "^5.7.2"
     },
     "dependencies": {
         "use-sync-external-store": "^1.2.2"
