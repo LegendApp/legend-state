@@ -215,6 +215,7 @@ export function syncedSupabase<
         fieldUpdatedAt,
         fieldDeleted,
         realtime,
+        fieldId,
         changesSince,
         transform: transformParam,
         stringifyDates,
@@ -309,7 +310,8 @@ export function syncedSupabase<
                 ? wrapSupabaseFn(updateParam, 'update')
                 : async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
                       const { onError } = params;
-                      const res = await client.from(collection).update(input).eq('id', input.id).select();
+                      const idField = props.fieldId || 'id';
+                      const res = await client.from(collection).update(input).eq(idField, input[idField]).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
@@ -332,12 +334,12 @@ export function syncedSupabase<
             ? deleteParam
                 ? wrapSupabaseFn(deleteParam, 'delete')
                 : async (
-                      input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
+                      input: { [key: string]: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
                       params: SyncedSetParams<TRemote>,
                   ) => {
                       const { onError } = params;
-                      const id = input.id;
-                      const res = await client.from(collection).delete().eq('id', id).select();
+                      const idField = props.fieldId || 'id';
+                      const res = await client.from(collection).delete().eq(idField, input[idField]).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
@@ -423,7 +425,9 @@ export function syncedSupabase<
     >({
         ...rest,
         mode: mode || 'merge',
-        list,
+        list: list as (
+            params: SyncedGetParams<SupabaseRowOf<Client, Collection, SchemaName>>,
+        ) => Promise<SupabaseRowOf<Client, Collection, SchemaName>[] | null>,
         create,
         update,
         delete: deleteFn,
@@ -432,6 +436,7 @@ export function syncedSupabase<
         fieldUpdatedAt,
         fieldDeleted,
         updatePartial: false,
+        fieldId,
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
