@@ -111,8 +111,6 @@ export type SyncedCrudReturnType<TLocal, TAsOption extends CrudAsOption> = TAsOp
         ? TLocal
         : TLocal[];
 
-let _asOption: CrudAsOption;
-
 function transformOut<T1, T2>(data: T1, transform: undefined | ((value: T1) => T2)) {
     return transform ? transform(clone(data)) : data;
 }
@@ -242,7 +240,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     let asType = props.as as TAsOption;
 
     if (!asType) {
-        asType = (getFn ? 'value' : _asOption || 'object') as CrudAsOption as TAsOption;
+        asType = (getFn ? 'value' : 'object') as CrudAsOption as TAsOption;
     }
 
     const asMap = asType === 'Map';
