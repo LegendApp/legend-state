@@ -5,16 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
+            "type": "bun",
             "request": "launch",
-            "name": "Jest Tests",
-            "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
-            "args": [
-                "--watch",
-                "-i",
-            ],
-            "cwd": "${workspaceFolder}/src",
-            "console": "integratedTerminal"
+            "name": "Bun Tests",
+            "program": "test",
+            "cwd": "${workspaceFolder}",
+            "watchMode": true,
+            "internalConsoleOptions": "openOnSessionStart",
+        },
+        {
+            "type": "bun",
+            "request": "attach",
+            "name": "Attach to Bun",
+            // The URL of the WebSocket inspector to attach to.
+            // This value can be retrieved by using `bun --inspect`.
+            "url": "ws://localhost:6499/",
         },
     ]
 }
