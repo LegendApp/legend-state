@@ -649,7 +649,12 @@ const proxyHandler: ProxyHandler<any> = {
         if (isObservable(thisArg)) {
             thisArg = thisArg.peek();
         }
-        return Reflect.apply(target.lazyFn || target, thisArg, argArray);
+        // Get the raw value of the function
+        const fnRaw = getNodeValue(target);
+        // Use the function if still defined as a function, or the saved lazyFn if it's been extracted as an observable
+        const fn = isFunction(fnRaw) ? fnRaw : target.lazyFn || target;
+        // Apply the function
+        return Reflect.apply(fn, thisArg, argArray);
     },
 };
 
