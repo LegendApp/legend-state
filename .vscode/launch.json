@@ -4,6 +4,16 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    
+
+    {
+      "type": "cobol",
+      "request": "launch",
+      "name": "COBOL: (debugCurrentFile)",
+      "program": "${workspaceFolder}/${fileBasenameNoExtension}.int",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": true
+    },
     {
         "type": "lldb",
         "request": "attach",
