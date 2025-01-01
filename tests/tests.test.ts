@@ -1989,6 +1989,23 @@ describe('Array', () => {
         expect(lastValue).toEqual(2);
         obs$.splice(0, 1);
         expect(lastValue).toEqual(1);
+        obs$.set([]);
+        expect(lastValue).toEqual(0);
+    });
+    test('Computed of array length', () => {
+        const obs$ = observable<{ todos: number[] }>({ todos: [0] });
+        let lastValue: number | undefined = undefined;
+        const length$ = observable(() => obs$.todos.length);
+        observe(() => {
+            lastValue = length$.get();
+        });
+        expect(lastValue).toEqual(1);
+        obs$.todos.push(1);
+        expect(lastValue).toEqual(2);
+        obs$.todos.splice(0, 1);
+        expect(lastValue).toEqual(1);
+        obs$.todos.set([]);
+        expect(lastValue).toEqual(0);
     });
 });
 describe('Deep changes keep listeners', () => {

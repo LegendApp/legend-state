@@ -13,7 +13,7 @@ import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
-import { useSelector } from '../src/react/useSelector';
+import { use$, useSelector } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
 import { Memo } from '../src/react/Memo';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -542,6 +542,39 @@ describe('useSelector', () => {
             expect(await when(isDone$)).toEqual('hi');
             items = container.querySelectorAll('div');
             expect(items[0].textContent).toEqual('hi');
+        });
+    });
+    test('use$ with array length', () => {
+        supressActWarning(async () => {
+            const obs$ = observable<{ todos: number[]; total: number }>({
+                todos: [0],
+                total: (): number => obs$.todos.length,
+            });
+            let lastValue: number | undefined = undefined;
+
+            const Test = function Test() {
+                lastValue = use$(obs$.total);
+
+                return createElement('div', undefined, lastValue);
+            };
+            function App() {
+                return createElement(Test);
+            }
+            render(createElement(App));
+
+            expect(lastValue).toEqual(1);
+            act(() => {
+                obs$.todos.push(1);
+            });
+            expect(lastValue).toEqual(2);
+            act(() => {
+                obs$.todos.splice(0, 1);
+            });
+            expect(lastValue).toEqual(1);
+            act(() => {
+                obs$.todos.set([]);
+            });
+            expect(lastValue).toEqual(0);
         });
     });
 });
