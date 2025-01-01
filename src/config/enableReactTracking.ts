@@ -34,9 +34,14 @@ export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: Re
             return false;
         };
 
+        const isObserved = () => {
+            // If we're already tracking then we definitely don't need useSelector
+            return !!tracking.current;
+        };
+
         const needsSelector = () => {
             // If we're already tracking then we definitely don't need useSelector
-            if (!tracking.current) {
+            if (!isObserved()) {
                 return isInRender();
             }
             return false;
@@ -47,9 +52,15 @@ export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: Re
                 get: (node: NodeInfo, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
                     if (process.env.NODE_ENV === 'development' && warnMissingUse) {
                         if (isInRender()) {
-                            console.warn(
-                                '[legend-state] Detected a `get()` call in a React component. It is recommended to use the `use$` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
-                            );
+                            if (isObserved()) {
+                                console.warn(
+                                    '[legend-state] Detected a `get()` call in an observer component. It is recommended to use the `use$` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
+                                );
+                            } else {
+                                console.warn(
+                                    '[legend-state] Detected a `get()` call in a component. You likely want to use the `use$` hook to be reactive to it changing, or change `get()` to `peek()` to get the value without tracking: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
+                                );
+                            }
                         }
                     } else if (needsSelector()) {
                         if (auto) {
