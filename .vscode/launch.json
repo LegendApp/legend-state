@@ -5,6 +5,11 @@
   "version": "0.2.0",
   "configurations": [
     {
+        "type": "lldb",
+        "request": "attach",
+        "name": "Attach",
+        "program": "${workspaceFolder}/<program>"
+    },
       "name": "Launch Apex Replay Debugger",
       "type": "apex-replay",
       "request": "launch",
@@ -13,7 +18,7 @@
       "trace": true
     },
     {
-      "type": "node",
+      "type": "pwa-node",
       "request": "launch",
       "name": "Jest Tests",
       "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
