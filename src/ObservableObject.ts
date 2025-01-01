@@ -475,13 +475,16 @@ const proxyHandler: ProxyHandler<any> = {
             };
         }
 
+        // If this is an observable property that has been added by config functions, return it
         const property = observableProperties.get(p);
         if (property) {
             return property.get(node);
         }
 
+        // Get raw value of the property
         let vProp = value?.[p];
 
+        // If it's an opaque object, can skip the rest of the logic
         if (isObject(value) && isHintOpaque(value)) {
             return vProp;
         }
@@ -489,11 +492,14 @@ const proxyHandler: ProxyHandler<any> = {
         const fnOrComputed = node.functions?.get(p);
         if (fnOrComputed) {
             if (isObservable(fnOrComputed)) {
+                // If it's a linked observable, return the target
                 return fnOrComputed;
             } else {
+                // Otherwise return a proxy to the function
                 return getProxy(node, p, fnOrComputed as Function);
             }
         } else {
+            // Check if this is a property that has been added by defineProperty
             vProp = checkProperty(value, p);
         }
 
