@@ -1,1 +1,1 @@
-export * from './src/react-reactive/$Components';
+export * from './src/react-reactive/Components';
