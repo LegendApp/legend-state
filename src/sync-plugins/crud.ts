@@ -393,7 +393,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           if (value) {
                               let id = value?.[fieldId];
                               let isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
-                              if (!isNullOrUndefined(id) && generateId) {
+                              if (isNullOrUndefined(id) && generateId) {
                                   id = ensureId(value, fieldId, generateId);
                               }
                               if (!isNullOrUndefined(id)) {
