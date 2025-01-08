@@ -373,6 +373,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   const { value, changes, update, retryAsCreate, node } = params;
                   const creates = new Map<string, TLocal>();
                   const updates = new Map<string, object>();
+                  const updateFullValues = new Map<string, object>();
                   const deletes = new Set<TRemote>();
                   const changesById = new Map<string, Change>();
 
@@ -410,12 +411,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   } else if (path.length === 0) {
                                       if (valueAtPath) {
                                           updates.set(id, getUpdateValue(valueAtPath, prevAtPath));
+                                          updateFullValues.set(id, valueAtPath);
                                       } else if (prevAtPath) {
                                           deletes.add(prevAtPath);
                                       }
                                   } else if (!updates.has(id)) {
                                       const previous = applyChanges(clone(value), changes, /*applyPrevious*/ true);
                                       updates.set(id, getUpdateValue(value, previous));
+                                      updateFullValues.set(id, value);
                                   }
                               } else {
                                   console.error('[legend-state]: added synced item without an id');
@@ -425,8 +428,8 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               changesById.set(prevAtPath[fieldId], change);
                           }
                       } else {
-                          // key, value, previous
-                          let itemsChanged: [any, any][] | undefined = [];
+                          // value, previous, fullValue
+                          let itemsChanged: [any, any, any][] | undefined = [];
                           if (path.length === 0) {
                               // Do a deep equal of each element vs its previous element to see which have changed
                               const changed = asMap
@@ -443,7 +446,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       const isDiff = !prevAtPath || !deepEqual(value, prev);
 
                                       if (isDiff) {
-                                          itemsChanged.push([getUpdateValue(value, prev), prev]);
+                                          itemsChanged.push([getUpdateValue(value, prev), prev, value]);
                                       }
                                   }
                               }
@@ -463,10 +466,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       prevAtPath,
                                   );
 
-                                  itemsChanged = [[getUpdateValue(itemValue, previous), previous]];
+                                  itemsChanged = [[getUpdateValue(itemValue, previous), previous, itemValue]];
                               }
                           }
-                          itemsChanged?.forEach(([item, prev]) => {
+                          itemsChanged?.forEach(([item, prev, fullValue]) => {
                               const isCreate =
                                   !pendingCreates.has(item[fieldId]) &&
                                   (fieldCreatedAt
@@ -494,6 +497,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       const id = item[fieldId];
                                       changesById.set(id, change);
                                       updates.set(id, updates.has(id) ? Object.assign(updates.get(id)!, item) : item);
+                                      updateFullValues.set(
+                                          id,
+                                          updateFullValues.has(id)
+                                              ? Object.assign(updateFullValues.get(id)!, fullValue)
+                                              : fullValue,
+                                      );
                                   } else {
                                       console.warn('[legend-state] missing update function');
                                   }
@@ -609,7 +618,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       // Handle updates
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
                           if (waitForSetParam) {
-                              await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'update' });
+                              // waitForSet should receive the full value
+                              const fullValue = updateFullValues.get(itemKey);
+                              await waitForSet(waitForSetParam as any, changes, fullValue, { type: 'update' });
                           }
                           const changed = (await transformOut(itemValue as TLocal, transform?.save)) as TRemote;
                           if (Object.keys(changed).length > 0) {

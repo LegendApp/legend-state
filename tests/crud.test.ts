@@ -2904,6 +2904,38 @@ describe('waitForSet', () => {
         expect(createValue).toEqual({ id: '1', test: 'hi' });
         expect(typeAtWaitForSet).toEqual('create');
     });
+    test('crud waitForSet with update gets full value', async () => {
+        const canSet$ = observable(false);
+        let valueAtWaitForSet: BasicValue | undefined = undefined;
+        let updateValue: BasicValue | undefined = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => [{ ...ItemBasicValue(), other: 'z', other2: 'z2' }],
+                update: (value: BasicValue) => {
+                    updateValue = value;
+                    return promiseTimeout(0, value);
+                },
+                updatePartial: true,
+                as: 'object',
+                waitForSet: ({ value }) => {
+                    valueAtWaitForSet = value;
+                    return canSet$;
+                },
+            }),
+        );
+
+        obs$.id1.test.set('hello');
+
+        await promiseTimeout(1);
+
+        expect(valueAtWaitForSet).toEqual({ id: 'id1', test: 'hello', other: 'z', other2: 'z2' });
+
+        canSet$.set(true);
+
+        await promiseTimeout(1);
+
+        expect(updateValue).toEqual({ id: 'id1', test: 'hello' });
+    });
 });
 describe('Error is set', () => {
     test('error is set if get fails', async () => {
