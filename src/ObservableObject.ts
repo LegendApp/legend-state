@@ -18,6 +18,7 @@ import {
     symbolIterator,
     symbolLinked,
     symbolToPrimitive,
+    getKeys,
 } from './globals';
 import {
     hasOwnProperty,
@@ -118,23 +119,6 @@ function collectionSetter(node: NodeInfo, target: any[], prop: keyof Array<any>,
         // Return the original value
         return ret;
     }
-}
-
-function getKeys(
-    obj: Record<any, any> | Array<any> | undefined,
-    isArr: boolean,
-    isMap: boolean,
-    isSet: boolean,
-): string[] {
-    return isArr
-        ? (undefined as any)
-        : obj
-          ? isSet
-              ? Array.from(obj as Set<any>)
-              : isMap
-                ? Array.from(obj.keys())
-                : Object.keys(obj)
-          : [];
 }
 
 function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | undefined, prevValue: any): boolean {

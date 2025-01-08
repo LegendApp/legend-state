@@ -26,7 +26,7 @@ import {
     synced,
 } from '@legendapp/state/sync';
 
-const { clone } = internal;
+const { clone, getKeys } = internal;
 const { waitForSet, runWithRetry } = internalSync;
 
 export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
@@ -133,6 +133,18 @@ function computeLastSync(data: any[], fieldUpdatedAt: string | undefined, fieldC
         }
     }
     return newLastSync;
+}
+
+function arrayToRecord<T>(arr: T[], keyField: keyof T): Record<string, T> {
+    const record: Record<string, T> = {};
+    if (arr?.length) {
+        for (let i = 0; i < arr.length; i++) {
+            const v = arr[i];
+            const key = v[keyField] as string;
+            record[key] = v;
+        }
+    }
+    return record;
 }
 
 function retrySet(
@@ -431,19 +443,35 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           // value, previous, fullValue
                           let itemsChanged: [any, any, any][] | undefined = [];
                           if (path.length === 0) {
+                              const valueAsObject = asArray ? arrayToRecord(valueAtPath, fieldId) : valueAtPath;
+                              const prevAsObject = asArray ? arrayToRecord(prevAtPath, fieldId) : prevAtPath;
                               // Do a deep equal of each element vs its previous element to see which have changed
-                              const changed = asMap
-                                  ? Array.from((valueAtPath as Map<any, any>).entries())
-                                  : Object.entries(valueAtPath);
+                              const keys = getKeys(valueAsObject, false, asMap, false);
+                              const keysPrev = getKeys(prevAsObject, false, asMap, false);
+                              const keysSet = new Set<number | string>(keys);
+                              const length = (keys || valueAsObject)?.length || 0;
+                              const lengthPrev = (keysPrev || prevAsObject)?.length || 0;
 
-                              for (let i = 0; i < changed.length; i++) {
-                                  const [key, value] = changed[i];
-                                  const prev = prevAtPath ? (asMap ? prevAtPath.get(key) : prevAtPath[key]) : undefined;
+                              for (let i = 0; i < lengthPrev; i++) {
+                                  const key = keysPrev[i];
+                                  if (!keysSet.has(key)) {
+                                      deletes.add(prevAsObject[key]);
+                                  }
+                              }
+
+                              for (let i = 0; i < length; i++) {
+                                  const key = keys[i];
+                                  const value = asMap ? valueAsObject.get(key) : valueAsObject[key];
+                                  const prev = prevAsObject
+                                      ? asMap
+                                          ? prevAsObject.get(key)
+                                          : prevAsObject[key]
+                                      : undefined;
                                   if (isNullOrUndefined(value) && !isNullOrUndefined(prev)) {
                                       deletes.add(prev);
                                       return false;
                                   } else {
-                                      const isDiff = !prevAtPath || !deepEqual(value, prev);
+                                      const isDiff = !prevAsObject || !deepEqual(value, prev);
 
                                       if (isDiff) {
                                           itemsChanged.push([getUpdateValue(value, prev), prev, value]);

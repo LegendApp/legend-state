@@ -699,6 +699,33 @@ describe('Crud as Object list', () => {
         });
         expect(obs$.get()).toEqual({});
     });
+    test('as Object delete by set new object', async () => {
+        let deleted = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'object',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+        expectTypeOf<(typeof obs$)['get']>().returns.toEqualTypeOf<Record<string, BasicValue>>();
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        obs$.set({});
+
+        await promiseTimeout(1);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs$.get()).toEqual({});
+    });
     test('as Object update', async () => {
         let deleted = undefined;
         const obs$ = observable(
@@ -1314,6 +1341,60 @@ describe('Crud as Array', () => {
         ]);
 
         dispose();
+    });
+    test('as array delete', async () => {
+        let deleted = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'array',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+        expectTypeOf<(typeof obs$)['get']>().returns.toEqualTypeOf<BasicValue[]>();
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        obs$[0].delete();
+
+        await promiseTimeout(1);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs$.get()).toEqual([]);
+    });
+    test('as array delete by set new array', async () => {
+        let deleted = undefined;
+        const obs$ = observable(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'array',
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+        expectTypeOf<(typeof obs$)['get']>().returns.toEqualTypeOf<BasicValue[]>();
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        obs$.set([]);
+
+        await promiseTimeout(1);
+
+        expect(deleted).toEqual({
+            id: 'id1',
+            test: 'hi',
+        });
+        expect(obs$.get()).toEqual([]);
     });
 });
 describe('Crud record transform', () => {
