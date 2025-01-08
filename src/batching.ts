@@ -144,6 +144,7 @@ function computeChangesAtNode(
                 changes.push(change);
                 // This fixes shallow listeners because an earlier change may have come from setting a child
                 changeInBatch.level = Math.min(changeInBatch.level, level);
+                changeInBatch.whenOptimizedOnlyIf ||= whenOptimizedOnlyIf;
             }
         } else {
             changesInBatch.set(node, {

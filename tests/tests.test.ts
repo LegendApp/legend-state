@@ -2008,6 +2008,32 @@ describe('Array', () => {
         expect(lastValue).toEqual(0);
     });
 });
+describe('Array optimized listener', () => {
+    test('Push, clear, push in optimized', () => {
+        const list$ = observable([0].map((i) => ({ val: i }))); //For this bug, val is inside an object
+        const handlerOptimized = expectChangeHandler(list$, optimized);
+
+        const push = () => list$.push({ val: list$.get().length });
+
+        const clear = () => list$.set([]);
+
+        clear();
+
+        expect(handlerOptimized).toHaveBeenCalledWith(
+            [],
+            [{ val: 0 }],
+            [{ path: [], pathTypes: [], valueAtPath: [], prevAtPath: [{ val: 0 }] }],
+        );
+
+        push();
+
+        expect(handlerOptimized).toHaveBeenCalledWith(
+            [{ val: 0 }],
+            [],
+            [{ path: ['0'], pathTypes: ['object'], valueAtPath: { val: 0 }, prevAtPath: undefined }],
+        );
+    });
+});
 describe('Deep changes keep listeners', () => {
     test('Deep set keeps listeners', () => {
         const obs = observable({ test: { test2: { test3: 'hello' } } });

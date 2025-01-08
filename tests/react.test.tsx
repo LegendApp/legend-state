@@ -795,6 +795,46 @@ describe('For', () => {
         expect(items.length).toEqual(1);
         expect(items[0].id).toEqual('A');
     });
+    test('Push, clear, push in For optimized', () => {
+        interface ValObject {
+            val: number;
+        }
+        const list$ = observable<ValObject[]>([0].map((i) => ({ val: i })));
+        function Item({ item$ }: { item$: Observable<ValObject> }) {
+            const data = useSelector(item$);
+            return createElement('li', { id: data.val }, data.val);
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<ValObject, {}>, { each: list$, item: Item, optimized: true }),
+            );
+        }
+
+        const push = () => list$.push({ val: list$.get().length });
+
+        const clear = () => list$.set([]);
+
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('li');
+        expect(items.length).toEqual(1);
+
+        act(() => {
+            clear();
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(0);
+
+        act(() => {
+            push();
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(1);
+    });
 });
 describe('Show', () => {
     test('Show works correctly', async () => {
