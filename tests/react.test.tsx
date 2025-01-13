@@ -1644,12 +1644,12 @@ describe('useObservable', () => {
         let lastValue:
             | undefined
             | {
-                  hotspot: {
-                      position: {
-                          x: number;
-                      };
-                  };
-              }[] = undefined;
+                hotspot: {
+                    position: {
+                        x: number;
+                    };
+                };
+            }[] = undefined;
         const Test = observer(function Test() {
             const c$ = useComputed(() => {
                 return o$;
@@ -1735,6 +1735,32 @@ describe('useObservable', () => {
 
         expect(num).toEqual(2);
         expect(value).toEqual(1 + '_' + originalRand);
+    });
+    test('Observe handle multiples observables', () => {
+        const obs1 = observable({ type: 'multiplication' });
+        const obs2 = observable({ number1: 1, number2: 2 });
+        let observableResult;
+        function Test() {
+            useObserve([obs1, obs2], () => {
+                observableResult =
+                    obs1.type.peek() === 'multiplication'
+                        ? obs2.number1.peek() * obs2.number2.peek()
+                        : obs2.number1.peek() + obs2.number2.peek();
+            });
+            return createElement('div', undefined);
+        }
+        render(createElement(Test));
+
+        expect(observableResult).toBe(2);
+        act(() => {
+            obs1.set({ type: 'addition' });
+        });
+        expect(observableResult).toBe(3);
+
+        act(() => {
+            obs2.set({ number1: 3, number2: 4 });
+        });
+        expect(observableResult).toBe(7);
     });
 });
 describe('useObservableState', () => {
@@ -1930,7 +1956,7 @@ describe('react validation', () => {
 describe('tracing', () => {
     beforeEach(() => {
         // Mock console.log before each test
-        jest.spyOn(console, 'log').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => { });
     });
 
     afterEach(() => {
