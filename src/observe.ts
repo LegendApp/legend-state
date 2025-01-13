@@ -4,6 +4,7 @@ import { isFunction } from './is';
 import type { ObserveEvent, ObserveEventCallback, ObserveOptions, Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';
 import { isArray } from './is';
+import { NodeInfo, TrackingNode } from './observableInterfaces';
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
 export function observe<T>(
@@ -50,19 +51,23 @@ export function observe<T>(
         disposeList.forEach((dispose) => dispose?.()); // Dispose previous listeners
 
         const values: T[] = [];
-        const nodesList: any[] = [];
+        const nodesList: Map<NodeInfo, TrackingNode> = new Map();
 
         // Handle multiple selectors
         if (isArray(selectorOrRun)) {
             const selectors = selectorOrRun as Selector<T>[];
             selectors.forEach((selector) => {
                 const { dispose, value, nodes } = trackSelector(selector, update, undefined, e, options);
-                disposeList.push(dispose);
+                if (dispose) {
+                    disposeList.push(dispose);
+                }
                 values.push(value);
-                nodesList.push(...nodes);
+                if (nodes) {
+                    nodes.forEach((value, key) => nodesList.set(key, value));
+                }
             });
 
-            e.value = values; // Combine values from all selectors
+            e.value = values as unknown as T; // Combine values from all selectors
             e.nodes = nodesList; // Combine nodes
         } else {
             // Single selector or function
@@ -73,7 +78,9 @@ export function observe<T>(
                 e,
                 options,
             );
-            disposeList.push(dispose);
+            if (dispose) {
+                disposeList.push(dispose);
+            }
             e.value = value;
             e.nodes = nodes;
         }
