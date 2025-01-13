@@ -3,6 +3,7 @@ import { isEvent } from './globals';
 import { isFunction } from './is';
 import type { ObserveEvent, ObserveEventCallback, ObserveOptions, Selector } from './observableInterfaces';
 import { trackSelector } from './trackSelector';
+import { isArray } from './is';
 
 export function observe<T>(run: (e: ObserveEvent<T>) => T | void, options?: ObserveOptions): () => void;
 export function observe<T>(
@@ -21,9 +22,10 @@ export function observe<T>(
     } else {
         options = reactionOrOptions;
     }
-    let dispose: (() => void) | undefined;
+    const disposeList: (() => void)[] = [];
     let isRunning = false;
     const e: ObserveEventCallback<T> = { num: 0 } as ObserveEventCallback<T>;
+
     // Wrap it in a function so it doesn't pass all the arguments to run()
     const update = function () {
         if (isRunning) {
@@ -45,29 +47,45 @@ export function observe<T>(
         delete e.value;
 
         // Dispose listeners from previous run
-        dispose?.();
+        disposeList.forEach((dispose) => dispose?.()); // Dispose previous listeners
 
-        const {
-            dispose: _dispose,
-            value,
-            nodes,
-        } = trackSelector(selectorOrRun as Selector<T>, update, undefined, e, options);
-        dispose = _dispose;
+        const values: T[] = [];
+        const nodesList: any[] = [];
 
-        e.value = value;
-        e.nodes = nodes;
+        // Handle multiple selectors
+        if (isArray(selectorOrRun)) {
+            const selectors = selectorOrRun as Selector<T>[];
+            selectors.forEach((selector) => {
+                const { dispose, value, nodes } = trackSelector(selector, update, undefined, e, options);
+                disposeList.push(dispose);
+                values.push(value);
+                nodesList.push(...nodes);
+            });
+
+            e.value = values; // Combine values from all selectors
+            e.nodes = nodesList; // Combine nodes
+        } else {
+            // Single selector or function
+            const { dispose, value, nodes } = trackSelector(
+                selectorOrRun as Selector<T>,
+                update,
+                undefined,
+                e,
+                options,
+            );
+            disposeList.push(dispose);
+            e.value = value;
+            e.nodes = nodes;
+        }
         e.refresh = update;
 
-        if (e.onCleanupReaction) {
-            e.onCleanupReaction();
-            e.onCleanupReaction = undefined;
-        }
+        e.onCleanupReaction?.();
+        e.onCleanupReaction = undefined;
 
         endBatch();
-
         isRunning = false;
 
-        // Call the reaction if there is one and the value changed
+        // Trigger reaction if conditions are met
         if (
             reaction &&
             (options?.fromComputed ||
@@ -92,6 +110,6 @@ export function observe<T>(
         e.onCleanup = undefined;
         e.onCleanupReaction?.();
         e.onCleanupReaction = undefined;
-        dispose?.();
+        disposeList.forEach((dispose) => dispose?.());
     };
 }
