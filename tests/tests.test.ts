@@ -3229,23 +3229,21 @@ describe('Observe', () => {
         expect(lastLength).toEqual(5);
     });
     test('Observe handle multiples observables', () => {
-        test('Observe handle multiples observables', () => {
-            const obs1 = observable({ type: 'multiplication' });
-            const obs2 = observable({ number1: 1, number2: 2 });
-            let observableResult;
-            observe([obs1, obs2], () => {
-                observableResult =
-                    obs1.type.peek() === 'multiplication'
-                        ? obs2.number1.peek() * obs2.number2.peek()
-                        : obs2.number1.peek() + obs2.number2.peek();
-            });
-            expect(observableResult).toBe(2);
-            obs1.set({ type: 'addition' });
-            expect(observableResult).toBe(3);
-
-            obs2.set({ number1: 3, number2: 4 });
-            expect(observableResult).toBe(7);
+        const obs1 = observable({ type: 'multiplication' });
+        const obs2 = observable({ number1: 1, number2: 2 });
+        let observableResult;
+        observe([obs1, obs2], () => {
+            observableResult =
+                obs1.type.peek() === 'multiplication'
+                    ? obs2.number1.peek() * obs2.number2.peek()
+                    : obs2.number1.peek() + obs2.number2.peek();
         });
+        expect(observableResult).toBe(2);
+        obs1.set({ type: 'addition' });
+        expect(observableResult).toBe(3);
+
+        obs2.set({ number1: 3, number2: 4 });
+        expect(observableResult).toBe(7);
     });
 });
 describe('Error detection', () => {
