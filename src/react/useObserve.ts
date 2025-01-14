@@ -52,14 +52,19 @@ export function useObserve<T>(
     ref.current.selector = deps
         ? () => {
               depsObs$?.get();
-              return computeSelector(selector);
+              return Array.isArray(selector) ? selector.map((sel) => computeSelector(sel)) : computeSelector(selector);
           }
         : selector;
     ref.current.reaction = reaction;
 
     if (!ref.current.dispose) {
         ref.current.dispose = observe<T>(
-            ((e: ObserveEventCallback<T>) => computeSelector(ref.current.selector, undefined, e)) as any,
+            ((e: ObserveEventCallback<T>) => {
+                if (Array.isArray(ref.current.selector)) {
+                    return ref.current.selector.map((sel) => computeSelector(sel, undefined, e));
+                }
+                return computeSelector(ref.current.selector, undefined, e);
+            }) as any,
             (e) => ref.current.reaction?.(e),
             options,
         );
