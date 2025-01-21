@@ -1,7 +1,7 @@
 import type { Change } from '@legendapp/state';
 import { applyChanges, internal } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata } from '@legendapp/state/sync';
-import { SQLiteStorage, Storage } from 'expo-sqlite/kv-store';
+import { SQLiteStorage } from 'expo-sqlite/kv-store';
 
 const { safeParse, safeStringify } = internal;
 
@@ -9,9 +9,12 @@ const MetadataSuffix = '__m';
 
 export class ObservablePersistSqlite implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
-    private storage: SQLiteStorage | undefined;
-    constructor(storage: SQLiteStorage | undefined) {
-        this.storage = storage || Storage;
+    private storage: SQLiteStorage;
+    constructor(storage: SQLiteStorage) {
+        console.error(
+            '[legend-state] ObservablePersistSqlite failed to initialize. You need to pass the SQLiteStorage instance.',
+        );
+        this.storage = storage;
     }
     public getTable(table: string, init: any) {
         if (!this.storage) return undefined;
@@ -62,6 +65,6 @@ export class ObservablePersistSqlite implements ObservablePersistPlugin {
     }
 }
 
-export function observablePersistSqlite(storage?: SQLiteStorage) {
+export function observablePersistSqlite(storage: SQLiteStorage) {
     return new ObservablePersistSqlite(storage);
 }

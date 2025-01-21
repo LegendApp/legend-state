@@ -112,6 +112,14 @@
     "dependencies": {
         "use-sync-external-store": "^1.2.2"
     },
+    "peerDependencies": {
+        "expo-sqlite": "^15.0.0"
+    },
+    "peerDependenciesMeta": {
+        "expo-sqlite": {
+            "optional": true
+        }
+    },
     "overrides": {
         "react": "18.3.1"
     },

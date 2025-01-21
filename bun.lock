@@ -54,6 +54,12 @@
         "tsup": "^8.0.2",
         "typescript": "^5.7.2",
       },
+      "peerDependencies": {
+        "expo-sqlite": "^15.0.0",
+      },
+      "optionalPeers": [
+        "expo-sqlite",
+      ],
     },
   },
   "overrides": {
