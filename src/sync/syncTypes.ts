@@ -3,6 +3,7 @@
 import type { MMKVConfiguration } from 'react-native-mmkv';
 // @ts-ignore
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
+// @ts-ignore
 
 import type {
     Change,

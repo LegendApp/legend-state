@@ -1,5 +1,5 @@
 import type { Change } from '@legendapp/state';
-import { applyChanges, internal, isArray } from '@legendapp/state';
+import { applyChanges,internal,isArray } from '@legendapp/state';
 import type {
     ObservablePersistAsyncStoragePluginOptions,
     ObservablePersistPlugin,
