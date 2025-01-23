@@ -1,7 +1,7 @@
 import type { Change } from '@legendapp/state';
 import { applyChanges, internal } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata } from '@legendapp/state/sync';
-import { SQLiteStorage } from 'expo-sqlite/kv-store';
+import type { SQLiteStorage } from 'expo-sqlite/kv-store';
 
 const { safeParse, safeStringify } = internal;
 
