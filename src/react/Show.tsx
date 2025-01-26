@@ -15,7 +15,7 @@ interface PropsIfReady<T> {
 interface PropsBase<T> {
     else?: ReactNode | (() => ReactNode);
     $value?: Observable<T>;
-    wrap?: FC;
+    wrap?: FC<{ children: ReactNode }>;
     children: ReactNode | ((value?: T) => ReactNode);
 }
 

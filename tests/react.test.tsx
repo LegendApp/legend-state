@@ -936,6 +936,36 @@ describe('Show', () => {
 
         expect(numRenders).toEqual(2);
     });
+    test('Show wrap with wrapProps', async () => {
+        const obs = observable({
+            ok: false,
+        });
+        let testValue;
+        const Wrap = (props: { test: string; children?: any }) => {
+            testValue = props.test;
+            return props.children;
+        };
+        function Test() {
+            return (
+                <Show if={obs.ok} wrap={(props: { children: any }) => <Wrap test="tester" {...props} />}>
+                    <span>hi</span>
+                </Show>
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('span');
+        expect(items.length).toEqual(0);
+
+        act(() => {
+            obs.ok.set(true);
+        });
+
+        items = container.querySelectorAll('span');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi');
+        expect(testValue).toEqual('tester');
+    });
 });
 
 describe('Switch', () => {
