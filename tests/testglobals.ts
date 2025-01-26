@@ -1,4 +1,4 @@
-import { expect, jest } from '@jest/globals';
+import { jest } from '@jest/globals';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import type { Change, TrackingType } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
