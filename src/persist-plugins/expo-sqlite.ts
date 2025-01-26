@@ -11,9 +11,11 @@ export class ObservablePersistSqlite implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
     private storage: SQLiteStorage;
     constructor(storage: SQLiteStorage) {
-        console.error(
-            '[legend-state] ObservablePersistSqlite failed to initialize. You need to pass the SQLiteStorage instance.',
-        );
+        if (!storage) {
+            console.error(
+                '[legend-state] ObservablePersistSqlite failed to initialize. You need to pass the SQLiteStorage instance.',
+            );
+        }
         this.storage = storage;
     }
     public getTable(table: string, init: any) {
