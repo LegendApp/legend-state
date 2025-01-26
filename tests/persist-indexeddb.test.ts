@@ -384,6 +384,7 @@ describe('Persist IDB', () => {
             },
             '[legend-state] Trying to syncObservable without `name` defined. Please include a `name` property in the `persist` configuration.',
             'warn',
+            expect,
         );
     });
 });

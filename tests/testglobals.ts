@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { expect, jest } from '@jest/globals';
 import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import type { Change, TrackingType } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
@@ -84,9 +84,9 @@ export function supressActWarning(fn: () => void) {
     console.error = originalError;
 }
 
-export function expectLog(fn: () => any, msg: string, logType: 'log' | 'warn' | 'error') {
+export function expectLog(fn: () => any, msg: string, logType: 'log' | 'warn' | 'error', expecter: (prop: any) => any) {
     jest.spyOn(console, logType).mockImplementation(() => {});
     fn();
-    expect(console[logType]).toHaveBeenCalledWith(msg);
+    expecter(console[logType]).toHaveBeenCalledWith(msg);
     (console[logType] as jest.Mock).mockRestore();
 }
