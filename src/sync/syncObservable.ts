@@ -913,6 +913,18 @@ async function loadLocal<T>(
                 ].filter(Boolean),
             ) as unknown as Promise<void>;
     } else {
+        // Console.warn if no persist name is provided. It's ok if name is undefined as that can be the user manually disabling it,
+        // but if not provided at all it's likely user error.
+        if (
+            (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+            persist &&
+            persist.plugin &&
+            !Object.hasOwn(persist, 'name')
+        ) {
+            console.warn(
+                '[legend-state] Trying to syncObservable without `name` defined. Please include a `name` property in the `persist` configuration.',
+            );
+        }
         nodeValue.resetPersistence = () => prevResetPersistence?.();
     }
     // TODOV3 Remove

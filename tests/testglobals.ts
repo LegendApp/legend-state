@@ -83,3 +83,10 @@ export function supressActWarning(fn: () => void) {
 
     console.error = originalError;
 }
+
+export function expectLog(fn: () => any, msg: string, logType: 'log' | 'warn' | 'error') {
+    jest.spyOn(console, logType).mockImplementation(() => {});
+    fn();
+    expect(console[logType]).toHaveBeenCalledWith(msg);
+    (console[logType] as jest.Mock).mockRestore();
+}

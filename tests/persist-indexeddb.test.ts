@@ -6,7 +6,7 @@ import { configureSynced } from '../src/sync/configureSynced';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
 import { when } from '../src/when';
-import { promiseTimeout } from './testglobals';
+import { expectLog, promiseTimeout } from './testglobals';
 
 const TableNameBase = 'jestlocal';
 const tableNames = Array.from({ length: 100 }, (_, i) => TableNameBase + i);
@@ -370,5 +370,20 @@ describe('Persist IDB', () => {
         await promiseTimeout(0);
 
         await expectIDB(persistName, []);
+    });
+    test('Persist without a name errors', async () => {
+        const obs = observable<Record<string, any>>({});
+
+        expectLog(
+            () => {
+                syncObservable(obs, {
+                    persist: {
+                        plugin: myIndexedDBPlugin,
+                    },
+                });
+            },
+            '[legend-state] Trying to syncObservable without `name` defined. Please include a `name` property in the `persist` configuration.',
+            'warn',
+        );
     });
 });

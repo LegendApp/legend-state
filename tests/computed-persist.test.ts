@@ -83,6 +83,9 @@ describe('caching with new computed', () => {
         const nodes = observable(
             mySynced({
                 initial: [],
+                persist: {
+                    name: getPersistName(),
+                },
             }),
         );
 
