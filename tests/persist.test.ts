@@ -858,7 +858,7 @@ describe('clear persist', () => {
 });
 
 describe('reset sync state', () => {
-    test('reset individual sync state', async () => {
+    async function testReset(initial: any) {
         const persistName = getPersistName();
         let numGets = 0;
         let lastLastSync: number | undefined = undefined;
@@ -875,7 +875,7 @@ describe('reset sync state', () => {
                     name: persistName,
                     plugin: ObservablePersistLocalStorage,
                 },
-                initial: { test: 0 },
+                initial,
             }),
         );
 
@@ -897,7 +897,7 @@ describe('reset sync state', () => {
         state$.reset();
 
         expect(localStorage.getItem(persistName)).toEqual(null);
-        expect(obs$.get()).toEqual({ test: 0 });
+        expect(obs$.get()).toEqual(initial);
         expect(state$.isLoaded.get()).toEqual(false);
 
         obs$.get();
@@ -909,6 +909,15 @@ describe('reset sync state', () => {
 
         expect(numGets).toEqual(3);
         expect(localStorage.getItem(persistName)).toEqual('{"test":3}');
+    }
+    test('reset individual sync state', async () => {
+        return testReset(undefined);
+    });
+    test('reset individual sync state with empty initial', async () => {
+        return testReset({});
+    });
+    test('reset individual sync state with initial', async () => {
+        return testReset({ test: 0 });
     });
 });
 
