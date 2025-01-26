@@ -3763,3 +3763,20 @@ describe('Middleware', () => {
         expect(obs$.text.get()).toEqual('good');
     });
 });
+describe('Misc', () => {
+    test('Changing type from primitive to object and back fires onChange', () => {
+        let changed = false;
+        const a = observable<any>(true);
+        a.onChange((state) => {
+            changed = state.value;
+        });
+
+        a.set({});
+
+        expect(changed).toEqual({});
+
+        a.set(false);
+
+        expect(changed).toEqual(false);
+    });
+});

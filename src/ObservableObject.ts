@@ -686,7 +686,11 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
         // Set the raw value on the parent object
         const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
 
-        const isPrim = isPrimitive(savedValue) || savedValue instanceof Date;
+        const isPrim =
+            isPrimitive(prevValue) ||
+            prevValue instanceof Date ||
+            isPrimitive(savedValue) ||
+            savedValue instanceof Date;
 
         if (!isPrim) {
             let parent = childNode;
