@@ -771,7 +771,7 @@ function handlerMapSet(node: NodeInfo, p: any, value: Map<any, any> | WeakMap<an
     } else if (isFunction(vProp)) {
         return function (a: any, b: any, c: any) {
             const l = arguments.length;
-            const valueMap = value as Map<any, any>;
+            const valueMapOrSet = value as Map<any, any>;
 
             if (p === 'get') {
                 if (l > 0 && typeof a !== 'boolean' && a !== optimized) {
@@ -787,16 +787,16 @@ function handlerMapSet(node: NodeInfo, p: any, value: Map<any, any> | WeakMap<an
             } else if (p === 'delete') {
                 if (l > 0) {
                     // Support Set by just returning a if it doesn't have get, meaning it's not a Map
-                    const prev = (value as Map<any, any>).get ? valueMap.get(a) : a;
+                    const prev = (value as Map<any, any>).get ? valueMapOrSet.get(a) : a;
                     deleteFn(node, a);
 
                     // Return whether it was deleted
                     return prev !== undefined;
                 }
             } else if (p === 'clear') {
-                const prev = new Map(valueMap);
-                const size = valueMap.size;
-                valueMap.clear();
+                const prev = isSet(valueMapOrSet) ? new Set(valueMapOrSet) : new Map(valueMapOrSet);
+                const size = valueMapOrSet.size;
+                valueMapOrSet.clear();
                 if (size) {
                     updateNodesAndNotify(node, value, prev);
                 }

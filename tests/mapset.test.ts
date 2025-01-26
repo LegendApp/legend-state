@@ -241,6 +241,14 @@ describe('Set default behavior', () => {
         expect(obs.test.has('key')).toEqual(false);
         expect(obs.test.has('key2')).toEqual(true);
     });
+    test('Set clear', () => {
+        const obs = observable({ test: new Set(['key', 'key2']) });
+        obs.test.clear();
+
+        // Set has
+        expect(obs.test.has('key')).toEqual(false);
+        expect(obs.test.has('key2')).toEqual(false);
+    });
     test('Set add is observable', () => {
         const obs = observable({ test: new Set(['key']) });
         const handler = expectChangeHandler(obs.test);
