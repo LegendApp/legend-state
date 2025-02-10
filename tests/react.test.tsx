@@ -14,7 +14,7 @@ import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { use$, useSelector } from '../src/react/useSelector';
-import { getNode } from '../src/globals';
+import { getNode, getNodeValue } from '../src/globals';
 import { Memo } from '../src/react/Memo';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { useComputed } from '../src/react/useComputed';
@@ -861,6 +861,87 @@ describe('Show', () => {
         items = container.querySelectorAll('span');
         expect(items.length).toEqual(1);
         expect(items[0].textContent).toEqual('hi');
+    });
+    test("Show listeners don't leak", async () => {
+        const obs = observable({
+            ok: false,
+            count: 0,
+        });
+        function Test() {
+            return (
+                <div>
+                    <Show if={obs.ok}>{() => <span>hi {obs.count.get()}</span>}</Show>
+                </div>
+            );
+        }
+
+        function TestStrict() {
+            return (
+                <StrictMode>
+                    <div>
+                        <Show if={obs.ok}>{() => <span>hi {obs.count.get()}</span>}</Show>
+                    </div>
+                </StrictMode>
+            );
+        }
+
+        const nodeOk = getNode(obs.ok);
+        const nodeCount = getNode(obs.count);
+        expect(nodeOk.listeners?.size).toEqual(undefined);
+        expect(nodeOk.listenersImmediate?.size).toEqual(undefined);
+        expect(nodeCount.listeners?.size).toEqual(undefined);
+        expect(nodeCount.listenersImmediate?.size).toEqual(undefined);
+
+        const { container } = render(createElement(Test));
+        render(createElement(TestStrict));
+
+        expect(nodeOk.listeners?.size).toEqual(3);
+        expect(nodeOk.listenersImmediate?.size).toEqual(undefined);
+        expect(nodeCount.listeners?.size).toEqual(undefined);
+        expect(nodeCount.listenersImmediate?.size).toEqual(undefined);
+
+        let items = container.querySelectorAll('span');
+        expect(items.length).toEqual(0);
+
+        act(() => {
+            obs.ok.set(true);
+        });
+
+        // 1 for normal and 2 for strict mode
+        expect(nodeOk.listeners?.size).toEqual(3);
+        expect(nodeOk.listenersImmediate?.size).toEqual(undefined);
+        // 2 for strict mode
+        expect(nodeCount.listeners?.size).toEqual(2);
+        expect(nodeCount.listenersImmediate?.size).toEqual(undefined);
+
+        items = container.querySelectorAll('span');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi 0');
+
+        act(() => {
+            obs.ok.set(false);
+        });
+
+        expect(nodeOk.listeners?.size).toEqual(3);
+        expect(nodeOk.listenersImmediate?.size).toEqual(undefined);
+        expect(nodeCount.listeners?.size).toEqual(0);
+        expect(nodeCount.listenersImmediate?.size).toEqual(undefined);
+
+        items = container.querySelectorAll('span');
+        expect(items.length).toEqual(0);
+
+        act(() => {
+            obs.ok.set(true);
+        });
+
+        expect(nodeOk.listeners?.size).toEqual(3);
+        expect(nodeOk.listenersImmediate?.size).toEqual(undefined);
+        expect(nodeCount.listeners?.size).toEqual(2);
+        expect(nodeCount.listenersImmediate?.size).toEqual(undefined);
+
+        items = container.querySelectorAll('span');
+        expect(items.length).toEqual(1);
+        expect(items[0].textContent).toEqual('hi 0');
     });
     test('Show with function expecting value', async () => {
         const obs = observable({
