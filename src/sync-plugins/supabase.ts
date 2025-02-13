@@ -48,7 +48,7 @@ export type SupabaseSchemaOf<Client extends SupabaseClient> =
 export type SupabaseTableOf<
     Client extends SupabaseClient,
     SchemaName extends SchemaNameOf<Client>,
-> = DatabaseOf<Client>[SchemaName]['Tables'];
+> = DatabaseOf<Client>[SchemaName]['Tables'] & DatabaseOf<Client>[SchemaName]['Views'];
 
 export type SupabaseCollectionOf<
     Client extends SupabaseClient,
