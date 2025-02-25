@@ -48,6 +48,10 @@ const ItemBasicValue: () => BasicValue = () => ({
     updatedAt: 1,
 });
 
+function expectErrorMessage(error: Error, message: string) {
+    expect(error.message).toEqual(message);
+}
+
 async function fakeKeelList<T>(results: T[]): Promise<APIResult<{ results: T[]; pageInfo: any }>> {
     await promiseTimeout(0);
     return {
@@ -568,7 +572,7 @@ describe('error handling', () => {
             }),
         );
 
-        expect(errorAtOnError).toEqual(new Error('test'));
+        expectErrorMessage(errorAtOnError!, 'test');
         expect(numErrors).toEqual(1);
 
         expect(obs$.get()).toEqual({
@@ -640,7 +644,7 @@ describe('error handling', () => {
             }),
         );
 
-        expect(errorAtOnError).toEqual(new Error('test'));
+        expectErrorMessage(errorAtOnError!, 'test');
         expect(numErrors).toEqual(1);
 
         expect(obs$.get()).toEqual({
@@ -698,7 +702,7 @@ describe('error handling', () => {
 
         await promiseTimeout(1);
 
-        expect(errorAtOnError).toEqual(new Error('test'));
+        expectErrorMessage(errorAtOnError!, 'test');
         expect(numErrors).toEqual(1);
 
         expect(obs$.get()).toEqual({
@@ -748,7 +752,7 @@ describe('error handling', () => {
 
         await promiseTimeout(1);
 
-        expect(errorAtOnError).toEqual(new Error('test'));
+        expectErrorMessage(errorAtOnError!, 'test');
         expect(numErrors).toEqual(1);
 
         expect(obs$.get()).toEqual({
@@ -819,7 +823,7 @@ describe('error handling', () => {
             }),
         );
 
-        expect(errorAtOnError).toEqual(new Error('test'));
+        expectErrorMessage(errorAtOnError!, 'test');
         expect(numErrors).toEqual(1);
 
         expect(obs$.get()).toEqual({
