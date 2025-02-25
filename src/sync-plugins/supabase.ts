@@ -372,7 +372,7 @@ export function syncedSupabase<
                       (payload) => {
                           const { eventType, new: value, old } = payload;
                           if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                              const cur = value$.peek()?.[value.id];
+                              const cur = value$.peek()?.[value[fieldId]];
                               let isOk = !fieldUpdatedAt;
                               let lastSync = undefined;
                               if (!isOk) {
