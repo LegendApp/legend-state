@@ -184,12 +184,14 @@ function retrySet(
 
     queuedRetries[action].set(itemKey, itemValue);
 
+    const clonedValue = clone(itemValue);
+
     const paramsWithChanges: SyncedSetParams<any> = { ...params, changes: [change] };
 
     return runWithRetry(paramsWithChanges, retry, 'create_' + itemKey, () =>
         actionFn!(itemValue, paramsWithChanges).then((result) => {
             queuedRetries[action]!.delete(itemKey);
-            return saveResult(itemKey, itemValue, result as any, true, change);
+            return saveResult(itemKey, clonedValue, result as any, true, change);
         }),
     );
 }
