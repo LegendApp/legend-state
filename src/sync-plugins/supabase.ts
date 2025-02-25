@@ -215,6 +215,7 @@ export function syncedSupabase<
         fieldUpdatedAt,
         fieldDeleted,
         realtime,
+        fieldId = 'id',
         changesSince,
         transform: transformParam,
         stringifyDates,
@@ -309,7 +310,7 @@ export function syncedSupabase<
                 ? wrapSupabaseFn(updateParam, 'update')
                 : async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
                       const { onError } = params;
-                      const res = await client.from(collection).update(input).eq('id', input.id).select();
+                      const res = await client.from(collection).update(input).eq(fieldId, input[fieldId]).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
@@ -333,12 +334,11 @@ export function syncedSupabase<
               deleteParam
                 ? wrapSupabaseFn(deleteParam, 'delete')
                 : (async (
-                      input: { id: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
+                      input: { [key: string]: SupabaseRowOf<Client, Collection, SchemaName>['id'] },
                       params: SyncedSetParams<TRemote>,
                   ) => {
                       const { onError } = params;
-                      const id = input.id;
-                      const res = await client.from(collection).delete().eq('id', id).select();
+                      const res = await client.from(collection).delete().eq(fieldId, input[fieldId]).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
@@ -372,7 +372,7 @@ export function syncedSupabase<
                       (payload) => {
                           const { eventType, new: value, old } = payload;
                           if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                              const cur = value$.peek()?.[value.id];
+                              const cur = value$.peek()?.[value[fieldId]];
                               let isOk = !fieldUpdatedAt;
                               let lastSync = undefined;
                               if (!isOk) {
@@ -424,7 +424,9 @@ export function syncedSupabase<
     >({
         ...rest,
         mode: mode || 'merge',
-        list: list as any,
+        list: list as (
+            params: SyncedGetParams<SupabaseRowOf<Client, Collection, SchemaName>>,
+        ) => Promise<SupabaseRowOf<Client, Collection, SchemaName>[] | null>,
         create,
         update,
         delete: deleteFn,
@@ -433,6 +435,7 @@ export function syncedSupabase<
         fieldUpdatedAt,
         fieldDeleted,
         updatePartial: false,
+        fieldId,
         transform,
         generateId,
         waitFor: () => isEnabled$.get() && (waitFor ? computeSelector(waitFor) : true),
