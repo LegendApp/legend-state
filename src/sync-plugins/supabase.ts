@@ -215,7 +215,7 @@ export function syncedSupabase<
         fieldUpdatedAt,
         fieldDeleted,
         realtime,
-        fieldId,
+        fieldId = 'id',
         changesSince,
         transform: transformParam,
         stringifyDates,
@@ -310,8 +310,7 @@ export function syncedSupabase<
                 ? wrapSupabaseFn(updateParam, 'update')
                 : async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
                       const { onError } = params;
-                      const idField = props.fieldId || 'id';
-                      const res = await client.from(collection).update(input).eq(idField, input[idField]).select();
+                      const res = await client.from(collection).update(input).eq(fieldId, input[fieldId]).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
@@ -339,8 +338,7 @@ export function syncedSupabase<
                       params: SyncedSetParams<TRemote>,
                   ) => {
                       const { onError } = params;
-                      const idField = props.fieldId || 'id';
-                      const res = await client.from(collection).delete().eq(idField, input[idField]).select();
+                      const res = await client.from(collection).delete().eq(fieldId, input[fieldId]).select();
                       const { data, error } = res;
                       if (data) {
                           const created = data[0];
