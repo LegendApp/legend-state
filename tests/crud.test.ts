@@ -3612,3 +3612,88 @@ describe('Misc', () => {
         expect(updated).toEqual([{ id: 'id1', test: 'hi2' }]);
     });
 });
+describe('fieldId', () => {
+    test('fieldId with all CRUD operations', async () => {
+        // Setup variables to track CRUD operations
+        let created = undefined;
+        let updated = undefined;
+        let deleted = undefined;
+
+        // Create the observable with syncedCrud using fieldId
+        const obs$ = observable(
+            syncedCrud({
+                list: () =>
+                    promiseTimeout(0, [
+                        { test_id: 'item1', content: 'hello' },
+                        { test_id: 'item2', content: 'world' },
+                    ]),
+                as: 'object',
+                fieldId: 'test_id',
+                create: async (input) => {
+                    created = clone(input);
+                    return input;
+                },
+                update: async (input) => {
+                    updated = clone(input);
+                    return input;
+                },
+                delete: async (input) => {
+                    deleted = input;
+                },
+            }),
+        );
+
+        // Check initial state
+        expect(obs$.get()).toEqual(undefined);
+
+        // Wait for list to complete
+        await promiseTimeout(1);
+
+        // Check that list works with fieldId
+        expect(obs$.get()).toEqual({
+            item1: { test_id: 'item1', content: 'hello' },
+            item2: { test_id: 'item2', content: 'world' },
+        });
+
+        // Check that we can access by the ID
+        expect(obs$.item1.get()).toEqual({ test_id: 'item1', content: 'hello' });
+        expect(obs$.item1.content.get()).toEqual('hello');
+
+        // Test updating an item
+        obs$.item1.content.set('updated');
+
+        await promiseTimeout(1);
+
+        // Verify update with custom fieldId
+        expect(updated).toEqual({ test_id: 'item1', content: 'updated' });
+        expect(obs$.get()).toEqual({
+            item1: { test_id: 'item1', content: 'updated' },
+            item2: { test_id: 'item2', content: 'world' },
+        });
+
+        // Test creating a new item
+        obs$.item3.set({ test_id: 'item3', content: 'new item' });
+
+        await promiseTimeout(1);
+
+        // Verify create with custom fieldId
+        expect(created).toEqual({ test_id: 'item3', content: 'new item' });
+        expect(obs$.get()).toEqual({
+            item1: { test_id: 'item1', content: 'updated' },
+            item2: { test_id: 'item2', content: 'world' },
+            item3: { test_id: 'item3', content: 'new item' },
+        });
+
+        // Test deleting an item
+        obs$.item2.delete();
+
+        await promiseTimeout(1);
+
+        // Verify delete with custom fieldId
+        expect(deleted).toEqual({ test_id: 'item2', content: 'world' });
+        expect(obs$.get()).toEqual({
+            item1: { test_id: 'item1', content: 'updated' },
+            item3: { test_id: 'item3', content: 'new item' },
+        });
+    });
+});
