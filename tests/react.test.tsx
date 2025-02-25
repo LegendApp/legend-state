@@ -14,7 +14,7 @@ import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { use$, useSelector } from '../src/react/useSelector';
-import { getNode, getNodeValue } from '../src/globals';
+import { getNode } from '../src/globals';
 import { Memo } from '../src/react/Memo';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { useComputed } from '../src/react/useComputed';
