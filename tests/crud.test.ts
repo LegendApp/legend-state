@@ -3696,4 +3696,60 @@ describe('fieldId', () => {
             item3: { test_id: 'item3', content: 'new item' },
         });
     });
+
+    test('list function is responsive to observables changing', async () => {
+        // Track how many times list is called
+        let listCallCount = 0;
+
+        // Create an observable that will be used in the list function
+        const filter$ = observable('item1');
+
+        // Create the crud observable with a list function that uses filter$
+        const obs$ = observable(
+            syncedCrud({
+                list: () => {
+                    listCallCount++;
+                    const filterValue = filter$.get();
+                    return promiseTimeout(
+                        0,
+                        [
+                            { test_id: 'item1', content: 'hello' },
+                            { test_id: 'item2', content: 'world' },
+                        ].filter((item) => item.test_id === filterValue || filterValue === 'all'),
+                    );
+                },
+                as: 'object',
+                fieldId: 'test_id',
+            }),
+        );
+
+        // Set up an observer to watch for changes
+        const dispose = observe(() => obs$.get());
+
+        // Check initial state - should only have item1 since filter$ is 'item1'
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        // Verify list was called and filtered properly
+        expect(listCallCount).toEqual(1);
+        expect(obs$.get()).toEqual({
+            item1: { test_id: 'item1', content: 'hello' },
+        });
+
+        // Change the filter observable to get all items
+        filter$.set('all');
+
+        await promiseTimeout(1);
+
+        // Verify that list was called again and we now have all items
+        expect(listCallCount).toEqual(2);
+        expect(obs$.get()).toEqual({
+            item1: { test_id: 'item1', content: 'hello' },
+            item2: { test_id: 'item2', content: 'world' },
+        });
+
+        // Clean up the observer
+        dispose();
+    });
 });
