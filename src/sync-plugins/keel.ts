@@ -69,6 +69,9 @@ export interface KeelClient {
         isAuthenticated: () => Promise<APIResult<boolean>>;
     };
     api: { queries: Record<string, (i: any) => Promise<any>> };
+    client: {
+        rawRequest: <T>(action: string, body: any) => Promise<APIResult<T>>;
+    };
 }
 
 interface PageInfo {
@@ -247,20 +250,16 @@ function setupRealtime(props: SyncedKeelPropsBase<any>) {
     const { client } = props;
     if (client && !modifiedClients.has(client)) {
         modifiedClients.add(client);
-        const queries = client.api.queries;
-        Object.keys(queries).forEach((key) => {
-            if (key.startsWith('list')) {
-                const origFn = queries[key];
-                queries[key] = (i) => {
-                    realtimeState.current = {
-                        lastAction: key,
-                        lastParams: i,
-                    };
-
-                    return origFn(i);
+        const originalRawRequest = client.client.rawRequest;
+        client.client.rawRequest = (action: string, body: any) => {
+            if (action.startsWith('list')) {
+                realtimeState.current = {
+                    lastAction: action,
+                    lastParams: body,
                 };
             }
-        });
+            return originalRawRequest(action, body);
+        };
     }
 }
 
