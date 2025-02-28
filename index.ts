@@ -36,8 +36,10 @@ export {
     isSymbol,
 } from './src/is';
 export { linked } from './src/linked';
+export { registerMiddleware, dispatchMiddlewareEvent } from './src/middleware';
 export { observable, observablePrimitive } from './src/observable';
 export type * from './src/observableInterfaces';
+export type { MiddlewareEventType, MiddlewareEvent, MiddlewareHandler } from './src/middleware';
 export * from './src/observableTypes';
 export { observe } from './src/observe';
 export { proxy } from './src/proxy';

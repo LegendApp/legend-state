@@ -28,6 +28,7 @@ import {
     isString,
     mergeIntoObservable,
     observable,
+    registerMiddleware,
     setAtPath,
     shouldIgnoreUnobserved,
     syncState,
@@ -1050,268 +1051,269 @@ export function syncObservable<T>(
             const lastSync = metadatas.get(obs$)?.lastSync;
             const pending = localState.pendingChanges;
 
-            if (get || subscribe) {
-                const { waitFor } = syncOptions;
+            const { waitFor } = syncOptions;
 
-                const runGet = () => {
-                    const onChange = async ({ value, mode, lastSync }: UpdateFnParams) => {
-                        mode = mode || syncOptions.mode || 'set';
-                        if (value !== undefined) {
-                            value = transformLoadData(value, syncOptions, true, 'get');
-                            if (isPromise(value)) {
-                                value = await (value as Promise<T>);
-                            }
+            const runGet = () => {
+                const onChange = async ({ value, mode, lastSync }: UpdateFnParams) => {
+                    mode = mode || syncOptions.mode || 'set';
+                    if (value !== undefined) {
+                        value = transformLoadData(value, syncOptions, true, 'get');
+                        if (isPromise(value)) {
+                            value = await (value as Promise<T>);
+                        }
 
-                            const pending = localState.pendingChanges;
-                            const currentValue = obs$.peek();
-                            if (pending) {
-                                let didChangeMetadata = false;
-                                // Merge pending values onto remote changes
-                                Object.keys(pending).forEach((key) => {
-                                    const p = key.split('/').filter((k) => k !== '');
-                                    const { v, t } = pending[key];
+                        const pending = localState.pendingChanges;
+                        const currentValue = obs$.peek();
+                        if (pending) {
+                            let didChangeMetadata = false;
+                            // Merge pending values onto remote changes
+                            Object.keys(pending).forEach((key) => {
+                                const p = key.split('/').filter((k) => k !== '');
+                                const { v, t } = pending[key];
 
-                                    if (t.length === 0 || !value) {
+                                if (t.length === 0 || !value) {
+                                    // Update pending previous value with result
+                                    const oldValue = clone(value);
+                                    pending[key].p = key ? oldValue[key] : oldValue;
+
+                                    if (isObject(value) && isObject(v)) {
+                                        Object.assign(value, key ? { [key]: v } : v);
+                                    } else if (!key) {
+                                        value = v;
+                                    }
+                                } else if ((value as any)[p[0]] !== undefined) {
+                                    const curValue = getValueAtPath(currentValue as object, p);
+                                    const newValue = getValueAtPath(value as object, p);
+                                    if (JSON.stringify(curValue) === JSON.stringify(newValue)) {
+                                        delete pending[key];
+                                        didChangeMetadata = true;
+                                    } else {
                                         // Update pending previous value with result
                                         const oldValue = clone(value);
-                                        pending[key].p = key ? oldValue[key] : oldValue;
+                                        pending[key].p = getValueAtPath(oldValue, p);
 
-                                        if (isObject(value) && isObject(v)) {
-                                            Object.assign(value, key ? { [key]: v } : v);
-                                        } else if (!key) {
-                                            value = v;
-                                        }
-                                    } else if ((value as any)[p[0]] !== undefined) {
-                                        const curValue = getValueAtPath(currentValue as object, p);
-                                        const newValue = getValueAtPath(value as object, p);
-                                        if (JSON.stringify(curValue) === JSON.stringify(newValue)) {
-                                            delete pending[key];
-                                            didChangeMetadata = true;
-                                        } else {
-                                            // Update pending previous value with result
-                                            const oldValue = clone(value);
-                                            pending[key].p = getValueAtPath(oldValue, p);
-
-                                            didChangeMetadata = true;
-                                            (value as any) = setAtPath(
-                                                value as any,
-                                                p,
-                                                t,
-                                                v,
-                                                'merge',
-                                                obs$.peek(),
-                                                (path: string[], value: any) => {
-                                                    delete pending[key];
-                                                    pending[path.join('/')] = {
-                                                        p: null,
-                                                        v: value,
-                                                        t: t.slice(0, path.length),
-                                                    };
-                                                },
-                                            );
-                                        }
+                                        didChangeMetadata = true;
+                                        (value as any) = setAtPath(
+                                            value as any,
+                                            p,
+                                            t,
+                                            v,
+                                            'merge',
+                                            obs$.peek(),
+                                            (path: string[], value: any) => {
+                                                delete pending[key];
+                                                pending[path.join('/')] = {
+                                                    p: null,
+                                                    v: value,
+                                                    t: t.slice(0, path.length),
+                                                };
+                                            },
+                                        );
                                     }
-                                });
-
-                                if (didChangeMetadata && syncOptions.persist) {
-                                    updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
-                                        pending,
-                                    });
                                 }
+                            });
+
+                            if (didChangeMetadata && syncOptions.persist) {
+                                updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
+                                    pending,
+                                });
                             }
-
-                            onChangeRemote(() => {
-                                if (isPlainObject(value)) {
-                                    value = ObservableHint.plain(value);
-                                }
-                                if (mode === 'assign') {
-                                    (obs$ as unknown as Observable<object>).assign(value);
-                                } else if (mode === 'append') {
-                                    if (
-                                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                                        !isArray(value)
-                                    ) {
-                                        console.error('[legend-state] mode:append expects the value to be an array');
-                                    }
-                                    (obs$ as unknown as Observable<any[]>).push(...value);
-                                } else if (mode === 'prepend') {
-                                    if (
-                                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-                                        !isArray(value)
-                                    ) {
-                                        console.error('[legend-state] mode:prepend expects the value to be an array');
-                                    }
-                                    (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
-                                } else if (mode === 'merge') {
-                                    mergeIntoObservable(obs$, value);
-                                } else {
-                                    obs$.set(value);
-                                }
-                            });
                         }
-                        if (lastSync && syncOptions.persist) {
-                            updateMetadata(obs$, localState, syncState$, syncOptions, {
-                                lastSync,
-                            });
-                        }
-                    };
-                    if (node.activationState) {
-                        node.activationState!.onChange = onChange;
-                    }
-                    // Subscribe before getting to ensure we don't miss updates between now and the get returning
-                    if (!isSubscribed && syncOptions.subscribe) {
-                        const subscribe = syncOptions.subscribe;
-                        isSubscribed = true;
-                        const doSubscribe = () => {
-                            const subscribeParams: SyncedSubscribeParams<T> = {
-                                node,
-                                value$: obs$,
-                                lastSync,
-                                update: (params: UpdateFnParams) => {
-                                    when(
-                                        () => !get || syncState$.isLoaded.get(),
-                                        () => {
-                                            when(waitFor || true, () => {
-                                                params.mode ||= syncOptions.mode || 'merge';
-                                                onChange(params);
 
-                                                // If no get then we need to set the loaded state
-                                                if (!syncState$.isLoaded.peek()) {
-                                                    syncState$.assign({
-                                                        isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
-                                                        error: undefined,
-                                                        isGetting: syncStateValue.numPendingGets! > 0,
-                                                    });
-                                                }
-                                            });
-                                        },
-                                    );
-                                },
-                                refresh: () => when(syncState$.isLoaded, sync),
-                                onError: (error: Error) =>
-                                    onGetError(error, {
-                                        source: 'subscribe',
-                                        subscribeParams,
-                                        type: 'get',
-                                        retry: {} as OnErrorRetryParams,
-                                    }),
-                            };
-                            unsubscribe = subscribe(subscribeParams);
-                        };
-
-                        if (waitFor) {
-                            whenReady(waitFor, doSubscribe);
-                        } else {
-                            doSubscribe();
-                        }
-                    }
-                    const existingValue = getNodeValue(node);
-
-                    if (get) {
-                        const getParams: SyncedGetParams<T> = {
-                            node,
-                            value$: obs$,
-                            value:
-                                isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
-                            mode: syncOptions.mode!,
-                            refresh: sync,
-                            options: syncOptions,
-                            lastSync,
-                            updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
-                            onError: onGetError,
-                            retryNum: 0,
-                            cancelRetry: false,
-                        };
-
-                        let modeBeforeReset: GetMode | undefined = undefined;
-
-                        const beforeGetParams: Parameters<Required<SyncedOptions<any>>['onBeforeGet']>[0] = {
-                            value: getParams.value,
-                            lastSync,
-                            pendingChanges: pending && !isEmpty(pending) ? pending : undefined,
-                            clearPendingChanges: async () => {
-                                localState.pendingChanges = {};
-                                await updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
-                                    pending: localState.pendingChanges,
-                                });
-                            },
-                            resetCache: () => {
-                                modeBeforeReset = getParams.mode;
-                                getParams.mode = 'set';
-                                return syncStateValue.resetPersistence?.();
-                            },
-                            cancel: false,
-                        };
-
-                        syncOptions.onBeforeGet?.(beforeGetParams);
-
-                        if (!beforeGetParams.cancel) {
-                            syncState$.assign({
-                                numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
-                                isGetting: true,
-                            });
-                            const got = runWithRetry(getParams, syncOptions.retry, node, (retryEvent) => {
-                                const params = getParams as SyncedGetParams<T>;
-                                params.cancelRetry = retryEvent.cancelRetry;
-                                params.retryNum = retryEvent.retryNum;
-                                return get(params);
-                            });
-                            const numGets = (node.numGets = (node.numGets || 0) + 1);
-                            const handle = (value: any) => {
-                                syncState$.numPendingGets.set((v) => v! - 1);
-                                if (isWaitingForLoad) {
-                                    isWaitingForLoad = false;
-                                    syncStateValue.numPendingRemoteLoads!--;
+                        onChangeRemote(() => {
+                            if (isPlainObject(value)) {
+                                value = ObservableHint.plain(value);
+                            }
+                            if (mode === 'assign') {
+                                (obs$ as unknown as Observable<object>).assign(value);
+                            } else if (mode === 'append') {
+                                if (
+                                    (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                                    !isArray(value)
+                                ) {
+                                    console.error('[legend-state] mode:append expects the value to be an array');
                                 }
-                                // If this is from an older Promise than one that resolved already,
-                                // ignore it as the newer one wins
-                                if (numGets >= (node.getNumResolved || 0)) {
-                                    node.getNumResolved = node.numGets;
-
-                                    onChange({
-                                        value,
-                                        lastSync: getParams.lastSync,
-                                        mode: getParams.mode!,
-                                    });
+                                (obs$ as unknown as Observable<any[]>).push(...value);
+                            } else if (mode === 'prepend') {
+                                if (
+                                    (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                                    !isArray(value)
+                                ) {
+                                    console.error('[legend-state] mode:prepend expects the value to be an array');
                                 }
-
-                                if (modeBeforeReset) {
-                                    getParams.mode = modeBeforeReset;
-                                    modeBeforeReset = undefined;
-                                }
-
-                                syncState$.assign({
-                                    isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
-                                    error: undefined,
-                                    isGetting: syncStateValue.numPendingGets! > 0,
-                                });
-                            };
-                            if (isPromise(got)) {
-                                got.then(handle).catch((error) => {
-                                    onGetError(
-                                        error,
-                                        { getParams, source: 'get', type: 'get', retry: getParams },
-                                        true,
-                                    );
-                                });
+                                (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
+                            } else if (mode === 'merge') {
+                                mergeIntoObservable(obs$, value);
                             } else {
-                                handle(got);
+                                obs$.set(value);
                             }
-                        }
+                        });
+                    }
+                    if (lastSync && syncOptions.persist) {
+                        updateMetadata(obs$, localState, syncState$, syncOptions, {
+                            lastSync,
+                        });
                     }
                 };
-
-                if (waitFor) {
-                    whenReady(waitFor, () => trackSelector(runGet, sync));
-                } else {
-                    trackSelector(runGet, sync);
+                if (node.activationState) {
+                    node.activationState!.onChange = onChange;
                 }
+                // Subscribe before getting to ensure we don't miss updates between now and the get returning
+                if (!isSubscribed && syncOptions.subscribe) {
+                    const subscribe = syncOptions.subscribe;
+                    const doSubscribe = () => {
+                        isSubscribed = true;
+                        const subscribeParams: SyncedSubscribeParams<T> = {
+                            node,
+                            value$: obs$,
+                            lastSync,
+                            update: (params: UpdateFnParams) => {
+                                when(
+                                    () => !get || syncState$.isLoaded.get(),
+                                    () => {
+                                        when(waitFor || true, () => {
+                                            params.mode ||= syncOptions.mode || 'merge';
+                                            onChange(params);
+
+                                            // If no get then we need to set the loaded state
+                                            if (!syncState$.isLoaded.peek()) {
+                                                syncState$.assign({
+                                                    isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
+                                                    error: undefined,
+                                                    isGetting: syncStateValue.numPendingGets! > 0,
+                                                });
+                                            }
+                                        });
+                                    },
+                                );
+                            },
+                            refresh: () => when(syncState$.isLoaded, sync),
+                            onError: (error: Error) =>
+                                onGetError(error, {
+                                    source: 'subscribe',
+                                    subscribeParams,
+                                    type: 'get',
+                                    retry: {} as OnErrorRetryParams,
+                                }),
+                        };
+                        unsubscribe = subscribe(subscribeParams);
+                        registerMiddleware(node, 'listeners-cleared', () => {
+                            if (unsubscribe) {
+                                isSubscribed = false;
+                                unsubscribe();
+                                unsubscribe = undefined;
+                            }
+                        });
+                        registerMiddleware(node, 'listener-added', () => {
+                            if (!isSubscribed) {
+                                doSubscribe();
+                            }
+                        });
+                    };
+
+                    if (waitFor) {
+                        whenReady(waitFor, doSubscribe);
+                    } else {
+                        doSubscribe();
+                    }
+                }
+                const existingValue = getNodeValue(node);
+
+                if (get) {
+                    const getParams: SyncedGetParams<T> = {
+                        node,
+                        value$: obs$,
+                        value: isFunction(existingValue) || existingValue?.[symbolLinked] ? undefined : existingValue,
+                        mode: syncOptions.mode!,
+                        refresh: sync,
+                        options: syncOptions,
+                        lastSync,
+                        updateLastSync: (lastSync: number) => (getParams.lastSync = lastSync),
+                        onError: onGetError,
+                        retryNum: 0,
+                        cancelRetry: false,
+                    };
+
+                    let modeBeforeReset: GetMode | undefined = undefined;
+
+                    const beforeGetParams: Parameters<Required<SyncedOptions<any>>['onBeforeGet']>[0] = {
+                        value: getParams.value,
+                        lastSync,
+                        pendingChanges: pending && !isEmpty(pending) ? pending : undefined,
+                        clearPendingChanges: async () => {
+                            localState.pendingChanges = {};
+                            await updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
+                                pending: localState.pendingChanges,
+                            });
+                        },
+                        resetCache: () => {
+                            modeBeforeReset = getParams.mode;
+                            getParams.mode = 'set';
+                            return syncStateValue.resetPersistence?.();
+                        },
+                        cancel: false,
+                    };
+
+                    syncOptions.onBeforeGet?.(beforeGetParams);
+
+                    if (!beforeGetParams.cancel) {
+                        syncState$.assign({
+                            numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
+                            isGetting: true,
+                        });
+                        const got = runWithRetry(getParams, syncOptions.retry, node, (retryEvent) => {
+                            const params = getParams as SyncedGetParams<T>;
+                            params.cancelRetry = retryEvent.cancelRetry;
+                            params.retryNum = retryEvent.retryNum;
+                            return get(params);
+                        });
+                        const numGets = (node.numGets = (node.numGets || 0) + 1);
+                        const handle = (value: any) => {
+                            syncState$.numPendingGets.set((v) => v! - 1);
+                            if (isWaitingForLoad) {
+                                isWaitingForLoad = false;
+                                syncStateValue.numPendingRemoteLoads!--;
+                            }
+                            // If this is from an older Promise than one that resolved already,
+                            // ignore it as the newer one wins
+                            if (numGets >= (node.getNumResolved || 0)) {
+                                node.getNumResolved = node.numGets;
+
+                                onChange({
+                                    value,
+                                    lastSync: getParams.lastSync,
+                                    mode: getParams.mode!,
+                                });
+                            }
+
+                            if (modeBeforeReset) {
+                                getParams.mode = modeBeforeReset;
+                                modeBeforeReset = undefined;
+                            }
+
+                            syncState$.assign({
+                                isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
+                                error: undefined,
+                                isGetting: syncStateValue.numPendingGets! > 0,
+                            });
+                        };
+                        if (isPromise(got)) {
+                            got.then(handle).catch((error) => {
+                                onGetError(error, { getParams, source: 'get', type: 'get', retry: getParams }, true);
+                            });
+                        } else {
+                            handle(got);
+                        }
+                    }
+                }
+            };
+
+            if (waitFor) {
+                whenReady(waitFor, () => trackSelector(runGet, sync));
             } else {
-                syncState$.assign({
-                    isLoaded: true,
-                    error: undefined,
-                });
+                trackSelector(runGet, sync);
             }
+
             if (!isSynced) {
                 isSynced = true;
                 isApplyingPendingAfterSync = true;

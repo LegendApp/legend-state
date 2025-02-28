@@ -1,5 +1,6 @@
 import { getNodeValue } from './globals';
 import { deconstructObjectWithPath } from './helpers';
+import { dispatchMiddlewareEvent } from './middleware';
 import type { ListenerFn, ListenerParams, NodeInfo, NodeListener, TrackingType } from './observableInterfaces';
 
 export function onChange(
@@ -76,6 +77,7 @@ export function onChange(
     node.numListenersRecursive++;
     let parent = node.parent;
     let pathParent: string[] = [node!.key!];
+
     while (parent) {
         if (parent.linkedFromNodes) {
             for (const linkedFromNode of parent.linkedFromNodes) {
@@ -91,14 +93,28 @@ export function onChange(
         parent = parent.parent;
     }
 
+    // Queue middleware event for listener added
+    dispatchMiddlewareEvent(node, listener, 'listener-added');
+
     return () => {
+        // Remove the listener from the set
         listeners!.delete(listener);
+
+        // Queue middleware event for listener removed
+        dispatchMiddlewareEvent(node, listener, 'listener-removed');
+
+        // If there are no more listeners in this set, queue the listeners-cleared event
+        if (listeners!.size === 0) {
+            dispatchMiddlewareEvent(node, undefined, 'listeners-cleared');
+        }
+
+        // Clean up linked node listeners
         extraDisposes?.forEach((fn) => fn());
 
+        // Update listener counts up the tree
         let parent = node;
         while (parent) {
             parent.numListenersRecursive--;
-
             parent = parent.parent!;
         }
     };
