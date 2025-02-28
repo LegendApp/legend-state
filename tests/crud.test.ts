@@ -2677,6 +2677,98 @@ describe('onSaved', () => {
             test: 'hello',
         });
     });
+
+    test('onSaved setting multiple fields does not override', async () => {
+        // Create an observable for controlling when saves complete
+        const saveControl1$ = observable(false);
+        const saveControl2$ = observable(false);
+
+        let serverState: BasicValue2 | undefined = undefined;
+
+        const obs = observable<Record<string, BasicValue2>>(
+            syncedCrud({
+                as: 'object',
+                create: async (input: BasicValue2) => {
+                    return { ...input, createdAt: 10 };
+                },
+                update: async (input: BasicValue2) => {
+                    const ret = serverState!;
+                    if (input.test2 === 'secondUpdate') {
+                        await when(saveControl2$);
+                    }
+
+                    // Wait until we allow the save to complete
+                    await when(saveControl1$);
+
+                    return ret;
+                },
+                fieldUpdatedAt: 'updatedAt',
+                fieldCreatedAt: 'createdAt',
+                updatePartial: true,
+            }),
+        );
+
+        // Set initial value
+        obs.id1.set({ id: 'id1', test: 'initial', test2: 'initial2' });
+
+        // Wait for initialization
+        await promiseTimeout(1);
+
+        // Update first field - this will start saving but not complete yet
+        serverState = {
+            id: 'id1',
+            test: 'firstUpdate',
+            test2: 'initial2',
+            createdAt: 10,
+            updatedAt: 11,
+        };
+        obs.id1.test.set('firstUpdate');
+
+        // Wait for update to be processed
+        await promiseTimeout(1);
+
+        // Update second field before first save completes
+        serverState = {
+            id: 'id1',
+            test: 'firstUpdate',
+            test2: 'secondUpdate',
+            createdAt: 10,
+            updatedAt: 12,
+        };
+        obs.id1.test2.set('secondUpdate');
+
+        // Wait for second update to be processed
+        await promiseTimeout(1);
+
+        // Allow save to complete
+        saveControl1$.set(true);
+
+        // Wait for save to complete
+        await promiseTimeout(1);
+
+        // Verify first field changes was preserved
+        expect(obs.id1.get()).toEqual({
+            id: 'id1',
+            test: 'firstUpdate',
+            test2: 'secondUpdate',
+            createdAt: 10,
+            updatedAt: 11,
+        });
+
+        saveControl2$.set(true);
+
+        // Wait for second save to complete
+        await promiseTimeout(1);
+
+        // Verify both field changes were preserved
+        expect(obs.id1.get()).toEqual({
+            id: 'id1',
+            test: 'firstUpdate',
+            test2: 'secondUpdate',
+            createdAt: 10,
+            updatedAt: 12,
+        });
+    });
 });
 describe('Order of get/create', () => {
     test('create with no get', async () => {

@@ -159,6 +159,7 @@ function retrySet(
         update: Map<string, any>;
         delete: Map<string, any>;
     },
+    itemValueFull: any,
     actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
     saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean, change: Change) => void,
 ) {
@@ -184,7 +185,7 @@ function retrySet(
 
     queuedRetries[action].set(itemKey, itemValue);
 
-    const clonedValue = clone(itemValue);
+    const clonedValue = clone(itemValueFull);
 
     const paramsWithChanges: SyncedSetParams<any> = { ...params, changes: [change] };
 
@@ -638,6 +639,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               createObj,
                               changesById.get(itemKey)!,
                               queuedRetries,
+                              createObj,
                               createFn!,
                               saveResult,
                           ).then(() => {
@@ -647,12 +649,16 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
                       // Handle updates
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
+                          const fullValue = updateFullValues.get(itemKey);
                           if (waitForSetParam) {
                               // waitForSet should receive the full value
-                              const fullValue = updateFullValues.get(itemKey);
                               await waitForSet(waitForSetParam as any, changes, fullValue, { type: 'update' });
                           }
                           const changed = (await transformOut(itemValue as TLocal, transform?.save)) as TRemote;
+                          const fullValueTransformed = (await transformOut(
+                              fullValue as TLocal,
+                              transform?.save,
+                          )) as TRemote;
                           if (Object.keys(changed).length > 0) {
                               return retrySet(
                                   params,
@@ -662,6 +668,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   changed,
                                   changesById.get(itemKey)!,
                                   queuedRetries,
+                                  fullValueTransformed,
                                   updateFn!,
                                   saveResult,
                               );
@@ -691,20 +698,23 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       valuePrevious,
                                       changesById.get(itemKey)!,
                                       queuedRetries,
+                                      valuePrevious,
                                       deleteFn!,
                                       saveResult,
                                   );
                               }
 
                               if (fieldDeleted && updateFn) {
+                                  const value = { [fieldId]: itemKey, [fieldDeleted]: true } as any;
                                   return retrySet(
                                       params,
                                       retry,
                                       'delete',
                                       itemKey,
-                                      { [fieldId]: itemKey, [fieldDeleted]: true } as any,
+                                      value,
                                       changesById.get(itemKey)!,
                                       queuedRetries,
+                                      value,
                                       updateFn!,
                                       saveResult,
                                   );

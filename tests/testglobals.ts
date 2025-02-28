@@ -16,7 +16,9 @@ export interface BasicValue {
 }
 export interface BasicValue2 {
     id: string;
+    test?: string;
     test2: string;
+    createdAt?: string | number | null;
     updatedAt?: string | number | null;
 }
 
