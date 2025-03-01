@@ -76,6 +76,7 @@ import {
 import { deepMerge, getValueAtPath, initializePathType, setAtPath } from './src/helpers';
 import { tracking } from './src/tracking';
 import { ObservablePrimitiveClass } from './src/ObservablePrimitive';
+import { registerMiddleware } from './src/middleware';
 
 export const internal = {
     createPreviousHandler,
@@ -97,6 +98,7 @@ export const internal = {
     observableFns,
     optimized,
     peek,
+    registerMiddleware,
     safeParse,
     safeStringify,
     set,
