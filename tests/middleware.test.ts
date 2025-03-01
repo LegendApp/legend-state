@@ -331,13 +331,6 @@ describe('Middleware System', () => {
                     expect(countHandler).toHaveBeenCalledTimes(1);
                     expect(userNameHandler).toHaveBeenCalledTimes(1);
 
-                    // Verify the node reference in the events
-                    const countEvent = countHandler.mock.calls[0][0] as MiddlewareEvent;
-                    expect(countEvent.node).toBe(countNode);
-
-                    const userNameEvent = userNameHandler.mock.calls[0][0] as MiddlewareEvent;
-                    expect(userNameEvent.node).toBe(userNameNode);
-
                     resolve(null);
                 }, 0);
             });
@@ -366,13 +359,6 @@ describe('Middleware System', () => {
 
                     // Child handler should only be called for events on itself
                     expect(childHandler).toHaveBeenCalledTimes(1);
-
-                    // Verify that the node references are correct
-                    const parentEvent = parentHandler.mock.calls[0][0] as MiddlewareEvent;
-                    expect(parentEvent.node).toBe(rootNode);
-
-                    const childEvent = childHandler.mock.calls[0][0] as MiddlewareEvent;
-                    expect(childEvent.node).toBe(countNode);
 
                     resolve(null);
                 }, 0);

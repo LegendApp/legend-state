@@ -98,15 +98,7 @@ export function onChange(
 
     return () => {
         // Remove the listener from the set
-        listeners!.delete(listener);
-
-        // Queue middleware event for listener removed
-        dispatchMiddlewareEvent(node, listener, 'listener-removed');
-
-        // If there are no more listeners in this set, queue the listeners-cleared event
-        if (listeners!.size === 0) {
-            dispatchMiddlewareEvent(node, undefined, 'listeners-cleared');
-        }
+        listeners.delete(listener);
 
         // Clean up linked node listeners
         extraDisposes?.forEach((fn) => fn());
@@ -116,6 +108,14 @@ export function onChange(
         while (parent) {
             parent.numListenersRecursive--;
             parent = parent.parent!;
+        }
+
+        // Queue middleware event for listener removed
+        dispatchMiddlewareEvent(node, listener, 'listener-removed');
+
+        // If there are no more listeners in this set, queue the listeners-cleared event
+        if (listeners.size === 0) {
+            dispatchMiddlewareEvent(node, undefined, 'listeners-cleared');
         }
     };
 }

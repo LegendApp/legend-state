@@ -16,12 +16,11 @@ export type MiddlewareHandler = (event: MiddlewareEvent) => void;
 // Store middleware handlers in a WeakMap keyed by node
 const nodeMiddlewareHandlers = new WeakMap<NodeInfo, Map<MiddlewareEventType, Set<MiddlewareHandler>>>();
 
-// Queue of events to be processed in microtask
-const queuedEvents = new Set<{
-    node: NodeInfo;
-    listener?: NodeListener;
-    type: MiddlewareEventType;
-}>();
+// Queued events - use arrays instead of Sets for better performance in this case
+const queuedNodes: NodeInfo[] = [];
+const queuedListeners: (NodeListener | undefined)[] = [];
+const queuedTypes: MiddlewareEventType[] = [];
+let queueSize = 0;
 let isMicrotaskScheduled = false;
 
 /**
@@ -32,39 +31,38 @@ let isMicrotaskScheduled = false;
  * @returns A function to remove the handler
  */
 export function registerMiddleware(node: NodeInfo, type: MiddlewareEventType, handler: MiddlewareHandler): () => void {
-    // Initialize middleware handlers map for this node if it doesn't exist
-    if (!nodeMiddlewareHandlers.has(node)) {
-        nodeMiddlewareHandlers.set(node, new Map());
+    // Get or create handlers map for this node
+    let handlersMap = nodeMiddlewareHandlers.get(node);
+    if (!handlersMap) {
+        handlersMap = new Map();
+        nodeMiddlewareHandlers.set(node, handlersMap);
     }
 
-    const handlersMap = nodeMiddlewareHandlers.get(node)!;
-
-    // Initialize handlers Set for this event type if it doesn't exist
-    if (!handlersMap.has(type)) {
-        handlersMap.set(type, new Set<MiddlewareHandler>());
+    // Get or create handlers set for this event type
+    let handlers = handlersMap.get(type);
+    if (!handlers) {
+        handlers = new Set();
+        handlersMap.set(type, handlers);
     }
 
-    // Add handler to the appropriate set
-    const handlers = handlersMap.get(type)!;
+    // Add handler to the set
     handlers.add(handler);
 
     // Return a function to remove the handler
     return () => {
         const handlersMap = nodeMiddlewareHandlers.get(node);
-        if (handlersMap) {
-            const handlers = handlersMap.get(type);
-            if (handlers) {
-                handlers.delete(handler);
+        if (!handlersMap) return;
 
-                // If there are no more handlers for this type, remove the type entry
-                if (handlers.size === 0) {
-                    handlersMap.delete(type);
-                }
+        const handlers = handlersMap.get(type);
+        if (!handlers) return;
 
-                // If there are no more event types for this node, remove the node entry
-                if (handlersMap.size === 0) {
-                    nodeMiddlewareHandlers.delete(node);
-                }
+        handlers.delete(handler);
+
+        // Cleanup empty sets and maps
+        if (handlers.size === 0) {
+            handlersMap.delete(type);
+            if (handlersMap.size === 0) {
+                nodeMiddlewareHandlers.delete(node);
             }
         }
     };
@@ -81,78 +79,96 @@ export function dispatchMiddlewareEvent(
     listener: NodeListener | undefined,
     type: MiddlewareEventType,
 ): void {
-    // Skip if there are no handlers for this node or event type
+    // Fast path: Skip if there are no handlers for this node or event type
     const handlersMap = nodeMiddlewareHandlers.get(node);
     if (!handlersMap || !handlersMap.has(type)) {
         return;
     }
 
-    // Queue the event
-    queuedEvents.add({ node, listener, type });
+    // Check if handlers exist (avoid empty sets)
+    const handlers = handlersMap.get(type);
+    if (!handlers || handlers.size === 0) {
+        return;
+    }
 
-    // Schedule microtask to process events if not already scheduled
+    // Queue the event in parallel arrays for better performance
+    queuedNodes[queueSize] = node;
+    queuedListeners[queueSize] = listener;
+    queuedTypes[queueSize] = type;
+    queueSize++;
+
+    // Schedule microtask if not already scheduled
     if (!isMicrotaskScheduled) {
         isMicrotaskScheduled = true;
         queueMicrotask(processQueuedEvents);
     }
 }
 
+// Reusable event object to avoid allocation during processing
+const eventObj: MiddlewareEvent = {
+    type: 'listener-added',
+    node: null as any,
+    listener: undefined,
+    timestamp: 0,
+};
+
 /**
  * Process all queued middleware events in a microtask
- * This allows us to verify if events are still valid before dispatching them
+ * Using a single function for validation and processing improves performance
  */
 function processQueuedEvents(): void {
     isMicrotaskScheduled = false;
-    const timestamp = Date.now();
 
-    // Process all queued events
-    for (const { node, listener, type } of queuedEvents) {
+    // Use performance.now() if available for more precise timing
+    const timestamp = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    eventObj.timestamp = timestamp;
+
+    // Process each queued event
+    for (let i = 0; i < queueSize; i++) {
+        const node = queuedNodes[i];
+        const listener = queuedListeners[i];
+        const type = queuedTypes[i];
+
+        // Fast check for handlers without re-fetching from WeakMap if possible
         const handlersMap = nodeMiddlewareHandlers.get(node);
-        if (!handlersMap || !handlersMap.has(type)) continue;
+        if (!handlersMap) continue;
 
-        const handlers = handlersMap.get(type)!;
-        if (handlers.size === 0) continue;
+        const handlers = handlersMap.get(type);
+        if (!handlers || handlers.size === 0) continue;
 
-        // Check if the event is still valid based on its type
+        // Get node's listener sets - avoid creating empty sets
+        const nodeListeners = node.listeners;
+        const nodeListenersImmediate = node.listenersImmediate;
+
+        if (!nodeListeners && !nodeListenersImmediate) {
+            continue;
+        }
+
+        // Validate event based on type (optimized validation logic)
         let isValid = false;
 
-        // Get node's listener sets outside of switch
-        const nodeListeners = node.listeners || new Set();
-        const nodeListenersImmediate = node.listenersImmediate || new Set();
-
-        switch (type) {
-            case 'listener-added':
-                // Valid if the listener is in either listeners set
-                if (listener) {
-                    isValid = nodeListeners.has(listener) || nodeListenersImmediate.has(listener);
-                }
-                break;
-
-            case 'listener-removed':
-                // Valid if the listener is not in either listeners set
-                if (listener) {
-                    isValid = !nodeListeners.has(listener) && !nodeListenersImmediate.has(listener);
-                }
-                break;
-
-            case 'listeners-cleared':
-                // Valid if both listener sets are empty
-                isValid = nodeListeners.size === 0 && nodeListenersImmediate.size === 0;
-                break;
+        // Use cached string constants for faster comparison
+        if (type === 'listener-added') {
+            isValid = !!nodeListeners?.has(listener!) || !!nodeListenersImmediate?.has(listener!);
+        } else if (type === 'listener-removed') {
+            isValid = !nodeListeners?.has(listener!) && !nodeListenersImmediate?.has(listener!);
+        } else {
+            // type === 'listener-cleared'
+            isValid = !nodeListeners?.size && !nodeListenersImmediate?.size;
         }
 
         // Only dispatch if the event is valid
         if (isValid) {
-            const event: MiddlewareEvent = {
-                type,
-                node,
-                listener,
-                timestamp,
-            };
+            // Update properties of the reused event object
+            eventObj.type = type;
+            eventObj.node = node;
+            eventObj.listener = listener;
 
-            for (const handler of handlers) {
+            // Iterator optimization for Sets
+            const iterableHandlers = Array.from(handlers);
+            for (let j = 0; j < iterableHandlers.length; j++) {
                 try {
-                    handler(event);
+                    iterableHandlers[j](eventObj);
                 } catch (error) {
                     console.error(`Error in middleware handler for ${type}:`, error);
                 }
@@ -160,6 +176,6 @@ function processQueuedEvents(): void {
         }
     }
 
-    // Clear the queue
-    queuedEvents.clear();
+    // Clear the queue by resetting size rather than reallocating arrays
+    queueSize = 0;
 }
