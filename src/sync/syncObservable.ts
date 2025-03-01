@@ -28,7 +28,6 @@ import {
     isString,
     mergeIntoObservable,
     observable,
-    registerMiddleware,
     setAtPath,
     shouldIgnoreUnobserved,
     syncState,
@@ -57,8 +56,17 @@ import type {
 import { waitForSet } from './waitForSet';
 import { createRevertChanges } from './revertChanges';
 
-const { clone, deepMerge, getNode, getNodeValue, getValueAtPath, globalState, symbolLinked, createPreviousHandler } =
-    internal;
+const {
+    clone,
+    createPreviousHandler,
+    deepMerge,
+    getNode,
+    getNodeValue,
+    getValueAtPath,
+    globalState,
+    registerMiddleware,
+    symbolLinked,
+} = internal;
 
 export const mapSyncPlugins: WeakMap<
     ClassConstructor<ObservablePersistPlugin> | ObservablePersistPlugin,

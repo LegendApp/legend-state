@@ -36,10 +36,8 @@ export {
     isSymbol,
 } from './src/is';
 export { linked } from './src/linked';
-export { registerMiddleware, dispatchMiddlewareEvent } from './src/middleware';
 export { observable, observablePrimitive } from './src/observable';
 export type * from './src/observableInterfaces';
-export type { MiddlewareEventType, MiddlewareEvent, MiddlewareHandler } from './src/middleware';
 export * from './src/observableTypes';
 export { observe } from './src/observe';
 export { proxy } from './src/proxy';
@@ -78,6 +76,7 @@ import {
 import { deepMerge, getValueAtPath, initializePathType, setAtPath } from './src/helpers';
 import { tracking } from './src/tracking';
 import { ObservablePrimitiveClass } from './src/ObservablePrimitive';
+import { registerMiddleware } from './src/middleware';
 
 export const internal = {
     createPreviousHandler,
@@ -99,6 +98,7 @@ export const internal = {
     observableFns,
     optimized,
     peek,
+    registerMiddleware,
     safeParse,
     safeStringify,
     set,

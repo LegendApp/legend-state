@@ -1,7 +1,6 @@
-import { jest } from '@jest/globals';
-import { getNode, Observable, observable } from '..';
+import { getNode, Observable, observable } from '@legendapp/state';
 import { registerMiddleware, dispatchMiddlewareEvent } from '../src/middleware';
-import type { MiddlewareEvent, MiddlewareEventType } from '../src/middleware';
+import type { MiddlewareEvent } from '../src/middleware';
 import type { NodeInfo } from '../src/observableInterfaces';
 
 jest?.setTimeout?.(1000);
