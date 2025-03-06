@@ -1188,6 +1188,10 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
                     value = activated.get?.() ?? activated.initial;
                 }
             }
+
+            if (ignoreThisUpdate) {
+                activatedValue = value;
+            }
             // value is undefined if it's in a persisted retry
             wasPromise = wasPromise || isPromise(value);
 

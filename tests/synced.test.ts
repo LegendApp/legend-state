@@ -56,3 +56,78 @@ describe('unsubscribe', () => {
         expect(numUnsubscribes).toEqual(1);
     });
 });
+
+describe('synced', () => {
+    test('observing synced linked observable', () => {
+        const obs$ = observable({
+            count: synced({
+                initial: 0,
+            }),
+            total: (): number => {
+                return obs$.count as any;
+            },
+        });
+
+        let total = 0;
+        observe(() => {
+            total = obs$.total.get();
+        });
+
+        expect(total).toEqual(0);
+
+        obs$.count.set(1);
+
+        expect(total).toEqual(1);
+    });
+
+    test('observing synced array length', () => {
+        const obs$ = observable({
+            arr: synced({
+                initial: [
+                    { id: 1, text: 'a' },
+                    { id: 2, text: 'b' },
+                    { id: 3, text: 'c' },
+                ],
+            }),
+            total: (): number => {
+                return obs$.arr.length;
+            },
+        });
+
+        let total = 0;
+        observe(() => {
+            total = obs$.total.get();
+        });
+
+        expect(total).toEqual(3);
+
+        obs$.arr.push({ id: 4, text: 'd' });
+
+        expect(total).toEqual(4);
+    });
+    test('observing synced array length 2', () => {
+        const obs$ = observable({
+            arr: synced({
+                initial: [
+                    { id: 1, text: 'a' },
+                    { id: 2, text: 'b' },
+                    { id: 3, text: 'c' },
+                ],
+            }),
+            total: () => {
+                return obs$.arr;
+            },
+        });
+
+        let total = 0;
+        observe(() => {
+            total = obs$.total.length;
+        });
+
+        expect(total).toEqual(3);
+
+        obs$.arr.push({ id: 4, text: 'd' });
+
+        expect(total).toEqual(4);
+    });
+});

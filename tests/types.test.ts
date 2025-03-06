@@ -282,6 +282,11 @@ describe('with array', () => {
         expectTypeOf<State[number]>().toEqualTypeOf<Observable<string>>();
         expectTypeOf<State>().toMatchTypeOf<Array<Observable<string>>>();
     });
+
+    it('should infer array length as number', () => {
+        type State = Observable<{ foo: string }[]>;
+        expectTypeOf<State['length']>().toMatchTypeOf<number>();
+    });
 });
 
 describe('with function', () => {
