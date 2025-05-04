@@ -72,7 +72,7 @@ Legend-State includes a powerful [sync and persistence system](../../usage/persi
 Local persistence plugins for the browser and React Native are included, with sync plugins for [Keel](https://www.keel.so), [Supabase](https://www.supabase.com), [TanStack Query](https://tanstack.com/query), and `fetch`.
 
 ```js
-const state$ = observable(
+const state$ = observable({
     users: syncedKeel({
         list: queries.getUsers,
         create: mutations.createUsers,
@@ -87,7 +87,7 @@ const state$ = observable(
     }),
     // direct link to my user within the users observable
     me: () => state$.users['myuid']
-)
+})
 
 observe(() => {
     // get() activates through to state$.users and starts syncing.
