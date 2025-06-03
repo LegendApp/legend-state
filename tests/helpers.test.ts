@@ -1,4 +1,4 @@
-import { symbolDelete } from '@legendapp/state';
+import { observe, symbolDelete } from '@legendapp/state';
 import { isObservable } from '../src/globals';
 import { deepMerge, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
@@ -64,6 +64,17 @@ describe('mergeIntoObservable', () => {
         const source = { b: symbolDelete };
         const merged = mergeIntoObservable(target, source);
         expect(merged.peek()).toEqual({ a: 1 });
+    });
+    test('observing a mergeIntoObservable should run once', () => {
+        const target = observable({ a: 1, b: 2, c: [] });
+        const source = { c: ['a', 'b'] };
+        let num = 0;
+        observe(() => {
+            num++;
+            target.get();
+        });
+        mergeIntoObservable(target, source);
+        expect(num).toEqual(2);
     });
     test('should not merge undefined with sparse array', () => {
         const target = observable({

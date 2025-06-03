@@ -678,6 +678,32 @@ describe('persist objects', () => {
             ]),
         });
     });
+    test('Splicing an array persists it', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable({
+            items: [] as string[],
+        });
+        syncObservable(obs$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        obs$.items.push('hi');
+
+        await promiseTimeout(0);
+
+        const localValue = localStorage.getItem(persistName);
+        expect(localValue).toBe(`{"items":["hi"]}`);
+
+        obs$.items.splice(0, 1);
+
+        await promiseTimeout(0);
+
+        const localValue2 = localStorage.getItem(persistName);
+        expect(localValue2).toBe(`{"items":[]}`);
+    });
 });
 describe('get mode', () => {
     test('synced get sets by default', async () => {

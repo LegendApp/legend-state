@@ -577,6 +577,38 @@ describe('useSelector', () => {
             expect(lastValue).toEqual(0);
         });
     });
+    test('use$ with array length', () => {
+        async () => {
+            const obs$ = observable<{ test: number[] }>({
+                test: [0],
+            });
+            let lastValue: number[] | undefined = undefined;
+
+            const Test = function Test() {
+                lastValue = use$(obs$).test;
+
+                return createElement('div', undefined, lastValue);
+            };
+            function App() {
+                return createElement(Test);
+            }
+            render(createElement(App));
+
+            expect(lastValue).toEqual([0]);
+            act(() => {
+                obs$.assign({ test: [1] });
+            });
+            expect(lastValue).toEqual([1]);
+            act(() => {
+                obs$.assign({ test: [1, 2, 3] });
+            });
+            expect(lastValue).toEqual([1, 2, 3]);
+            act(() => {
+                obs$.assign({ test: [] });
+            });
+            expect(lastValue).toEqual([]);
+        };
+    });
 });
 
 describe('For', () => {

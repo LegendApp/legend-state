@@ -1354,6 +1354,22 @@ describe('Array', () => {
         expect(obs.test.length).toEqual(0);
         expect(obs.test.map((a) => a)).toEqual([]);
     });
+    test('Assign array child notifies', () => {
+        const obs = observable({ test: [1] });
+        const handler = expectChangeHandler(obs.test);
+        const handler2 = expectChangeHandler(obs);
+        obs.assign({ test: [1, 2, 3] });
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenCalledWith(
+            [1, 2, 3],
+            [1],
+            [{ path: [], pathTypes: [], valueAtPath: [1, 2, 3], prevAtPath: [1] }],
+        );
+        expect(handler2).toHaveBeenCalledTimes(1);
+        expect(handler2).toHaveBeenCalledWith({ test: [1, 2, 3] }, { test: [1] }, [
+            { path: ['test'], pathTypes: ['array'], valueAtPath: [1, 2, 3], prevAtPath: [1] },
+        ]);
+    });
     test('Array splice fire events', () => {
         const obs = observable({
             test: [
@@ -2005,6 +2021,16 @@ describe('Array', () => {
         obs$.todos.splice(0, 1);
         expect(lastValue).toEqual(1);
         obs$.todos.set([]);
+        expect(lastValue).toEqual(0);
+    });
+    test('Splicing the last element of an array', () => {
+        const obs$ = observable<{ todos: number[] }>({ todos: [0] });
+        let lastValue: number | undefined = undefined;
+        observe(() => {
+            lastValue = obs$.todos.get().length;
+        });
+        expect(lastValue).toEqual(1);
+        obs$.todos.splice(0, 1);
         expect(lastValue).toEqual(0);
     });
 });
