@@ -39,7 +39,7 @@ export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
 export type ObservableValue<T> = T extends Observable<infer t> ? t : never;
 
-export type Selector<T> = ObservableParam<T> | ObservableEvent | (() => T) | T;
+export type Selector<T> = ObservableParam<T> | ObservableEvent | (() => ObservableParam<T>) | (() => T) | T;
 
 export type ClassConstructor<I, Args extends any[] = any[]> = new (...args: Args) => I;
 export type ObservableListenerDispose = () => void;
