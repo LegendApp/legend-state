@@ -1067,10 +1067,13 @@ function checkProperty(value: any, key: string) {
     }
 }
 
-function reactivateNode(node: NodeInfo, lazyFn: Function) {
+export function deactivateNode(node: NodeInfo) {
     node.activatedObserveDispose?.();
     node.linkedToNodeDispose?.();
     node.activatedObserveDispose = node.linkedToNodeDispose = node.linkedToNode = undefined;
+}
+export function reactivateNode(node: NodeInfo, lazyFn: Function) {
+    deactivateNode(node);
     node.lazyFn = lazyFn;
     node.lazy = true;
 }
@@ -1124,7 +1127,7 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
         globalState.dirtyNodes.add(node);
     }
 
-    node.activatedObserveDispose = observe(
+    const observeDispose = observe(
         () => {
             // Set it to undefined so that the activation function gets undefined
             // if it peeks itself
@@ -1255,6 +1258,11 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
         },
         { fromComputed: true },
     );
+
+    node.activatedObserveDispose = () => {
+        observeDispose?.();
+        disposes.forEach((fn) => fn());
+    };
     return activatedValue;
 }
 

@@ -1879,6 +1879,65 @@ describe('useObservable', () => {
         expect(num).toEqual(2);
         expect(value).toEqual(1 + '_' + originalRand);
     });
+    test('useObservable nested cleans up on unmount', async () => {
+        const outer$ = observable(true);
+        let derivedCallCount = 0;
+        let innerDerivedCallCount = 0;
+
+        const Test = () => {
+            const derived$ = useObservable(() => {
+                derivedCallCount++;
+                return `${outer$.get()}`;
+            });
+
+            return <TestInner value$={derived$} />;
+        };
+
+        const TestInner = ({ value$ }: { value$: Observable<string> }) => {
+            const value = use$(
+                useObservable(() => {
+                    innerDerivedCallCount++;
+                    return `inner${value$.get()}`;
+                }),
+            );
+
+            return <div>{value}</div>;
+        };
+
+        function App() {
+            return createElement(Test);
+        }
+
+        const { unmount } = render(createElement(App));
+
+        // Initial render should call both derived observables
+        expect(derivedCallCount).toBe(1);
+        expect(innerDerivedCallCount).toBe(1);
+
+        // Unmount the component
+        unmount();
+
+        await promiseTimeout(0);
+
+        // Record counts after unmount
+        const derivedCountAfterUnmount = derivedCallCount;
+        const innerDerivedCountAfterUnmount = innerDerivedCallCount;
+
+        // Change outer$ multiple times after unmount
+        act(() => {
+            outer$.set(false);
+        });
+        act(() => {
+            outer$.set(true);
+        });
+        act(() => {
+            outer$.set(false);
+        });
+
+        // The derived observables should not be called after unmount
+        expect(innerDerivedCallCount).toBe(innerDerivedCountAfterUnmount);
+        expect(derivedCallCount).toBe(derivedCountAfterUnmount);
+    });
 });
 describe('useObservableState', () => {
     test('useObservableState does not select if value not accessed', () => {

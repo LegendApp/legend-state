@@ -1,6 +1,9 @@
 import type { Observable } from '@legendapp/state';
-import { computeSelector, isFunction, observable, RecursiveValueOrFunction } from '@legendapp/state';
+import { computeSelector, getNode, internal, isFunction, observable, RecursiveValueOrFunction } from '@legendapp/state';
 import { DependencyList, useRef } from 'react';
+import { useUnmount } from './useUnmount';
+
+const { deactivateNode } = internal;
 
 /**
  * A React hook that creates a new observable
@@ -47,6 +50,18 @@ export function useObservable<T>(
     if (depsObs$) {
         depsObs$.set(deps! as any[]);
     }
+
+    useUnmount(() => {
+        // Make sure that any observables this is tracking are deactivated on unmount
+        // TODO: It's possible that this might need to deactivate all child observables in the tree
+        // but we would want to have a way of saving the dispose functions at the root so we
+        // don't have to do it recursively.
+        const obs = ref.current.obs$;
+        if (obs) {
+            const node = getNode(obs as Observable<any>);
+            deactivateNode(node);
+        }
+    });
 
     return ref.current.obs$;
 }
