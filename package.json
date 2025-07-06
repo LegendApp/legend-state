@@ -110,8 +110,6 @@
         "typescript": "^5.7.2"
     },
     "dependencies": {
-        "expo": "^53.0.17",
-        "expo-secure-store": "~14.2.3",
         "use-sync-external-store": "^1.2.2"
     },
     "peerDependencies": {
