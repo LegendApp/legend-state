@@ -33,6 +33,9 @@
             "react-native": [
                 "node_modules/react-native"
             ],
+            "react-native-keychain":[
+                "node_modules/react-native-keychain"
+            ],
             "react-native-mmkv": [
                 "node_modules/react-native-mmkv"
             ],
