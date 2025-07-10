@@ -12,6 +12,7 @@ const external = [
     'next/router',
     'react',
     'react-native',
+    'react-native-keychain',
     'react-native-mmkv',
     '@react-native-async-storage/async-storage',
     '@tanstack/react-query',
