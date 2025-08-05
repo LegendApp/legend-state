@@ -19,6 +19,7 @@ import type {
     UpdateFn,
     UpdateSetFn,
 } from '@legendapp/state';
+import type { DeepMergeOptions } from '../helpers';
 
 export interface PersistOptions<T = any> {
     name?: string;
@@ -99,6 +100,49 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     onBeforeSet?: (params: { cancel: boolean }) => void;
     onAfterSet?: () => void;
     onError?: (error: Error, params: SyncedErrorParams) => void;
+
+    /**
+     * Configuration for how arrays are handled during merge operations in sync.
+     *
+     * This setting controls how arrays are merged when data is synchronized from
+     * remote sources, loaded from local persistence, or updated through sync operations.
+     *
+     * **Array Handling Options:**
+     * - **'never'** (default): Use legacy index-based merging (for backward compatibility)
+     * - **'shallow'** (recommended): Replace arrays when content differs (fast comparison)
+     * - **'deep'**: Replace arrays when content differs (comprehensive comparison)
+     *
+     * **When This Matters:**
+     * - TanStack Query updates with new array data
+     * - Firebase/Supabase real-time updates
+     * - Local persistence restoration
+     * - Manual sync operations
+     *
+     * @example
+     * ```typescript
+     * // Configure for a specific sync operation
+     * syncedQuery({
+     *   queryClient,
+     *   query: { queryKey: ['users'], queryFn: fetchUsers },
+     *   deepMerge: { arrayHandling: 'shallow' } // Arrays replaced entirely
+     * });
+     *
+     * // Configure globally for all sync operations
+     * configureObservableSync({
+     *   deepMerge: { arrayHandling: 'shallow' }
+     * });
+     *
+     * // Example: API returns updated user list
+     * // OLD: [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }]
+     * // NEW: [{ id: 1, name: 'Alice' }, { id: 3, name: 'Charlie' }]
+     * // Result with 'shallow': Complete replacement with new array
+     * // Result with 'never': Index-based merging (often undesired)
+     * ```
+     *
+     * @see {@link DeepMergeOptions} for detailed configuration options
+     * @default undefined (uses system default)
+     */
+    deepMerge?: DeepMergeOptions;
 
     // Not implemented yet
     // log?: (message?: any, ...optionalParams: any[]) => void;
