@@ -489,7 +489,7 @@ const proxyHandler: ProxyHandler<any> = {
 
         if (isNullOrUndefined(value) && vProp === undefined && (ArrayModifiers.has(p) || ArrayLoopers.has(p))) {
             value = [];
-            setNodeValue(node, value);
+            if (ArrayModifiers.has(p)) setNodeValue(node, value);
             vProp = value[p];
         }
 
