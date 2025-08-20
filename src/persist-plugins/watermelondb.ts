@@ -1,74 +1,70 @@
-import { applyChanges } from '@legendapp/state'
+import { applyChanges } from '@legendapp/state';
 
-import type {
-    ObservablePersistPlugin,
-    PersistMetadata,
-    PersistOptions,
-} from '@legendapp/state/sync'
+import type { ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state/sync';
 import type { Change } from '@legendapp/state';
-import type LocalStorage from '@nozbe/watermelondb/Database/LocalStorage'
+import type LocalStorage from '@nozbe/watermelondb/Database/LocalStorage';
 
-const MetadataSuffix = '__m'
+const MetadataSuffix = '__m';
 
 class ObservablePersistWatermelonDB implements ObservablePersistPlugin {
-    private readonly storage: LocalStorage
-    private data: Record<string, unknown> = {}
+    private readonly storage: LocalStorage;
+    private data: Record<string, unknown> = {};
 
     constructor(storage: LocalStorage) {
         if (!storage) {
             console.error(
-                '[legend-state] ObservablePersistWatermelonDB failed to initialize. You need to pass the WatermelonDB localStorage instance.'
-            )
+                '[legend-state] ObservablePersistWatermelonDB failed to initialize. You need to pass the WatermelonDB localStorage instance.',
+            );
         }
 
-        this.storage = storage
+        this.storage = storage;
     }
 
     getTable<T = any>(table: string, init: any): T {
-        if (!this.storage) return undefined
+        if (!this.storage) return undefined;
 
         if (this.data[table] === undefined) {
             try {
                 this.storage._getSync(table, (val) => {
-                    if (val !== undefined) this.data[table] = val
-                })
+                    if (val !== undefined) this.data[table] = val;
+                });
             } catch (e) {
-                console.error('[legend-state] ObservablePersistWatermelonDB parse failed', table, e)
+                console.error('[legend-state] ObservablePersistWatermelonDB parse failed', table, e);
             }
         }
 
-        return this.data[table]
+        return this.data[table];
     }
 
     deleteTable(table: string): Promise<void> | void {
-        if (!this.storage) return undefined
+        if (!this.storage) return undefined;
 
-        delete this.data[table]
-        return this.storage.remove(table)
+        delete this.data[table];
+        return this.storage.remove(table);
     }
 
     set(table: string, changes: Change[]): Promise<void> | void {
-        const current = this.data[table] ?? {}
-        const updated = applyChanges(current, changes)
-        this.data[table] = updated
+        const current = this.data[table] ?? {};
+        const updated = applyChanges(current, changes);
+        this.data[table] = updated;
 
-        return this.storage.set(table, updated)
+        return this.storage.set(table, updated);
     }
 
     getMetadata(table: string, _config: PersistOptions): PersistMetadata {
-        return this.getTable(table + MetadataSuffix, {})
+        return this.getTable(table + MetadataSuffix, {});
     }
 
     setMetadata(table: string, metadata: PersistMetadata): Promise<void> | void {
-        const key = table + MetadataSuffix
-        this.data[key] = metadata
-        return this.storage.set(key, metadata)
+        const key = table + MetadataSuffix;
+        this.data[key] = metadata;
+        return this.storage.set(key, metadata);
     }
 
     deleteMetadata(table: string): Promise<void> | void {
-        const key = table + MetadataSuffix
-        delete this.data[key]
-        return this.storage.remove(key)
+        const key = table + MetadataSuffix;
+        delete this.data[key];
+        return this.storage.remove(key);
     }
 }
 
@@ -91,5 +87,5 @@ class ObservablePersistWatermelonDB implements ObservablePersistPlugin {
  * ```
  */
 export function observablePersistWatermelonDB(localStorage: LocalStorage) {
-    return new ObservablePersistWatermelonDB(localStorage)
+    return new ObservablePersistWatermelonDB(localStorage);
 }
