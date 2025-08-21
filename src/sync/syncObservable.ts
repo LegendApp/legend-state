@@ -969,6 +969,10 @@ export function syncObservable<T>(
         observableSyncConfiguration,
         removeNullUndefined(syncOptions || {}),
     );
+
+    // Store the original initial value to preserve it for reset functionality
+    const originalInitial = clone(syncOptions.initial);
+
     const localState: LocalState = {};
     let sync: () => Promise<void>;
 
@@ -1366,7 +1370,7 @@ export function syncObservable<T>(
         unsubscribe = undefined;
         const promise = syncStateValue.resetPersistence();
         onChangeRemote(() => {
-            obs$.set(syncOptions.initial ?? undefined);
+            obs$.set(clone(originalInitial) ?? undefined);
         });
         syncState$.isLoaded.set(false);
         syncStateValue.isPersistEnabled = wasPersistEnabled;
