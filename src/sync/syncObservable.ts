@@ -1377,6 +1377,13 @@ export function syncObservable<T>(
         syncStateValue.isSyncEnabled = wasSyncEnabled;
         node.dirtyFn = sync;
         await promise;
+
+        // For observables without remote data loading (no get function), set isLoaded back to true
+        // since there's no remote data to load. This matches the initial loading logic.
+        const hasRemoteLoad = !!syncOptions.get;
+        if (!hasRemoteLoad) {
+            syncState$.isLoaded.set(true);
+        }
     };
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
