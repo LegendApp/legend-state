@@ -8,11 +8,12 @@ import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } 
 import { setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive } from '../src/observable';
-import { NodeInfo } from '../src/observableInterfaces';
+import { NodeInfo, OpaqueObject } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { syncState } from '../src/syncState';
 import { when, whenReady } from '../src/when';
 import { expectChangeHandler, promiseTimeout } from './testglobals';
+import { ObservableHint } from '../src/ObservableHint';
 
 enable$GetSet();
 enable_PeekAssign();
@@ -1043,6 +1044,20 @@ describe('Primitives', () => {
         expect(obs.val.toString()).toBe('10');
         expect(obs.val.valueOf()).toBe(10);
     });
+    test('opaque object should be handled like primitives', () => {
+        class BigNumber {
+            readonly c: number[] | null = null;
+            readonly e: number | null = null;
+            readonly s: number | null = null;
+        }
+        const obs = observable<{ val: OpaqueObject<BigNumber> | null }>({
+            val: ObservableHint.opaque(new BigNumber())
+        });
+
+        const val /* infered: ObservablePrimitive<OpaqueObject<BigNumber> | null> */ = obs.val;
+        const raw /* infered: BigNumber | null */ = val.get();
+        expect(raw?.c).toBeNull();
+    })
 });
 describe('Array', () => {
     test('Basic array', () => {
