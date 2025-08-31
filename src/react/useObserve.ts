@@ -38,10 +38,6 @@ export function useObserve<T>(
 
     // Create a deps observable to be watched by the created observable
     const depsObs$ = deps ? useObservable(deps) : undefined;
-    // Update depsObs with the deps array
-    if (depsObs$) {
-        depsObs$.set(deps! as any[]);
-    }
 
     const ref = useRef<{
         selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
@@ -56,6 +52,11 @@ export function useObserve<T>(
           }
         : selector;
     ref.current.reaction = reaction;
+
+    // Update depsObs with the deps array
+    if (depsObs$) {
+        depsObs$.set(deps! as any[]);
+    }
 
     if (!ref.current.dispose) {
         ref.current.dispose = observe<T>(

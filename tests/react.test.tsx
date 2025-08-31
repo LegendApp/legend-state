@@ -1278,12 +1278,14 @@ describe('useObserve', () => {
         const obsOuter$ = observable(0);
         const obsInner$: Observable = observable(0);
         let lastObserved: number | undefined = undefined;
+        let lastObservedDep: number | undefined = undefined;
         const Test = observer(function Test() {
             const dep = obsOuter$.get();
             useObserve(
                 () => {
                     numInner++;
                     lastObserved = obsInner$.get();
+                    lastObservedDep = dep;
                 },
                 { deps: [dep] },
             );
@@ -1299,6 +1301,7 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numInner).toEqual(1);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(0);
 
         // If deps array changes it should refresh observable
         act(() => {
@@ -1308,6 +1311,7 @@ describe('useObserve', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(2);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(1);
 
         // If inner dep changes it should run again without rendering
         act(() => {
@@ -1317,6 +1321,7 @@ describe('useObserve', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(3);
         expect(lastObserved).toEqual(1);
+        expect(lastObservedDep).toEqual(1);
 
         // If deps array changes it should refresh observable
         act(() => {
@@ -1326,6 +1331,7 @@ describe('useObserve', () => {
         expect(num).toEqual(3);
         expect(numInner).toEqual(4);
         expect(lastObserved).toEqual(1);
+        expect(lastObservedDep).toEqual(2);
     });
 });
 
@@ -1374,12 +1380,14 @@ describe('useObserveEffect', () => {
         const obsOuter$ = observable(0);
         const obsInner$: Observable = observable(0);
         let lastObserved: number | undefined = undefined;
+        let lastObservedDep: number | undefined = undefined;
         const Test = observer(function Test() {
             const dep = obsOuter$.get();
             useObserveEffect(
                 () => {
                     numInner++;
                     lastObserved = obsInner$.get();
+                    lastObservedDep = dep;
                 },
                 { deps: [dep] },
             );
@@ -1395,6 +1403,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(1);
         expect(numInner).toEqual(1);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(0);
 
         // If deps array changes it should refresh observable
         act(() => {
@@ -1404,6 +1413,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(2);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(1);
 
         // If inner dep changes it should run again without rendering
         act(() => {
@@ -1413,7 +1423,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(3);
         expect(lastObserved).toEqual(1);
-
+        expect(lastObservedDep).toEqual(1);
         // If deps array changes it should refresh observable
         act(() => {
             obsOuter$.set(2);
@@ -1422,6 +1432,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(3);
         expect(numInner).toEqual(4);
         expect(lastObserved).toEqual(1);
+        expect(lastObservedDep).toEqual(2);
     });
 });
 

@@ -22,6 +22,12 @@ export function useObserveEffect<T>(
         options = reactionOrOptions;
     }
 
+    const ref = useRef<{
+        selector: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
+        reaction?: (e: ObserveEventCallback<T>) => any;
+    }>({ selector });
+    ref.current = { selector, reaction };
+
     const deps = options?.deps;
 
     // Create a deps observable to be watched by the created observable
@@ -30,12 +36,6 @@ export function useObserveEffect<T>(
     if (depsObs$) {
         depsObs$.set(deps! as any[]);
     }
-
-    const ref = useRef<{
-        selector: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
-        reaction?: (e: ObserveEventCallback<T>) => any;
-    }>({ selector });
-    ref.current = { selector, reaction };
 
     useMountOnce(() =>
         observe<T>(
