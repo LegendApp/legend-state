@@ -759,7 +759,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         if (isPromise(transformedChanges)) {
                             transformedChanges = (await transformedChanges) as object;
                         }
-                        onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
+                        onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges, syncOptions.deepMerge));
                     }
 
                     if (saveLocal) {
@@ -904,7 +904,7 @@ async function loadLocal<T>(
             if (value === null && (!prevValue || (prevValue as any)[symbolLinked])) {
                 value$.set(value);
             } else {
-                mergeIntoObservable(value$, value);
+                mergeIntoObservable(value$, value, syncOptions.deepMerge);
             }
             node.root.isLoadingLocal = false;
 
@@ -1151,7 +1151,7 @@ export function syncObservable<T>(
                                 }
                                 (obs$ as unknown as Observable<any[]>).splice(0, 0, ...value);
                             } else if (mode === 'merge') {
-                                mergeIntoObservable(obs$, value);
+                                mergeIntoObservable(obs$, value, syncOptions.deepMerge);
                             } else {
                                 obs$.set(value);
                             }
