@@ -632,7 +632,7 @@ const proxyHandler: ProxyHandler<any> = {
     },
     has(node: NodeInfo, prop: string) {
         const value = getNodeValue(node);
-        return Reflect.has(value, prop);
+        return value !== null && typeof value === 'object' && Reflect.has(value, prop);
     },
     apply(target, thisArg, argArray) {
         // If it's a function call it as a function
