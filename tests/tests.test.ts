@@ -3805,4 +3805,16 @@ describe('Misc', () => {
 
         expect(changed).toEqual(false);
     });
+    test('Object.keys on object with non-configurable props should not fail', () => {
+        const target = {};
+        const obs$ = observable(target);
+
+        expect(Object.keys(obs$.get())).toEqual([]);
+        expect(Object.keys(obs$)).toEqual([]);
+
+        Object.defineProperty(target, 'a', { writable: true, enumerable: false, configurable: false });
+
+        expect(Object.keys(obs$.get())).toEqual([]);
+        expect(Object.keys(obs$)).toEqual([]);
+    });
 });
