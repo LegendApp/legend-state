@@ -23,6 +23,7 @@ import { promiseTimeout, supressActWarning } from './testglobals';
 import { synced } from '../src/sync/synced';
 import { useTraceListeners } from '../src/trace/useTraceListeners';
 import { useTraceUpdates } from '../src/trace/useTraceUpdates';
+import { $React } from '@legendapp/state/react-web';
 
 type TestObject = { id: string; label: string };
 
@@ -2187,5 +2188,30 @@ describe('tracing', () => {
         expect(console.log).toHaveBeenCalledWith(`[legend-state] Rendering because "" changed:
 from: 0
 to: 1`);
+    });
+});
+describe('$React', () => {
+    test('$React works', () => {
+        const Test = function Test() {
+            return createElement($React.div, { $className: () => 'test' });
+        };
+        function App() {
+            return createElement(Test);
+        }
+        const { container } = render(createElement(App));
+
+        expect(container.querySelector('div')?.className).toEqual('test');
+    });
+    test('$React takes observable child', () => {
+        const obs$ = observable('test');
+        const Test = function Test() {
+            return createElement($React.div, null, obs$ as any);
+        };
+        function App() {
+            return createElement(Test);
+        }
+        const { container } = render(createElement(App));
+
+        expect(container.querySelector('div')?.textContent).toEqual('test');
     });
 });
