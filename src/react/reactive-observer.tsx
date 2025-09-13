@@ -82,9 +82,9 @@ function createReactiveComponent<P = object>(
 
                     const isReactiveKey = keysReactiveSet && keysReactiveSet.has(key);
 
-                    // Convert children if it's a function
+                    // Convert children if it's a function or observable
                     if (key === 'children' && (isFunction(p) || isObservable(p))) {
-                        props[key] = useSelector(p, { skipCheck: true });
+                        propsOut[key] = useSelector(p, { skipCheck: true });
                     }
                     // Convert reactive props
                     else if (isReactiveKey || key.startsWith('$') || key.endsWith('$')) {
