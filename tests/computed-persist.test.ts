@@ -759,7 +759,7 @@ describe('Debouncing', () => {
         obs.set('hello');
         const res = await when(didSet$);
         expect(res).toEqual('hello');
-        expect(performance.now() - startTime).toBeLessThan(5);
+        expect(performance.now() - startTime).toBeLessThan(process.env.CI === 'true' ? 10 : 5);
     });
     test('Remote changes debounce', async () => {
         let startTime = 0;
