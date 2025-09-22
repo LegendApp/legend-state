@@ -1,4 +1,4 @@
-import { act, render, renderHook } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 import React, { StrictMode, Suspense, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
@@ -1268,7 +1268,9 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numObserves).toEqual(0);
 
-        obs$.set(1);
+        act(() => {
+            obs$.set(1);
+        });
 
         expect(num).toEqual(1);
         expect(numObserves).toEqual(1);
@@ -1369,10 +1371,14 @@ describe('useObserveEffect', () => {
 
         expect(num).toEqual(1);
 
-        state$.set((v) => v + 1);
+        act(() => {
+            state$.set((v) => v + 1);
+        });
         expect(num).toEqual(2);
 
-        state$.set((v) => v + 1);
+        act(() => {
+            state$.set((v) => v + 1);
+        });
         expect(num).toEqual(3);
     });
     test('useObserve with a deps array', () => {
@@ -1886,7 +1892,7 @@ describe('useObservable', () => {
             obs2$.set(1);
         });
 
-        await promiseTimeout(0);
+        await waitFor(() => promiseTimeout(0));
 
         expect(num).toEqual(2);
         expect(value).toEqual(1 + '_' + originalRand);
@@ -1927,9 +1933,11 @@ describe('useObservable', () => {
         expect(innerDerivedCallCount).toBe(1);
 
         // Unmount the component
-        unmount();
+        act(() => {
+            unmount();
+        });
 
-        await promiseTimeout(0);
+        await waitFor(() => promiseTimeout(0));
 
         // Record counts after unmount
         const derivedCountAfterUnmount = derivedCallCount;

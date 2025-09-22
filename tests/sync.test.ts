@@ -90,4 +90,45 @@ describe('sync()', () => {
         doSync();
         expect(numLists).toEqual(3);
     });
+    test('sync({ resetLastSync: true }) clears lastSync before list', async () => {
+        const persistName = getPersistName();
+        let updatedAt = 1;
+        const serverState = [{ ...ItemBasicValue(), updatedAt }];
+        const lastSyncCalls: Array<number | undefined> = [];
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: (params) => {
+                    lastSyncCalls.push(params.lastSync);
+                    return promiseTimeout(0, serverState);
+                },
+                create: async (input) => ({ ...input, updatedAt: updatedAt++ }),
+                as: 'object',
+                fieldUpdatedAt: 'updatedAt',
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+
+        obs$.get();
+        await promiseTimeout(0);
+        expect(lastSyncCalls).toHaveLength(1);
+        expect(lastSyncCalls[0]).toBeUndefined();
+
+        await state$.sync();
+        expect(lastSyncCalls).toHaveLength(2);
+        expect(lastSyncCalls[1]).not.toBeUndefined();
+
+        await state$.sync({ resetLastSync: true });
+        expect(lastSyncCalls).toHaveLength(3);
+        expect(lastSyncCalls[2]).toBeUndefined();
+
+        await state$.sync();
+        expect(lastSyncCalls).toHaveLength(4);
+        expect(lastSyncCalls[1]).not.toBeUndefined();
+    });
 });

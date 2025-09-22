@@ -8,6 +8,7 @@ import type {
     ObservableObject,
     ObservableParam,
     ObservableSyncState,
+    ObservableSyncStateOptions,
     TypeAtPath,
     UpdateFnParams,
     UpdateSetFnParams,
@@ -165,7 +166,7 @@ export function transformLoadData(
 async function updateMetadataImmediate<T>(
     value$: ObservableParam<any>,
     localState: LocalState,
-    syncState: Observable<ObservableSyncState>,
+    syncState$: Observable<ObservableSyncState>,
     syncOptions: SyncedOptions<T>,
     newMetadata: PersistMetadata,
 ) {
@@ -189,8 +190,8 @@ async function updateMetadataImmediate<T>(
     }
 
     if (lastSync) {
-        syncState.assign({
-            lastSync: lastSync,
+        syncState$.assign({
+            lastSync,
         });
     }
 }
@@ -970,7 +971,7 @@ export function syncObservable<T>(
         removeNullUndefined(syncOptions || {}),
     );
     const localState: LocalState = {};
-    let sync: () => Promise<void>;
+    let sync: (options?: ObservableSyncStateOptions) => Promise<void>;
 
     const syncState$ = syncState(obs$);
     const syncStateValue = getNodeValue(getNode(syncState$)) as ObservableSyncState;
@@ -1046,7 +1047,7 @@ export function syncObservable<T>(
     const { get, subscribe } = syncOptions;
 
     if (get || subscribe) {
-        sync = async () => {
+        sync = async (options?: ObservableSyncStateOptions) => {
             // If this node is not being observed or sync is not enabled then don't sync
             if (isSynced && (!getNodeValue(getNode(syncState$)).isSyncEnabled || shouldIgnoreUnobserved(node, sync))) {
                 if (unsubscribe) {
@@ -1056,7 +1057,12 @@ export function syncObservable<T>(
                 }
                 return;
             }
-            const lastSync = metadatas.get(obs$)?.lastSync;
+            const metadata = metadatas.get(obs$);
+            if (metadata && options?.resetLastSync) {
+                metadata.lastSync = undefined;
+                syncState$.lastSync.set(undefined);
+            }
+            const lastSync = metadata?.lastSync;
             const pending = localState.pendingChanges;
 
             const { waitFor } = syncOptions;
@@ -1195,7 +1201,7 @@ export function syncObservable<T>(
                                     },
                                 );
                             },
-                            refresh: () => when(syncState$.isLoaded, sync),
+                            refresh: () => when(syncState$.isLoaded, () => sync()),
                             onError: (error: Error) =>
                                 onGetError(error, {
                                     source: 'subscribe',
@@ -1317,9 +1323,9 @@ export function syncObservable<T>(
             };
 
             if (waitFor) {
-                whenReady(waitFor, () => trackSelector(runGet, sync));
+                whenReady(waitFor, () => trackSelector(runGet, () => sync()));
             } else {
-                trackSelector(runGet, sync);
+                trackSelector(runGet, () => sync());
             }
 
             if (!isSynced) {
@@ -1349,7 +1355,7 @@ export function syncObservable<T>(
         if (metadata) {
             Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
         }
-        Object.assign(syncStateValue, {
+        const newState: Partial<ObservableSyncState> = {
             isPersistEnabled: false,
             isSyncEnabled: false,
             lastSync: undefined,
@@ -1359,7 +1365,8 @@ export function syncObservable<T>(
             isSetting: false,
             numPendingSets: 0,
             syncCount: 0,
-        } as ObservableSyncState);
+        };
+        Object.assign(syncStateValue, newState);
         isSynced = false;
         isSubscribed = false;
         unsubscribe?.();

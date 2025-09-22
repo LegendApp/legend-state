@@ -1,4 +1,4 @@
-import type { ObservableSyncState } from './observableInterfaces';
+import type { ObservableSyncState, ObservableSyncStateOptions } from './observableInterfaces';
 import { getNode } from './globals';
 import { observable } from './observable';
 import type { ObservableParam } from './observableTypes';
@@ -21,7 +21,11 @@ export function syncState(obs: ObservableParam) {
                 syncCount: 0,
                 resetPersistence: undefined as unknown as () => Promise<void>,
                 reset: () => Promise.resolve(),
-                sync: () => {
+                sync: (options?: ObservableSyncStateOptions) => {
+                    if (options?.resetLastSync) {
+                        node.state?.lastSync.set(undefined);
+                    }
+
                     // sync() may be called before peek/get so check to see if it should activate
                     obs.peek();
 
