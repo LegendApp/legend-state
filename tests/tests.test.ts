@@ -3817,4 +3817,25 @@ describe('Misc', () => {
         expect(Object.keys(obs$.get())).toEqual([]);
         expect(Object.keys(obs$)).toEqual([]);
     });
+    test('Object.keys on primitive should be undefined', () => {
+        const obs$ = observable({ value: 1 });
+
+        expect(Object.keys(obs$.value.get())).toEqual([]);
+        expect(Object.keys(obs$.value)).toEqual([]);
+
+        const descriptProxy = Object.getOwnPropertyDescriptor(obs$.value, 'missing');
+
+        expect(descriptProxy).toEqual(undefined);
+    });
+
+    test('Object.getOwnPropertyDescriptor with invalid prop should be undefined', () => {
+        const value = {};
+        const proxy = observable(value);
+
+        const descriptProxy = Object.getOwnPropertyDescriptor(proxy, 'missing');
+        const descriptValue = Object.getOwnPropertyDescriptor(value, 'missing');
+
+        expect(descriptProxy).toEqual(undefined);
+        expect(descriptValue).toEqual(undefined);
+    });
 });
