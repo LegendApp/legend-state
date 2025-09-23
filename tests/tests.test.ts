@@ -1496,6 +1496,14 @@ describe('Array', () => {
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
     });
+    test('Array forEach does not autocreate node', () => {
+        interface Data {
+            arr?: Array<{ text: string }>;
+        }
+        const obs = observable<Data>({});
+        obs.arr.forEach(() => null);
+        expect(obs.arr.peek()).toEqual(undefined);
+    });
     test('Array splice does not call child listeners when not affected', () => {
         const obs = observable({
             arr: [
