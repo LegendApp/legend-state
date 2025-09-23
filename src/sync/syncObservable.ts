@@ -67,6 +67,7 @@ const {
     globalState,
     registerMiddleware,
     symbolLinked,
+    setNodeValue,
 } = internal;
 
 export const mapSyncPlugins: WeakMap<
@@ -1132,6 +1133,12 @@ export function syncObservable<T>(
                                     pending,
                                 });
                             }
+                        }
+
+                        if (options?.resetLastSync) {
+                            // Reset the node to the initial value before updating it with fresh
+                            // server results
+                            setNodeValue(node, syncOptions.initial ?? undefined);
                         }
 
                         onChangeRemote(() => {
