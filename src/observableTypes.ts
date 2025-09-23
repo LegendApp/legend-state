@@ -1,6 +1,6 @@
-import type { GetOptions, ListenerFn, TrackingType } from './observableInterfaces';
+import type { GetOptions, ListenerFn, OpaqueObject, TrackingType } from './observableInterfaces';
 
-type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
+type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date | OpaqueObject<unknown>;
 type ArrayOverrideFnNames =
     | 'find'
     | 'findIndex'
@@ -17,7 +17,17 @@ type RemoveIndex<T> = {
     [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
 };
 
-type BuiltIns = String | Boolean | Number | Date | Error | RegExp | Array<any> | Function | Promise<any>;
+type BuiltIns =
+    | String
+    | Boolean
+    | Number
+    | Date
+    | Error
+    | RegExp
+    | Array<any>
+    | Function
+    | Promise<any>
+    | OpaqueObject<any>;
 
 type IsUserDefinedObject<T> =
     // Only objects that are not function or arrays or instances of BuiltIns.
@@ -38,7 +48,9 @@ export type RemoveObservables<T> =
                 ? RemoveObservables<TRet> & T
                 : T extends (key: infer TKey extends string | number) => infer TRet
                   ? Record<TKey, RemoveObservables<TRet>> & T
-                  : T;
+                  : T extends OpaqueObject<infer TObj>
+                    ? TObj
+                    : T;
 
 interface ObservableArray<T, U>
     extends ObservablePrimitive<T>,
