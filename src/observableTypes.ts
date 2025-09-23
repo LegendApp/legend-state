@@ -17,17 +17,7 @@ type RemoveIndex<T> = {
     [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
 };
 
-type BuiltIns =
-    | String
-    | Boolean
-    | Number
-    | Date
-    | Error
-    | RegExp
-    | Array<any>
-    | Function
-    | Promise<any>
-    | OpaqueObject<any>;
+type BuiltIns = String | Boolean | Number | Date | Error | RegExp | Array<any> | Function | Promise<any>;
 
 type IsUserDefinedObject<T> =
     // Only objects that are not function or arrays or instances of BuiltIns.
