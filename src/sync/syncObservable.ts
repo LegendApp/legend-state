@@ -1382,6 +1382,15 @@ export function syncObservable<T>(
         await promise;
     };
 
+    syncState$.lastSync.onChange(({ value }) => {
+        const metadata = metadatas.get(obs$);
+        if (metadata && metadata.lastSync !== value) {
+            updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
+                lastSync: value,
+            });
+        }
+    });
+
     // Wait for this node and all parent nodes up the hierarchy to be loaded
     const onAllPersistLoaded = () => {
         let parentNode: NodeInfo | undefined = node;
