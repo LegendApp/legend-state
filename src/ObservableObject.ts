@@ -1,5 +1,6 @@
 import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
+import { observable } from './observable';
 import {
     equals,
     extractFunction,
@@ -411,6 +412,10 @@ const proxyHandler: ProxyHandler<any> = {
             }
         }
 
+        if (p === 'constructor') {
+            return observable;
+        }
+
         let value = peekInternal(node, /*activateRecursive*/ p === 'get' || p === 'peek');
 
         // Trying to get an iterator if the raw value is a primitive should return undefined.
@@ -638,7 +643,20 @@ const proxyHandler: ProxyHandler<any> = {
     },
     has(node: NodeInfo, prop: string) {
         const value = getNodeValue(node);
-        return Reflect.has(value, prop);
+
+        // Short-circuit for the inputs that make Reflect.has error.
+        if (value === undefined || value === null) {
+            return false;
+        }
+
+        // Functions behave like objects here, so let them flow through.
+        if (typeof value === 'object' || typeof value === 'function') {
+            return Reflect.has(value, prop);
+        }
+
+        // For primitives (number, string, boolean, bigint, symbol) report “no key”.
+        // That keeps inspection code happy without pretending properties exist.
+        return false;
     },
     apply(target, thisArg, argArray) {
         // If it's a function call it as a function
