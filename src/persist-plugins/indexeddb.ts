@@ -34,7 +34,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     }
     public async initialize(configOptions: ObservablePersistPluginOptions) {
         const config = this.configuration || configOptions.indexedDB;
-        if (typeof indexedDB === 'undefined') return;
+        if (typeof indexedDB === 'undefined' || typeof window === 'undefined') return;
         if (process.env.NODE_ENV === 'development' && !config) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
@@ -92,6 +92,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     }
     public loadTable(table: string, config: PersistOptions): void | Promise<void> {
         if (!this.db) {
+            // Return early during build time or when running outside browser
+            if (typeof indexedDB === 'undefined' || typeof window === 'undefined') {
+                return;
+            }
             throw new Error(
                 '[legend-state] ObservablePersistIndexedDB loading without being initialized. This may happen when running outside of a browser.',
             );
@@ -175,7 +179,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         store.delete(key);
     }
     public async set(table: string, changes: Change[], config: PersistOptions) {
-        if (typeof indexedDB === 'undefined') return;
+        if (typeof indexedDB === 'undefined' || typeof window === 'undefined') return;
 
         if (!this.pendingSaves.has(config)) {
             this.pendingSaves.set(config, {});
@@ -285,7 +289,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
             delete this.tableData[tableName + '_transformed'];
         }
 
-        if (typeof indexedDB === 'undefined') return;
+        if (typeof indexedDB === 'undefined' || typeof window === 'undefined') return;
 
         this.deleteMetadata(table, config);
 
