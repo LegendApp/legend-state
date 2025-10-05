@@ -1,6 +1,6 @@
 import { isEmpty, isFunction } from '@legendapp/state';
 import { reactive, BindKeys, FCReactiveObject } from '@legendapp/state/react';
-import { createElement, FC, forwardRef } from 'react';
+import { createElement, FC, forwardRef, type JSX } from 'react';
 
 type IReactive = FCReactiveObject<JSX.IntrinsicElements>;
 
