@@ -971,6 +971,10 @@ export function syncObservable<T>(
         observableSyncConfiguration,
         removeNullUndefined(syncOptions || {}),
     );
+
+    // Store the original initial value to preserve it for reset functionality
+    const originalInitial = clone(syncOptions.initial);
+
     const localState: LocalState = {};
     let sync: (options?: ObservableSyncStateOptions) => Promise<void>;
 
@@ -1380,13 +1384,20 @@ export function syncObservable<T>(
         unsubscribe = undefined;
         const promise = syncStateValue.resetPersistence();
         onChangeRemote(() => {
-            obs$.set(syncOptions.initial ?? undefined);
+            obs$.set(clone(originalInitial) ?? undefined);
         });
         syncState$.isLoaded.set(false);
         syncStateValue.isPersistEnabled = wasPersistEnabled;
         syncStateValue.isSyncEnabled = wasSyncEnabled;
         node.dirtyFn = sync;
         await promise;
+
+        // For observables without remote data loading (no get function), set isLoaded back to true
+        // since there's no remote data to load. This matches the initial loading logic.
+        const hasRemoteLoad = !!syncOptions.get;
+        if (!hasRemoteLoad) {
+            syncState$.isLoaded.set(true);
+        }
     };
 
     syncState$.lastSync.onChange(({ value }) => {
