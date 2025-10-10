@@ -167,3 +167,4 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
 }
 
 export { useSelector as use$ };
+export { useSelector as useValue };

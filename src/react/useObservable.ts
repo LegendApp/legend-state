@@ -65,3 +65,5 @@ export function useObservable<T>(
 
     return ref.current.obs$;
 }
+
+export { useObservable as useLocalObservable };
