@@ -44,34 +44,49 @@ export function runWithRetry<T>(
         let value = fn(state);
 
         if (isPromise(value) && retryOptions) {
-            let timeoutRetry: number;
+            let timeoutRetry: number | undefined;
             if (mapRetryTimeouts.has(retryId)) {
                 clearTimeout(mapRetryTimeouts.get(retryId));
+                mapRetryTimeouts.delete(retryId);
             }
+            const clearRetryState = () => {
+                if (timeoutRetry !== undefined) {
+                    clearTimeout(timeoutRetry);
+                    timeoutRetry = undefined;
+                }
+                mapRetryTimeouts.delete(retryId);
+            };
             return new Promise<any>((resolve, reject) => {
                 const run = () => {
                     (value as Promise<any>)
                         .then((val: any) => {
+                            state.retryNum = 0;
+                            clearRetryState();
                             resolve(val);
                         })
                         .catch((error: Error) => {
-                            state.retryNum++;
-                            if (timeoutRetry) {
+                            if (timeoutRetry !== undefined) {
                                 clearTimeout(timeoutRetry);
+                                timeoutRetry = undefined;
                             }
-                            if (!state.cancelRetry) {
-                                const timeout = createRetryTimeout(retryOptions, state.retryNum, () => {
-                                    value = fn(state);
-                                    run();
-                                });
+                            state.retryNum++;
+                            if (state.cancelRetry) {
+                                clearRetryState();
+                                reject(error);
+                                return;
+                            }
+                            const timeout = createRetryTimeout(retryOptions, state.retryNum, () => {
+                                value = fn(state);
+                                run();
+                            });
 
-                                if (timeout === false) {
-                                    state.cancelRetry = true;
-                                    reject(error);
-                                } else {
-                                    mapRetryTimeouts.set(retryId, timeout);
-                                    timeoutRetry = timeout;
-                                }
+                            if (timeout === false) {
+                                state.cancelRetry = true;
+                                clearRetryState();
+                                reject(error);
+                            } else {
+                                timeoutRetry = timeout;
+                                mapRetryTimeouts.set(retryId, timeout);
                             }
                         });
                 };
@@ -81,6 +96,7 @@ export function runWithRetry<T>(
 
         return value;
     } catch (error) {
+        mapRetryTimeouts.delete(retryId);
         return Promise.reject(error);
     }
 }

@@ -239,9 +239,14 @@ function mergeChanges(changes: Change[]) {
         if (existing) {
             // If setting a value back to what it was, no need to save it
             if (change.valueAtPath === existing.prevAtPath) {
-                changesOut.splice(changesOut.indexOf(change), 1);
+                const idx = changesOut.indexOf(existing);
+                if (idx >= 0) {
+                    changesOut.splice(idx, 1);
+                }
+                changesByPath.delete(pathStr);
             } else {
                 existing.valueAtPath = change.valueAtPath;
+                existing.pathTypes = change.pathTypes;
             }
         } else {
             let found = false;
