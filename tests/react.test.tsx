@@ -67,6 +67,21 @@ describe('useSelector', () => {
         });
         expect(result.current).toEqual('z');
     });
+    test('useSelector with computed', () => {
+        const obs = observable({ value: 'hi', computed: () => obs.value.get() + ' there' });
+        const { result } = renderHook(() => {
+            return useSelector(obs.computed);
+        });
+
+        act(() => {
+            obs.value.set('hello');
+        });
+        expect(result.current).toEqual('hello there');
+        act(() => {
+            obs.value.set('z');
+        });
+        expect(result.current).toEqual('z there');
+    });
     test('useSelector undefined', () => {
         const { result } = renderHook(() => {
             return useSelector(undefined);
@@ -1080,6 +1095,40 @@ describe('Show', () => {
         expect(items[0].textContent).toEqual('hi');
         expect(testValue).toEqual('tester');
     });
+    test('useSelector reconfigures when options change', () => {
+        const obs = observable(0);
+        let runCount = 0;
+
+        const { rerender } = renderHook(
+            ({ skipCheck }: { skipCheck: boolean }) =>
+                useSelector(
+                    () => {
+                        runCount++;
+                        return obs.get();
+                    },
+                    { skipCheck },
+                ),
+            { initialProps: { skipCheck: false } },
+        );
+
+        expect(runCount).toBe(1);
+
+        act(() => {
+            obs.set(1);
+        });
+
+        expect(runCount).toBe(3);
+
+        rerender({ skipCheck: true });
+        const countAfterOptionChange = runCount;
+        expect(countAfterOptionChange).toBe(4);
+
+        act(() => {
+            obs.set(1);
+        });
+
+        expect(runCount).toBe(countAfterOptionChange);
+    });
 });
 
 describe('Switch', () => {
@@ -1170,6 +1219,30 @@ describe('useObservableReducer', () => {
             { id: 2, text: 'Lennon Wall pic', done: false },
             { id: 3, text: 'test', done: false },
         ]);
+    });
+    test('useObservableReducer accepts lazy initializer functions', () => {
+        const reducer = (state: number, action: { type: 'inc' }) => (action.type === 'inc' ? state + 1 : state);
+        const lazyInit = () => 5;
+
+        const { result } = renderHook(() => useObservableReducer(reducer as any, lazyInit as unknown as number));
+
+        expect(result.current[0].get()).toBe(5);
+
+        act(() => {
+            (result.current[1] as any)({ type: 'inc' });
+        });
+
+        expect(result.current[0].get()).toBe(6);
+    });
+    test('useObservableReducer calls provided initializer function', () => {
+        const reducer = (state: { count: number }, action: { type: 'inc' }) =>
+            action.type === 'inc' ? { count: state.count + 1 } : state;
+        const init = jest.fn((arg: { count: number }) => ({ count: arg.count + 10 }));
+
+        const { result } = renderHook(() => useObservableReducer(reducer, { count: 1 }, init));
+
+        expect(result.current[0].get()).toEqual({ count: 11 });
+        expect(init).toHaveBeenCalledTimes(1);
     });
 });
 
