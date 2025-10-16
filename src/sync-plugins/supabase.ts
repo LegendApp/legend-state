@@ -50,10 +50,17 @@ export type SupabaseTableOf<
     SchemaName extends SchemaNameOf<Client>,
 > = DatabaseOf<Client>[SchemaName]['Tables'];
 
+export type SupabaseViewOf<
+    Client extends SupabaseClient,
+    SchemaName extends SchemaNameOf<Client>,
+> = DatabaseOf<Client>[SchemaName]['Views'];
+
 export type SupabaseCollectionOf<
     Client extends SupabaseClient,
     SchemaName extends SchemaNameOf<Client>,
-> = keyof SupabaseTableOf<Client, IsUnionOfStrings<SchemaName> extends true ? 'public' : SchemaName>;
+> = 
+    keyof SupabaseTableOf<Client, IsUnionOfStrings<SchemaName> extends true ? 'public' : SchemaName> | 
+    keyof SupabaseViewOf<Client, IsUnionOfStrings<SchemaName> extends true ? 'public' : SchemaName>;
 
 export type SupabaseRowOf<
     Client extends SupabaseClient,
