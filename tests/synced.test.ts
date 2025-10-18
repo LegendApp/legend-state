@@ -130,4 +130,23 @@ describe('synced', () => {
 
         expect(total).toEqual(4);
     });
+    test('no exponential get calls', () => {
+        const page$ = observable(0);
+        let getCalls = 0;
+        const state$ = observable(synced({
+            initial: 'noo',
+            get: () => {
+                page$.get();
+                getCalls++;
+                return 'foo';
+            },
+        }));
+        observe(() => {
+            console.log(state$.get());
+        });
+        page$.set(p => p + 1);
+        page$.set(p => p + 1);
+        page$.set(p => p + 1);
+        expect(getCalls).toEqual(4);
+    });
 });
