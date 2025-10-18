@@ -1053,7 +1053,7 @@ export function syncObservable<T>(
     const { get, subscribe } = syncOptions;
 
     if (get || subscribe) {
-        // we create the closure to avoid recreating the function on each call
+        // we create the closure outside the new sync definition to avoid recreating the function on each call
         const callSync = () => sync();
         sync = async (options?: ObservableSyncStateOptions) => {
             // If this node is not being observed or sync is not enabled then don't sync
