@@ -2056,6 +2056,21 @@ describe('Array', () => {
         obs$.todos.splice(0, 1);
         expect(lastValue).toEqual(0);
     });
+    test('Array push single element inside Map', () => {
+        const obs = observable<Map<string, { arr?: string[] }>>(new Map());
+        obs.get('key').arr.push('1');
+        expect(obs.get('key').arr.get()).toEqual(['1']);
+    });
+    test('Array push multiple elements inside Map', () => {
+        const obs = observable<Map<string, { arr?: string[] }>>(new Map());
+        obs.get('key').arr.push('1', '2', '3');
+        expect(obs.get('key').arr.get()).toEqual(['1', '2', '3']);
+    });
+    test('Array push multiple elements inside Map with existing key', () => {
+        const obs = observable<Map<string, { arr?: string[] }>>(new Map([['key', {}]]));
+        obs.get('key').arr.push('1', '2', '3');
+        expect(obs.get('key').arr.get()).toEqual(['1', '2', '3']);
+    });
 });
 describe('Array optimized listener', () => {
     test('Push, clear, push in optimized', () => {
