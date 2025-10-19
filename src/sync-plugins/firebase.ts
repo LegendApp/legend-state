@@ -7,7 +7,6 @@ import {
     isPromise,
     observable,
     symbolDelete,
-    when,
 } from '@legendapp/state';
 import { FieldTransforms, SyncedErrorParams, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
 import {
@@ -62,6 +61,11 @@ interface SyncedFirebaseConfiguration {
     requireAuth?: boolean;
     readonly?: boolean;
     enabled?: boolean;
+}
+
+interface PendingWriteEntry {
+    resolve: (value: any) => void;
+    reject: (error: Error) => void;
 }
 
 const isEnabled$ = observable(true);
@@ -157,9 +161,6 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     props: SyncedFirebaseProps<TRemote, TLocal, TAs>,
 ): SyncedCrudReturnType<TLocal, TAs> {
     props = { ...firebaseConfig, ...props } as any;
-    const saving$ = observable<Record<string, boolean>>({});
-    const pendingOutgoing$ = observable<Record<string, any>>({});
-    const pendingIncoming$ = observable<Record<string, any>>({});
     let didList = false;
 
     const {
@@ -178,6 +179,75 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const { fieldCreatedAt, changesSince } = props;
     const asType = props.as || ('value' as TAs);
     const fieldUpdatedAt = props.fieldUpdatedAt || '@';
+    const isRealtime = realtime !== false;
+
+    interface PendingState {
+        queue: PendingWriteEntry[];
+        latest?: any;
+    }
+
+    const pendingWrites = new Map<string, PendingState>();
+
+    const enqueuePendingWrite = (key: string) => {
+        let resolveFn: (value: any) => void;
+        let rejectFn: (error: Error) => void;
+        const promise = new Promise<any>((resolve, reject) => {
+            resolveFn = resolve;
+            rejectFn = reject;
+        });
+        const entry: PendingWriteEntry = {
+            resolve: resolveFn!,
+            reject: rejectFn!,
+        };
+        const state = pendingWrites.get(key);
+        if (state) {
+            state.queue.push(entry);
+        } else {
+            pendingWrites.set(key, { queue: [entry] });
+        }
+        return { promise, entry };
+    };
+
+    const rejectPendingWrite = (key: string, entry: PendingWriteEntry, error: Error) => {
+        const state = pendingWrites.get(key);
+        if (state) {
+            const index = state.queue.indexOf(entry);
+            if (index >= 0) {
+                state.queue.splice(index, 1);
+            }
+            if (state.queue.length === 0) {
+                pendingWrites.delete(key);
+            }
+        }
+        entry.reject(error);
+    };
+
+    const handleServerValue = (key: string, value: any, apply?: (value: any) => void) => {
+        const state = pendingWrites.get(key);
+
+        if (!state || state.queue.length === 0) {
+            pendingWrites.delete(key);
+            apply?.(value);
+        } else {
+            state.latest = value;
+
+            const entry = state.queue.shift()!;
+            entry.resolve(value);
+
+            if (state.queue.length === 0) {
+                const staged = state.latest;
+                pendingWrites.delete(key);
+                apply?.(staged);
+            }
+        }
+    };
+
+    const ensureFieldId = (key: string, value: any) => {
+        if (fieldId && key && value && typeof value === 'object' && !value[fieldId]) {
+            value[fieldId] = key;
+        }
+        return value;
+    };
 
     const computeRef = (lastSync: number) => {
         const pathFirebase = refPath(fns.getCurrentUser());
@@ -208,10 +278,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                             asType === 'value'
                                 ? [val]
                                 : Object.entries(val).map(([key, value]: [string, any]) => {
-                                      if (fieldId && !value[fieldId!]) {
-                                          value[fieldId!] = key;
-                                      }
-                                      return value;
+                                      return ensureFieldId(key, value);
                                   });
                     }
                     didList = true;
@@ -222,7 +289,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         });
     };
 
-    const subscribe = realtime
+    const subscribe = isRealtime
         ? ({ lastSync, update, onError }: SyncedSubscribeParams<TRemote[]>) => {
               const ref = computeRef(lastSync!);
               let unsubscribes: (() => void)[];
@@ -232,14 +299,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       if (!didList) return;
 
                       const val = snap.val();
-                      if (saving$[''].get()) {
-                          pendingIncoming$[''].set(val);
-                      } else {
+
+                      handleServerValue('', val, (resolvedValue) => {
                           update({
-                              value: [val],
+                              value: [resolvedValue],
                               mode: 'set',
                           });
-                      }
+                      });
                   };
                   unsubscribes = [fns.onValue(ref, onValue, onError)];
               } else {
@@ -247,32 +313,28 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       if (!didList) return;
 
                       const key = snap.key!;
-                      const val = snap.val();
+                      const val = ensureFieldId(key, snap.val());
 
-                      if (fieldId && !val[fieldId!]) {
-                          val[fieldId!] = key;
-                      }
-                      if (saving$[key].get()) {
-                          pendingIncoming$[key].set(val);
-                      } else {
+                      handleServerValue(key, val, (resolvedValue) => {
                           update({
-                              value: [val],
+                              value: [resolvedValue],
                               mode: 'assign',
                           });
-                      }
+                      });
                   };
                   const onChildDelete = (snap: DataSnapshot) => {
                       if (!didList) return;
 
                       const key = snap.key!;
-                      const val = snap.val();
-                      if (fieldId && !val[fieldId!]) {
-                          val[fieldId!] = key;
-                      }
-                      val[symbolDelete] = true;
-                      update({
-                          value: [val],
-                          mode: 'assign',
+                      const valueRaw = snap.val();
+                      const valueWithId = ensureFieldId(key, isNullOrUndefined(valueRaw) ? {} : valueRaw);
+                      (valueWithId as any)[symbolDelete] = true;
+
+                      handleServerValue(key, valueWithId, (resolvedValue) => {
+                          update({
+                              value: [resolvedValue],
+                              mode: 'assign',
+                          });
                       });
                   };
                   unsubscribes = [
@@ -301,44 +363,48 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         return addUpdatedAt(input);
     };
 
-    const upsert = async (input: TRemote) => {
-        const id: string = fieldId ? (input as any)[fieldId] : '';
+    const upsert = (input: TRemote) => {
+        const id = fieldId && asType !== 'value' ? (input as any)[fieldId] : '';
+        const pendingKey = fieldId && asType !== 'value' ? String(id ?? '') : '';
+        const { promise, entry } = enqueuePendingWrite(pendingKey);
 
-        if (saving$[id].get()) {
-            pendingOutgoing$[id].set(input);
-        } else {
-            saving$[id].set(true);
+        const userId = fns.getCurrentUser();
+        const basePath = refPath(userId);
+        const childPath = fieldId && asType !== 'value' ? pendingKey : '';
+        const path = joinPaths(basePath, childPath);
+        const ref = fns.ref(path);
 
-            const path = joinPaths(refPath(fns.getCurrentUser()), fieldId ? id : '');
-            await fns.update(fns.ref(path), input);
+        const updatePromise = fns.update(ref, input);
 
-            saving$[id].set(false);
+        updatePromise.catch((error) => {
+            rejectPendingWrite(pendingKey, entry, error as Error);
+        });
 
-            flushAfterSave();
+        if (!isRealtime) {
+            updatePromise
+                .then(() => {
+                    const onceRef = fieldId && asType !== 'value' ? ref : fns.ref(basePath);
+                    fns.once(
+                        onceRef,
+                        (snap) => {
+                            const rawValue = snap.val();
+                            const value =
+                                fieldId && asType !== 'value'
+                                    ? ensureFieldId(pendingKey, isNullOrUndefined(rawValue) ? {} : rawValue)
+                                    : rawValue;
+                            handleServerValue(pendingKey, value);
+                        },
+                        (error) => {
+                            rejectPendingWrite(pendingKey, entry, error as Error);
+                        },
+                    );
+                })
+                .catch(() => {
+                    // Error already handled in catch above
+                });
         }
 
-        // Wait for save to finish and return the latest incoming value
-        return when(
-            () => !pendingOutgoing$[id].get(),
-            () => {
-                // Return the latest value that came into subscribe while saving
-                const value = pendingIncoming$[id].get();
-                if (value) {
-                    // Deleting it will make any subsequent pending saves return undefined and do nothing
-                    // because we only need to apply it back once
-                    pendingIncoming$[id].delete();
-                    return value;
-                }
-            },
-        );
-    };
-
-    const flushAfterSave = () => {
-        const outgoing = pendingOutgoing$.get();
-        Object.values(outgoing).forEach((value) => {
-            upsert(value);
-        });
-        pendingOutgoing$.set({});
+        return promise;
     };
 
     const create = readonly
