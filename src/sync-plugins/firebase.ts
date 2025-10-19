@@ -8,7 +8,13 @@ import {
     observable,
     symbolDelete,
 } from '@legendapp/state';
-import { FieldTransforms, SyncedErrorParams, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
+import {
+    FieldTransforms,
+    SyncedErrorParams,
+    SyncedGetParams,
+    SyncedSetParams,
+    SyncedSubscribeParams,
+} from '@legendapp/state/sync';
 import {
     CrudAsOption,
     SyncedCrudPropsBase,
@@ -37,6 +43,7 @@ import {
     startAt,
 } from 'firebase/database';
 import { invertFieldMap, transformObjectFields } from '../sync/transformObjectFields';
+import { clone } from '../globals';
 
 // TODO: fieldId should be required if Many, not if as: value
 // as should default to value?
@@ -181,9 +188,16 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const fieldUpdatedAt = props.fieldUpdatedAt || '@';
     const isRealtime = realtime !== false;
 
+    // Track write lifecycle per key so we only resolve once Firebase confirms the write
+    // and we have applied the freshest server payload.
     interface PendingState {
-        queue: PendingWriteEntry[];
-        latest?: any;
+        waiting: PendingWriteEntry[];
+        ready: PendingWriteEntry[];
+        pendingCount: number;
+        staged?: {
+            value: any;
+            apply?: (value: any) => void;
+        };
     }
 
     const pendingWrites = new Map<string, PendingState>();
@@ -201,21 +215,75 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         };
         const state = pendingWrites.get(key);
         if (state) {
-            state.queue.push(entry);
+            state.waiting.push(entry);
+            state.pendingCount += 1;
         } else {
-            pendingWrites.set(key, { queue: [entry] });
+            pendingWrites.set(key, {
+                waiting: [entry],
+                ready: [],
+                pendingCount: 1,
+            });
         }
         return { promise, entry };
+    };
+
+    // Resolve queued writes once Firebase confirms them and the server value is ready (if any).
+    const flushPending = (key: string) => {
+        const state = pendingWrites.get(key);
+        if (!state) {
+            return;
+        }
+
+        // Resolve only if all writes finished and there is a staged value to apply.
+        if (state.pendingCount === 0 && state.staged) {
+            const { value, apply } = state.staged;
+            state.staged = undefined;
+
+            // Apply the latest staged value to every write that finished.
+            while (state.ready.length) {
+                const entry = state.ready.shift()!;
+                entry.resolve(value);
+            }
+
+            if (!state.waiting.length && !state.ready.length) {
+                pendingWrites.delete(key);
+            }
+
+            apply?.(value);
+        }
+    };
+
+    const resolvePendingWrite = (key: string, entry: PendingWriteEntry) => {
+        const state = pendingWrites.get(key);
+        if (!state) {
+            return;
+        }
+
+        const waitingIndex = state.waiting.indexOf(entry);
+        if (waitingIndex >= 0) {
+            state.waiting.splice(waitingIndex, 1);
+            state.pendingCount = Math.max(0, state.pendingCount - 1);
+        }
+
+        state.ready.push(entry);
+        flushPending(key);
     };
 
     const rejectPendingWrite = (key: string, entry: PendingWriteEntry, error: Error) => {
         const state = pendingWrites.get(key);
         if (state) {
-            const index = state.queue.indexOf(entry);
-            if (index >= 0) {
-                state.queue.splice(index, 1);
+            const waitingIndex = state.waiting.indexOf(entry);
+            if (waitingIndex >= 0) {
+                state.waiting.splice(waitingIndex, 1);
+                state.pendingCount = Math.max(0, state.pendingCount - 1);
+            } else {
+                const readyIndex = state.ready.indexOf(entry);
+                if (readyIndex >= 0) {
+                    state.ready.splice(readyIndex, 1);
+                }
             }
-            if (state.queue.length === 0) {
+
+            if (!state.waiting.length && !state.ready.length) {
                 pendingWrites.delete(key);
             }
         }
@@ -225,20 +293,17 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const handleServerValue = (key: string, value: any, apply?: (value: any) => void) => {
         const state = pendingWrites.get(key);
 
-        if (!state || state.queue.length === 0) {
+        if (!state || (!state.waiting.length && !state.ready.length)) {
             pendingWrites.delete(key);
             apply?.(value);
         } else {
-            state.latest = value;
+            // Stash the most recent payload so it is applied after in-flight writes complete.
+            state.staged = {
+                value: value && typeof value === 'object' ? clone(value) : value,
+                apply: apply ?? state.staged?.apply,
+            };
 
-            const entry = state.queue.shift()!;
-            entry.resolve(value);
-
-            if (state.queue.length === 0) {
-                const staged = state.latest;
-                pendingWrites.delete(key);
-                apply?.(staged);
-            }
+            flushPending(key);
         }
     };
 
@@ -318,7 +383,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       handleServerValue(key, val, (resolvedValue) => {
                           update({
                               value: [resolvedValue],
-                              mode: 'assign',
+                              mode: 'merge',
                           });
                       });
                   };
@@ -333,7 +398,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       handleServerValue(key, valueWithId, (resolvedValue) => {
                           update({
                               value: [resolvedValue],
-                              mode: 'assign',
+                              mode: 'merge',
                           });
                       });
                   };
@@ -363,7 +428,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         return addUpdatedAt(input);
     };
 
-    const upsert = (input: TRemote) => {
+    const upsert = (input: TRemote, params: SyncedSetParams<TRemote>) => {
         const id = fieldId && asType !== 'value' ? (input as any)[fieldId] : '';
         const pendingKey = fieldId && asType !== 'value' ? String(id ?? '') : '';
         const { promise, entry } = enqueuePendingWrite(pendingKey);
@@ -376,9 +441,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
         const updatePromise = fns.update(ref, input);
 
-        updatePromise.catch((error) => {
-            rejectPendingWrite(pendingKey, entry, error as Error);
-        });
+        updatePromise
+            .then(() => {
+                resolvePendingWrite(pendingKey, entry);
+            })
+            .catch((error) => {
+                rejectPendingWrite(pendingKey, entry, error as Error);
+            });
 
         if (!isRealtime) {
             updatePromise
@@ -392,7 +461,12 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                                 fieldId && asType !== 'value'
                                     ? ensureFieldId(pendingKey, isNullOrUndefined(rawValue) ? {} : rawValue)
                                     : rawValue;
-                            handleServerValue(pendingKey, value);
+                            handleServerValue(pendingKey, value, (resolvedValue) => {
+                                params.update({
+                                    value: resolvedValue,
+                                    mode: 'merge',
+                                });
+                            });
                         },
                         (error) => {
                             rejectPendingWrite(pendingKey, entry, error as Error);
@@ -409,15 +483,15 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
 
     const create = readonly
         ? undefined
-        : (input: TRemote) => {
+        : (input: TRemote, params: SyncedSetParams<TRemote>) => {
               addCreatedAt(input);
-              return upsert(input);
+              return upsert(input, params);
           };
     const update = readonly
         ? undefined
-        : (input: TRemote) => {
+        : (input: TRemote, params: SyncedSetParams<TRemote>) => {
               addUpdatedAt(input);
-              return upsert(input);
+              return upsert(input, params);
           };
     const deleteFn = readonly
         ? undefined
