@@ -2,6 +2,8 @@ import { ObservableHint } from '../src/ObservableHint';
 import { linked } from '../src/linked';
 import { observable } from '../src/observable';
 
+const isCI = process.env.CI === 'true';
+
 describe('Perf', () => {
     test('Array perf', () => {
         const obs = observable({ arr: [] as { id: number; value: number }[] });
@@ -13,7 +15,7 @@ describe('Perf', () => {
         obs.arr.splice(1, 1);
         const then = performance.now();
 
-        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 30);
+        expect(then - now).toBeLessThan(isCI ? 100 : 30);
     });
     test('Lazy activation perf', () => {
         const obj: Record<string, any> = {};
