@@ -184,7 +184,8 @@ describe('syncedFirebase realtime updates', () => {
     let activePath = basePath;
 
     beforeAll(async () => {
-        // @ts-expect-error This is fine
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore This is fine
         const module = await import('../src/sync-plugins/firebase');
         syncedFirebase = module.syncedFirebase;
     });
