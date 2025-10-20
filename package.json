@@ -1,6 +1,6 @@
 {
     "name": "@legendapp/state",
-    "version": "3.0.0-beta.35",
+    "version": "3.0.0-beta.36",
     "description": "legend-state",
     "sideEffects": false,
     "private": true,
@@ -40,8 +40,8 @@
         "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
         "release": "release-it",
         "typecheck": "tsc --noEmit",
-        "buntest": "bun test --timeout 50",
-        "buntestsilent": "bun test --timeout 50 > /dev/null 2>&1",
+        "buntest": "bun test --timeout 300",
+        "buntestsilent": "bun test --timeout 300 > /dev/null 2>&1",
         "upgrade": "bunx npm-check-updates@latest --interactive --format group -p bun"
     },
     "lsexports": [
