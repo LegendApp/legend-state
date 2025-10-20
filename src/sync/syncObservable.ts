@@ -1053,6 +1053,8 @@ export function syncObservable<T>(
     const { get, subscribe } = syncOptions;
 
     if (get || subscribe) {
+        // we create the closure outside the new sync definition to avoid recreating the function on each call
+        const callSync = () => sync();
         sync = async (options?: ObservableSyncStateOptions) => {
             // If this node is not being observed or sync is not enabled then don't sync
             if (isSynced && (!getNodeValue(getNode(syncState$)).isSyncEnabled || shouldIgnoreUnobserved(node, sync))) {
@@ -1213,7 +1215,7 @@ export function syncObservable<T>(
                                     },
                                 );
                             },
-                            refresh: () => when(syncState$.isLoaded, () => sync()),
+                            refresh: () => when(syncState$.isLoaded, callSync),
                             onError: (error: Error) =>
                                 onGetError(error, {
                                     source: 'subscribe',
@@ -1335,9 +1337,9 @@ export function syncObservable<T>(
             };
 
             if (waitFor) {
-                whenReady(waitFor, () => trackSelector(runGet, () => sync()));
+                whenReady(waitFor, () => trackSelector(runGet, callSync));
             } else {
-                trackSelector(runGet, () => sync());
+                trackSelector(runGet, callSync);
             }
 
             if (!isSynced) {
