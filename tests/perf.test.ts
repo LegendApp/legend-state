@@ -59,6 +59,27 @@ describe('Perf', () => {
 
         expect(then - now).toBeLessThan(1);
     });
+    test('Lazy activation perf with () => plain hint', () => {
+        const obj: Record<string, any> = {};
+        const Num = 10000;
+        for (let i = 0; i < Num; i++) {
+            obj['key' + i] = {
+                child: {
+                    grandchild: {
+                        value: 'hi',
+                    },
+                },
+            };
+        }
+
+        const obs = observable(() => ObservableHint.plain(obj));
+
+        const now = performance.now();
+        obs.get();
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(1);
+    });
     test('Lazy activation perf2', () => {
         const obj: Record<string, any> = {};
         const Num = 10000;
