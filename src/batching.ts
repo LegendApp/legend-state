@@ -173,38 +173,40 @@ function computeChangesRecursive(
     level: number,
     whenOptimizedOnlyIf?: boolean,
 ) {
-    // Do the compute at this node
-    computeChangesAtNode(
-        changesInBatch,
-        node,
-        loading,
-        remote,
-        value,
-        path,
-        pathTypes,
-        valueAtPath,
-        prevAtPath,
-        immediate,
-        level,
-        whenOptimizedOnlyIf,
-    );
-    if (node.linkedFromNodes) {
-        for (const linkedFromNode of node.linkedFromNodes) {
-            const childNode = getNodeAtPath(linkedFromNode, path);
-            computeChangesRecursive(
-                changesInBatch,
-                childNode,
-                loading,
-                remote,
-                valueAtPath,
-                [],
-                [],
-                valueAtPath,
-                prevAtPath,
-                immediate,
-                0,
-                whenOptimizedOnlyIf,
-            );
+    if (node.numListenersRecursive > 0) {
+        // Do the compute at this node
+        computeChangesAtNode(
+            changesInBatch,
+            node,
+            loading,
+            remote,
+            value,
+            path,
+            pathTypes,
+            valueAtPath,
+            prevAtPath,
+            immediate,
+            level,
+            whenOptimizedOnlyIf,
+        );
+        if (node.linkedFromNodes) {
+            for (const linkedFromNode of node.linkedFromNodes) {
+                const childNode = getNodeAtPath(linkedFromNode, path);
+                computeChangesRecursive(
+                    changesInBatch,
+                    childNode,
+                    loading,
+                    remote,
+                    valueAtPath,
+                    [],
+                    [],
+                    valueAtPath,
+                    prevAtPath,
+                    immediate,
+                    0,
+                    whenOptimizedOnlyIf,
+                );
+            }
         }
     }
     // If not root notify up through parents
