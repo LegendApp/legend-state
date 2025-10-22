@@ -13,6 +13,7 @@ const external = [
     'react',
     'react-native',
     'react-native-mmkv',
+    'react-native-mmkv4',
     '@react-native-async-storage/async-storage',
     '@tanstack/react-query',
     '@tanstack/query-core',
