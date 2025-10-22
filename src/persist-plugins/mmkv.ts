@@ -1,8 +1,7 @@
 import type { Change } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state/sync';
-import * as MMKVModule from 'react-native-mmkv';
-import type { MMKV, Configuration } from 'react-native-mmkv';
+import * as mmkv from 'react-native-mmkv';
 
 const symbolDefault = Symbol();
 const MetadataSuffix = '__m';
@@ -11,24 +10,23 @@ const { safeParse, safeStringify } = internal;
 
 // Type definitions for MMKV v3 and older
 // v3 and older use storage.delete() while v4+ uses storage.remove()
-type MMKVLegacyInstance = Omit<MMKV, 'remove'> & {
-    delete: MMKV['remove'];
+type MMKVLegacyInstance = Omit<mmkv.MMKV, 'remove'> & {
+    delete: mmkv.MMKV['remove'];
 };
 
-interface MMKVLegacyModule {
-    MMKV: new (config: Configuration) => MMKVLegacyInstance;
-}
-
-type MMKVInstance = MMKVLegacyInstance | MMKV;
+type MMKVInstance = MMKVLegacyInstance | mmkv.MMKV;
+type Configuration = mmkv.Configuration;
 
 function createMMKVInstance(config: Configuration): MMKVInstance {
-    const hasCreateFunction = 'createMMKV' in MMKVModule;
+    const hasCreateFunction = 'createMMKV' in mmkv;
     if (hasCreateFunction) {
         // v4+: uses createMMKV() function
-        return MMKVModule.createMMKV(config);
+        return mmkv.createMMKV(config);
     } else {
         // v3 and older: uses MMKV constructor
-        const { MMKV: MMKVConstructor } = MMKVModule as unknown as MMKVLegacyModule;
+        const { MMKV: MMKVConstructor } = mmkv as unknown as {
+            MMKV: new (config: Configuration) => MMKVLegacyInstance;
+        };
         return new MMKVConstructor(config);
     }
 }
