@@ -36,9 +36,6 @@
             "react-native-mmkv": [
                 "node_modules/react-native-mmkv"
             ],
-            "react-native-mmkv4": [
-                "node_modules/react-native-mmkv4"
-            ],
             "next": [
                 "node_modules/next"
             ],
