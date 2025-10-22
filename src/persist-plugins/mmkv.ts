@@ -22,10 +22,12 @@ interface MMKVLegacyModule {
 type MMKVInstance = MMKVLegacyInstance | MMKV;
 
 function createMMKVInstance(config: Configuration): MMKVInstance {
-    const isV4 = 'createMMKV' in MMKVModule;
-    if (isV4) {
+    const hasCreateFunction = 'createMMKV' in MMKVModule;
+    if (hasCreateFunction) {
+        // v4+: uses createMMKV() function
         return MMKVModule.createMMKV(config);
     } else {
+        // v3 and older: uses MMKV constructor
         const { MMKV: MMKVConstructor } = MMKVModule as unknown as MMKVLegacyModule;
         return new MMKVConstructor(config);
     }
