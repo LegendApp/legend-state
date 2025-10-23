@@ -97,6 +97,17 @@ export function isEvent(value$: any): value$ is ObservableEvent {
     return value$ && (value$[symbolGetNode as any] as NodeInfo)?.isEvent;
 }
 
+function setNewValue(parentValue: any, key: string, newValue: any, useSetFn: boolean, useMapFn: boolean): any {
+    if (useSetFn) {
+        parentValue.add(newValue);
+    } else if (useMapFn) {
+        parentValue.set(key, newValue);
+    } else {
+        parentValue[key] = newValue;
+    }
+    return newValue;
+}
+
 export function setNodeValue(node: NodeInfo, newValue: any) {
     const parentNode = node.parent ?? node;
     const key = node.parent ? node.key : '_';
@@ -130,13 +141,7 @@ export function setNodeValue(node: NodeInfo, newValue: any) {
                     delete parentValue[key];
                 }
             } else {
-                if (useSetFn) {
-                    parentValue.add(newValue);
-                } else if (useMapFn) {
-                    parentValue.set(key, newValue);
-                } else {
-                    parentValue[key] = newValue;
-                }
+                setNewValue(parentValue, key, newValue, useSetFn, useMapFn);
             }
         } finally {
             parentNode.isSetting!--;
@@ -157,7 +162,7 @@ export function getNodeValue(node: NodeInfo): any {
     let child = node.root._;
     for (let i = count - 1; child && i >= 0; i--) {
         const key = arrNodeKeys[i] as any;
-        child = key !== 'size' && (isMap(child) || child instanceof WeakMap) ? child.get(key) : child[key];
+        child = key !== 'size' && isMap(child) ? child.get(key) : child[key];
     }
     return child;
 }
@@ -197,7 +202,9 @@ export function ensureNodeValue(node: NodeInfo) {
     if (!value || isFunction(value)) {
         if (isChildNode(node)) {
             const parent = ensureNodeValue(node.parent);
-            value = parent[node.key] = {};
+            const useSetFn = isSet(parent);
+            const useMapFn = isMap(parent);
+            value = setNewValue(parent, node.key, {}, useSetFn, useMapFn);
         } else {
             value = node.root._ = {};
         }

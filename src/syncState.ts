@@ -1,8 +1,8 @@
-import type { ObservableSyncState } from './observableInterfaces';
 import { getNode } from './globals';
 import { observable } from './observable';
-import type { ObservableParam } from './observableTypes';
 import { ObservableHint } from './ObservableHint';
+import type { ObservableSyncState } from './observableInterfaces';
+import type { ObservableParam } from './observableTypes';
 import { when } from './when';
 
 export function syncState(obs: ObservableParam) {

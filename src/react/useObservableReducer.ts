@@ -41,9 +41,15 @@ export function useObservableReducer<R extends Reducer<any, any>, I>(
     initializerArg: I & ReducerState<R>,
     initializer: ((arg: I & ReducerState<R>) => ReducerState<R>) | undefined,
 ): [Observable<ReducerState<R>>, Dispatch<ReducerAction<R>>] {
-    const obs = useObservable(() =>
-        initializerArg !== undefined && isFunction(initializerArg) ? initializer!(initializerArg) : initializerArg,
-    );
+    const obs = useObservable(() => {
+        if (initializer) {
+            return initializer(initializerArg);
+        }
+        if (isFunction(initializerArg)) {
+            return (initializerArg as () => ReducerState<R>)();
+        }
+        return initializerArg;
+    });
     const dispatch = (action: any) => {
         obs.set(reducer(obs.get(), action));
     };

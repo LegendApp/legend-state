@@ -7,9 +7,14 @@ import {
     isPromise,
     observable,
     symbolDelete,
-    when,
 } from '@legendapp/state';
-import { FieldTransforms, SyncedErrorParams, SyncedGetParams, SyncedSubscribeParams } from '@legendapp/state/sync';
+import {
+    FieldTransforms,
+    SyncedErrorParams,
+    SyncedGetParams,
+    SyncedSetParams,
+    SyncedSubscribeParams,
+} from '@legendapp/state/sync';
 import {
     CrudAsOption,
     SyncedCrudPropsBase,
@@ -38,6 +43,7 @@ import {
     startAt,
 } from 'firebase/database';
 import { invertFieldMap, transformObjectFields } from '../sync/transformObjectFields';
+import { clone } from '../globals';
 
 // TODO: fieldId should be required if Many, not if as: value
 // as should default to value?
@@ -62,6 +68,11 @@ interface SyncedFirebaseConfiguration {
     requireAuth?: boolean;
     readonly?: boolean;
     enabled?: boolean;
+}
+
+interface PendingWriteEntry {
+    resolve: (value: any) => void;
+    reject: (error: Error) => void;
 }
 
 const isEnabled$ = observable(true);
@@ -157,9 +168,6 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     props: SyncedFirebaseProps<TRemote, TLocal, TAs>,
 ): SyncedCrudReturnType<TLocal, TAs> {
     props = { ...firebaseConfig, ...props } as any;
-    const saving$ = observable<Record<string, boolean>>({});
-    const pendingOutgoing$ = observable<Record<string, any>>({});
-    const pendingIncoming$ = observable<Record<string, any>>({});
     let didList = false;
 
     const {
@@ -178,6 +186,133 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
     const { fieldCreatedAt, changesSince } = props;
     const asType = props.as || ('value' as TAs);
     const fieldUpdatedAt = props.fieldUpdatedAt || '@';
+    const isRealtime = realtime !== false;
+
+    // Track write lifecycle per key so we only resolve once Firebase confirms the write
+    // and we have applied the freshest server payload.
+    interface PendingState {
+        waiting: PendingWriteEntry[];
+        ready: PendingWriteEntry[];
+        pendingCount: number;
+        staged?: {
+            value: any;
+            apply?: (value: any) => void;
+        };
+    }
+
+    const pendingWrites = new Map<string, PendingState>();
+
+    const enqueuePendingWrite = (key: string) => {
+        let resolveFn: (value: any) => void;
+        let rejectFn: (error: Error) => void;
+        const promise = new Promise<any>((resolve, reject) => {
+            resolveFn = resolve;
+            rejectFn = reject;
+        });
+        const entry: PendingWriteEntry = {
+            resolve: resolveFn!,
+            reject: rejectFn!,
+        };
+        const state = pendingWrites.get(key);
+        if (state) {
+            state.waiting.push(entry);
+            state.pendingCount += 1;
+        } else {
+            pendingWrites.set(key, {
+                waiting: [entry],
+                ready: [],
+                pendingCount: 1,
+            });
+        }
+        return { promise, entry };
+    };
+
+    // Resolve queued writes once Firebase confirms them and the server value is ready (if any).
+    const flushPending = (key: string) => {
+        const state = pendingWrites.get(key);
+        if (!state) {
+            return;
+        }
+
+        // Resolve only if all writes finished and there is a staged value to apply.
+        if (state.pendingCount === 0 && state.staged) {
+            const { value, apply } = state.staged;
+            state.staged = undefined;
+
+            // Apply the latest staged value to every write that finished.
+            while (state.ready.length) {
+                const entry = state.ready.shift()!;
+                entry.resolve(value);
+            }
+
+            if (!state.waiting.length && !state.ready.length) {
+                pendingWrites.delete(key);
+            }
+
+            apply?.(value);
+        }
+    };
+
+    const resolvePendingWrite = (key: string, entry: PendingWriteEntry) => {
+        const state = pendingWrites.get(key);
+        if (!state) {
+            return;
+        }
+
+        const waitingIndex = state.waiting.indexOf(entry);
+        if (waitingIndex >= 0) {
+            state.waiting.splice(waitingIndex, 1);
+            state.pendingCount = Math.max(0, state.pendingCount - 1);
+        }
+
+        state.ready.push(entry);
+        flushPending(key);
+    };
+
+    const rejectPendingWrite = (key: string, entry: PendingWriteEntry, error: Error) => {
+        const state = pendingWrites.get(key);
+        if (state) {
+            const waitingIndex = state.waiting.indexOf(entry);
+            if (waitingIndex >= 0) {
+                state.waiting.splice(waitingIndex, 1);
+                state.pendingCount = Math.max(0, state.pendingCount - 1);
+            } else {
+                const readyIndex = state.ready.indexOf(entry);
+                if (readyIndex >= 0) {
+                    state.ready.splice(readyIndex, 1);
+                }
+            }
+
+            if (!state.waiting.length && !state.ready.length) {
+                pendingWrites.delete(key);
+            }
+        }
+        entry.reject(error);
+    };
+
+    const handleServerValue = (key: string, value: any, apply?: (value: any) => void) => {
+        const state = pendingWrites.get(key);
+
+        if (!state || (!state.waiting.length && !state.ready.length)) {
+            pendingWrites.delete(key);
+            apply?.(value);
+        } else {
+            // Stash the most recent payload so it is applied after in-flight writes complete.
+            state.staged = {
+                value: value && typeof value === 'object' ? clone(value) : value,
+                apply: apply ?? state.staged?.apply,
+            };
+
+            flushPending(key);
+        }
+    };
+
+    const ensureFieldId = (key: string, value: any) => {
+        if (fieldId && key && value && typeof value === 'object' && !value[fieldId]) {
+            value[fieldId] = key;
+        }
+        return value;
+    };
 
     const computeRef = (lastSync: number) => {
         const pathFirebase = refPath(fns.getCurrentUser());
@@ -208,10 +343,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                             asType === 'value'
                                 ? [val]
                                 : Object.entries(val).map(([key, value]: [string, any]) => {
-                                      if (fieldId && !value[fieldId!]) {
-                                          value[fieldId!] = key;
-                                      }
-                                      return value;
+                                      return ensureFieldId(key, value);
                                   });
                     }
                     didList = true;
@@ -222,7 +354,7 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         });
     };
 
-    const subscribe = realtime
+    const subscribe = isRealtime
         ? ({ lastSync, update, onError }: SyncedSubscribeParams<TRemote[]>) => {
               const ref = computeRef(lastSync!);
               let unsubscribes: (() => void)[];
@@ -232,14 +364,13 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       if (!didList) return;
 
                       const val = snap.val();
-                      if (saving$[''].get()) {
-                          pendingIncoming$[''].set(val);
-                      } else {
+
+                      handleServerValue('', val, (resolvedValue) => {
                           update({
-                              value: [val],
+                              value: [resolvedValue],
                               mode: 'set',
                           });
-                      }
+                      });
                   };
                   unsubscribes = [fns.onValue(ref, onValue, onError)];
               } else {
@@ -247,32 +378,28 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
                       if (!didList) return;
 
                       const key = snap.key!;
-                      const val = snap.val();
+                      const val = ensureFieldId(key, snap.val());
 
-                      if (fieldId && !val[fieldId!]) {
-                          val[fieldId!] = key;
-                      }
-                      if (saving$[key].get()) {
-                          pendingIncoming$[key].set(val);
-                      } else {
+                      handleServerValue(key, val, (resolvedValue) => {
                           update({
-                              value: [val],
-                              mode: 'assign',
+                              value: [resolvedValue],
+                              mode: 'merge',
                           });
-                      }
+                      });
                   };
                   const onChildDelete = (snap: DataSnapshot) => {
                       if (!didList) return;
 
                       const key = snap.key!;
-                      const val = snap.val();
-                      if (fieldId && !val[fieldId!]) {
-                          val[fieldId!] = key;
-                      }
-                      val[symbolDelete] = true;
-                      update({
-                          value: [val],
-                          mode: 'assign',
+                      const valueRaw = snap.val();
+                      const valueWithId = ensureFieldId(key, isNullOrUndefined(valueRaw) ? {} : valueRaw);
+                      (valueWithId as any)[symbolDelete] = true;
+
+                      handleServerValue(key, valueWithId, (resolvedValue) => {
+                          update({
+                              value: [resolvedValue],
+                              mode: 'merge',
+                          });
                       });
                   };
                   unsubscribes = [
@@ -301,57 +428,70 @@ export function syncedFirebase<TRemote extends object, TLocal = TRemote, TAs ext
         return addUpdatedAt(input);
     };
 
-    const upsert = async (input: TRemote) => {
-        const id: string = fieldId ? (input as any)[fieldId] : '';
+    const upsert = (input: TRemote, params: SyncedSetParams<TRemote>) => {
+        const id = fieldId && asType !== 'value' ? (input as any)[fieldId] : '';
+        const pendingKey = fieldId && asType !== 'value' ? String(id ?? '') : '';
+        const { promise, entry } = enqueuePendingWrite(pendingKey);
 
-        if (saving$[id].get()) {
-            pendingOutgoing$[id].set(input);
-        } else {
-            saving$[id].set(true);
+        const userId = fns.getCurrentUser();
+        const basePath = refPath(userId);
+        const childPath = fieldId && asType !== 'value' ? pendingKey : '';
+        const path = joinPaths(basePath, childPath);
+        const ref = fns.ref(path);
 
-            const path = joinPaths(refPath(fns.getCurrentUser()), fieldId ? id : '');
-            await fns.update(fns.ref(path), input);
+        const updatePromise = fns.update(ref, input);
 
-            saving$[id].set(false);
+        updatePromise
+            .then(() => {
+                resolvePendingWrite(pendingKey, entry);
+            })
+            .catch((error) => {
+                rejectPendingWrite(pendingKey, entry, error as Error);
+            });
 
-            flushAfterSave();
+        if (!isRealtime) {
+            updatePromise
+                .then(() => {
+                    const onceRef = fieldId && asType !== 'value' ? ref : fns.ref(basePath);
+                    fns.once(
+                        onceRef,
+                        (snap) => {
+                            const rawValue = snap.val();
+                            const value =
+                                fieldId && asType !== 'value'
+                                    ? ensureFieldId(pendingKey, isNullOrUndefined(rawValue) ? {} : rawValue)
+                                    : rawValue;
+                            handleServerValue(pendingKey, value, (resolvedValue) => {
+                                params.update({
+                                    value: resolvedValue,
+                                    mode: 'merge',
+                                });
+                            });
+                        },
+                        (error) => {
+                            rejectPendingWrite(pendingKey, entry, error as Error);
+                        },
+                    );
+                })
+                .catch(() => {
+                    // Error already handled in catch above
+                });
         }
 
-        // Wait for save to finish and return the latest incoming value
-        return when(
-            () => !pendingOutgoing$[id].get(),
-            () => {
-                // Return the latest value that came into subscribe while saving
-                const value = pendingIncoming$[id].get();
-                if (value) {
-                    // Deleting it will make any subsequent pending saves return undefined and do nothing
-                    // because we only need to apply it back once
-                    pendingIncoming$[id].delete();
-                    return value;
-                }
-            },
-        );
-    };
-
-    const flushAfterSave = () => {
-        const outgoing = pendingOutgoing$.get();
-        Object.values(outgoing).forEach((value) => {
-            upsert(value);
-        });
-        pendingOutgoing$.set({});
+        return promise;
     };
 
     const create = readonly
         ? undefined
-        : (input: TRemote) => {
+        : (input: TRemote, params: SyncedSetParams<TRemote>) => {
               addCreatedAt(input);
-              return upsert(input);
+              return upsert(input, params);
           };
     const update = readonly
         ? undefined
-        : (input: TRemote) => {
+        : (input: TRemote, params: SyncedSetParams<TRemote>) => {
               addUpdatedAt(input);
-              return upsert(input);
+              return upsert(input, params);
           };
     const deleteFn = readonly
         ? undefined

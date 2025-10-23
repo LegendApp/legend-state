@@ -99,7 +99,7 @@ export function syncedQuery<
 
             return result.data!;
         } else {
-            observer.refetch();
+            return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
         }
     }) as () => Promise<TData>;
 

@@ -176,6 +176,9 @@ export interface ObserveOptions {
     /* @internal */
     fromComputed?: boolean;
 }
+export interface ObservableSyncStateOptions {
+    resetLastSync?: boolean;
+}
 export interface ObservableSyncStateBase {
     isPersistLoaded: boolean;
     isPersistEnabled: boolean;
@@ -186,7 +189,7 @@ export interface ObservableSyncStateBase {
     isSetting?: boolean;
     numPendingGets?: number;
     numPendingSets?: number;
-    sync: () => Promise<void>;
+    sync: (options?: ObservableSyncStateOptions) => Promise<void>;
     getPendingChanges: () =>
         | Record<
               string,

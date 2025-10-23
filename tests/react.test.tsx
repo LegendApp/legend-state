@@ -1,4 +1,4 @@
-import { act, render, renderHook } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 import React, { StrictMode, Suspense, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
 import { observable } from '../src/observable';
@@ -23,6 +23,7 @@ import { promiseTimeout, supressActWarning } from './testglobals';
 import { synced } from '../src/sync/synced';
 import { useTraceListeners } from '../src/trace/useTraceListeners';
 import { useTraceUpdates } from '../src/trace/useTraceUpdates';
+import { $React } from '@legendapp/state/react-web';
 
 type TestObject = { id: string; label: string };
 
@@ -65,6 +66,21 @@ describe('useSelector', () => {
             obs.set('z');
         });
         expect(result.current).toEqual('z');
+    });
+    test('useSelector with computed', () => {
+        const obs = observable({ value: 'hi', computed: () => obs.value.get() + ' there' });
+        const { result } = renderHook(() => {
+            return useSelector(obs.computed);
+        });
+
+        act(() => {
+            obs.value.set('hello');
+        });
+        expect(result.current).toEqual('hello there');
+        act(() => {
+            obs.value.set('z');
+        });
+        expect(result.current).toEqual('z there');
     });
     test('useSelector undefined', () => {
         const { result } = renderHook(() => {
@@ -1079,6 +1095,40 @@ describe('Show', () => {
         expect(items[0].textContent).toEqual('hi');
         expect(testValue).toEqual('tester');
     });
+    test('useSelector reconfigures when options change', () => {
+        const obs = observable(0);
+        let runCount = 0;
+
+        const { rerender } = renderHook(
+            ({ skipCheck }: { skipCheck: boolean }) =>
+                useSelector(
+                    () => {
+                        runCount++;
+                        return obs.get();
+                    },
+                    { skipCheck },
+                ),
+            { initialProps: { skipCheck: false } },
+        );
+
+        expect(runCount).toBe(1);
+
+        act(() => {
+            obs.set(1);
+        });
+
+        expect(runCount).toBe(3);
+
+        rerender({ skipCheck: true });
+        const countAfterOptionChange = runCount;
+        expect(countAfterOptionChange).toBe(4);
+
+        act(() => {
+            obs.set(1);
+        });
+
+        expect(runCount).toBe(countAfterOptionChange);
+    });
 });
 
 describe('Switch', () => {
@@ -1169,6 +1219,30 @@ describe('useObservableReducer', () => {
             { id: 2, text: 'Lennon Wall pic', done: false },
             { id: 3, text: 'test', done: false },
         ]);
+    });
+    test('useObservableReducer accepts lazy initializer functions', () => {
+        const reducer = (state: number, action: { type: 'inc' }) => (action.type === 'inc' ? state + 1 : state);
+        const lazyInit = () => 5;
+
+        const { result } = renderHook(() => useObservableReducer(reducer as any, lazyInit as unknown as number));
+
+        expect(result.current[0].get()).toBe(5);
+
+        act(() => {
+            (result.current[1] as any)({ type: 'inc' });
+        });
+
+        expect(result.current[0].get()).toBe(6);
+    });
+    test('useObservableReducer calls provided initializer function', () => {
+        const reducer = (state: { count: number }, action: { type: 'inc' }) =>
+            action.type === 'inc' ? { count: state.count + 1 } : state;
+        const init = jest.fn((arg: { count: number }) => ({ count: arg.count + 10 }));
+
+        const { result } = renderHook(() => useObservableReducer(reducer, { count: 1 }, init));
+
+        expect(result.current[0].get()).toEqual({ count: 11 });
+        expect(init).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -1267,7 +1341,9 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numObserves).toEqual(0);
 
-        obs$.set(1);
+        act(() => {
+            obs$.set(1);
+        });
 
         expect(num).toEqual(1);
         expect(numObserves).toEqual(1);
@@ -1278,12 +1354,14 @@ describe('useObserve', () => {
         const obsOuter$ = observable(0);
         const obsInner$: Observable = observable(0);
         let lastObserved: number | undefined = undefined;
+        let lastObservedDep: number | undefined = undefined;
         const Test = observer(function Test() {
             const dep = obsOuter$.get();
             useObserve(
                 () => {
                     numInner++;
                     lastObserved = obsInner$.get();
+                    lastObservedDep = dep;
                 },
                 { deps: [dep] },
             );
@@ -1299,6 +1377,7 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numInner).toEqual(1);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(0);
 
         // If deps array changes it should refresh observable
         act(() => {
@@ -1308,6 +1387,7 @@ describe('useObserve', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(2);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(1);
 
         // If inner dep changes it should run again without rendering
         act(() => {
@@ -1317,6 +1397,7 @@ describe('useObserve', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(3);
         expect(lastObserved).toEqual(1);
+        expect(lastObservedDep).toEqual(1);
 
         // If deps array changes it should refresh observable
         act(() => {
@@ -1326,6 +1407,7 @@ describe('useObserve', () => {
         expect(num).toEqual(3);
         expect(numInner).toEqual(4);
         expect(lastObserved).toEqual(1);
+        expect(lastObservedDep).toEqual(2);
     });
 });
 
@@ -1362,10 +1444,14 @@ describe('useObserveEffect', () => {
 
         expect(num).toEqual(1);
 
-        state$.set((v) => v + 1);
+        act(() => {
+            state$.set((v) => v + 1);
+        });
         expect(num).toEqual(2);
 
-        state$.set((v) => v + 1);
+        act(() => {
+            state$.set((v) => v + 1);
+        });
         expect(num).toEqual(3);
     });
     test('useObserve with a deps array', () => {
@@ -1374,12 +1460,14 @@ describe('useObserveEffect', () => {
         const obsOuter$ = observable(0);
         const obsInner$: Observable = observable(0);
         let lastObserved: number | undefined = undefined;
+        let lastObservedDep: number | undefined = undefined;
         const Test = observer(function Test() {
             const dep = obsOuter$.get();
             useObserveEffect(
                 () => {
                     numInner++;
                     lastObserved = obsInner$.get();
+                    lastObservedDep = dep;
                 },
                 { deps: [dep] },
             );
@@ -1395,6 +1483,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(1);
         expect(numInner).toEqual(1);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(0);
 
         // If deps array changes it should refresh observable
         act(() => {
@@ -1404,6 +1493,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(2);
         expect(lastObserved).toEqual(0);
+        expect(lastObservedDep).toEqual(1);
 
         // If inner dep changes it should run again without rendering
         act(() => {
@@ -1413,7 +1503,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(2);
         expect(numInner).toEqual(3);
         expect(lastObserved).toEqual(1);
-
+        expect(lastObservedDep).toEqual(1);
         // If deps array changes it should refresh observable
         act(() => {
             obsOuter$.set(2);
@@ -1422,6 +1512,7 @@ describe('useObserveEffect', () => {
         expect(num).toEqual(3);
         expect(numInner).toEqual(4);
         expect(lastObserved).toEqual(1);
+        expect(lastObservedDep).toEqual(2);
     });
 });
 
@@ -1874,7 +1965,7 @@ describe('useObservable', () => {
             obs2$.set(1);
         });
 
-        await promiseTimeout(0);
+        await waitFor(() => promiseTimeout(0));
 
         expect(num).toEqual(2);
         expect(value).toEqual(1 + '_' + originalRand);
@@ -1915,9 +2006,11 @@ describe('useObservable', () => {
         expect(innerDerivedCallCount).toBe(1);
 
         // Unmount the component
-        unmount();
+        act(() => {
+            unmount();
+        });
 
-        await promiseTimeout(0);
+        await waitFor(() => promiseTimeout(0));
 
         // Record counts after unmount
         const derivedCountAfterUnmount = derivedCallCount;
@@ -2176,5 +2269,30 @@ describe('tracing', () => {
         expect(console.log).toHaveBeenCalledWith(`[legend-state] Rendering because "" changed:
 from: 0
 to: 1`);
+    });
+});
+describe('$React', () => {
+    test('$React works', () => {
+        const Test = function Test() {
+            return createElement($React.div, { $className: () => 'test' });
+        };
+        function App() {
+            return createElement(Test);
+        }
+        const { container } = render(createElement(App));
+
+        expect(container.querySelector('div')?.className).toEqual('test');
+    });
+    test('$React takes observable child', () => {
+        const obs$ = observable('test');
+        const Test = function Test() {
+            return createElement($React.div, null, obs$ as any);
+        };
+        function App() {
+            return createElement(Test);
+        }
+        const { container } = render(createElement(App));
+
+        expect(container.querySelector('div')?.textContent).toEqual('test');
     });
 });

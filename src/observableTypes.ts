@@ -1,6 +1,6 @@
-import type { GetOptions, ListenerFn, TrackingType } from './observableInterfaces';
+import type { GetOptions, ListenerFn, OpaqueObject, TrackingType } from './observableInterfaces';
 
-type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date;
+type Primitive = string | number | boolean | symbol | bigint | undefined | null | Date | OpaqueObject<unknown>;
 type ArrayOverrideFnNames =
     | 'find'
     | 'findIndex'
@@ -38,7 +38,9 @@ export type RemoveObservables<T> =
                 ? RemoveObservables<TRet> & T
                 : T extends (key: infer TKey extends string | number) => infer TRet
                   ? Record<TKey, RemoveObservables<TRet>> & T
-                  : T;
+                  : T extends OpaqueObject<infer TObj>
+                    ? TObj
+                    : T;
 
 interface ObservableArray<T, U>
     extends ObservablePrimitive<T>,

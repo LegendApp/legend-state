@@ -6,6 +6,8 @@
         "@legendapp/state/sync-plugins/crud": "<rootDir>/src/sync-plugins/crud",
         "@legendapp/state/sync": "<rootDir>/sync",
         "@legendapp/state/config/configureLegendState": "<rootDir>/src/config/configureLegendState",
+        "@legendapp/state/react-web": "<rootDir>/react-web",
+        "@legendapp/state/react": "<rootDir>/react",
         "@legendapp/state": "<rootDir>/index"
     },
     "transform": {

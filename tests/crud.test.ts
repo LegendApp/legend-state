@@ -3845,3 +3845,62 @@ describe('fieldId', () => {
         dispose();
     });
 });
+describe('generateId', () => {
+    test('generateId value', async () => {
+        let saved: any;
+        const obs$ = observable(
+            syncedCrud({
+                as: 'array',
+                generateId: () => 'id2',
+                onSaved(params) {
+                    saved = params.saved;
+                },
+                create: async (input) => input,
+            }),
+        );
+        await promiseTimeout(1);
+        obs$.push({ test: 'hello', id: undefined });
+        await promiseTimeout(1);
+        const value = obs$.peek();
+        expect(saved).toEqual({ id: 'id2', test: 'hello' }); // fails, saved remains undefined
+        expect(value).toEqual([{ id: 'id2', test: 'hello' }]); // fails, saved remains undefined
+    });
+    test('generateId array set', async () => {
+        let saved: any;
+        const obs$ = observable(
+            syncedCrud({
+                as: 'array',
+                generateId: () => 'id2',
+                onSaved(params) {
+                    saved = params.saved;
+                },
+                create: async (input) => input,
+            }),
+        );
+        await promiseTimeout(1);
+        obs$.set([{ test: 'hello', id: undefined }]);
+        await promiseTimeout(1);
+        const value = obs$.peek();
+        expect(value).toEqual([{ test: 'hello', id: 'id2' }]); // fails, saved remains undefined
+        expect(saved).toEqual({ id: 'id2', test: 'hello' }); // fails, saved remains undefined
+    });
+    test('generateId array', async () => {
+        let saved: any;
+        const obs$ = observable(
+            syncedCrud({
+                as: 'array',
+                generateId: () => 'id2',
+                onSaved(params) {
+                    saved = params.saved;
+                },
+                create: async (input) => input,
+            }),
+        );
+        await promiseTimeout(1);
+        obs$.push({ test: 'hello', id: undefined });
+        await promiseTimeout(1);
+        const value = obs$.peek();
+        expect(saved).toEqual({ id: 'id2', test: 'hello' }); // fails, saved remains undefined
+        expect(value).toEqual([{ id: 'id2', test: 'hello' }]); // fails, saved remains undefined
+    });
+});

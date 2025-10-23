@@ -72,6 +72,9 @@
             "@legendapp/state/react": [
                 "react"
             ],
+            "@legendapp/state/react-web": [
+                "react-web"
+            ],
             "@legendapp/state/helpers/fetch": [
                 "src/helpers/fetch"
             ],
