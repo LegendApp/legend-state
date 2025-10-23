@@ -605,7 +605,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       // value is already the new value, can ignore
                                       (saved as any)[key] === c ||
                                       // user has changed local value
-                                      (key !== fieldId && i !== undefined && i !== c)
+                                      (key !== fieldId && i !== undefined && !deepEqual(i, c))
                                   ) {
                                       delete (saved as any)[key];
                                   }

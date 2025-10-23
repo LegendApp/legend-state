@@ -2770,7 +2770,7 @@ describe('onSaved', () => {
         });
     });
 
-    test('onSaved gets correct value as object', async () => {
+    test('onSaved gets correct value as object with deep nested object containing array', async () => {
         let saved = undefined;
         const obs = observable(
             syncedCrud({
@@ -2781,7 +2781,17 @@ describe('onSaved', () => {
                 },
                 generateId: () => 'id1',
                 onSaved(params) {
-                    params.saved = { ...params.saved, parent: { child: { baby: 'hello baby override' } } };
+                    params.saved = {
+                        ...params.saved,
+                        parent: {
+                            child: { baby: 'hello baby override' },
+                        },
+                        list: [
+                            { parent: { child: { baby: 'hello list baby 1' } } },
+                            { parent: { child: { baby: 'hello list baby 2 modified' } } },
+                            { parent: { child: { baby: 'hello list baby 3' } } },
+                        ],
+                    };
                     saved = params.saved;
                     return params.saved;
                 },
@@ -2790,19 +2800,42 @@ describe('onSaved', () => {
 
         await promiseTimeout(1);
 
-        obs.id1.set({ test: 'hello', id: undefined as unknown as string, parent: { child: { baby: 'hello baby' } } });
+        obs.id1.set({
+            test: 'hello',
+            id: undefined as unknown as string,
+            parent: { child: { baby: 'hello baby' } },
+            list: [
+                { parent: { child: { baby: 'hello list baby 1' } } },
+                { parent: { child: { baby: 'hello list baby 2' } } },
+                { parent: { child: { baby: 'hello list baby 3' } } },
+            ],
+        });
 
         await promiseTimeout(1);
 
         expect(saved).toEqual({
             id: 'id1',
             test: 'hello',
-            parent: { child: { baby: 'hello baby override' } },
+            parent: {
+                child: { baby: 'hello baby override' },
+            },
+            list: [
+                { parent: { child: { baby: 'hello list baby 1' } } },
+                { parent: { child: { baby: 'hello list baby 2 modified' } } },
+                { parent: { child: { baby: 'hello list baby 3' } } },
+            ],
         });
         expect(obs.id1.peek()).toEqual({
             id: 'id1',
             test: 'hello',
-            parent: { child: { baby: 'hello baby override' } },
+            parent: {
+                child: { baby: 'hello baby override' },
+            },
+            list: [
+                { parent: { child: { baby: 'hello list baby 1' } } },
+                { parent: { child: { baby: 'hello list baby 2 modified' } } },
+                { parent: { child: { baby: 'hello list baby 3' } } },
+            ],
         });
     });
 });
