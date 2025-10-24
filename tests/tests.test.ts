@@ -3204,6 +3204,11 @@ describe('Primitive boolean', () => {
         }).toThrow();
         expect(obs.get().value).toEqual(0);
     });
+    test('observable primitive should handle null', () => {
+        const obs = observable<boolean | null>(true)
+        obs.set(null)
+        expect(obs.get()).toBeNull()
+    })
 });
 
 describe('Observe', () => {
