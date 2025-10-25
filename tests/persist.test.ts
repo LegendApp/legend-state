@@ -945,6 +945,302 @@ describe('reset sync state', () => {
     test('reset individual sync state with initial', async () => {
         return testReset({ test: 0 });
     });
+    test('reset individual sync state without get function', async () => {
+        const persistName = getPersistName();
+
+        const obs$ = observable<Record<string, { test: number }>>(
+            synced({
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: {},
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({});
+
+        obs$['id1'].set({ test: 1 });
+
+        expect(obs$.get()).toEqual({ id1: { test: 1 } });
+
+        await state$.reset();
+
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({});
+
+        obs$.get();
+
+        await when(state$.isLoaded);
+        expect(obs$.get()).toEqual({});
+    });
+
+    test('reset syncedCrud state without list function', async () => {
+        const persistName = getPersistName();
+
+        const obs$ = observable<Record<string, { id: string; test: string }>>(
+            syncedCrud({
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: {},
+                as: 'object',
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({});
+
+        obs$['id1'].set({ id: 'id1', test: 'hi' });
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+
+        await state$.reset();
+
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({});
+    });
+
+    test('reset syncedCrud state with list function', async () => {
+        const persistName = getPersistName();
+        let numLists = 0;
+
+        const todos$ = observable<Record<string, { id: string; test: string }>>(
+            syncedCrud({
+                list: async () => {
+                    numLists++;
+                    return [{ id: `item${numLists}`, test: `value${numLists}` }];
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: {},
+                as: 'object',
+            }),
+        );
+
+        todos$.get();
+
+        const state$ = syncState(todos$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numLists).toEqual(1);
+        expect(todos$.get()).toEqual({ item1: { id: 'item1', test: 'value1' } });
+
+        todos$['id1'].set({ id: 'id1', test: 'local' });
+        expect(todos$.get()).toEqual({
+            item1: { id: 'item1', test: 'value1' },
+            id1: { id: 'id1', test: 'local' },
+        });
+
+        await state$.reset();
+
+        expect(state$.isLoaded.get()).toBe(false);
+        expect(todos$.get()).toEqual({});
+
+        todos$.get();
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numLists).toBeGreaterThanOrEqual(2);
+
+        const result = todos$.get();
+        const keys = Object.keys(result);
+        expect(keys.length).toBe(1);
+        expect(keys[0]).toMatch(/^item\d+$/);
+        expect(result[keys[0]]).toMatchObject({
+            id: keys[0],
+            test: expect.stringMatching(/^value\d+$/),
+        });
+    });
+
+    test('reset same observable twice should work', async () => {
+        const persistName = getPersistName();
+
+        const obs$ = observable<Record<string, { test: number }>>(
+            synced({
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: {},
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({});
+
+        // First modification
+        obs$['id1'].set({ test: 1 });
+        expect(obs$.get()).toEqual({ id1: { test: 1 } });
+        await promiseTimeout(1);
+
+        // First reset
+        await state$.reset();
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({});
+        expect(state$.isLoaded.get()).toEqual(true);
+
+        // Second modification after first reset
+        obs$['id2'].set({ test: 2 });
+        expect(obs$.get()).toEqual({ id2: { test: 2 } });
+        await promiseTimeout(1);
+
+        // Second reset - this should also work
+        await state$.reset();
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({});
+        expect(state$.isLoaded.get()).toEqual(true);
+
+        // Third modification after second reset
+        obs$['id3'].set({ test: 3 });
+        expect(obs$.get()).toEqual({ id3: { test: 3 } });
+    });
+
+    test('reset same observable with get function twice should work', async () => {
+        const persistName = getPersistName();
+        let numGets = 0;
+
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    numGets++;
+                    await promiseTimeout(0);
+                    return { test: numGets };
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: { test: 0 },
+            }),
+        );
+
+        obs$.get();
+
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(1);
+        expect(obs$.get()).toEqual({ test: 1 });
+
+        await state$.reset();
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({ test: 0 });
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        obs$.get();
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(2);
+        expect(obs$.get()).toEqual({ test: 2 });
+
+        await state$.reset();
+        expect(localStorage.getItem(persistName)).toEqual(null);
+        expect(obs$.get()).toEqual({ test: 0 });
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        obs$.get();
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numGets).toEqual(3);
+        expect(obs$.get()).toEqual({ test: 3 });
+    });
+
+    test('reset syncedCrud with list function should handle isLoaded correctly', async () => {
+        const persistName = getPersistName();
+        let numLists = 0;
+
+        const todos$ = observable<Record<string, { id: string; test: string }>>(
+            syncedCrud({
+                list: async () => {
+                    numLists++;
+                    await promiseTimeout(0);
+                    return [{ id: `item${numLists}`, test: `value${numLists}` }];
+                },
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: {},
+                as: 'object' as const,
+            }),
+        );
+
+        todos$.get();
+
+        const state$ = syncState(todos$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numLists).toEqual(1);
+        expect(state$.isLoaded.get()).toEqual(true);
+
+        // Reset should set isLoaded to false because there's a list function (remote data to load)
+        await state$.reset();
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        // Accessing should trigger reload and eventually set isLoaded to true
+        todos$.get();
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(numLists).toEqual(2);
+        expect(state$.isLoaded.get()).toEqual(true);
+    });
+
+    test('reset syncedCrud without list function should set isLoaded to true immediately', async () => {
+        const persistName = getPersistName();
+
+        const todos$ = observable<Record<string, { id: string; test: string }>>(
+            syncedCrud({
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                },
+                initial: {},
+                as: 'object' as const,
+            }),
+        );
+
+        todos$.get();
+
+        const state$ = syncState(todos$);
+        await when(state$.isLoaded);
+        await promiseTimeout(1);
+
+        expect(state$.isLoaded.get()).toEqual(true);
+
+        todos$['id1'].set({ id: 'id1', test: 'test' });
+        expect(todos$.get()).toEqual({ id1: { id: 'id1', test: 'test' } });
+
+        // Reset should immediately set isLoaded to true because there's no remote data to load
+        await state$.reset();
+        expect(state$.isLoaded.get()).toEqual(true);
+        expect(todos$.get()).toEqual({});
+    });
 });
 
 describe('multiple persists', () => {
