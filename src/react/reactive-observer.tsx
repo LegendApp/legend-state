@@ -5,20 +5,26 @@ import { reactGlobals } from './react-globals';
 import type { BindKeys } from './reactInterfaces';
 import { useSelector } from './useSelector';
 
-export type ShapeWithPick$<T, T2 extends keyof T = keyof T> = Partial<T> & {
-    [K in T2 as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
-};
-export type ShapeWith$<T> = Partial<T> & {
+type WithSelectorChildren<T> = T extends any
+    ? T extends { children?: infer C }
+        ? Omit<T, 'children'> & { children?: C | Selector<C> }
+        : T extends { children: infer C }
+          ? Omit<T, 'children'> & { children: C | Selector<C> }
+          : T
+    : never;
+
+export type ShapeWith$<T> = WithSelectorChildren<Partial<T>> & {
     [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
 };
 export type ObjectShapeWith$<T> = {
     [K in keyof T]: T[K] extends FC<infer P> ? FC<ShapeWith$<P>> : T[K];
 };
-export type ExtractFCPropsType<T> = T extends FC<infer P> ? P : never;
 
-export type ReactifyProps<T, K extends keyof T> = Omit<T, K> & {
-    [P in K]: Selector<T[P]>;
-};
+export type ReactifyProps<T, K extends keyof T> = WithSelectorChildren<
+    Omit<T, K> & {
+        [P in K]: Selector<T[P]>;
+    }
+>;
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
