@@ -24,22 +24,22 @@ type IsUserDefinedObject<T> =
     T extends Function | BuiltIns | any[] ? false : T extends object ? true : false;
 
 export type RemoveObservables<T> =
-    T extends ImmutableObservableBase<infer t>
+    T extends OpaqueObject<infer t>
         ? t
-        : T extends ImmutableObservableBase<infer t>[]
-          ? t[]
-          : IsUserDefinedObject<T> extends true
-            ? {
-                  [K in keyof T]: RemoveObservables<T[K]>;
-              }
-            : T extends ImmutableObservableBase<infer TObs>
-              ? TObs
-              : T extends () => infer TRet
-                ? RemoveObservables<TRet> & T
-                : T extends (key: infer TKey extends string | number) => infer TRet
-                  ? Record<TKey, RemoveObservables<TRet>> & T
-                  : T extends OpaqueObject<infer TObj>
-                    ? TObj
+        : T extends ImmutableObservableBase<infer t>
+          ? t
+          : T extends ImmutableObservableBase<infer t>[]
+            ? t[]
+            : IsUserDefinedObject<T> extends true
+              ? {
+                    [K in keyof T]: RemoveObservables<T[K]>;
+                }
+              : T extends ImmutableObservableBase<infer TObs>
+                ? TObs
+                : T extends () => infer TRet
+                  ? RemoveObservables<TRet> & T
+                  : T extends (key: infer TKey extends string | number) => infer TRet
+                    ? Record<TKey, RemoveObservables<TRet>> & T
                     : T;
 
 interface ObservableArray<T, U>
