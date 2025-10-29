@@ -16,15 +16,14 @@ type WithSelectorChildren<T> = T extends any
 export type ShapeWith$<T> = WithSelectorChildren<Partial<T>> & {
     [K in keyof T as K extends `$${string & K}` ? K : `$${string & K}`]?: Selector<T[K]>;
 };
+
 export type ObjectShapeWith$<T> = {
     [K in keyof T]: T[K] extends FC<infer P> ? FC<ShapeWith$<P>> : T[K];
 };
 
-export type ReactifyProps<T, K extends keyof T> = WithSelectorChildren<
-    Omit<T, K> & {
-        [P in K]: Selector<T[P]>;
-    }
->;
+export type ReactifyProps<T, K extends keyof T> = T & {
+    [P in K as `$${string & P}`]?: Selector<T[P]>;
+};
 
 // Extracting the forwardRef inspired by https://github.com/mobxjs/mobx/blob/main/packages/mobx-react-lite/src/observer.ts
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
