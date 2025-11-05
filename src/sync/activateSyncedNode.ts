@@ -34,7 +34,11 @@ export function enableActivateSyncedNode() {
             }
             setNodeValue(node, promiseReturn ? undefined : newValue);
 
+            // Wrap this in isComputing to prevent updateNodesAndNotify from
+            // running while this is initializing
+            node.isComputing = true;
             syncObservable(obs$, { ...node.activationState, get, set });
+            node.isComputing = false;
 
             return { update: onChange!, value: promiseReturn ?? newValue };
         } else {
