@@ -3,6 +3,8 @@
 import type { MMKVConfiguration } from 'react-native-mmkv';
 // @ts-ignore
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
+// @ts-ignore
+import type { GetOptions, SetOptions } from 'react-native-keychain';
 
 import type {
     Change,
@@ -110,6 +112,12 @@ export interface SyncedOptionsGlobal<T = any>
         'get' | 'set' | 'persist' | 'initial' | 'waitForSet' | 'waitFor' | 'transform' | 'subscribe'
     > {
     persist?: ObservablePersistPluginOptions & Omit<PersistOptions, 'name' | 'transform' | 'options'>;
+}
+
+export interface ObservablePersistKeychainPluginOptions {
+    preload?: string[];
+    options?: GetOptions & SetOptions;
+    onError?: (table: string, error: unknown, on: 'preload' | 'load' | 'delete' | 'save') => void;
 }
 
 export interface ObservablePersistIndexedDBPluginOptions {
