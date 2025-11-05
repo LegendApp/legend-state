@@ -2642,6 +2642,66 @@ describe('Activation', () => {
             currentId: 'a',
         });
     });
+    test('computed array of strings from object', () => {
+        function groupBy<T, K extends keyof any, V = T>(
+            array: T[],
+            getKey: (value: T) => K,
+            { getValue, keys }: { getValue?: (value: T) => V; keys?: readonly K[] } = {},
+        ): Record<K, V[]> {
+            const grouped: Record<K, (T | V)[]> = {} as Record<K, (T | V)[]>;
+            if (keys) {
+                for (const key of keys) {
+                    if (!grouped[key]) {
+                        grouped[key] = [];
+                    }
+                }
+            }
+            if (array) {
+                for (const element of array) {
+                    const key: K = getKey(element);
+                    const value = getValue ? getValue(element) : element;
+                    if (key !== undefined) {
+                        if (!grouped[key]) {
+                            grouped[key] = [];
+                        }
+                        grouped[key].push(value);
+                    }
+                }
+            }
+
+            return grouped as Record<K, V[]>;
+        }
+
+        const test$ = observable<{
+            valuesById: Record<string, { id: string; text: string }>;
+            grouped: Record<string, string[]>;
+            valuesA: string[];
+        }>(() => ({
+            valuesById: synced({
+                initial: {} as any,
+                get: () => ({
+                    a: { id: 'a', text: 'at' },
+                    b: { id: 'b', text: 'bt' },
+                    c: { id: 'c', text: 'ct' },
+                }),
+            }),
+            grouped: () =>
+                groupBy(
+                    Object.values(test$.valuesById).filter((value) => value.id.get() !== 'c'),
+                    (value) => value.id.get(),
+                    {
+                        getValue: (value) => value.text,
+                    },
+                ),
+            valuesA: () => test$.grouped.a.get() || [],
+        }));
+
+        const a = test$.valuesA.get();
+
+        expect(a.length).toEqual(1);
+        expect(typeof a[0]).toEqual('string');
+        expect(a[0]).toEqual('at');
+    });
 });
 describe('Deactivation', () => {
     test('Computed does not recompute unless listened or called', () => {

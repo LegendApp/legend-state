@@ -680,14 +680,15 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
 
     const isRoot = !node.parent && key === '_';
 
-    checkPlain(node, newValue);
-
     if (node.parent && !getNodeValue(node) && !isFunction(newValue)) {
         set(node, { [key]: newValue });
     }
 
     // Get the child node for updating and notifying
     const childNode: NodeInfo = isRoot ? node : getChildNode(node, key, newValue);
+
+    // Check if the child node is plain
+    checkPlain(childNode, newValue);
 
     if (isObservable(newValue)) {
         setToObservable(childNode, newValue);

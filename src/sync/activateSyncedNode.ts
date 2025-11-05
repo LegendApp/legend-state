@@ -36,7 +36,7 @@ export function enableActivateSyncedNode() {
 
             syncObservable(obs$, { ...node.activationState, get, set });
 
-            return { update: onChange!, value: newValue };
+            return { update: onChange!, value: promiseReturn ?? newValue };
         } else {
             // If it is not a Synced
 
