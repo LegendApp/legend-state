@@ -526,6 +526,130 @@ describe('deepMerge', () => {
         expect(deepMerge(obj1, obj2)).toEqual({ arr: [4, 5, 3] });
     });
 
+    // Test 23b: With shallow arrayHandling, arrays should be completely replaced, not merged by index
+    test('should completely replace arrays instead of merging by index', () => {
+        // This test demonstrates the expected behavior that arrays should be replaced entirely
+        // when using shallow arrayHandling (not the default behavior)
+
+        // Case 1: Shorter source array should completely replace longer target array
+        const obj1 = { items: ['a', 'b', 'c', 'd'] };
+        const obj2 = { items: ['x', 'y'] };
+        expect(deepMerge(obj1, obj2, { arrayHandling: 'shallow' })).toEqual({ items: ['x', 'y'] });
+
+        // Case 2: Empty source array should completely replace target array
+        const obj3 = { tags: ['tag1', 'tag2', 'tag3'] };
+        const obj4 = { tags: [] };
+        expect(deepMerge(obj3, obj4, { arrayHandling: 'shallow' })).toEqual({ tags: [] });
+
+        // Case 3: Direct array merging should also replace completely
+        const arr1 = [1, 2, 3, 4, 5];
+        const arr2 = [10, 20];
+        expect(deepMerge(arr1, arr2, { arrayHandling: 'shallow' })).toEqual([10, 20]);
+
+        // Case 4: Array with different types should be replaced
+        const obj5 = { data: [1, 2, 3] };
+        const obj6 = { data: ['a', 'b'] };
+        expect(deepMerge(obj5, obj6, { arrayHandling: 'shallow' })).toEqual({ data: ['a', 'b'] });
+    });
+
+    // Test 23c: Array handling options
+    test('array handling options - shallow comparison', () => {
+        const obj1 = { items: ['a', 'b'] };
+        const obj2 = { items: ['a', 'b'] }; // Same content
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'shallow' });
+
+        // Should keep the same array reference since content is identical
+        expect(result.items).toBe(obj1.items);
+        expect(result).toEqual({ items: ['a', 'b'] });
+    });
+
+    test('array handling options - shallow comparison with different content', () => {
+        const obj1 = { items: ['a', 'b'] };
+        const obj2 = { items: ['a', 'c'] }; // Different content
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'shallow' });
+
+        // Should create new array since content differs
+        expect(result.items).not.toBe(obj1.items);
+        expect(result.items).not.toBe(obj2.items);
+        expect(result).toEqual({ items: ['a', 'c'] });
+    });
+
+    test('array handling options - deep comparison', () => {
+        const obj1 = { items: [{ a: 1 }, { b: 2 }] };
+        const obj2 = { items: [{ a: 1 }, { b: 2 }] }; // Same deep content
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'deep' });
+
+        // Should keep the same array reference since deep content is identical
+        expect(result.items).toBe(obj1.items);
+        expect(result).toEqual({ items: [{ a: 1 }, { b: 2 }] });
+    });
+
+    test('array handling options - deep comparison with different content', () => {
+        const obj1 = { items: [{ a: 1 }, { b: 2 }] };
+        const obj2 = { items: [{ a: 1 }, { b: 3 }] }; // Different deep content
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'deep' });
+
+        // Should create new array since deep content differs
+        expect(result.items).not.toBe(obj1.items);
+        expect(result).toEqual({ items: [{ a: 1 }, { b: 3 }] });
+    });
+
+    test('array handling options - never', () => {
+        const obj1 = { items: ['a', 'b', 'c', 'd'] };
+        const obj2 = { items: ['x', 'y'] };
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'never' });
+
+        // Should use legacy index-based merging
+        expect(result).toEqual({ items: ['x', 'y', 'c', 'd'] });
+    });
+
+    test('array handling with nested arrays - shallow', () => {
+        const obj1 = { data: { nested: ['a', 'b'] } };
+        const obj2 = { data: { nested: ['a', 'b'] } }; // Same content
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'shallow' });
+
+        // Should keep same array reference for identical nested arrays
+        expect(result.data.nested).toBe(obj1.data.nested);
+    });
+
+    test('array handling with mixed types', () => {
+        const obj1 = { mixed: [1, 'string', { obj: true }, [1, 2]] };
+        const obj2 = { mixed: [1, 'string', { obj: true }, [1, 2]] };
+        const result = deepMerge(obj1, obj2, { arrayHandling: 'deep' });
+
+        // Should keep same reference for deep-equal mixed arrays
+        expect(result.mixed).toBe(obj1.mixed);
+    });
+
+    test('mergeIntoObservable with array handling options', () => {
+        const target = observable({ items: ['a', 'b', 'c'] });
+        const source = { items: ['x', 'y'] };
+
+        // Default behavior (no options) - should use legacy index merging
+        mergeIntoObservable(target, source);
+        expect(target.items.get()).toEqual(['x', 'y', 'c']);
+
+        // Reset
+        target.items.set(['a', 'b', 'c']);
+
+        // With shallow options - should replace different arrays
+        mergeIntoObservable(target, source, { arrayHandling: 'shallow' });
+        expect(target.items.get()).toEqual(['x', 'y']);
+
+        // Reset
+        target.items.set(['a', 'b', 'c']);
+
+        // With shallow options - same array should not replace
+        const sameArray = { items: ['a', 'b', 'c'] };
+        mergeIntoObservable(target, sameArray, { arrayHandling: 'shallow' });
+        expect(target.items.get()).toEqual(['a', 'b', 'c']);
+
+        // With never option - should use legacy merging
+        target.items.set(['a', 'b', 'c']);
+        mergeIntoObservable(target, source, { arrayHandling: 'never' });
+        expect(target.items.get()).toEqual(['x', 'y', 'c']);
+    });
+
     // Test 24: Merging objects with special object types (e.g., Map, Set)
     test('handles special object types', () => {
         const map1 = new Map([
