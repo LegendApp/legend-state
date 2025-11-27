@@ -168,10 +168,21 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
                 const targetChild = (target as Record<string, any>)[key];
 
                 if ((isObj || isArr) && targetChild) {
-                    if (levelsDeep > 0 && isEmpty(sourceValue)) {
+                    if (isArr) {
+                        // Replace dense arrays entirely, merge sparse arrays
+                        const sourceArr = sourceValue as any[];
+                        const isSparseArray = Object.keys(sourceArr).length < sourceArr.length;
+
+                        if (isSparseArray) {
+                            _mergeIntoObservable(targetChild, sourceValue, levelsDeep + 1);
+                        } else {
+                            targetChild.set(sourceValue);
+                        }
+                    } else if (levelsDeep > 0 && isEmpty(sourceValue)) {
                         targetChild.set(sourceValue);
+                    } else {
+                        _mergeIntoObservable(targetChild, sourceValue, levelsDeep + 1);
                     }
-                    _mergeIntoObservable(targetChild, sourceValue, levelsDeep + 1);
                 } else {
                     targetChild.set(sourceValue);
                 }
