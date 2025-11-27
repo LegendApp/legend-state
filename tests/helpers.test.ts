@@ -314,6 +314,32 @@ describe('mergeIntoObservable', () => {
         const merged = mergeIntoObservable(target, source);
         expect(merged.get()).toEqual({});
     });
+    // Tests for https://github.com/LegendApp/legend-state/issues/468
+    // Array elements should be removed when source array is shorter than target
+    test('should remove array elements when source is shorter', () => {
+        const target = observable({ arr: ['a', 'b', 'c'] });
+        const source = { arr: ['a'] };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.arr.get()).toEqual(['a']);
+    });
+    test('should remove array elements when merging nested object', () => {
+        const target = observable({ data: { items: [1, 2, 3, 4, 5] } });
+        const source = { data: { items: [1, 2] } };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.data.items.get()).toEqual([1, 2]);
+    });
+    test('should handle array with single element removal', () => {
+        const target = observable({ tags: ['tag1', 'tag2'] });
+        const source = { tags: ['tag1'] };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.tags.get()).toEqual(['tag1']);
+    });
+    test('should handle complete array replacement with different values', () => {
+        const target = observable({ ids: ['a', 'b', 'c'] });
+        const source = { ids: ['x', 'y'] };
+        const merged = mergeIntoObservable(target, source);
+        expect(merged.ids.get()).toEqual(['x', 'y']);
+    });
 });
 
 describe('isObservableValueReady', () => {
