@@ -1,26 +1,59 @@
 import type { Change } from '@legendapp/state';
 import { internal, setAtPath } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state/sync';
-import { MMKV, MMKVConfiguration } from 'react-native-mmkv';
+import * as mmkv from 'react-native-mmkv';
 
 const symbolDefault = Symbol();
 const MetadataSuffix = '__m';
 
 const { safeParse, safeStringify } = internal;
 
+// Type definitions for MMKV v3 and older
+// v3 and older use storage.delete() while v4+ uses storage.remove()
+type MMKVLegacyInstance = Omit<mmkv.MMKV, 'remove'> & {
+    delete: mmkv.MMKV['remove'];
+};
+
+type MMKVInstance = MMKVLegacyInstance | mmkv.MMKV;
+type Configuration = mmkv.Configuration;
+
+function createMMKVInstance(config: Configuration): MMKVInstance {
+    const hasCreateFunction = 'createMMKV' in mmkv;
+    if (hasCreateFunction) {
+        // v4+: uses createMMKV() function
+        return mmkv.createMMKV(config);
+    } else {
+        // v3 and older: uses MMKV constructor
+        const { MMKV: MMKVConstructor } = mmkv as unknown as {
+            MMKV: new (config: Configuration) => MMKVLegacyInstance;
+        };
+        return new MMKVConstructor(config);
+    }
+}
+
+function deleteFromMMKV(storage: MMKVInstance, key: string): void {
+    if ('remove' in storage) {
+        // v4+
+        storage.remove(key);
+    } else {
+        // v3 and older
+        storage.delete(key);
+    }
+}
+
 export class ObservablePersistMMKV implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
-    private storages = new Map<symbol | string, MMKV>([
+    private storages = new Map<symbol | string, MMKVInstance>([
         [
             symbolDefault,
-            new MMKV({
+            createMMKVInstance({
                 id: `obsPersist`,
             }),
         ],
     ]);
-    private configuration: MMKVConfiguration;
+    private configuration: Configuration;
 
-    constructor(configuration: MMKVConfiguration) {
+    constructor(configuration: Configuration) {
         this.configuration = configuration;
     }
     // Gets
@@ -56,19 +89,19 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
     public deleteTable(table: string, config: PersistOptions): void {
         const storage = this.getStorage(config);
         delete this.data[table];
-        storage.delete(table);
+        deleteFromMMKV(storage, table);
     }
     public deleteMetadata(table: string, config: PersistOptions) {
         this.deleteTable(table + MetadataSuffix, config);
     }
     // Private
-    private getStorage(config: PersistOptions): MMKV {
+    private getStorage(config: PersistOptions): MMKVInstance {
         const configuration = config.mmkv || this.configuration;
         if (configuration) {
             const key = JSON.stringify(configuration);
             let storage = this.storages.get(key);
             if (!storage) {
-                storage = new MMKV(configuration);
+                storage = createMMKVInstance(configuration);
                 this.storages.set(key, storage);
             }
             return storage;
@@ -90,11 +123,11 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
                 console.error(err);
             }
         } else {
-            storage.delete(table);
+            deleteFromMMKV(storage, table);
         }
     }
 }
 
-export function observablePersistMMKV(configuration: MMKVConfiguration) {
+export function observablePersistMMKV(configuration: Configuration) {
     return new ObservablePersistMMKV(configuration);
 }
