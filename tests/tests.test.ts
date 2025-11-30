@@ -8,11 +8,12 @@ import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } 
 import { setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive } from '../src/observable';
-import { NodeInfo } from '../src/observableInterfaces';
+import { NodeInfo, OpaqueObject } from '../src/observableInterfaces';
 import { observe } from '../src/observe';
 import { syncState } from '../src/syncState';
 import { when, whenReady } from '../src/when';
 import { expectChangeHandler, promiseTimeout } from './testglobals';
+import { ObservableHint } from '../src/ObservableHint';
 
 enable$GetSet();
 enable_PeekAssign();
@@ -1043,6 +1044,20 @@ describe('Primitives', () => {
         expect(obs.val.toString()).toBe('10');
         expect(obs.val.valueOf()).toBe(10);
     });
+    test('opaque object should be handled like primitives', () => {
+        class BigNumber {
+            readonly c: number[] | null = null;
+            readonly e: number | null = null;
+            readonly s: number | null = null;
+        }
+        const obs = observable<{ val: OpaqueObject<BigNumber> | null }>({
+            val: ObservableHint.opaque(new BigNumber())
+        });
+
+        const val /* infered: ObservablePrimitive<OpaqueObject<BigNumber> | null> */ = obs.val;
+        const raw /* infered: BigNumber | null */ = val.get();
+        expect(raw?.c).toBeNull();
+    })
 });
 describe('Array', () => {
     test('Basic array', () => {
@@ -1480,6 +1495,14 @@ describe('Array', () => {
         const arr: unknown[] = [];
         obs.arr.forEach((a) => arr.push(isObservable(a)));
         expect(arr).toEqual([true]);
+    });
+    test('Array forEach does not autocreate node', () => {
+        interface Data {
+            arr?: Array<{ text: string }>;
+        }
+        const obs = observable<Data>({});
+        obs.arr.forEach(() => null);
+        expect(obs.arr.peek()).toEqual(undefined);
     });
     test('Array splice does not call child listeners when not affected', () => {
         const obs = observable({
@@ -2032,6 +2055,21 @@ describe('Array', () => {
         expect(lastValue).toEqual(1);
         obs$.todos.splice(0, 1);
         expect(lastValue).toEqual(0);
+    });
+    test('Array push single element inside Map', () => {
+        const obs = observable<Map<string, { arr?: string[] }>>(new Map());
+        obs.get('key').arr.push('1');
+        expect(obs.get('key').arr.get()).toEqual(['1']);
+    });
+    test('Array push multiple elements inside Map', () => {
+        const obs = observable<Map<string, { arr?: string[] }>>(new Map());
+        obs.get('key').arr.push('1', '2', '3');
+        expect(obs.get('key').arr.get()).toEqual(['1', '2', '3']);
+    });
+    test('Array push multiple elements inside Map with existing key', () => {
+        const obs = observable<Map<string, { arr?: string[] }>>(new Map([['key', {}]]));
+        obs.get('key').arr.push('1', '2', '3');
+        expect(obs.get('key').arr.get()).toEqual(['1', '2', '3']);
     });
 });
 describe('Array optimized listener', () => {
@@ -3809,5 +3847,38 @@ describe('Misc', () => {
         a.set(false);
 
         expect(changed).toEqual(false);
+    });
+    test('Object.keys on object with non-configurable props should not fail', () => {
+        const target = {};
+        const obs$ = observable(target);
+
+        expect(Object.keys(obs$.get())).toEqual([]);
+        expect(Object.keys(obs$)).toEqual([]);
+
+        Object.defineProperty(target, 'a', { writable: true, enumerable: false, configurable: false });
+
+        expect(Object.keys(obs$.get())).toEqual([]);
+        expect(Object.keys(obs$)).toEqual([]);
+    });
+    test('Object.keys on primitive should be undefined', () => {
+        const obs$ = observable({ value: 1 });
+
+        expect(Object.keys(obs$.value.get())).toEqual([]);
+        expect(Object.keys(obs$.value)).toEqual([]);
+
+        const descriptProxy = Object.getOwnPropertyDescriptor(obs$.value, 'missing');
+
+        expect(descriptProxy).toEqual(undefined);
+    });
+
+    test('Object.getOwnPropertyDescriptor with invalid prop should be undefined', () => {
+        const value = {};
+        const proxy = observable(value);
+
+        const descriptProxy = Object.getOwnPropertyDescriptor(proxy, 'missing');
+        const descriptValue = Object.getOwnPropertyDescriptor(value, 'missing');
+
+        expect(descriptProxy).toEqual(undefined);
+        expect(descriptValue).toEqual(undefined);
     });
 });

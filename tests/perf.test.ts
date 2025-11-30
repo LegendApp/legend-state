@@ -1,6 +1,9 @@
+import { synced } from '../src/sync/synced';
 import { ObservableHint } from '../src/ObservableHint';
 import { linked } from '../src/linked';
 import { observable } from '../src/observable';
+
+const isCI = process.env.CI === 'true';
 
 describe('Perf', () => {
     test('Array perf', () => {
@@ -13,7 +16,7 @@ describe('Perf', () => {
         obs.arr.splice(1, 1);
         const then = performance.now();
 
-        expect(then - now).toBeLessThan(process.env.CI === 'true' ? 100 : 30);
+        expect(then - now).toBeLessThan(isCI ? 100 : 30);
     });
     test('Lazy activation perf', () => {
         const obj: Record<string, any> = {};
@@ -56,6 +59,55 @@ describe('Perf', () => {
         const then = performance.now();
 
         expect(then - now).toBeLessThan(1);
+    });
+    test('Lazy activation perf with () => plain hint', () => {
+        const obj: Record<string, any> = {};
+        const Num = 10000;
+        for (let i = 0; i < Num; i++) {
+            obj['key' + i] = {
+                child: {
+                    grandchild: {
+                        value: 'hi',
+                    },
+                },
+            };
+        }
+
+        const obs = observable(() => ObservableHint.plain(obj));
+
+        const now = performance.now();
+        obs.get();
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(1);
+    });
+    test('Lazy activation perf with synced', () => {
+        const obj: Record<string, any> = {};
+        const Num = 10000;
+        for (let i = 0; i < Num; i++) {
+            obj['key' + i] = {
+                child: {
+                    grandchild: {
+                        value: 'hi',
+                    },
+                },
+            };
+        }
+
+        const obs = observable(
+            synced<null | Record<string, any>>({
+                get: () => null,
+                subscribe: ({ update }) => {
+                    update({ value: obj });
+                },
+            }),
+        );
+
+        const now = performance.now();
+        obs.get();
+        const then = performance.now();
+
+        expect(then - now).toBeLessThan(5);
     });
     test('Lazy activation perf2', () => {
         const obj: Record<string, any> = {};

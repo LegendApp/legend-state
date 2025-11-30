@@ -11,6 +11,14 @@ import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/
 const MetadataSuffix = '__legend_metadata';
 const PrimitiveName = '__legend_primitive';
 
+function getIndexedDB(): IDBFactory | undefined {
+    if (typeof globalThis === 'undefined') {
+        return undefined;
+    }
+
+    return (globalThis as { indexedDB?: IDBFactory }).indexedDB;
+}
+
 function requestToPromise(request: IDBRequest) {
     return new Promise<void>((resolve) => (request.onsuccess = () => resolve()));
 }
@@ -34,7 +42,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     }
     public async initialize(configOptions: ObservablePersistPluginOptions) {
         const config = this.configuration || configOptions.indexedDB;
-        if (typeof indexedDB === 'undefined') return;
+        if (!getIndexedDB()) {
+            return;
+        }
         if (process.env.NODE_ENV === 'development' && !config) {
             console.error('[legend-state] Must configure ObservablePersistIndexedDB');
         }
@@ -92,6 +102,10 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
     }
     public loadTable(table: string, config: PersistOptions): void | Promise<void> {
         if (!this.db) {
+            // Return early during build time or when running outside browser
+            if (!getIndexedDB()) {
+                return;
+            }
             throw new Error(
                 '[legend-state] ObservablePersistIndexedDB loading without being initialized. This may happen when running outside of a browser.',
             );
@@ -175,7 +189,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         store.delete(key);
     }
     public async set(table: string, changes: Change[], config: PersistOptions) {
-        if (typeof indexedDB === 'undefined') return;
+        if (!getIndexedDB()) return;
 
         if (!this.pendingSaves.has(config)) {
             this.pendingSaves.set(config, {});
@@ -285,7 +299,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
             delete this.tableData[tableName + '_transformed'];
         }
 
-        if (typeof indexedDB === 'undefined') return;
+        if (!getIndexedDB()) return;
 
         this.deleteMetadata(table, config);
 
