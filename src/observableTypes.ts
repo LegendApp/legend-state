@@ -72,7 +72,7 @@ type SetValue<T extends Set<any> | WeakSet<any>> = Parameters<T['has']>[0];
 type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size' | 'add'> &
     Omit<ObservablePrimitive<T>, 'size'> & { size: number; add: (value: SetValue<T>) => Observable<T> };
 
-export interface ObservableBoolean extends ObservablePrimitive<boolean> {
+export interface ObservableBoolean<T> extends ObservablePrimitive<T> {
     toggle(): void;
 }
 
@@ -191,7 +191,7 @@ type ObservableNode<T, NT = NonNullable<T>> = [NT] extends [never] // means that
             ? NT
             : [NT] extends [Primitive]
               ? [NT] extends [boolean]
-                  ? ObservableBoolean
+                  ? ObservableBoolean<T>
                   : ObservablePrimitive<T>
               : NT extends Map<any, any> | WeakMap<any, any>
                 ? ObservableMap<NT>

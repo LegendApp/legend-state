@@ -1,3 +1,4 @@
+import { checkPlain } from './checkPlain';
 import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
@@ -686,6 +687,9 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
     // Get the child node for updating and notifying
     const childNode: NodeInfo = isRoot ? node : getChildNode(node, key, newValue);
 
+    // Check if the child node is plain
+    checkPlain(childNode, newValue);
+
     if (isObservable(newValue)) {
         setToObservable(childNode, newValue);
     } else {
@@ -707,9 +711,12 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
         }
 
         const notify = !equals(savedValue, prevValue);
-        const forceNotify = !notify && childNode.isComputing && !isPrim;
+        const forceNotify = !notify && childNode.isComputing && !isPrim && !childNode.isPlain;
 
-        if (notify || forceNotify) {
+        if (
+            (notify || forceNotify) &&
+            !(childNode.isComputing && childNode.isPlain && node.numListenersRecursive === 0)
+        ) {
             updateNodesAndNotify(
                 node,
                 savedValue,
@@ -1001,10 +1008,6 @@ export function peekInternal(node: NodeInfo, activateRecursive?: boolean) {
 
     let value = getNodeValue(node);
 
-    if (node.parent?.isPlain || isHintPlain(value)) {
-        node.isPlain = true;
-    }
-
     // Don't want to check lazy while loading because we don't want to activate anything
     if (!node.root.isLoadingLocal && !node.isPlain) {
         value = checkLazy(node, value, !!activateRecursive);
@@ -1043,7 +1046,9 @@ function checkLazy(node: NodeInfo, value: any, activateRecursive: boolean) {
         }
     }
 
-    if ((lazy || node.needsExtract) && !isObservable(value) && !isPrimitive(value)) {
+    checkPlain(node, value);
+
+    if ((lazy || node.needsExtract) && !node.isPlain && !isObservable(value) && !isPrimitive(value)) {
         // If this is a purposeful get, check descendants for observable or auto activated linked
         if (activateRecursive) {
             recursivelyAutoActivate(value, node);

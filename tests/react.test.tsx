@@ -27,7 +27,9 @@ import { $React } from '@legendapp/state/react-web';
 
 type TestObject = { id: string; label: string };
 
-GlobalRegistrator.register();
+if (typeof document === 'undefined') {
+    GlobalRegistrator.register();
+}
 
 describe('useSelector', () => {
     test('useSelector basics', () => {
