@@ -63,7 +63,7 @@ export type SupabaseRowOf<
     Client extends SupabaseClient,
     Collection extends SupabaseCollectionOf<Client, SchemaName>,
     SchemaName extends SchemaNameOf<Client>,
-> = SupabaseTableOf<Client, SchemaName>[Collection]['Row'];
+> = SupabaseTableOf<Client, SchemaName>[Collection]['Row'] & SupabaseViewOf<Client, SchemaName>[Collection]['Row'];
 
 export type SyncedSupabaseConfig<TRemote extends { id: string | number }, TLocal> = Omit<
     SyncedCrudPropsBase<TRemote, TLocal>,
@@ -125,7 +125,7 @@ interface SyncedSupabasePropsWithSelect<
     select: (
         query: PostgrestQueryBuilder<
             SupabaseSchemaOf<Client>,
-            SupabaseTableOf<Client, SchemaName>[Collection],
+            SupabaseTableOf<Client, SchemaName>[Collection] & SupabaseViewOf<Client, SchemaName>[Collection],
             Collection
         >,
     ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
