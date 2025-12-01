@@ -1,7 +1,6 @@
 import { checkPlain } from './checkPlain';
 import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
-import { observable } from './observable';
 import {
     equals,
     extractFunction,
@@ -414,7 +413,7 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         if (p === 'constructor') {
-            return observable;
+            return function observable() {};
         }
 
         let value = peekInternal(node, /*activateRecursive*/ p === 'get' || p === 'peek');
