@@ -104,11 +104,10 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     // log?: (message?: any, ...optionalParams: any[]) => void;
 }
 
-export interface SyncedOptionsGlobal<T = any>
-    extends Omit<
-        SyncedOptions<T>,
-        'get' | 'set' | 'persist' | 'initial' | 'waitForSet' | 'waitFor' | 'transform' | 'subscribe'
-    > {
+export interface SyncedOptionsGlobal<T = any> extends Omit<
+    SyncedOptions<T>,
+    'get' | 'set' | 'persist' | 'initial' | 'waitForSet' | 'waitFor' | 'transform' | 'subscribe'
+> {
     persist?: ObservablePersistPluginOptions & Omit<PersistOptions, 'name' | 'transform' | 'options'>;
 }
 

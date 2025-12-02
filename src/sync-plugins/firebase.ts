@@ -50,7 +50,8 @@ import { clone } from '../globals';
 // Should it have mode merge by default?
 
 export interface SyncedFirebaseProps<TRemote extends object, TLocal, TAs extends CrudAsOption = 'value'>
-    extends Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list' | 'retry'>,
+    extends
+        Omit<SyncedCrudPropsMany<TRemote, TLocal, TAs>, 'list' | 'retry'>,
         Omit<SyncedCrudPropsBase<TRemote, TLocal>, 'onError'> {
     refPath: (uid: string | undefined) => string;
     query?: (ref: DatabaseReference) => DatabaseReference | Query;
