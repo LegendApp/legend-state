@@ -413,7 +413,8 @@ const proxyHandler: ProxyHandler<any> = {
         }
 
         if (p === 'constructor') {
-            return function observable() {};
+            const ctor = peekInternal(node)?.constructor;
+            return typeof ctor === 'function' ? ctor : Object;
         }
 
         let value = peekInternal(node, /*activateRecursive*/ p === 'get' || p === 'peek');

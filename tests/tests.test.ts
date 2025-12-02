@@ -3883,12 +3883,14 @@ describe('Misc', () => {
     });
     test('Observable is compatible with vitest equality checks and error printing', () => {
         const obs = observable({ foo: 'bar' });
-        const obj = obs.foo
+        const obj = obs.foo;
+        const ctor = obj.constructor;
 
         // https://github.com/vitest-dev/vitest/blob/v3.2.4/packages/expect/src/jest-utils.ts#L42-L49
-        expect(!!obj && typeof obj === 'object' && 'asymmetricMatch' in obj).toBe(false)
+        expect(!!obj && typeof obj === 'object' && 'asymmetricMatch' in obj).toBe(false);
 
         // https://github.com/vitest-dev/vitest/blob/v3.2.4/packages/pretty-format/src/index.ts#L288
-        expect(`${obj.constructor.name}`).toBe('observable')
+        expect(typeof ctor).toBe('function');
+        expect(obj.constructor).toBe(ctor);
     });
 });
