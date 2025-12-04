@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
-import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 import type { Change, TrackingType } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
 
 export interface BasicValue {
     id: string;
@@ -13,6 +13,13 @@ export interface BasicValue {
             baby: string;
         };
     };
+    list?: {
+        parent?: {
+            child: {
+                baby: string;
+            };
+        };
+    }[];
 }
 export interface BasicValue2 {
     id: string;
