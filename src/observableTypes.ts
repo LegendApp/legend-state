@@ -43,7 +43,8 @@ export type RemoveObservables<T> =
                     : T;
 
 interface ObservableArray<T, U>
-    extends ObservablePrimitive<T>,
+    extends
+        ObservablePrimitive<T>,
         Pick<Array<Observable<U>>, ArrayOverrideFnNames>,
         Omit<RemoveIndex<Array<U>>, ArrayOverrideFnNames> {}
 
