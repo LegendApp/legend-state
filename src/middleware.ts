@@ -139,8 +139,14 @@ function processQueuedEvents(): void {
         // Get node's listener sets - avoid creating empty sets
         const nodeListeners = node.listeners;
         const nodeListenersImmediate = node.listenersImmediate;
-
-        if (!nodeListeners && !nodeListenersImmediate) {
+        // Skip validation if there are no local listeners and this is not a parent node listener-added event
+        // (parent node listener-added events use recursive listener count, so we need to process them)
+        if (
+            !nodeListeners &&
+            !nodeListenersImmediate &&
+            node.numListenersRecursive &&
+            !(type === 'listener-added' && !listener)
+        ) {
             continue;
         }
 
@@ -149,12 +155,37 @@ function processQueuedEvents(): void {
 
         // Use cached string constants for faster comparison
         if (type === 'listener-added') {
-            isValid = !!nodeListeners?.has(listener!) || !!nodeListenersImmediate?.has(listener!);
+            if (listener) {
+                // Direct listener added to this node
+                isValid = !!nodeListeners?.has(listener) || !!nodeListenersImmediate?.has(listener);
+            } else {
+                // Listener added to a child node - only valid if the parent node has no local listeners
+                // but has recursive listeners. This allows synced observables (which have no local
+                // listeners but need to know about recursive listeners) to react, while preserving
+                // the behavior that parent nodes with their own listeners don't get events from children.
+                const hasNoLocalListeners = !nodeListeners && !nodeListenersImmediate;
+                if (hasNoLocalListeners && typeof node.numListenersRecursive === 'number') {
+                    isValid = node.numListenersRecursive > 0;
+                } else {
+                    isValid = false;
+                }
+            }
         } else if (type === 'listener-removed') {
             isValid = !nodeListeners?.has(listener!) && !nodeListenersImmediate?.has(listener!);
         } else {
-            // type === 'listener-cleared'
-            isValid = !nodeListeners?.size && !nodeListenersImmediate?.size;
+            // type === 'listeners-cleared'
+            const hasAnyLocal =
+                (nodeListeners && nodeListeners.size > 0) ||
+                (nodeListenersImmediate && nodeListenersImmediate.size > 0);
+
+            // Prefer the recursive listener count when available so that ancestor/root
+            // nodes can observe when their entire subtree has been cleared of listeners.
+            if (typeof node.numListenersRecursive === 'number') {
+                isValid = !hasAnyLocal && node.numListenersRecursive === 0;
+            } else {
+                // Fallback: rely only on local listener sets
+                isValid = !hasAnyLocal;
+            }
         }
 
         // Only dispatch if the event is valid

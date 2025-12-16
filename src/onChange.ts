@@ -1,7 +1,19 @@
 import { getNodeValue } from './globals';
 import { deconstructObjectWithPath } from './helpers';
 import { dispatchMiddlewareEvent } from './middleware';
-import type { ListenerFn, ListenerParams, NodeInfo, NodeListener, TrackingType } from './observableInterfaces';
+import type {
+    LinkedOptions,
+    ListenerFn,
+    ListenerParams,
+    NodeInfo,
+    NodeListener,
+    TrackingType,
+} from './observableInterfaces';
+
+function isSyncedObservable(node: NodeInfo): boolean {
+    // type patched, should we add it to the LinkedOptions?
+    return (node.activationState as LinkedOptions & { synced?: true })?.synced || false;
+}
 
 export function onChange(
     node: NodeInfo,
@@ -89,6 +101,10 @@ export function onChange(
         }
         parent.numListenersRecursive++;
 
+        if (!parent.listeners && !parent.listenersImmediate && isSyncedObservable(parent)) {
+            dispatchMiddlewareEvent(parent, undefined, 'listener-added');
+        }
+
         pathParent = [parent!.key!, ...pathParent];
         parent = parent.parent;
     }
@@ -103,19 +119,29 @@ export function onChange(
         // Clean up linked node listeners
         extraDisposes?.forEach((fn) => fn());
 
-        // Update listener counts up the tree
-        let parent = node;
+        // Update listener counts up the tree and track nodes that became fully cleared
+        const clearedRecursive: NodeInfo[] = [];
+        let parent: NodeInfo | undefined = node;
         while (parent) {
             parent.numListenersRecursive--;
+            if (parent.numListenersRecursive === 0) {
+                clearedRecursive.push(parent);
+            }
             parent = parent.parent!;
         }
-
         // Queue middleware event for listener removed
         dispatchMiddlewareEvent(node, listener, 'listener-removed');
-
         // If there are no more listeners in this set, queue the listeners-cleared event
         if (listeners.size === 0) {
             dispatchMiddlewareEvent(node, undefined, 'listeners-cleared');
+        }
+
+        for (const clearedNode of clearedRecursive) {
+            // Avoid double-queueing for the original node when we already queued due to its set being empty
+            if (clearedNode !== node || listeners.size !== 0) {
+                console.log('queueing listeners-cleared event for node', clearedNode.key);
+                dispatchMiddlewareEvent(clearedNode, undefined, 'listeners-cleared');
+            }
         }
     };
 }
