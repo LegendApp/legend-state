@@ -10,7 +10,7 @@ import type {
     TrackingType,
 } from './observableInterfaces';
 
-function isSyncedObservable(node: NodeInfo): boolean {
+export function isSyncedObservable(node: NodeInfo): boolean {
     // type patched, should we add it to the LinkedOptions?
     return (node.activationState as LinkedOptions & { synced?: true })?.synced || false;
 }
@@ -137,9 +137,8 @@ export function onChange(
         }
 
         for (const clearedNode of clearedRecursive) {
-            // Avoid double-queueing for the original node when we already queued due to its set being empty
-            if (clearedNode !== node || listeners.size !== 0) {
-                console.log('queueing listeners-cleared event for node', clearedNode.key);
+            // Dispatch listeners-cleared for all cleared nodes
+            if (clearedNode !== node) {
                 dispatchMiddlewareEvent(clearedNode, undefined, 'listeners-cleared');
             }
         }
