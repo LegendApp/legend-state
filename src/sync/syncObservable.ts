@@ -661,15 +661,21 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             value = transformSave(value);
         }
 
+        // Pending clears track whether a reset or clear happened while sets were in flight
+        // The generation count guards against older set responses removing newer pending edits
+        // Track whether a clear happened while a set was in-flight to preserve pending updates
         const setGeneration = localState.pendingSetGeneration;
         const pendingSetsSinceClear = localState.pendingSetsSinceClear || 0;
+        // Use generation tracking when available, otherwise fall back to the live pending count
         const hadPendingSets =
             setGeneration !== undefined
                 ? pendingSetsSinceClear > 0
                 : (state$.numPendingSets.peek() || 0) > 0;
         if (setGeneration !== undefined) {
+            // Record another in-flight set after the last clear
             localState.pendingSetsSinceClear = pendingSetsSinceClear + 1;
         }
+        // Track in-flight sets in sync state for UI and sequencing
         state$.numPendingSets.set((v) => (v || 0) + 1);
         state$.isSetting.set(true);
 
@@ -872,12 +878,17 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     }
                 }
 
+                // Decrement counts and clear deferred pending once all in-flight sets finish.
+                // Update pending counters and clear deferred pending once all sets resolve
                 state$.numPendingSets.set((v) => v! - 1);
                 const remainingSets = state$.numPendingSets.peek() || 0;
                 if (setGeneration !== undefined && localState.pendingSetGeneration === setGeneration) {
                     localState.pendingSetsSinceClear = (localState.pendingSetsSinceClear || 1) - 1;
                 }
                 if (!remainingSets) {
+                    // Once all in-flight sets finish we can drop the generation tracking state
+                    // This keeps the bookkeeping small while still protecting against stale clears
+                    // Clear generation tracking only when no sets are in flight
                     if (localState.pendingSetGeneration !== undefined && !localState.pendingSetsSinceClear) {
                         localState.pendingSetGeneration = undefined;
                         localState.pendingSetsSinceClear = undefined;
@@ -1090,6 +1101,9 @@ export function syncObservable<T>(
     const resetPendingState = () => {
         localState.pendingChanges = {};
         localState.pendingClears = undefined;
+        // Reset starts a new generation only when older sets are still in flight
+        // This lets later set completions detect that pending was cleared and avoid resurrecting it
+        // Only start tracking pending clears when there are in-flight sets
         const hasPendingSets = (syncStateValue.numPendingSets || 0) > 0;
         localState.pendingSetGeneration = hasPendingSets ? (localState.pendingSetGeneration ?? 0) + 1 : undefined;
         localState.pendingSetsSinceClear = hasPendingSets ? 0 : undefined;
