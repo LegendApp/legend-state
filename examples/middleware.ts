@@ -1,4 +1,7 @@
-import { observable, registerMiddleware, MiddlewareEvent, MiddlewareHandler } from '../index';
+import { observable, internal } from '../index';
+import type { MiddlewareEvent, MiddlewareHandler } from '../src/middleware';
+
+const registerMiddleware = internal.registerMiddleware;
 
 // Import necessary types
 import type { NodeInfo } from '../src/observableInterfaces';

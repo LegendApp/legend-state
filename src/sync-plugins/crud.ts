@@ -69,10 +69,8 @@ export interface CrudErrorParams extends Omit<SyncedErrorParams, 'source'> {
 
 export type CrudOnErrorFn = (error: Error, params: CrudErrorParams) => void;
 
-export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote> extends Omit<
-    SyncedOptions<TRemote, TLocal>,
-    'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet' | 'onError'
-> {
+export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet' | 'onError'> {
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,

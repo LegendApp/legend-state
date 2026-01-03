@@ -136,7 +136,9 @@ export interface ObserveEventCallback<T> {
     onCleanupReaction?: () => void;
 }
 
-export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
+export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> & {
+    changes: ChangeWithPathStr[];
+};
 
 export type WaitForSet<T> =
     | ((params: WaitForSetFnParams<T>) => any)
@@ -167,7 +169,16 @@ export interface UpdateFnParams<T = any> {
     lastSync?: number | undefined;
     changes?: Change[];
 }
-export interface UpdateSetFnParams<T = any> extends UpdateFnParams<T> {
+type DeepPartial<T> = T extends readonly (infer U)[]
+    ? ReadonlyArray<DeepPartial<U>>
+    : T extends Array<infer U>
+      ? Array<DeepPartial<U>>
+      : T extends object
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : T;
+
+export interface UpdateSetFnParams<T = any> extends Omit<UpdateFnParams<T>, 'value'> {
+    value: DeepPartial<T>;
     lastSync?: never;
     changes?: ChangeWithPathStr[];
 }

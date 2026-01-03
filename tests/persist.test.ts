@@ -632,11 +632,10 @@ describe('Pending', () => {
         const allowSecond$ = observable(false);
         const allowThird$ = observable(false);
         let setCalls = 0;
-        let obs$: any;
-        obs$ = observable(
+        const obs$ = observable(
             synced({
                 initial: { a: 0, b: 0 },
-                get: async () => obs$.peek(),
+                get: async ({ value$ }) => value$.peek(),
                 onBeforeGet: ({ clearPendingChanges }) => {
                     clearPendingChanges();
                 },
