@@ -546,7 +546,7 @@ describe('Pending', () => {
                                 prevAtPath: value.count - 1,
                                 pathStr: 'count',
                             },
-                        ] as any,
+                        ],
                     });
                 },
                 persist: {
@@ -626,6 +626,103 @@ describe('Pending', () => {
         await promiseTimeout(20);
 
         expect(state$.getPendingChanges()).toEqual({});
+    });
+    test('clearPendingChanges clears deferred pending so later updates apply', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        const allowThird$ = observable(false);
+        let setCalls = 0;
+        let obs$: any;
+        obs$ = observable(
+            synced({
+                initial: { a: 0, b: 0 },
+                get: async () => obs$.peek(),
+                onBeforeGet: ({ clearPendingChanges }) => {
+                    clearPendingChanges();
+                },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { a: value.a } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { b: value.b } });
+                    } else if (setCalls === 3) {
+                        await when(allowThird$);
+                        update({ value: { a: value.a + 1 } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.a.set(1);
+        await promiseTimeout(0);
+        obs$.b.set(2);
+        await promiseTimeout(0);
+
+        allowFirst$.set(true);
+        await promiseTimeout(20);
+
+        await syncState(obs$).sync();
+
+        obs$.a.set(3);
+        await promiseTimeout(0);
+
+        allowThird$.set(true);
+        await promiseTimeout(20);
+
+        expect(obs$.a.get()).toBe(4);
+
+        allowSecond$.set(true);
+        await promiseTimeout(20);
+    });
+    test('reset clears deferred pending so later updates apply', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        const allowThird$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { a: 0, b: 0 },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { a: value.a } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { b: value.b } });
+                    } else if (setCalls === 3) {
+                        await when(allowThird$);
+                        update({ value: { a: value.a + 1 } });
+                    }
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+
+        obs$.a.set(1);
+        await promiseTimeout(0);
+        obs$.b.set(2);
+        await promiseTimeout(0);
+
+        allowFirst$.set(true);
+        await promiseTimeout(20);
+
+        await state$.reset();
+
+        obs$.a.set(3);
+        await promiseTimeout(0);
+
+        allowThird$.set(true);
+        await promiseTimeout(20);
+
+        expect(obs$.a.get()).toBe(4);
     });
     test('Pending applied if changed', async () => {
         const persistName = getPersistName();

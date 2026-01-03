@@ -70,7 +70,7 @@ describe('sync set', () => {
                                 prevAtPath: value.count - 1,
                                 pathStr: 'count',
                             },
-                        ] as any,
+                        ],
                     });
                 },
             }),
@@ -359,7 +359,7 @@ describe('sync set', () => {
                                     prevAtPath: null,
                                     pathStr: 'user',
                                 },
-                            ] as any,
+                            ],
                         });
                     } else if (setCalls === 2) {
                         const childName = value.user.name;
@@ -374,7 +374,7 @@ describe('sync set', () => {
                                     prevAtPath: null,
                                     pathStr: 'user/name',
                                 },
-                            ] as any,
+                            ],
                         });
                     }
                 },

@@ -34,6 +34,9 @@ export interface Change {
     valueAtPath: any;
     prevAtPath: any;
 }
+export interface ChangeWithPathStr extends Change {
+    pathStr: string;
+}
 
 export type RecordValue<T> = T extends Record<string, infer t> ? t : never;
 export type ArrayValue<T> = T extends Array<infer t> ? t : never;
@@ -166,6 +169,7 @@ export interface UpdateFnParams<T = any> {
 }
 export interface UpdateSetFnParams<T = any> extends UpdateFnParams<T> {
     lastSync?: never;
+    changes?: ChangeWithPathStr[];
 }
 export type UpdateFn<T = any> = (params: UpdateFnParams<T>) => void;
 export type UpdateSetFn<T = any> = (params: UpdateSetFnParams<T>) => void;

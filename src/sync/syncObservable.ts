@@ -1,5 +1,6 @@
 import type {
     Change,
+    ChangeWithPathStr,
     ClassConstructor,
     GetMode,
     ListenerParams,
@@ -86,6 +87,8 @@ interface LocalState {
     pluginPersist?: ObservablePersistPlugin;
     pendingChanges?: PendingChanges;
     pendingClears?: PendingChanges;
+    pendingSetGeneration?: number;
+    pendingSetsSinceClear?: number;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -100,8 +103,6 @@ interface PreppedChangeRemote {
     queuedChange: QueuedChange;
     changesRemote: ChangeWithPathStr[];
 }
-
-type ChangeWithPathStr = Change & { pathStr: string };
 
 function parseLocalConfig(config: string | PersistOptions): {
     table: string;
@@ -569,7 +570,6 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
         if (promisesTransform.length > 0) {
             await Promise.all(promisesTransform);
         }
-
         return { queuedChange, changesRemote };
     }
 }
@@ -660,7 +660,10 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             value = transformSave(value);
         }
 
-        const hadPendingSets = (state$.numPendingSets.peek() || 0) > 0;
+        const setGeneration = localState.pendingSetGeneration || 0;
+        const pendingSetsSinceClear = localState.pendingSetsSinceClear || 0;
+        const hadPendingSets = pendingSetsSinceClear > 0;
+        localState.pendingSetsSinceClear = pendingSetsSinceClear + 1;
         state$.numPendingSets.set((v) => (v || 0) + 1);
         state$.isSetting.set(true);
 
@@ -864,6 +867,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 }
 
                 state$.numPendingSets.set((v) => v! - 1);
+                if (localState.pendingSetGeneration === setGeneration && localState.pendingSetsSinceClear) {
+                    localState.pendingSetsSinceClear -= 1;
+                }
                 const remainingSets = state$.numPendingSets.peek() || 0;
                 state$.isSetting.set(remainingSets > 0);
 
@@ -1362,6 +1368,9 @@ export function syncObservable<T>(
                         pendingChanges: pending && !isEmpty(pending) ? pending : undefined,
                         clearPendingChanges: async () => {
                             localState.pendingChanges = {};
+                            localState.pendingClears = undefined;
+                            localState.pendingSetGeneration = (localState.pendingSetGeneration || 0) + 1;
+                            localState.pendingSetsSinceClear = 0;
                             await updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
                                 pending: localState.pendingChanges,
                             });
@@ -1461,6 +1470,10 @@ export function syncObservable<T>(
         if (metadata) {
             Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
         }
+        localState.pendingChanges = {};
+        localState.pendingClears = undefined;
+        localState.pendingSetGeneration = (localState.pendingSetGeneration || 0) + 1;
+        localState.pendingSetsSinceClear = 0;
         const newState: Partial<ObservableSyncState> = {
             isPersistEnabled: false,
             isSyncEnabled: false,
@@ -1481,7 +1494,7 @@ export function syncObservable<T>(
         onChangeRemote(() => {
             obs$.set(syncOptions.initial ?? undefined);
         });
-        syncState$.isLoaded.set(false);
+        syncState$.isLoaded.set(!syncOptions.get);
         syncStateValue.isPersistEnabled = wasPersistEnabled;
         syncStateValue.isSyncEnabled = wasSyncEnabled;
         node.dirtyFn = sync;
