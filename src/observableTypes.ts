@@ -43,8 +43,7 @@ export type RemoveObservables<T> =
                     : T;
 
 interface ObservableArray<T, U>
-    extends
-        ObservablePrimitive<T>,
+    extends ObservablePrimitive<T>,
         Pick<Array<Observable<U>>, ArrayOverrideFnNames>,
         Omit<RemoveIndex<Array<U>>, ArrayOverrideFnNames> {}
 
@@ -73,7 +72,7 @@ type SetValue<T extends Set<any> | WeakSet<any>> = Parameters<T['has']>[0];
 type ObservableSet<T extends Set<any> | WeakSet<any>> = Omit<T, 'size' | 'add'> &
     Omit<ObservablePrimitive<T>, 'size'> & { size: number; add: (value: SetValue<T>) => Observable<T> };
 
-export interface ObservableBoolean<T> extends ObservablePrimitive<T> {
+export interface ObservableBoolean<T = any> extends ObservablePrimitive<T> {
     toggle(): void;
 }
 
