@@ -8,10 +8,8 @@ export interface SyncedFetchOnSavedParams<TRemote, TLocal = TRemote> {
     props: SyncedFetchProps<TRemote, TLocal>;
 }
 
-export interface SyncedFetchProps<TRemote, TLocal = TRemote> extends Omit<
-    SyncedOptions<TRemote, TLocal>,
-    'get' | 'set'
-> {
+export interface SyncedFetchProps<TRemote, TLocal = TRemote>
+    extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set'> {
     get: Selector<string>;
     set?: Selector<string>;
     getInit?: RequestInit;

@@ -70,10 +70,11 @@ export type SyncedSupabaseConfig<TRemote extends { id: string | number }, TLocal
     'create' | 'update' | 'delete'
 >;
 
-export interface SyncedSupabaseConfiguration extends Omit<
-    SyncedSupabaseConfig<{ id: string | number }, { id: string | number }>,
-    'persist' | keyof SyncedOptions
-> {
+export interface SyncedSupabaseConfiguration
+    extends Omit<
+        SyncedSupabaseConfig<{ id: string | number }, { id: string | number }>,
+        'persist' | keyof SyncedOptions
+    > {
     persist?: SyncedOptionsGlobal;
     enabled?: Observable<boolean>;
     as?: Exclude<CrudAsOption, 'value'>;
@@ -86,8 +87,8 @@ interface SyncedSupabaseProps<
     TOption extends CrudAsOption = 'object',
     TRemote extends SupabaseRowOf<Client, Collection, SchemaName> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
->
-    extends SyncedSupabaseConfig<TRemote, TLocal>, Omit<SyncedCrudPropsMany<TRemote, TRemote, TOption>, 'list'> {
+> extends SyncedSupabaseConfig<TRemote, TLocal>,
+        Omit<SyncedCrudPropsMany<TRemote, TRemote, TOption>, 'list'> {
     supabase?: Client;
     collection: Collection;
     schema?: SchemaName;

@@ -668,9 +668,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         const pendingSetsSinceClear = localState.pendingSetsSinceClear || 0;
         // Use generation tracking when available, otherwise fall back to the live pending count
         const hadPendingSets =
-            setGeneration !== undefined
-                ? pendingSetsSinceClear > 0
-                : (state$.numPendingSets.peek() || 0) > 0;
+            setGeneration !== undefined ? pendingSetsSinceClear > 0 : (state$.numPendingSets.peek() || 0) > 0;
         if (setGeneration !== undefined) {
             // Record another in-flight set after the last clear
             localState.pendingSetsSinceClear = pendingSetsSinceClear + 1;
@@ -791,7 +789,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                             pendingToOverlay.add(changesWithPath[i].pathStr);
                         }
                     }
-                    const pendingMetadata = saveLocal ? pluginPersist!.getMetadata(table, configLocal)?.pending : undefined;
+                    const pendingMetadata = saveLocal
+                        ? pluginPersist!.getMetadata(table, configLocal)?.pending
+                        : undefined;
                     const shouldDeferPendingClear = (state$.numPendingSets.peek() || 0) > 1;
 
                     for (let i = 0; i < pathStrs.length; i++) {
@@ -854,7 +854,10 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                                         if (!change.pathStr || !pendingToOverlay.has(change.pathStr)) {
                                             continue;
                                         }
-                                        const currentAtPath = getValueAtPath(currentValue as any, change.path as string[]);
+                                        const currentAtPath = getValueAtPath(
+                                            currentValue as any,
+                                            change.path as string[],
+                                        );
                                         updatePatch = setAtPath(
                                             updatePatch as any,
                                             change.path as string[],

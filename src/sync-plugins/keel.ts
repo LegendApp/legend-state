@@ -82,10 +82,8 @@ interface PageInfo {
     totalCount: number;
 }
 
-interface SyncedKeelPropsManyBase<TRemote extends { id: string }, TLocal, AOption extends CrudAsOption> extends Omit<
-    SyncedCrudPropsMany<TRemote, TLocal, AOption>,
-    'list'
-> {
+interface SyncedKeelPropsManyBase<TRemote extends { id: string }, TLocal, AOption extends CrudAsOption>
+    extends Omit<SyncedCrudPropsMany<TRemote, TLocal, AOption>, 'list'> {
     first?: number;
     get?: never;
 }
@@ -105,11 +103,8 @@ interface SyncedKeelPropsManyWhere<
     >;
     where?: Where | (() => Where);
 }
-interface SyncedKeelPropsManyNoWhere<
-    TRemote extends { id: string },
-    TLocal,
-    AOption extends CrudAsOption,
-> extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
+interface SyncedKeelPropsManyNoWhere<TRemote extends { id: string }, TLocal, AOption extends CrudAsOption>
+    extends SyncedKeelPropsManyBase<TRemote, TLocal, AOption> {
     list?: (params: KeelListParams<{}>) => Promise<
         CrudResult<
             APIResult<{
@@ -132,10 +127,8 @@ type SyncedKeelPropsMany<
         ? SyncedKeelPropsManyWhere<TRemote, TLocal, AOption, Where>
         : SyncedKeelPropsManyNoWhere<TRemote, TLocal, AOption>;
 
-interface SyncedKeelPropsSingle<TRemote extends { id: string }, TLocal> extends Omit<
-    SyncedCrudPropsSingle<TRemote, TLocal>,
-    'get'
-> {
+interface SyncedKeelPropsSingle<TRemote extends { id: string }, TLocal>
+    extends Omit<SyncedCrudPropsSingle<TRemote, TLocal>, 'get'> {
     get?: (params: KeelGetParams) => Promise<APIResult<TRemote>>;
 
     first?: never;
@@ -148,10 +141,11 @@ export interface KeelErrorParams extends CrudErrorParams {
     action: string;
 }
 
-export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote> extends Omit<
-    SyncedCrudPropsBase<TRemote, TLocal>,
-    'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt' | 'onError'
-> {
+export interface SyncedKeelPropsBase<TRemote extends { id: string }, TLocal = TRemote>
+    extends Omit<
+        SyncedCrudPropsBase<TRemote, TLocal>,
+        'create' | 'update' | 'delete' | 'updatePartial' | 'fieldUpdatedAt' | 'fieldCreatedAt' | 'onError'
+    > {
     client?: KeelClient;
     create?: (i: NoInfer<Partial<TRemote>>) => Promise<APIResult<NoInfer<TRemote>>>;
     update?: (params: { where: any; values?: Partial<NoInfer<TRemote>> }) => Promise<APIResult<TRemote>>;
