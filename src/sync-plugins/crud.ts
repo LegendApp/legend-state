@@ -520,9 +520,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               const isCreate =
                                   !pendingCreates.has(item[fieldId]) &&
                                   (fieldCreatedAt
-                                      ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
+                                      ? !prev?.[fieldCreatedAt!]
                                       : fieldUpdatedAt
-                                        ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
+                                        ? !item[fieldUpdatedAt] && !prev?.[fieldUpdatedAt!]
                                         : isNullOrUndefined(prev));
                               if (isCreate) {
                                   if (!item[fieldId]) {
