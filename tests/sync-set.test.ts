@@ -54,6 +54,40 @@ describe('sync set', () => {
         expect(obs$.note.get()).toBe('local');
     });
 
+    test('explicit update changes list preserves local changes on other paths', async () => {
+        const obs$ = observable(
+            synced({
+                initial: { count: 0, note: 'init' },
+                set: async ({ value, update }) => {
+                    await promiseTimeout(10);
+                    update({
+                        value: { count: value.count + 1, note: 'from-server' },
+                        changes: [
+                            {
+                                path: ['count'],
+                                pathTypes: ['object'],
+                                valueAtPath: value.count,
+                                prevAtPath: value.count - 1,
+                                pathStr: 'count',
+                            },
+                        ] as any,
+                    });
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.count.set(1);
+        await promiseTimeout(0);
+        obs$.note.set('local');
+
+        await promiseTimeout(20);
+
+        expect(obs$.count.get()).toBe(2);
+        expect(obs$.note.get()).toBe('local');
+    });
+
     test('server snapshot does not overwrite newer local changes to the same path', async () => {
         let setCalls = 0;
         const obs$ = observable(
@@ -78,6 +112,289 @@ describe('sync set', () => {
         await promiseTimeout(20);
 
         expect(obs$.count.get()).toBe(2);
+    });
+
+    test('out-of-order updates do not overwrite newer local changes when both updates return snapshots', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { count: 0 },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { count: value.count } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { count: value.count } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.count.set(1);
+        await promiseTimeout(0);
+        obs$.count.set(2);
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(0);
+        allowFirst$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.count.get()).toBe(2);
+    });
+
+    test('out-of-order root updates do not overwrite newer local root changes', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { count: 0, note: 'init' },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { ...value } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { ...value } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.set({ count: 1, note: 'first' });
+        await promiseTimeout(0);
+        obs$.set({ count: 2, note: 'second' });
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(0);
+        allowFirst$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.get()).toEqual({ count: 2, note: 'second' });
+    });
+
+    test('out-of-order nested updates do not overwrite newer local changes', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { user: { name: 'init', age: 1 } },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { user: { name: value.user.name } } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { user: { name: value.user.name } } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.user.name.set('first');
+        await promiseTimeout(0);
+        obs$.user.name.set('second');
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(0);
+        allowFirst$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.user.name.get()).toBe('second');
+    });
+
+    test('out-of-order array updates do not overwrite newer local changes', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { items: ['init'] },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { items: value.items } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { items: value.items } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.items[0].set('first');
+        await promiseTimeout(0);
+        obs$.items[0].set('second');
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(0);
+        allowFirst$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.items[0].get()).toBe('second');
+    });
+
+    test('multiple rapid updates keep the latest value when the oldest update returns last', async () => {
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        const allowThird$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { count: 0 },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { count: value.count } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { count: value.count } });
+                    } else if (setCalls === 3) {
+                        await when(allowThird$);
+                        update({ value: { count: value.count } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.count.set(1);
+        await promiseTimeout(0);
+        obs$.count.set(2);
+        await promiseTimeout(0);
+        obs$.count.set(3);
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        allowThird$.set(true);
+        await promiseTimeout(0);
+        allowFirst$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.count.get()).toBe(3);
+    });
+
+    test('out-of-order child update does not overwrite newer parent update', async () => {
+        const allowChild$ = observable(false);
+        const allowParent$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { user: { name: 'init', age: 1 } },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowChild$);
+                        update({ value: { user: { name: value.user.name } } });
+                    } else if (setCalls === 2) {
+                        await when(allowParent$);
+                        update({ value: { user: { ...value.user } } });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.user.name.set('child');
+        await promiseTimeout(0);
+        obs$.user.set({ name: 'parent', age: 2 });
+        await promiseTimeout(0);
+
+        allowParent$.set(true);
+        await promiseTimeout(0);
+        allowChild$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.user.get()).toEqual({ name: 'parent', age: 2 });
+    });
+
+    test('out-of-order parent update does not overwrite newer child change', async () => {
+        const allowParent$ = observable(false);
+        const allowChild$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { user: { name: 'init', age: 1 } },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        const parentValue = { ...value.user };
+                        await when(allowParent$);
+                        update({
+                            value: { user: { ...parentValue } },
+                            changes: [
+                                {
+                                    path: ['user'],
+                                    pathTypes: ['object'],
+                                    valueAtPath: parentValue,
+                                    prevAtPath: null,
+                                    pathStr: 'user',
+                                },
+                            ] as any,
+                        });
+                    } else if (setCalls === 2) {
+                        const childName = value.user.name;
+                        await when(allowChild$);
+                        update({
+                            value: { user: { name: childName } },
+                            changes: [
+                                {
+                                    path: ['user', 'name'],
+                                    pathTypes: ['object', 'object'],
+                                    valueAtPath: childName,
+                                    prevAtPath: null,
+                                    pathStr: 'user/name',
+                                },
+                            ] as any,
+                        });
+                    }
+                },
+            }),
+        );
+
+        obs$.get();
+
+        obs$.user.set({ name: 'parent', age: 2 });
+        await promiseTimeout(0);
+        obs$.user.name.set('child');
+        await promiseTimeout(0);
+
+        allowChild$.set(true);
+        await promiseTimeout(0);
+        allowParent$.set(true);
+
+        await promiseTimeout(20);
+
+        expect(obs$.user.get()).toEqual({ name: 'child', age: 2 });
     });
 
     test('nested path merges without overwriting sibling changes', async () => {

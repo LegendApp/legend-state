@@ -288,6 +288,345 @@ describe('Pending', () => {
         expect(pending).toEqual({});
         expect(didSetWrongValue).toEqual(false);
     });
+    test('pending clears after newer save resolves while older save is in-flight', async () => {
+        const persistName = getPersistName();
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { test: 'init' },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { test: value.test } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { test: value.test } });
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.test.set('first');
+        await promiseTimeout(0);
+        obs$.test.set('second');
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.test.get()).toBe('second');
+        expect(state$.getPendingChanges()).toEqual({});
+
+        allowFirst$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.test.get()).toBe('second');
+        expect(state$.getPendingChanges()).toEqual({});
+    });
+    test('out-of-order saves clear only the completed path', async () => {
+        const persistName = getPersistName();
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { a: 0, b: 0 },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { a: value.a } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { b: value.b } });
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.a.set(1);
+        await promiseTimeout(0);
+        obs$.b.set(2);
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(10);
+
+        const pendingAfterSecond = state$.getPendingChanges();
+        expect(pendingAfterSecond).toEqual({ a: { p: 0, t: ['object'], v: 1 } });
+
+        const metadataAfterSecond = JSON.parse(localStorage.getItem(persistName + '__m')!);
+        expect(metadataAfterSecond.pending).toEqual(pendingAfterSecond);
+
+        allowFirst$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.get()).toEqual({ a: 1, b: 2 });
+        expect(state$.getPendingChanges()).toEqual({});
+
+        const metadataAfterFirst = JSON.parse(localStorage.getItem(persistName + '__m')!);
+        expect(metadataAfterFirst.pending).toEqual({});
+    });
+    test('nested path out-of-order saves keep the latest local value', async () => {
+        const persistName = getPersistName();
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { user: { name: 'init', age: 1 } },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { user: { name: value.user.name } } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { user: { name: value.user.name } } });
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.user.name.set('first');
+        await promiseTimeout(0);
+        obs$.user.name.set('second');
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.user.name.get()).toBe('second');
+        expect(state$.getPendingChanges()).toEqual({});
+
+        allowFirst$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.user.name.get()).toBe('second');
+        expect(state$.getPendingChanges()).toEqual({});
+    });
+    test('array index out-of-order saves keep the latest local value', async () => {
+        const persistName = getPersistName();
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { items: ['init'] },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { items: value.items } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                        update({ value: { items: value.items } });
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.items[0].set('first');
+        await promiseTimeout(0);
+        obs$.items[0].set('second');
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.items[0].get()).toBe('second');
+        expect(state$.getPendingChanges()).toEqual({});
+
+        allowFirst$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.items[0].get()).toBe('second');
+        expect(state$.getPendingChanges()).toEqual({});
+    });
+    test('newer save without update does not allow older snapshot to overwrite', async () => {
+        const persistName = getPersistName();
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { count: 0 },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { count: value.count } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.count.set(1);
+        await promiseTimeout(0);
+        obs$.count.set(2);
+        await promiseTimeout(0);
+
+        allowSecond$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.count.get()).toBe(2);
+        expect(state$.getPendingChanges()).toEqual({});
+
+        allowFirst$.set(true);
+        await promiseTimeout(10);
+
+        expect(obs$.count.get()).toBe(2);
+        expect(state$.getPendingChanges()).toEqual({});
+    });
+    test('pending retains unacknowledged paths when update changes list is partial', async () => {
+        const persistName = getPersistName();
+        const allowUpdate$ = observable(false);
+        const obs$ = observable(
+            synced({
+                initial: { count: 0, note: 'init' },
+                set: async ({ value, update }) => {
+                    await when(allowUpdate$);
+                    update({
+                        value: { count: value.count + 1, note: 'from-server' },
+                        changes: [
+                            {
+                                path: ['count'],
+                                pathTypes: ['object'],
+                                valueAtPath: value.count,
+                                prevAtPath: value.count - 1,
+                                pathStr: 'count',
+                            },
+                        ] as any,
+                    });
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.count.set(1);
+        await promiseTimeout(0);
+        obs$.note.set('local');
+        await promiseTimeout(0);
+
+        allowUpdate$.set(true);
+        await promiseTimeout(20);
+
+        expect(obs$.count.get()).toBe(2);
+        expect(obs$.note.get()).toBe('local');
+
+        const pending = state$.getPendingChanges();
+        expect(pending).toEqual({ note: { p: 'init', t: ['object'], v: 'local' } });
+
+        const metadata = JSON.parse(localStorage.getItem(persistName + '__m')!);
+        expect(metadata.pending).toEqual(pending);
+    });
+    test('pending metadata is preserved when older save completes before newer save', async () => {
+        const persistName = getPersistName();
+        const allowFirst$ = observable(false);
+        const allowSecond$ = observable(false);
+        let setCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { test: 'init' },
+                set: async ({ value, update }) => {
+                    setCalls += 1;
+                    if (setCalls === 1) {
+                        await when(allowFirst$);
+                        update({ value: { test: value.test } });
+                    } else if (setCalls === 2) {
+                        await when(allowSecond$);
+                    }
+                },
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.test.set('first');
+        await promiseTimeout(0);
+        obs$.test.set('second');
+        await promiseTimeout(0);
+
+        allowFirst$.set(true);
+        await promiseTimeout(20);
+
+        expect(obs$.test.get()).toBe('second');
+        const pendingAfterFirst = state$.getPendingChanges();
+        expect(pendingAfterFirst?.test?.v).toBe('second');
+
+        const metadataAfterFirst = JSON.parse(localStorage.getItem(persistName + '__m')!);
+        expect(metadataAfterFirst.pending).toEqual(pendingAfterFirst);
+
+        allowSecond$.set(true);
+        await promiseTimeout(20);
+
+        expect(state$.getPendingChanges()).toEqual({});
+    });
     test('Pending applied if changed', async () => {
         const persistName = getPersistName();
         const obs$ = observable(
