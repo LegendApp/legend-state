@@ -1382,6 +1382,79 @@ describe('reset sync state', () => {
         return testReset({ test: 0 });
     });
 });
+describe('reset isLoaded', () => {
+    test('reset keeps isLoaded false until subscribe update arrives', async () => {
+        const allowUpdate$ = observable(false);
+        let subscribeCalls = 0;
+        const obs$ = observable(
+            synced({
+                initial: { count: 0 },
+                subscribe: ({ update }) => {
+                    subscribeCalls += 1;
+                    when(allowUpdate$).then(() => {
+                        update({ value: { count: 1 } });
+                    });
+                    return () => {};
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+
+        allowUpdate$.set(true);
+        await promiseTimeout(20);
+
+        expect(obs$.count.get()).toEqual(1);
+        expect(subscribeCalls).toBeGreaterThan(0);
+
+        await state$.reset();
+
+        allowUpdate$.set(false);
+        await state$.sync();
+        await promiseTimeout(0);
+
+        expect(state$.isLoaded.get()).toEqual(false);
+        expect(subscribeCalls).toBeGreaterThan(1);
+
+        allowUpdate$.set(true);
+        await promiseTimeout(20);
+
+        expect(obs$.count.get()).toEqual(1);
+        expect(state$.isLoaded.get()).toEqual(true);
+    });
+    test('set-only save does not wait for isLoaded after reset', async () => {
+        const allowSet$ = observable(false);
+        let didUpdate = false;
+        const obs$ = observable(
+            synced({
+                initial: { count: 0 },
+                set: async ({ value, update }) => {
+                    await when(allowSet$);
+                    update({ value: { count: value.count + 1 } });
+                    didUpdate = true;
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+
+        await state$.reset();
+
+        expect(state$.isLoaded.get()).toEqual(false);
+
+        obs$.count.set(1);
+        await promiseTimeout(0);
+
+        allowSet$.set(true);
+        await promiseTimeout(20);
+
+        expect(didUpdate).toEqual(true);
+        expect(obs$.count.get()).toEqual(2);
+        expect(state$.isLoaded.get()).toEqual(false);
+    });
+});
 
 describe('multiple persists', () => {
     test('saves to multiple persists with two syncObservable', async () => {

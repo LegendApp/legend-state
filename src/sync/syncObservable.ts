@@ -629,8 +629,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     const saveLocal = !!persist?.name;
 
     if (changesRemote.length > 0) {
+        const shouldWaitForLoad = !!(syncOptions.get || syncOptions.subscribe);
         // Wait for remote to be ready before saving
-        if (!syncState.isLoaded.peek()) {
+        if (shouldWaitForLoad && !syncState.isLoaded.peek()) {
             await when(syncState.isLoaded);
 
             // If this was not already loaded that means that the value was set before it was loaded from remote
@@ -660,10 +661,15 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             value = transformSave(value);
         }
 
-        const setGeneration = localState.pendingSetGeneration || 0;
-        const pendingSetsSinceClear = localState.pendingSetsSinceClear || 0;
-        const hadPendingSets = pendingSetsSinceClear > 0;
-        localState.pendingSetsSinceClear = pendingSetsSinceClear + 1;
+        const setGeneration = localState.pendingSetGeneration;
+        const trackPendingClears = setGeneration !== undefined;
+        const pendingSetsSinceClear = trackPendingClears ? localState.pendingSetsSinceClear || 0 : 0;
+        const hadPendingSets = trackPendingClears
+            ? pendingSetsSinceClear > 0
+            : (state$.numPendingSets.peek() || 0) > 0;
+        if (trackPendingClears) {
+            localState.pendingSetsSinceClear = pendingSetsSinceClear + 1;
+        }
         state$.numPendingSets.set((v) => (v || 0) + 1);
         state$.isSetting.set(true);
 
@@ -867,10 +873,21 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 }
 
                 state$.numPendingSets.set((v) => v! - 1);
-                if (localState.pendingSetGeneration === setGeneration && localState.pendingSetsSinceClear) {
-                    localState.pendingSetsSinceClear -= 1;
-                }
                 const remainingSets = state$.numPendingSets.peek() || 0;
+                if (trackPendingClears && localState.pendingSetGeneration === setGeneration) {
+                    const pendingSetsSinceClear = localState.pendingSetsSinceClear || 0;
+                    if (pendingSetsSinceClear > 0) {
+                        localState.pendingSetsSinceClear = pendingSetsSinceClear - 1;
+                    }
+                }
+                if (
+                    localState.pendingSetGeneration !== undefined &&
+                    !localState.pendingSetsSinceClear &&
+                    remainingSets === 0
+                ) {
+                    localState.pendingSetGeneration = undefined;
+                    localState.pendingSetsSinceClear = undefined;
+                }
                 state$.isSetting.set(remainingSets > 0);
 
                 if (remainingSets === 0 && localState.pendingClears && !isEmpty(localState.pendingClears)) {
@@ -1076,6 +1093,12 @@ export function syncObservable<T>(
     );
     const localState: LocalState = {};
     let sync: (options?: ObservableSyncStateOptions) => Promise<void>;
+    const resetPendingState = () => {
+        localState.pendingChanges = {};
+        localState.pendingClears = undefined;
+        localState.pendingSetGeneration = (localState.pendingSetGeneration ?? 0) + 1;
+        localState.pendingSetsSinceClear = 0;
+    };
 
     const syncState$ = syncState(obs$);
     const syncStateValue = getNodeValue(getNode(syncState$)) as ObservableSyncState;
@@ -1304,7 +1327,7 @@ export function syncObservable<T>(
                                             // If no get then we need to set the loaded state
                                             if (!syncState$.isLoaded.peek()) {
                                                 syncState$.assign({
-                                                    isLoaded: syncStateValue.numPendingRemoteLoads! < 1,
+                                                    isLoaded: (syncStateValue.numPendingRemoteLoads || 0) < 1,
                                                     error: undefined,
                                                     isGetting: syncStateValue.numPendingGets! > 0,
                                                 });
@@ -1367,10 +1390,7 @@ export function syncObservable<T>(
                         lastSync,
                         pendingChanges: pending && !isEmpty(pending) ? pending : undefined,
                         clearPendingChanges: async () => {
-                            localState.pendingChanges = {};
-                            localState.pendingClears = undefined;
-                            localState.pendingSetGeneration = (localState.pendingSetGeneration || 0) + 1;
-                            localState.pendingSetsSinceClear = 0;
+                            resetPendingState();
                             await updateMetadataImmediate(obs$, localState, syncState$, syncOptions, {
                                 pending: localState.pendingChanges,
                             });
@@ -1470,10 +1490,7 @@ export function syncObservable<T>(
         if (metadata) {
             Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
         }
-        localState.pendingChanges = {};
-        localState.pendingClears = undefined;
-        localState.pendingSetGeneration = (localState.pendingSetGeneration || 0) + 1;
-        localState.pendingSetsSinceClear = 0;
+        resetPendingState();
         const newState: Partial<ObservableSyncState> = {
             isPersistEnabled: false,
             isSyncEnabled: false,
@@ -1494,7 +1511,6 @@ export function syncObservable<T>(
         onChangeRemote(() => {
             obs$.set(syncOptions.initial ?? undefined);
         });
-        syncState$.isLoaded.set(!syncOptions.get);
         syncStateValue.isPersistEnabled = wasPersistEnabled;
         syncStateValue.isSyncEnabled = wasSyncEnabled;
         node.dirtyFn = sync;
