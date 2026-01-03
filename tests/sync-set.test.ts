@@ -429,7 +429,7 @@ describe('sync set', () => {
 
     test('root set merges snapshot when local value is unchanged', async () => {
         const obs$ = observable(
-            synced({
+            synced<{ count: number; server?: boolean }>({
                 initial: { count: 0 },
                 set: async ({ value, update }) => {
                     await promiseTimeout(10);

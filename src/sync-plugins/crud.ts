@@ -1,5 +1,5 @@
 import {
-    Change,
+    ChangeWithPathStr,
     ObservableEvent,
     ObservableParam,
     RetryOptions,
@@ -59,7 +59,8 @@ export interface SyncedCrudOnSavedParams<TRemote extends object, TLocal> {
     props: SyncedCrudPropsBase<TRemote, TLocal>;
 }
 
-export interface WaitForSetCrudFnParams<T> extends WaitForSetFnParams<T> {
+export interface WaitForSetCrudFnParams<T> extends Omit<WaitForSetFnParams<T>, 'changes'> {
+    changes: ChangeWithPathStr[];
     type: 'create' | 'update' | 'delete';
 }
 
@@ -155,7 +156,7 @@ function retrySet(
     action: 'create' | 'update' | 'delete',
     itemKey: string,
     itemValue: any,
-    change: Change,
+    change: ChangeWithPathStr,
     queuedRetries: {
         create: Map<string, any>;
         update: Map<string, any>;
@@ -163,7 +164,7 @@ function retrySet(
     },
     itemValueFull: any,
     actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
-    saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean, change: Change) => void,
+    saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean, change: ChangeWithPathStr) => void,
 ) {
     // If delete then remove from create/update, and vice versa
     if (action === 'delete') {
@@ -392,7 +393,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   const updates = new Map<string, object>();
                   const updateFullValues = new Map<string, object>();
                   const deletes = new Set<TRemote>();
-                  const changesById = new Map<string, Change>();
+                  const changesById = new Map<string, ChangeWithPathStr>();
 
                   const getUpdateValue = (itemValue: object, prev: object) => {
                       return updatePartial
@@ -559,7 +560,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       input: TRemote,
                       data: CrudResult<TRemote>,
                       isCreate: boolean,
-                      change: Change,
+                      change: ChangeWithPathStr,
                   ) => {
                       if (data) {
                           let saved: Partial<TLocal> = (

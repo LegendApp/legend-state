@@ -136,9 +136,7 @@ export interface ObserveEventCallback<T> {
     onCleanupReaction?: () => void;
 }
 
-export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T> & {
-    changes: ChangeWithPathStr[];
-};
+export type SetParams<T> = ListenerParams<T extends Promise<infer t> ? t : T>;
 
 export type WaitForSet<T> =
     | ((params: WaitForSetFnParams<T>) => any)

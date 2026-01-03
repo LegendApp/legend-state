@@ -6,6 +6,7 @@ import type { AsyncStorageStatic } from '@react-native-async-storage/async-stora
 
 import type {
     Change,
+    ChangeWithPathStr,
     ClassConstructor,
     GetMode,
     LinkedOptions,
@@ -56,7 +57,10 @@ export interface SyncedGetParams<T> extends SyncedGetSetBaseParams<T> {
     options: SyncedOptions;
 }
 
-export interface SyncedSetParams<T> extends Pick<SetParams<T>, 'changes' | 'value'>, SyncedGetSetBaseParams<T> {
+export interface SyncedSetParams<T>
+    extends Omit<Pick<SetParams<T>, 'changes' | 'value'>, 'changes'>,
+        SyncedGetSetBaseParams<T> {
+    changes: ChangeWithPathStr[];
     update: UpdateSetFn<T>;
     onError: (error: Error, params: SyncedErrorParams) => void;
 }

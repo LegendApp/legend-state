@@ -1,4 +1,4 @@
-import { batch, isEmpty, isFunction, observable, when } from '@legendapp/state';
+import { batch, isEmpty, isFunction, observable, when, type UpdateSetFnParams } from '@legendapp/state';
 import {
     createRevertChanges,
     type SyncedGetParams,
@@ -472,7 +472,7 @@ export function syncedKeel<
             params.cancelRetry = true;
             // This has already been saved but didn't update pending changes, so just update with {} to clear the pending state
             update({
-                value: {} as TRemote,
+                value: {} as UpdateSetFnParams<TRemote>['value'],
                 mode: 'assign',
             });
         } else if (from === 'delete' && error.message === 'record not found') {
