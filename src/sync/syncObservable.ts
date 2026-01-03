@@ -85,6 +85,7 @@ const promisesLocalSaves = new Set<Promise<void>>();
 interface LocalState {
     pluginPersist?: ObservablePersistPlugin;
     pendingChanges?: PendingChanges;
+    pendingClears?: PendingChanges;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -519,6 +520,9 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                                         pathTypesChild,
                                         valueAtPath,
                                     );
+                                    if (localState.pendingClears?.[pathParent]) {
+                                        delete localState.pendingClears[pathParent];
+                                    }
                                 }
                             }
                             if (!found) {
@@ -527,6 +531,9 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                                 for (const key in localState.pendingChanges) {
                                     if (key !== pathStr && key.startsWith(pathStr)) {
                                         delete localState.pendingChanges[key];
+                                        if (localState.pendingClears?.[key]) {
+                                            delete localState.pendingClears[key];
+                                        }
                                     }
                                 }
                                 // The "p" saved in pending should be the previous state before changes,
@@ -538,6 +545,9 @@ async function prepChangeRemote(queuedChange: QueuedChange): Promise<PreppedChan
                                 // Pending value is the untransformed value because it gets loaded without transformment
                                 // and forwarded through to onObsChange where it gets transformed before save
                                 localState.pendingChanges[pathStr].v = valueAtPath;
+                                if (localState.pendingClears?.[pathStr]) {
+                                    delete localState.pendingClears[pathStr];
+                                }
                             }
 
                             // Prepare the remote change with the transformed path/value
@@ -650,6 +660,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             value = transformSave(value);
         }
 
+        const hadPendingSets = (state$.numPendingSets.peek() || 0) > 0;
         state$.numPendingSets.set((v) => (v || 0) + 1);
         state$.isSetting.set(true);
 
@@ -729,30 +740,67 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 // Because save happens after a timeout and they're batched together, some calls to save will
                 // return saved data and others won't, so those can be ignored.
                 const { value: updateValue, changes: updateChanges = changesRemote } = updateResult! || {};
-                const pathStrs = Array.from(
-                    new Set((updateChanges as ChangeWithPathStr[]).map((change) => change.pathStr)),
-                );
+                const changesWithPath = updateChanges as ChangeWithPathStr[];
+                const pathStrs = Array.from(new Set(changesWithPath.map((change) => change.pathStr)));
                 if (pathStrs.length > 0) {
                     let transformedChanges: object | undefined = undefined;
                     const metadata: PersistMetadata = {};
-                    if (saveLocal) {
-                        const pendingMetadata = pluginPersist!.getMetadata(table, configLocal)?.pending;
-                        const pending = localState.pendingChanges;
+                    const pending = localState.pendingChanges;
+                    const pendingToKeep = new Set<string>();
+                    if (pending) {
+                        const changesByPath = new Map<string, ChangeWithPathStr>();
+                        for (let i = 0; i < changesWithPath.length; i++) {
+                            const change = changesWithPath[i];
+                            changesByPath.set(change.pathStr, change);
+                        }
+                        for (const key in pending) {
+                            const pendingEntry = pending[key];
+                            if (!pendingEntry) {
+                                continue;
+                            }
+                            const change = changesByPath.get(key);
+                            if (!change || !deepEqual(pendingEntry.v, change.valueAtPath)) {
+                                pendingToKeep.add(key);
+                            }
+                        }
+                    }
+                    const pendingToOverlay = new Set(pendingToKeep);
+                    const pendingClears = localState.pendingClears;
+                    if (pendingClears) {
+                        for (const key in pendingClears) {
+                            pendingToOverlay.add(key);
+                        }
+                    }
+                    if (hadPendingSets) {
+                        for (let i = 0; i < changesWithPath.length; i++) {
+                            pendingToOverlay.add(changesWithPath[i].pathStr);
+                        }
+                    }
+                    const pendingMetadata = saveLocal ? pluginPersist!.getMetadata(table, configLocal)?.pending : undefined;
+                    const shouldDeferPendingClear = (state$.numPendingSets.peek() || 0) > 1;
 
-                        for (let i = 0; i < pathStrs.length; i++) {
-                            const pathStr = pathStrs[i];
-                            // Clear pending for this path
-                            if (pendingMetadata?.[pathStr]) {
-                                // Remove pending from persisted medata state
-                                delete pendingMetadata[pathStr];
-                                metadata.pending = pendingMetadata;
+                    for (let i = 0; i < pathStrs.length; i++) {
+                        const pathStr = pathStrs[i];
+                        if (pendingToKeep.has(pathStr)) {
+                            continue;
+                        }
+                        if (shouldDeferPendingClear && pending?.[pathStr]) {
+                            if (!localState.pendingClears) {
+                                localState.pendingClears = {};
                             }
-                            // Clear pending for this path if not already removed by above
-                            // pendingMetadata === pending sometimes
-                            if (pending?.[pathStr]) {
-                                // Remove pending from local state
-                                delete pending[pathStr];
-                            }
+                            localState.pendingClears[pathStr] = pending[pathStr];
+                        }
+                        // Clear pending for this path
+                        if (pendingMetadata?.[pathStr]) {
+                            // Remove pending from persisted medata state
+                            delete pendingMetadata[pathStr];
+                            metadata.pending = pendingMetadata;
+                        }
+                        // Clear pending for this path if not already removed by above
+                        // pendingMetadata === pending sometimes
+                        if (pending?.[pathStr]) {
+                            // Remove pending from local state
+                            delete pending[pathStr];
                         }
                     }
 
@@ -766,7 +814,46 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         if (isPromise(transformedChanges)) {
                             transformedChanges = (await transformedChanges) as object;
                         }
-                        onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
+                        if (pendingToOverlay.size === 0) {
+                            onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
+                        } else if (!pendingToOverlay.has('')) {
+                            let updatePatch: object | undefined = transformedChanges;
+                            if (typeof updatePatch === 'object' && updatePatch !== null) {
+                                updatePatch = clone(updatePatch);
+                                const currentValue = obs$.peek();
+                                for (const pathStr of pendingToOverlay) {
+                                    if (!pathStr) {
+                                        continue;
+                                    }
+                                    const pendingEntry = pending?.[pathStr] || pendingClears?.[pathStr];
+                                    if (!pendingEntry) {
+                                        continue;
+                                    }
+                                    const path = pathStr.split('/').filter((p) => p);
+                                    const currentAtPath = getValueAtPath(currentValue as any, path);
+                                    updatePatch = setAtPath(updatePatch as any, path, pendingEntry.t, currentAtPath);
+                                }
+                                if (hadPendingSets) {
+                                    for (let i = 0; i < changesWithPath.length; i++) {
+                                        const change = changesWithPath[i];
+                                        if (!change.pathStr || !pendingToOverlay.has(change.pathStr)) {
+                                            continue;
+                                        }
+                                        const currentAtPath = getValueAtPath(currentValue as any, change.path as string[]);
+                                        updatePatch = setAtPath(
+                                            updatePatch as any,
+                                            change.path as string[],
+                                            change.pathTypes,
+                                            currentAtPath,
+                                        );
+                                    }
+                                }
+                            }
+
+                            if (updatePatch !== undefined) {
+                                onChangeRemote(() => mergeIntoObservable(obs$, updatePatch));
+                            }
+                        }
                     }
 
                     if (saveLocal) {
@@ -777,7 +864,12 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 }
 
                 state$.numPendingSets.set((v) => v! - 1);
-                state$.isSetting.set(state$.numPendingSets.peek()! > 0);
+                const remainingSets = state$.numPendingSets.peek() || 0;
+                state$.isSetting.set(remainingSets > 0);
+
+                if (remainingSets === 0 && localState.pendingClears && !isEmpty(localState.pendingClears)) {
+                    localState.pendingClears = undefined;
+                }
 
                 onAfterSet?.();
             }
