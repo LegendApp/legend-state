@@ -210,37 +210,38 @@ describe('Middleware System', () => {
                 }, 0);
             });
         });
+    });
 
-        test('should validate listeners-cleared events before dispatching', () => {
-            const handler = jest.fn();
-            registerMiddleware(countNode, 'listeners-cleared', handler);
+    test('should validate listeners-cleared events on root node before dispatching', () => {
+        const handler = jest.fn();
+        // Register middleware on the root node so it can observe when the entire tree is cleared
+        registerMiddleware(rootNode, 'listeners-cleared', handler);
 
-            // Add and remove a single listener to trigger listeners-cleared
-            const unsubscribe = store.count.onChange(() => {});
-            unsubscribe();
+        // Add and remove a single listener to trigger listeners-cleared on both the node and root
+        const unsubscribe = store.user.name.onChange(() => {});
+        unsubscribe();
 
-            // Wait for first microtask to complete
-            return new Promise((resolve) => {
+        // Wait for first microtask to complete
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                expect(handler).toHaveBeenCalledTimes(1);
+
+                // Reset the mock
+                handler.mockReset();
+
+                // Add another listener so the node is not empty
+                store.user.name.onChange(() => {});
+
+                // Try to dispatch a cleared event when there are still listeners
+                dispatchMiddlewareEvent(rootNode, undefined, 'listeners-cleared');
+
+                // Wait for second microtask
                 setTimeout(() => {
-                    expect(handler).toHaveBeenCalledTimes(1);
-
-                    // Reset the mock
-                    handler.mockReset();
-
-                    // Add another listener so the node is not empty
-                    store.count.onChange(() => {});
-
-                    // Try to dispatch a cleared event when there are still listeners
-                    dispatchMiddlewareEvent(countNode, undefined, 'listeners-cleared');
-
-                    // Wait for second microtask
-                    setTimeout(() => {
-                        // Should not be called because node still has listeners
-                        expect(handler).not.toHaveBeenCalled();
-                        resolve(null);
-                    }, 0);
+                    // Should not be called because node still has listeners
+                    expect(handler).not.toHaveBeenCalled();
+                    resolve(null);
                 }, 0);
-            });
+            }, 0);
         });
     });
 
