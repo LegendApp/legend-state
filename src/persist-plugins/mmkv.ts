@@ -118,7 +118,11 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
         const v = this.data[table];
         if (v !== undefined) {
             try {
-                storage.set(table, safeStringify(v));
+                if (v !== null) {
+                    storage.set(table, safeStringify(v));
+                } else {
+                    storage.delete(table);
+                }
             } catch (err) {
                 console.error(err);
             }
