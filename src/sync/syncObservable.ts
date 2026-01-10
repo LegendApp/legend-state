@@ -1516,7 +1516,7 @@ export function syncObservable<T>(
         isSubscribed = false;
         unsubscribe?.();
         unsubscribe = undefined;
-        const promise = syncStateValue.resetPersistence();
+        const promise = syncStateValue.resetPersistence?.() ?? Promise.resolve();
         onChangeRemote(() => {
             obs$.set(syncOptions.initial ?? undefined);
         });
