@@ -294,4 +294,39 @@ describe('Undo/Redo', () => {
         expect(undos$.get()).toBe(2);
         expect(redos$.get()).toBe(1);
     });
+
+    test('Undo/Redo with limit clears redo stack on new change', () => {
+        // Regression test: when using a limit, making a change after undo should clear the redo stack
+        const obs$ = observable({ value: 'A' });
+        const { undo, undos$, redos$, getHistory } = undoRedo(obs$, { limit: 10 });
+
+        // Make some changes
+        obs$.value.set('B');
+        obs$.value.set('C');
+
+        expect(undos$.get()).toBe(2);
+        expect(redos$.get()).toBe(0);
+        expect(getHistory()).toEqual([{ value: 'A' }, { value: 'B' }, { value: 'C' }]);
+
+        // Undo once (C -> B)
+        undo();
+        expect(obs$.get()).toEqual({ value: 'B' });
+        expect(undos$.get()).toBe(1);
+        expect(redos$.get()).toBe(1); // Can redo to C
+
+        // Make a NEW change - this should clear the redo stack
+        obs$.value.set('D');
+        expect(obs$.get()).toEqual({ value: 'D' });
+        expect(undos$.get()).toBe(2); // A -> B -> D
+        expect(redos$.get()).toBe(0); // Redo stack should be cleared!
+
+        // History should NOT contain C anymore
+        expect(getHistory()).toEqual([{ value: 'A' }, { value: 'B' }, { value: 'D' }]);
+
+        // Undo should go back to B, not C
+        undo();
+        expect(obs$.get()).toEqual({ value: 'B' });
+        expect(undos$.get()).toBe(1);
+        expect(redos$.get()).toBe(1); // Can redo to D (not C)
+    });
 });
