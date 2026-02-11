@@ -3493,16 +3493,26 @@ describe('_', () => {
     });
 });
 describe('Built-in functions', () => {
-    test('Adding observables should throw', () => {
+    test('Adding observables should warn and return NaN', () => {
         const obs = observable({ x: 0, y: 0 });
 
         const x = obs.x;
         const y = obs.y;
 
-        expect(() => {
-            // @ts-expect-error Testing error
-            x + y;
-        }).toThrowError(/observable is not a primitive/);
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        // @ts-expect-error Testing primitive coercion
+        const result = x + y;
+
+        // Should produce NaN since both observables coerce to NaN for numeric hint
+        expect(result).toBeNaN();
+
+        // Should warn in development mode
+        expect(warnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('observable is being converted to a primitive'),
+        );
+
+        warnSpy.mockRestore();
     });
 });
 describe('setAtPath', () => {

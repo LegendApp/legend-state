@@ -395,11 +395,16 @@ export function flushPending() {
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeInfo, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
-            throw new Error(
-                process.env.NODE_ENV === 'development'
-                    ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
-                    : '[legend-state] observable is not a primitive.',
-            );
+            // Return a toPrimitive function instead of throwing so that external code
+            // (e.g. React 19's dev-mode logComponentRender) can safely coerce observables
+            // without crashing. A dev-mode warning is still emitted to help catch
+            // accidental primitive usage in user code.
+            if (process.env.NODE_ENV === 'development') {
+                console.warn(
+                    '[legend-state] observable is being converted to a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.',
+                );
+            }
+            return (hint: string) => (hint === 'number' ? NaN : '[Observable]');
         }
         if (p === symbolGetNode) {
             return node;
