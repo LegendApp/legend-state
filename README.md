@@ -67,7 +67,8 @@ function FineGrained() {
 
 ### 4. 💾 Powerful sync and persistence
 
-Legend-State includes a powerful [sync and persistence system](../../usage/persist-sync). It easily enables local-first apps by optimistically applying all changes locally first, retrying changes even after restart until they eventually sync, and syncing minimal diffs. We use Legend-State as the sync systems in [Legend](https://legendapp.com) and [Bravely](https://bravely.io), so it is by necessity very full featured while being simple to set up.
+Legend-State includes a powerful [sync and persistence system](https://www.legendapp.com/open-source/state/v3/usage/persist-sync/)
+. It easily enables local-first apps by optimistically applying all changes locally first, retrying changes even after restart until they eventually sync, and syncing minimal diffs. We use Legend-State as the sync systems in [Legend](https://legendapp.com) and [Bravely](https://bravely.io), so it is by necessity very full featured while being simple to set up.
 
 Local persistence plugins for the browser and React Native are included, with sync plugins for [Keel](https://www.keel.so), [Supabase](https://www.supabase.com), [TanStack Query](https://tanstack.com/query), and `fetch`.
 
