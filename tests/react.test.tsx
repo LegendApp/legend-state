@@ -627,6 +627,58 @@ describe('useSelector', () => {
             expect(lastValue).toEqual([]);
         };
     });
+    test('useSelector does not warn "Cannot update a component" on mid-render set', async () => {
+        const errors: string[] = [];
+        const originalError = console.error;
+        console.error = (...args: any[]) => {
+            errors.push(args.map(String).join(' '));
+        };
+
+        try {
+            const sideEffect$ = observable(0);
+            const showTrigger$ = observable(false);
+
+            let sideEffectValue: number | undefined = undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            // CompTrigger has a selector that, when evaluated during render, sets sideEffect$.
+            let triggerRenderCount = 0;
+            const CompTrigger = function CompTrigger() {
+                triggerRenderCount++;
+                useSelector(() => {
+                    sideEffect$.set(triggerRenderCount * 10);
+                    return triggerRenderCount;
+                });
+                return createElement('div', undefined);
+            };
+
+            // Conditionally render CompTrigger so CompB is already subscribed when it mounts.
+            const App = function App() {
+                const show = useSelector(showTrigger$);
+                return createElement('div', undefined, createElement(CompB), show ? createElement(CompTrigger) : null);
+            };
+
+            // Mount with only CompB — it subscribes to sideEffect$.
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            // Now mount CompTrigger — its selector runs during render and sets sideEffect$.
+            await act(async () => {
+                showTrigger$.set(true);
+                await promiseTimeout(0);
+            });
+
+            expect(sideEffectValue).toEqual(10);
+
+            const midRenderWarning = errors.find((e) => e.includes('Cannot update a component'));
+            expect(midRenderWarning).toBeUndefined();
+        } finally {
+            console.error = originalError;
+        }
+    });
 });
 
 describe('For', () => {

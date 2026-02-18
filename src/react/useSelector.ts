@@ -20,6 +20,12 @@ interface SelectorFunctions<T> {
     run: (selector: Selector<T>) => T;
 }
 
+// Track whether any useSelector's run() is currently executing (inside a React render).
+// When an observable update triggers during render, React throws "Cannot update a component while rendering a different component".
+// We only defer notify to a microtask in that case.
+
+let runningCount = 0;
+
 function createSelectorFunctions<T>(
     options: UseSelectorOptions | undefined,
     isPaused$: Observable<boolean>,
@@ -32,6 +38,18 @@ function createSelectorFunctions<T>(
     let prev: T;
 
     let pendingUpdate: any | undefined = undefined;
+
+    const scheduleNotify = () => {
+        if (!notify) return;
+
+        if (runningCount > 0) {
+            queueMicrotask(() => {
+                notify?.();
+            });
+        } else {
+            notify();
+        }
+    };
 
     const run = () => {
         // Dispose if already listening
@@ -78,7 +96,7 @@ function createSelectorFunctions<T>(
             }
             if (changed) {
                 version++;
-                notify?.();
+                scheduleNotify();
             }
         }
     };
@@ -106,7 +124,12 @@ function createSelectorFunctions<T>(
             // Update the cached selector
             _selector = selector;
 
-            return (prev = run());
+            runningCount++;
+            try {
+                return (prev = run());
+            } finally {
+                runningCount--;
+            }
         },
     };
 }
