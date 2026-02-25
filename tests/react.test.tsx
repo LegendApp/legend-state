@@ -499,7 +499,7 @@ describe('useSelector', () => {
         expect(num).toEqual(4);
     });
     test('suspense without observer', async () => {
-        supressActWarning(async () => {
+        await supressActWarning(async () => {
             const obs$ = observable(
                 new Promise<string>((resolve) =>
                     setTimeout(() => {
@@ -531,7 +531,7 @@ describe('useSelector', () => {
         });
     });
     test('suspense with observer', async () => {
-        supressActWarning(async () => {
+        await supressActWarning(async () => {
             const obs$ = observable(
                 new Promise<string>((resolve) =>
                     setTimeout(() => {
@@ -563,7 +563,7 @@ describe('useSelector', () => {
         });
     });
     test('use$ with array length', async () => {
-        supressActWarning(async () => {
+        await supressActWarning(async () => {
             const obs$ = observable<{ todos: number[]; total: number }>({
                 todos: [0],
                 total: (): number => obs$.todos.length,
@@ -581,20 +581,17 @@ describe('useSelector', () => {
             render(createElement(App));
 
             expect(lastValue).toEqual(1);
-            act(() => {
+            await act(async () => {
                 obs$.todos.push(1);
             });
-            await promiseTimeout(0);
             expect(lastValue).toEqual(2);
-            act(async () => {
+            await act(async () => {
                 obs$.todos.splice(0, 1);
             });
-            await promiseTimeout(0);
             expect(lastValue).toEqual(1);
-            act(async () => {
+            await act(async () => {
                 obs$.todos.set([]);
             });
-            await promiseTimeout(0);
             expect(lastValue).toEqual(0);
         });
     });
@@ -671,7 +668,7 @@ describe('useSelector', () => {
             expect(sideEffectValue).toEqual(0);
 
             // Now mount CompTrigger — its selector runs during render and sets sideEffect$.
-            act(() => {
+            await act(async () => {
                 showTrigger$.set(true);
             });
             await promiseTimeout(0);
@@ -717,7 +714,7 @@ describe('useSelector', () => {
             render(createElement(App));
             expect(sideEffectValue).toEqual(0);
 
-            act(() => {
+            await act(async () => {
                 showTrigger$.set(true);
             });
             await promiseTimeout(0);
@@ -2349,9 +2346,7 @@ describe('tracing', () => {
 1: `);
 
         // If deps array changes it should refresh observable
-        await act(async () => {
-            obs$.set(1);
-        });
+        obs$.set(1);
 
         expect(console.log).toHaveBeenCalledWith(`[legend-state] tracking 1 observable:
 1: `);
@@ -2366,9 +2361,7 @@ describe('tracing', () => {
         render(createElement(Test));
 
         // If deps array changes it should refresh observable
-        await act(async () => {
-            obs$.set(1);
-        });
+        obs$.set(1);
 
         expect(console.log).toHaveBeenCalledWith(`[legend-state] Rendering because "" changed:
 from: 0
