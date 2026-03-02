@@ -81,9 +81,11 @@ export async function supressActWarning(fn: () => Promise<void>) {
         originalError.call(console, ...args);
     };
 
-    await fn();
-
-    console.error = originalError;
+    try {
+        await fn();
+    } finally {
+        console.error = originalError;
+    }
 }
 
 export function expectLog(fn: () => any, msg: string, logType: 'log' | 'warn' | 'error', expecter: (prop: any) => any) {
