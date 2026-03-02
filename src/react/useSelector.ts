@@ -32,14 +32,20 @@ function createSelectorFunctions<T>(
     let prev: T;
 
     let pendingUpdate: any | undefined = undefined;
+    let notifyQueued = false;
 
     const scheduleNotify = () => {
-        if (!notify) return;
+        if (!notify || notifyQueued) return;
+
+        notifyQueued = true;
 
         // Always defer notifications via microtask to avoid "Cannot update a
         // component while rendering a different component". When a .set() is
         // called during any component's render.
-        queueMicrotask(notify);
+        queueMicrotask(() => {
+            notifyQueued = false;
+            notify();
+        });
     };
 
     const run = () => {
