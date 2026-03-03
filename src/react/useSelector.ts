@@ -25,7 +25,7 @@ function createSelectorFunctions<T>(
     isPaused$: Observable<boolean>,
 ): SelectorFunctions<T> {
     let version = 0;
-    let notify: () => void;
+    let notify: (() => void) | undefined;
     let dispose: (() => void) | undefined;
     let resubscribe: (() => () => void) | undefined;
     let _selector: Selector<T>;
@@ -44,7 +44,7 @@ function createSelectorFunctions<T>(
         // called during any component's render.
         queueMicrotask(() => {
             notifyQueued = false;
-            notify();
+            notify?.();
         });
     };
 
@@ -113,6 +113,7 @@ function createSelectorFunctions<T>(
 
             return () => {
                 dispose?.();
+                notify = undefined;
                 dispose = undefined;
             };
         },
