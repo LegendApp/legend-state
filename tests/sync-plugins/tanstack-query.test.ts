@@ -62,16 +62,6 @@ jest.mock('@tanstack/query-core', () => {
             return options;
         }
 
-        getQueryCache() {
-            return {
-                find: () => ({
-                    state: { dataUpdatedAt: Date.now() },
-                    isStaleByTime: 0,
-                    getObserversCount: () => 1,
-                }),
-            };
-        }
-
         getMutationCache() {
             return {
                 findAll: () => [],

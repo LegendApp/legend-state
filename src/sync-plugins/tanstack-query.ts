@@ -118,24 +118,9 @@ export function syncedQuery<
 
             return result.data!;
         } else {
-            const currentResult = observer!.getCurrentResult();
-            const rawRefetchOnMount = latestOptions.refetchOnMount;
-
-            // Resolve callback form: (query) => boolean | 'always'
-            const refetchOnMount =
-                typeof rawRefetchOnMount === 'function'
-                    ? rawRefetchOnMount(queryClient!.getQueryCache().find({ queryKey: latestOptions.queryKey })!)
-                    : rawRefetchOnMount;
-
-            if (refetchOnMount === false) {
-                return currentResult.data!;
-            }
-
-            if (refetchOnMount === 'always' || currentResult.isStale) {
-                return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
-            }
-
-            return currentResult.data!;
+            // Subsequent calls (including sync()) always refetch from the server.
+            // TQ observer handles refetchOnMount/staleTime/etc. internally via subscription.
+            return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
         }
     }) as () => Promise<TData>;
 
@@ -156,14 +141,6 @@ export function syncedQuery<
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result: QueryObserverResult<TData, TError>) => {
                 emitQueryState(result);
-
-                // Propagate fetching state to syncState
-                if (node.state) {
-                    const isFetching = result.fetchStatus === 'fetching';
-                    if (node.state.isGetting.peek() !== isFetching) {
-                        node.state.isGetting.set(isFetching);
-                    }
-                }
 
                 if (result.status === 'success') {
                     // Clear error on success
