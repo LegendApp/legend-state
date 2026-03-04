@@ -70,6 +70,16 @@ jest.mock('@tanstack/query-core', () => {
             return options;
         }
 
+        getQueryCache() {
+            return {
+                find: () => ({
+                    state: { dataUpdatedAt: Date.now() },
+                    isStaleByTime: 0,
+                    getObserversCount: () => 1,
+                }),
+            };
+        }
+
         getMutationCache() {
             return {
                 findAll: () => [],
@@ -188,6 +198,55 @@ describe('syncedQuery', () => {
             const second = await options.get!({});
             expect(second).toBe('fresh');
             expect(refetchMock).toHaveBeenCalledTimes(1);
+        });
+
+        test('refetchOnMount: callback returning false - returns cached data without refetching', async () => {
+            const queryClient = new QueryClient();
+            const callbackSpy = jest.fn(() => false as const);
+
+            const linkedFactory = syncedQuery({
+                queryClient,
+                query: {
+                    queryKey: ['test-callback-false'],
+                    refetchOnMount: callbackSpy,
+                },
+            }) as () => Synced<any>;
+
+            const options = linkedFactory()[symbolLinked];
+
+            const initial = await options.get!({});
+            expect(initial).toBe('initial');
+
+            refetchMock.mockClear();
+            const second = await options.get!({});
+            expect(second).toBe('initial');
+            expect(refetchMock).not.toHaveBeenCalled();
+            expect(callbackSpy).toHaveBeenCalledTimes(1);
+            expect(callbackSpy).toHaveBeenCalledWith(expect.objectContaining({ state: expect.any(Object) }));
+        });
+
+        test('refetchOnMount: callback returning "always" - always refetches', async () => {
+            const queryClient = new QueryClient();
+            const callbackSpy = jest.fn(() => 'always' as const);
+
+            const linkedFactory = syncedQuery({
+                queryClient,
+                query: {
+                    queryKey: ['test-callback-always'],
+                    refetchOnMount: callbackSpy,
+                },
+            }) as () => Synced<any>;
+
+            const options = linkedFactory()[symbolLinked];
+
+            const initial = await options.get!({});
+            expect(initial).toBe('initial');
+
+            refetchMock.mockClear();
+            const second = await options.get!({});
+            expect(second).toBe('fresh');
+            expect(refetchMock).toHaveBeenCalledTimes(1);
+            expect(callbackSpy).toHaveBeenCalledTimes(1);
         });
 
         test('refetchOnMount: true - refetches when data is stale', async () => {

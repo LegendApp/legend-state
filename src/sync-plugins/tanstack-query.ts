@@ -110,7 +110,7 @@ export function syncedQuery<
             const result = observer!.getOptimisticResult(latestOptions);
 
             if (result.isLoading) {
-                await new Promise<TData>((resolve, reject) => {
+                return await new Promise<TData>((resolve, reject) => {
                     resolveInitialPromise = resolve;
                     rejectInitialPromise = reject;
                 });
@@ -118,22 +118,20 @@ export function syncedQuery<
 
             return result.data!;
         } else {
-            // refetchOnMount option from TanStack Query
-            const refetchOnMount = latestOptions.refetchOnMount;
+            const currentResult = observer!.getCurrentResult();
+            const rawRefetchOnMount = latestOptions.refetchOnMount;
+
+            // Resolve callback form: (query) => boolean | 'always'
+            const refetchOnMount =
+                typeof rawRefetchOnMount === 'function'
+                    ? rawRefetchOnMount(queryClient!.getQueryCache().find({ queryKey: latestOptions.queryKey })!)
+                    : rawRefetchOnMount;
 
             if (refetchOnMount === false) {
-                const currentResult = observer!.getCurrentResult();
                 return currentResult.data!;
             }
 
-            if (refetchOnMount === 'always') {
-                return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
-            }
-
-            // Default behavior (refetchOnMount is true or undefined):
-            // Only refetch if the data is stale
-            const currentResult = observer!.getCurrentResult();
-            if (currentResult.isStale) {
+            if (refetchOnMount === 'always' || currentResult.isStale) {
                 return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
             }
 
