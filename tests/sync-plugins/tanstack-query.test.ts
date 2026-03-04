@@ -1,6 +1,14 @@
 jest.mock('@tanstack/query-core', () => {
     const refetchMock = jest.fn(() => Promise.resolve({ data: 'fresh', status: 'success' }));
-
+    const result = {
+        data: 'initial',
+        status: 'success',
+        isLoading: false,
+        isFetching: false,
+        isStale: false,
+        error: null,
+        fetchStatus: 'idle' as const,
+    };
     class QueryObserver {
         client: any;
         options: any;
@@ -12,27 +20,11 @@ jest.mock('@tanstack/query-core', () => {
         }
 
         getOptimisticResult() {
-            return {
-                data: 'initial',
-                status: 'success',
-                isLoading: false,
-                isFetching: false,
-                isStale: false,
-                error: null,
-                fetchStatus: 'idle' as const,
-            };
+            return result;
         }
 
         getCurrentResult() {
-            return {
-                data: 'initial',
-                status: 'success',
-                isLoading: false,
-                isFetching: false,
-                isStale: false,
-                error: null,
-                fetchStatus: 'idle' as const,
-            };
+            return result;
         }
 
         setOptions(_options: any, _notifyOptions?: any) {
