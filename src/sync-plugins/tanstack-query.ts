@@ -102,7 +102,15 @@ export function syncedQuery<
 
     let isFirstRun = true;
     let rejectInitialPromise: undefined | ((error: Error) => void) = undefined;
+    // Track whether subscribe was just called in this sync cycle.
+    // The sync infrastructure calls subscribe() before get() on (re-)observation,
+    // but skips subscribe() on explicit sync() when already subscribed.
+    let subscribedInThisCycle = false;
+
     const get = (async () => {
+        const wasJustSubscribed = subscribedInThisCycle;
+        subscribedInThisCycle = false;
+
         if (isFirstRun) {
             isFirstRun = false;
 
@@ -117,9 +125,12 @@ export function syncedQuery<
             }
 
             return result.data!;
+        } else if (wasJustSubscribed) {
+            // Re-observation (remount): return cached data, let TQ observer
+            // handle refetch decisions via subscription (refetchOnMount, staleTime, etc.)
+            return observer!.getCurrentResult().data!;
         } else {
-            // Subsequent calls (including sync()) always refetch from the server.
-            // TQ observer handles refetchOnMount/staleTime/etc. internally via subscription.
+            // Explicit sync(): always force refetch from the server
             return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
         }
     }) as () => Promise<TData>;
@@ -137,6 +148,8 @@ export function syncedQuery<
     };
 
     const subscribe = ({ update, onError, node }: SyncedSubscribeParams<TData>) => {
+        subscribedInThisCycle = true;
+
         // Subscribe to Query's observer and update the observable
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result: QueryObserverResult<TData, TError>) => {

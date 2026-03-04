@@ -1,92 +1,6 @@
-jest.mock('@tanstack/query-core', () => {
-    const refetchMock = jest.fn(() => Promise.resolve({ data: 'fresh', status: 'success' }));
-    const result = {
-        data: 'initial',
-        status: 'success',
-        isLoading: false,
-        isFetching: false,
-        isStale: false,
-        error: null,
-        fetchStatus: 'idle' as const,
-    };
-    class QueryObserver {
-        client: any;
-        options: any;
-        notifyOptions: any;
+import { createQueryCoreMock } from './tanstack-query.mock';
 
-        constructor(client: any, options: any) {
-            this.client = client;
-            this.options = options;
-        }
-
-        getOptimisticResult() {
-            return result;
-        }
-
-        getCurrentResult() {
-            return result;
-        }
-
-        setOptions(_options: any, _notifyOptions?: any) {
-            this.options = _options;
-            this.notifyOptions = _notifyOptions;
-        }
-
-        refetch() {
-            return refetchMock();
-        }
-
-        subscribe() {
-            return () => {};
-        }
-
-        updateResult() {}
-    }
-
-    class MutationObserver {
-        client: any;
-        options: any;
-
-        constructor(client: any, options: any) {
-            this.client = client;
-            this.options = options;
-        }
-
-        mutate(value: any) {
-            return Promise.resolve(value);
-        }
-    }
-
-    class QueryClient {
-        defaultQueryOptions(options: any) {
-            return options;
-        }
-
-        getMutationCache() {
-            return {
-                findAll: () => [],
-                remove: () => {},
-            };
-        }
-    }
-
-    const notifyManager = {
-        batchCalls:
-            (fn: (...args: any[]) => any) =>
-            (...args: any[]) =>
-                fn(...args),
-    };
-
-    return {
-        __esModule: true,
-        QueryObserver,
-        MutationObserver,
-        QueryClient,
-        notifyManager,
-        DefaultError: Error,
-        refetchMock,
-    };
-});
+jest.mock('@tanstack/query-core', () => createQueryCoreMock());
 
 import { Synced } from '@legendapp/state/sync';
 import { symbolLinked } from '../../src/globals';
@@ -116,12 +30,12 @@ describe('syncedQuery', () => {
         expect(refetchMock).not.toHaveBeenCalled();
     });
 
-    test('subsequent get always refetches (sync equivalence)', async () => {
+    test('re-observation returns cached data without refetching (TQ observer handles refetch)', async () => {
         const queryClient = new QueryClient();
         const linkedFactory = syncedQuery({
             queryClient,
             query: {
-                queryKey: ['test-sync'],
+                queryKey: ['test-reobserve'],
             },
         }) as () => Synced<any>;
 
@@ -129,12 +43,101 @@ describe('syncedQuery', () => {
         await options.get!({});
         refetchMock.mockClear();
 
+        // Simulate re-observation: sync infra calls subscribe() then get()
+        const mockNodeState = {
+            isGetting: { peek: jest.fn(() => false), set: jest.fn() },
+            error: { peek: jest.fn(() => undefined), set: jest.fn() },
+        };
+        options.subscribe!({
+            update: jest.fn(),
+            onError: jest.fn(),
+            node: { state: mockNodeState } as any,
+            value$: {} as any,
+            refresh: jest.fn(),
+            lastSync: undefined,
+        });
+
+        const second = await options.get!({});
+        expect(second).toBe('initial');
+        expect(refetchMock).not.toHaveBeenCalled();
+    });
+
+    test('explicit sync forces refetch even when data is fresh', async () => {
+        const queryClient = new QueryClient();
+        const linkedFactory = syncedQuery({
+            queryClient,
+            query: {
+                queryKey: ['test-explicit-sync'],
+            },
+        }) as () => Synced<any>;
+
+        const options = linkedFactory()[symbolLinked];
+        await options.get!({});
+        refetchMock.mockClear();
+
+        // Explicit sync: get() called without preceding subscribe()
         const second = await options.get!({});
         expect(second).toBe('fresh');
         expect(refetchMock).toHaveBeenCalledTimes(1);
     });
 
     describe('observer integration', () => {
+        test('observer refetch via subscription updates data', async () => {
+            const queryClient = new QueryClient();
+            let subscriberCallback: ((result: any) => void) | undefined;
+            const mockModule = jest.requireMock('@tanstack/query-core') as any;
+            const OrigObserver = mockModule.QueryObserver;
+            const originalSubscribe = OrigObserver.prototype.subscribe;
+
+            OrigObserver.prototype.subscribe = function (cb: any) {
+                subscriberCallback = cb;
+                return () => {
+                    subscriberCallback = undefined;
+                };
+            };
+
+            try {
+                const linkedFactory = syncedQuery({
+                    queryClient,
+                    query: {
+                        queryKey: ['test-subscription-refetch'],
+                    },
+                }) as () => Synced<any>;
+
+                const options = linkedFactory()[symbolLinked];
+                const updateSpy = jest.fn();
+                const mockNodeState = {
+                    isGetting: { peek: jest.fn(() => false), set: jest.fn() },
+                    error: { peek: jest.fn(() => undefined), set: jest.fn() },
+                };
+
+                options.subscribe!({
+                    update: updateSpy,
+                    onError: jest.fn(),
+                    node: { state: mockNodeState } as any,
+                    value$: {} as any,
+                    refresh: jest.fn(),
+                    lastSync: undefined,
+                });
+
+                // Simulate TQ observer firing a refetch result
+                // (e.g., refetchOnMount triggered internally by TQ)
+                subscriberCallback!({
+                    status: 'success',
+                    data: 'refetched-data',
+                    error: null,
+                    isLoading: false,
+                    isFetching: false,
+                    isStale: false,
+                    fetchStatus: 'idle',
+                });
+
+                expect(updateSpy).toHaveBeenCalledWith({ value: 'refetched-data' });
+            } finally {
+                OrigObserver.prototype.subscribe = originalSubscribe;
+            }
+        });
+
         test('error from observer is forwarded to onError and onQueryStateChange', async () => {
             const queryClient = new QueryClient();
             const stateChanges: QueryState[] = [];
