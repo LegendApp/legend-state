@@ -2065,37 +2065,37 @@ describe('useObservable', () => {
         expect(numUnsubscribes).toBe(1);
     });
 
-     test('observables with syncObservable should unsubscribe when unmounted', async () => {
-         let numSubscribes = 0;
-         let numUnsubscribes = 0;
+    test('observables with syncObservable should unsubscribe when unmounted', async () => {
+        let numSubscribes = 0;
+        let numUnsubscribes = 0;
 
-         const store$ = observable<any>({});
+        const store$ = observable<any>({});
 
-          syncObservable(store$, {
-              subscribe: ({ update }) => {
-                  numSubscribes++;
-                  update({ value: { value: 1 }, mode: 'set' });
-                  return () => {
-                      numUnsubscribes++;
-                  };
-              },
-          });
+        syncObservable(store$, {
+            subscribe: ({ update }) => {
+                numSubscribes++;
+                update({ value: { value: 1 }, mode: 'set' });
+                return () => {
+                    numUnsubscribes++;
+                };
+            },
+        });
 
-         const Test = observer(function Test() {
-             return createElement('div', undefined, store$.value.get());
-         });
+        const Test = observer(function Test() {
+            return createElement('div', undefined, store$.value.get());
+        });
 
-         const { unmount } = render(<Test />);
+        const { unmount } = render(<Test />);
 
-         act(() => {
-             unmount();
-         });
+        act(() => {
+            unmount();
+        });
 
-         await waitFor(() => promiseTimeout(0));
+        await waitFor(() => promiseTimeout(0));
 
-         expect(numSubscribes).toBe(1);
-         expect(numUnsubscribes).toBe(1);
-     });
+        expect(numSubscribes).toBe(1);
+        expect(numUnsubscribes).toBe(1);
+    });
 });
 describe('useObservableState', () => {
     test('useObservableState does not select if value not accessed', () => {
