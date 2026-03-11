@@ -8,15 +8,25 @@ import {
     jsxIdentifier,
     jsxOpeningElement,
     jsxOpeningFragment,
+    objectExpression,
+    objectProperty,
+    identifier,
+    stringLiteral,
 } from '@babel/types';
+
+// Set of observable factory function names that should be auto-named
+const OBSERVABLE_FACTORIES = new Set(['observable', 'observablePrimitive']);
 
 export default function () {
     let hasLegendImport = false;
+    const observableImports = new Set<string>();
     return {
         visitor: {
             ImportDeclaration: {
                 enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void }) {
-                    if (path.node.source.value === '@legendapp/state/react') {
+                    const source = path.node.source.value;
+
+                    if (source === '@legendapp/state/react') {
                         const specifiers = path.node.specifiers;
                         for (let i = 0; i < specifiers.length; i++) {
                             const s = specifiers[i].imported.name;
@@ -25,6 +35,52 @@ export default function () {
                                 break;
                             }
                         }
+                    }
+
+                    if (source === '@legendapp/state' || source === '@legendapp/state/src/observable') {
+                        const specifiers = path.node.specifiers;
+                        for (let i = 0; i < specifiers.length; i++) {
+                            const spec = specifiers[i];
+                            // Handle named imports: import { observable } or import { observable as obs }
+                            if (spec.type === 'ImportSpecifier' && OBSERVABLE_FACTORIES.has(spec.imported.name)) {
+                                observableImports.add(spec.local.name);
+                            }
+                        }
+                    }
+                },
+            },
+            VariableDeclarator: {
+                enter(path: { node: any; skip: () => void }) {
+                    if (observableImports.size === 0) return;
+
+                    const { id, init } = path.node;
+                    // Only handle simple variable names: const foo = observable(...)
+                    if (!id || id.type !== 'Identifier' || !init || init.type !== 'CallExpression') {
+                        return;
+                    }
+
+                    const callee = init.callee;
+                    let isObservableCall = false;
+                    if (callee.type === 'Identifier' && observableImports.has(callee.name)) {
+                        isObservableCall = true;
+                    }
+
+                    if (!isObservableCall) return;
+
+                    const varName = id.name;
+                    const args = init.arguments;
+
+                    if (args.length >= 2) return;
+
+                    const nameOption = objectExpression([objectProperty(identifier('name'), stringLiteral(varName))]);
+
+                    if (args.length === 0) {
+                        // observable() -> observable(undefined, { name: '...' })
+                        args.push(identifier('undefined'));
+                        args.push(nameOption);
+                    } else {
+                        // observable(val) -> observable(val, { name: '...' })
+                        args.push(nameOption);
                     }
                 },
             },

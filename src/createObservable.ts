@@ -1,6 +1,7 @@
 import { isObservable, setNodeValue } from './globals';
 import { isActualPrimitive, isFunction, isPromise } from './is';
-import type { ClassConstructor, NodeInfo, ObservableRoot } from './observableInterfaces';
+import { notifyObservableCreated } from './middleware';
+import type { ClassConstructor, NodeInfo, ObservableOptions, ObservableRoot } from './observableInterfaces';
 import { Observable, ObservablePrimitive } from './observableTypes';
 
 export function createObservable<T>(
@@ -9,6 +10,7 @@ export function createObservable<T>(
     extractPromise: Function,
     createObject: Function,
     createPrimitive?: Function,
+    options?: ObservableOptions,
 ): Observable<T> {
     if (isObservable(value)) {
         return value as Observable<T>;
@@ -26,6 +28,10 @@ export function createObservable<T>(
         numListenersRecursive: 0,
     };
 
+    if (options?.name) {
+        node._name = options.name;
+    }
+
     if (valueIsFunction) {
         node = Object.assign(() => {}, node);
         node.lazyFn = value;
@@ -41,6 +47,8 @@ export function createObservable<T>(
         setNodeValue(node, undefined);
         extractPromise(node, value);
     }
+
+    notifyObservableCreated(node);
 
     return obs as any;
 }
