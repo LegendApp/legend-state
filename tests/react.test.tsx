@@ -32,7 +32,7 @@ if (typeof document === 'undefined') {
 }
 
 describe('useSelector', () => {
-    test('useSelector basics', () => {
+    test('useSelector basics', async () => {
         const obs = observable('hi');
         let num = 0;
         const { result } = renderHook(() => {
@@ -43,43 +43,43 @@ describe('useSelector', () => {
         });
 
         expect(num).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3);
         expect(result.current).toEqual('hello there');
-        act(() => {
+        await act(async () => {
             obs.set('z');
         });
         expect(num).toEqual(5);
         expect(result.current).toEqual('z there');
     });
-    test('useSelector with observable', () => {
+    test('useSelector with observable', async () => {
         const obs = observable('hi');
         const { result } = renderHook(() => {
             return useSelector(() => obs.get());
         });
 
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(result.current).toEqual('hello');
-        act(() => {
+        await act(async () => {
             obs.set('z');
         });
         expect(result.current).toEqual('z');
     });
-    test('useSelector with computed', () => {
+    test('useSelector with computed', async () => {
         const obs = observable({ value: 'hi', computed: () => obs.value.get() + ' there' });
         const { result } = renderHook(() => {
             return useSelector(obs.computed);
         });
 
-        act(() => {
+        await act(async () => {
             obs.value.set('hello');
         });
         expect(result.current).toEqual('hello there');
-        act(() => {
+        await act(async () => {
             obs.value.set('z');
         });
         expect(result.current).toEqual('z there');
@@ -91,7 +91,7 @@ describe('useSelector', () => {
 
         expect(result.current).toEqual(undefined);
     });
-    test('useSelector setting twice', () => {
+    test('useSelector setting twice', async () => {
         const obs = observable('hi');
         let num = 0;
         const { result } = renderHook(() => {
@@ -103,19 +103,19 @@ describe('useSelector', () => {
 
         expect(num).toEqual(1);
         expect(result.current).toEqual('hi there');
-        act(() => {
+        await act(async () => {
             obs.set('hello');
             obs.set('hello2');
         });
         expect(num).toEqual(4); // Once for each set plus the render
         expect(result.current).toEqual('hello2 there');
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(6); // Once for set plus render
         expect(result.current).toEqual('hello there');
     });
-    test('useSelector two observables', () => {
+    test('useSelector two observables', async () => {
         const obs = observable('hi');
         const obs2 = observable('hello');
         let num = 0;
@@ -128,7 +128,7 @@ describe('useSelector', () => {
 
         expect(num).toEqual(1);
         expect(result.current).toEqual('hi hello there');
-        act(() => {
+        await act(async () => {
             obs.set('aa');
             obs.set('a');
             obs2.set('bb');
@@ -136,18 +136,18 @@ describe('useSelector', () => {
         });
         expect(num).toEqual(6);
         expect(result.current).toEqual('a b there');
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(8);
         expect(result.current).toEqual('hello b there');
-        act(() => {
+        await act(async () => {
             obs2.set('z');
         });
         expect(num).toEqual(10);
         expect(result.current).toEqual('hello z there');
     });
-    test('useSelector cleaned up', () => {
+    test('useSelector cleaned up', async () => {
         const obs = observable('hi');
         let num = 0;
         const { result, unmount } = renderHook(() => {
@@ -162,7 +162,7 @@ describe('useSelector', () => {
 
         unmount();
 
-        act(() => {
+        await act(async () => {
             obs.set('a');
         });
         // Set after unmounted triggers the observe but since it does not
@@ -170,13 +170,13 @@ describe('useSelector', () => {
         expect(num).toEqual(1);
         expect(result.current).toEqual('hi there');
 
-        act(() => {
+        await act(async () => {
             obs.set('b');
         });
 
         expect(num).toEqual(1);
     });
-    test('useSelector with forceRender', () => {
+    test('useSelector with forceRender', async () => {
         const obs = observable('hi');
         let num = 0;
         let numSelects = 0;
@@ -193,7 +193,7 @@ describe('useSelector', () => {
         }
         render(createElement(Test));
 
-        act(() => {
+        await act(async () => {
             fr();
             fr();
             obs.set('hello1');
@@ -206,7 +206,7 @@ describe('useSelector', () => {
         expect(num).toEqual(3);
         expect(numSelects).toEqual(6);
 
-        act(() => {
+        await act(async () => {
             fr();
             fr();
             obs.set('hello2');
@@ -219,7 +219,7 @@ describe('useSelector', () => {
         expect(num).toEqual(5);
         expect(numSelects).toEqual(11);
     });
-    test('useSelector runs once in non-strict mode', () => {
+    test('useSelector runs once in non-strict mode', async () => {
         const obs = observable('hi');
 
         let num = 0;
@@ -233,12 +233,12 @@ describe('useSelector', () => {
         render(createElement(Test));
 
         expect(num).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3);
     });
-    test('useSelector runs twice in strict mode', () => {
+    test('useSelector runs twice in strict mode', async () => {
         const obs = observable('hi');
 
         let num = 0;
@@ -255,12 +255,12 @@ describe('useSelector', () => {
         render(createElement(App));
 
         expect(num).toEqual(2);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(6);
     });
-    test('Renders once with one selector listening to multiple', () => {
+    test('Renders once with one selector listening to multiple', async () => {
         const obs = observable('hi');
         const obs2 = observable('hi');
         const obs3 = observable('hi');
@@ -276,12 +276,12 @@ describe('useSelector', () => {
         render(createElement(Test));
 
         expect(num).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3);
     });
-    test('Renders once for each selector', () => {
+    test('Renders once for each selector', async () => {
         const obs = observable('hi');
         const obs2 = observable('hi');
         const obs3 = observable('hi');
@@ -305,13 +305,13 @@ describe('useSelector', () => {
         render(createElement(Test));
 
         expect(num).toEqual(3);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         // Goes up by two because it runs, decides to re-render, and runs again
         expect(num).toEqual(7);
     });
-    test('useSelector renders once when set to the same thing', () => {
+    test('useSelector renders once when set to the same thing', async () => {
         const obs = observable('hi');
         let num = 0;
         renderHook(() => {
@@ -322,20 +322,20 @@ describe('useSelector', () => {
         });
 
         expect(num).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3); // Doesn't re-run the selector so it's not different
-        act(() => {
+        await act(async () => {
             obs.set('hi');
         });
         expect(num).toEqual(5);
     });
-    test('useSelector renders once when it returns the same thing', () => {
+    test('useSelector renders once when it returns the same thing', async () => {
         const obs = observable('hi');
         let num = 0;
         let num2 = 0;
@@ -358,18 +358,18 @@ describe('useSelector', () => {
         expect(lastValue).toEqual(true);
         expect(num).toEqual(1);
         expect(num2).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3);
         expect(num2).toEqual(2);
-        act(() => {
+        await act(async () => {
             obs.set('hello2');
         });
         expect(num).toEqual(4);
         expect(num2).toEqual(2);
     });
-    test('useSelector with changing nodes', () => {
+    test('useSelector with changing nodes', async () => {
         const obs1$ = observable(false);
         const obs2$ = observable(false);
         let lastValue = false;
@@ -386,16 +386,16 @@ describe('useSelector', () => {
         render(createElement(App));
 
         expect(lastValue).toEqual(true);
-        act(() => {
+        await act(async () => {
             obs1$.set(true);
         });
         expect(lastValue).toEqual(true);
-        act(() => {
+        await act(async () => {
             obs2$.set(true);
         });
         expect(lastValue).toEqual(false);
     });
-    test('useSelector listener count strict', () => {
+    test('useSelector listener count strict', async () => {
         const obs = observable('hi');
         let num = 0;
         const numListeners = () => getNode(obs).listeners?.size;
@@ -414,23 +414,23 @@ describe('useSelector', () => {
 
         expect(numListeners()).toEqual(2);
         expect(num).toEqual(2);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(numListeners()).toEqual(2);
         expect(num).toEqual(4);
-        act(() => {
+        await act(async () => {
             obs.set('z');
         });
         expect(numListeners()).toEqual(2);
         expect(num).toEqual(6);
-        act(() => {
+        await act(async () => {
             obs.set('q');
         });
         expect(numListeners()).toEqual(2);
         expect(num).toEqual(8);
     });
-    test('useSelector listener count', () => {
+    test('useSelector listener count', async () => {
         const obs = observable('hi');
         let num = 0;
         const numListeners = () => getNode(obs).listeners?.size;
@@ -449,23 +449,23 @@ describe('useSelector', () => {
 
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(2);
-        act(() => {
+        await act(async () => {
             obs.set('z');
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(3);
-        act(() => {
+        await act(async () => {
             obs.set('q');
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(4);
     });
-    test('useSelector for pure proxy use', () => {
+    test('useSelector for pure proxy use', async () => {
         const obs = observable('hi');
         let num = 0;
         const numListeners = () => getNode(obs).listeners?.size;
@@ -482,24 +482,24 @@ describe('useSelector', () => {
 
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(2);
-        act(() => {
+        await act(async () => {
             obs.set('z');
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(3);
-        act(() => {
+        await act(async () => {
             obs.set('q');
         });
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(4);
     });
-    test('suspense without observer', () => {
-        supressActWarning(async () => {
+    test('suspense without observer', async () => {
+        await supressActWarning(async () => {
             const obs$ = observable(
                 new Promise<string>((resolve) =>
                     setTimeout(() => {
@@ -530,8 +530,8 @@ describe('useSelector', () => {
             expect(items[0].textContent).toEqual('hi');
         });
     });
-    test('suspense with observer', () => {
-        supressActWarning(async () => {
+    test('suspense with observer', async () => {
+        await supressActWarning(async () => {
             const obs$ = observable(
                 new Promise<string>((resolve) =>
                     setTimeout(() => {
@@ -562,8 +562,8 @@ describe('useSelector', () => {
             expect(items[0].textContent).toEqual('hi');
         });
     });
-    test('use$ with array length', () => {
-        supressActWarning(async () => {
+    test('use$ with array length', async () => {
+        await supressActWarning(async () => {
             const obs$ = observable<{ todos: number[]; total: number }>({
                 todos: [0],
                 total: (): number => obs$.todos.length,
@@ -581,21 +581,21 @@ describe('useSelector', () => {
             render(createElement(App));
 
             expect(lastValue).toEqual(1);
-            act(() => {
+            await act(async () => {
                 obs$.todos.push(1);
             });
             expect(lastValue).toEqual(2);
-            act(() => {
+            await act(async () => {
                 obs$.todos.splice(0, 1);
             });
             expect(lastValue).toEqual(1);
-            act(() => {
+            await act(async () => {
                 obs$.todos.set([]);
             });
             expect(lastValue).toEqual(0);
         });
     });
-    test('use$ with array length', () => {
+    test('use$ with array length', async () => {
         async () => {
             const obs$ = observable<{ test: number[] }>({
                 test: [0],
@@ -613,19 +613,118 @@ describe('useSelector', () => {
             render(createElement(App));
 
             expect(lastValue).toEqual([0]);
-            act(() => {
+            await act(async () => {
                 obs$.assign({ test: [1] });
             });
             expect(lastValue).toEqual([1]);
-            act(() => {
+            await act(async () => {
                 obs$.assign({ test: [1, 2, 3] });
             });
             expect(lastValue).toEqual([1, 2, 3]);
-            act(() => {
+            await act(async () => {
                 obs$.assign({ test: [] });
             });
             expect(lastValue).toEqual([]);
         };
+    });
+
+    test('useSelector does not warn "Cannot update a component" with useObserve', async () => {
+        const errors: string[] = [];
+        const originalError = console.error;
+        console.error = (...args: any[]) => {
+            errors.push(args.map(String).join(' '));
+        };
+
+        try {
+            const sideEffect$ = observable(0);
+            const showTrigger$ = observable(false);
+
+            let sideEffectValue: number | undefined = undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            // CompTrigger has a useObserve that, when evaluated during render, sets sideEffect$.
+            let triggerRenderCount = 0;
+            const CompTrigger = function CompTrigger() {
+                triggerRenderCount++;
+
+                useObserve(() => {
+                    sideEffect$.set(triggerRenderCount * 10);
+                    return triggerRenderCount;
+                });
+                return createElement('div', undefined);
+            };
+
+            // Conditionally render CompTrigger so CompB is already subscribed when it mounts.
+            const App = function App() {
+                const show = useSelector(showTrigger$);
+                return createElement('div', undefined, createElement(CompB), show ? createElement(CompTrigger) : null);
+            };
+
+            // Mount with only CompB — it subscribes to sideEffect$.
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            // Now mount CompTrigger — its selector runs during render and sets sideEffect$.
+            await act(async () => {
+                showTrigger$.set(true);
+            });
+            await promiseTimeout(0);
+            expect(sideEffectValue).toEqual(10);
+
+            const midRenderWarning = errors.find((e) => e.includes('Cannot update a component'));
+            expect(midRenderWarning).toBeUndefined();
+        } finally {
+            console.error = originalError;
+        }
+    });
+    test('useSelector does not warn "Cannot update a component" with plain component .set()', async () => {
+        const errors: string[] = [];
+        const originalError = console.error;
+        console.error = (...args: any[]) => {
+            errors.push(args.map(String).join(' '));
+        };
+
+        try {
+            const sideEffect$ = observable(0);
+            const showTrigger$ = observable(false);
+
+            let sideEffectValue: number | undefined = undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            // CompTrigger is a plain component that calls .set() in its render body.
+            // No observer, no useSelector, no useObserve.
+            let triggerRenderCount = 0;
+            const CompTrigger = function CompTrigger() {
+                triggerRenderCount++;
+                sideEffect$.set(triggerRenderCount * 10);
+                return createElement('div', undefined);
+            };
+
+            const App = function App() {
+                const show = useSelector(showTrigger$);
+                return createElement('div', undefined, createElement(CompB), show ? createElement(CompTrigger) : null);
+            };
+
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            await act(async () => {
+                showTrigger$.set(true);
+            });
+            await promiseTimeout(0);
+            expect(sideEffectValue).toEqual(10);
+
+            const midRenderWarning = errors.find((e) => e.includes('Cannot update a component'));
+            expect(midRenderWarning).toBeUndefined();
+        } finally {
+            console.error = originalError;
+        }
     });
 });
 
@@ -651,7 +750,7 @@ describe('For', () => {
         let items = container.querySelectorAll('li');
         expect(items.length).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs.items.splice(0, 0, { id: 1, label: '1' });
         });
 
@@ -659,7 +758,7 @@ describe('For', () => {
         expect(items.length).toEqual(2);
         expect(items[0].id).toEqual('1');
     });
-    test('Array insert has stable reference 2', () => {
+    test('Array insert has stable reference 2', async () => {
         const obs = observable({
             items: [
                 { id: 'B', label: 'B' },
@@ -682,7 +781,7 @@ describe('For', () => {
         let items = container.querySelectorAll('li');
         expect(items.length).toEqual(2);
 
-        act(() => {
+        await act(async () => {
             obs.items.splice(0, 0, { id: 'C', label: 'C' } as TestObject);
         });
 
@@ -692,7 +791,7 @@ describe('For', () => {
         expect(items[1].id).toEqual('B');
         expect(items[2].id).toEqual('A');
 
-        act(() => {
+        await act(async () => {
             obs.items.splice(0, 0, { id: 'D', label: 'D' });
         });
 
@@ -753,7 +852,7 @@ describe('For', () => {
         expect(items[0].id).toEqual('B');
         expect(items[1].id).toEqual('A');
     });
-    test('For with Map optimized', () => {
+    test('For with Map optimized', async () => {
         const obs = observable({
             items: new Map<string, TestObject>([['m2', { label: 'B', id: 'B' }]]),
         });
@@ -774,7 +873,7 @@ describe('For', () => {
         expect(items.length).toEqual(1);
         expect(items[0].id).toEqual('B');
 
-        act(() => {
+        await act(async () => {
             obs.items.set('m1', { label: 'A', id: 'A' });
         });
 
@@ -812,7 +911,7 @@ describe('For', () => {
         expect(items[0].id).toEqual('A');
         expect(items[1].id).toEqual('B');
     });
-    test('For with object and deleted', () => {
+    test('For with object and deleted', async () => {
         const obs = observable({
             items: {
                 m2: { label: 'B', id: 'B' },
@@ -837,7 +936,7 @@ describe('For', () => {
         expect(items[0].id).toEqual('B');
         expect(items[1].id).toEqual('A');
 
-        act(() => {
+        await act(async () => {
             obs.items.m2.delete();
         });
 
@@ -845,7 +944,7 @@ describe('For', () => {
         expect(items.length).toEqual(1);
         expect(items[0].id).toEqual('A');
     });
-    test('Push, clear, push in For optimized', () => {
+    test('Push, clear, push in For optimized', async () => {
         interface ValObject {
             val: number;
         }
@@ -871,14 +970,14 @@ describe('For', () => {
         let items = container.querySelectorAll('li');
         expect(items.length).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             clear();
         });
 
         items = container.querySelectorAll('li');
         expect(items.length).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             push();
         });
 
@@ -904,7 +1003,7 @@ describe('Show', () => {
         let items = container.querySelectorAll('span');
         expect(items.length).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs.ok.set(true);
         });
 
@@ -953,7 +1052,7 @@ describe('Show', () => {
         let items = container.querySelectorAll('span');
         expect(items.length).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs.ok.set(true);
         });
 
@@ -968,7 +1067,7 @@ describe('Show', () => {
         expect(items.length).toEqual(1);
         expect(items[0].textContent).toEqual('hi 0');
 
-        act(() => {
+        await act(async () => {
             obs.ok.set(false);
         });
 
@@ -980,7 +1079,7 @@ describe('Show', () => {
         items = container.querySelectorAll('span');
         expect(items.length).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs.ok.set(true);
         });
 
@@ -1010,7 +1109,7 @@ describe('Show', () => {
         let items = container.querySelectorAll('span');
         expect(items.length).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs.value.set('test');
         });
 
@@ -1037,31 +1136,31 @@ describe('Show', () => {
         }
         render(createElement(Test));
 
-        act(() => {
+        await act(async () => {
             obs.value.set('test');
         });
 
         expect(numRenders).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs.value.set('test2');
         });
 
         expect(numRenders).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs.value.delete();
         });
 
         expect(numRenders).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs.value.set('test');
         });
 
         expect(numRenders).toEqual(2);
 
-        act(() => {
+        await act(async () => {
             obs.value.set('test2');
         });
 
@@ -1088,7 +1187,7 @@ describe('Show', () => {
         let items = container.querySelectorAll('span');
         expect(items.length).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs.ok.set(true);
         });
 
@@ -1097,7 +1196,7 @@ describe('Show', () => {
         expect(items[0].textContent).toEqual('hi');
         expect(testValue).toEqual('tester');
     });
-    test('useSelector reconfigures when options change', () => {
+    test('useSelector reconfigures when options change', async () => {
         const obs = observable(0);
         let runCount = 0;
 
@@ -1115,7 +1214,7 @@ describe('Show', () => {
 
         expect(runCount).toBe(1);
 
-        act(() => {
+        await act(async () => {
             obs.set(1);
         });
 
@@ -1125,7 +1224,7 @@ describe('Show', () => {
         const countAfterOptionChange = runCount;
         expect(countAfterOptionChange).toBe(4);
 
-        act(() => {
+        await act(async () => {
             obs.set(1);
         });
 
@@ -1222,7 +1321,7 @@ describe('useObservableReducer', () => {
             { id: 3, text: 'test', done: false },
         ]);
     });
-    test('useObservableReducer accepts lazy initializer functions', () => {
+    test('useObservableReducer accepts lazy initializer functions', async () => {
         const reducer = (state: number, action: { type: 'inc' }) => (action.type === 'inc' ? state + 1 : state);
         const lazyInit = () => 5;
 
@@ -1230,7 +1329,7 @@ describe('useObservableReducer', () => {
 
         expect(result.current[0].get()).toBe(5);
 
-        act(() => {
+        await act(async () => {
             (result.current[1] as any)({ type: 'inc' });
         });
 
@@ -1324,7 +1423,7 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numSets).toEqual(0);
     });
-    test('useObserve with undefined observable calls reaction', () => {
+    test('useObserve with undefined observable calls reaction', async () => {
         let num = 0;
         let numObserves = 0;
         const obs$ = observable<number | undefined>(undefined);
@@ -1343,14 +1442,14 @@ describe('useObserve', () => {
         expect(num).toEqual(1);
         expect(numObserves).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
         expect(num).toEqual(1);
         expect(numObserves).toEqual(1);
     });
-    test('useObserve with a deps array', () => {
+    test('useObserve with a deps array', async () => {
         let num = 0;
         let numInner = 0;
         const obsOuter$ = observable(0);
@@ -1382,7 +1481,7 @@ describe('useObserve', () => {
         expect(lastObservedDep).toEqual(0);
 
         // If deps array changes it should refresh observable
-        act(() => {
+        await act(async () => {
             obsOuter$.set(1);
         });
 
@@ -1392,7 +1491,7 @@ describe('useObserve', () => {
         expect(lastObservedDep).toEqual(1);
 
         // If inner dep changes it should run again without rendering
-        act(() => {
+        await act(async () => {
             obsInner$.set(1);
         });
 
@@ -1402,7 +1501,7 @@ describe('useObserve', () => {
         expect(lastObservedDep).toEqual(1);
 
         // If deps array changes it should refresh observable
-        act(() => {
+        await act(async () => {
             obsOuter$.set(2);
         });
 
@@ -1429,7 +1528,7 @@ describe('useObserveEffect', () => {
 
         expect(num).toEqual(1);
     });
-    test('useObserveEffect updates with changes', () => {
+    test('useObserveEffect updates with changes', async () => {
         let num = 0;
         const state$ = observable(0);
         function Test() {
@@ -1446,17 +1545,17 @@ describe('useObserveEffect', () => {
 
         expect(num).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             state$.set((v) => v + 1);
         });
         expect(num).toEqual(2);
 
-        act(() => {
+        await act(async () => {
             state$.set((v) => v + 1);
         });
         expect(num).toEqual(3);
     });
-    test('useObserve with a deps array', () => {
+    test('useObserve with a deps array', async () => {
         let num = 0;
         let numInner = 0;
         const obsOuter$ = observable(0);
@@ -1488,7 +1587,7 @@ describe('useObserveEffect', () => {
         expect(lastObservedDep).toEqual(0);
 
         // If deps array changes it should refresh observable
-        act(() => {
+        await act(async () => {
             obsOuter$.set(1);
         });
 
@@ -1498,7 +1597,7 @@ describe('useObserveEffect', () => {
         expect(lastObservedDep).toEqual(1);
 
         // If inner dep changes it should run again without rendering
-        act(() => {
+        await act(async () => {
             obsInner$.set(1);
         });
 
@@ -1507,7 +1606,7 @@ describe('useObserveEffect', () => {
         expect(lastObserved).toEqual(1);
         expect(lastObservedDep).toEqual(1);
         // If deps array changes it should refresh observable
-        act(() => {
+        await act(async () => {
             obsOuter$.set(2);
         });
 
@@ -1519,7 +1618,7 @@ describe('useObserveEffect', () => {
 });
 
 describe('observer', () => {
-    test('observer basic', () => {
+    test('observer basic', async () => {
         let num = 0;
         const obs$ = observable(0);
         const Test = observer(function Test() {
@@ -1535,13 +1634,13 @@ describe('observer', () => {
 
         expect(num).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
         expect(num).toEqual(2);
     });
-    test('observer with useSelector inside', () => {
+    test('observer with useSelector inside', async () => {
         let num = 0;
         const obs$ = observable(0);
         const Test = observer(function Test() {
@@ -1558,13 +1657,13 @@ describe('observer', () => {
 
         expect(num).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
         expect(num).toEqual(2);
     });
-    test('useSelector renders once when it returns the same thing inside an observer', () => {
+    test('useSelector renders once when it returns the same thing inside an observer', async () => {
         const obs = observable('hi');
         let num = 0;
         let num2 = 0;
@@ -1587,12 +1686,12 @@ describe('observer', () => {
         expect(lastValue).toEqual(true);
         expect(num).toEqual(1);
         expect(num2).toEqual(1);
-        act(() => {
+        await act(async () => {
             obs.set('hello');
         });
         expect(num).toEqual(3);
         expect(num2).toEqual(2);
-        act(() => {
+        await act(async () => {
             obs.set('hello2');
         });
         expect(num).toEqual(4);
@@ -1600,7 +1699,7 @@ describe('observer', () => {
     });
 });
 describe('useObservable', () => {
-    test('useObservable with an object', () => {
+    test('useObservable with an object', async () => {
         let num = 0;
         let obs$: Observable<{ test: number }>;
         let value = 0;
@@ -1620,14 +1719,14 @@ describe('useObservable', () => {
         expect(num).toEqual(1);
         expect(value).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs$.test.set(1);
         });
 
         expect(num).toEqual(2);
         expect(value).toEqual(1);
     });
-    test('useObservable with a function', () => {
+    test('useObservable with a function', async () => {
         let num = 0;
         let obs$: Observable<{ test: number }>;
         let value = 0;
@@ -1647,14 +1746,14 @@ describe('useObservable', () => {
         expect(num).toEqual(1);
         expect(value).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs$.test.set(1);
         });
 
         expect(num).toEqual(2);
         expect(value).toEqual(1);
     });
-    test('useObservable with a computed function', () => {
+    test('useObservable with a computed function', async () => {
         let num = 0;
         const obs$: Observable = observable(0);
         let value = 0;
@@ -1674,14 +1773,14 @@ describe('useObservable', () => {
         expect(num).toEqual(1);
         expect(value).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
         expect(num).toEqual(2);
         expect(value).toEqual(1);
     });
-    test('useObservable with a deps array', () => {
+    test('useObservable with a deps array', async () => {
         let num = 0;
         let numInner = 0;
         const obs$: Observable = observable(0);
@@ -1710,7 +1809,7 @@ describe('useObservable', () => {
 
         // If deps array changes it should refresh observable
 
-        act(() => {
+        await act(async () => {
             deps = ['hello'];
             obs$.set(1);
         });
@@ -1720,7 +1819,7 @@ describe('useObservable', () => {
         expect(value).toEqual('hello');
 
         // If deps array doesn't change it should not refresh
-        act(() => {
+        await act(async () => {
             deps = ['hello'];
             obs$.set(2);
         });
@@ -1729,7 +1828,7 @@ describe('useObservable', () => {
         expect(numInner).toEqual(2);
         expect(value).toEqual('hello');
     });
-    test('useObservable with a deps array of objects', () => {
+    test('useObservable with a deps array of objects', async () => {
         let num = 0;
         let numInner = 0;
         const obs$: Observable = observable(0);
@@ -1758,7 +1857,7 @@ describe('useObservable', () => {
 
         // If deps array changes it should refresh observable
 
-        act(() => {
+        await act(async () => {
             deps = [{ text: 'hello' }];
             obs$.set(1);
         });
@@ -1768,7 +1867,7 @@ describe('useObservable', () => {
         expect(value).toEqual({ text: 'hello' });
 
         // If deps array doesn't change it should not refresh
-        act(() => {
+        await act(async () => {
             deps = [{ text: 'hello' }];
             obs$.set(2);
         });
@@ -1777,7 +1876,7 @@ describe('useObservable', () => {
         expect(numInner).toEqual(2);
         expect(value).toEqual({ text: 'hello' });
     });
-    test('useObservable with a lookup table and empty deps array', () => {
+    test('useObservable with a lookup table and empty deps array', async () => {
         let num = 0;
         let numInner = 0;
         const obs$: Observable = observable(0);
@@ -1803,7 +1902,7 @@ describe('useObservable', () => {
         expect(numInner).toEqual(1);
         expect(value).toEqual('a0');
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
@@ -1811,7 +1910,7 @@ describe('useObservable', () => {
         expect(numInner).toEqual(2);
         expect(value).toEqual('a1');
 
-        act(() => {
+        await act(async () => {
             obs$.set(2);
         });
 
@@ -1819,7 +1918,7 @@ describe('useObservable', () => {
         expect(numInner).toEqual(3);
         expect(value).toEqual('a2');
     });
-    test('useComputed with a deps array', () => {
+    test('useComputed with a deps array', async () => {
         let num = 0;
         const obs$: Observable = observable(0);
         let value: string = '';
@@ -1851,7 +1950,7 @@ describe('useObservable', () => {
         expect(num).toEqual(1);
         expect(value).toEqual('hi');
 
-        act(() => {
+        await act(async () => {
             deps = ['hello'];
             obs$.set(1);
         });
@@ -1859,7 +1958,7 @@ describe('useObservable', () => {
         expect(num).toEqual(2);
         expect(value).toEqual('hello');
 
-        act(() => {
+        await act(async () => {
             deps = ['hello2'];
             obs$.set(2);
         });
@@ -1867,13 +1966,13 @@ describe('useObservable', () => {
         expect(num).toEqual(3);
         expect(value).toEqual('hello2');
 
-        act(() => {
+        await act(async () => {
             obsLocal$!.set('test');
         });
 
         expect(setTo).toEqual('test');
     });
-    test('useComputed vs observable deep object set', () => {
+    test('useComputed vs observable deep object set', async () => {
         // From: https://github.com/LegendApp/legend-state/issues/305
         const o$ = observable([{ hotspot: { position: { x: 0 } } }]);
         let numRenders = 0;
@@ -1906,21 +2005,21 @@ describe('useObservable', () => {
 
         expect(lastValue).toEqual([{ hotspot: { position: { x: 0 } } }]);
 
-        act(() => {
+        await act(async () => {
             o$[0].hotspot.position.x.set(2);
         });
 
         expect(numRenders).toEqual(2);
         expect(lastValue).toEqual([{ hotspot: { position: { x: 2 } } }]);
 
-        act(() => {
+        await act(async () => {
             o$.set([{ hotspot: { position: { x: 1 } } }]);
         });
 
         expect(numRenders).toEqual(3);
         expect(lastValue).toEqual([{ hotspot: { position: { x: 1 } } }]);
 
-        act(() => {
+        await act(async () => {
             o$[0].hotspot.position.x.set(3);
         });
 
@@ -1963,7 +2062,7 @@ describe('useObservable', () => {
         expect(num).toEqual(1);
         expect(value).toEqual(1 + '_' + originalRand);
 
-        act(() => {
+        await act(async () => {
             obs2$.set(1);
         });
 
@@ -2008,7 +2107,7 @@ describe('useObservable', () => {
         expect(innerDerivedCallCount).toBe(1);
 
         // Unmount the component
-        act(() => {
+        await act(async () => {
             unmount();
         });
 
@@ -2019,13 +2118,13 @@ describe('useObservable', () => {
         const innerDerivedCountAfterUnmount = innerDerivedCallCount;
 
         // Change outer$ multiple times after unmount
-        act(() => {
+        await act(async () => {
             outer$.set(false);
         });
-        act(() => {
+        await act(async () => {
             outer$.set(true);
         });
-        act(() => {
+        await act(async () => {
             outer$.set(false);
         });
 
@@ -2065,7 +2164,7 @@ describe('useObservable', () => {
     });
 });
 describe('useObservableState', () => {
-    test('useObservableState does not select if value not accessed', () => {
+    test('useObservableState does not select if value not accessed', async () => {
         let num = 0;
         let obs$: Observable<number>;
         const Test = function Test() {
@@ -2083,13 +2182,13 @@ describe('useObservableState', () => {
 
         expect(num).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
         expect(num).toEqual(1);
     });
-    test('useObservableState select if value accessed', () => {
+    test('useObservableState select if value accessed', async () => {
         let num = 0;
         let obs$: Observable<number>;
         let value = 0;
@@ -2110,7 +2209,7 @@ describe('useObservableState', () => {
         expect(num).toEqual(1);
         expect(value).toEqual(0);
 
-        act(() => {
+        await act(async () => {
             obs$.set(1);
         });
 
@@ -2119,7 +2218,7 @@ describe('useObservableState', () => {
     });
 });
 describe('Reactive', () => {
-    test('Reactive div $className', () => {
+    test('Reactive div $className', async () => {
         const obs$ = observable('hi');
         let num = 0;
         const Test = function Test() {
@@ -2142,7 +2241,7 @@ describe('Reactive', () => {
         expect(items.length).toEqual(1);
         expect(items[0].className).toEqual('hi');
 
-        act(() => {
+        await act(async () => {
             obs$.set('hello');
         });
 
@@ -2157,7 +2256,7 @@ describe('Reactive', () => {
 });
 
 describe('Memo', () => {
-    test('Memo works with function returning function', () => {
+    test('Memo works with function returning function', async () => {
         let num = 0;
         let obs$: Observable<boolean>;
         function A() {
@@ -2183,7 +2282,7 @@ describe('Memo', () => {
 
         expect(num).toEqual(1);
 
-        act(() => {
+        await act(async () => {
             obs$.set(false);
         });
 
@@ -2192,7 +2291,7 @@ describe('Memo', () => {
         items = container.querySelectorAll('div');
         expect(items[0].textContent).toEqual('BB');
     });
-    test('Memo works with a string', () => {
+    test('Memo works with a string', async () => {
         const obs$ = observable({ test: 'hi' });
         const Test = function Test() {
             return (
@@ -2208,7 +2307,7 @@ describe('Memo', () => {
 
         expect(items[0].textContent).toEqual('hi');
 
-        act(() => {
+        await act(async () => {
             obs$.test.set('hello');
         });
 
@@ -2264,7 +2363,7 @@ describe('tracing', () => {
         // Restore console.log after each test
         (console.log as jest.Mock).mockRestore();
     });
-    test('useTraceListeners', () => {
+    test('useTraceListeners', async () => {
         const obs$ = observable(0);
         const Test = observer(function Test() {
             useTraceListeners();
@@ -2277,14 +2376,12 @@ describe('tracing', () => {
 1: `);
 
         // If deps array changes it should refresh observable
-        act(() => {
-            obs$.set(1);
-        });
+        obs$.set(1);
 
         expect(console.log).toHaveBeenCalledWith(`[legend-state] tracking 1 observable:
 1: `);
     });
-    test('useTraceUpdates', () => {
+    test('useTraceUpdates', async () => {
         const obs$ = observable(0);
         const Test = observer(function Test() {
             useTraceUpdates();
@@ -2294,9 +2391,7 @@ describe('tracing', () => {
         render(createElement(Test));
 
         // If deps array changes it should refresh observable
-        act(() => {
-            obs$.set(1);
-        });
+        obs$.set(1);
 
         expect(console.log).toHaveBeenCalledWith(`[legend-state] Rendering because "" changed:
 from: 0

@@ -25,13 +25,28 @@ function createSelectorFunctions<T>(
     isPaused$: Observable<boolean>,
 ): SelectorFunctions<T> {
     let version = 0;
-    let notify: () => void;
+    let notify: (() => void) | undefined;
     let dispose: (() => void) | undefined;
     let resubscribe: (() => () => void) | undefined;
     let _selector: Selector<T>;
     let prev: T;
 
     let pendingUpdate: any | undefined = undefined;
+    let notifyQueued = false;
+
+    const scheduleNotify = () => {
+        if (!notify || notifyQueued) return;
+
+        notifyQueued = true;
+
+        // Always defer notifications via microtask to avoid "Cannot update a
+        // component while rendering a different component". When a .set() is
+        // called during any component's render.
+        queueMicrotask(() => {
+            notifyQueued = false;
+            notify?.();
+        });
+    };
 
     const run = () => {
         // Dispose if already listening
@@ -78,7 +93,7 @@ function createSelectorFunctions<T>(
             }
             if (changed) {
                 version++;
-                notify?.();
+                scheduleNotify();
             }
         }
     };
@@ -98,6 +113,7 @@ function createSelectorFunctions<T>(
 
             return () => {
                 dispose?.();
+                notify = undefined;
                 dispose = undefined;
             };
         },
@@ -105,7 +121,6 @@ function createSelectorFunctions<T>(
         run: (selector: Selector<T>) => {
             // Update the cached selector
             _selector = selector;
-
             return (prev = run());
         },
     };

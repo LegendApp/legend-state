@@ -72,7 +72,7 @@ export class ObservablePersistLocalStorage extends ObservablePersistLocalStorage
     }
 }
 
-export function supressActWarning(fn: () => void) {
+export async function supressActWarning(fn: () => Promise<void>) {
     const originalError = console.error;
     console.error = (...args) => {
         if (/act/.test(args[0])) {
@@ -81,9 +81,11 @@ export function supressActWarning(fn: () => void) {
         originalError.call(console, ...args);
     };
 
-    fn();
-
-    console.error = originalError;
+    try {
+        await fn();
+    } finally {
+        console.error = originalError;
+    }
 }
 
 export function expectLog(fn: () => any, msg: string, logType: 'log' | 'warn' | 'error', expecter: (prop: any) => any) {
