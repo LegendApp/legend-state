@@ -39,6 +39,15 @@ export function deepEqual<T extends Record<string, any> = any>(
 ): boolean {
     if (a === b) return true;
     if (isNullOrUndefined(a) !== isNullOrUndefined(b)) return false;
+
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            if (!deepEqual(a[i], b[i], ignoreFields, nullVsUndefined)) return false;
+        }
+        return true;
+    }
+
     if (!isObject(a) || !isObject(b)) return a === b;
 
     if (nullVsUndefined) {
