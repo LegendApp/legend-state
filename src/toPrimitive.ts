@@ -10,8 +10,12 @@ export function toPrimitive(node: NodeInfo, hint: string) {
 
     const method =
         hint === 'string'
-            ? (isFunction(value.toString) ? value.toString : value.valueOf)
-            : (isFunction(value.valueOf) ? value.valueOf : value.toString);
+            ? isFunction(value.toString)
+                ? value.toString
+                : value.valueOf
+            : isFunction(value.valueOf)
+              ? value.valueOf
+              : value.toString;
 
     return isFunction(method) ? method.call(value) : value;
 }
