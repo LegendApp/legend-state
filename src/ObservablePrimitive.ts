@@ -1,9 +1,10 @@
 import { set, get, peek, flushPending } from './ObservableObject';
-import { symbolGetNode } from './globals';
+import { symbolGetNode, symbolToPrimitive } from './globals';
 import { isBoolean } from './is';
 import type { NodeInfo, TrackingType } from './observableInterfaces';
 import type { ObservablePrimitive, ObservableBoolean } from './observableTypes';
 import { onChange } from './onChange';
+import { toPrimitive } from './toPrimitive';
 
 interface ObservablePrimitiveState {
     _node: NodeInfo;
@@ -44,6 +45,12 @@ Object.defineProperty(ObservablePrimitiveClass.prototype, symbolGetNode, {
     configurable: true,
     get() {
         return this._node;
+    },
+});
+Object.defineProperty(ObservablePrimitiveClass.prototype, symbolToPrimitive, {
+    configurable: true,
+    value(hint: string) {
+        return toPrimitive(this._node, hint);
     },
 });
 

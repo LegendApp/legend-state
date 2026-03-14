@@ -50,6 +50,7 @@ import type {
 import { Observable } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
+import { toPrimitive } from './toPrimitive';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
 
@@ -395,16 +396,7 @@ export function flushPending() {
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeInfo, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
-            // Return a toPrimitive function instead of throwing so that external code
-            // (e.g. React 19's dev-mode logComponentRender) can safely coerce observables
-            // without crashing. A dev-mode warning is still emitted to help catch
-            // accidental primitive usage in user code.
-            if (process.env.NODE_ENV === 'development') {
-                console.warn(
-                    '[legend-state] observable is being converted to a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.',
-                );
-            }
-            return (hint: string) => (hint === 'number' ? NaN : '[Observable]');
+            return (hint: string) => toPrimitive(node, hint);
         }
         if (p === symbolGetNode) {
             return node;
