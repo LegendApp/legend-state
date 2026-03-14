@@ -55,6 +55,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         openRequest.onerror = () => {
             console.error('[legend-state] ObservablePersistIndexedDB load error', openRequest.error);
         };
+        openRequest.onblocked = () => {
+            console.warn('[legend-state] ObservablePersistIndexedDB upgrade blocked by another tab');
+        };
 
         openRequest.onupgradeneeded = (event) => {
             const db = openRequest.result;
@@ -84,6 +87,12 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         return new Promise<void>((resolve) => {
             openRequest.onsuccess = async () => {
                 this.db = openRequest.result;
+                this.db.onversionchange = () => {
+                    console.warn(
+                        '[legend-state] ObservablePersistIndexedDB versionchange detected, closing connection',
+                    );
+                    this.db?.close();
+                };
 
                 // Load each table
                 const objectStoreNames = this.db.objectStoreNames;
