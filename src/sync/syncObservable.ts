@@ -57,6 +57,7 @@ import type {
 } from './syncTypes';
 import { waitForSet } from './waitForSet';
 import { createRevertChanges } from './revertChanges';
+import { markNodeAsSynced } from '../onChange';
 
 const {
     clone,
@@ -1095,6 +1096,9 @@ export function syncObservable<T>(
     if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && (!obs$ || !node)) {
         throw new Error('[legend-state] syncObservable called with undefined observable');
     }
+
+    markNodeAsSynced(node);
+
     // Merge remote sync options with global options
     syncOptions = deepMerge(
         {

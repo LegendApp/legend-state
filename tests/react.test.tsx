@@ -24,6 +24,7 @@ import { synced } from '../src/sync/synced';
 import { useTraceListeners } from '../src/trace/useTraceListeners';
 import { useTraceUpdates } from '../src/trace/useTraceUpdates';
 import { $React } from '@legendapp/state/react-web';
+import { syncObservable } from '../sync';
 
 type TestObject = { id: string; label: string };
 
@@ -2050,6 +2051,38 @@ describe('useObservable', () => {
                 }),
             );
             return createElement('div', undefined, obs$.get());
+        });
+
+        const { unmount } = render(<Test />);
+
+        act(() => {
+            unmount();
+        });
+
+        await waitFor(() => promiseTimeout(0));
+
+        expect(numSubscribes).toBe(1);
+        expect(numUnsubscribes).toBe(1);
+    });
+
+    test('observables with syncObservable should unsubscribe when unmounted', async () => {
+        let numSubscribes = 0;
+        let numUnsubscribes = 0;
+
+        const store$ = observable<any>({});
+
+        syncObservable(store$, {
+            subscribe: ({ update }) => {
+                numSubscribes++;
+                update({ value: { value: 1 }, mode: 'set' });
+                return () => {
+                    numUnsubscribes++;
+                };
+            },
+        });
+
+        const Test = observer(function Test() {
+            return createElement('div', undefined, store$.value.get());
         });
 
         const { unmount } = render(<Test />);
