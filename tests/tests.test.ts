@@ -3493,16 +3493,26 @@ describe('_', () => {
     });
 });
 describe('Built-in functions', () => {
-    test('Adding observables should throw', () => {
-        const obs = observable({ x: 0, y: 0 });
+    test('Adding observables coerces to the underlying primitive values', () => {
+        const obs = observable({ x: 1, y: 2 });
 
         const x = obs.x;
         const y = obs.y;
 
-        expect(() => {
-            // @ts-expect-error Testing error
-            x + y;
-        }).toThrowError(/observable is not a primitive/);
+        // @ts-expect-error Testing primitive coercion
+        const result = x + y;
+
+        expect(result).toBe(3);
+        expect(Number(x)).toBe(1);
+        expect(`${y}`).toBe('2');
+    });
+    test('Root primitive observables coerce to the underlying primitive values', () => {
+        const obs = observablePrimitive(10);
+
+        // @ts-expect-error Testing primitive coercion
+        expect(obs + 5).toBe(15);
+        expect(Number(obs)).toBe(10);
+        expect(`${obs}`).toBe('10');
     });
 });
 describe('setAtPath', () => {

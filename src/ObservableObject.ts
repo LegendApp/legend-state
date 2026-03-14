@@ -50,6 +50,7 @@ import type {
 import { Observable } from './observableTypes';
 import { observe } from './observe';
 import { onChange } from './onChange';
+import { toPrimitive } from './toPrimitive';
 import { updateTracking } from './tracking';
 import { whenReady } from './when';
 
@@ -395,11 +396,7 @@ export function flushPending() {
 const proxyHandler: ProxyHandler<any> = {
     get(node: NodeInfo, p: any, receiver: any) {
         if (p === symbolToPrimitive) {
-            throw new Error(
-                process.env.NODE_ENV === 'development'
-                    ? '[legend-state] observable should not be used as a primitive. You may have forgotten to use .get() or .peek() to get the value of the observable.'
-                    : '[legend-state] observable is not a primitive.',
-            );
+            return (hint: string) => toPrimitive(node, hint);
         }
         if (p === symbolGetNode) {
             return node;
