@@ -70,18 +70,37 @@ export interface CrudErrorParams extends Omit<SyncedErrorParams, 'source'> {
 
 export type CrudOnErrorFn = (error: Error, params: CrudErrorParams) => void;
 
-export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
+// clone() uses a JSON reviver that converts ISO 8601 strings to Date objects.
+// These utility types reflect that conversion in the callback parameter types
+// when fieldUpdatedAt/fieldCreatedAt are specified.
+type DateFieldKeys<FUpdatedAt, FCreatedAt> =
+    (FUpdatedAt extends string ? FUpdatedAt : never) |
+    (FCreatedAt extends string ? FCreatedAt : never);
+
+type WithClonedDates<T, K extends string> = [K] extends [never]
+    ? T
+    : { [P in keyof T]: P extends K ? Date : T[P] } & {};
+
+type CrudCallbackInput<TRemote, FUpdatedAt, FCreatedAt> =
+    WithClonedDates<TRemote, DateFieldKeys<FUpdatedAt, FCreatedAt>>;
+
+export interface SyncedCrudPropsBase<
+    TRemote extends object,
+    TLocal = TRemote,
+    FUpdatedAt extends (string & keyof TRemote) | undefined = undefined,
+    FCreatedAt extends (string & keyof TRemote) | undefined = undefined,
+>
     extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet' | 'onError'> {
-    create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
+    create?(input: CrudCallbackInput<TRemote, FUpdatedAt, FCreatedAt>, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
-        input: Partial<TRemote>,
+        input: Partial<CrudCallbackInput<TRemote, FUpdatedAt, FCreatedAt>>,
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined | void>>;
-    delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<any>;
+    delete?(input: CrudCallbackInput<TRemote, FUpdatedAt, FCreatedAt>, params: SyncedSetParams<TRemote>): Promise<any>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
     fieldId?: string;
-    fieldUpdatedAt?: string;
-    fieldCreatedAt?: string;
+    fieldUpdatedAt?: FUpdatedAt;
+    fieldCreatedAt?: FCreatedAt;
     fieldDeleted?: string;
     fieldDeletedList?: string;
     updatePartial?: boolean;
@@ -217,20 +236,20 @@ function retrySet(
 }
 
 // The no read version
-export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
-    props: SyncedCrudPropsNoRead<TRemote, TAsOption> & SyncedCrudPropsBase<TRemote, TLocal>,
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object', FUpdatedAt extends (string & keyof TRemote) | undefined = undefined, FCreatedAt extends (string & keyof TRemote) | undefined = undefined>(
+    props: SyncedCrudPropsNoRead<TRemote, TAsOption> & SyncedCrudPropsBase<TRemote, TLocal, FUpdatedAt, FCreatedAt>,
 ): SyncedCrudReturnType<TLocal, TAsOption>;
 // The get version
-export function syncedCrud<TRemote extends object, TLocal = TRemote>(
-    props: SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsBase<TRemote, TLocal>,
+export function syncedCrud<TRemote extends object, TLocal = TRemote, FUpdatedAt extends (string & keyof TRemote) | undefined = undefined, FCreatedAt extends (string & keyof TRemote) | undefined = undefined>(
+    props: SyncedCrudPropsSingle<TRemote, TLocal> & SyncedCrudPropsBase<TRemote, TLocal, FUpdatedAt, FCreatedAt>,
 ): SyncedCrudReturnType<TLocal, 'value'>;
 // The list version
-export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
-    props: SyncedCrudPropsMany<TRemote, TLocal, TAsOption> & SyncedCrudPropsBase<TRemote, TLocal>,
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object', FUpdatedAt extends (string & keyof TRemote) | undefined = undefined, FCreatedAt extends (string & keyof TRemote) | undefined = undefined>(
+    props: SyncedCrudPropsMany<TRemote, TLocal, TAsOption> & SyncedCrudPropsBase<TRemote, TLocal, FUpdatedAt, FCreatedAt>,
 ): SyncedCrudReturnType<TLocal, Exclude<TAsOption, 'value'>>;
-export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
+export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object', FUpdatedAt extends (string & keyof TRemote) | undefined = undefined, FCreatedAt extends (string & keyof TRemote) | undefined = undefined>(
     props: (SyncedCrudPropsSingle<TRemote, TLocal> | SyncedCrudPropsMany<TRemote, TLocal, TAsOption>) &
-        SyncedCrudPropsBase<TRemote, TLocal>,
+        SyncedCrudPropsBase<TRemote, TLocal, FUpdatedAt, FCreatedAt>,
 ): SyncedCrudReturnType<TLocal, TAsOption>;
 export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption extends CrudAsOption = 'object'>(
     props: (
