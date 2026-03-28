@@ -3931,3 +3931,63 @@ describe('generateId', () => {
         expect(value).toEqual([{ id: 'id2', test: 'hello' }]); // fails, saved remains undefined
     });
 });
+
+// Type-only tests for fieldUpdatedAt/fieldCreatedAt Date inference.
+// clone() uses a JSON reviver that converts ISO 8601 strings to Date at runtime;
+// these tests verify the callback parameter types reflect that conversion.
+describe('syncedCrud date field types', () => {
+    interface Task {
+        id: string;
+        title: string;
+        completed: boolean;
+        createdAt: string;
+        updatedAt: string;
+    }
+
+    it('types date fields as Date when both fieldUpdatedAt and fieldCreatedAt are set', () => {
+        syncedCrud({
+            list: async () => [] as Task[],
+            create: (input) => {
+                expectTypeOf(input.createdAt).toEqualTypeOf<Date>();
+                expectTypeOf(input.updatedAt).toEqualTypeOf<Date>();
+                expectTypeOf(input.title).toEqualTypeOf<string>();
+                expectTypeOf(input.id).toEqualTypeOf<string>();
+                return Promise.resolve(undefined);
+            },
+            update: (input) => {
+                expectTypeOf(input.updatedAt).toEqualTypeOf<Date | undefined>();
+                expectTypeOf(input.title).toEqualTypeOf<string | undefined>();
+                return Promise.resolve(undefined);
+            },
+            delete: (input) => {
+                expectTypeOf(input.createdAt).toEqualTypeOf<Date>();
+                return Promise.resolve(undefined);
+            },
+            fieldUpdatedAt: 'updatedAt',
+            fieldCreatedAt: 'createdAt',
+        });
+    });
+
+    it('leaves types unchanged when no date fields are specified', () => {
+        syncedCrud({
+            list: async () => [] as Task[],
+            create: (input) => {
+                expectTypeOf(input.createdAt).toEqualTypeOf<string>();
+                expectTypeOf(input.updatedAt).toEqualTypeOf<string>();
+                return Promise.resolve(undefined);
+            },
+        });
+    });
+
+    it('only types the specified field as Date', () => {
+        syncedCrud({
+            list: async () => [] as Task[],
+            create: (input) => {
+                expectTypeOf(input.updatedAt).toEqualTypeOf<Date>();
+                expectTypeOf(input.createdAt).toEqualTypeOf<string>();
+                return Promise.resolve(undefined);
+            },
+            fieldUpdatedAt: 'updatedAt',
+        });
+    });
+});
