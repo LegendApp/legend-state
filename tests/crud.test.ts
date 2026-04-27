@@ -3031,7 +3031,7 @@ describe('Order of get/create', () => {
                 onError: () => {},
                 retry: {
                     infinite: true,
-                    delay: 20,
+                    delay: 5,
                 },
                 as: 'object',
                 fieldCreatedAt: 'createdAt',
@@ -3209,7 +3209,7 @@ describe('Order of get/create', () => {
                 onError: () => {},
                 retry: {
                     infinite: true,
-                    delay: 20,
+                    delay: 5,
                 },
                 fieldCreatedAt: 'createdAt',
                 fieldUpdatedAt: 'updatedAt',
@@ -3337,6 +3337,123 @@ describe('Order of get/create', () => {
         ]);
         expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
         expect(obs$.get()).toEqual(new Map([['1', { id: '1', test: 'hello', createdAt: 2, updatedAt: 2 }]]));
+    });
+    test('failed create retry invariant is consistent across value shapes', async () => {
+        const shapeCases = [
+            {
+                name: 'object',
+                makeObservable: (setFns: any) =>
+                    observable<Record<string, BasicValue>>(
+                        syncedCrud({
+                            list: () => [] as BasicValue[],
+                            as: 'object',
+                            ...setFns,
+                        }) as any,
+                    ),
+                insert: (obs$: any) => obs$['1'].set({ id: '1', test: 'hi' }),
+                edit: (obs$: any) => obs$['1'].test.set('hello'),
+                expectedValue: {
+                    '1': { id: '1', test: 'hello', createdAt: 2, updatedAt: 2 },
+                },
+            },
+            {
+                name: 'value',
+                makeObservable: (setFns: any) =>
+                    observable<BasicValue | undefined>(
+                        syncedCrud({
+                            as: 'value',
+                            ...setFns,
+                        }) as any,
+                    ),
+                insert: (obs$: any) => obs$.set({ id: '1', test: 'hi' }),
+                edit: (obs$: any) => obs$.test.set('hello'),
+                expectedValue: { id: '1', test: 'hello', createdAt: 2, updatedAt: 2 },
+            },
+            {
+                name: 'array',
+                makeObservable: (setFns: any) =>
+                    observable<BasicValue[]>(
+                        syncedCrud({
+                            list: () => [] as BasicValue[],
+                            as: 'array',
+                            ...setFns,
+                        }) as any,
+                    ),
+                insert: (obs$: any) => obs$.push({ id: '1', test: 'hi' }),
+                edit: (obs$: any) => obs$[0].test.set('hello'),
+                expectedValue: [{ id: '1', test: 'hello', createdAt: 2, updatedAt: 2 }],
+            },
+            {
+                name: 'Map',
+                makeObservable: (setFns: any) =>
+                    observable<Map<string, BasicValue>>(
+                        syncedCrud({
+                            list: () => [] as BasicValue[],
+                            as: 'Map',
+                            ...setFns,
+                        }) as any,
+                    ),
+                insert: (obs$: any) => obs$.set(new Map([['1', { id: '1', test: 'hi' }]])),
+                edit: (obs$: any) => obs$.get('1').test.set('hello'),
+                expectedValue: new Map([['1', { id: '1', test: 'hello', createdAt: 2, updatedAt: 2 }]]),
+            },
+        ];
+
+        for (const shape of shapeCases) {
+            let shouldError = true;
+            const createCalls: BasicValue[] = [];
+            const updateCalls: BasicValue[] = [];
+            const obs$ = shape.makeObservable({
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (shouldError) {
+                        throw new Error(`${shape.name} create failed`);
+                    }
+                    return {
+                        ...input,
+                        createdAt: 2,
+                        updatedAt: 2,
+                    };
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 5,
+                },
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            });
+
+            await promiseTimeout(1);
+
+            shape.insert(obs$);
+
+            await promiseTimeout(5);
+
+            expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+            expect(updateCalls).toEqual([]);
+
+            shape.edit(obs$);
+
+            await promiseTimeout(1);
+
+            expect(updateCalls).toEqual([]);
+
+            shouldError = false;
+
+            await promiseTimeout(20);
+
+            expect(createCalls).toEqual([
+                { id: '1', test: 'hi' },
+                { id: '1', test: 'hello' },
+            ]);
+            expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
+            expect(obs$.get()).toEqual(shape.expectedValue);
+        }
     });
     test('update during create retry in flight waits for create before updating', async () => {
         let resolveCreate: ((value: BasicValue) => void) | undefined = undefined;
