@@ -422,7 +422,7 @@ describe('error handling', () => {
                 },
                 retry: {
                     infinite: true,
-                    delay: 1,
+                    delay: 20,
                 },
                 onError(error, params) {
                     errors.add(params.input);
@@ -454,10 +454,76 @@ describe('error handling', () => {
         errors.clear();
         shouldError = false;
 
-        await promiseTimeout(5);
+        await promiseTimeout(50);
 
         expect(Array.from(errors)).toEqual([]);
         expect(Array.from(creates).sort((a, b) => a.id.localeCompare(b.id))).toEqual([newItem, newItem2]);
+    });
+    test('pending create retry waits for create before updating latest edit', async () => {
+        let shouldError = true;
+        const createCalls: BasicValue[] = [];
+        const updateCalls: { where: { id: string }; values: Partial<BasicValue> }[] = [];
+        const obs$ = observable(
+            syncedKeel({
+                list: async () => fakeKeelList([ItemBasicValue()]),
+                create: async (value) => {
+                    const input = { ...(value as BasicValue) };
+                    createCalls.push(input);
+                    if (shouldError) {
+                        return { error: { message: 'test' } } as any;
+                    }
+                    return {
+                        data: {
+                            ...input,
+                            createdAt: 2,
+                            updatedAt: 2,
+                        },
+                    } as any;
+                },
+                update: async (value) => {
+                    updateCalls.push(value as { where: { id: string }; values: Partial<BasicValue> });
+                    return {
+                        data: {
+                            id: (value as { where: { id: string } }).where.id,
+                            ...(value as { values: Partial<BasicValue> }).values,
+                            updatedAt: 3,
+                        },
+                    } as any;
+                },
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+            }),
+        );
+
+        obs$.get();
+
+        await promiseTimeout(1);
+
+        obs$.id2.set({ id: 'id2', test: 'hi2' });
+
+        await promiseTimeout(5);
+
+        expect(createCalls).toEqual([{ id: 'id2', test: 'hi2' }]);
+        expect(updateCalls).toEqual([]);
+
+        obs$.id2.test.set('hi3');
+        shouldError = false;
+
+        await promiseTimeout(100);
+
+        expect(createCalls).toEqual([
+            { id: 'id2', test: 'hi2' },
+            { id: 'id2', test: 'hi3' },
+        ]);
+        expect(updateCalls).toEqual([{ where: { id: 'id2' }, values: { test: 'hi3' } }]);
+        expect(obs$.id2.get()).toEqual({
+            id: 'id2',
+            test: 'hi3',
+            createdAt: 2,
+            updatedAt: 2,
+        });
     });
     test('setting error retries updates on multiple fields', async () => {
         let shouldError = true;

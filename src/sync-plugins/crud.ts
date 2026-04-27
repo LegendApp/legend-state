@@ -166,54 +166,134 @@ function arrayToRecord<T>(arr: T[], keyField: keyof T): Record<string, T> {
     return record;
 }
 
+type ItemKey = string | number;
+type RetryAction = 'create' | 'update' | 'delete';
+
+type QueuedRetry = {
+    value: any;
+    fullValue: any;
+    cancelled?: boolean;
+};
+
+type PendingCreate = {
+    hasFailed: boolean;
+    change?: ChangeWithPathStr;
+    promise?: Promise<unknown>;
+    cancelled?: boolean;
+};
+
+type RetryValue = {
+    value: any;
+    fullValue: any;
+};
+
+type QueuedRetries = Record<RetryAction, Map<ItemKey, QueuedRetry>>;
+
+function mergeQueuedRetryValue(currentValue: any, nextValue: any) {
+    if (currentValue && nextValue && typeof currentValue === 'object' && typeof nextValue === 'object') {
+        Object.assign(currentValue, nextValue);
+        return currentValue;
+    }
+
+    return nextValue;
+}
+
+function queueRetryValue(
+    queuedRetries: Map<ItemKey, QueuedRetry>,
+    itemKey: ItemKey,
+    itemValue: any,
+    itemValueFull: any,
+) {
+    const queuedRetry = queuedRetries.get(itemKey);
+    if (queuedRetry) {
+        queuedRetry.value = mergeQueuedRetryValue(queuedRetry.value, itemValue);
+        queuedRetry.fullValue = mergeQueuedRetryValue(queuedRetry.fullValue, itemValueFull);
+        return queuedRetry;
+    }
+
+    const nextQueuedRetry: QueuedRetry = {
+        value: itemValue,
+        fullValue: itemValueFull,
+    };
+    queuedRetries.set(itemKey, nextQueuedRetry);
+    return nextQueuedRetry;
+}
+
+function cancelQueuedRetry(queuedRetries: Map<ItemKey, QueuedRetry>, itemKey: ItemKey) {
+    const queuedRetry = queuedRetries.get(itemKey);
+    if (queuedRetry) {
+        queuedRetry.cancelled = true;
+        queuedRetries.delete(itemKey);
+    }
+}
+
 function retrySet(
     params: SyncedSetParams<any>,
     retry: RetryOptions | undefined,
-    action: 'create' | 'update' | 'delete',
-    itemKey: string,
+    action: RetryAction,
+    itemKey: ItemKey,
     itemValue: any,
     change: ChangeWithPathStr,
-    queuedRetries: {
-        create: Map<string, any>;
-        update: Map<string, any>;
-        delete: Map<string, any>;
-    },
+    queuedRetries: QueuedRetries,
     itemValueFull: any,
     actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
-    saveResult: (itemKey: string, itemValue: any, result: any, isCreate: boolean, change: ChangeWithPathStr) => void,
+    saveResult: (itemKey: ItemKey, itemValue: any, result: any, isCreate: boolean, change: ChangeWithPathStr) => void,
+    options?: {
+        onAttemptFailure?: () => void;
+        refreshValue?: () => false | RetryValue | Promise<false | RetryValue | undefined> | undefined;
+    },
 ) {
     // If delete then remove from create/update, and vice versa
     if (action === 'delete') {
-        if (queuedRetries.create.has(itemKey)) {
-            queuedRetries.create.delete(itemKey);
-        }
-        if (queuedRetries.update.has(itemKey)) {
-            queuedRetries.update.delete(itemKey);
-        }
+        cancelQueuedRetry(queuedRetries.create, itemKey);
+        cancelQueuedRetry(queuedRetries.update, itemKey);
     } else {
-        if (queuedRetries.delete.has(itemKey)) {
-            queuedRetries.delete.delete(itemKey);
-        }
+        cancelQueuedRetry(queuedRetries.delete, itemKey);
     }
 
-    // Get the currently queued value and assigned the new changes onto it
-    const queuedRetry = queuedRetries[action]!.get(itemKey);
-    if (queuedRetry) {
-        itemValue = Object.assign(queuedRetry, itemValue);
-    }
-
-    queuedRetries[action].set(itemKey, itemValue);
-
-    const clonedValue = clone(itemValueFull);
+    const queuedRetry = queueRetryValue(queuedRetries[action], itemKey, itemValue, itemValueFull);
 
     const paramsWithChanges: SyncedSetParams<any> = { ...params, changes: [change] };
 
-    return runWithRetry(paramsWithChanges, retry, 'create_' + itemKey, () =>
-        actionFn!(itemValue, paramsWithChanges).then((result) => {
-            queuedRetries[action]!.delete(itemKey);
-            return saveResult(itemKey, clonedValue, result as any, true, change);
-        }),
-    );
+    const runAttempt = () => {
+        if (queuedRetry.cancelled) {
+            return Promise.resolve(undefined as any);
+        }
+
+        const refreshed = options?.refreshValue?.();
+        const runWithRefreshedValue = (retryValue?: false | RetryValue) => {
+            if (retryValue === false || queuedRetry.cancelled) {
+                queuedRetry.cancelled = true;
+                queuedRetries[action]!.delete(itemKey);
+                return Promise.resolve(undefined as any);
+            }
+
+            if (retryValue) {
+                queuedRetry.value = retryValue.value;
+                queuedRetry.fullValue = retryValue.fullValue;
+            }
+
+            const attemptValue = queuedRetry.value;
+            const attemptFullValue = clone(queuedRetry.fullValue);
+            return actionFn!(attemptValue, paramsWithChanges)
+                .catch((error) => {
+                    options?.onAttemptFailure?.();
+                    throw error;
+                })
+                .then(async (result) => {
+                    queuedRetries[action]!.delete(itemKey);
+                    if (queuedRetry.cancelled) {
+                        return result;
+                    }
+                    await saveResult(itemKey, attemptFullValue, result as any, true, change);
+                    return result;
+                });
+        };
+
+        return isPromise(refreshed) ? refreshed.then(runWithRefreshedValue) : runWithRefreshedValue(refreshed);
+    };
+
+    return runWithRetry(paramsWithChanges, retry, action + '_' + itemKey, runAttempt);
 }
 
 // The no read version
@@ -264,11 +344,56 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     } = props;
 
     const fieldId = fieldIdProp || 'id';
-    const pendingCreates = new Set<string>();
-    const queuedRetries = {
-        create: new Map<string, any>(),
-        update: new Map<string, any>(),
-        delete: new Map<string, any>(),
+    const pendingCreates = new Map<ItemKey, PendingCreate>();
+    const queuedRetries: QueuedRetries = {
+        create: new Map<ItemKey, QueuedRetry>(),
+        update: new Map<ItemKey, QueuedRetry>(),
+        delete: new Map<ItemKey, QueuedRetry>(),
+    };
+    const beginPendingCreate = (id: ItemKey, change: ChangeWithPathStr) => {
+        const pendingCreate = pendingCreates.get(id) || { hasFailed: false };
+        pendingCreate.hasFailed = false;
+        pendingCreate.cancelled = false;
+        pendingCreate.change ||= change;
+        pendingCreates.set(id, pendingCreate);
+        return pendingCreate;
+    };
+    const clearPendingCreate = (id: ItemKey | undefined | null) => {
+        if (!isNullOrUndefined(id)) {
+            const pendingCreate = pendingCreates.get(id);
+            if (pendingCreate) {
+                pendingCreate.cancelled = true;
+            }
+            pendingCreates.delete(id);
+            cancelQueuedRetry(queuedRetries.create, id);
+        }
+    };
+    const cancelFailedPendingCreate = (id: ItemKey | undefined | null) => {
+        if (!isNullOrUndefined(id) && pendingCreates.get(id)?.hasFailed) {
+            clearPendingCreate(id);
+            return true;
+        }
+        return false;
+    };
+    const clearPendingCreateForValue = (value: any) => {
+        if (value && typeof value === 'object') {
+            clearPendingCreate(value[fieldId]);
+        }
+    };
+    const clearPendingCreatesForValues = (values: any[] | null | undefined) => {
+        if (values?.length) {
+            for (let i = 0; i < values.length; i++) {
+                clearPendingCreateForValue(values[i]);
+            }
+        }
+    };
+    const markPendingCreateFailed = (itemKey: ItemKey) => {
+        const pendingCreate = pendingCreates.get(itemKey);
+        if (pendingCreate && !pendingCreate.hasFailed) {
+            pendingCreate.hasFailed = true;
+            cancelQueuedRetry(queuedRetries.update, itemKey);
+            cancelQueuedRetry(queuedRetries.delete, itemKey);
+        }
     };
 
     let asType = props.as as TAsOption;
@@ -355,6 +480,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
                           const processResults = (data: TRemote[] | null) => {
                               data ||= [];
+                              clearPendingCreatesForValues(data);
                               if (fieldUpdatedAt) {
                                   const newLastSync = computeLastSync(data, fieldUpdatedAt, fieldCreatedAt!);
 
@@ -380,6 +506,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           // Note: We don't want this function to be async so we return these functions
                           // as Promise only if getFn returned a promise
                           const processData = (data: TRemote | null) => {
+                              clearPendingCreateForValue(data);
                               let transformed = data as unknown as TLocal | Promise<TLocal>;
                               if (data) {
                                   const newLastSync =
@@ -405,11 +532,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         createFn || updateFn || deleteFn
             ? async (params: SyncedSetParams<any> & { retryAsCreate?: boolean }) => {
                   const { value, changes, update, retryAsCreate, node } = params;
-                  const creates = new Map<string, TLocal>();
-                  const updates = new Map<string, object>();
-                  const updateFullValues = new Map<string, object>();
+                  const creates = new Map<ItemKey, TLocal>();
+                  const updates = new Map<ItemKey, object>();
+                  const updateFullValues = new Map<ItemKey, object>();
                   const deletes = new Set<TRemote>();
-                  const changesById = new Map<string, ChangeWithPathStr>();
+                  const changesById = new Map<ItemKey, ChangeWithPathStr>();
 
                   const getUpdateValue = (itemValue: object, prev: object) => {
                       return updatePartial
@@ -420,6 +547,32 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                     : {},
                             )
                           : itemValue;
+                  };
+
+                  const getCurrentValueAtKey = (itemKey: ItemKey) => {
+                      const currentPeeked = getNodeValue(node);
+                      if (asType === 'value') {
+                          return currentPeeked;
+                      }
+                      if (asType === 'array') {
+                          return isArray(currentPeeked)
+                              ? currentPeeked.find((value: any) => value?.[fieldId] === itemKey)
+                              : undefined;
+                      }
+                      if (asType === 'Map') {
+                          return currentPeeked?.get(itemKey);
+                      }
+                      return currentPeeked?.[itemKey];
+                  };
+
+                  const isFailedCreateReadyToRetry = (itemKey: ItemKey) => {
+                      const pendingCreate = pendingCreates.get(itemKey);
+                      return !!pendingCreate?.hasFailed && !pendingCreate.promise;
+                  };
+                  const addCreate = (id: ItemKey, itemValue: TLocal, change: ChangeWithPathStr) => {
+                      const pendingCreate = beginPendingCreate(id, change);
+                      changesById.set(id, pendingCreate.change!);
+                      creates.set(id, itemValue);
                   };
 
                   changes.forEach((change) => {
@@ -433,12 +586,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               const id = value[fieldId];
                               if (!isNullOrUndefined(id)) {
                                   changesById.set(id, change);
-                                  if (pendingCreates.has(id)) {
+                                  if (isFailedCreateReadyToRetry(id)) {
+                                      isCreate = true;
+                                  } else if (pendingCreates.has(id)) {
                                       isCreate = false;
                                   }
                                   if (isCreate || retryAsCreate) {
                                       if (createFn) {
-                                          creates.set(id, value);
+                                          addCreate(id, value, change);
                                       } else {
                                           console.warn('[legend-state] missing create function');
                                       }
@@ -458,8 +613,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   console.error('[legend-state]: added synced item without an id');
                               }
                           } else if (path.length === 0) {
-                              deletes.add(prevAtPath);
-                              changesById.set(prevAtPath[fieldId], change);
+                              const id = prevAtPath?.[fieldId];
+                              if (!cancelFailedPendingCreate(id)) {
+                                  deletes.add(prevAtPath);
+                                  changesById.set(prevAtPath[fieldId], change);
+                              }
                           }
                       } else {
                           // value, previous, fullValue
@@ -487,7 +645,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               for (let i = 0; i < lengthPrev; i++) {
                                   const key = keysPrev[i];
                                   if (!keysSet.has(key)) {
-                                      deletes.add(prevAsObject[key]);
+                                      const prevValue = prevAsObject[key];
+                                      const id = prevValue?.[fieldId];
+                                      if (!cancelFailedPendingCreate(id)) {
+                                          deletes.add(prevValue);
+                                      }
                                   }
                               }
 
@@ -515,8 +677,11 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               const itemValue = asMap ? value.get(itemKey) : value[itemKey];
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
-                                      deletes.add(prevAtPath);
-                                      changesById.set(prevAtPath[fieldId], change);
+                                      const id = prevAtPath[fieldId];
+                                      if (!cancelFailedPendingCreate(id)) {
+                                          deletes.add(prevAtPath);
+                                          changesById.set(id, change);
+                                      }
                                   }
                               } else {
                                   if (generateId) {
@@ -533,22 +698,22 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               }
                           }
                           itemsChanged?.forEach(([item, prev, fullValue]) => {
+                              const id = item[fieldId];
+                              const isFailedCreateRetry = isFailedCreateReadyToRetry(id);
                               const isCreate =
-                                  !pendingCreates.has(item[fieldId]) &&
-                                  (fieldCreatedAt
-                                      ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
-                                      : fieldUpdatedAt
-                                        ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
-                                        : isNullOrUndefined(prev));
+                                  isFailedCreateRetry ||
+                                  (!pendingCreates.has(id) &&
+                                      (fieldCreatedAt
+                                          ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
+                                          : fieldUpdatedAt
+                                            ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
+                                            : isNullOrUndefined(prev)));
                               if (isCreate) {
-                                  if (!item[fieldId]) {
+                                  if (!id) {
                                       console.error('[legend-state]: added item without an id');
                                   }
                                   if (createFn) {
-                                      const id = item[fieldId];
-                                      changesById.set(id, change);
-                                      pendingCreates.add(id);
-                                      creates.set(id, item);
+                                      addCreate(id, isFailedCreateRetry ? fullValue : item, change);
                                   } else {
                                       console.warn('[legend-state] missing create function');
                                   }
@@ -572,7 +737,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   });
 
                   const saveResult = async (
-                      itemKey: string,
+                      itemKey: ItemKey,
                       input: TRemote,
                       data: CrudResult<TRemote>,
                       isCreate: boolean,
@@ -660,7 +825,28 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
                           }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          return retrySet(
+                          const pendingCreate = pendingCreates.get(itemKey) || { hasFailed: false };
+                          pendingCreates.set(itemKey, pendingCreate);
+                          const refreshCreateValue = async () => {
+                              const currentPendingCreate = pendingCreates.get(itemKey);
+                              if (!currentPendingCreate || currentPendingCreate.cancelled) {
+                                  return false;
+                              }
+                              if (!currentPendingCreate.hasFailed) {
+                                  return undefined;
+                              }
+                              const currentValue = getCurrentValueAtKey(itemKey);
+                              if (isNullOrUndefined(currentValue)) {
+                                  clearPendingCreate(itemKey);
+                                  return false;
+                              }
+                              const nextCreateObj = (await transformOut(
+                                  clone(currentValue),
+                                  transform?.save,
+                              )) as TRemote;
+                              return { value: nextCreateObj, fullValue: nextCreateObj };
+                          };
+                          const createPromise = retrySet(
                               params,
                               retry,
                               'create',
@@ -671,13 +857,33 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               createObj,
                               createFn!,
                               saveResult,
-                          ).then(() => {
-                              pendingCreates.delete(itemKey);
-                          });
+                              {
+                                  onAttemptFailure: () => markPendingCreateFailed(itemKey),
+                                  refreshValue: refreshCreateValue,
+                              },
+                          );
+                          pendingCreate.promise = createPromise;
+                          return createPromise
+                              .then((result) => {
+                                  if (pendingCreates.get(itemKey) === pendingCreate) {
+                                      pendingCreates.delete(itemKey);
+                                  }
+                                  return result;
+                              })
+                              .catch((error) => {
+                                  if (pendingCreates.get(itemKey) === pendingCreate) {
+                                      pendingCreate.promise = undefined;
+                                  }
+                                  throw error;
+                              });
                       }),
 
                       // Handle updates
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
+                          const pendingCreate = pendingCreates.get(itemKey);
+                          if (pendingCreate?.hasFailed && pendingCreate.promise) {
+                              await pendingCreate.promise;
+                          }
                           const fullValue = updateFullValues.get(itemKey);
                           if (waitForSetParam) {
                               // waitForSet should receive the full value
@@ -776,6 +982,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       }
 
                       const rowsTransformed = transform?.load ? await transformRows(rows) : rows;
+                      clearPendingCreatesForValues(rows);
 
                       paramsForUpdate.value = resultsToOutType(rowsTransformed);
                       params.update(paramsForUpdate);
