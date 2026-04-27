@@ -3060,6 +3060,284 @@ describe('Order of get/create', () => {
             '1': { id: '1', test: 'hello', createdAt: 2, updatedAt: 2 },
         });
     });
+    test('value update after terminal create failure creates again instead of updating', async () => {
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue | undefined>(
+            syncedCrud({
+                as: 'value',
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (createCalls.length === 1) {
+                        throw new Error('create failed');
+                    }
+                    return input;
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        obs$.set({ id: '1', test: 'hi' });
+
+        await promiseTimeout(0);
+
+        obs$.test.set('hello');
+
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(createCalls).toEqual([
+            { id: '1', test: 'hi' },
+            { id: '1', test: 'hello' },
+        ]);
+        expect(updateCalls).toEqual([]);
+    });
+    test('array update after terminal create failure creates again instead of updating', async () => {
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue[]>(
+            syncedCrud({
+                list: () => {
+                    return [] as BasicValue[];
+                },
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (createCalls.length === 1) {
+                        throw new Error('create failed');
+                    }
+                    return input;
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                as: 'array',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs$.push({ id: '1', test: 'hi' });
+
+        await promiseTimeout(0);
+
+        obs$[0].test.set('hello');
+
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(createCalls).toEqual([
+            { id: '1', test: 'hi' },
+            { id: '1', test: 'hello' },
+        ]);
+        expect(updateCalls).toEqual([]);
+    });
+    test('Map update after terminal create failure creates again instead of updating', async () => {
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const obs$ = observable<Map<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    return [] as BasicValue[];
+                },
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (createCalls.length === 1) {
+                        throw new Error('create failed');
+                    }
+                    return input;
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                as: 'Map',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs$.set(new Map([['1', { id: '1', test: 'hi' }]]));
+
+        await promiseTimeout(0);
+
+        obs$.get('1').test.set('hello');
+
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(createCalls).toEqual([
+            { id: '1', test: 'hi' },
+            { id: '1', test: 'hello' },
+        ]);
+        expect(updateCalls).toEqual([]);
+    });
+    test('value pending create retry rebuilds create payload from the latest value', async () => {
+        let shouldError = true;
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue | undefined>(
+            syncedCrud({
+                as: 'value',
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (shouldError) {
+                        throw new Error('create failed');
+                    }
+                    return {
+                        ...input,
+                        createdAt: 2,
+                        updatedAt: 2,
+                    };
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        obs$.set({ id: '1', test: 'hi' });
+
+        await promiseTimeout(5);
+
+        obs$.test.set('hello');
+        shouldError = false;
+
+        await promiseTimeout(100);
+
+        expect(createCalls).toEqual([
+            { id: '1', test: 'hi' },
+            { id: '1', test: 'hello' },
+        ]);
+        expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
+        expect(obs$.get()).toEqual({ id: '1', test: 'hello', createdAt: 2, updatedAt: 2 });
+    });
+    test('array pending create retry rebuilds create payload from the latest value', async () => {
+        let shouldError = true;
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue[]>(
+            syncedCrud({
+                list: () => {
+                    return [] as BasicValue[];
+                },
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (shouldError) {
+                        throw new Error('create failed');
+                    }
+                    return {
+                        ...input,
+                        createdAt: 2,
+                        updatedAt: 2,
+                    };
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+                as: 'array',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs$.push({ id: '1', test: 'hi' });
+
+        await promiseTimeout(5);
+
+        obs$[0].test.set('hello');
+        shouldError = false;
+
+        await promiseTimeout(100);
+
+        expect(createCalls).toEqual([
+            { id: '1', test: 'hi' },
+            { id: '1', test: 'hello' },
+        ]);
+        expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
+        expect(obs$.get()).toEqual([{ id: '1', test: 'hello', createdAt: 2, updatedAt: 2 }]);
+    });
+    test('Map pending create retry rebuilds create payload from the latest value', async () => {
+        let shouldError = true;
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const obs$ = observable<Map<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    return [] as BasicValue[];
+                },
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (shouldError) {
+                        throw new Error('create failed');
+                    }
+                    return {
+                        ...input,
+                        createdAt: 2,
+                        updatedAt: 2,
+                    };
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+                as: 'Map',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs$.set(new Map([['1', { id: '1', test: 'hi' }]]));
+
+        await promiseTimeout(5);
+
+        obs$.get('1').test.set('hello');
+        shouldError = false;
+
+        await promiseTimeout(100);
+
+        expect(createCalls).toEqual([
+            { id: '1', test: 'hi' },
+            { id: '1', test: 'hello' },
+        ]);
+        expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
+        expect(obs$.get()).toEqual(new Map([['1', { id: '1', test: 'hello', createdAt: 2, updatedAt: 2 }]]));
+    });
     test('update during create retry in flight waits for create before updating', async () => {
         let resolveCreate: ((value: BasicValue) => void) | undefined = undefined;
         const createCalls: BasicValue[] = [];
@@ -3215,6 +3493,148 @@ describe('Order of get/create', () => {
         expect(updateCalls).toEqual([]);
         expect(deleteCalls).toEqual([]);
         expect(obs$.get()).toEqual({});
+    });
+    test('value delete after create failure cancels queued create retry', async () => {
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const deleteCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue | undefined>(
+            syncedCrud({
+                as: 'value',
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    throw new Error('create failed');
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                delete: async (input: BasicValue) => {
+                    deleteCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        obs$.set({ id: '1', test: 'hi' });
+
+        await promiseTimeout(5);
+
+        expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+
+        obs$.delete();
+
+        await promiseTimeout(50);
+
+        expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+        expect(updateCalls).toEqual([]);
+        expect(deleteCalls).toEqual([]);
+        expect(obs$.get()).toEqual(undefined);
+    });
+    test('array root replacement after create failure cancels queued create retry', async () => {
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const deleteCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue[]>(
+            syncedCrud({
+                list: () => {
+                    return [] as BasicValue[];
+                },
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    throw new Error('create failed');
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                delete: async (input: BasicValue) => {
+                    deleteCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+                as: 'array',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs$.push({ id: '1', test: 'hi' });
+
+        await promiseTimeout(5);
+
+        expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+
+        obs$.set([]);
+
+        await promiseTimeout(50);
+
+        expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+        expect(updateCalls).toEqual([]);
+        expect(deleteCalls).toEqual([]);
+        expect(obs$.get()).toEqual([]);
+    });
+    test('Map delete after create failure cancels queued create retry', async () => {
+        const createCalls: BasicValue[] = [];
+        const updateCalls: BasicValue[] = [];
+        const deleteCalls: BasicValue[] = [];
+        const obs$ = observable<Map<string, BasicValue>>(
+            syncedCrud({
+                list: () => {
+                    return [] as BasicValue[];
+                },
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    throw new Error('create failed');
+                },
+                update: async (input: BasicValue) => {
+                    updateCalls.push(clone(input));
+                    return input;
+                },
+                delete: async (input: BasicValue) => {
+                    deleteCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                retry: {
+                    infinite: true,
+                    delay: 20,
+                },
+                as: 'Map',
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+            }),
+        );
+
+        await promiseTimeout(1);
+
+        obs$.set(new Map([['1', { id: '1', test: 'hi' }]]));
+
+        await promiseTimeout(5);
+
+        expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+
+        obs$.delete('1');
+
+        await promiseTimeout(50);
+
+        expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
+        expect(updateCalls).toEqual([]);
+        expect(deleteCalls).toEqual([]);
+        expect(obs$.get()).toEqual(new Map());
     });
     test('remote rows cancel queued create retries after a create failure', async () => {
         const createCalls: BasicValue[] = [];
