@@ -179,7 +179,6 @@ type PendingCreate = {
     hasFailed: boolean;
     change?: ChangeWithPathStr;
     promise?: Promise<unknown>;
-    cancelled?: boolean;
 };
 
 type RetryValue = {
@@ -353,17 +352,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     const beginPendingCreate = (id: ItemKey, change: ChangeWithPathStr) => {
         const pendingCreate = pendingCreates.get(id) || { hasFailed: false };
         pendingCreate.hasFailed = false;
-        pendingCreate.cancelled = false;
         pendingCreate.change ||= change;
         pendingCreates.set(id, pendingCreate);
         return pendingCreate;
     };
     const clearPendingCreate = (id: ItemKey | undefined | null) => {
         if (!isNullOrUndefined(id)) {
-            const pendingCreate = pendingCreates.get(id);
-            if (pendingCreate) {
-                pendingCreate.cancelled = true;
-            }
             pendingCreates.delete(id);
             cancelQueuedRetry(queuedRetries.create, id);
         }
@@ -829,7 +823,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           pendingCreates.set(itemKey, pendingCreate);
                           const refreshCreateValue = async () => {
                               const currentPendingCreate = pendingCreates.get(itemKey);
-                              if (!currentPendingCreate || currentPendingCreate.cancelled) {
+                              if (!currentPendingCreate) {
                                   return false;
                               }
                               if (!currentPendingCreate.hasFailed) {
