@@ -41,10 +41,28 @@ export type SupabaseSchemaOf<Client extends SupabaseClient> =
         infer _,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         infer __,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer ___,
         infer Schema
     >
         ? Schema
         : never;
+
+export type SupabaseClientOptionsOf<Client extends SupabaseClient> =
+    Client extends SupabaseClient<
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer _,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer __,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer ___,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        infer ____,
+        infer ClientOptions
+    >
+        ? ClientOptions
+        : never;
+
 export type SupabaseTableOf<
     Client extends SupabaseClient,
     SchemaName extends SchemaNameOf<Client>,
@@ -94,9 +112,23 @@ interface SyncedSupabaseProps<
     schema?: SchemaName;
     select?: never;
     filter?: (
-        select: PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>,
+        select: PostgrestFilterBuilder<
+            SupabaseClientOptionsOf<Client>,
+            SupabaseSchemaOf<Client>,
+            TRemote,
+            TRemote[],
+            Collection,
+            []
+        >,
         params: SyncedGetParams<TRemote>,
-    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
+    ) => PostgrestFilterBuilder<
+        SupabaseClientOptionsOf<Client>,
+        SupabaseSchemaOf<Client>,
+        TRemote,
+        TRemote[],
+        Collection,
+        []
+    >;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
     realtime?: boolean | { schema?: string; filter?: string };
     stringifyDates?: boolean;
@@ -124,11 +156,19 @@ interface SyncedSupabasePropsWithSelect<
 > extends Omit<SyncedSupabaseProps<Client, Collection, SchemaName, TOption, TRemote, TLocal>, 'select'> {
     select: (
         query: PostgrestQueryBuilder<
+            SupabaseClientOptionsOf<Client>,
             SupabaseSchemaOf<Client>,
             SupabaseTableOf<Client, SchemaName>[Collection] & SupabaseViewOf<Client, SchemaName>[Collection],
             Collection
         >,
-    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
+    ) => PostgrestFilterBuilder<
+        SupabaseClientOptionsOf<Client>,
+        SupabaseSchemaOf<Client>,
+        TRemote,
+        TRemote[],
+        Collection,
+        []
+    >;
 }
 
 let channelNum = 1;
