@@ -116,6 +116,12 @@ function transformOut<T1, T2>(data: T1, transform: undefined | ((value: T1) => T
     return transform ? transform(clone(data)) : data;
 }
 
+function warnMissingId(value: any) {
+    if (process.env.NODE_ENV === 'development') {
+        console.warn('[legend-state] syncedCrud received an item without an id', value);
+    }
+}
+
 function ensureId(obj: any, fieldId: string, generateId: () => string | number, node: any) {
     if (!obj[fieldId]) {
         obj[fieldId] = generateId();
@@ -160,7 +166,11 @@ function arrayToRecord<T>(arr: T[], keyField: keyof T): Record<string, T> {
         for (let i = 0; i < arr.length; i++) {
             const v = arr[i];
             const key = v[keyField] as string;
-            record[key] = v;
+            if (isNullOrUndefined(key)) {
+                warnMissingId(v);
+            } else {
+                record[key] = v;
+            }
         }
     }
     return record;
@@ -418,9 +428,19 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                 if (asArray) {
                     (out as any[]).push(result);
                 } else if (asMap) {
-                    (out as Map<string, any>).set(value[fieldId], result);
+                    const key = value[fieldId];
+                    if (isNullOrUndefined(key)) {
+                        warnMissingId(value);
+                    } else {
+                        (out as Map<string, any>).set(key, result);
+                    }
                 } else {
-                    (out as Record<string, any>)[value[fieldId]] = result;
+                    const key = value[fieldId];
+                    if (isNullOrUndefined(key)) {
+                        warnMissingId(value);
+                    } else {
+                        (out as Record<string, any>)[key] = result;
+                    }
                 }
             }
         }

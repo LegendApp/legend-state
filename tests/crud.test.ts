@@ -508,6 +508,52 @@ describe('Crud as Object list', () => {
         expect(obs$.id1.get()).toEqual({ id: 'id1', test: 'hi' });
         expect(obs$.id1.test.get()).toEqual('hi');
     });
+    test('nullish record keys do not create phantom entries on synced object reads', async () => {
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () => promiseTimeout(0, [ItemBasicValue()]),
+                as: 'object',
+            }),
+        );
+
+        expect(obs$[undefined as any].get()).toEqual(undefined);
+        expect(obs$[null as any].peek()).toEqual(undefined);
+        expect(obs$.peek()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+
+        expect(obs$[undefined as any].get()).toEqual(undefined);
+        expect(obs$[undefined as any].peek()).toEqual(undefined);
+        expect(obs$[null as any].get()).toEqual(undefined);
+        expect(obs$[null as any].peek()).toEqual(undefined);
+        expect(obs$[undefined as any].test.get()).toEqual(undefined);
+        expect(obs$[null as any].test.peek()).toEqual(undefined);
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+        expect(Object.keys(obs$)).toEqual(['id1']);
+    });
+    test('as Object list skips items with nullish ids', async () => {
+        const obs$ = observable<Record<string, BasicValue>>(
+            syncedCrud({
+                list: () =>
+                    promiseTimeout(0, [
+                        { test: 'missing id' } as BasicValue,
+                        { id: null as any, test: 'null id' },
+                        ItemBasicValue(),
+                    ]),
+                as: 'object',
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({ id1: { id: 'id1', test: 'hi' } });
+        expect(Object.keys(obs$)).toEqual(['id1']);
+    });
     test('as Object set', async () => {
         let created = undefined;
         let updated = undefined;

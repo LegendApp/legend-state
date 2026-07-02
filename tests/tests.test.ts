@@ -786,6 +786,30 @@ describe('undefined', () => {
         obs.test.test2.test3.set('hi');
         expect(obs.test.test2.test3.get()).toEqual('hi');
     });
+    test('Nullish record keys do not create phantom entries on read', () => {
+        const obs = observable<Record<string, { id: string; name?: string }>>({});
+
+        expect(obs[undefined as any].get()).toEqual(undefined);
+        expect(obs.get()).toEqual({});
+        expect(Object.keys(obs)).toEqual([]);
+
+        expect(obs[undefined as any].peek()).toEqual(undefined);
+        expect(obs.get()).toEqual({});
+        expect(Object.keys(obs)).toEqual([]);
+
+        expect(obs[null as any].get()).toEqual(undefined);
+        expect(obs.get()).toEqual({});
+        expect(Object.keys(obs)).toEqual([]);
+
+        expect(obs[null as any].peek()).toEqual(undefined);
+        expect(obs.get()).toEqual({});
+        expect(Object.keys(obs)).toEqual([]);
+
+        expect(obs[undefined as any].name.get()).toEqual(undefined);
+        expect(obs[null as any].name.peek()).toEqual(undefined);
+        expect(obs.get()).toEqual({});
+        expect(Object.keys(obs)).toEqual([]);
+    });
     test('Set undefined to value and back', () => {
         // type Data = {
         //     [key: string]: string | Data | undefined;
