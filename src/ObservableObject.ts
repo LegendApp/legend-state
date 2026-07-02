@@ -721,7 +721,13 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
         setToObservable(childNode, newValue);
     } else {
         // Set the raw value on the parent object
-        const { newValue: savedValue, prevValue, parentValue } = setNodeValue(childNode, newValue);
+        const {
+            newValue: savedValue,
+            prevValue,
+            parentValue,
+            parentHadKey,
+            parentHasKey,
+        } = setNodeValue(childNode, newValue);
 
         const isPrim =
             isPrimitive(prevValue) ||
@@ -756,6 +762,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
                 isRoot,
                 level,
                 forceNotify,
+                parentHadKey !== parentHasKey,
             );
         }
 
@@ -889,6 +896,7 @@ function updateNodesAndNotify(
     isRoot?: boolean,
     level?: number,
     forceNotify?: boolean,
+    parentKeyChanged?: boolean,
 ) {
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for every property set
@@ -902,6 +910,7 @@ function updateNodesAndNotify(
     let whenOptimizedOnlyIf = false;
     let valueAsArr: any[] | undefined;
     let valueAsMap: Map<any, any> | undefined;
+    let valueAsObj: Record<any, any> | undefined;
     // If new value is an object or array update notify down the tree
     if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
         if (
@@ -917,21 +926,31 @@ function updateNodesAndNotify(
             valueAsArr = newValue as any[];
         } else if (isMap(newValue) || isSet(newValue)) {
             valueAsMap = newValue as Map<any, any>;
+        } else if (isObject(newValue)) {
+            valueAsObj = newValue;
         }
     }
 
-    // Check if parent value is an array, Map, or Set so we can optimize the notification
+    // Check if parent value is an array, Map, Set, or object so we can optimize the notification
     if (isArray(parentValue)) {
         valueAsArr = parentValue as any[];
     } else if (isMap(parentValue) || isSet(parentValue)) {
         valueAsMap = parentValue as Map<any, any>;
     }
 
-    // If value is an array, Map, or Set and the size has changed it should notify optimized listeners
+    // If collection membership changed it should notify optimized listeners
     if (valueAsArr) {
         whenOptimizedOnlyIf = valueAsArr?.length !== prevValue?.length;
     } else if (valueAsMap) {
         whenOptimizedOnlyIf = valueAsMap?.size !== prevValue?.size;
+    } else if (valueAsObj) {
+        const keys = Object.keys(valueAsObj);
+        const prevValueAsObj = isObject(prevValue) ? prevValue : {};
+        const prevKeys = Object.keys(prevValueAsObj);
+        whenOptimizedOnlyIf =
+            keys.length !== prevKeys.length || keys.some((key) => !hasOwnProperty.call(prevValueAsObj, key));
+    } else if (isObject(parentValue)) {
+        whenOptimizedOnlyIf = !!parentKeyChanged;
     }
 
     if (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff) {

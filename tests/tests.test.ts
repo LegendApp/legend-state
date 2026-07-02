@@ -2681,6 +2681,40 @@ describe('Shallow', () => {
 
         expect(handler).toHaveBeenCalledTimes(2);
     });
+    test('Key changes notify optimized object listeners', () => {
+        interface Data {
+            test: Record<string, { text: string } | undefined>;
+        }
+        const obs = observable<Data>({ test: { key1: { text: 'hello' }, key2: { text: 'hello2' } } });
+        const handler = jest.fn();
+        obs.test.onChange(handler, { trackingType: optimized });
+
+        obs.test.key3.set({ text: 'hello3' });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        obs.test.key1.text.set('hello1');
+
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        obs.test.key3.delete();
+
+        expect(handler).toHaveBeenCalledTimes(2);
+
+        obs.test.set({
+            key1: { text: 'hello1' },
+            key4: { text: 'hello4' },
+        });
+
+        expect(handler).toHaveBeenCalledTimes(3);
+
+        obs.test.set({
+            key1: { text: 'hello1' },
+            key2: { text: 'hello2' },
+        });
+
+        expect(handler).toHaveBeenCalledTimes(4);
+    });
     test('Array splice notifies shallow', () => {
         interface Data {
             arr: Array<{ text: string }>;

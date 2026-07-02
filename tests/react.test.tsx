@@ -845,6 +845,48 @@ describe('For', () => {
         expect(items.length).toEqual(1);
         expect(items[0].id).toEqual('A');
     });
+    test('For with object optimized inserts and deletes keys', () => {
+        const items$ = observable<Record<string, TestObject>>({
+            m2: { label: 'B', id: 'B' },
+            m1: { label: 'A', id: 'A' },
+        });
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
+            return createElement('li', { id: data.label }, data.label);
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: items$, item: Item, optimized: true }),
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+
+        act(() => {
+            items$.m0.set({ label: 'Z', id: 'Z' });
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(3);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+        expect(items[2].id).toEqual('Z');
+
+        act(() => {
+            items$.m0.delete();
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+    });
     test('Push, clear, push in For optimized', () => {
         interface ValObject {
             val: number;
