@@ -342,6 +342,17 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
             }
         }
 
+        if (isArr && length < lengthPrev && parent.children) {
+            for (let i = length; i < lengthPrev; i++) {
+                const key = i + '';
+                const child = parent.children.get(key);
+                if (child) {
+                    handleDeletedChild(child, prevValue?.[i]);
+                    parent.children.delete(key);
+                }
+            }
+        }
+
         // The full array does not need to re-render if the length is the same
         // So don't notify shallow listeners
         retValue = hasADiff || didMove;
@@ -363,8 +374,8 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
 function handleDeletedChild(child: NodeInfo, p: any) {
     // If the previous value is not in the new array and it
     // is an activated, disable its listeners
-    child.linkedToNodeDispose?.();
-    child.activatedObserveDispose?.();
+    deactivateNode(child);
+    child.parent?.functions?.delete(child.key);
 
     if (!isPrimitive(p)) {
         updateNodes(child, undefined, p);

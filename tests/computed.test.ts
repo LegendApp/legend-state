@@ -2033,6 +2033,28 @@ describe('Complex computeds', () => {
         obs.a.delete();
         expect(comp.b.get()).toEqual({ id: 'c', text: 'hic' });
     });
+    test('Computed object link child updates after source key is deleted and re-added', () => {
+        const obs = observable<Record<string, { id: string; text: string }>>({
+            a: { id: 'a', text: 'hia' },
+            b: { id: 'b', text: 'hib' },
+        });
+
+        const comp = observable(() => {
+            const val = obs.get();
+            return Object.fromEntries(Object.keys(val).map((key) => [key, obs[key]]));
+        });
+
+        expect(comp.a.id.get()).toEqual('a');
+
+        obs.a.delete();
+
+        expect(comp.get()).toEqual({ b: { id: 'b', text: 'hib' } });
+        expect(comp.a.id.get()).toEqual(undefined);
+
+        obs.a.set({ id: 'a2', text: 'hia2' });
+
+        expect(comp.a.id.get()).toEqual('a2');
+    });
     test('Computed returning an array of links with functions', () => {
         const obs = observable<Record<string, { id: string; text: string }>>({
             a: { id: 'a', text: 'hia' },
@@ -2068,6 +2090,57 @@ describe('Complex computeds', () => {
 
         obs.a.delete();
         expect(comp[0].get()).toEqual({ id: 'b', text: 'hib' });
+    });
+    test('Computed array children update after deleting first source record item', () => {
+        type Item = { id: string; value: number };
+        const items: Record<string, Item> = {
+            ID_1: { id: 'ID_1', value: 1 },
+            ID_2: { id: 'ID_2', value: 2 },
+            ID_3: { id: 'ID_3', value: 3 },
+            ID_4: { id: 'ID_4', value: 4 },
+            ID_5: { id: 'ID_5', value: 5 },
+        };
+        const state$ = observable({
+            items,
+            itemList: () => Object.values(state$.items),
+        });
+        const itemListNode = getNode(state$.itemList);
+
+        const readRaw = () => (state$.itemList.get() as Item[]).map((item) => item.id);
+        const readChildren = () => [0, 1, 2, 3, 4].map((index) => state$.itemList[index].id.get());
+
+        expect(readRaw()).toEqual(['ID_1', 'ID_2', 'ID_3', 'ID_4', 'ID_5']);
+        expect(readChildren()).toEqual(['ID_1', 'ID_2', 'ID_3', 'ID_4', 'ID_5']);
+        expect(itemListNode.functions?.has('4')).toEqual(true);
+
+        state$.items.ID_1.delete();
+
+        expect(readRaw()).toEqual(['ID_2', 'ID_3', 'ID_4', 'ID_5']);
+        expect(itemListNode.functions?.has('4')).toEqual(false);
+        expect(itemListNode.children?.has('4')).toEqual(false);
+        expect(readChildren()).toEqual(['ID_2', 'ID_3', 'ID_4', 'ID_5', undefined]);
+        expect(itemListNode.functions?.has('4')).toEqual(false);
+
+        state$.items.ID_6.set({ id: 'ID_6', value: 6 });
+
+        expect(readRaw()).toEqual(['ID_2', 'ID_3', 'ID_4', 'ID_5', 'ID_6']);
+        expect(state$.itemList[4].id.get()).toEqual('ID_6');
+        expect(itemListNode.functions?.has('4')).toEqual(true);
+
+        state$.items.ID_6.delete();
+
+        expect(readRaw()).toEqual(['ID_2', 'ID_3', 'ID_4', 'ID_5']);
+        expect(itemListNode.functions?.has('4')).toEqual(false);
+        expect(itemListNode.children?.has('4')).toEqual(false);
+        expect(readChildren()).toEqual(['ID_2', 'ID_3', 'ID_4', 'ID_5', undefined]);
+
+        state$.items.ID_3.delete();
+
+        expect(readRaw()).toEqual(['ID_2', 'ID_4', 'ID_5']);
+        expect(itemListNode.functions?.has('3')).toEqual(false);
+        expect(itemListNode.children?.has('3')).toEqual(false);
+        expect(readChildren()).toEqual(['ID_2', 'ID_4', 'ID_5', undefined, undefined]);
+        expect(itemListNode.functions?.has('3')).toEqual(false);
     });
     test('Computed returning an array of links direct with looper', () => {
         const obs = observable<Record<string, { id: string; text: string }>>({
