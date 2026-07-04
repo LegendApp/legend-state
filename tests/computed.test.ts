@@ -302,8 +302,8 @@ describe('Computed', () => {
 
         expect(handler).toHaveBeenCalledTimes(1);
 
-        // Setting to a string that resolves to an equal PlainDate should not re-notify.
-        source$.set('2024-01-15');
+        // Setting to a different string that resolves to an equal PlainDate should not re-notify.
+        source$.set('2024-01-15T10:30:00');
 
         expect(handler).toHaveBeenCalledTimes(1);
     });
