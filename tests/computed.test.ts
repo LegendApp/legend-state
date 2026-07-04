@@ -1,7 +1,9 @@
+import { Temporal } from '@js-temporal/polyfill';
 import {
     Observable,
     batch,
     beginBatch,
+    computed,
     endBatch,
     getNode,
     isObservable,
@@ -254,6 +256,56 @@ describe('Computed', () => {
         expect(comp.get()).toEqual({ prev: 30, sum: 35 });
         obs.test.set(11);
         expect(comp.get()).toEqual({ prev: 35, sum: 31 });
+    });
+    test('Computed returning a Temporal.PlainDate notifies on change', () => {
+        const source$ = observable('2024-01-15');
+        const date$ = computed(() => Temporal.PlainDate.from(source$.get()));
+
+        const handler = jest.fn();
+        observe(() => {
+            handler(date$.get().toString());
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenLastCalledWith('2024-01-15');
+
+        source$.set('2024-03-20');
+
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler).toHaveBeenLastCalledWith('2024-03-20');
+    });
+    test('Computed returning a Temporal.Instant notifies on change', () => {
+        const source$ = observable('2024-01-15T00:00:00Z');
+        const instant$ = computed(() => Temporal.Instant.from(source$.get()));
+
+        const handler = jest.fn();
+        observe(() => {
+            handler(instant$.get().toString());
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler).toHaveBeenLastCalledWith('2024-01-15T00:00:00Z');
+
+        source$.set('2024-03-20T00:00:00Z');
+
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler).toHaveBeenLastCalledWith('2024-03-20T00:00:00Z');
+    });
+    test('Computed returning an equal Temporal.PlainDate does not notify', () => {
+        const source$ = observable('2024-01-15');
+        const date$ = computed(() => Temporal.PlainDate.from(source$.get()));
+
+        const handler = jest.fn();
+        observe(() => {
+            handler(date$.get().toString());
+        });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        // Setting to a different string that resolves to an equal PlainDate should not re-notify.
+        source$.set('2024-01-15T10:30:00');
+
+        expect(handler).toHaveBeenCalledTimes(1);
     });
 });
 describe('Accessor functions', () => {

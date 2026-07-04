@@ -9,7 +9,7 @@ export function isString(obj: unknown): obj is string {
     return typeof obj === 'string';
 }
 export function isObject(obj: unknown): obj is Record<any, any> {
-    return !!obj && typeof obj === 'object' && !(obj instanceof Date) && !isArray(obj);
+    return !!obj && typeof obj === 'object' && !(obj instanceof Date) && !isTemporal(obj) && !isArray(obj);
 }
 export function isPlainObject(obj: unknown): obj is Record<any, any> {
     return isObject(obj) && obj.constructor === Object;
@@ -19,10 +19,24 @@ export function isFunction(obj: unknown): obj is Function {
 }
 export function isPrimitive(arg: unknown): arg is string | number | bigint | boolean | symbol {
     const type = typeof arg;
-    return arg !== undefined && (isDate(arg) || (type !== 'object' && type !== 'function'));
+    return arg !== undefined && (isDate(arg) || isTemporal(arg) || (type !== 'object' && type !== 'function'));
 }
 export function isDate(obj: unknown): obj is Date {
     return obj instanceof Date;
+}
+// Temporal.* instances (PlainDate, PlainTime, PlainDateTime, ZonedDateTime, Instant, Duration,
+// PlainMonthDay, PlainYearMonth) have no enumerable own properties, so they must be treated as
+// opaque/primitive-like values (like Date) rather than deep-diffed. We can't rely on `instanceof
+// Temporal.X` because the global `Temporal` may not exist (native support or polyfill is optional
+// for consumers), so we duck-type via the spec-mandated `Symbol.toStringTag`, which every Temporal
+// type sets to `"Temporal.<TypeName>"`.
+export function isTemporal(obj: unknown): boolean {
+    return (
+        !!obj &&
+        (typeof obj === 'object' || typeof obj === 'function') &&
+        typeof (obj as { [Symbol.toStringTag]?: unknown })[Symbol.toStringTag] === 'string' &&
+        (obj as { [Symbol.toStringTag]: string })[Symbol.toStringTag].startsWith('Temporal.')
+    );
 }
 export function isSymbol(obj: unknown): obj is symbol {
     return typeof obj === 'symbol';
