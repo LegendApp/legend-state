@@ -1,4 +1,4 @@
-import { isArray, isChildNode, isDate, isFunction, isMap, isObject, isSet } from './is';
+import { isArray, isChildNode, isDate, isFunction, isMap, isObject, isSet, isTemporal } from './is';
 import type { NodeInfo, ObservableEvent, TypeAtPath, UpdateFn } from './observableInterfaces';
 import type { Observable, ObservableParam } from './observableTypes';
 
@@ -250,7 +250,9 @@ export function extractFunction(node: NodeInfo, key: string, fnOrComputed: Funct
     node.functions.set(key, fnOrComputed);
 }
 export function equals(a: unknown, b: unknown) {
-    return a === b || (isDate(a) && isDate(b) && +a === +b);
+    return (
+        a === b || (isDate(a) && isDate(b) && +a === +b) || (isTemporal(a) && isTemporal(b) && String(a) === String(b))
+    );
 }
 export function getKeys(
     obj: Record<any, any> | Array<any> | undefined,

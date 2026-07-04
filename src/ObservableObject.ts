@@ -34,6 +34,7 @@ import {
     isPrimitive,
     isPromise,
     isSet,
+    isTemporal,
 } from './is';
 import { linked } from './linked';
 import type {
@@ -725,8 +726,10 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
         const isPrim =
             isPrimitive(prevValue) ||
             prevValue instanceof Date ||
+            isTemporal(prevValue) ||
             isPrimitive(savedValue) ||
-            savedValue instanceof Date;
+            savedValue instanceof Date ||
+            isTemporal(savedValue);
 
         if (!isPrim) {
             let parent = childNode;
