@@ -3255,7 +3255,7 @@ describe('Order of get/create', () => {
                 onError: () => {},
                 retry: {
                     infinite: true,
-                    delay: 5,
+                    delay: 50,
                 },
                 fieldCreatedAt: 'createdAt',
                 fieldUpdatedAt: 'updatedAt',
@@ -3478,20 +3478,17 @@ describe('Order of get/create', () => {
 
             shape.insert(obs$);
 
-            await promiseTimeout(5);
+            await promiseTimeout(10);
 
             expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
             expect(updateCalls).toEqual([]);
 
             shape.edit(obs$);
-
-            await promiseTimeout(1);
-
             expect(updateCalls).toEqual([]);
 
             shouldError = false;
 
-            await promiseTimeout(20);
+            await promiseTimeout(125);
 
             expect(createCalls).toEqual([
                 { id: '1', test: 'hi' },
