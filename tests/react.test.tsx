@@ -24,6 +24,7 @@ import { synced } from '../src/sync/synced';
 import { useTraceListeners } from '../src/trace/useTraceListeners';
 import { useTraceUpdates } from '../src/trace/useTraceUpdates';
 import { $React } from '@legendapp/state/react-web';
+import { syncObservable } from '../sync';
 
 type TestObject = { id: string; label: string };
 
@@ -844,6 +845,48 @@ describe('For', () => {
         items = container.querySelectorAll('li');
         expect(items.length).toEqual(1);
         expect(items[0].id).toEqual('A');
+    });
+    test('For with object optimized inserts and deletes keys', () => {
+        const items$ = observable<Record<string, TestObject>>({
+            m2: { label: 'B', id: 'B' },
+            m1: { label: 'A', id: 'A' },
+        });
+        function Item({ item$ }: { item$: Observable<TestObject> }) {
+            const data = useSelector(item$);
+            return createElement('li', { id: data.label }, data.label);
+        }
+        function Test() {
+            return createElement(
+                'div',
+                undefined,
+                createElement(For as typeof For<TestObject, {}>, { each: items$, item: Item, optimized: true }),
+            );
+        }
+        const { container } = render(createElement(Test));
+
+        let items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+
+        act(() => {
+            items$.m0.set({ label: 'Z', id: 'Z' });
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(3);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
+        expect(items[2].id).toEqual('Z');
+
+        act(() => {
+            items$.m0.delete();
+        });
+
+        items = container.querySelectorAll('li');
+        expect(items.length).toEqual(2);
+        expect(items[0].id).toEqual('B');
+        expect(items[1].id).toEqual('A');
     });
     test('Push, clear, push in For optimized', () => {
         interface ValObject {
@@ -2050,6 +2093,38 @@ describe('useObservable', () => {
                 }),
             );
             return createElement('div', undefined, obs$.get());
+        });
+
+        const { unmount } = render(<Test />);
+
+        act(() => {
+            unmount();
+        });
+
+        await waitFor(() => promiseTimeout(0));
+
+        expect(numSubscribes).toBe(1);
+        expect(numUnsubscribes).toBe(1);
+    });
+
+    test('observables with syncObservable should unsubscribe when unmounted', async () => {
+        let numSubscribes = 0;
+        let numUnsubscribes = 0;
+
+        const store$ = observable<any>({});
+
+        syncObservable(store$, {
+            subscribe: ({ update }) => {
+                numSubscribes++;
+                update({ value: { value: 1 }, mode: 'set' });
+                return () => {
+                    numUnsubscribes++;
+                };
+            },
+        });
+
+        const Test = observer(function Test() {
+            return createElement('div', undefined, store$.value.get());
         });
 
         const { unmount } = render(<Test />);

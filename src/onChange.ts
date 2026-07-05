@@ -1,18 +1,17 @@
 import { getNodeValue } from './globals';
 import { deconstructObjectWithPath } from './helpers';
 import { dispatchMiddlewareEvent } from './middleware';
-import type {
-    LinkedOptions,
-    ListenerFn,
-    ListenerParams,
-    NodeInfo,
-    NodeListener,
-    TrackingType,
-} from './observableInterfaces';
+import type { ListenerFn, ListenerParams, NodeInfo, NodeListener, TrackingType } from './observableInterfaces';
+
+type ActivationState = NonNullable<NodeInfo['activationState']> & { synced?: true };
 
 export function isSyncedObservable(node: NodeInfo): boolean {
-    // type patched, should we add it to the LinkedOptions?
-    return (node.activationState as LinkedOptions & { synced?: true })?.synced || false;
+    return (node.activationState as ActivationState)?.synced || false;
+}
+
+export function markNodeAsSynced(node: NodeInfo): void {
+    const activationState = (node.activationState ||= {} as ActivationState) as ActivationState;
+    activationState.synced = true;
 }
 
 function shouldDispatchParentMiddlewareEvent(node: NodeInfo): boolean {

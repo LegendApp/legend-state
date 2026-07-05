@@ -120,6 +120,8 @@ export function setNodeValue(node: NodeInfo, newValue: any) {
 
     const useSetFn = isSet(parentValue);
     const useMapFn = isMap(parentValue);
+    const parentHadKey =
+        useSetFn || useMapFn ? parentValue.has(key) : Object.prototype.hasOwnProperty.call(parentValue, key);
 
     // Save the previous value first
     const prevValue = useSetFn ? key : useMapFn ? parentValue.get(key) : parentValue[key];
@@ -148,7 +150,10 @@ export function setNodeValue(node: NodeInfo, newValue: any) {
         }
     }
 
-    return { prevValue, newValue, parentValue };
+    const parentHasKey =
+        useSetFn || useMapFn ? parentValue.has(key) : Object.prototype.hasOwnProperty.call(parentValue, key);
+
+    return { prevValue, newValue, parentValue, parentHadKey, parentHasKey };
 }
 
 const arrNodeKeys: string[] = [];
