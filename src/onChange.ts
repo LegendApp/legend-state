@@ -3,18 +3,15 @@ import { deconstructObjectWithPath } from './helpers';
 import { dispatchMiddlewareEvent } from './middleware';
 import type { ListenerFn, ListenerParams, NodeInfo, NodeListener, TrackingType } from './observableInterfaces';
 
-type ActivationState = NodeInfo['activationState'] & { synced?: true };
+type ActivationState = NonNullable<NodeInfo['activationState']> & { synced?: true };
 
 export function isSyncedObservable(node: NodeInfo): boolean {
     return (node.activationState as ActivationState)?.synced || false;
 }
 
 export function markNodeAsSynced(node: NodeInfo): void {
-    if (!node.activationState) {
-        node.activationState = { synced: true } as ActivationState;
-    } else if (!(node.activationState as ActivationState).synced) {
-        (node.activationState as ActivationState).synced = true;
-    }
+    const activationState = (node.activationState ||= {} as ActivationState) as ActivationState;
+    activationState.synced = true;
 }
 
 function shouldDispatchParentMiddlewareEvent(node: NodeInfo): boolean {
