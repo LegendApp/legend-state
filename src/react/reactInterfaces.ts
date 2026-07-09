@@ -16,6 +16,7 @@ export interface BindKey<P, K extends KeysOfUnion<P> = KeysOfUnion<P>> {
             : (e: any) => any
         : (e: any) => any;
     defaultValue?: any;
+    // selector runs inside reactive prop tracking and must not call React hooks.
     selector?: (propsOut: Record<string, any>, p: Observable<any>) => any;
 }
 

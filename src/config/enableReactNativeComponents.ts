@@ -1,6 +1,6 @@
-import { useRef, type JSX } from 'react';
+import { type JSX } from 'react';
 import type { Observable } from '@legendapp/state';
-import { FCReactive, FCReactiveObject, configureReactive, useSelector } from '@legendapp/state/react';
+import { FCReactive, FCReactiveObject, configureReactive } from '@legendapp/state/react';
 import {
     ActivityIndicator,
     ActivityIndicatorProps,
@@ -64,14 +64,12 @@ export function enableReactNativeComponents() {
             FlatList: {
                 data: {
                     selector: (propsOut: Record<string, any>, p: Observable<any>) => {
-                        const state = useRef(0);
-                        // Increment renderNum whenever the array changes shallowly
-                        const [renderNum, value] = useSelector(() => [state.current++, p.get(true)]);
+                        const value = p.get(true);
 
-                        // Set extraData to renderNum so that it will re-render when renderNum changes.
+                        // Set extraData to a new object so that it will re-render when data changes.
                         // This is necessary because the observable array is mutable so changes to it
                         // won't trigger re-renders by default.
-                        propsOut.extraData = renderNum;
+                        propsOut.extraData = {};
 
                         return value;
                     },

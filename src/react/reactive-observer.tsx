@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { isFunction, isObservable, Selector } from '@legendapp/state';
-import { ChangeEvent, ComponentClass, FC, forwardRef, memo, useCallback } from 'react';
+import { computeSelector, isFunction, isObservable, Selector } from '@legendapp/state';
+import { ChangeEvent, ComponentClass, FC, forwardRef, memo, useRef } from 'react';
 import { reactGlobals } from './react-globals';
 import type { BindKeys, KeysOfUnion } from './reactInterfaces';
 import { useSelector } from './useSelector';
@@ -31,6 +31,13 @@ export type ReactifyProps<T, K extends KeysOfUnion<T>> = T & {
 export const hasSymbol = /* @__PURE__ */ typeof Symbol === 'function' && Symbol.for;
 
 let didWarnProps = false;
+
+interface BindHandlerCache {
+    bind: any;
+    observable: any;
+    originalHandler: any;
+    handler: (event: ChangeEvent) => void;
+}
 
 // TODOV2: Change bindKeys to an options object, where one of the options is "convertChildren" so that behavior can be optional
 function createReactiveComponent<P = object>(
@@ -78,73 +85,91 @@ function createReactiveComponent<P = object>(
     const proxyHandler: ProxyHandler<any> = {
         apply(target, thisArg, argArray) {
             // If this is a reactive component, convert all props ending in $
-            // to regular props and set up a useSelector listener
+            // to regular props and track all reactive reads in one stable hook.
             if (reactive) {
                 const props = argArray[0];
-                const propsOut = {} as Record<string, any>;
-                const keys = Object.keys(props);
-                for (let i = 0; i < keys.length; i++) {
-                    const key = keys[i];
-                    const p = props[key];
+                const bindHandlersRef = useRef<Record<string, BindHandlerCache>>({});
+                argArray[0] = useSelector(
+                    () => {
+                        const propsOut = {} as Record<string, any>;
+                        const keys = Object.keys(props);
+                        for (let i = 0; i < keys.length; i++) {
+                            const key = keys[i];
+                            const p = props[key];
 
-                    const isReactiveKey = keysReactiveSet && keysReactiveSet.has(key);
+                            const isReactiveKey = keysReactiveSet && keysReactiveSet.has(key);
 
-                    // Convert children if it's a function or observable
-                    if (key === 'children' && (isFunction(p) || isObservable(p))) {
-                        propsOut[key] = useSelector(p, { skipCheck: true });
-                    }
-                    // Convert reactive props
-                    else if (isReactiveKey || key.startsWith('$') || key.endsWith('$')) {
-                        // TODOV3 Add this warning
-                        // TODOV4 Remove the deprecated endsWith option
-                        if (process.env.NODE_ENV === 'development' && !didWarnProps && key.endsWith('$')) {
-                            didWarnProps = true;
-                            console.warn(
-                                `[legend-state] Reactive props were changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
-                                    '$',
-                                    '',
-                                )}. See https://legendapp.com/open-source/state/migrating for more details.`,
-                            );
-                        }
-                        const k = isReactiveKey ? key : key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
-                        // Return raw value and listen to the selector for changes
-
-                        const bind = bindKeys?.[k as keyof P];
-                        const shouldBind = bind && isObservable(p);
-
-                        propsOut[k] = shouldBind && bind?.selector ? bind.selector(propsOut, p) : useSelector(p);
-
-                        // If this key is one of the bind keys set up a two-way binding
-                        if (shouldBind) {
-                            // Use the bind's defaultValue if value is undefined
-                            if (bind.defaultValue !== undefined && propsOut[k] === undefined) {
-                                propsOut[k] = bind.defaultValue;
+                            // Convert children if it's a function or observable
+                            if (key === 'children' && (isFunction(p) || isObservable(p))) {
+                                propsOut[key] = computeSelector(p);
                             }
+                            // Convert reactive props
+                            else if (isReactiveKey || key.startsWith('$') || key.endsWith('$')) {
+                                // TODOV3 Add this warning
+                                // TODOV4 Remove the deprecated endsWith option
+                                if (process.env.NODE_ENV === 'development' && !didWarnProps && key.endsWith('$')) {
+                                    didWarnProps = true;
+                                    console.warn(
+                                        `[legend-state] Reactive props were changed to start with $ instead of end with $ in version 2.0. So please change ${key} to $${key.replace(
+                                            '$',
+                                            '',
+                                        )}. See https://legendapp.com/open-source/state/migrating for more details.`,
+                                    );
+                                }
+                                const k = isReactiveKey ? key : key.endsWith('$') ? key.slice(0, -1) : key.slice(1);
 
-                            if (bind.handler && bind.getValue) {
-                                // Hook up the change handler
-                                const handlerFn = (e: ChangeEvent) => {
-                                    p.set(bind.getValue!(e));
-                                    props[bind.handler!]?.(e);
-                                };
+                                const bind = bindKeys?.[k as keyof P];
+                                const shouldBind = bind && isObservable(p);
 
-                                (propsOut[bind.handler as string] as any) =
-                                    // If in development mode, don't memoize the handler. fix fast refresh bug
-                                    process.env.NODE_ENV === 'development'
-                                        ? handlerFn
-                                        : useCallback(handlerFn, [props[bind.handler], bindKeys]);
+                                propsOut[k] =
+                                    shouldBind && bind?.selector ? bind.selector(propsOut, p) : computeSelector(p);
+
+                                // If this key is one of the bind keys set up a two-way binding
+                                if (shouldBind) {
+                                    // Use the bind's defaultValue if value is undefined
+                                    if (bind.defaultValue !== undefined && propsOut[k] === undefined) {
+                                        propsOut[k] = bind.defaultValue;
+                                    }
+
+                                    if (bind.handler && bind.getValue) {
+                                        // Hook up the change handler
+                                        const handlerKey = bind.handler as string;
+                                        const originalHandler = props[handlerKey];
+                                        let cached = bindHandlersRef.current[k];
+
+                                        if (
+                                            !cached ||
+                                            cached.bind !== bind ||
+                                            cached.observable !== p ||
+                                            cached.originalHandler !== originalHandler
+                                        ) {
+                                            cached = bindHandlersRef.current[k] = {
+                                                bind,
+                                                observable: p,
+                                                originalHandler,
+                                                handler: (event: ChangeEvent) => {
+                                                    p.set(bind.getValue!(event));
+                                                    originalHandler?.(event);
+                                                },
+                                            };
+                                        }
+
+                                        propsOut[handlerKey] = cached.handler;
+                                    }
+                                }
+
+                                if (!isReactiveKey) {
+                                    // Delete the reactive key
+                                    delete propsOut[key];
+                                }
+                            } else if (propsOut[key] === undefined) {
+                                propsOut[key] = p;
                             }
                         }
-
-                        if (!isReactiveKey) {
-                            // Delete the reactive key
-                            delete propsOut[key];
-                        }
-                    } else if (propsOut[key] === undefined) {
-                        propsOut[key] = p;
-                    }
-                }
-                argArray[0] = propsOut;
+                        return propsOut;
+                    },
+                    { skipCheck: true },
+                );
             }
 
             // If observing wrap the whole render in a useSelector to listen to it

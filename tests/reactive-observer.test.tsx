@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { act, render } from '@testing-library/react';
-import { createElement } from 'react';
+import { createElement, startTransition, Suspense, useState } from 'react';
 import type { FC, ReactNode } from 'react';
 import { observable } from '@legendapp/state';
 import type { Selector } from '../src/observableInterfaces';
@@ -74,6 +74,46 @@ describe('reactive', () => {
         expect(container.textContent).toBe('updated-child');
     });
 
+    test('can add and remove reactive props without changing hook order', async () => {
+        const value$ = observable('selected');
+        let propsPassed: any = undefined;
+
+        const Base: FC<any> = (props) => {
+            propsPassed = props;
+            return createElement('div', undefined, props.value ?? props.normal ?? 'empty');
+        };
+
+        const ReactiveComponent = reactive(Base, null, {
+            value: { handler: 'onChange', getValue: (event: any) => event.detail },
+        });
+        const { container, rerender } = render(createElement(ReactiveComponent, { normal: 'plain' } as any));
+
+        expect(propsPassed).toEqual({ normal: 'plain' });
+        expect(container.textContent).toBe('plain');
+
+        rerender(createElement(ReactiveComponent, { $value: value$ } as any));
+
+        expect(propsPassed).toEqual({ value: 'selected', onChange: expect.any(Function) });
+        expect(container.textContent).toBe('selected');
+
+        rerender(createElement(ReactiveComponent, { normal: 'plain' } as any));
+
+        expect(propsPassed).toEqual({ normal: 'plain' });
+        expect(container.textContent).toBe('plain');
+
+        rerender(createElement(ReactiveComponent, { $value: () => value$.get() } as any));
+
+        expect(propsPassed).toEqual({ value: 'selected' });
+        expect(container.textContent).toBe('selected');
+
+        await act(async () => {
+            value$.set('updated');
+        });
+
+        expect(propsPassed).toEqual({ value: 'updated' });
+        expect(container.textContent).toBe('updated');
+    });
+
     test('binders provide two-way handlers', () => {
         const value$ = observable('initial-value');
         const originalHandler = jest.fn();
@@ -114,6 +154,138 @@ describe('reactive', () => {
         expect(getValue).toHaveBeenCalledWith(event);
         expect(value$.get()).toBe('new-value');
         expect(originalHandler).toHaveBeenCalledWith(event);
+    });
+
+    test('binders preserve handler identity while their inputs are unchanged', () => {
+        const value$ = observable('initial-value');
+        let changeHandler: any = undefined;
+
+        const Base: FC<any> = (props) => {
+            changeHandler = props.onChange;
+            return createElement('div', undefined, props.value);
+        };
+
+        const ReactiveComponent = reactive(Base, null, {
+            value: { handler: 'onChange', getValue: (event: any) => event.detail },
+        });
+        const { container } = render(createElement(ReactiveComponent, { $value: value$ } as any));
+        const initialHandler = changeHandler;
+
+        act(() => {
+            value$.set('updated');
+        });
+
+        expect(container.textContent).toBe('updated');
+        expect(changeHandler).toBe(initialHandler);
+    });
+
+    test('binders replace cached handlers when their observable or callback changes', () => {
+        const first$ = observable('first');
+        const second$ = observable('second');
+        const firstCallback = jest.fn();
+        const secondCallback = jest.fn();
+        let changeHandler: any = undefined;
+
+        const Base: FC<any> = (props) => {
+            changeHandler = props.onChange;
+            return createElement('div', undefined, props.value);
+        };
+
+        const ReactiveComponent = reactive(Base, null, {
+            value: { handler: 'onChange', getValue: (event: any) => event.detail },
+        });
+        const { rerender } = render(
+            createElement(ReactiveComponent, { $value: first$, onChange: firstCallback } as any),
+        );
+        const firstHandler = changeHandler;
+
+        rerender(createElement(ReactiveComponent, { $value: second$, onChange: firstCallback } as any));
+        const secondHandler = changeHandler;
+
+        expect(secondHandler).not.toBe(firstHandler);
+
+        rerender(createElement(ReactiveComponent, { $value: second$, onChange: secondCallback } as any));
+        const thirdHandler = changeHandler;
+
+        expect(thirdHandler).not.toBe(secondHandler);
+
+        act(() => {
+            thirdHandler({ detail: 'updated' });
+        });
+
+        expect(first$.get()).toBe('first');
+        expect(second$.get()).toBe('updated');
+        expect(firstCallback).not.toHaveBeenCalled();
+        expect(secondCallback).toHaveBeenCalledWith({ detail: 'updated' });
+    });
+
+    test('binders cache separately when multiple props use the same handler', () => {
+        const checked$ = observable(false);
+        const value$ = observable('initial-value');
+        let changeHandler: any = undefined;
+
+        const Base: FC<any> = (props) => {
+            changeHandler = props.onChange;
+            return createElement('div', undefined, props.value);
+        };
+
+        const ReactiveComponent = reactive(Base, null, {
+            checked: { handler: 'onChange', getValue: (event: any) => event.checked },
+            value: { handler: 'onChange', getValue: (event: any) => event.value },
+        });
+        render(createElement(ReactiveComponent, { $checked: checked$, $value: value$ } as any));
+        const initialHandler = changeHandler;
+
+        act(() => {
+            value$.set('updated');
+        });
+
+        expect(changeHandler).toBe(initialHandler);
+    });
+
+    test('binders keep handlers bound to committed state during suspended transitions', () => {
+        const committed$ = observable('committed');
+        const suspended$ = observable('suspended');
+        const neverResolves = new Promise<void>(() => {});
+        let setCurrent: (value: any) => void = () => {};
+        let committedHandler: ((event: any) => void) | undefined;
+
+        const Base: FC<any> = (props) => {
+            if (props.value === 'suspended') {
+                throw neverResolves;
+            }
+
+            committedHandler = props.onChange;
+            return createElement('div', undefined, props.value);
+        };
+
+        const ReactiveComponent = reactive(Base, null, {
+            value: { handler: 'onChange', getValue: (event: any) => event.detail },
+        });
+        const App = () => {
+            const [current, setCurrentState] = useState(committed$);
+            setCurrent = setCurrentState;
+            return createElement(
+                Suspense,
+                { fallback: createElement('div', undefined, 'loading') },
+                createElement(ReactiveComponent, { $value: current } as any),
+            );
+        };
+
+        const { container } = render(createElement(App));
+
+        act(() => {
+            startTransition(() => setCurrent(suspended$));
+        });
+
+        expect(container.textContent).toBe('committed');
+
+        act(() => {
+            committedHandler?.({ detail: 'updated' });
+        });
+
+        expect(committed$.get()).toBe('updated');
+        expect(suspended$.get()).toBe('suspended');
     });
 });
 
