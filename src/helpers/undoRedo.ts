@@ -58,11 +58,13 @@ export function undoRedo<T>(obs$: ObservablePrimitive<T>, options?: UndoRedoOpti
         // We're just going to store a copy of the whole object every time it changes.
         const snapshot = internal.clone(obs$.get());
 
+        // Always clear any redo history first (items after current position)
+        history = history.slice(0, historyPointer + 1);
+
+        // Then apply the limit if specified
         if (options?.limit) {
-            // limit means the number of undos
+            // limit means the number of undos, keep the most recent ones
             history = history.slice(Math.max(0, history.length - options.limit));
-        } else {
-            history = history.slice(0, historyPointer + 1);
         }
 
         // we add another history item, which is limit + 1 -- but it's the current one
