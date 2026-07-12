@@ -253,3 +253,161 @@ describe('babel tests', () => {
         },
     });
 });
+
+describe('babel auto-naming tests', () => {
+    pluginTester({
+        plugin,
+        pluginName: 'babel-auto-naming',
+        tests: {
+            'injects name option for observable with a value': {
+                code: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = observable({ count: 0 });
+                `,
+                output: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = observable(
+                        {
+                            count: 0,
+                        },
+                        {
+                            name: 'myStore',
+                        }
+                    );
+                `,
+            },
+            'injects name option for observable with no args': {
+                code: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = observable();
+                `,
+                output: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = observable(undefined, {
+                        name: 'myStore',
+                    });
+                `,
+            },
+            'injects name option for observablePrimitive': {
+                code: `
+                    import { observablePrimitive } from '@legendapp/state';
+                    const count = observablePrimitive(0);
+                `,
+                output: `
+                    import { observablePrimitive } from '@legendapp/state';
+                    const count = observablePrimitive(0, {
+                        name: 'count',
+                    });
+                `,
+            },
+            'does not modify observable when options already provided': {
+                code: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = observable({ count: 0 }, { name: 'custom' });
+                `,
+                output: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = observable(
+                        {
+                            count: 0,
+                        },
+                        {
+                            name: 'custom',
+                        }
+                    );
+                `,
+            },
+            'does not modify if not imported from @legendapp/state': {
+                code: `
+                    import { observable } from 'other-package';
+                    const myStore = observable({ count: 0 });
+                `,
+                output: `
+                    import { observable } from 'other-package';
+                    const myStore = observable({
+                        count: 0,
+                    });
+                `,
+            },
+            'handles aliased imports': {
+                code: `
+                    import { observable as obs } from '@legendapp/state';
+                    const myStore = obs({ count: 0 });
+                `,
+                output: `
+                    import { observable as obs } from '@legendapp/state';
+                    const myStore = obs(
+                        {
+                            count: 0,
+                        },
+                        {
+                            name: 'myStore',
+                        }
+                    );
+                `,
+            },
+            'does not modify destructuring patterns': {
+                code: `
+                    import { observable } from '@legendapp/state';
+                    const { count } = observable({ count: 0 });
+                `,
+                output: `
+                    import { observable } from '@legendapp/state';
+                    const { count } = observable({
+                        count: 0,
+                    });
+                `,
+            },
+            'handles export const declarations': {
+                code: `
+                    import { observable } from '@legendapp/state';
+                    export const appState = observable({ theme: 'dark' });
+                `,
+                output: `
+                    import { observable } from '@legendapp/state';
+                    export const appState = observable(
+                        {
+                            theme: 'dark',
+                        },
+                        {
+                            name: 'appState',
+                        }
+                    );
+                `,
+            },
+            'handles multiple declarations in one file': {
+                code: `
+                    import { observable, observablePrimitive } from '@legendapp/state';
+                    const store = observable({ a: 1 });
+                    const count = observablePrimitive(0);
+                `,
+                output: `
+                    import { observable, observablePrimitive } from '@legendapp/state';
+                    const store = observable(
+                        {
+                            a: 1,
+                        },
+                        {
+                            name: 'store',
+                        }
+                    );
+                    const count = observablePrimitive(0, {
+                        name: 'count',
+                    });
+                `,
+            },
+            'does not modify non-observable calls even with import present': {
+                code: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = someOtherFunction({ count: 0 });
+                `,
+                output: `
+                    import { observable } from '@legendapp/state';
+                    const myStore = someOtherFunction({
+                        count: 0,
+                    });
+                `,
+            },
+        },
+    });
+});
