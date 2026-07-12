@@ -10,7 +10,7 @@ import {
 } from '@legendapp/state';
 import React, { useContext, useMemo } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js';
-import { reactGlobals } from './react-globals';
+import { reactGlobals, runInRender } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
 import { getPauseContext } from './usePauseProvider';
 
@@ -25,13 +25,30 @@ function createSelectorFunctions<T>(
     isPaused$: Observable<boolean>,
 ): SelectorFunctions<T> {
     let version = 0;
-    let notify: () => void;
+    let notify: (() => void) | undefined;
     let dispose: (() => void) | undefined;
     let resubscribe: (() => () => void) | undefined;
     let _selector: Selector<T>;
     let prev: T;
 
     let pendingUpdate: any | undefined = undefined;
+    let notifyQueued = false;
+
+    const scheduleNotify = () => {
+        if (notify) {
+            if (reactGlobals.renderDepth > 0) {
+                if (!notifyQueued) {
+                    notifyQueued = true;
+                    queueMicrotask(() => {
+                        notifyQueued = false;
+                        notify?.();
+                    });
+                }
+            } else {
+                notify();
+            }
+        }
+    };
 
     const run = () => {
         // Dispose if already listening
@@ -78,7 +95,7 @@ function createSelectorFunctions<T>(
             }
             if (changed) {
                 version++;
-                notify?.();
+                scheduleNotify();
             }
         }
     };
@@ -98,6 +115,7 @@ function createSelectorFunctions<T>(
 
             return () => {
                 dispose?.();
+                notify = undefined;
                 dispose = undefined;
             };
         },
@@ -105,7 +123,6 @@ function createSelectorFunctions<T>(
         run: (selector: Selector<T>) => {
             // Update the cached selector
             _selector = selector;
-
             return (prev = run());
         },
     };
@@ -141,7 +158,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
         // Run the selector
         // Note: The selector needs to run on every render because it may have different results
         // than the previous run if it uses local state
-        value = run(selector) as any;
+        value = runInRender(() => run(selector) as any);
 
         useSyncExternalStore(subscribe, getVersion, getVersion);
     } catch (err: unknown) {

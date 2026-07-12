@@ -1,6 +1,7 @@
 import type { Observable } from '@legendapp/state';
 import { computeSelector, getNode, internal, isFunction, observable, RecursiveValueOrFunction } from '@legendapp/state';
 import { DependencyList, useRef } from 'react';
+import { runInRender } from './react-globals';
 import { useUnmount } from './useUnmount';
 
 const { deactivateNode } = internal;
@@ -48,7 +49,7 @@ export function useObservable<T>(
     }
     // Update depsObs with the deps array
     if (depsObs$) {
-        depsObs$.set(deps! as any[]);
+        runInRender(() => depsObs$.set(deps! as any[]));
     }
 
     useUnmount(() => {

@@ -25,11 +25,28 @@ import { useTraceListeners } from '../src/trace/useTraceListeners';
 import { useTraceUpdates } from '../src/trace/useTraceUpdates';
 import { $React } from '@legendapp/state/react-web';
 import { syncObservable } from '../sync';
+import { createObservableHook } from '../src/react-hooks/createObservableHook';
 
 type TestObject = { id: string; label: string };
 
 if (typeof document === 'undefined') {
     GlobalRegistrator.register();
+}
+
+async function captureConsoleErrors(fn: () => void | Promise<void>) {
+    const errors: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: any[]) => {
+        errors.push(args.map(String).join(' '));
+    };
+
+    try {
+        await fn();
+    } finally {
+        console.error = originalError;
+    }
+
+    return errors;
 }
 
 describe('useSelector', () => {
@@ -499,8 +516,8 @@ describe('useSelector', () => {
         expect(numListeners()).toEqual(1);
         expect(num).toEqual(4);
     });
-    test('suspense without observer', () => {
-        supressActWarning(async () => {
+    test('suspense without observer', async () => {
+        await supressActWarning(async () => {
             const obs$ = observable(
                 new Promise<string>((resolve) =>
                     setTimeout(() => {
@@ -531,8 +548,8 @@ describe('useSelector', () => {
             expect(items[0].textContent).toEqual('hi');
         });
     });
-    test('suspense with observer', () => {
-        supressActWarning(async () => {
+    test('suspense with observer', async () => {
+        await supressActWarning(async () => {
             const obs$ = observable(
                 new Promise<string>((resolve) =>
                     setTimeout(() => {
@@ -563,8 +580,8 @@ describe('useSelector', () => {
             expect(items[0].textContent).toEqual('hi');
         });
     });
-    test('use$ with array length', () => {
-        supressActWarning(async () => {
+    test('use$ with array length', async () => {
+        await supressActWarning(async () => {
             const obs$ = observable<{ todos: number[]; total: number }>({
                 todos: [0],
                 total: (): number => obs$.todos.length,
@@ -627,6 +644,204 @@ describe('useSelector', () => {
             });
             expect(lastValue).toEqual([]);
         };
+    });
+    test('useSelector notifies synchronously outside render', () => {
+        const obs = observable('hi');
+        const { result } = renderHook(() => useSelector(obs));
+
+        expect(result.current).toEqual('hi');
+        act(() => {
+            obs.set('hello');
+        });
+        expect(result.current).toEqual('hello');
+    });
+    test('useSelector defers useObserve render updates', async () => {
+        const errors = await captureConsoleErrors(async () => {
+            const sideEffect$ = observable(0);
+            const showTrigger$ = observable(false);
+
+            let sideEffectValue: number | undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            const CompTrigger = function CompTrigger() {
+                useObserve(() => {
+                    sideEffect$.set(10);
+                });
+                return createElement('div', undefined);
+            };
+
+            const App = function App() {
+                const show = useSelector(showTrigger$);
+                return createElement('div', undefined, createElement(CompB), show ? createElement(CompTrigger) : null);
+            };
+
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            await act(async () => {
+                showTrigger$.set(true);
+            });
+            await promiseTimeout(0);
+
+            expect(sideEffectValue).toEqual(10);
+        });
+
+        expect(errors).toEqual([]);
+    });
+    test('useSelector defers useObservable dependency render updates', async () => {
+        const errors = await captureConsoleErrors(async () => {
+            const sideEffect$ = observable(0);
+            const trigger$ = observable(0);
+
+            let sideEffectValue: number | undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            const CompTrigger = function CompTrigger({ value }: { value: number }) {
+                const local$ = useObservable(() => {
+                    sideEffect$.set(value);
+                    return value;
+                }, [value]);
+                useSelector(local$);
+                return createElement('div', undefined);
+            };
+
+            const App = function App() {
+                const value = useSelector(trigger$);
+                return createElement('div', undefined, createElement(CompB), createElement(CompTrigger, { value }));
+            };
+
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            await act(async () => {
+                trigger$.set(1);
+            });
+            await promiseTimeout(0);
+
+            expect(sideEffectValue).toEqual(1);
+        });
+
+        expect(errors).toEqual([]);
+    });
+    test('useSelector defers createObservableHook render updates', async () => {
+        const errors = await captureConsoleErrors(async () => {
+            const sideEffect$ = observable(0);
+            const showTrigger$ = observable(false);
+            const useTestHook = createObservableHook((value: number) => {
+                React.useState(value);
+                sideEffect$.set(value);
+                return value;
+            });
+
+            let sideEffectValue: number | undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            const CompTrigger = function CompTrigger() {
+                useTestHook(10);
+                return createElement('div', undefined);
+            };
+
+            const App = function App() {
+                const show = useSelector(showTrigger$);
+                return createElement('div', undefined, createElement(CompB), show ? createElement(CompTrigger) : null);
+            };
+
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            await act(async () => {
+                showTrigger$.set(true);
+            });
+            await promiseTimeout(0);
+
+            expect(sideEffectValue).toEqual(10);
+        });
+
+        expect(errors).toEqual([]);
+    });
+    test('useSelector coalesces Legend-owned render updates', async () => {
+        const sideEffect$ = observable(0);
+        const showTrigger$ = observable(false);
+
+        let sideEffectValue: number | undefined;
+        let sideEffectRenderCount = 0;
+        const CompB = React.memo(function CompB() {
+            sideEffectRenderCount++;
+            sideEffectValue = useSelector(sideEffect$);
+            return createElement('div', undefined, sideEffectValue);
+        });
+
+        const CompTrigger = function CompTrigger() {
+            useObserve(() => {
+                sideEffect$.set(10);
+                sideEffect$.set(20);
+                sideEffect$.set(30);
+            });
+            return createElement('div', undefined);
+        };
+
+        const App = function App() {
+            const show = useSelector(showTrigger$);
+            return createElement('div', undefined, createElement(CompB), show ? createElement(CompTrigger) : null);
+        };
+
+        render(createElement(App));
+        expect(sideEffectValue).toEqual(0);
+        expect(sideEffectRenderCount).toEqual(1);
+
+        await act(async () => {
+            showTrigger$.set(true);
+        });
+        await promiseTimeout(0);
+
+        expect(sideEffectValue).toEqual(30);
+        expect(sideEffectRenderCount).toEqual(2);
+    });
+    test('useSelector ignores deferred render update after unsubscribe', async () => {
+        const errors = await captureConsoleErrors(async () => {
+            const sideEffect$ = observable(0);
+            const showTrigger$ = observable(false);
+
+            let sideEffectRenderCount = 0;
+            const CompB = function CompB() {
+                sideEffectRenderCount++;
+                useSelector(sideEffect$);
+                return createElement('div', undefined);
+            };
+
+            const CompTrigger = function CompTrigger() {
+                useObserve(() => {
+                    sideEffect$.set(1);
+                });
+                return createElement('div', undefined);
+            };
+
+            const App = function App() {
+                const show = useSelector(showTrigger$);
+                return createElement('div', undefined, show ? createElement(CompTrigger) : createElement(CompB));
+            };
+
+            render(createElement(App));
+            expect(sideEffectRenderCount).toEqual(1);
+
+            await act(async () => {
+                showTrigger$.set(true);
+            });
+            await promiseTimeout(0);
+
+            expect(sideEffectRenderCount).toEqual(1);
+        });
+
+        expect(errors).toEqual([]);
     });
 });
 
@@ -1558,6 +1773,45 @@ describe('useObserveEffect', () => {
         expect(numInner).toEqual(4);
         expect(lastObserved).toEqual(1);
         expect(lastObservedDep).toEqual(2);
+    });
+    test('useObserveEffect defers dependency render updates', async () => {
+        const errors = await captureConsoleErrors(async () => {
+            const sideEffect$ = observable(0);
+            const trigger$ = observable(0);
+
+            let sideEffectValue: number | undefined;
+            const CompB = function CompB() {
+                sideEffectValue = useSelector(sideEffect$);
+                return createElement('div', undefined, sideEffectValue);
+            };
+
+            const CompTrigger = function CompTrigger({ value }: { value: number }) {
+                useObserveEffect(
+                    () => {
+                        sideEffect$.set(value);
+                    },
+                    [value],
+                );
+                return createElement('div', undefined);
+            };
+
+            const App = function App() {
+                const value = useSelector(trigger$);
+                return createElement('div', undefined, createElement(CompB), createElement(CompTrigger, { value }));
+            };
+
+            render(createElement(App));
+            expect(sideEffectValue).toEqual(0);
+
+            await act(async () => {
+                trigger$.set(1);
+            });
+            await promiseTimeout(0);
+
+            expect(sideEffectValue).toEqual(1);
+        });
+
+        expect(errors).toEqual([]);
     });
 });
 
