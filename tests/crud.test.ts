@@ -3585,12 +3585,20 @@ describe('Order of get/create', () => {
             let shouldError = true;
             const createCalls: BasicValue[] = [];
             const updateCalls: BasicValue[] = [];
+            let resolveFirstCreate!: () => void;
+            let resolveRetriedCreate!: () => void;
+            let resolveUpdate!: () => void;
+            const firstCreate = new Promise<void>((resolve) => (resolveFirstCreate = resolve));
+            const retriedCreate = new Promise<void>((resolve) => (resolveRetriedCreate = resolve));
+            const update = new Promise<void>((resolve) => (resolveUpdate = resolve));
             const obs$ = shape.makeObservable({
                 create: async (input: BasicValue) => {
                     createCalls.push(clone(input));
                     if (shouldError) {
+                        resolveFirstCreate();
                         throw new Error(`${shape.name} create failed`);
                     }
+                    resolveRetriedCreate();
                     return {
                         ...input,
                         createdAt: 2,
@@ -3599,6 +3607,7 @@ describe('Order of get/create', () => {
                 },
                 update: async (input: BasicValue) => {
                     updateCalls.push(clone(input));
+                    resolveUpdate();
                     return input;
                 },
                 onError: () => {},
@@ -3614,7 +3623,7 @@ describe('Order of get/create', () => {
 
             shape.insert(obs$);
 
-            await promiseTimeout(10);
+            await firstCreate;
 
             expect(createCalls).toEqual([{ id: '1', test: 'hi' }]);
             expect(updateCalls).toEqual([]);
@@ -3624,7 +3633,8 @@ describe('Order of get/create', () => {
 
             shouldError = false;
 
-            await promiseTimeout(125);
+            await Promise.all([retriedCreate, update]);
+            await promiseTimeout(0);
 
             expect(createCalls).toEqual([
                 { id: '1', test: 'hi' },
