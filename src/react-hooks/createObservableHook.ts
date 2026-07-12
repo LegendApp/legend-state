@@ -1,5 +1,6 @@
 import { isFunction, Observable, observable } from '@legendapp/state';
 import React, { MutableRefObject, Reducer, ReducerState } from 'react';
+import { runInRender } from '../react/react-globals';
 
 function overrideHooks<TRet>(refObs: MutableRefObject<Observable<TRet> | undefined>) {
     // @ts-expect-error Types don't match React's expected types
@@ -38,15 +39,17 @@ export function createObservableHook<TArgs extends any[], TRet>(
     return function (...args: TArgs) {
         const refObs = React.useRef<Observable<TRet> | undefined>(undefined);
 
-        // First override the built-in hooks to create/update observables
-        overrideHooks(refObs);
+        try {
+            // First override the built-in hooks to create/update observables
+            overrideHooks(refObs);
 
-        // Then call the original hook
-        fn(...args);
-
-        // And reset back to the built-in hooks
-        React.useState = _useState;
-        React.useReducer = _useReducer;
+            // Then call the original hook
+            runInRender(() => fn(...args));
+        } finally {
+            // And reset back to the built-in hooks
+            React.useState = _useState;
+            React.useReducer = _useReducer;
+        }
 
         return refObs.current as Observable<TRet>;
     };

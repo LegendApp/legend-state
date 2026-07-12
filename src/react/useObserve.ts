@@ -9,6 +9,7 @@ import {
     ObserveOptions,
 } from '@legendapp/state';
 import { useRef } from 'react';
+import { runInRender } from './react-globals';
 import { useUnmountOnce } from './useUnmount';
 import { useObservable } from './useObservable';
 
@@ -76,18 +77,20 @@ export function useObserve<T>(
 
     // Update depsObs with the deps array
     if (depsObs$) {
-        depsObs$.set(deps! as any[]);
+        runInRender(() => depsObs$.set(deps! as any[]));
     }
 
     if (!ref.current.dispose) {
-        ref.current.dispose = observe<T>(
-            ((e: ObserveEventCallback<T>) => {
-                depsObs$?.get();
-                const selector = ref.current?.selector;
-                return computeSelector(selector, undefined, e);
-            }) as any,
-            (e: ObserveEventCallback<T>) => ref.current.reaction?.(e),
-            options as UseObserveOptions,
+        ref.current.dispose = runInRender(() =>
+            observe<T>(
+                ((e: ObserveEventCallback<T>) => {
+                    depsObs$?.get();
+                    const selector = ref.current?.selector;
+                    return computeSelector(selector, undefined, e);
+                }) as any,
+                (e: ObserveEventCallback<T>) => ref.current.reaction?.(e),
+                options as UseObserveOptions,
+            ),
         );
     }
 

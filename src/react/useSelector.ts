@@ -10,7 +10,7 @@ import {
 } from '@legendapp/state';
 import React, { useContext, useMemo } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js';
-import { reactGlobals } from './react-globals';
+import { reactGlobals, runInRender } from './react-globals';
 import type { UseSelectorOptions } from './reactInterfaces';
 import { getPauseContext } from './usePauseProvider';
 
@@ -35,17 +35,19 @@ function createSelectorFunctions<T>(
     let notifyQueued = false;
 
     const scheduleNotify = () => {
-        if (!notify || notifyQueued) return;
-
-        notifyQueued = true;
-
-        // Always defer notifications via microtask to avoid "Cannot update a
-        // component while rendering a different component". When a .set() is
-        // called during any component's render.
-        queueMicrotask(() => {
-            notifyQueued = false;
-            notify?.();
-        });
+        if (notify) {
+            if (reactGlobals.renderDepth > 0) {
+                if (!notifyQueued) {
+                    notifyQueued = true;
+                    queueMicrotask(() => {
+                        notifyQueued = false;
+                        notify?.();
+                    });
+                }
+            } else {
+                notify();
+            }
+        }
     };
 
     const run = () => {
@@ -156,7 +158,7 @@ export function useSelector<T>(selector: Selector<T>, options?: UseSelectorOptio
         // Run the selector
         // Note: The selector needs to run on every render because it may have different results
         // than the previous run if it uses local state
-        value = run(selector) as any;
+        value = runInRender(() => run(selector) as any);
 
         useSyncExternalStore(subscribe, getVersion, getVersion);
     } catch (err: unknown) {

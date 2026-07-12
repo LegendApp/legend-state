@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 describe('reactive', () => {
-    test('strips $ prefix and forwards selected values', async () => {
+    test('strips $ prefix and forwards selected values', () => {
         const value$ = observable('selected');
         let propsPassed: any = undefined;
 
@@ -44,14 +44,14 @@ describe('reactive', () => {
         expect(container.textContent).toBe('rendered');
         expect(propsPassed).toEqual({ value: 'selected', normal: 'plain' });
 
-        await act(async () => {
+        act(() => {
             value$.set('updated');
         });
 
         expect(propsPassed).toEqual({ value: 'updated', normal: 'plain' });
     });
 
-    test('converts children selectors', async () => {
+    test('converts children selectors', () => {
         const children$ = observable('child-result');
         let propsPassed: any = undefined;
 
@@ -66,7 +66,7 @@ describe('reactive', () => {
         expect(propsPassed.children).toBe('child-result');
         expect(container.textContent).toBe('child-result');
 
-        await act(async () => {
+        act(() => {
             children$.set('updated-child');
         });
 
@@ -118,7 +118,7 @@ describe('reactive', () => {
 });
 
 describe('observer', () => {
-    test('wraps component render in useSelector and toggles reactive globals', async () => {
+    test('wraps component render in useSelector and toggles reactive globals', () => {
         let wasInObserver = false;
         const obs$ = observable(0);
 
@@ -135,7 +135,7 @@ describe('observer', () => {
         expect(container.textContent).toBe('hello-0');
         expect(reactGlobals.inObserver).toBe(false);
 
-        await act(async () => {
+        act(() => {
             obs$.set(1);
         });
 
@@ -144,7 +144,7 @@ describe('observer', () => {
 });
 
 describe('reactiveObserver', () => {
-    test('observes component and converts reactive props', async () => {
+    test('observes component and converts reactive props', () => {
         const value$ = observable('selected');
         const obs$ = observable(0);
         let wasInObserver = false;
@@ -165,14 +165,14 @@ describe('reactiveObserver', () => {
         expect(container.textContent).toBe('selected-0');
         expect(reactGlobals.inObserver).toBe(false);
 
-        await act(async () => {
+        act(() => {
             value$.set('updated');
         });
 
         expect(propsPassed.value).toBe('updated');
         expect(container.textContent).toBe('updated-0');
 
-        await act(async () => {
+        act(() => {
             obs$.set(1);
         });
 
@@ -181,7 +181,7 @@ describe('reactiveObserver', () => {
 });
 
 describe('reactiveComponents', () => {
-    test('returns memoized reactive components from map', async () => {
+    test('returns memoized reactive components from map', () => {
         const value$ = observable('selected');
         let propsPassed: any = undefined;
 
@@ -201,7 +201,7 @@ describe('reactiveComponents', () => {
         expect(propsPassed.value).toBe('selected');
         expect(container.textContent).toBe('selected');
 
-        await act(async () => {
+        act(() => {
             value$.set('updated');
         });
 

@@ -8,6 +8,7 @@ import {
     observe,
 } from '@legendapp/state';
 import { useRef } from 'react';
+import { runInRender } from './react-globals';
 import { useMountOnce } from './useMount';
 import { useObservable } from './useObservable';
 import type { UseObserveOptions } from './useObserve';
@@ -72,7 +73,7 @@ export function useObserveEffect<T>(
 
     // Update depsObs with the deps array
     if (depsObs$) {
-        depsObs$.set(deps! as any[]);
+        runInRender(() => depsObs$.set(deps! as any[]));
     }
 
     useMountOnce(() =>
