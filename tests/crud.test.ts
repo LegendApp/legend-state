@@ -3187,6 +3187,142 @@ describe('Order of get/create', () => {
         ]);
         expect(updateCalls).toEqual([]);
     });
+    test('array root set retries an unchanged failed create before clearing pending', async () => {
+        const persistName = getPersistName();
+        let shouldFailFirst = true;
+        const createCalls: BasicValue[] = [];
+        const createdIds = new Set<string>();
+        const obs$ = observable<BasicValue[]>(
+            syncedCrud({
+                list: () => [] as BasicValue[],
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    if (input.id === '1' && shouldFailFirst) {
+                        throw new Error('create failed');
+                    }
+                    createdIds.add(input.id);
+                    return input;
+                },
+                onError: () => {},
+                as: 'array',
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        obs$.get();
+        await when(syncState(obs$).isPersistLoaded);
+
+        obs$.set([{ id: '1', test: 'first' }]);
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(syncState(obs$).getPendingChanges()).toHaveProperty('');
+
+        shouldFailFirst = false;
+        obs$.set([
+            { id: '1', test: 'first' },
+            { id: '2', test: 'second' },
+        ]);
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(createCalls.map((value) => value.id).sort()).toEqual(['1', '1', '2']);
+        expect(createdIds).toEqual(new Set(['1', '2']));
+        expect(syncState(obs$).getPendingChanges()).toEqual({});
+        expect(JSON.parse(localStorage.getItem(persistName + '__m')!).pending).toEqual({});
+    });
+    test('array root set keeps pending when one create still fails', async () => {
+        const persistName = getPersistName();
+        const createdIds = new Set<string>();
+        const obs$ = observable<BasicValue[]>(
+            syncedCrud({
+                list: () => [] as BasicValue[],
+                create: async (input: BasicValue) => {
+                    if (input.id === '1') {
+                        throw new Error('create failed');
+                    }
+                    createdIds.add(input.id);
+                    return input;
+                },
+                onError: () => {},
+                as: 'array',
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        obs$.get();
+        await when(syncState(obs$).isPersistLoaded);
+
+        obs$.set([{ id: '1', test: 'first' }]);
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        obs$.set([
+            { id: '1', test: 'first' },
+            { id: '2', test: 'second' },
+        ]);
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(createdIds).toEqual(new Set(['2']));
+        expect(syncState(obs$).getPendingChanges()).toHaveProperty('');
+        expect(JSON.parse(localStorage.getItem(persistName + '__m')!).pending).toHaveProperty('');
+    });
+    test('array root pending creates are restored after reload', async () => {
+        const persistName = getPersistName();
+        const pendingValue = [
+            { id: '1', test: 'first' },
+            { id: '2', test: 'second' },
+        ];
+        localStorage.setItem(persistName, JSON.stringify(pendingValue));
+        localStorage.setItem(
+            persistName + '__m',
+            JSON.stringify({
+                pending: {
+                    '': {
+                        p: [],
+                        t: [],
+                        v: pendingValue,
+                    },
+                },
+            }),
+        );
+
+        const createCalls: BasicValue[] = [];
+        const obs$ = observable<BasicValue[]>(
+            syncedCrud({
+                list: () => [] as BasicValue[],
+                create: async (input: BasicValue) => {
+                    createCalls.push(clone(input));
+                    return input;
+                },
+                onError: () => {},
+                as: 'array',
+                mode: 'set',
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        obs$.get();
+        await when(syncState(obs$).isPersistLoaded);
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+
+        expect(createCalls.map((value) => value.id).sort()).toEqual(['1', '2']);
+        expect(syncState(obs$).getPendingChanges()).toEqual({});
+    });
     test('Map update after terminal create failure creates again instead of updating', async () => {
         const createCalls: BasicValue[] = [];
         const updateCalls: BasicValue[] = [];

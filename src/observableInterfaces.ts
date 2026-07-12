@@ -179,6 +179,8 @@ export interface UpdateSetFnParams<T = any> extends Omit<UpdateFnParams<T>, 'val
     value: DeepPartial<T>;
     lastSync?: never;
     changes?: ChangeWithPathStr[];
+    /** @internal */
+    failedChanges?: ChangeWithPathStr[];
 }
 export type UpdateFn<T = any> = (params: UpdateFnParams<T>) => void;
 export type UpdateSetFn<T = any> = (params: UpdateSetFnParams<T>) => void;

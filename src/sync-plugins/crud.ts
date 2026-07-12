@@ -302,7 +302,10 @@ function retrySet(
         return isPromise(refreshed) ? refreshed.then(runWithRefreshedValue) : runWithRefreshedValue(refreshed);
     };
 
-    return runWithRetry(paramsWithChanges, retry, action + '_' + itemKey, runAttempt);
+    return runWithRetry(paramsWithChanges, retry, action + '_' + itemKey, runAttempt).catch((error) => {
+        params.update({ value: {}, failedChanges: [change] });
+        throw error;
+    });
 }
 
 // The no read version
@@ -584,6 +587,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       return !!pendingCreate?.hasFailed && !pendingCreate.promise;
                   };
                   const addCreate = (id: ItemKey, itemValue: TLocal, change: ChangeWithPathStr) => {
+                      const existingPendingCreate = pendingCreates.get(id);
+                      if (
+                          existingPendingCreate?.hasFailed &&
+                          !existingPendingCreate.promise &&
+                          change.path.length === 0
+                      ) {
+                          existingPendingCreate.change = change;
+                      }
                       const pendingCreate = beginPendingCreate(id, change);
                       changesById.set(id, pendingCreate.change!);
                       creates.set(id, itemValue);
@@ -680,8 +691,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       return false;
                                   } else {
                                       const isDiff = !prevAsObject || !deepEqual(value, prev);
+                                      const isFailedCreateRetry = isFailedCreateReadyToRetry(value?.[fieldId]);
 
-                                      if (isDiff) {
+                                      if (isDiff || isFailedCreateRetry) {
                                           itemsChanged.push([getUpdateValue(value, prev), prev, value]);
                                       }
                                   }

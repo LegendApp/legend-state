@@ -511,6 +511,43 @@ describe('sync set', () => {
         expect(pending?.test?.v).toBe('second');
     });
 
+    test('failed changes keep only their pending paths when sibling changes succeed', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            synced({
+                initial: { count: 0, note: 'init' },
+                set: async ({ changes, update }) => {
+                    const countChange = changes.find((change) => change.pathStr === 'count')!;
+                    const noteChange = changes.find((change) => change.pathStr === 'note')!;
+                    update({
+                        value: { count: 2 },
+                        changes: [countChange],
+                        failedChanges: [noteChange],
+                    });
+                    throw new Error('note failed');
+                },
+                onError: () => {},
+                persist: {
+                    plugin: ObservablePersistLocalStorage,
+                    name: persistName,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        obs$.assign({ count: 1, note: 'local' });
+        await promiseTimeout(20);
+
+        expect(obs$.get()).toEqual({ count: 2, note: 'local' });
+        expect(state$.getPendingChanges()).toEqual({
+            note: { p: 'init', t: ['object'], v: 'local' },
+        });
+    });
+
     test('pending clears after set completes without update result', async () => {
         const persistName = getPersistName();
         const obs$ = observable(

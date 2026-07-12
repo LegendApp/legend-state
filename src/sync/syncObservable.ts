@@ -724,11 +724,14 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 onError: onSetError,
                 update: (params: UpdateSetFnParams<any>) => {
                     if (updateResult) {
-                        const { value, mode, changes } = params;
+                        const { value, mode, changes, failedChanges } = params;
                         updateResult = {
                             value: deepMerge(updateResult.value, value),
                             mode: mode,
                             changes: changes ? [...(updateResult.changes || []), ...changes] : updateResult.changes,
+                            failedChanges: failedChanges
+                                ? [...(updateResult.failedChanges || []), ...failedChanges]
+                                : updateResult.failedChanges,
                         };
                     } else {
                         updateResult = params;
@@ -759,7 +762,11 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                 // If this remote save changed anything then update cache and metadata
                 // Because save happens after a timeout and they're batched together, some calls to save will
                 // return saved data and others won't, so those can be ignored.
-                const { value: updateValue, changes: updateChanges = changesRemote } = updateResult! || {};
+                const {
+                    value: updateValue,
+                    changes: updateChanges = changesRemote,
+                    failedChanges = [],
+                } = updateResult! || {};
                 const changesWithPath = updateChanges as ChangeWithPathStr[];
                 const pathStrs = Array.from(new Set(changesWithPath.map((change) => change.pathStr)));
                 if (pathStrs.length > 0) {
@@ -767,6 +774,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     const metadata: PersistMetadata = {};
                     const pending = localState.pendingChanges;
                     const pendingToKeep = new Set<string>();
+                    const failedPathStrs = new Set(failedChanges.map((change) => change.pathStr));
                     if (pending) {
                         const changesByPath = new Map<string, ChangeWithPathStr>();
                         for (let i = 0; i < changesWithPath.length; i++) {
@@ -779,7 +787,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                                 continue;
                             }
                             const change = changesByPath.get(key);
-                            if (!change || !deepEqual(pendingEntry.v, change.valueAtPath)) {
+                            if (failedPathStrs.has(key) || !change || !deepEqual(pendingEntry.v, change.valueAtPath)) {
                                 pendingToKeep.add(key);
                             }
                         }
