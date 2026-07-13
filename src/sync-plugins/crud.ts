@@ -72,11 +72,14 @@ export type CrudOnErrorFn = (error: Error, params: CrudErrorParams) => void;
 
 export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet' | 'onError'> {
+    /** **Note:** `input` fields named by `fieldUpdatedAt`/`fieldCreatedAt` will be `Date` at runtime, not the declared type — clone()'s JSON reviver converts ISO 8601 strings. */
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
+    /** **Note:** `input` fields named by `fieldUpdatedAt`/`fieldCreatedAt` will be `Date` at runtime, not the declared type — clone()'s JSON reviver converts ISO 8601 strings. */
     update?(
         input: Partial<TRemote>,
         params: SyncedSetParams<TRemote>,
     ): Promise<CrudResult<Partial<TRemote> | null | undefined | void>>;
+    /** **Note:** `input` fields named by `fieldUpdatedAt`/`fieldCreatedAt` will be `Date` at runtime, not the declared type — clone()'s JSON reviver converts ISO 8601 strings. */
     delete?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<any>;
     onSaved?(params: SyncedCrudOnSavedParams<TRemote, TLocal>): Partial<TLocal> | void;
     fieldId?: string;
