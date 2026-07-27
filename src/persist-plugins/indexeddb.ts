@@ -6,7 +6,7 @@ import type {
     PersistOptions,
     ObservablePersistIndexedDBPluginOptions,
 } from '@legendapp/state/sync';
-import { isPrimitive, isPromise, observable, setAtPath, when } from '@legendapp/state';
+import { isPrimitive, isPromise, observable, setAtPath, symbolDelete, when } from '@legendapp/state';
 
 const MetadataSuffix = '__legend_metadata';
 const PrimitiveName = '__legend_primitive';
@@ -397,7 +397,7 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
         return transaction.objectStore(table);
     }
     private _setItem(table: string, key: string, value: any, store: IDBObjectStore, config: PersistOptions) {
-        if (!value) {
+        if (!value || value === symbolDelete) {
             if (this.tableData[table]) {
                 delete this.tableData[table][key];
             }

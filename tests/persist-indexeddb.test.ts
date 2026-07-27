@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
+import { symbolDelete } from '../src/globals';
 import { observable } from '../src/observable';
 import { observablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureSynced } from '../src/sync/configureSynced';
@@ -370,6 +371,79 @@ describe('Persist IDB', () => {
         await promiseTimeout(0);
 
         await expectIDB(persistName, []);
+    });
+    test('Persist IDB deletes an item-level symbolDelete value', async () => {
+        const persistName = getLocalName();
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
+        const config = { name: persistName };
+
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: ['test'],
+                    pathTypes: ['object'],
+                    valueAtPath: { id: 'test', text: 'hi' },
+                    prevAtPath: undefined,
+                },
+            ],
+            config,
+        );
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: ['test'],
+                    pathTypes: ['object'],
+                    valueAtPath: symbolDelete,
+                    prevAtPath: { id: 'test', text: 'hi' },
+                },
+            ],
+            config,
+        );
+
+        await expectIDB(persistName, []);
+    });
+    test('Persist IDB deletes symbolDelete values in a root replacement', async () => {
+        const persistName = getLocalName();
+        const persist = mapSyncPlugins.get(myIndexedDBPlugin)?.plugin as ObservablePersistPlugin;
+        const config = { name: persistName };
+
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: {
+                        keep: { id: 'keep', text: 'keep' },
+                        remove: { id: 'remove', text: 'remove' },
+                    },
+                    prevAtPath: {},
+                },
+            ],
+            config,
+        );
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    valueAtPath: {
+                        keep: { id: 'keep', text: 'keep' },
+                        remove: symbolDelete,
+                    },
+                    prevAtPath: {
+                        keep: { id: 'keep', text: 'keep' },
+                        remove: { id: 'remove', text: 'remove' },
+                    },
+                },
+            ],
+            config,
+        );
+
+        await expectIDB(persistName, [{ id: 'keep', text: 'keep' }]);
     });
     test('Persist without a name errors', async () => {
         const obs = observable<Record<string, any>>({});
