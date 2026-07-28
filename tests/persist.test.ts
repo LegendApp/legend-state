@@ -1139,6 +1139,61 @@ describe('persist objects', () => {
         const localValue2 = localStorage.getItem(persistName);
         expect(localValue2).toBe(`{"items":[]}`);
     });
+    test('first root array pushes persist a complete array', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable<string[]>();
+        const state$ = syncObservable(obs$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        await when(state$.isPersistLoaded);
+        obs$.push('item1');
+        obs$.push('item2');
+        obs$.push('item3');
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName)).toEqual('["item1","item2","item3"]');
+    });
+    test('first root Map delete persists the remaining entries', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(
+            new Map([
+                ['key1', 'value1'],
+                ['key2', 'value2'],
+            ]),
+        );
+        const state$ = syncObservable(obs$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        await when(state$.isPersistLoaded);
+        obs$.delete('key2');
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName)).toEqual('{"__LSType":"Map","value":[["key1","value1"]]}');
+    });
+    test('initial values remain an in-code default until the first change', async () => {
+        const persistName = getPersistName();
+        const obs$ = observable(['item1', 'item2']);
+        const state$ = syncObservable(obs$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        await when(state$.isPersistLoaded);
+        await promiseTimeout(0);
+
+        expect(obs$.get()).toEqual(['item1', 'item2']);
+        expect(localStorage.getItem(persistName)).toEqual(null);
+    });
 });
 describe('get mode', () => {
     test('synced get sets by default', async () => {

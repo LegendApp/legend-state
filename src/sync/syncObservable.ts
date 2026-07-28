@@ -86,6 +86,7 @@ const promisesLocalSaves = new Set<Promise<void>>();
 
 interface LocalState {
     pluginPersist?: ObservablePersistPlugin;
+    persistedRootType?: TypeAtPath;
     pendingChanges?: PendingChanges;
     pendingClears?: PendingChanges;
     pendingSetGeneration?: number;
@@ -364,7 +365,15 @@ async function processQueuedRemoteChanges(syncOptions: SyncedOptions) {
 }
 
 async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChangeLocal | undefined> {
-    const { syncState, changes, syncOptions, inRemoteChange, isApplyingPending } = queuedChange;
+    const {
+        value$: obs$,
+        syncState,
+        localState,
+        changes,
+        syncOptions,
+        inRemoteChange,
+        isApplyingPending,
+    } = queuedChange;
 
     const persist = syncOptions.persist!;
     const { config: configLocal } = parseLocalConfig(persist);
@@ -382,10 +391,19 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
         const changesLocal: ChangeWithPathStr[] = [];
         const changesPaths = new Set<string>();
         let promisesTransform: (void | Promise<any>)[] = [];
+        const value = saveLocal ? obs$.peek() : undefined;
+        // Nested patches cannot establish a missing or differently typed persisted root collection.
+        const shouldSaveWholeValue =
+            saveLocal &&
+            localState.persistedRootType !== internal.getPathType(value) &&
+            changes.every((change) => change.path.length > 0);
+        const changesToPersist: Change[] = shouldSaveWholeValue
+            ? [{ path: [], pathTypes: [], prevAtPath: queuedChange.getPrevious(), valueAtPath: value }]
+            : changes;
 
         // Reverse order
-        for (let i = changes.length - 1; i >= 0; i--) {
-            const { path } = changes[i];
+        for (let i = changesToPersist.length - 1; i >= 0; i--) {
+            const { path } = changesToPersist[i];
 
             let found = false;
 
@@ -406,7 +424,7 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
                 const pathStr = path.join('/');
                 changesPaths.add(pathStr);
 
-                const { prevAtPath, valueAtPath, pathTypes } = changes[i];
+                const { prevAtPath, valueAtPath, pathTypes } = changesToPersist[i];
                 if (saveLocal) {
                     const promiseTransformLocal = transformSaveData(
                         valueAtPath,
@@ -610,6 +628,10 @@ async function doChangeLocal(changeInfo: PreppedChangeLocal | undefined) {
 
                 // await the local save before proceeding to save remotely
                 await promiseSet;
+            }
+            const rootChange = changesLocal.find((change) => change.path.length === 0);
+            if (rootChange) {
+                localState.persistedRootType = internal.getPathType(rootChange.valueAtPath);
             }
         }
     }
@@ -1018,6 +1040,7 @@ async function loadLocal<T>(
 
         // Get the value from state
         let value = persistPlugin.getTable(table, prevValue, config);
+        localState.persistedRootType = internal.getPathType(value);
         const metadata = persistPlugin.getMetadata(table, config);
 
         if (metadata) {
