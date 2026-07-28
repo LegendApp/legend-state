@@ -1,5 +1,6 @@
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import 'fake-indexeddb/auto';
+import { ObservableHint } from '../src/ObservableHint';
 import { event } from '../src/event';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
@@ -11,7 +12,7 @@ import { syncState } from '../src/syncState';
 import { when } from '../src/when';
 import { ObservablePersistPlugin, SyncedOptions, synced } from '../sync';
 import { BasicValue, ObservablePersistLocalStorage, getPersistName, localStorage, promiseTimeout } from './testglobals';
-import { clone } from '../src/globals';
+import { clone, symbolPlain } from '../src/globals';
 
 describe('Creating', () => {
     test('Loading state works correctly', async () => {
@@ -1434,6 +1435,114 @@ describe('reset sync state', () => {
     });
     test('reset individual sync state with initial', async () => {
         return testReset({ test: 0 });
+    });
+    test('reset preserves null from an initial function', async () => {
+        const obs$ = observable(
+            synced<{ changed: boolean } | null>({
+                initial: () => null,
+            }),
+        );
+        const state$ = syncState(obs$);
+
+        obs$.get();
+        obs$.set({ changed: true });
+        await state$.reset();
+
+        expect(obs$.peek()).toBeNull();
+    });
+    test('reset preserves sparse initial arrays', async () => {
+        const obs$ = observable(synced({ initial: new Array<string>(3) }));
+        const state$ = syncState(obs$);
+
+        obs$.get();
+        obs$.push('changed');
+        await state$.reset();
+
+        expect(obs$.peek()).toHaveLength(3);
+        expect(Object.keys(obs$.peek())).toEqual([]);
+    });
+    test('reset preserves observable hints in initial values', async () => {
+        const opaque = ObservableHint.opaque({ count: 1 });
+        const plain = ObservableHint.plain({ count: 1 });
+        const obs$ = observable(synced({ initial: { opaque, plain } }));
+        const state$ = syncState(obs$);
+
+        obs$.get();
+        obs$.opaque.set(ObservableHint.opaque({ count: 2 }));
+        obs$.plain.set(ObservableHint.plain({ count: 2 }));
+        await state$.reset();
+
+        const value = obs$.peek();
+        expect(value.opaque).toBe(opaque);
+        expect(value.plain).not.toBe(plain);
+        expect(value.plain.count).toBe(1);
+        expect(value.plain[symbolPlain]).toBe(true);
+    });
+    test('reset with an empty initial object notifies tracked values repeatedly', async () => {
+        const obs$ = observable(
+            synced<Record<string, { text: string }>>({
+                initial: {},
+                persist: {
+                    name: getPersistName(),
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+        const state$ = syncState(obs$);
+        const lengths: number[] = [];
+        const dispose = observe(() => {
+            lengths.push(Object.values(obs$.get()).length);
+        });
+
+        await when(state$.isPersistLoaded);
+
+        obs$.first.set({ text: 'first' });
+        await promiseTimeout(0);
+        await state$.reset();
+        expect(lengths.at(-1)).toEqual(0);
+
+        obs$.second.set({ text: 'second' });
+        await promiseTimeout(0);
+        await state$.reset();
+        expect(lengths.at(-1)).toEqual(0);
+
+        dispose();
+    });
+    test('reset restores non-JSON initial values', async () => {
+        const handler = () => 'initial';
+        const mapKey = { id: 'item' };
+        const setItem = { id: 'initial' };
+        const initial = {
+            date: new Date('2025-01-01T00:00:00.000Z'),
+            items: new Map([[mapKey, { count: 1 }]]),
+            tags: new Set([setItem]),
+            handler,
+        };
+        const obs$ = observable(
+            synced({
+                initial,
+                persist: {
+                    name: getPersistName(),
+                    plugin: ObservablePersistLocalStorage,
+                },
+            }),
+        );
+        const state$ = syncState(obs$);
+
+        obs$.get();
+        await when(state$.isPersistLoaded);
+        obs$.date.set(new Date('2026-01-01T00:00:00.000Z'));
+        obs$.items.set(new Map([[mapKey, { count: 2 }]]));
+        obs$.tags.set(new Set([{ id: 'changed' }]));
+        await state$.reset();
+
+        const value = obs$.peek();
+        expect(value.date).toEqual(new Date('2025-01-01T00:00:00.000Z'));
+        expect(value.date).not.toBe(initial.date);
+        expect(value.items.get(mapKey)).toEqual({ count: 1 });
+        expect(value.items.get(mapKey)).not.toBe(initial.items.get(mapKey));
+        expect(value.tags.has(setItem)).toBe(true);
+        expect(value.handler).toBe(handler);
     });
 });
 describe('reset isLoaded', () => {

@@ -67,6 +67,8 @@ const {
     getNodeValue,
     getValueAtPath,
     globalState,
+    isHintOpaque,
+    isHintPlain,
     registerMiddleware,
     symbolLinked,
     setNodeValue,
@@ -166,6 +168,55 @@ export function transformLoadData(
     }
 
     return value;
+}
+
+// Value-form initial containers become observable backing state and can be mutated in place.
+// Snapshot the mutable containers Legend tracks so every reset can restore a fresh value.
+function cloneInitialValue<T>(value: T, seen?: Map<object, any>): T {
+    if (!value || typeof value !== 'object' || isHintOpaque(value)) {
+        return value;
+    }
+    if (value instanceof Date) {
+        return new Date(value) as T;
+    }
+    seen ||= new Map<object, any>();
+    if (seen.has(value)) {
+        return seen.get(value);
+    }
+
+    let out: any;
+    if (isArray(value)) {
+        out = new Array(value.length);
+        seen.set(value, out);
+        value.forEach((item, index) => {
+            out[index] = cloneInitialValue(item, seen);
+        });
+    } else if (value instanceof Map) {
+        out = new Map();
+        seen.set(value, out);
+        value.forEach((item, key) => {
+            out.set(key, cloneInitialValue(item, seen));
+        });
+    } else if (value instanceof Set) {
+        out = new Set(value);
+        seen.set(value, out);
+    } else if (isPlainObject(value)) {
+        out = {};
+        seen.set(value, out);
+        Reflect.ownKeys(value).forEach((key) => {
+            if (Object.prototype.propertyIsEnumerable.call(value, key)) {
+                out[key] = cloneInitialValue((value as Record<PropertyKey, any>)[key], seen);
+            }
+        });
+    } else {
+        return value;
+    }
+
+    if (isHintPlain(value)) {
+        ObservableHint.plain(out);
+    }
+
+    return out;
 }
 
 async function updateMetadataImmediate<T>(
@@ -1130,6 +1181,8 @@ export function syncObservable<T>(
 
     markNodeAsSynced(node);
 
+    const initial = syncOptions.initial;
+
     // Merge remote sync options with global options
     syncOptions = deepMerge(
         {
@@ -1138,6 +1191,10 @@ export function syncObservable<T>(
         observableSyncConfiguration,
         removeNullUndefined(syncOptions || {}),
     );
+    const initialSnapshot = isFunction(initial) ? undefined : cloneInitialValue(initial);
+    const getInitialValue = isFunction(initial)
+        ? () => initial()
+        : () => cloneInitialValue(initialSnapshot) ?? undefined;
     const syncState$ = syncState(obs$);
     const syncStateValue = getNodeValue(getNode(syncState$)) as ObservableSyncState;
     const localState: LocalState = {};
@@ -1322,7 +1379,7 @@ export function syncObservable<T>(
                         if (options?.resetLastSync) {
                             // Reset the node to the initial value before updating it with fresh
                             // server results
-                            setNodeValue(node, syncOptions.initial ?? undefined);
+                            setNodeValue(node, getInitialValue());
                         }
 
                         onChangeRemote(() => {
@@ -1570,7 +1627,7 @@ export function syncObservable<T>(
         unsubscribe = undefined;
         const promise = syncStateValue.resetPersistence();
         onChangeRemote(() => {
-            obs$.set(syncOptions.initial ?? undefined);
+            obs$.set(getInitialValue());
         });
         syncStateValue.isPersistEnabled = wasPersistEnabled;
         syncStateValue.isSyncEnabled = wasSyncEnabled;
