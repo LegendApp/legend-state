@@ -65,7 +65,7 @@ The first indexed mutations of an initially undefined root array were persisted 
 
 # Remaining Risks
 
-- This fix intentionally uses a coarse full-root persistence write only for a root container-type transition. Very large collections pay that one-time cost; later writes remain incremental.
+- This fix uses a coarse full-root write while the observable and persisted root types differ. This is normally a one-time cost for an initially missing collection; transforms that intentionally change the root type may continue to require full-root writes.
 - Custom persistence plugins that mutate their returned root into another container type without a root write are outside the plugin contract and may make the tracked type stale.
 - Eagerly persisting initial defaults would be a separate behavior change and should not be bundled into this corruption fix before 3.0 stable.
 

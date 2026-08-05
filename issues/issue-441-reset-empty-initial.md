@@ -32,7 +32,7 @@ A value-form `initial: {}` became the mutable backing object of the synced obser
 
 - **Release blocker:** Yes. This changes the documented reset behavior and visible React output.
 - **Decision:** Snapshot value-form initial state when sync is configured and create a fresh supported value for every reset. Continue invoking function-form initial values for each reset.
-- **Rejected shortcut:** JSON serialization would drop functions, reject cycles, and narrow supported values despite Legend's Date/Map/Set support.
+- **Rejected shortcut:** JSON serialization would drop functions, coerce Dates, and lose Map/Set structure.
 
 # Evidence
 
@@ -49,7 +49,7 @@ A value-form `initial: {}` became the mutable backing object of the synced obser
   - Function-form initial state is called again for reset.
   - Every reset provides fresh arrays, plain objects, Maps, Sets, and Dates.
   - Map keys and Set members retain their native identity.
-  - Functions are preserved and cyclic supported collections do not recurse forever.
+  - Functions are preserved, opaque values remain caller-owned, and cloned plain values retain their hint.
   - Reset continues to clear persistence and notify tracked readers.
 
 # Changes
@@ -58,12 +58,12 @@ A value-form `initial: {}` became the mutable backing object of the synced obser
 - Recreate supported mutable containers with cycle tracking for each reset.
 - Use the same fresh initial-value resolver for `reset()` and `sync({ resetLastSync: true })`.
 - Add an exact `Object.values` tracking regression across two resets.
-- Add coverage that Date, Map, Set, and function values survive reset without JSON serialization, while Map keys and Set members retain identity.
+- Add coverage that observable hints, sparse arrays, Date, Map, Set, and function values survive reset, while Map keys and Set members retain identity.
 
 # Validation
 
 - Exact regression failed before the fix with observed length `1` and passes after it.
-- Non-JSON reset coverage passes.
+- Observable-hint, sparse-array, and non-JSON reset coverage passes.
 - Existing function-form initial tests pass.
 - `npm run typecheck` passes.
 
@@ -71,6 +71,7 @@ A value-form `initial: {}` became the mutable backing object of the synced obser
 
 - Non-plain class instances, Promises, Temporal values, and other opaque objects are retained by reference. Legend does not deep-track their internals; applications needing fresh instances should use function-form `initial`.
 - Map values are cloned, while Map keys and Set members retain identity so native lookup semantics survive reset. Applications that need fresh object keys or Set members should use function-form `initial`.
+- Cyclic initial graphs are not supported by observable initialization. Cycle tracking in the clone helper is defensive and preserves repeated references within supported containers.
 - This fixes value restoration and notifications. Subscription restart and `isLoaded` timing remain governed by the existing reset lifecycle and its dedicated tests.
 
 # Result
