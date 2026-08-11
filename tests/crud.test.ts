@@ -2911,6 +2911,36 @@ describe('onSaved', () => {
             ],
         });
     });
+
+    test('does not overwrite an array changed while a save is in flight', async () => {
+        type Value = { id: string; test: string; list: { value: string }[] };
+        const canSave$ = observable(false);
+        let startSave!: () => void;
+        const saveStarted = new Promise<void>((resolve) => (startSave = resolve));
+        const obs$ = observable<Record<string, Value>>(
+            syncedCrud<Value, Value, 'object'>({
+                initial: { id1: { id: 'id1', test: 'before', list: [{ value: 'original' }] } },
+                as: 'object',
+                update: async (input) => {
+                    if (input.list![0].value === 'original') {
+                        startSave();
+                        await when(canSave$);
+                    }
+                    return input;
+                },
+                onSaved: ({ saved }) =>
+                    saved.list[0].value === 'original' ? { ...saved, list: [{ value: 'server' }] } : saved,
+            }),
+        );
+
+        obs$.id1.test.set('after');
+        await saveStarted;
+        obs$.id1.list[0].value.set('local');
+        canSave$.set(true);
+        await promiseTimeout(1);
+
+        expect(obs$.id1.list.peek()).toEqual([{ value: 'local' }]);
+    });
 });
 describe('Order of get/create', () => {
     test('create with no get', async () => {

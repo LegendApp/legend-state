@@ -38,7 +38,8 @@ export function deepEqual<T extends Record<string, any> = any>(
     nullVsUndefined?: boolean,
 ): boolean {
     if (a === b) return true;
-    if (isNullOrUndefined(a) !== isNullOrUndefined(b)) return false;
+    if (typeof a !== 'object' || !a || typeof b !== 'object' || !b) return false;
+    if (isDate(a) || isDate(b)) return isDate(a) && isDate(b) && a.getTime() === b.getTime();
 
     if (Array.isArray(a) && Array.isArray(b)) {
         if (a.length !== b.length) return false;
@@ -48,7 +49,26 @@ export function deepEqual<T extends Record<string, any> = any>(
         return true;
     }
 
-    if (!isObject(a) || !isObject(b)) return a === b;
+    if (a instanceof Map || b instanceof Map) {
+        if (!(a instanceof Map) || !(b instanceof Map) || a.size !== b.size) return false;
+        for (const [key, value] of a) {
+            if (!b.has(key) || !deepEqual(value, b.get(key), ignoreFields, nullVsUndefined)) return false;
+        }
+        return true;
+    }
+
+    if (a instanceof Set || b instanceof Set) {
+        if (!(a instanceof Set) || !(b instanceof Set) || a.size !== b.size) return false;
+        for (const value of a) {
+            if (!b.has(value)) return false;
+        }
+        return true;
+    }
+
+    // Weak collections cannot be inspected, so distinct instances are conservatively unequal.
+    if (a instanceof WeakMap || b instanceof WeakMap || a instanceof WeakSet || b instanceof WeakSet) return false;
+
+    if (!isObject(a) || !isObject(b)) return false;
 
     if (nullVsUndefined) {
         a = removeNullUndefined(a, /*recursive*/ true);
@@ -62,9 +82,6 @@ export function deepEqual<T extends Record<string, any> = any>(
 
     return keysA.every((key) => {
         if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
-        if (isDate(a[key]) && isDate(b[key])) {
-            return a[key].getTime() === b[key].getTime();
-        }
         return deepEqual(a[key], b[key], ignoreFields, nullVsUndefined);
     });
 }
