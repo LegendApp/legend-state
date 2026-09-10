@@ -1511,6 +1511,9 @@ function recursivelyAutoActivateInner(obj: Record<string, any>, pathStack: strin
         for (const key in obj) {
             if (hasOwnProperty.call(obj, key)) {
                 const value = obj[key];
+                // Scalars can never be observables or linked functions; skip them before the isObservable check.
+                const type = typeof value;
+                if (type !== 'object' && type !== 'function') continue;
 
                 if (isObservable(value)) {
                     const childNode = getNodeAtPath();

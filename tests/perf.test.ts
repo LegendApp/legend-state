@@ -181,4 +181,23 @@ describe('Perf', () => {
 
         expect(then2 - now2).toBeLessThan(process.env.CI === 'true' ? 5 : 1);
     });
+    test('Object: replacing all keys of a large object notifies removed keys', () => {
+        const obs = observable({ records: {} as Record<string, number> });
+        const initial: Record<string, number> = {};
+        for (let i = 0; i < 2000; i++) initial['key' + i] = i;
+        obs.records.set(initial);
+
+        // A listener on a removed key must still be notified when the removed-key
+        // scan uses the Set fast path for large key lists.
+        let removed = 0;
+        obs.records.key1999.onChange(() => removed++);
+
+        const next: Record<string, number> = {};
+        for (let i = 0; i < 2000; i++) next['other' + i] = i;
+
+        obs.records.set(next);
+
+        expect(removed).toEqual(1);
+        expect(obs.records.peek()).toEqual(next);
+    });
 });
