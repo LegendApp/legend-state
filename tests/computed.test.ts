@@ -2441,6 +2441,42 @@ describe('Complex computeds', () => {
     });
 });
 describe('Activation', () => {
+    test('Recursive activation traverses mixed scalar values, objects, and arrays', () => {
+        const source = observable(1);
+        const lazyGet = jest.fn(() => 10);
+        const normalFunction = jest.fn(() => 20);
+        const scalars = {
+            text: 'hello',
+            number: 3,
+            boolean: true,
+            nil: null,
+            missing: undefined,
+            bigint: BigInt(1),
+            symbol: Symbol('value'),
+        };
+        const obs = observable({
+            ...scalars,
+            nested: {
+                ...scalars,
+                value: source,
+                auto: linked({ get: () => source.get() + 1, activate: 'auto' }),
+                lazy: linked({ get: lazyGet, activate: 'lazy' }),
+                normalFunction,
+            },
+            array: [null, 'hello', { value: source }],
+        });
+
+        const value = obs.get();
+
+        expect(value).toMatchObject(scalars);
+        expect(value.nested).toMatchObject({ ...scalars, value: 1, auto: 2 });
+        expect(value.array).toEqual([null, 'hello', { value: 1 }]);
+        expect(lazyGet).not.toHaveBeenCalled();
+        expect(normalFunction).not.toHaveBeenCalled();
+        source.set(2);
+        expect(obs.get().nested).toMatchObject({ value: 2, auto: 3 });
+        expect(obs.get().array).toEqual([null, 'hello', { value: 2 }]);
+    });
     test('linked with function', () => {
         const obs = observable({ test: 10, test2: 20 });
         const comp = observable(linked(() => obs.test.get() + obs.test2.get()));

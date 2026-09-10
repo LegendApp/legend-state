@@ -35,6 +35,45 @@ describe('Set', () => {
         expect(obs.test.get()).toEqual({ text: 't2' });
         expect(obs.get()).toEqual({ test: { text: 't2' } });
     });
+    test.each([32, 33, 2000])('Replacing all %i object keys notifies removed descendants', (size) => {
+        const initial = Object.fromEntries(Array.from({ length: size }, (_, i) => ['key' + i, { value: i }]));
+        const obs = observable<Record<string, { value: number }>>(initial);
+        const removed = obs['key' + (size - 1)].value;
+        const onRemoved = expectChangeHandler(removed);
+        const next = Object.fromEntries(Array.from({ length: size }, (_, i) => ['other' + i, { value: i }]));
+
+        obs.set(next);
+
+        expect(onRemoved).toHaveBeenCalledTimes(1);
+        expect(onRemoved).toHaveBeenCalledWith(undefined, size - 1, [
+            { path: [], pathTypes: [], prevAtPath: size - 1, valueAtPath: undefined },
+        ]);
+        expect(obs.peek()).toEqual(next);
+    });
+    test.each([32, 33])('Reordering %i object keys preserves retained listeners and deletion order', (size) => {
+        const initial = Object.fromEntries(Array.from({ length: size }, (_, i) => ['key' + i, i]));
+        const obs = observable<Record<string, number>>(initial);
+        const retained = obs.key1;
+        const onRetained = jest.fn();
+        retained.onChange(onRetained);
+        const removed: string[] = [];
+        obs.key0.onChange(() => removed.push('key0'));
+        obs['key' + (size - 1)].onChange(() => removed.push('key' + (size - 1)));
+        const next = Object.fromEntries([
+            ['added0', -1],
+            ...Object.entries(initial).slice(1, -1).reverse(),
+            ['added1', -2],
+        ]);
+
+        obs.set(next);
+
+        expect(removed).toEqual(['key0', 'key' + (size - 1)]);
+        expect(onRetained).not.toHaveBeenCalled();
+        expect(obs.key1).toBe(retained);
+        expect(obs.peek()).toEqual(next);
+        obs.key1.set(100);
+        expect(onRetained).toHaveBeenCalledTimes(1);
+    });
     test('Set primitive', () => {
         const obs = observable({ test: { text: 't' } });
         obs.test.text.set('t2');
