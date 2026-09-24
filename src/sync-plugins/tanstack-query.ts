@@ -15,7 +15,7 @@ import {
 let nextMutationKey = 0;
 
 export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
-    extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TData, TQueryKey>, 'queryKey'> {
+    extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>, 'queryKey'> {
     queryKey?: TQueryKey | (() => TQueryKey);
 }
 
@@ -43,9 +43,9 @@ export function syncedQuery<
 
     const Observer = QueryObserver;
     const defaultedOptions = queryClient!.defaultQueryOptions(
-        options as QueryObserverOptions<TQueryFnData, TError, TData, TQueryKey>,
+        options as QueryObserverOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>,
     );
-    let observer: QueryObserver<TQueryFnData, TError, TData, TQueryKey> | undefined = undefined;
+    let observer: QueryObserver<TQueryFnData, TError, TData, TQueryFnData, TQueryKey> | undefined = undefined;
     let latestOptions = defaultedOptions;
     let queryKeyFromFn: TQueryKey;
     let resolveInitialPromise: undefined | ((value: TData) => void) = undefined;
@@ -55,7 +55,9 @@ export function syncedQuery<
     // If the queryKey is a function, observe it and extract the raw value
     const isKeyFunction = isFunction(origQueryKey);
 
-    const updateQueryOptions = (obj: DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryKey>) => {
+    const updateQueryOptions = (
+        obj: DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>,
+    ) => {
         // Since legend-state mutates the query options, we need to clone it to make Query
         // see it as changed
         const options = Object.assign({}, obj);
@@ -81,7 +83,7 @@ export function syncedQuery<
     }
 
     // Create the observer
-    observer = new Observer!<TQueryFnData, TError, TData, TQueryKey>(queryClient!, latestOptions);
+    observer = new Observer!<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>(queryClient!, latestOptions);
 
     let isFirstRun = true;
     const get = (async () => {
