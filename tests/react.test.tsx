@@ -15,6 +15,7 @@ import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
 import { use$, useSelector } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
+import { tracking } from '../src/tracking';
 import { Memo } from '../src/react/Memo';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { useComputed } from '../src/react/useComputed';
@@ -578,6 +579,49 @@ describe('useSelector', () => {
             expect(await when(isDone$)).toEqual('hi');
             items = container.querySelectorAll('div');
             expect(items[0].textContent).toEqual('hi');
+        });
+    });
+    test('suspense thrown inside observer leaves no tracking behind', async () => {
+        await supressActWarning(async () => {
+            let isResolved = false;
+            const promise = new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    isResolved = true;
+                    resolve();
+                }, 10),
+            );
+            const obs$ = observable({ value: 'hi' });
+            const isDone$ = observable(false);
+            const Test = observer(function Test() {
+                const value = obs$.value.get();
+                // A suspending hook from outside Legend-State (a data library's useSuspenseQuery)
+                // throws its promise from inside the observed render
+                if (!isResolved) {
+                    throw promise;
+                }
+                isDone$.set(true);
+
+                return createElement('div', undefined, value);
+            });
+            function App() {
+                return createElement(
+                    Suspense,
+                    { fallback: createElement('div', undefined, 'fallback') },
+                    createElement(Test),
+                );
+            }
+            const { container } = render(createElement(App));
+            let items = container.querySelectorAll('div');
+            expect(items[0].textContent).toEqual('fallback');
+            // The suspended render's tracker must not stay current, or every later get()
+            // anywhere would keep adding nodes to it. Compared as a boolean: printing a
+            // leaked tracker on failure would walk its proxies forever.
+            expect(tracking.current === undefined).toBe(true);
+
+            expect(await when(isDone$)).toEqual(true);
+            items = container.querySelectorAll('div');
+            expect(items[0].textContent).toEqual('hi');
+            expect(tracking.current === undefined).toBe(true);
         });
     });
     test('use$ with array length', async () => {

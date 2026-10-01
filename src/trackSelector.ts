@@ -1,5 +1,12 @@
 import { computeSelector } from './helpers';
-import type { ObserveOptions, ListenerParams, ObserveEvent, Selector, GetOptions } from './observableInterfaces';
+import type {
+    GetOptions,
+    ListenerParams,
+    ObserveEvent,
+    ObserveOptions,
+    Selector,
+    TrackingState,
+} from './observableInterfaces';
 import { setupTracking } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 
@@ -14,14 +21,21 @@ export function trackSelector<T>(
     let dispose: undefined | (() => void);
     let resubscribe: (() => () => void) | undefined;
     let updateFn = update;
+    let value: T;
+    let tracker: TrackingState | undefined;
+    let nodes: TrackingState['nodes'];
 
     beginTracking();
-    const value = selector
-        ? computeSelector(selector, getOptions, observeEvent, observeOptions?.fromComputed)
-        : selector;
-    const tracker = tracking.current;
-    const nodes = tracker!.nodes;
-    endTracking();
+    try {
+        value = selector ? computeSelector(selector, getOptions, observeEvent, observeOptions?.fromComputed) : selector;
+    } finally {
+        // The selector can throw: an observer's component render that suspends (a thrown promise)
+        // or errors. Tracking has to end either way. Otherwise this tracker stays as tracking.current
+        // with trackCount above zero, and every later get() anywhere adds its node to it for good.
+        tracker = tracking.current;
+        nodes = tracker!.nodes;
+        endTracking();
+    }
 
     if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
         tracker.traceListeners?.(nodes);
