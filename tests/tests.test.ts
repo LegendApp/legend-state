@@ -2319,6 +2319,32 @@ describe('Deep changes keep listeners', () => {
             ],
         );
     });
+    test('Array push getPrevious has the previous length', () => {
+        const obs = observable({ arr: [{ _id: 0 }] });
+        let prev: any;
+        let prevRoot: any;
+        obs.arr.onChange(({ getPrevious }) => (prev = getPrevious()));
+        obs.onChange(({ getPrevious }) => (prevRoot = getPrevious()));
+        obs.arr.push({ _id: 1 });
+        expect(prev).toStrictEqual([{ _id: 0 }]);
+        expect(prevRoot).toStrictEqual({ arr: [{ _id: 0 }] });
+
+        batch(() => {
+            obs.arr.push({ _id: 2 });
+            obs.arr.push({ _id: 3 });
+        });
+        expect(prev).toStrictEqual([{ _id: 0 }, { _id: 1 }]);
+        expect(prevRoot).toStrictEqual({ arr: [{ _id: 0 }, { _id: 1 }] });
+    });
+    test('getPrevious with child and parent changes in a batch', () => {
+        const obs = observable({ a: 0, b: { c: 0 } });
+        const handler = expectChangeHandler(obs);
+        batch(() => {
+            obs.b.c.set(1);
+            obs.b.set({ c: 5 });
+        });
+        expect(handler.mock.calls[0][1]).toEqual({ a: 0, b: { c: 0 } });
+    });
 });
 describe('Delete', () => {
     test('Delete key', () => {

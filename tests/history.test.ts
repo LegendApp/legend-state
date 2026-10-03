@@ -178,6 +178,41 @@ describe('Undo/Redo', () => {
         ]);
     });
 
+    test('Undo/Redo with array push', () => {
+        const obs$ = observable({ items: [] as { id: number }[] });
+        const { undo, redo, undos$, redos$ } = undoRedo(obs$.items);
+
+        obs$.items.push({ id: 1 });
+        expect(obs$.items.get()).toEqual([{ id: 1 }]);
+        expect(undos$.get()).toBe(1);
+
+        undo();
+        expect(obs$.items.get()).toStrictEqual([]);
+        expect(undos$.get()).toBe(0);
+        expect(redos$.get()).toBe(1);
+
+        redo();
+        expect(obs$.items.get()).toStrictEqual([{ id: 1 }]);
+
+        obs$.items.push({ id: 2 });
+        undo();
+        expect(obs$.items.get()).toStrictEqual([{ id: 1 }]);
+    });
+
+    test('Undo/Redo with array push in a batch', () => {
+        const obs$ = observable({ items: [{ id: 0 }] as { id: number }[] });
+        const { undo } = undoRedo(obs$.items);
+
+        beginBatch();
+        obs$.items.push({ id: 1 });
+        obs$.items.push({ id: 2 });
+        endBatch();
+        expect(obs$.items.get()).toEqual([{ id: 0 }, { id: 1 }, { id: 2 }]);
+
+        undo();
+        expect(obs$.items.get()).toStrictEqual([{ id: 0 }]);
+    });
+
     test('Undo/Redo with multiple changes after undoing', () => {
         const obs$ = observable({ test: 'hi', test2: 'a' });
         const { undo, redo, undos$, redos$, getHistory } = undoRedo(obs$);
