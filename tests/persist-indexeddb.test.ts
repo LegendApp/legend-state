@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
+import { symbolDelete } from '../src/globals';
 import { observable } from '../src/observable';
 import { observablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureSynced } from '../src/sync/configureSynced';
@@ -370,6 +371,97 @@ describe('Persist IDB', () => {
         await promiseTimeout(0);
 
         await expectIDB(persistName, []);
+    });
+    test('Persist IDB deletes an item when valueAtPath is symbolDelete', async () => {
+        const persistName = getLocalName();
+        const persist = myIndexedDBPlugin as ObservablePersistPlugin;
+        await persist.initialize!(persistOptions);
+
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: ['id-1'],
+                    pathTypes: ['object'],
+                    prevAtPath: undefined,
+                    valueAtPath: { id: 'id-1', name: 'Alice' },
+                },
+                {
+                    path: ['id-2'],
+                    pathTypes: ['object'],
+                    prevAtPath: undefined,
+                    valueAtPath: { id: 'id-2', name: 'Bob' },
+                },
+            ],
+            {},
+        );
+
+        await expectIDB(persistName, [
+            { id: 'id-1', name: 'Alice' },
+            { id: 'id-2', name: 'Bob' },
+        ]);
+
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: ['id-1'],
+                    pathTypes: ['object'],
+                    prevAtPath: { id: 'id-1', name: 'Alice' },
+                    valueAtPath: symbolDelete,
+                },
+            ],
+            {},
+        );
+
+        await expectIDB(persistName, [{ id: 'id-2', name: 'Bob' }]);
+    });
+    test('Persist IDB deletes keys marked symbolDelete on full-table set', async () => {
+        const persistName = getLocalName();
+        const persist = myIndexedDBPlugin as ObservablePersistPlugin;
+        await persist.initialize!(persistOptions);
+
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    prevAtPath: undefined,
+                    valueAtPath: {
+                        id1: { id: 'id1', name: 'Alice' },
+                        id2: { id: 'id2', name: 'Bob' },
+                    },
+                },
+            ],
+            {},
+        );
+
+        await expectIDB(persistName, [
+            { id: 'id1', name: 'Alice' },
+            { id: 'id2', name: 'Bob' },
+        ]);
+
+        await persist.set(
+            persistName,
+            [
+                {
+                    path: [],
+                    pathTypes: [],
+                    prevAtPath: {
+                        id1: { id: 'id1', name: 'Alice' },
+                        id2: { id: 'id2', name: 'Bob' },
+                    },
+                    valueAtPath: {
+                        id1: { id: 'id1', name: 'Alice' },
+                        id2: symbolDelete,
+                    },
+                },
+            ],
+            {},
+        );
+
+        await expectIDB(persistName, [{ id: 'id1', name: 'Alice' }]);
     });
     test('Persist without a name errors', async () => {
         const obs = observable<Record<string, any>>({});
