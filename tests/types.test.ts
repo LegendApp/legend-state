@@ -7,6 +7,79 @@ import {
     ObservablePrimitive,
 } from '../src/observableTypes';
 import { observable } from '../src/observable';
+import { queryOptions, QueryClient } from '@tanstack/react-query';
+import { syncedQuery } from '../src/sync-plugins/tanstack-query';
+import { useObservableSyncedQuery } from '../src/sync-plugins/tanstack-react-query';
+
+type Todo = {
+    id: number;
+    title: string;
+};
+
+describe('TanStack Query types', () => {
+    it('infers selected data through the core and React APIs', () => {
+        const queryClient = new QueryClient();
+        const query = queryOptions({
+            queryKey: ['todos'] as const,
+            queryFn: async (): Promise<Todo[]> => [{ id: 1, title: 'First' }],
+            select: (todos) => todos.length,
+        });
+
+        function core() {
+            return syncedQuery({ queryClient, query });
+        }
+
+        function react() {
+            return useObservableSyncedQuery({ queryClient, query });
+        }
+
+        expectTypeOf<ReturnType<typeof core>>().toEqualTypeOf<number>();
+        expectTypeOf<ReturnType<typeof react>['get']>().returns.toEqualTypeOf<number>();
+    });
+
+    it('infers selected data from a plain object in the React API', () => {
+        function react() {
+            return useObservableSyncedQuery({
+                queryClient: new QueryClient(),
+                query: {
+                    queryKey: ['todos'] as const,
+                    queryFn: async () => [{ id: 1, title: 'First' }],
+                    select: (todos) => {
+                        expectTypeOf(todos).toEqualTypeOf<Todo[]>();
+                        return todos.length;
+                    },
+                },
+            });
+        }
+
+        expectTypeOf<ReturnType<typeof react>['get']>().returns.toEqualTypeOf<number>();
+    });
+
+    it('preserves raw query data and a reactive tuple key in query callbacks', () => {
+        const queryClient = new QueryClient();
+
+        function selectedQuery() {
+            return syncedQuery({
+                queryClient,
+                query: {
+                    queryKey: () => ['todo', 1] as const,
+                    queryFn: async ({ queryKey }): Promise<Todo[]> => {
+                        expectTypeOf(queryKey).toEqualTypeOf<readonly ['todo', 1]>();
+                        return [{ id: 1, title: 'First' }];
+                    },
+                    placeholderData: (previousData, previousQuery) => {
+                        expectTypeOf(previousData).toEqualTypeOf<Todo[] | undefined>();
+                        expectTypeOf(previousQuery?.state.data).toEqualTypeOf<Todo[] | undefined>();
+                        return previousData;
+                    },
+                    select: (todos) => todos.length,
+                },
+            });
+        }
+
+        expectTypeOf<ReturnType<typeof selectedQuery>>().toEqualTypeOf<number>();
+    });
+});
 
 describe('observable', () => {
     it('optional object return type when no argument is passed', () => {
