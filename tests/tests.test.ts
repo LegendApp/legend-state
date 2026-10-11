@@ -4,7 +4,7 @@ import { configureLegendState } from '../src/config/configureLegendState';
 import { enable$GetSet } from '../src/config/enable$GetSet';
 import { enable_PeekAssign } from '../src/config/enable_PeekAssign';
 import { event } from '../src/event';
-import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
+import { clone, getNode, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive } from '../src/observable';
@@ -1082,6 +1082,19 @@ describe('Primitives', () => {
         const raw /* infered: BigNumber | null */ = val.get();
         expect(raw?.c).toBeNull();
     })
+    test('opaque array should be handled like primitives', () => {
+        const obs = observable({
+            arr: ObservableHint.opaque([{ id: 'a', nested: { value: 1 } }]),
+        });
+        const handler = expectChangeHandler(obs.arr);
+
+        obs.arr.set(ObservableHint.opaque([{ id: 'b', nested: { value: 2 } }]));
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(obs.arr.get()[0].nested.value).toEqual(2);
+        expect(getNode(obs.arr).children).toBeUndefined();
+        expect(isObservable((obs.arr as any)[0])).toEqual(false);
+    });
 });
 describe('Array', () => {
     test('Basic array', () => {
