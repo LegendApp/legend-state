@@ -242,11 +242,27 @@ export function initializePathType(pathType: TypeAtPath): any {
 }
 export function applyChange<T extends object>(value: T, change: Change, applyPrevious?: boolean): T {
     const { path, valueAtPath, prevAtPath, pathTypes } = change;
+    if (applyPrevious && prevAtPath === undefined && path.length > 0) {
+        // If the change appended an element to an array (like with push), remove it rather than
+        // setting it to undefined so that the array has its previous length
+        const parent = getValueAtPath(value, path.slice(0, -1) as string[]);
+        if (isArray(parent) && +path[path.length - 1] === parent.length - 1) {
+            parent.pop();
+            return value;
+        }
+    }
     return setAtPath(value, path as string[], pathTypes, applyPrevious ? prevAtPath : valueAtPath);
 }
 export function applyChanges<T extends object>(value: T, changes: Change[], applyPrevious?: boolean): T {
-    for (let i = 0; i < changes.length; i++) {
-        value = applyChange(value, changes[i], applyPrevious);
+    if (applyPrevious) {
+        // Revert the changes in the opposite order that they were made
+        for (let i = changes.length - 1; i >= 0; i--) {
+            value = applyChange(value, changes[i], applyPrevious);
+        }
+    } else {
+        for (let i = 0; i < changes.length; i++) {
+            value = applyChange(value, changes[i], applyPrevious);
+        }
     }
     return value;
 }
