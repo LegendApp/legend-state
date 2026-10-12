@@ -2,6 +2,31 @@ import { observable, observe } from '@legendapp/state';
 import { synced } from '@legendapp/state/sync';
 import { promiseTimeout } from './testglobals';
 
+describe('Lazy activation', () => {
+    test('Reading a synced root does not traverse the subscribed data', () => {
+        const enumerateChild = jest.fn(Reflect.ownKeys);
+        const data: Record<string, { child: { grandchild: { value: string } } }> = {};
+        for (let i = 0; i < 10000; i++) {
+            data['key' + i] = new Proxy<(typeof data)[string]>(
+                { child: { grandchild: { value: 'hi' } } },
+                { ownKeys: enumerateChild },
+            );
+        }
+        const get = jest.fn(() => null);
+        const subscribe = jest.fn(({ update }) => update({ value: data }));
+        const obs$ = observable(synced<null | typeof data>({ get, subscribe }));
+
+        expect(get).not.toHaveBeenCalled();
+        expect(subscribe).not.toHaveBeenCalled();
+        expect(obs$.get()).toBe(data);
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(subscribe).toHaveBeenCalledTimes(1);
+        // Catch eager recursive activation without relying on a wall-clock deadline.
+        expect(enumerateChild).not.toHaveBeenCalled();
+        expect(obs$.key9999.child.grandchild.value.get()).toBe('hi');
+    });
+});
+
 describe('unsubscribe', () => {
     test('Canceling observe unsubscribes', async () => {
         let numObserves = 0;

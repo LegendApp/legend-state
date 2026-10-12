@@ -1999,7 +1999,8 @@ describe('lastSync', () => {
         syncState(obs$).sync();
         expect(numLists).toEqual(2);
 
-        await promiseTimeout(10);
+        // lastSync is published after the persistence plugin finishes writing metadata.
+        await when(() => syncState(obs$).lastSync.get() === 2);
 
         expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 2 }));
     });

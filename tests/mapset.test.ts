@@ -1,7 +1,8 @@
 import { observe } from '../src/observe';
-import { isObservable, optimized } from '../src/globals';
+import { getChildNode, getNode, isObservable, optimized } from '../src/globals';
 import { mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
+import { getProxy } from '../src/ObservableObject';
 import { expectChangeHandler } from './testglobals';
 
 describe('Map default behavior', () => {
@@ -23,6 +24,50 @@ describe('Map default behavior', () => {
         obs.test.set(new Map([['key3', 'value3']]));
         expect(obs.test.get('key3').get()).toEqual('value3');
         expect(obs.test.has('key1')).toEqual(false);
+    });
+    test.each([32, 33])('Reordering %i Map keys preserves key identity and retained listeners', (size) => {
+        const objectKey = { id: 1 };
+        const replacementKey = { id: 1 };
+        const initial = new Map<unknown, number>([
+            [objectKey, 1],
+            [NaN, 2],
+            [0, 3],
+            ...Array.from({ length: size - 3 }, (_, i): [unknown, number] => ['key' + i, i]),
+        ]);
+        const obs = observable(initial);
+        const onRemoved = expectChangeHandler(obs.get(objectKey));
+        const onRetained = jest.fn();
+        obs.get(NaN).onChange(onRetained);
+        obs.get(0).onChange(onRetained);
+        const next = new Map([...initial].reverse());
+        next.delete(objectKey);
+        next.set(replacementKey, 4);
+
+        obs.set(next);
+
+        expect(onRemoved).toHaveBeenCalledTimes(1);
+        expect(onRemoved).toHaveBeenCalledWith(undefined, 1, [
+            { path: [], pathTypes: [], prevAtPath: 1, valueAtPath: undefined },
+        ]);
+        expect(onRetained).not.toHaveBeenCalled();
+        expect(obs.peek()).toEqual(next);
+        obs.get(NaN).set(5);
+        obs.get(-0).set(6);
+        expect(onRetained).toHaveBeenCalledTimes(2);
+    });
+    test.each([0, 1, 33])('Map replacement removes an undefined key after %i retained keys', (size) => {
+        const retained = Array.from({ length: size }, (_, i): [unknown, number] => ['key' + i, i]);
+        const obs = observable(new Map([...retained, [undefined, 42]]));
+        // Access the node directly because get(undefined) currently returns the Map's own proxy.
+        const child = getProxy(getChildNode(getNode(obs), undefined as any));
+        const onRemoved = jest.fn();
+        child.onChange(({ value }) => onRemoved(value));
+
+        obs.set(new Map(retained));
+
+        expect(onRemoved).toHaveBeenCalledTimes(1);
+        expect(onRemoved).toHaveBeenCalledWith(undefined);
+        expect(obs.peek()).toEqual(new Map(retained));
     });
     test('Map delete', () => {
         const obs = observable({

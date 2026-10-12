@@ -230,9 +230,14 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
     } else if (prevValue && (!obj || isObject(obj))) {
         // For keys that have been removed from object, notify and update children recursively
         const lengthPrev = keysPrev.length;
+        let keySet: Set<string> | undefined;
         for (let i = 0; i < lengthPrev; i++) {
             const key = keysPrev[i];
-            if (!keys.includes(key)) {
+            // Fast path for same-position keys, then Set lookup for large key lists to avoid quadratic scans.
+            // Map keys can be undefined, so an out-of-bounds read must not count as a match.
+            if (i < length && keys[i] === key) continue;
+            if (!keySet && keys.length > 32 && lengthPrev > 32) keySet = new Set(keys);
+            if (!(keySet ? keySet.has(key) : keys.includes(key))) {
                 hasADiff = true;
                 const child = getChildNode(parent, key);
 
@@ -1479,6 +1484,9 @@ function recursivelyAutoActivateInner(obj: Record<string, any>, pathStack: strin
         for (const key in obj) {
             if (hasOwnProperty.call(obj, key)) {
                 const value = obj[key];
+                // Scalars can never be observables or linked functions; skip them before the isObservable check.
+                const type = typeof value;
+                if (type !== 'object' && type !== 'function') continue;
 
                 if (isObservable(value)) {
                     const childNode = getNodeAtPath();
